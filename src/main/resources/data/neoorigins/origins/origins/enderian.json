@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.enderian.name",
+  "description": "origins.neoorigins.enderian.description",
+  "icon": "minecraft:ender_pearl",
+  "impact": "high",
+  "order": 6,
+  "powers": [
+    "neoorigins:enderian_no_eye_damage",
+    "neoorigins:enderian_water_damage"
+  ],
+  "upgrades": []
+}

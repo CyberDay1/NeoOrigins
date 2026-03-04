@@ -1,0 +1,14 @@
+{
+  "name": "origins.neoorigins.merling.name",
+  "description": "origins.neoorigins.merling.description",
+  "icon": "minecraft:cod",
+  "impact": "medium",
+  "order": 2,
+  "powers": [
+    "neoorigins:merling_water_breathing",
+    "neoorigins:merling_aquatic_speed",
+    "neoorigins:merling_land_slowdown",
+    "neoorigins:merling_no_drowning"
+  ],
+  "upgrades": []
+}

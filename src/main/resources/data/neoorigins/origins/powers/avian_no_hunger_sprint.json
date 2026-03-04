@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:status_effect",
+  "effect": "minecraft:saturation",
+  "amplifier": 0,
+  "ambient": true,
+  "show_particles": false
+}

@@ -1,0 +1,19 @@
+{
+  "order": 1,
+  "name": "origins.layer.origin",
+  "origins": [
+    "neoorigins:human",
+    "neoorigins:merling",
+    "neoorigins:avian",
+    "neoorigins:blazeling",
+    "neoorigins:elytrian",
+    "neoorigins:enderian",
+    "neoorigins:arachnid",
+    "neoorigins:shulk",
+    "neoorigins:phantom"
+  ],
+  "allow_random": true,
+  "auto_choose": false,
+  "hidden": false,
+  "enabled": true
+}

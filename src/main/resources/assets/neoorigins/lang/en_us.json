@@ -1,0 +1,32 @@
+{
+  "origins.layer.origin": "Origin",
+  "screen.neoorigins.choose_origin": "Choose Your Origin",
+  "button.neoorigins.random": "Random",
+
+  "origins.neoorigins.human.name": "Human",
+  "origins.neoorigins.human.description": "A regular human being, with no special powers but well-rounded abilities.",
+
+  "origins.neoorigins.merling.name": "Merling",
+  "origins.neoorigins.merling.description": "An aquatic being who thrives in water but struggles on land.",
+
+  "origins.neoorigins.avian.name": "Avian",
+  "origins.neoorigins.avian.description": "A graceful flier who drifts down slowly and never fears heights.",
+
+  "origins.neoorigins.blazeling.name": "Blazeling",
+  "origins.neoorigins.blazeling.description": "Born of fire, immune to its fury — but water is deadly poison.",
+
+  "origins.neoorigins.elytrian.name": "Elytrian",
+  "origins.neoorigins.elytrian.description": "Gifted with wings of wind, the Elytrian soars through the skies.",
+
+  "origins.neoorigins.enderian.name": "Enderian",
+  "origins.neoorigins.enderian.description": "A being of the End who detests water and resists eye damage.",
+
+  "origins.neoorigins.arachnid.name": "Arachnid",
+  "origins.neoorigins.arachnid.description": "Nimble spider-folk who can scale any wall and never fear falling while climbing.",
+
+  "origins.neoorigins.shulk.name": "Shulk",
+  "origins.neoorigins.shulk.description": "Armored like a shulker, moving slowly but shrugging off blows.",
+
+  "origins.neoorigins.phantom.name": "Phantom",
+  "origins.neoorigins.phantom.description": "A spectral being, nearly weightless and unseen — but haunted by its own nature."
+}

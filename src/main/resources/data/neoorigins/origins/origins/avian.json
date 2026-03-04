@@ -1,0 +1,13 @@
+{
+  "name": "origins.neoorigins.avian.name",
+  "description": "origins.neoorigins.avian.description",
+  "icon": "minecraft:feather",
+  "impact": "low",
+  "order": 3,
+  "powers": [
+    "neoorigins:avian_slow_fall",
+    "neoorigins:avian_no_fall_damage",
+    "neoorigins:avian_no_hunger_sprint"
+  ],
+  "upgrades": []
+}
