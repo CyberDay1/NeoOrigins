@@ -1,0 +1,13 @@
+{
+  "name": "origins.neoorigins.blazeling.name",
+  "description": "origins.neoorigins.blazeling.description",
+  "icon": "minecraft:blaze_rod",
+  "impact": "high",
+  "order": 4,
+  "powers": [
+    "neoorigins:blazeling_fire_immunity",
+    "neoorigins:blazeling_water_damage",
+    "neoorigins:blazeling_night_vision"
+  ],
+  "upgrades": []
+}

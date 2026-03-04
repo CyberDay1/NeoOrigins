@@ -24,3 +24,6 @@ bin/
 # NeoForge / Minecraft dev
 run/
 runs/
+
+# Reference sources (local only)
+reference/

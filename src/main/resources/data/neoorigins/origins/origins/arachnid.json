@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.arachnid.name",
+  "description": "origins.neoorigins.arachnid.description",
+  "icon": "minecraft:cobweb",
+  "impact": "medium",
+  "order": 7,
+  "powers": [
+    "neoorigins:arachnid_wall_climbing",
+    "neoorigins:arachnid_no_fall_damage_climbing"
+  ],
+  "upgrades": []
+}

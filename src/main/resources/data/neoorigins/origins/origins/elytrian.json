@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.elytrian.name",
+  "description": "origins.neoorigins.elytrian.description",
+  "icon": "minecraft:elytra",
+  "impact": "medium",
+  "order": 5,
+  "powers": [
+    "neoorigins:elytrian_elytra_boost",
+    "neoorigins:elytrian_flight"
+  ],
+  "upgrades": []
+}

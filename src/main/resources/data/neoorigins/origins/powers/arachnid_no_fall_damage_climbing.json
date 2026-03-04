@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:conditional",
+  "condition": "climbing",
+  "inner_power": "neoorigins:avian_no_fall_damage"
+}
