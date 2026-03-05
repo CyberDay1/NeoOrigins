@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.client;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -11,19 +11,19 @@ import java.util.Map;
 @OnlyIn(Dist.CLIENT)
 public class ClientOriginState {
 
-    private static Map<ResourceLocation, ResourceLocation> origins = new HashMap<>();
+    private static Map<Identifier, Identifier> origins = new HashMap<>();
     private static boolean hadAllOrigins = false;
 
-    public static void setOrigins(Map<ResourceLocation, ResourceLocation> newOrigins, boolean hadAll) {
+    public static void setOrigins(Map<Identifier, Identifier> newOrigins, boolean hadAll) {
         origins = new HashMap<>(newOrigins);
         hadAllOrigins = hadAll;
     }
 
-    public static Map<ResourceLocation, ResourceLocation> getOrigins() {
+    public static Map<Identifier, Identifier> getOrigins() {
         return Collections.unmodifiableMap(origins);
     }
 
-    public static ResourceLocation getOrigin(ResourceLocation layerId) {
+    public static Identifier getOrigin(Identifier layerId) {
         return origins.get(layerId);
     }
 

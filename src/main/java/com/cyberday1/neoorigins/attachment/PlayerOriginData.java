@@ -2,7 +2,7 @@ package com.cyberday1.neoorigins.attachment;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,11 +13,11 @@ import java.util.Map;
  */
 public class PlayerOriginData {
 
-    private final Map<ResourceLocation, ResourceLocation> origins = new HashMap<>();
+    private final Map<Identifier, Identifier> origins = new HashMap<>();
     private boolean hadAllOrigins = false;
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-        Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
+        Codec.unboundedMap(Identifier.CODEC, Identifier.CODEC)
             .optionalFieldOf("origins", Map.of())
             .forGetter(d -> Map.copyOf(d.origins)),
         Codec.BOOL
@@ -30,23 +30,23 @@ public class PlayerOriginData {
         return data;
     }));
 
-    public Map<ResourceLocation, ResourceLocation> getOrigins() {
+    public Map<Identifier, Identifier> getOrigins() {
         return Map.copyOf(origins);
     }
 
-    public ResourceLocation getOrigin(ResourceLocation layerId) {
+    public Identifier getOrigin(Identifier layerId) {
         return origins.get(layerId);
     }
 
-    public void setOrigin(ResourceLocation layerId, ResourceLocation originId) {
+    public void setOrigin(Identifier layerId, Identifier originId) {
         origins.put(layerId, originId);
     }
 
-    public void removeOrigin(ResourceLocation layerId) {
+    public void removeOrigin(Identifier layerId) {
         origins.remove(layerId);
     }
 
-    public boolean hasOriginForLayer(ResourceLocation layerId) {
+    public boolean hasOriginForLayer(Identifier layerId) {
         return origins.containsKey(layerId);
     }
 

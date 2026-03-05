@@ -5,36 +5,48 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.power.registry.PowerTypes;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 
+import java.io.Reader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PowerDataManager extends SimpleJsonResourceReloadListener {
+public class PowerDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public static final PowerDataManager INSTANCE = new PowerDataManager();
+    private static final FileToIdConverter FILE_CONVERTER = FileToIdConverter.json("origins/powers");
 
-    private Map<ResourceLocation, PowerHolder<?>> powers = new HashMap<>();
+    private Map<Identifier, PowerHolder<?>> powers = new HashMap<>();
 
-    public PowerDataManager() {
-        super(GSON, "origins/powers");
+    @Override
+    protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<Identifier, JsonElement> map = new HashMap<>();
+        for (var entry : FILE_CONVERTER.listMatchingResources(resourceManager).entrySet()) {
+            Identifier fileId = entry.getKey();
+            Identifier id = FILE_CONVERTER.fileToId(fileId);
+            try (Reader reader = entry.getValue().openAsReader()) {
+                map.put(id, JsonParser.parseReader(reader));
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.error("Error reading power file {}", fileId, e);
+            }
+        }
+        return map;
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
-        Map<ResourceLocation, PowerHolder<?>> loaded = new HashMap<>();
-        for (Map.Entry<ResourceLocation, JsonElement> entry : pObject.entrySet()) {
-            ResourceLocation id = entry.getKey();
+    protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+        Map<Identifier, PowerHolder<?>> loaded = new HashMap<>();
+        for (Map.Entry<Identifier, JsonElement> entry : pObject.entrySet()) {
+            Identifier id = entry.getKey();
             try {
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject json = entry.getValue().getAsJsonObject();
@@ -42,7 +54,7 @@ public class PowerDataManager extends SimpleJsonResourceReloadListener {
                     NeoOrigins.LOGGER.warn("Power {} missing 'type' field", id);
                     continue;
                 }
-                ResourceLocation typeId = ResourceLocation.parse(json.get("type").getAsString());
+                Identifier typeId = Identifier.parse(json.get("type").getAsString());
                 PowerType<?> type = PowerTypes.get(typeId);
                 if (type == null) {
                     NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}", typeId, id);
@@ -59,14 +71,14 @@ public class PowerDataManager extends SimpleJsonResourceReloadListener {
 
     @SuppressWarnings("unchecked")
     private <C extends PowerConfiguration> void parsePower(
-            ResourceLocation id, PowerType<C> type, JsonObject json,
-            Map<ResourceLocation, PowerHolder<?>> target) {
+            Identifier id, PowerType<C> type, JsonObject json,
+            Map<Identifier, PowerHolder<?>> target) {
         type.codec().parse(JsonOps.INSTANCE, json)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
             .ifPresent(config -> target.put(id, new PowerHolder<>(type, config)));
     }
 
-    public Map<ResourceLocation, PowerHolder<?>> getPowers() { return powers; }
-    public PowerHolder<?> getPower(ResourceLocation id) { return powers.get(id); }
-    public boolean hasPower(ResourceLocation id) { return powers.containsKey(id); }
+    public Map<Identifier, PowerHolder<?>> getPowers() { return powers; }
+    public PowerHolder<?> getPower(Identifier id) { return powers.get(id); }
+    public boolean hasPower(Identifier id) { return powers.containsKey(id); }
 }

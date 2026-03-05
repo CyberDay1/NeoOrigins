@@ -6,7 +6,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -15,7 +15,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
 
     public record Config(
-        ResourceLocation attribute,
+        Identifier attribute,
         double amount,
         AttributeModifier.Operation operation,
         String type
@@ -36,7 +36,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         );
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            ResourceLocation.CODEC.fieldOf("attribute").forGetter(Config::attribute),
+            Identifier.CODEC.fieldOf("attribute").forGetter(Config::attribute),
             Codec.DOUBLE.fieldOf("amount").forGetter(Config::amount),
             OPERATION_CODEC.optionalFieldOf("operation", AttributeModifier.Operation.ADD_VALUE).forGetter(Config::operation),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
@@ -57,13 +57,13 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
-        var attrHolderOpt = BuiltInRegistries.ATTRIBUTE.getHolder(config.attribute());
+        var attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(config.attribute());
         if (attrHolderOpt.isEmpty()) return;
         var attrHolder = attrHolderOpt.get();
         AttributeInstance instance = player.getAttribute(attrHolder);
         if (instance == null) return;
 
-        ResourceLocation modId = ResourceLocation.fromNamespaceAndPath("neoorigins", "power_" + config.attribute().getPath());
+        Identifier modId = Identifier.fromNamespaceAndPath("neoorigins", "power_" + config.attribute().getPath());
         if (add) {
             if (instance.getModifier(modId) == null) {
                 instance.addPermanentModifier(new AttributeModifier(modId, config.amount(), config.operation()));

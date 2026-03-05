@@ -22,4 +22,5 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public void onRevoked(ServerPlayer player) { type.onRevoked(player, config); }
     public void onTick(ServerPlayer player) { type.onTick(player, config); }
     public void onLogin(ServerPlayer player) { type.onLogin(player, config); }
+    public void onActivated(ServerPlayer player) { type.onActivated(player, config); }
 }

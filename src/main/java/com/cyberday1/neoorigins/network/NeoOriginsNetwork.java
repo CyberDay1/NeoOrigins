@@ -1,25 +1,33 @@
 package com.cyberday1.neoorigins.network;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.api.event.OriginChangedEvent;
+import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
-import com.cyberday1.neoorigins.api.event.OriginChangedEvent;
-import com.cyberday1.neoorigins.api.origin.OriginLayer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class NeoOriginsNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
+    private static final int ACTIVATE_POWER_COOLDOWN_TICKS = 5;
+    private static final Map<UUID, Integer> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
 
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar(NeoOrigins.MOD_ID).versioned(PROTOCOL_VERSION);
@@ -41,16 +49,21 @@ public class NeoOriginsNetwork {
             ChooseOriginPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleChooseOrigin
         );
+
+        registrar.playToServer(
+            ActivatePowerPayload.TYPE,
+            ActivatePowerPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleActivatePower
+        );
     }
 
     // ---------- Client-side handlers ----------
 
     private static void handleSyncOrigins(SyncOriginsPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            // Store on client-side — use a client-only state holder
+        ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientOriginState.setOrigins(
-                payload.origins(), payload.hadAllOrigins());
-        });
+                payload.origins(), payload.hadAllOrigins())
+        );
     }
 
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
@@ -66,40 +79,73 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
 
-            ResourceLocation layerId = payload.layer();
-            ResourceLocation originId = payload.origin();
+            Identifier layerId = payload.layer();
+            Identifier originId = payload.origin();
 
-            // Validate layer exists
             OriginLayer layer = LayerDataManager.INSTANCE.getLayer(layerId);
             if (layer == null) {
                 NeoOrigins.LOGGER.warn("Player {} tried to choose origin for unknown layer {}", sp.getName().getString(), layerId);
                 return;
             }
 
-            // Validate origin is in this layer
             if (!layer.getAvailableOriginIds().contains(originId)) {
                 NeoOrigins.LOGGER.warn("Player {} tried to choose origin {} not in layer {}", sp.getName().getString(), originId, layerId);
                 return;
             }
 
-            // Validate origin exists
             if (!OriginDataManager.INSTANCE.hasOrigin(originId)) {
                 NeoOrigins.LOGGER.warn("Player {} tried to choose non-existent origin {}", sp.getName().getString(), originId);
                 return;
             }
 
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
-            ResourceLocation oldOrigin = data.getOrigin(layerId);
+            Identifier oldOrigin = data.getOrigin(layerId);
 
-            // Fire event (cancellable)
+            // One-time selection guard: prevent re-choosing an already filled layer from client packets.
+            if (oldOrigin != null) {
+                NeoOrigins.LOGGER.warn("Player {} tried to reselect origin in layer {} (current: {}, requested: {})",
+                    sp.getName().getString(), layerId, oldOrigin, originId);
+                return;
+            }
+
             OriginChangedEvent event = new OriginChangedEvent(sp, layerId, oldOrigin, originId);
             if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
 
-            // Set origin, sync to client
             data.setOrigin(layerId, event.getNewOrigin());
             com.cyberday1.neoorigins.event.OriginEventHandler.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
             syncToPlayer(sp);
         });
+    }
+
+    private static void handleActivatePower(ActivatePowerPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!hasAnyActivePower(sp)) return;
+
+            int currentTick = sp.tickCount;
+            UUID playerId = sp.getUUID();
+            Integer lastTick = LAST_ACTIVATE_TICK.get(playerId);
+            if (lastTick != null && (currentTick - lastTick) < ACTIVATE_POWER_COOLDOWN_TICKS) {
+                return;
+            }
+
+            LAST_ACTIVATE_TICK.put(playerId, currentTick);
+            com.cyberday1.neoorigins.event.OriginEventHandler.forEachActivePower(sp, holder -> holder.onActivated(sp));
+        });
+    }
+
+    private static boolean hasAnyActivePower(ServerPlayer player) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        for (var entry : data.getOrigins().entrySet()) {
+            var origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin == null) continue;
+            for (Identifier powerId : origin.powers()) {
+                if (PowerDataManager.INSTANCE.hasPower(powerId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Send the player's full origin data to themselves. */

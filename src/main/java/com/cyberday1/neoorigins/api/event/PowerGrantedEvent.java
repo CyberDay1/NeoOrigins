@@ -1,18 +1,18 @@
 package com.cyberday1.neoorigins.api.event;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public class PowerGrantedEvent extends PlayerEvent {
-    private final ResourceLocation powerId;
+    private final Identifier powerId;
 
-    public PowerGrantedEvent(ServerPlayer player, ResourceLocation powerId) {
+    public PowerGrantedEvent(ServerPlayer player, Identifier powerId) {
         super(player);
         this.powerId = powerId;
     }
 
-    public ResourceLocation getPowerId() { return powerId; }
+    public Identifier getPowerId() { return powerId; }
 
     @Override
     public ServerPlayer getEntity() {
