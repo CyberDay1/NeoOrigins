@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.compat.action;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
@@ -36,6 +37,7 @@ public final class ActionParser {
                 case "origins:add_velocity", "apace:add_velocity"           -> parseAddVelocity(json);
                 case "origins:set_on_fire", "apace:set_on_fire"             -> parseSetOnFire(json);
                 case "origins:exhaust", "apace:exhaust"                     -> parseExhaust(json);
+                case "origins:change_resource", "apace:change_resource"     -> parseChangeResource(json);
                 case "origins:nothing", "apace:nothing"                     -> EntityAction.noop();
                 default -> {
                     NeoOrigins.LOGGER.debug(
@@ -134,17 +136,55 @@ public final class ActionParser {
     }
 
     private static EntityAction parseApplyEffect(JsonObject json) {
-        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
+        // Origins apply_effect has two formats:
+        //   1. "effect": "minecraft:speed", "duration": 200, "amplifier": 0   (flat)
+        //   2. "effects": [{"effect": "minecraft:speed", "duration": 200, ...}]  (array)
+        // Resolve to the first effect in either case.
+        String effectId = null;
+        int  duration  = 200;
+        int  amplifier = 0;
+        boolean ambient   = false;
+        boolean particles = true;
+        boolean icon      = true;
+
+        if (json.has("effects") && json.get("effects").isJsonArray()) {
+            JsonArray arr = json.getAsJsonArray("effects");
+            if (!arr.isEmpty() && arr.get(0).isJsonObject()) {
+                JsonObject eff = arr.get(0).getAsJsonObject();
+                effectId  = resolveEffectId(eff);
+                duration  = eff.has("duration")       ? eff.get("duration").getAsInt()       : duration;
+                amplifier = eff.has("amplifier")      ? eff.get("amplifier").getAsInt()      : amplifier;
+                ambient   = eff.has("is_ambient")     && eff.get("is_ambient").getAsBoolean();
+                particles = !eff.has("show_particles") || eff.get("show_particles").getAsBoolean();
+                icon      = !eff.has("show_icon")      || eff.get("show_icon").getAsBoolean();
+            }
+        } else {
+            effectId  = resolveEffectId(json);
+            duration  = json.has("duration")       ? json.get("duration").getAsInt()       : duration;
+            amplifier = json.has("amplifier")      ? json.get("amplifier").getAsInt()      : amplifier;
+            ambient   = json.has("is_ambient")     && json.get("is_ambient").getAsBoolean();
+            particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
+            icon      = !json.has("show_icon")      || json.get("show_icon").getAsBoolean();
+        }
+
         if (effectId == null) return EntityAction.noop();
-        int  duration  = json.has("duration")      ? json.get("duration").getAsInt()      : 200;
-        int  amplifier = json.has("amplifier")     ? json.get("amplifier").getAsInt()     : 0;
-        boolean ambient   = json.has("is_ambient")  && json.get("is_ambient").getAsBoolean();
-        boolean particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
-        boolean icon      = !json.has("show_icon")      || json.get("show_icon").getAsBoolean();
         Identifier effId = Identifier.parse(effectId);
+        final int  fDur  = duration, fAmp = amplifier;
+        final boolean fAmb = ambient, fPart = particles, fIcon = icon;
         return player -> BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(holder ->
-            player.addEffect(new MobEffectInstance(holder, duration, amplifier, ambient, particles, icon))
+            player.addEffect(new MobEffectInstance(holder, fDur, fAmp, fAmb, fPart, fIcon))
         );
+    }
+
+    /** Resolves the effect ID string from a JSON object that may use "effect" or "id" keys. */
+    private static String resolveEffectId(JsonObject obj) {
+        if (obj.has("effect") && obj.get("effect").isJsonPrimitive()) {
+            return obj.get("effect").getAsString();
+        }
+        if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
+            return obj.get("id").getAsString();
+        }
+        return null;
     }
 
     private static EntityAction parseClearEffect(JsonObject json) {
@@ -191,5 +231,25 @@ public final class ActionParser {
     private static EntityAction parseExhaust(JsonObject json) {
         float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
         return player -> player.getFoodData().addExhaustion(amount);
+    }
+
+    private static EntityAction parseChangeResource(JsonObject json) {
+        // origins:change_resource — modifies the integer value of an origins:resource power
+        String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
+        if (resourceId == null) return EntityAction.noop();
+
+        // Determine operation and amount
+        String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
+        int change = json.has("change") ? json.get("change").getAsInt() : 0;
+
+        // We need the min/max bounds — they're defined in the resource power itself.
+        // Without them, clamp to [Integer.MIN_VALUE, Integer.MAX_VALUE] (effectively unclamped).
+        // The resource power's own onTick will fire min/max actions when values go out of bounds.
+        final String key = resourceId;
+        return switch (operation) {
+            case "add"   -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            case "set"   -> player -> player.getData(CompatAttachments.resourceState()).set(key, change);
+            default      -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        };
     }
 }

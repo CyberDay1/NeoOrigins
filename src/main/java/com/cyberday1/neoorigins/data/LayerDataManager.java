@@ -60,7 +60,7 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
                 if (json.isJsonObject()) {
                     JsonObject obj = json.getAsJsonObject();
                     obj.addProperty("id", id.toString());
-                    normalizeLayerJson(obj);
+                    normalizeLayerJson(id, obj);
                     json = obj;
                 }
                 OriginLayer.CODEC.parse(JsonOps.INSTANCE, json)
@@ -80,17 +80,30 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
 
     /**
      * Normalizes Origins-format layer JSON fields to NeoOrigins format in-place.
-     * - Wraps plain string "name" as component JSON {"text": "..."}
-     * - Strips complex "condition" objects from origins entries (they cannot be evaluated)
+     * ComponentCodecHelper.CODEC uses Codec.STRING, so the name field must be a plain string.
+     * - If name is missing: synthesize from the layer ID path
+     * - If name is a JSON object (translate/text component): extract the string value
+     * - If name is already a plain string: leave it unchanged
+     * - Strips complex "condition" objects from origins entries (cannot be evaluated)
      */
-    private static void normalizeLayerJson(JsonObject obj) {
-        // Normalize name: plain string → component JSON
-        if (obj.has("name") && obj.get("name").isJsonPrimitive()) {
-            String name = obj.get("name").getAsString();
-            JsonObject nameComp = new JsonObject();
-            nameComp.addProperty("text", name);
-            obj.add("name", nameComp);
+    private static void normalizeLayerJson(Identifier id, JsonObject obj) {
+        if (!obj.has("name")) {
+            // No name field — synthesize from ID path (e.g. "origin" from "neoorigins:origin")
+            obj.addProperty("name", id.getPath());
+        } else if (obj.get("name").isJsonObject()) {
+            // Component JSON object — extract string value for the plain-string codec
+            JsonObject nameObj = obj.get("name").getAsJsonObject();
+            String nameStr;
+            if (nameObj.has("translate")) {
+                nameStr = nameObj.get("translate").getAsString();
+            } else if (nameObj.has("text")) {
+                nameStr = nameObj.get("text").getAsString();
+            } else {
+                nameStr = id.getPath();
+            }
+            obj.addProperty("name", nameStr);
         }
+        // If name is already a plain string: no change needed — codec accepts it as-is.
 
         // Strip non-string condition fields from origins entries so codec can parse them
         if (obj.has("origins") && obj.get("origins").isJsonArray()) {
