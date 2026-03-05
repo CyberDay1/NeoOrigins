@@ -2,17 +2,21 @@ package com.cyberday1.neoorigins;
 
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.command.OriginCommand;
+import com.cyberday1.neoorigins.compat.OriginsPackFinder;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.power.registry.PowerTypes;
 import com.mojang.logging.LogUtils;
+import net.minecraft.server.packs.PackType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddPackFindersEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -26,6 +30,13 @@ public class NeoOrigins {
 
     public NeoOrigins(IEventBus modEventBus) {
         LOGGER.info("NeoOrigins initializing...");
+
+        // Create originpacks/ folder in game directory on first launch
+        try {
+            java.nio.file.Files.createDirectories(FMLPaths.GAMEDIR.get().resolve("originpacks"));
+        } catch (java.io.IOException e) {
+            LOGGER.error("Failed to create originpacks/ folder", e);
+        }
 
         // Register custom power type registry
         PowerTypes.register(modEventBus);
@@ -41,16 +52,29 @@ public class NeoOrigins {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
         }
 
+        // Register the originpacks/ folder as a datapack source (mod event bus)
+        modEventBus.addListener(NeoOrigins::onAddPackFinders);
+
         // Register data reload listeners (on NeoForge event bus)
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStarting);
     }
 
+    private static void onAddPackFinders(AddPackFindersEvent event) {
+        if (event.getPackType() == PackType.SERVER_DATA) {
+            var folder = FMLPaths.GAMEDIR.get().resolve("originpacks");
+            event.addRepositorySource(new OriginsPackFinder(folder));
+            LOGGER.info("Registered originpacks/ at {}", folder);
+        }
+    }
+
     private static void onAddReloadListeners(net.neoforged.neoforge.event.AddServerReloadListenersEvent event) {
+        // Powers must load before origins so that origins:multiple expansion IDs are available
+        // when OriginDataManager rewrites origin power lists.
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"), PowerDataManager.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"), OriginDataManager.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"), LayerDataManager.INSTANCE);
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"), PowerDataManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

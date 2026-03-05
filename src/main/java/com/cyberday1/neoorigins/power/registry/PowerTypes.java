@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.power.registry;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.compat.EffectImmunityPower;
 import com.cyberday1.neoorigins.power.builtin.*;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -61,6 +62,9 @@ public class PowerTypes {
 
     public static final DeferredHolder<PowerType<?>, PhantomFormPower> PHANTOM_FORM =
         POWER_TYPES.register("phantom_form", PhantomFormPower::new);
+
+    public static final DeferredHolder<PowerType<?>, EffectImmunityPower> EFFECT_IMMUNITY =
+        POWER_TYPES.register("effect_immunity", EffectImmunityPower::new);
 
     public static void register(IEventBus modEventBus) {
         modEventBus.addListener(PowerTypes::onNewRegistry);

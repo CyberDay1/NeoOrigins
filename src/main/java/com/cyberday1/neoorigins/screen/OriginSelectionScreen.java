@@ -39,7 +39,7 @@ public class OriginSelectionScreen extends Screen {
     private int visibleButtons = 4;
 
     private static final int PANEL_TOP = 50;
-    private static final int BUTTON_HEIGHT = 40;
+    private static final int BUTTON_HEIGHT = 54;
     private static final int BUTTON_SPACING = 4;
 
     public OriginSelectionScreen(boolean isOrb) {

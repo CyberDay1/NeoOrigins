@@ -7,9 +7,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
+import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public class OriginButton extends Button {
@@ -47,9 +50,11 @@ public class OriginButton extends Button {
         int textY = getY() + 4;
         graphics.drawString(mc.font, origin.name(), textX, textY, 0xFFFFFFFF, true);
 
-        String desc = origin.description().getString();
-        if (desc.length() > 40) desc = desc.substring(0, 37) + "...";
-        graphics.drawString(mc.font, desc, textX, textY + 12, 0xFFAAAAAA, false);
+        int maxDescWidth = getWidth() - 62; // account for icon (26) and impact dots (36)
+        List<FormattedCharSequence> descLines = mc.font.split(origin.description(), maxDescWidth);
+        for (int i = 0; i < Math.min(descLines.size(), 2); i++) {
+            graphics.drawString(mc.font, descLines.get(i), textX, textY + 12 + i * 10, 0xFFAAAAAA, false);
+        }
 
         drawImpactDots(graphics, getImpactX(), getImpactY(), origin.impact());
     }
