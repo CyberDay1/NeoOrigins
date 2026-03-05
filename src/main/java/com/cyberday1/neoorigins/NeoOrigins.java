@@ -1,6 +1,8 @@
 package com.cyberday1.neoorigins;
 
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
+import com.cyberday1.neoorigins.compat.CompatAttachments;
+import com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader;
 import com.cyberday1.neoorigins.command.OriginCommand;
 import com.cyberday1.neoorigins.compat.OriginsPackFinder;
 import com.cyberday1.neoorigins.data.LayerDataManager;
@@ -41,8 +43,9 @@ public class NeoOrigins {
         // Register custom power type registry
         PowerTypes.register(modEventBus);
 
-        // Register attachment types
+        // Register attachment types (origin data + Route B compat state)
         OriginAttachments.register(modEventBus);
+        CompatAttachments.register(modEventBus);
 
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
@@ -72,11 +75,15 @@ public class NeoOrigins {
     }
 
     private static void onAddReloadListeners(net.neoforged.neoforge.event.AddServerReloadListenersEvent event) {
-        // Powers must load before origins so that origins:multiple expansion IDs are available
-        // when OriginDataManager rewrites origin power lists.
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"), PowerDataManager.INSTANCE);
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"), OriginDataManager.INSTANCE);
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"), LayerDataManager.INSTANCE);
+        // Load order matters:
+        //   1. power_data         — native Route A powers + compat translation
+        //   2. origins_compat_b   — Route B powers injected into PowerDataManager
+        //   3. origin_data        — reads MULTIPLE_EXPANSION_MAP (now includes Route B IDs); closes log
+        //   4. layer_data
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"),       PowerDataManager.INSTANCE);
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origins_compat_b"), OriginsCompatPowerLoader.INSTANCE);
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"),      OriginDataManager.INSTANCE);
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"),       LayerDataManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

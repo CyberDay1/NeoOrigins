@@ -31,7 +31,8 @@ public final class OriginsMultipleExpander {
     public static final Map<Identifier, List<Identifier>> MULTIPLE_EXPANSION_MAP = new HashMap<>();
 
     /** Keys in an origins:multiple JSON that are metadata, not sub-power entries. */
-    private static final Set<String> META_KEYS = Set.of(
+    /** Keys in an origins:multiple JSON that are metadata, not sub-power entries. Exposed for Route B loader. */
+    public static final Set<String> META_KEYS = Set.of(
         "type", "name", "description", "hidden", "loading_priority", "badges",
         "order", "special", "unchoosable", "condition"
     );
@@ -99,13 +100,16 @@ public final class OriginsMultipleExpander {
                 continue;
             }
 
-            // Translate the sub-power
+            // Always track this synthetic ID so OriginDataManager includes it in power lists.
+            // Route B may load the power even if Route A skips it.
+            syntheticIds.add(syntheticId);
+
+            // Translate the sub-power via Route A
             Optional<JsonObject> translated = OriginsPowerTranslator.translate(syntheticId, subPowerJson);
             if (translated.isPresent()) {
                 result.put(syntheticId, translated.get());
-                syntheticIds.add(syntheticId);
             }
-            // If empty, OriginsPowerTranslator already logged it — just skip
+            // If empty, Route B loader will handle it if the type is supported.
         }
 
         if (!syntheticIds.isEmpty()) {

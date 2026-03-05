@@ -34,6 +34,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("powers");
 
     private Map<Identifier, PowerHolder<?>> powers = new HashMap<>();
+    /** Route B powers injected by OriginsCompatPowerLoader after native loading. */
+    private Map<Identifier, PowerHolder<?>> injectedPowers = new HashMap<>();
 
     @Override
     protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
@@ -112,6 +114,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             }
         }
         this.powers = Collections.unmodifiableMap(loaded);
+        this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
         // TEMP DIAGNOSTIC: breakdown by namespace
@@ -131,7 +134,19 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             .ifPresent(config -> target.put(id, new PowerHolder<>(type, config)));
     }
 
+    /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
+    public void injectExternalPowers(Map<Identifier, PowerHolder<?>> external) {
+        this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
+    }
+
     public Map<Identifier, PowerHolder<?>> getPowers() { return powers; }
-    public PowerHolder<?> getPower(Identifier id) { return powers.get(id); }
-    public boolean hasPower(Identifier id) { return powers.containsKey(id); }
+
+    public PowerHolder<?> getPower(Identifier id) {
+        PowerHolder<?> holder = powers.get(id);
+        return holder != null ? holder : injectedPowers.get(id);
+    }
+
+    public boolean hasPower(Identifier id) {
+        return powers.containsKey(id) || injectedPowers.containsKey(id);
+    }
 }

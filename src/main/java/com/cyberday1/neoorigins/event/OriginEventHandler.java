@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.EffectImmunityPower;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
@@ -38,6 +39,7 @@ public class OriginEventHandler {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        CompatTickScheduler.tick(sp);
         forEachActivePower(sp, holder -> holder.onTick(sp));
     }
 
@@ -66,8 +68,8 @@ public class OriginEventHandler {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        // Re-apply active powers after respawn
-        forEachActivePower(sp, holder -> holder.onGranted(sp));
+        // Use onRespawn: Route A powers re-apply modifiers; Route B powers run respawn actions.
+        forEachActivePower(sp, holder -> holder.onRespawn(sp));
         NeoOriginsNetwork.syncToPlayer(sp);
     }
 
@@ -115,6 +117,12 @@ public class OriginEventHandler {
                 }
             }
         });
+
+        // Notify Route B self_action_when_hit powers if damage was not blocked
+        if (!event.isCanceled()) {
+            float amount = event.getAmount();
+            forEachActivePower(sp, holder -> holder.onHit(sp, amount));
+        }
     }
 
     @SubscribeEvent

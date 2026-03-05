@@ -30,4 +30,18 @@ public abstract class PowerType<C extends PowerConfiguration> {
 
     /** Called when the player presses the Secondary Ability key while this power is active. Default: no-op. */
     public void onActivated(ServerPlayer player, C config) {}
+
+    /**
+     * Called when the player respawns with this power active.
+     * Default: re-runs onGranted() so attribute modifiers etc. are re-applied after death.
+     */
+    public void onRespawn(ServerPlayer player, C config) {
+        onGranted(player, config);
+    }
+
+    /**
+     * Called when the player takes damage while this power is active.
+     * Default: no-op. Used by Route B powers like origins:self_action_when_hit.
+     */
+    public void onHit(ServerPlayer player, C config, float amount) {}
 }
