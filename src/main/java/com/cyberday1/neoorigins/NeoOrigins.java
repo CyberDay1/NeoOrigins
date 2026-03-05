@@ -62,10 +62,12 @@ public class NeoOrigins {
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {
-        if (event.getPackType() == PackType.SERVER_DATA) {
-            var folder = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        var folder = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        // Register for both sides so packs' assets/ directories (textures, models, sprites)
+        // are mounted client-side in addition to their data/ directories server-side.
+        if (event.getPackType() == PackType.SERVER_DATA || event.getPackType() == PackType.CLIENT_RESOURCES) {
             event.addRepositorySource(new OriginsPackFinder(folder));
-            LOGGER.info("Registered originpacks/ at {}", folder);
+            LOGGER.info("Registered originpacks/ for {} at {}", event.getPackType(), folder);
         }
     }
 
