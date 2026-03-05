@@ -3,6 +3,15 @@
   "screen.neoorigins.choose_origin": "Choose Your Origin",
   "button.neoorigins.random": "Random",
 
+  "key.category.neoorigins.neoorigins": "NeoOrigins",
+  "key.neoorigins.secondary_ability": "Secondary Ability",
+
+  "origins.gui.impact.impact": "Impact",
+  "origins.gui.impact.none": "None",
+  "origins.gui.impact.low": "Low",
+  "origins.gui.impact.medium": "Medium",
+  "origins.gui.impact.high": "High",
+
   "origins.neoorigins.human.name": "Human",
   "origins.neoorigins.human.description": "A regular human being, with no special powers but well-rounded abilities.",
 
@@ -30,3 +39,5 @@
   "origins.neoorigins.phantom.name": "Phantom",
   "origins.neoorigins.phantom.description": "A spectral being, nearly weightless and unseen — but haunted by its own nature."
 }
+
+

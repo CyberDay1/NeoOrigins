@@ -27,4 +27,7 @@ public abstract class PowerType<C extends PowerConfiguration> {
     public void onLogin(ServerPlayer player, C config) {
         onGranted(player, config);
     }
+
+    /** Called when the player presses the Secondary Ability key while this power is active. Default: no-op. */
+    public void onActivated(ServerPlayer player, C config) {}
 }

@@ -3,39 +3,50 @@ package com.cyberday1.neoorigins.data;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.event.OriginsLoadedEvent;
 import com.cyberday1.neoorigins.api.origin.Origin;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.neoforged.neoforge.common.NeoForge;
 
+import java.io.Reader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class OriginDataManager extends SimpleJsonResourceReloadListener {
+public class OriginDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public static final OriginDataManager INSTANCE = new OriginDataManager();
+    private static final FileToIdConverter FILE_CONVERTER = FileToIdConverter.json("origins/origins");
 
-    private Map<ResourceLocation, Origin> origins = new HashMap<>();
+    private Map<Identifier, Origin> origins = new HashMap<>();
 
-    public OriginDataManager() {
-        super(GSON, "origins/origins");
+    @Override
+    protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<Identifier, JsonElement> map = new HashMap<>();
+        for (var entry : FILE_CONVERTER.listMatchingResources(resourceManager).entrySet()) {
+            Identifier fileId = entry.getKey();
+            Identifier id = FILE_CONVERTER.fileToId(fileId);
+            try (Reader reader = entry.getValue().openAsReader()) {
+                map.put(id, JsonParser.parseReader(reader));
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.error("Error reading origin file {}", fileId, e);
+            }
+        }
+        return map;
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
-        Map<ResourceLocation, Origin> loaded = new HashMap<>();
-        for (Map.Entry<ResourceLocation, JsonElement> entry : pObject.entrySet()) {
-            ResourceLocation id = entry.getKey();
+    protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+        Map<Identifier, Origin> loaded = new HashMap<>();
+        for (Map.Entry<Identifier, JsonElement> entry : pObject.entrySet()) {
+            Identifier id = entry.getKey();
             try {
                 JsonElement json = entry.getValue();
-                // Inject id field so Origins know their own id
                 if (json.isJsonObject()) {
                     json.getAsJsonObject().addProperty("id", id.toString());
                 }
@@ -51,15 +62,7 @@ public class OriginDataManager extends SimpleJsonResourceReloadListener {
         NeoForge.EVENT_BUS.post(new OriginsLoadedEvent());
     }
 
-    public Map<ResourceLocation, Origin> getOrigins() {
-        return origins;
-    }
-
-    public Origin getOrigin(ResourceLocation id) {
-        return origins.get(id);
-    }
-
-    public boolean hasOrigin(ResourceLocation id) {
-        return origins.containsKey(id);
-    }
+    public Map<Identifier, Origin> getOrigins() { return origins; }
+    public Origin getOrigin(Identifier id) { return origins.get(id); }
+    public boolean hasOrigin(Identifier id) { return origins.containsKey(id); }
 }
