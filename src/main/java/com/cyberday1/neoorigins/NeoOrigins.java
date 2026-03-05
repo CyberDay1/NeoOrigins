@@ -8,8 +8,10 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.power.registry.PowerTypes;
 import com.mojang.logging.LogUtils;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -34,16 +36,21 @@ public class NeoOrigins {
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
 
+        // Register client-only keybindings
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+            modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
+        }
+
         // Register data reload listeners (on NeoForge event bus)
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStarting);
     }
 
-    private static void onAddReloadListeners(net.neoforged.neoforge.event.AddReloadListenerEvent event) {
-        event.addListener(OriginDataManager.INSTANCE);
-        event.addListener(LayerDataManager.INSTANCE);
-        event.addListener(PowerDataManager.INSTANCE);
+    private static void onAddReloadListeners(net.neoforged.neoforge.event.AddServerReloadListenersEvent event) {
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"), OriginDataManager.INSTANCE);
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"), LayerDataManager.INSTANCE);
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"), PowerDataManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

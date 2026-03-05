@@ -12,7 +12,7 @@ import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.power.builtin.*;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -117,13 +117,13 @@ public class OriginEventHandler {
      * Called by NeoOriginsNetwork when a player chooses an origin.
      * Revokes powers from the old origin, grants powers from the new origin.
      */
-    public static void applyOriginPowers(ServerPlayer player, ResourceLocation layerId,
-                                          ResourceLocation oldOriginId, ResourceLocation newOriginId) {
+    public static void applyOriginPowers(ServerPlayer player, Identifier layerId,
+                                          Identifier oldOriginId, Identifier newOriginId) {
         // Revoke old powers
         if (oldOriginId != null) {
             Origin oldOrigin = OriginDataManager.INSTANCE.getOrigin(oldOriginId);
             if (oldOrigin != null) {
-                for (ResourceLocation powerId : oldOrigin.powers()) {
+                for (Identifier powerId : oldOrigin.powers()) {
                     PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                     if (holder != null) {
                         holder.onRevoked(player);
@@ -135,7 +135,7 @@ public class OriginEventHandler {
         // Grant new powers
         Origin newOrigin = OriginDataManager.INSTANCE.getOrigin(newOriginId);
         if (newOrigin != null) {
-            for (ResourceLocation powerId : newOrigin.powers()) {
+            for (Identifier powerId : newOrigin.powers()) {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) {
                     holder.onGranted(player);
@@ -158,7 +158,7 @@ public class OriginEventHandler {
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (ResourceLocation powerId : origin.powers()) {
+            for (Identifier powerId : origin.powers()) {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) {
                     action.accept(holder);
@@ -175,7 +175,7 @@ public class OriginEventHandler {
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (ResourceLocation powerId : origin.powers()) {
+            for (Identifier powerId : origin.powers()) {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null && typeClass.isInstance(holder.type())) {
                     @SuppressWarnings("unchecked")
@@ -195,7 +195,7 @@ public class OriginEventHandler {
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (ResourceLocation powerId : origin.powers()) {
+            for (Identifier powerId : origin.powers()) {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null && typeClass.isInstance(holder.type())) {
                     action.accept(holder);

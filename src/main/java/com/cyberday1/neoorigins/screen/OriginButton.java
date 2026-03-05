@@ -6,11 +6,17 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
 public class OriginButton extends Button {
+
+    private static final int IMPACT_MAX_DOTS = 4;
+    private static final int IMPACT_DOT_SIZE = 5;
+    private static final int IMPACT_DOT_SPACING = 7;
 
     private final Origin origin;
     private boolean selected;
@@ -25,40 +31,60 @@ public class OriginButton extends Button {
     public void setSelected(boolean selected) { this.selected = selected; }
 
     @Override
-    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
         int color = isSelected() ? 0xFF4A90D9 : (isHovered() ? 0xFF555555 : 0xFF333333);
 
-        // Background
         graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), color);
-        // Border
         graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), isSelected() ? 0xFFFFFFFF : 0xFF888888);
 
-        // Item icon (8x8 area on left)
-        if (!origin.icon().isEmpty()) {
-            graphics.renderItem(origin.icon(), getX() + 4, getY() + (getHeight() - 16) / 2);
+        var iconItem = BuiltInRegistries.ITEM.getValue(origin.icon());
+        if (iconItem != null) {
+            graphics.renderItem(new ItemStack(iconItem), getX() + 4, getY() + (getHeight() - 16) / 2);
         }
 
-        // Origin name
         int textX = getX() + 26;
         int textY = getY() + 4;
-        graphics.drawString(mc.font, origin.name(), textX, textY, 0xFFFFFF, true);
+        graphics.drawString(mc.font, origin.name(), textX, textY, 0xFFFFFFFF, true);
 
-        // Description (truncated)
         String desc = origin.description().getString();
         if (desc.length() > 40) desc = desc.substring(0, 37) + "...";
-        graphics.drawString(mc.font, desc, textX, textY + 12, 0xAAAAAA, false);
+        graphics.drawString(mc.font, desc, textX, textY + 12, 0xFFAAAAAA, false);
 
-        // Impact dots
-        drawImpactDots(graphics, getX() + getWidth() - 30, getY() + 8, origin.impact());
+        drawImpactDots(graphics, getImpactX(), getImpactY(), origin.impact());
+    }
+
+    public boolean isMouseOverImpact(int mouseX, int mouseY) {
+        int x0 = getImpactX();
+        int y0 = getImpactY();
+        int width = (IMPACT_MAX_DOTS - 1) * IMPACT_DOT_SPACING + IMPACT_DOT_SIZE;
+        return mouseX >= x0 && mouseX <= x0 + width && mouseY >= y0 && mouseY <= y0 + IMPACT_DOT_SIZE;
+    }
+
+    public Component getImpactTooltip() {
+        return Component.translatable("origins.gui.impact.impact")
+            .append(": ")
+            .append(switch (origin.impact()) {
+                case NONE -> Component.translatable("origins.gui.impact.none");
+                case LOW -> Component.translatable("origins.gui.impact.low");
+                case MEDIUM -> Component.translatable("origins.gui.impact.medium");
+                case HIGH -> Component.translatable("origins.gui.impact.high");
+            });
+    }
+
+    private int getImpactX() {
+        return getX() + getWidth() - 30;
+    }
+
+    private int getImpactY() {
+        return getY() + 8;
     }
 
     private void drawImpactDots(GuiGraphics graphics, int x, int y, Impact impact) {
-        int maxDots = 4; // HIGH = 4 dots
         int filledDots = impact.getDotCount();
-        for (int i = 0; i < maxDots; i++) {
+        for (int i = 0; i < IMPACT_MAX_DOTS; i++) {
             int dotColor = i < filledDots ? 0xFFFF8800 : 0xFF666666;
-            graphics.fill(x + i * 7, y, x + i * 7 + 5, y + 5, dotColor);
+            graphics.fill(x + i * IMPACT_DOT_SPACING, y, x + i * IMPACT_DOT_SPACING + IMPACT_DOT_SIZE, y + IMPACT_DOT_SIZE, dotColor);
         }
     }
 }

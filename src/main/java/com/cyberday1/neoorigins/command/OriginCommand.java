@@ -8,56 +8,66 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.event.OriginEventHandler;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionCheck;
+import net.minecraft.server.permissions.Permissions;
 
 public class OriginCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("origin")
-                .requires(src -> src.hasPermission(0)) // all players can /origin get themselves
+                .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                 .then(Commands.literal("get")
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeGet(ctx, null))
-                        .then(Commands.argument("layer", ResourceLocationArgument.id())
-                            .executes(ctx -> executeGet(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
+                        .then(Commands.argument("layer", IdentifierArgument.id())
+                            .executes(ctx -> executeGet(ctx, IdentifierArgument.getId(ctx, "layer"))))))
                 .then(Commands.literal("set")
-                    .requires(src -> src.hasPermission(2))
+                    .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                     .then(Commands.argument("player", EntityArgument.player())
-                        .then(Commands.argument("layer", ResourceLocationArgument.id())
-                            .then(Commands.argument("origin", ResourceLocationArgument.id())
+                        .then(Commands.argument("layer", IdentifierArgument.id())
+                            .then(Commands.argument("origin", IdentifierArgument.id())
                                 .executes(ctx -> executeSet(ctx))))))
                 .then(Commands.literal("reset")
-                    .requires(src -> src.hasPermission(2))
+                    .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeReset(ctx, null))
-                        .then(Commands.argument("layer", ResourceLocationArgument.id())
-                            .executes(ctx -> executeReset(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
+                        .then(Commands.argument("layer", IdentifierArgument.id())
+                            .executes(ctx -> executeReset(ctx, IdentifierArgument.getId(ctx, "layer"))))))
                 .then(Commands.literal("list")
                     .executes(ctx -> executeList(ctx, null))
-                    .then(Commands.argument("layer", ResourceLocationArgument.id())
-                        .executes(ctx -> executeList(ctx, ResourceLocationArgument.getId(ctx, "layer")))))
+                    .then(Commands.argument("layer", IdentifierArgument.id())
+                        .executes(ctx -> executeList(ctx, IdentifierArgument.getId(ctx, "layer")))))
+                .then(Commands.literal("has")
+                    .then(Commands.argument("player", EntityArgument.player())
+                        .then(Commands.argument("power", IdentifierArgument.id())
+                            .executes(ctx -> executeHas(ctx)))))
+                .then(Commands.literal("gui")
+                    .executes(ctx -> executeGui(ctx, null))
+                    .then(Commands.argument("player", EntityArgument.player())
+                        .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                        .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
                 .then(Commands.literal("reload")
-                    .requires(src -> src.hasPermission(2))
+                    .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                     .executes(ctx -> executeReload(ctx)))
         );
     }
 
-    private static int executeGet(CommandContext<CommandSourceStack> ctx, ResourceLocation layerId) throws CommandSyntaxException {
+    private static int executeGet(CommandContext<CommandSourceStack> ctx, Identifier layerId) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         PlayerOriginData data = player.getData(OriginAttachments.originData());
 
         if (layerId != null) {
-            ResourceLocation originId = data.getOrigin(layerId);
+            Identifier originId = data.getOrigin(layerId);
             if (originId == null) {
                 ctx.getSource().sendSuccess(() -> Component.literal(
                     player.getName().getString() + " has no origin in layer " + layerId), false);
@@ -87,8 +97,8 @@ public class OriginCommand {
 
     private static int executeSet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
-        ResourceLocation layerId = ResourceLocationArgument.getId(ctx, "layer");
-        ResourceLocation originId = ResourceLocationArgument.getId(ctx, "origin");
+        Identifier layerId = IdentifierArgument.getId(ctx, "layer");
+        Identifier originId = IdentifierArgument.getId(ctx, "origin");
 
         if (!LayerDataManager.INSTANCE.hasLayer(layerId)) {
             ctx.getSource().sendFailure(Component.literal("Unknown layer: " + layerId));
@@ -100,7 +110,7 @@ public class OriginCommand {
         }
 
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        ResourceLocation oldOrigin = data.getOrigin(layerId);
+        Identifier oldOrigin = data.getOrigin(layerId);
         OriginEventHandler.applyOriginPowers(player, layerId, oldOrigin, originId);
         data.setOrigin(layerId, originId);
         NeoOriginsNetwork.syncToPlayer(player);
@@ -112,7 +122,7 @@ public class OriginCommand {
         return 1;
     }
 
-    private static int executeReset(CommandContext<CommandSourceStack> ctx, ResourceLocation layerId) throws CommandSyntaxException {
+    private static int executeReset(CommandContext<CommandSourceStack> ctx, Identifier layerId) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         PlayerOriginData data = player.getData(OriginAttachments.originData());
 
@@ -132,7 +142,7 @@ public class OriginCommand {
         return 1;
     }
 
-    private static int executeList(CommandContext<CommandSourceStack> ctx, ResourceLocation layerId) {
+    private static int executeList(CommandContext<CommandSourceStack> ctx, Identifier layerId) {
         if (layerId != null) {
             var layer = LayerDataManager.INSTANCE.getLayer(layerId);
             if (layer == null) {
@@ -152,6 +162,35 @@ public class OriginCommand {
                 sb.append("  ").append(id).append(" - ").append(origin.name().getString()).append("\n");
             });
             ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), false);
+        }
+        return 1;
+    }
+
+    private static int executeHas(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        Identifier powerId = IdentifierArgument.getId(ctx, "power");
+
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        boolean hasPower = false;
+        for (var entry : data.getOrigins().entrySet()) {
+            var origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin != null && origin.powers().contains(powerId)) {
+                hasPower = true;
+                break;
+            }
+        }
+        final boolean result = hasPower;
+        ctx.getSource().sendSuccess(() -> Component.literal(
+            player.getName().getString() + (result ? " has" : " does not have") + " power: " + powerId), false);
+        return result ? 1 : 0;
+    }
+
+    private static int executeGui(CommandContext<CommandSourceStack> ctx, ServerPlayer player) throws CommandSyntaxException {
+        ServerPlayer target = player != null ? player : ctx.getSource().getPlayerOrException();
+        NeoOriginsNetwork.openSelectionScreen(target, false);
+        if (player != null) {
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                "Opened origin selection for " + target.getName().getString()), true);
         }
         return 1;
     }
