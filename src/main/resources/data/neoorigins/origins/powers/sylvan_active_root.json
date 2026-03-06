@@ -1,0 +1,1 @@
+{ "type": "neoorigins:active_aoe_effect", "effect": "minecraft:slowness", "amplifier": 5, "duration_ticks": 80, "radius": 6.0, "cooldown_ticks": 200 }

@@ -1,0 +1,1 @@
+{ "type": "neoorigins:effect_immunity", "effects": ["minecraft:poison", "minecraft:wither", "minecraft:hunger"] }

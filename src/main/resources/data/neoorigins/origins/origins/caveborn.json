@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.caveborn.name",
+  "description": "origins.neoorigins.caveborn.description",
+  "icon": "minecraft:torch",
+  "impact": "medium",
+  "order": 12,
+  "powers": [
+    "neoorigins:caveborn_night_vision",
+    "neoorigins:caveborn_no_fall_damage",
+    "neoorigins:caveborn_mining_speed",
+    "neoorigins:caveborn_daylight_damage",
+    "neoorigins:caveborn_small_frame"
+  ],
+  "upgrades": []
+}

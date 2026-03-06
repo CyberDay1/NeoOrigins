@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.phantom.name",
+  "description": "origins.neoorigins.phantom.description",
+  "icon": "minecraft:phantom_membrane",
+  "impact": "high",
+  "order": 9,
+  "powers": [
+    "neoorigins:phantom_night_vision",
+    "neoorigins:phantom_form"
+  ],
+  "upgrades": []
+}

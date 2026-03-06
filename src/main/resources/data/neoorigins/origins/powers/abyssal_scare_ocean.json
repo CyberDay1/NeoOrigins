@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:scare_entities",
+  "entity_types": [
+    "minecraft:squid",
+    "minecraft:glow_squid",
+    "minecraft:tropical_fish",
+    "minecraft:cod",
+    "minecraft:salmon",
+    "minecraft:pufferfish",
+    "minecraft:dolphin"
+  ]
+}

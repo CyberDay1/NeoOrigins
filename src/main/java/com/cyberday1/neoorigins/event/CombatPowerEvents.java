@@ -1,0 +1,115 @@
+package com.cyberday1.neoorigins.event;
+
+import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.compat.EffectImmunityPower;
+import com.cyberday1.neoorigins.power.builtin.*;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.EntityHitResult;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
+
+@EventBusSubscriber(modid = NeoOrigins.MOD_ID)
+public class CombatPowerEvents {
+
+    @SubscribeEvent
+    public static void onLivingDamage(LivingIncomingDamageEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+
+        if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
+                || event.getSource().is(DamageTypes.LAVA)) {
+            if (ActiveOriginService.has(sp, PreventActionPower.class,
+                    config -> config.action() == PreventActionPower.Action.FIRE)) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+        if (event.getSource().is(DamageTypes.DROWN)) {
+            if (ActiveOriginService.has(sp, PreventActionPower.class,
+                    config -> config.action() == PreventActionPower.Action.DROWN)) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
+        ActiveOriginService.forEachOfType(sp, ModifyDamagePower.class, config -> {
+            if (config.direction() == ModifyDamagePower.Direction.IN) {
+                if (config.damageType().isEmpty() ||
+                        event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) {
+                    event.setAmount(event.getAmount() * config.multiplier());
+                }
+            }
+        });
+
+        if (!event.isCanceled()) {
+            float amount = event.getAmount();
+            ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
+            var attacker = event.getSource().getEntity();
+            if (attacker instanceof LivingEntity le) {
+                ActiveOriginService.forEachOfType(sp, ThornsAuraPower.class, cfg ->
+                    le.hurt(sp.damageSources().magic(), amount * cfg.returnRatio()));
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingDeath(LivingDeathEvent event) {
+        var killer = event.getSource().getEntity();
+        if (!(killer instanceof ServerPlayer sp)) return;
+        LivingEntity killed = event.getEntity();
+        ActiveOriginService.forEach(sp, holder -> holder.onKill(sp, killed));
+    }
+
+    @SubscribeEvent
+    public static void onLivingKnockBack(LivingKnockBackEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ActiveOriginService.forEachOfType(sp, KnockbackModifierPower.class, cfg -> {
+            if (cfg.multiplier() <= 0.0f) {
+                event.setCanceled(true);
+            } else {
+                event.setStrength(event.getStrength() * cfg.multiplier());
+            }
+        });
+    }
+
+    @SubscribeEvent
+    public static void onProjectileImpact(ProjectileImpactEvent event) {
+        if (!(event.getRayTraceResult() instanceof EntityHitResult ehr)) return;
+        if (!(ehr.getEntity() instanceof ServerPlayer sp)) return;
+        var proj = event.getProjectile();
+        if (ActiveOriginService.has(sp, ProjectileImmunityPower.class, cfg -> cfg.blocks(proj))) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        MobEffectInstance effectInstance = event.getEffectInstance();
+        if (effectInstance == null) return;
+        Holder<MobEffect> effectHolder = effectInstance.getEffect();
+        var effectKey = BuiltInRegistries.MOB_EFFECT.getKey(effectHolder.value());
+        if (effectKey == null) return;
+        String effectId = effectKey.toString();
+        if (ActiveOriginService.has(sp, EffectImmunityPower.class,
+                config -> config.effects().contains(effectId))) {
+            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            return;
+        }
+        if (effectId.equals("minecraft:poison") &&
+                ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
+            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+        }
+    }
+}

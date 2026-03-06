@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.sylvan.name",
+  "description": "origins.neoorigins.sylvan.description",
+  "icon": "minecraft:oak_sapling",
+  "impact": "low",
+  "order": 13,
+  "powers": [
+    "neoorigins:sylvan_mobs_ignore",
+    "neoorigins:sylvan_regen_in_water",
+    "neoorigins:sylvan_forest_speed",
+    "neoorigins:sylvan_crop_growth",
+    "neoorigins:sylvan_active_root",
+    "neoorigins:sylvan_nether_damage"
+  ],
+  "upgrades": []
+}

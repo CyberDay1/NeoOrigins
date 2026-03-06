@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.tiny.name",
+  "description": "origins.neoorigins.tiny.description",
+  "icon": "minecraft:poppy",
+  "impact": "medium",
+  "order": 16,
+  "powers": [
+    "neoorigins:tiny_size",
+    "neoorigins:tiny_wall_climbing",
+    "neoorigins:tiny_speed_boost",
+    "neoorigins:tiny_no_fall_damage",
+    "neoorigins:tiny_item_magnetism",
+    "neoorigins:tiny_attack_penalty",
+    "neoorigins:tiny_hunger_drain"
+  ],
+  "upgrades": []
+}

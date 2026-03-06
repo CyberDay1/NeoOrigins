@@ -1,0 +1,1 @@
+{ "type": "neoorigins:shadow_orb", "max_orbs": 4, "radius": 28.0, "cooldown_ticks": 60, "tick_interval": 20 }

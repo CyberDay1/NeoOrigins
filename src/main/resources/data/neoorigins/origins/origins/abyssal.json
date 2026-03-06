@@ -1,0 +1,19 @@
+{
+  "name": "origins.neoorigins.abyssal.name",
+  "description": "origins.neoorigins.abyssal.description",
+  "icon": "minecraft:heart_of_the_sea",
+  "impact": "high",
+  "order": 17,
+  "powers": [
+    "neoorigins:abyssal_water_breathing",
+    "neoorigins:abyssal_night_vision",
+    "neoorigins:abyssal_thorns_aura",
+    "neoorigins:abyssal_underwater_mining",
+    "neoorigins:abyssal_regen_in_water",
+    "neoorigins:abyssal_starting_trident",
+    "neoorigins:abyssal_scare_ocean",
+    "neoorigins:abyssal_daylight_damage",
+    "neoorigins:abyssal_land_speed_penalty"
+  ],
+  "upgrades": []
+}

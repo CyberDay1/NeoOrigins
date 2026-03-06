@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.verdant.name",
+  "description": "origins.neoorigins.verdant.description",
+  "icon": "minecraft:grass_block",
+  "impact": "low",
+  "order": 20,
+  "powers": [
+    "neoorigins:verdant_mobs_ignore",
+    "neoorigins:verdant_no_fall_damage",
+    "neoorigins:verdant_no_hunger_sprint",
+    "neoorigins:verdant_harvest_bonus",
+    "neoorigins:verdant_forest_regen",
+    "neoorigins:verdant_nether_damage"
+  ],
+  "upgrades": []
+}

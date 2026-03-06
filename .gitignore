@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# NeoForge / Minecraft dev
+run/
+runs/
+
+# Reference sources (local only)
+reference/

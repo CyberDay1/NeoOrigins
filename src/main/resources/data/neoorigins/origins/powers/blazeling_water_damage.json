@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "multiplier": 2.5,
+  "damage_type": "drown",
+  "name": "power.neoorigins.blazeling_water_damage.name",
+  "description": "power.neoorigins.blazeling_water_damage.description"
+}

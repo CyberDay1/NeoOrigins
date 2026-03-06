@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "multiplier": 2.0,
+  "damage_type": "drown",
+  "name": "power.neoorigins.enderian_water_damage.name",
+  "description": "power.neoorigins.enderian_water_damage.description"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "origins.neoorigins.draconic.name",
+  "description": "origins.neoorigins.draconic.description",
+  "icon": "minecraft:dragon_breath",
+  "impact": "high",
+  "order": 14,
+  "powers": [
+    "neoorigins:draconic_fire_immunity",
+    "neoorigins:draconic_slow_fall",
+    "neoorigins:draconic_flight",
+    "neoorigins:draconic_active_fireball",
+    "neoorigins:draconic_scare_mobs",
+    "neoorigins:draconic_size",
+    "neoorigins:draconic_attack_bonus",
+    "neoorigins:draconic_water_weakness",
+    "neoorigins:draconic_hunger_drain"
+  ],
+  "upgrades": []
+}

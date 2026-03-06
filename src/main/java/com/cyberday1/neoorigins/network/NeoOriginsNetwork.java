@@ -1,0 +1,156 @@
+package com.cyberday1.neoorigins.network;
+
+import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.api.event.OriginChangedEvent;
+import com.cyberday1.neoorigins.api.origin.OriginLayer;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
+import com.cyberday1.neoorigins.attachment.OriginAttachments;
+import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
+import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
+import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
+import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class NeoOriginsNetwork {
+
+    private static final String PROTOCOL_VERSION = "1";
+    /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
+    private static final int SLOT_DEBOUNCE_TICKS = 5;
+    /** Key: "uuid:slot" → last tick that slot was activated. */
+    private static final Map<String, Integer> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
+
+    public static void register(RegisterPayloadHandlersEvent event) {
+        var registrar = event.registrar(NeoOrigins.MOD_ID).versioned(PROTOCOL_VERSION);
+
+        registrar.playToClient(
+            SyncOriginsPayload.TYPE,
+            SyncOriginsPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncOrigins
+        );
+
+        registrar.playToClient(
+            OpenOriginScreenPayload.TYPE,
+            OpenOriginScreenPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleOpenScreen
+        );
+
+        registrar.playToServer(
+            ChooseOriginPayload.TYPE,
+            ChooseOriginPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleChooseOrigin
+        );
+
+        registrar.playToServer(
+            ActivatePowerPayload.TYPE,
+            ActivatePowerPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleActivatePower
+        );
+    }
+
+    // ---------- Client-side handlers ----------
+
+    private static void handleSyncOrigins(SyncOriginsPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientOriginState.setOrigins(
+                payload.origins(), payload.hadAllOrigins())
+        );
+    }
+
+    private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(payload.isOrb()));
+        });
+    }
+
+    // ---------- Server-side handlers ----------
+
+    private static void handleChooseOrigin(ChooseOriginPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+
+            Identifier layerId = payload.layer();
+            Identifier originId = payload.origin();
+
+            OriginLayer layer = LayerDataManager.INSTANCE.getLayer(layerId);
+            if (layer == null) {
+                NeoOrigins.LOGGER.warn("Player {} tried to choose origin for unknown layer {}", sp.getName().getString(), layerId);
+                return;
+            }
+
+            if (!layer.getAvailableOriginIds().contains(originId)) {
+                NeoOrigins.LOGGER.warn("Player {} tried to choose origin {} not in layer {}", sp.getName().getString(), originId, layerId);
+                return;
+            }
+
+            if (!OriginDataManager.INSTANCE.hasOrigin(originId)) {
+                NeoOrigins.LOGGER.warn("Player {} tried to choose non-existent origin {}", sp.getName().getString(), originId);
+                return;
+            }
+
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            Identifier oldOrigin = data.getOrigin(layerId);
+
+            // One-time selection guard: prevent re-choosing an already filled layer from client packets.
+            if (oldOrigin != null) {
+                NeoOrigins.LOGGER.warn("Player {} tried to reselect origin in layer {} (current: {}, requested: {})",
+                    sp.getName().getString(), layerId, oldOrigin, originId);
+                return;
+            }
+
+            OriginChangedEvent event = new OriginChangedEvent(sp, layerId, oldOrigin, originId);
+            if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
+
+            data.setOrigin(layerId, event.getNewOrigin());
+            ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
+            syncToPlayer(sp);
+        });
+    }
+
+    private static void handleActivatePower(ActivatePowerPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+
+            int slot = payload.slot();
+            if (slot < 0 || slot >= 4) return;
+
+            // Per-slot debounce — prevents key-spam without blocking adjacent slots.
+            int currentTick = sp.tickCount;
+            String debounceKey = sp.getUUID() + ":" + slot;
+            Integer lastTick = LAST_ACTIVATE_TICK.get(debounceKey);
+            if (lastTick != null && (currentTick - lastTick) < SLOT_DEBOUNCE_TICKS) return;
+            LAST_ACTIVATE_TICK.put(debounceKey, currentTick);
+
+            List<PowerHolder<?>> actives = ActiveOriginService.activePowers(sp);
+            if (slot >= actives.size()) return;
+
+            actives.get(slot).onActivated(sp);
+        });
+    }
+
+    /** Send the player's full origin data to themselves. */
+    public static void syncToPlayer(ServerPlayer player) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        PacketDistributor.sendToPlayer(player,
+            new SyncOriginsPayload(data.getOrigins(), data.isHadAllOrigins()));
+    }
+
+    /** Open the origin selection screen on the client. */
+    public static void openSelectionScreen(ServerPlayer player, boolean isOrb) {
+        PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb));
+    }
+}

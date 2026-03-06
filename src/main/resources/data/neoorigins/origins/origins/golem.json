@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.golem.name",
+  "description": "origins.neoorigins.golem.description",
+  "icon": "minecraft:iron_ingot",
+  "impact": "high",
+  "order": 11,
+  "powers": [
+    "neoorigins:golem_natural_armor",
+    "neoorigins:golem_knockback_resist",
+    "neoorigins:golem_size",
+    "neoorigins:golem_effect_immunity",
+    "neoorigins:golem_slow_movement",
+    "neoorigins:golem_fire_weakness"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "abyssal_trident",
+  "item": "minecraft:trident",
+  "enchantments": [
+    { "id": "minecraft:mending", "level": 1 },
+    { "id": "minecraft:unbreaking", "level": 3 },
+    { "id": "minecraft:riptide", "level": 3 }
+  ]
+}

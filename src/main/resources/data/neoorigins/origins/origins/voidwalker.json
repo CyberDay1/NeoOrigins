@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.voidwalker.name",
+  "description": "origins.neoorigins.voidwalker.description",
+  "icon": "minecraft:ender_pearl",
+  "impact": "medium",
+  "order": 18,
+  "powers": [
+    "neoorigins:voidwalker_active_phase",
+    "neoorigins:voidwalker_active_teleport",
+    "neoorigins:voidwalker_night_vision",
+    "neoorigins:voidwalker_mobs_ignore",
+    "neoorigins:voidwalker_water_damage",
+    "neoorigins:voidwalker_no_hunger_sprint"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,13 @@
+{
+  "order": 10,
+  "name": { "text": "Example Pack" },
+  "origins": [
+    "examplepack:pyromancer",
+    "examplepack:golem",
+    "examplepack:specter"
+  ],
+  "allow_random": true,
+  "auto_choose": false,
+  "hidden": false,
+  "enabled": true
+}

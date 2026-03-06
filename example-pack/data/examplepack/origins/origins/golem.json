@@ -1,0 +1,16 @@
+{
+  "name": "origins.examplepack.golem.name",
+  "description": "origins.examplepack.golem.description",
+  "icon": "minecraft:iron_block",
+  "impact": "medium",
+  "order": 11,
+  "powers": [
+    "examplepack:golem_armor",
+    "examplepack:golem_slow_movement",
+    "examplepack:golem_no_fall_damage",
+    "examplepack:golem_effect_immunity",
+    "examplepack:golem_no_slowdown",
+    "examplepack:golem_scare_creepers"
+  ],
+  "upgrades": []
+}

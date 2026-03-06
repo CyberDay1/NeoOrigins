@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.umbral.name",
+  "description": "origins.neoorigins.umbral.description",
+  "icon": "minecraft:coal",
+  "impact": "medium",
+  "order": 21,
+  "powers": [
+    "neoorigins:umbral_night_vision",
+    "neoorigins:umbral_shadow_orb",
+    "neoorigins:umbral_active_dash",
+    "neoorigins:umbral_daylight_damage",
+    "neoorigins:umbral_projectile_immunity",
+    "neoorigins:umbral_no_hunger_sprint"
+  ],
+  "upgrades": []
+}
