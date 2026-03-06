@@ -4,7 +4,10 @@ import com.cyberday1.neoorigins.api.origin.Origin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -39,15 +42,29 @@ public class OriginButton extends Button {
         g.renderOutline(getX(), getY(), getWidth(), getHeight(), border);
 
         // 16×16 icon
-        var item = BuiltInRegistries.ITEM.getValue(origin.icon());
-        if (item != null) {
-            g.renderItem(new ItemStack(item), getX() + 3, getY() + (getHeight() - 16) / 2);
-        }
+        renderIcon(g, origin.icon(), getX() + 3, getY() + (getHeight() - 16) / 2);
 
         // Name
         int nameColor = isSelected() ? 0xFFFFFFFF : (isHovered() ? 0xFFDDDDDD : 0xFFAAAAAA);
         Minecraft mc = Minecraft.getInstance();
         int textY = getY() + (getHeight() - 8) / 2;
         g.drawString(mc.font, origin.name(), getX() + 22, textY, nameColor, false);
+    }
+
+    /**
+     * Renders a 16×16 origin icon. Tries the item registry first; if the item
+     * is not registered (e.g. from a Fabric-only mod), falls back to blitting
+     * the texture at assets/<ns>/textures/item/<path>.png, which is available
+     * when the origin pack has been mounted as a client resource pack.
+     */
+    static void renderIcon(GuiGraphics g, Identifier iconId, int x, int y) {
+        var item = BuiltInRegistries.ITEM.getValue(iconId);
+        if (item != null && item != Items.AIR) {
+            g.renderItem(new ItemStack(item), x, y);
+            return;
+        }
+        Identifier texture = Identifier.fromNamespaceAndPath(
+            iconId.getNamespace(), "textures/item/" + iconId.getPath() + ".png");
+        g.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0f, 0.0f, 16, 16, 16, 16);
     }
 }

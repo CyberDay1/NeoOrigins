@@ -1,9 +1,11 @@
 package com.cyberday1.neoorigins.data;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import net.minecraft.network.chat.Component;
 import com.cyberday1.neoorigins.compat.CompatTranslationLog;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
@@ -20,10 +22,8 @@ import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.io.Reader;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PowerDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
 
@@ -41,7 +41,6 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
         Map<Identifier, JsonElement> map = new HashMap<>();
         scanConverter(FILE_CONVERTER, resourceManager, map);
-        // Also scan Origins-format path (data/<ns>/powers/), skipping IDs already loaded natively
         scanConverter(COMPAT_CONVERTER, resourceManager, map);
         return map;
     }
@@ -117,21 +116,43 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
-        // TEMP DIAGNOSTIC: breakdown by namespace
-        Map<String, Long> byNamespace = loaded.keySet().stream()
-            .collect(java.util.stream.Collectors.groupingBy(Identifier::getNamespace, java.util.stream.Collectors.counting()));
-        byNamespace.entrySet().stream()
-            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-            .forEach(e -> NeoOrigins.LOGGER.info("  [DIAG] powers: {}  x{}", e.getKey(), e.getValue()));
+        // Per-namespace breakdown — toggled via config/neoorigins-common.toml
+        if (NeoOriginsConfig.DEBUG_POWER_LOADING.get()) {
+            Map<String, Long> byNamespace = loaded.keySet().stream()
+                .collect(Collectors.groupingBy(Identifier::getNamespace, Collectors.counting()));
+            byNamespace.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .forEach(e -> NeoOrigins.LOGGER.info("  [DEBUG] powers: {}  x{}", e.getKey(), e.getValue()));
+        }
     }
 
     @SuppressWarnings("unchecked")
     private <C extends PowerConfiguration> void parsePower(
             Identifier id, PowerType<C> type, JsonObject json,
             Map<Identifier, PowerHolder<?>> target) {
-        type.codec().parse(JsonOps.INSTANCE, json)
+        Component name = extractComponentField(json, "name");
+        Component desc = extractComponentField(json, "description");
+
+        // Strip display fields so they don't confuse the typed codec.
+        JsonObject configJson = json.deepCopy();
+        configJson.remove("name");
+        configJson.remove("description");
+
+        type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(type, config)));
+            .ifPresent(config -> target.put(id, new PowerHolder<>(type, config, name, desc)));
+    }
+
+    private static Component extractComponentField(JsonObject json, String field) {
+        if (!json.has(field)) return Component.empty();
+        JsonElement el = json.get(field);
+        if (el.isJsonPrimitive()) return Component.translatable(el.getAsString());
+        if (el.isJsonObject()) {
+            JsonObject obj = el.getAsJsonObject();
+            if (obj.has("text"))      return Component.literal(obj.get("text").getAsString());
+            if (obj.has("translate")) return Component.translatable(obj.get("translate").getAsString());
+        }
+        return Component.empty();
     }
 
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */

@@ -5,6 +5,7 @@ import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader;
 import com.cyberday1.neoorigins.command.OriginCommand;
 import com.cyberday1.neoorigins.compat.OriginsPackFinder;
+import com.cyberday1.neoorigins.compat.PackItemAutoRegistrar;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
@@ -14,14 +15,15 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.server.packs.PackType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.slf4j.Logger;
 
 @Mod(NeoOrigins.MOD_ID)
@@ -30,8 +32,11 @@ public class NeoOrigins {
     public static final String MOD_ID = "neoorigins";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public NeoOrigins(IEventBus modEventBus) {
+    public NeoOrigins(IEventBus modEventBus, ModContainer modContainer) {
         LOGGER.info("NeoOrigins initializing...");
+
+        // Register TOML config (config/neoorigins-common.toml)
+        modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
 
         // Create originpacks/ folder in game directory on first launch
         try {
@@ -55,6 +60,9 @@ public class NeoOrigins {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
         }
 
+        // Auto-register items from originpacks/ before the registry freezes
+        modEventBus.addListener(PackItemAutoRegistrar::onRegisterItems);
+
         // Register the originpacks/ folder as a datapack source (mod event bus)
         modEventBus.addListener(NeoOrigins::onAddPackFinders);
 
@@ -66,8 +74,6 @@ public class NeoOrigins {
 
     private static void onAddPackFinders(AddPackFindersEvent event) {
         var folder = FMLPaths.GAMEDIR.get().resolve("originpacks");
-        // Register for both sides so packs' assets/ directories (textures, models, sprites)
-        // are mounted client-side in addition to their data/ directories server-side.
         if (event.getPackType() == PackType.SERVER_DATA || event.getPackType() == PackType.CLIENT_RESOURCES) {
             event.addRepositorySource(new OriginsPackFinder(folder));
             LOGGER.info("Registered originpacks/ for {} at {}", event.getPackType(), folder);

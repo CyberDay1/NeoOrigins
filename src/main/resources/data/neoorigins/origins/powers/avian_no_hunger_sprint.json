@@ -3,5 +3,7 @@
   "effect": "minecraft:saturation",
   "amplifier": 0,
   "ambient": true,
-  "show_particles": false
+  "show_particles": false,
+  "name": "power.neoorigins.avian_no_hunger_sprint.name",
+  "description": "power.neoorigins.avian_no_hunger_sprint.description"
 }

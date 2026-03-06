@@ -15,8 +15,9 @@ public class NeoOriginsClientEvents {
     @SubscribeEvent
     public static void onClientPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof LocalPlayer)) return;
-        while (NeoOriginsKeybindings.SECONDARY_ABILITY.consumeClick()) {
-            ClientPacketDistributor.sendToServer(new ActivatePowerPayload());
-        }
+        if (NeoOriginsKeybindings.SKILL_1.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(0));
+        if (NeoOriginsKeybindings.SKILL_2.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(1));
+        if (NeoOriginsKeybindings.SKILL_3.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(2));
+        if (NeoOriginsKeybindings.SKILL_4.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(3));
     }
 }

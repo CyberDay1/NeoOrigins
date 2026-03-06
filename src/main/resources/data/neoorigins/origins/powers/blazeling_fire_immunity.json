@@ -1,1 +1,1 @@
-{ "type": "neoorigins:prevent_action", "action": "fire" }
+{ "type": "neoorigins:prevent_action", "action": "fire", "name": "power.neoorigins.blazeling_fire_immunity.name", "description": "power.neoorigins.blazeling_fire_immunity.description" }

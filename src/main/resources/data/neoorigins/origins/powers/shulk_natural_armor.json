@@ -2,5 +2,7 @@
   "type": "neoorigins:attribute_modifier",
   "attribute": "minecraft:generic.armor",
   "amount": 8.0,
-  "operation": "add_value"
+  "operation": "add_value",
+  "name": "power.neoorigins.shulk_natural_armor.name",
+  "description": "power.neoorigins.shulk_natural_armor.description"
 }

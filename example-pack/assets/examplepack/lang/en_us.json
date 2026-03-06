@@ -1,0 +1,73 @@
+{
+  "origins.examplepack.pyromancer.name": "Pyromancer",
+  "origins.examplepack.pyromancer.description": "Born of flame — fire cannot harm them, but water is their undoing.",
+
+  "origins.examplepack.golem.name": "Golem",
+  "origins.examplepack.golem.description": "A living construct of iron and stone, slow but nearly indestructible.",
+
+  "origins.examplepack.specter.name": "Specter",
+  "origins.examplepack.specter.description": "An ethereal being that slips between the living world and the void.",
+
+  "power.examplepack.pyromancer_fire_immunity.name": "Fire Immunity",
+  "power.examplepack.pyromancer_fire_immunity.description": "Immune to fire, lava, and all burning damage.",
+
+  "power.examplepack.pyromancer_heat_vision.name": "Heat Vision",
+  "power.examplepack.pyromancer_heat_vision.description": "Sees in the dark through the heat of the world.",
+
+  "power.examplepack.pyromancer_strength.name": "Infernal Might",
+  "power.examplepack.pyromancer_strength.description": "Permanently empowered by inner fire — deals more melee damage.",
+
+  "power.examplepack.pyromancer_fire_damage.name": "Fire Mastery",
+  "power.examplepack.pyromancer_fire_damage.description": "Deals 50% more fire damage to enemies.",
+
+  "power.examplepack.pyromancer_water_weakness.name": "Hydrophobia",
+  "power.examplepack.pyromancer_water_weakness.description": "Takes 2.5x damage from water and drowning.",
+
+  "power.examplepack.golem_armor.name": "Iron Skin",
+  "power.examplepack.golem_armor.description": "Has 6 points of natural armor without wearing equipment.",
+
+  "power.examplepack.golem_slow_movement.name": "Heavy Frame",
+  "power.examplepack.golem_slow_movement.description": "Moves 20% slower than a normal player.",
+
+  "power.examplepack.golem_no_fall_damage.name": "Sturdy Landing",
+  "power.examplepack.golem_no_fall_damage.description": "Takes no damage from falling, no matter the height.",
+
+  "power.examplepack.golem_effect_immunity.name": "Toxin Resistance",
+  "power.examplepack.golem_effect_immunity.description": "Immune to poison and wither effects.",
+
+  "power.examplepack.golem_no_slowdown.name": "Unstoppable",
+  "power.examplepack.golem_no_slowdown.description": "Not slowed by cobwebs, berry bushes, or other dense blocks.",
+
+  "power.examplepack.golem_scare_creepers.name": "Creeper Deterrent",
+  "power.examplepack.golem_scare_creepers.description": "Creepers are terrified and flee on sight.",
+
+  "power.examplepack.specter_flight.name": "Ethereal Flight",
+  "power.examplepack.specter_flight.description": "Can fly freely through the air without an elytra.",
+
+  "power.examplepack.specter_elytra_boost.name": "Void Glide",
+  "power.examplepack.specter_elytra_boost.description": "Can glide with elytra without wearing one.",
+
+  "power.examplepack.specter_phantom_form.name": "Phantom Form",
+  "power.examplepack.specter_phantom_form.description": "Becomes invisible, though gravity still holds sway.",
+
+  "power.examplepack.specter_water_breathing.name": "Spectral Lungs",
+  "power.examplepack.specter_water_breathing.description": "Does not need to breathe underwater.",
+
+  "power.examplepack.specter_no_sprint_food.name": "Weightless Sprint",
+  "power.examplepack.specter_no_sprint_food.description": "Sprinting does not drain extra hunger.",
+
+  "power.examplepack.specter_wall_climbing.name": "Phase Grip",
+  "power.examplepack.specter_wall_climbing.description": "Can cling to and scale any solid wall.",
+
+  "power.examplepack.specter_scare_endermen.name": "Void Kin",
+  "power.examplepack.specter_scare_endermen.description": "Endermen recognize a kindred spirit and refuse to fight.",
+
+  "power.examplepack.specter_tick_action.name": "Dimensional Escape",
+  "power.examplepack.specter_tick_action.description": "Teleports away from danger when struck.",
+
+  "power.examplepack.specter_no_fall_base.name": "Spectral Landing",
+  "power.examplepack.specter_no_fall_base.description": "Passes through the air without suffering fall damage.",
+
+  "power.examplepack.specter_conditional_fall.name": "Spider's Drift",
+  "power.examplepack.specter_conditional_fall.description": "Takes no fall damage while clinging to walls."
+}

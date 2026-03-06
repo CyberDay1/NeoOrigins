@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:effect_immunity",
+  "effects": ["minecraft:poison", "minecraft:wither"],
+  "name": "power.examplepack.golem_effect_immunity.name",
+  "description": "power.examplepack.golem_effect_immunity.description"
+}

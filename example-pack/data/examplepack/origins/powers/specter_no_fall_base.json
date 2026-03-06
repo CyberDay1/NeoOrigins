@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "fall_damage",
+  "name": "power.examplepack.specter_no_fall_base.name",
+  "description": "power.examplepack.specter_no_fall_base.description"
+}

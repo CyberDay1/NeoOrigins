@@ -1,5 +1,7 @@
 {
   "type": "neoorigins:phantom_form",
   "invisibility": true,
-  "no_gravity": true
+  "no_gravity": true,
+  "name": "power.neoorigins.phantom_form.name",
+  "description": "power.neoorigins.phantom_form.description"
 }

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.armor",
+  "amount": 6.0,
+  "operation": "add_value",
+  "name": "power.examplepack.golem_armor.name",
+  "description": "power.examplepack.golem_armor.description"
+}

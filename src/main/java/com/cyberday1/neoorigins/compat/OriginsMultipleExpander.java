@@ -30,6 +30,12 @@ public final class OriginsMultipleExpander {
      */
     public static final Map<Identifier, List<Identifier>> MULTIPLE_EXPANSION_MAP = new HashMap<>();
 
+    /**
+     * Maps each origins:multiple power ID to its display metadata (name/description JsonElements).
+     * Used by the origin selection screen to collapse sub-powers back into one entry per parent.
+     */
+    public static final Map<Identifier, JsonObject> MULTIPLE_DISPLAY_MAP = new HashMap<>();
+
     /** Keys in an origins:multiple JSON that are metadata, not sub-power entries. */
     /** Keys in an origins:multiple JSON that are metadata, not sub-power entries. Exposed for Route B loader. */
     public static final Set<String> META_KEYS = Set.of(
@@ -39,9 +45,10 @@ public final class OriginsMultipleExpander {
 
     private OriginsMultipleExpander() {}
 
-    /** Clears the expansion map. Call at the start of PowerDataManager.apply(). */
+    /** Clears the expansion and display maps. Call at the start of PowerDataManager.apply(). */
     public static void reset() {
         MULTIPLE_EXPANSION_MAP.clear();
+        MULTIPLE_DISPLAY_MAP.clear();
     }
 
     /**
@@ -57,6 +64,14 @@ public final class OriginsMultipleExpander {
     public static Map<Identifier, JsonObject> expand(Identifier id, JsonObject src) {
         Map<Identifier, JsonObject> result = new HashMap<>();
         List<Identifier> syntheticIds = new ArrayList<>();
+
+        // Store display metadata from the parent multiple so the screen can collapse sub-powers.
+        if (src.has("name") || src.has("description")) {
+            JsonObject display = new JsonObject();
+            if (src.has("name"))        display.add("name",        src.get("name"));
+            if (src.has("description")) display.add("description", src.get("description"));
+            MULTIPLE_DISPLAY_MAP.put(id, display);
+        }
 
         for (Map.Entry<String, JsonElement> entry : src.entrySet()) {
             String key = entry.getKey();

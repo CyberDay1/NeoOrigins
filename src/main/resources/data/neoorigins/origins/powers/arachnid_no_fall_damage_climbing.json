@@ -1,5 +1,7 @@
 {
   "type": "neoorigins:conditional",
   "condition": "climbing",
-  "inner_power": "neoorigins:avian_no_fall_damage"
+  "inner_power": "neoorigins:avian_no_fall_damage",
+  "name": "power.neoorigins.arachnid_no_fall_damage_climbing.name",
+  "description": "power.neoorigins.arachnid_no_fall_damage_climbing.description"
 }

@@ -4,7 +4,10 @@
   "button.neoorigins.random": "Random",
 
   "key.category.neoorigins.neoorigins": "NeoOrigins",
-  "key.neoorigins.secondary_ability": "Secondary Ability",
+  "key.neoorigins.skill_1": "Skill 1",
+  "key.neoorigins.skill_2": "Skill 2",
+  "key.neoorigins.skill_3": "Skill 3",
+  "key.neoorigins.skill_4": "Skill 4",
 
   "origins.gui.impact.impact": "Impact",
   "origins.gui.impact.none": "None",
@@ -37,7 +40,53 @@
   "origins.neoorigins.shulk.description": "Armored like a shulker, moving slowly but shrugging off blows.",
 
   "origins.neoorigins.phantom.name": "Phantom",
-  "origins.neoorigins.phantom.description": "A spectral being, nearly weightless and unseen — but haunted by its own nature."
+  "origins.neoorigins.phantom.description": "A spectral being, nearly weightless and unseen — but haunted by its own nature.",
+
+  "power.neoorigins.merling_water_breathing.name": "Gills",
+  "power.neoorigins.merling_water_breathing.description": "Can breathe underwater indefinitely.",
+  "power.neoorigins.merling_aquatic_speed.name": "Aquatic Speed",
+  "power.neoorigins.merling_aquatic_speed.description": "Moves faster while swimming.",
+  "power.neoorigins.merling_land_slowdown.name": "Landlubber",
+  "power.neoorigins.merling_land_slowdown.description": "Moves slower on land.",
+  "power.neoorigins.merling_no_drowning.name": "No Drowning",
+  "power.neoorigins.merling_no_drowning.description": "Cannot drown.",
+
+  "power.neoorigins.avian_slow_fall.name": "Slow Falling",
+  "power.neoorigins.avian_slow_fall.description": "Drifts slowly downward and takes greatly reduced fall damage.",
+  "power.neoorigins.avian_no_fall_damage.name": "Featherweight",
+  "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling.",
+  "power.neoorigins.avian_no_hunger_sprint.name": "Athlete's Diet",
+  "power.neoorigins.avian_no_hunger_sprint.description": "Sprinting does not drain extra hunger.",
+
+  "power.neoorigins.blazeling_fire_immunity.name": "Fire Immunity",
+  "power.neoorigins.blazeling_fire_immunity.description": "Immune to fire, lava, and burning.",
+  "power.neoorigins.blazeling_water_damage.name": "Water Weakness",
+  "power.neoorigins.blazeling_water_damage.description": "Takes extra damage from water and rain.",
+  "power.neoorigins.blazeling_night_vision.name": "Heat Sight",
+  "power.neoorigins.blazeling_night_vision.description": "Can see clearly in the dark.",
+
+  "power.neoorigins.elytrian_elytra_boost.name": "Elytra Boost",
+  "power.neoorigins.elytrian_elytra_boost.description": "Gains a burst of speed when launching with an elytra.",
+  "power.neoorigins.elytrian_flight.name": "Natural Flight",
+  "power.neoorigins.elytrian_flight.description": "Can fly freely without wearing an elytra.",
+
+  "power.neoorigins.enderian_no_eye_damage.name": "Ender Eyes",
+  "power.neoorigins.enderian_no_eye_damage.description": "Immune to projectiles that target the eyes.",
+  "power.neoorigins.enderian_water_damage.name": "Hydrophobia",
+  "power.neoorigins.enderian_water_damage.description": "Takes extra damage from water and rain.",
+
+  "power.neoorigins.arachnid_wall_climbing.name": "Wall Climbing",
+  "power.neoorigins.arachnid_wall_climbing.description": "Can cling to and scale any surface.",
+  "power.neoorigins.arachnid_no_fall_damage_climbing.name": "Spider's Grip",
+  "power.neoorigins.arachnid_no_fall_damage_climbing.description": "Takes no fall damage while climbing a wall.",
+
+  "power.neoorigins.shulk_natural_armor.name": "Shell",
+  "power.neoorigins.shulk_natural_armor.description": "Has permanent natural armor without needing equipment.",
+  "power.neoorigins.shulk_slow_movement.name": "Shulker Bulk",
+  "power.neoorigins.shulk_slow_movement.description": "Moves slower than normal.",
+
+  "power.neoorigins.phantom_night_vision.name": "Night Eyes",
+  "power.neoorigins.phantom_night_vision.description": "Can see clearly in total darkness.",
+  "power.neoorigins.phantom_form.name": "Phantom Form",
+  "power.neoorigins.phantom_form.description": "Becomes invisible and drifts weightlessly."
 }
-
-

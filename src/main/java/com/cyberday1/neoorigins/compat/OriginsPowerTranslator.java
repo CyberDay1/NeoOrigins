@@ -71,7 +71,11 @@ public final class OriginsPowerTranslator {
         try {
             Optional<JsonObject> result = doTranslate(id, type, json);
             if (result.isPresent()) {
-                String mappedType = result.get().has("type") ? result.get().get("type").getAsString() : "?";
+                JsonObject out = result.get();
+                // Preserve display name and description from the original Origins JSON.
+                if (json.has("name") && !out.has("name"))               out.add("name", json.get("name"));
+                if (json.has("description") && !out.has("description")) out.add("description", json.get("description"));
+                String mappedType = out.has("type") ? out.get("type").getAsString() : "?";
                 CompatTranslationLog.pass(id, type + " -> " + mappedType);
             }
             return result;
@@ -108,6 +112,8 @@ public final class OriginsPowerTranslator {
             case "apace:creative_flight"           -> translateSimple("neoorigins:flight");
             case "apace:night_vision"              -> translateSimple("neoorigins:night_vision");
             case "apace:water_breathing"           -> translateSimple("neoorigins:water_breathing");
+            case "origins:entity_size"             -> translateEntitySize(src);
+            case "apace:entity_size"               -> translateEntitySize(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -327,6 +333,29 @@ public final class OriginsPowerTranslator {
             return Optional.empty();
         }
         return translateStackingStatusEffect(action);
+    }
+
+    private static Optional<JsonObject> translateEntitySize(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:size_scaling");
+
+        // Origins uses "width"/"height" float fields; we derive scale from height (base height ~1.8)
+        // If a "scale" field is present directly, prefer that.
+        if (src.has("scale")) {
+            out.addProperty("scale", src.get("scale").getAsFloat());
+        } else if (src.has("height")) {
+            float height = src.get("height").getAsFloat();
+            // Approximate: normalise against vanilla player height of 1.8
+            out.addProperty("scale", height / 1.8f);
+        } else if (src.has("width")) {
+            float width = src.get("width").getAsFloat();
+            // Approximate: normalise against vanilla player width of 0.6
+            out.addProperty("scale", width / 0.6f);
+        } else {
+            throw new IllegalArgumentException("origins:entity_size missing 'scale', 'height', or 'width' field");
+        }
+
+        return Optional.of(out);
     }
 
     private static Optional<JsonObject> translateActionOverTime(Identifier id, JsonObject src) {

@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.api.power;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Abstract base class for all power types.
@@ -28,7 +29,7 @@ public abstract class PowerType<C extends PowerConfiguration> {
         onGranted(player, config);
     }
 
-    /** Called when the player presses the Secondary Ability key while this power is active. Default: no-op. */
+    /** Called when the player presses a Skill key while this power occupies that slot. Default: no-op. */
     public void onActivated(ServerPlayer player, C config) {}
 
     /**
@@ -44,4 +45,25 @@ public abstract class PowerType<C extends PowerConfiguration> {
      * Default: no-op. Used by Route B powers like origins:self_action_when_hit.
      */
     public void onHit(ServerPlayer player, C config, float amount) {}
+
+    /**
+     * Called when the player kills a living entity while this power is active.
+     * Default: no-op.
+     */
+    public void onKill(ServerPlayer player, C config, LivingEntity killed) {}
+
+    /**
+     * Returns true if this power type always has active (keybind-triggered) behaviour,
+     * regardless of configuration. Passive powers return false (default).
+     * Override to return true in types that implement {@link #onActivated}.
+     */
+    public boolean isActive() { return false; }
+
+    /**
+     * Config-aware variant called by {@link PowerHolder#isActive()}.
+     * Override in types where activeness depends on the specific config instance
+     * (e.g. CompatPower, where only some configs have an onActivated consumer).
+     * Default delegates to the no-arg {@link #isActive()}.
+     */
+    public boolean isActive(C config) { return isActive(); }
 }

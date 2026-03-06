@@ -53,6 +53,12 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         return MapCodec.unit(() -> new Config(null, null, null, null, null, null)).codec();
     }
 
+    /** Active only when this specific config has an onActivated consumer. */
+    @Override
+    public boolean isActive(Config config) {
+        return config.onActivated() != null;
+    }
+
     @Override
     public void onGranted(ServerPlayer player, Config config) {
         if (config.onGranted() != null) config.onGranted().accept(player);

@@ -1,1 +1,5 @@
-{ "type": "neoorigins:water_breathing" }
+{
+  "type": "neoorigins:water_breathing",
+  "name": "power.neoorigins.merling_water_breathing.name",
+  "description": "power.neoorigins.merling_water_breathing.description"
+}

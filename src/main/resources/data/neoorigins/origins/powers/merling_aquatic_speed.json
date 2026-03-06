@@ -2,5 +2,7 @@
   "type": "neoorigins:attribute_modifier",
   "attribute": "minecraft:generic.swimming_speed",
   "amount": 0.4,
-  "operation": "add_multiplied_base"
+  "operation": "add_multiplied_base",
+  "name": "power.neoorigins.merling_aquatic_speed.name",
+  "description": "power.neoorigins.merling_aquatic_speed.description"
 }

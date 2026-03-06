@@ -2,6 +2,8 @@ package com.cyberday1.neoorigins.compat;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
+import com.cyberday1.neoorigins.attachment.OriginAttachments;
+import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.action.ActionParser;
 import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
@@ -11,6 +13,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,8 +26,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 import java.io.Reader;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 /**
  * Route B compatibility loader.
@@ -37,11 +38,6 @@ import java.util.function.Consumer;
 public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
 
     public static final OriginsCompatPowerLoader INSTANCE = new OriginsCompatPowerLoader();
-
-    // Per-player cooldown tracking for origins:active_self powers.
-    // Map<playerUUID, Map<powerId, lastUsedTick>>
-    private static final ConcurrentHashMap<UUID, HashMap<String, Long>> COOLDOWNS =
-        new ConcurrentHashMap<>();
 
     /** Power types that Route B handles (Route A SKIPs these). */
     private static final Set<String> ROUTE_B_TYPES = Set.of(
@@ -111,7 +107,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     CompatTranslationLog.skip(id, type, "Route B: no handler produced a config");
                     continue;
                 }
-                injected.put(id, new PowerHolder<>(CompatPower.INSTANCE, config));
+                Component powerName = extractComponent(json, "name");
+                Component powerDesc = extractComponent(json, "description");
+                injected.put(id, new PowerHolder<>(CompatPower.INSTANCE, config, powerName, powerDesc));
                 CompatTranslationLog.pass(id, type + " -> Route B compiled");
                 NeoOrigins.LOGGER.debug("OriginsCompatB: loaded {} ({})", id, type);
 
@@ -184,6 +182,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
     }
 
+    private static Component extractComponent(JsonObject json, String field) {
+        if (!json.has(field)) return Component.empty();
+        JsonElement el = json.get(field);
+        if (el.isJsonPrimitive()) return Component.translatable(el.getAsString());
+        if (el.isJsonObject()) {
+            JsonObject obj = el.getAsJsonObject();
+            if (obj.has("text"))      return Component.literal(obj.get("text").getAsString());
+            if (obj.has("translate")) return Component.translatable(obj.get("translate").getAsString());
+        }
+        return Component.empty();
+    }
+
     // ---- Per-type parsers ----
 
     private CompatPower.Config parseRouteB(Identifier id, String type, JsonObject json) {
@@ -212,14 +222,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
 
         return CompatPower.Config.builder()
-            .onActivated(player -> {
-                if (cooldown > 0 && player.level().getServer() != null) {
-                    long now = player.level().getServer().getTickCount();
-                    long last = COOLDOWNS
-                        .computeIfAbsent(player.getUUID(), k -> new HashMap<>())
-                        .getOrDefault(idStr, 0L);
-                    if (now - last < cooldown) return;
-                    COOLDOWNS.get(player.getUUID()).put(idStr, now);
+            .onActivated((ServerPlayer player) -> {
+                if (cooldown > 0) {
+                    PlayerOriginData data = player.getData(OriginAttachments.originData());
+                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    data.setCooldown(idStr, player.tickCount, cooldown);
                 }
                 action.execute(player);
             })
@@ -283,19 +290,17 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         EntityAction tickAction = json.has("entity_action")
             ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr) : EntityAction.noop();
 
-        Consumer<ServerPlayer> onTickLambda = player -> {
-            var state = player.getData(CompatAttachments.resourceState());
-            if (player.level().getServer() != null && (player.level().getServer().getTickCount() + offset) % interval == 0) {
-                tickAction.execute(player);
-            }
-            int cur = state.get(key, startValue);
-            if (cur <= min) minAction.execute(player);
-            if (cur >= max) maxAction.execute(player);
-        };
-
         return CompatPower.Config.builder()
             .onGranted(player -> player.getData(CompatAttachments.resourceState()).set(key, startValue))
-            .onTick(onTickLambda)
+            .onTick(player -> {
+                var state = player.getData(CompatAttachments.resourceState());
+                if (player.level().getServer() != null && (player.level().getServer().getTickCount() + offset) % interval == 0) {
+                    tickAction.execute(player);
+                }
+                int cur = state.get(key, startValue);
+                if (cur <= min) minAction.execute(player);
+                if (cur >= max) maxAction.execute(player);
+            })
             .build();
     }
 

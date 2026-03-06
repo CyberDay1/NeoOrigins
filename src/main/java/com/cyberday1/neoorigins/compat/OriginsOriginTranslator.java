@@ -37,12 +37,15 @@ public final class OriginsOriginTranslator {
         JsonObject out = new JsonObject();
 
         // ---- name ----
-        out.addProperty("name", extractComponent(src.has("name") ? src.get("name") : null,
-            id.getNamespace() + ".origin." + id.getPath().replace('/', '.') + ".name"));
+        // Prefer explicit plain/text component; fall back to deriving a readable name from the ID
+        // (avoids displaying raw translation keys when pack lang files are not loaded by NeoForge)
+        out.addProperty("name", extractLiteralOrDerive(src.has("name") ? src.get("name") : null,
+            deriveNameFromId(id)));
 
         // ---- description ----
-        out.addProperty("description", extractComponent(src.has("description") ? src.get("description") : null,
-            id.getNamespace() + ".origin." + id.getPath().replace('/', '.') + ".description"));
+        // Same approach: use explicit text if present, otherwise empty string
+        out.addProperty("description", extractLiteralOrDerive(src.has("description") ? src.get("description") : null,
+            ""));
 
         // ---- icon: unwrap {"item": "..."} or {"id": "..."} object to string ----
         if (src.has("icon")) {
@@ -113,18 +116,42 @@ public final class OriginsOriginTranslator {
     }
 
     /**
-     * Extract a string from a potentially-complex component element.
-     * Handles: plain string, {"translate": "..."}, {"text": "..."}.
-     * Falls back to {@code fallback} if null or unrecognized format.
+     * Extract a literal display string from a component element, using {@code fallback} when the
+     * value is a translation key ({"translate": "..."}) or missing. This prevents raw translation
+     * keys from being shown in the UI when the external pack's lang files aren't loaded by NeoForge.
+     *
+     * Handles: plain string → returned as-is; {"text": "..."} → text value;
+     *          null or {"translate": "..."} → {@code fallback}.
      */
-    private static String extractComponent(JsonElement el, String fallback) {
+    private static String extractLiteralOrDerive(JsonElement el, String fallback) {
         if (el == null) return fallback;
         if (el.isJsonPrimitive()) return el.getAsString();
         if (el.isJsonObject()) {
             JsonObject obj = el.getAsJsonObject();
-            if (obj.has("translate")) return obj.get("translate").getAsString();
-            if (obj.has("text"))      return obj.get("text").getAsString();
+            if (obj.has("text")) return obj.get("text").getAsString();
+            // {"translate": "..."} — we cannot resolve this without the pack's lang file,
+            // so return fallback (derived name or empty string) for a readable display.
         }
         return fallback;
+    }
+
+    /**
+     * Derive a human-readable display name from an origin Identifier.
+     * Takes the last path segment (after the last '/'), replaces '_' with spaces,
+     * and title-cases each word. E.g. "origins-plus-plus:voidling/voidling" → "Voidling".
+     */
+    private static String deriveNameFromId(Identifier id) {
+        String path = id.getPath();
+        int slash = path.lastIndexOf('/');
+        if (slash >= 0) path = path.substring(slash + 1);
+        String[] parts = path.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(part.charAt(0)));
+            sb.append(part.substring(1).toLowerCase());
+        }
+        return sb.isEmpty() ? id.getPath() : sb.toString();
     }
 }

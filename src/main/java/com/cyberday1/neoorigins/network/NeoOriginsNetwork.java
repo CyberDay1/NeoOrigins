@@ -3,11 +3,12 @@ package com.cyberday1.neoorigins.network;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.event.OriginChangedEvent;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
-import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.event.OriginEventHandler;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
@@ -19,6 +20,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,8 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NeoOriginsNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
-    private static final int ACTIVATE_POWER_COOLDOWN_TICKS = 5;
-    private static final Map<UUID, Integer> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
+    /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
+    private static final int SLOT_DEBOUNCE_TICKS = 5;
+    /** Key: "uuid:slot" → last tick that slot was activated. */
+    private static final Map<String, Integer> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
 
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar(NeoOrigins.MOD_ID).versioned(PROTOCOL_VERSION);
@@ -120,32 +124,22 @@ public class NeoOriginsNetwork {
     private static void handleActivatePower(ActivatePowerPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
-            if (!hasAnyActivePower(sp)) return;
 
+            int slot = payload.slot();
+            if (slot < 0 || slot >= 4) return;
+
+            // Per-slot debounce — prevents key-spam without blocking adjacent slots.
             int currentTick = sp.tickCount;
-            UUID playerId = sp.getUUID();
-            Integer lastTick = LAST_ACTIVATE_TICK.get(playerId);
-            if (lastTick != null && (currentTick - lastTick) < ACTIVATE_POWER_COOLDOWN_TICKS) {
-                return;
-            }
+            String debounceKey = sp.getUUID() + ":" + slot;
+            Integer lastTick = LAST_ACTIVATE_TICK.get(debounceKey);
+            if (lastTick != null && (currentTick - lastTick) < SLOT_DEBOUNCE_TICKS) return;
+            LAST_ACTIVATE_TICK.put(debounceKey, currentTick);
 
-            LAST_ACTIVATE_TICK.put(playerId, currentTick);
-            com.cyberday1.neoorigins.event.OriginEventHandler.forEachActivePower(sp, holder -> holder.onActivated(sp));
+            List<PowerHolder<?>> actives = OriginEventHandler.getActivePowers(sp);
+            if (slot >= actives.size()) return;
+
+            actives.get(slot).onActivated(sp);
         });
-    }
-
-    private static boolean hasAnyActivePower(ServerPlayer player) {
-        PlayerOriginData data = player.getData(OriginAttachments.originData());
-        for (var entry : data.getOrigins().entrySet()) {
-            var origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
-            if (origin == null) continue;
-            for (Identifier powerId : origin.powers()) {
-                if (PowerDataManager.INSTANCE.hasPower(powerId)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     /** Send the player's full origin data to themselves. */

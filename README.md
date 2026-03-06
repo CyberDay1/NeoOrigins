@@ -98,6 +98,15 @@ Summary: 2 passed, 1 failed, 1 skipped
 
 **A FAIL line** means something unexpected went wrong. The power ID and reason are shown. Check whether the pack targets a very old Origins version with a different JSON schema.
 
+### Power descriptions from external packs
+
+Power descriptions in the origin selection screen are resolved in this order:
+
+1. Explicit `name`/`description` fields in the power JSON (NeoOrigins native format, or packs that embed them)
+2. Translation keys derived from the power ID — `power.<namespace>.<path>.name` / `.description` — matching the Fabric Origins convention
+
+Most well-maintained packs (Origins++, etc.) follow convention 2 and will display correctly. Packs that store descriptions in a non-standard location or use a different key format may show only the power ID as a fallback. Check `logs/neoorigins-compat.log` to confirm which powers loaded, then verify the pack's lang file uses the expected key pattern.
+
 ---
 
 ## Writing Your Own Origins
