@@ -26,21 +26,34 @@ public class OriginSelectionPresenter {
     private Identifier selectedOriginId      = null;
     private int listScrollOffset             = 0;
     private String searchText                = "";
+    private boolean forceReselect            = false;
 
     private final List<OriginListEntry> allRows      = new ArrayList<>();
     private final List<OriginListEntry> filteredRows = new ArrayList<>();
     private final List<Identifier>      allOriginIds = new ArrayList<>();
 
+    /** Set the forceReselect flag before calling init(). */
+    public void setForceReselect(boolean forceReselect) {
+        this.forceReselect = forceReselect;
+    }
+
     /**
      * Query pending layers. Call on every screen init (e.g. after resize).
      * Does NOT reset currentLayerIndex so mid-selection state survives resize.
      * Returns false if there are no pending layers (screen should close).
+     * When forceReselect is true, includes all layers (not just unfilled ones).
      */
     public boolean init() {
-        pendingLayers = LayerDataManager.INSTANCE.getSortedLayers().stream()
-            .filter(l -> !l.hidden())
-            .filter(l -> !ClientOriginState.getOrigins().containsKey(l.id()))
-            .toList();
+        if (forceReselect) {
+            pendingLayers = LayerDataManager.INSTANCE.getSortedLayers().stream()
+                .filter(l -> !l.hidden())
+                .toList();
+        } else {
+            pendingLayers = LayerDataManager.INSTANCE.getSortedLayers().stream()
+                .filter(l -> !l.hidden())
+                .filter(l -> !ClientOriginState.getOrigins().containsKey(l.id()))
+                .toList();
+        }
         return !pendingLayers.isEmpty() && currentLayerIndex < pendingLayers.size();
     }
 

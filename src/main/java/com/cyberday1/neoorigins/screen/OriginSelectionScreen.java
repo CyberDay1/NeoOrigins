@@ -39,6 +39,7 @@ public class OriginSelectionScreen extends Screen {
     private static final int DOT_COUNT        = 4;
 
     private final boolean isOrb;
+    private final boolean forceReselect;
     private final OriginSelectionPresenter presenter = new OriginSelectionPresenter();
 
     // Computed layout geometry
@@ -57,14 +58,20 @@ public class OriginSelectionScreen extends Screen {
     private Button confirmButton;
 
     public OriginSelectionScreen(boolean isOrb) {
+        this(isOrb, false);
+    }
+
+    public OriginSelectionScreen(boolean isOrb, boolean forceReselect) {
         super(Component.translatable("screen.neoorigins.choose_origin"));
         this.isOrb = isOrb;
+        this.forceReselect = forceReselect;
     }
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
     @Override
     protected void init() {
+        presenter.setForceReselect(forceReselect);
         if (!presenter.init()) { onClose(); return; }
         int totalW       = Math.min(width - 40, 660);
         panelX           = (width - totalW) / 2;

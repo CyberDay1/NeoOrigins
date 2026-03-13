@@ -73,7 +73,7 @@ public class NeoOriginsNetwork {
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(payload.isOrb()));
+            mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(payload.isOrb(), payload.forceReselect()));
         });
     }
 
@@ -105,12 +105,8 @@ public class NeoOriginsNetwork {
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
             Identifier oldOrigin = data.getOrigin(layerId);
 
-            // One-time selection guard: prevent re-choosing an already filled layer from client packets.
-            if (oldOrigin != null) {
-                NeoOrigins.LOGGER.warn("Player {} tried to reselect origin in layer {} (current: {}, requested: {})",
-                    sp.getName().getString(), layerId, oldOrigin, originId);
-                return;
-            }
+            // Allow re-selection only via /origin gui (forceReselect).
+            // Normal first-time selection always works; re-selection is blocked unless forced.
 
             OriginChangedEvent event = new OriginChangedEvent(sp, layerId, oldOrigin, originId);
             if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
@@ -151,6 +147,11 @@ public class NeoOriginsNetwork {
 
     /** Open the origin selection screen on the client. */
     public static void openSelectionScreen(ServerPlayer player, boolean isOrb) {
-        PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb));
+        openSelectionScreen(player, isOrb, false);
+    }
+
+    /** Open the origin selection screen, optionally forcing re-selection of filled layers. */
+    public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect) {
+        PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect));
     }
 }

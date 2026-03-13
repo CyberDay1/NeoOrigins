@@ -189,7 +189,7 @@ public class OriginCommand {
 
     private static int executeGui(CommandContext<CommandSourceStack> ctx, ServerPlayer player) throws CommandSyntaxException {
         ServerPlayer target = player != null ? player : ctx.getSource().getPlayerOrException();
-        NeoOriginsNetwork.openSelectionScreen(target, false);
+        NeoOriginsNetwork.openSelectionScreen(target, false, true);
         if (player != null) {
             ctx.getSource().sendSuccess(() -> Component.literal(
                 "Opened origin selection for " + target.getName().getString()), true);
