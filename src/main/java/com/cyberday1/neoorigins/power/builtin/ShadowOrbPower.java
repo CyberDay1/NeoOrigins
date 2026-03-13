@@ -66,8 +66,11 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
 
         for (BlockPos orbPos : orbs) {
             AABB box = new AABB(orbPos).inflate(config.radius());
-            for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class, box))
+            var playerTeam = player.getTeam();
+            for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player)) {
+                if (playerTeam != null && entity.isAlliedTo(playerTeam)) continue;
                 entity.addEffect(new MobEffectInstance(darkness, 40, 0, true, false));
+            }
         }
     }
 

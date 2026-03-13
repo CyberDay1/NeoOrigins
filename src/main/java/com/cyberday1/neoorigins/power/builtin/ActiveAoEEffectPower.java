@@ -47,8 +47,11 @@ public class ActiveAoEEffectPower extends AbstractActivePower<ActiveAoEEffectPow
         AABB box = player.getBoundingBox().inflate(config.radius());
         List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player);
         var effectHolder = effectOpt.get();
-        for (LivingEntity target : targets)
+        var playerTeam = player.getTeam();
+        for (LivingEntity target : targets) {
+            if (playerTeam != null && target.isAlliedTo(playerTeam)) continue;
             target.addEffect(new MobEffectInstance(effectHolder, config.durationTicks(), config.amplifier()));
+        }
         return true;
     }
 }

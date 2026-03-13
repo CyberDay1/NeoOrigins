@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.power.builtin;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,9 +35,14 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
+        double range = config.range();
+        final double[] mult = {1.0};
+        ActiveOriginService.forEachOfType(player, TeleportRangeModifierPower.class,
+            cfg -> mult[0] *= cfg.multiplier());
+        range *= mult[0];
         return "random".equalsIgnoreCase(config.mode())
-            ? randomTeleport(player, config.range())
-            : targetTeleport(player, config.range());
+            ? randomTeleport(player, range)
+            : targetTeleport(player, range);
     }
 
     private boolean targetTeleport(ServerPlayer player, double range) {

@@ -23,7 +23,7 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
         String type
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.INT.optionalFieldOf("max_depth", 8).forGetter(Config::maxDepth),
+            Codec.INT.optionalFieldOf("max_depth", 16).forGetter(Config::maxDepth),
             Codec.INT.optionalFieldOf("cooldown_ticks", 40).forGetter(Config::cooldownTicks),
             Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
@@ -40,15 +40,23 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
 
         boolean inWall = false;
         BlockPos target = null;
-        for (int i = 1; i <= config.maxDepth(); i++) {
-            Vec3 check = start.add(look.scale(i));
+        int steps = config.maxDepth() * 2; // 0.5 increments
+        for (int i = 1; i <= steps; i++) {
+            Vec3 check = start.add(look.scale(i * 0.5));
             BlockPos bp = new BlockPos((int) Math.floor(check.x), (int) Math.floor(check.y), (int) Math.floor(check.z));
             BlockState state = level.getBlockState(bp);
+            boolean solid = !state.getCollisionShape(level, bp).isEmpty();
             if (!inWall) {
-                if (!state.isAir()) inWall = true;
-            } else if (state.isAir() && level.getBlockState(bp.above()).isAir()) {
-                target = bp;
-                break;
+                if (solid) inWall = true;
+            } else if (!solid) {
+                BlockState above = level.getBlockState(bp.above());
+                boolean aboveClear = above.getCollisionShape(level, bp.above()).isEmpty();
+                BlockState below = level.getBlockState(bp.below());
+                boolean floorSolid = !below.getCollisionShape(level, bp.below()).isEmpty();
+                if (aboveClear && floorSolid) {
+                    target = bp;
+                    break;
+                }
             }
         }
 
