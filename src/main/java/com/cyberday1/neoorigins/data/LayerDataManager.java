@@ -9,6 +9,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -16,7 +17,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import java.io.Reader;
 import java.util.*;
 
-public class LayerDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
+public class LayerDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonObject>> {
 
     public static final LayerDataManager INSTANCE = new LayerDataManager();
     // NeoOrigins format: data/<ns>/origins/origin_layers/<name>.json
@@ -24,46 +25,119 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
     // Origins mod format: data/<ns>/origin_layers/<name>.json
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("origin_layers");
 
+    private static final Identifier ORIGINS_ORIGIN = Identifier.fromNamespaceAndPath("origins", "origin");
+    private static final Identifier NEO_ORIGIN = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "origin");
+
     private Map<Identifier, OriginLayer> layers = new HashMap<>();
     private List<OriginLayer> sortedLayers = new ArrayList<>();
 
     @Override
-    protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-        Map<Identifier, JsonElement> map = new HashMap<>();
-        scanConverter(FILE_CONVERTER, resourceManager, map);
-        scanConverter(COMPAT_CONVERTER, resourceManager, map);
+    protected Map<Identifier, JsonObject> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<Identifier, JsonObject> map = new HashMap<>();
+        // Native format first — these are authoritative
+        scanConverterStacks(FILE_CONVERTER, resourceManager, map, false);
+        // Compat format second — merges into existing layers
+        scanConverterStacks(COMPAT_CONVERTER, resourceManager, map, true);
+        // Fold neoorigins:origin into origins:origin so all origins appear in one layer
+        mergeNeoOriginsIntoCompat(map);
         return map;
     }
 
-    private void scanConverter(FileToIdConverter converter, ResourceManager resourceManager, Map<Identifier, JsonElement> map) {
-        for (var entry : converter.listMatchingResources(resourceManager).entrySet()) {
+    /**
+     * Scans all resource stacks for a converter, merging layer files that share the same ID.
+     * Uses listMatchingResourceStacks() to read ALL packs, not just the top-priority one.
+     */
+    private void scanConverterStacks(FileToIdConverter converter, ResourceManager resourceManager,
+                                     Map<Identifier, JsonObject> map, boolean isCompat) {
+        for (var entry : converter.listMatchingResourceStacks(resourceManager).entrySet()) {
             Identifier fileId = entry.getKey();
             Identifier id = converter.fileToId(fileId);
-            if (map.containsKey(id)) continue; // native format wins
             // Skip neoorigins namespace in compat converter — FILE_CONVERTER already handles it
-            if (converter == COMPAT_CONVERTER && NeoOrigins.MOD_ID.equals(id.getNamespace())) continue;
-            try (Reader reader = entry.getValue().openAsReader()) {
-                map.put(id, JsonParser.parseReader(reader));
-            } catch (Exception e) {
-                NeoOrigins.LOGGER.error("Error reading layer file {}", fileId, e);
+            if (isCompat && NeoOrigins.MOD_ID.equals(id.getNamespace())) continue;
+
+            List<Resource> resources = entry.getValue();
+            for (Resource resource : resources) {
+                try (Reader reader = resource.openAsReader()) {
+                    JsonElement parsed = JsonParser.parseReader(reader);
+                    if (!parsed.isJsonObject()) continue;
+                    JsonObject obj = parsed.getAsJsonObject();
+
+                    if (map.containsKey(id)) {
+                        mergeOrigins(map.get(id), obj);
+                    } else {
+                        map.put(id, obj);
+                    }
+                } catch (Exception e) {
+                    NeoOrigins.LOGGER.error("Error reading layer file {} from pack", fileId, e);
+                }
             }
         }
     }
 
+    /**
+     * Merges origins from {@code source} into {@code target}.
+     * If source has "replace": true, it replaces target entirely.
+     * Otherwise, appends source's origins array into target's.
+     */
+    private static void mergeOrigins(JsonObject target, JsonObject source) {
+        if (source.has("replace") && source.get("replace").getAsBoolean()) {
+            for (var e : source.entrySet()) {
+                target.add(e.getKey(), e.getValue());
+            }
+            return;
+        }
+        // Additive merge — append origins, deduplicating by ID string
+        JsonArray targetOrigins = target.has("origins") && target.get("origins").isJsonArray()
+            ? target.getAsJsonArray("origins") : new JsonArray();
+        Set<String> existing = new HashSet<>();
+        for (JsonElement el : targetOrigins) {
+            existing.add(originKey(el));
+        }
+        JsonArray sourceOrigins = source.has("origins") && source.get("origins").isJsonArray()
+            ? source.getAsJsonArray("origins") : new JsonArray();
+        for (JsonElement el : sourceOrigins) {
+            if (existing.add(originKey(el))) {
+                targetOrigins.add(el);
+            }
+        }
+        target.add("origins", targetOrigins);
+    }
+
+    /** Returns a stable string key for an origin entry (plain string or object with "origin" field). */
+    private static String originKey(JsonElement el) {
+        if (el.isJsonPrimitive()) return el.getAsString();
+        if (el.isJsonObject() && el.getAsJsonObject().has("origin"))
+            return el.getAsJsonObject().get("origin").getAsString();
+        return el.toString();
+    }
+
+    /**
+     * If both neoorigins:origin and origins:origin exist, merge the NeoOrigins
+     * base origins into the origins:origin layer so everything appears in one tab.
+     * If only neoorigins:origin exists (no compat packs), rename it to origins:origin.
+     */
+    private static void mergeNeoOriginsIntoCompat(Map<Identifier, JsonObject> map) {
+        JsonObject neo = map.get(NEO_ORIGIN);
+        if (neo == null) return;
+
+        if (map.containsKey(ORIGINS_ORIGIN)) {
+            mergeOrigins(map.get(ORIGINS_ORIGIN), neo);
+        } else {
+            map.put(ORIGINS_ORIGIN, neo);
+        }
+        map.remove(NEO_ORIGIN);
+    }
+
     @Override
-    protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+    protected void apply(Map<Identifier, JsonObject> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         Map<Identifier, OriginLayer> loaded = new HashMap<>();
-        for (Map.Entry<Identifier, JsonElement> entry : pObject.entrySet()) {
+        for (Map.Entry<Identifier, JsonObject> entry : pObject.entrySet()) {
             Identifier id = entry.getKey();
             try {
-                JsonElement json = entry.getValue();
-                if (json.isJsonObject()) {
-                    JsonObject obj = json.getAsJsonObject();
-                    obj.addProperty("id", id.toString());
-                    normalizeLayerJson(id, obj);
-                    json = obj;
-                }
-                OriginLayer.CODEC.parse(JsonOps.INSTANCE, json)
+                JsonObject obj = entry.getValue();
+                obj.addProperty("id", id.toString());
+                normalizeLayerJson(id, obj);
+                OriginLayer.CODEC.parse(JsonOps.INSTANCE, obj)
                     .resultOrPartial(err -> NeoOrigins.LOGGER.warn("Failed to parse layer {}: {}", id, err))
                     .ifPresent(layer -> loaded.put(id, layer));
             } catch (Exception e) {
@@ -80,18 +154,11 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
 
     /**
      * Normalizes Origins-format layer JSON fields to NeoOrigins format in-place.
-     * ComponentCodecHelper.CODEC uses Codec.STRING, so the name field must be a plain string.
-     * - If name is missing: synthesize from the layer ID path
-     * - If name is a JSON object (translate/text component): extract the string value
-     * - If name is already a plain string: leave it unchanged
-     * - Strips complex "condition" objects from origins entries (cannot be evaluated)
      */
     private static void normalizeLayerJson(Identifier id, JsonObject obj) {
         if (!obj.has("name")) {
-            // No name field — synthesize from ID path (e.g. "origin" from "neoorigins:origin")
             obj.addProperty("name", id.getPath());
         } else if (obj.get("name").isJsonObject()) {
-            // Component JSON object — extract string value for the plain-string codec
             JsonObject nameObj = obj.get("name").getAsJsonObject();
             String nameStr;
             if (nameObj.has("translate")) {
@@ -103,7 +170,6 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
             }
             obj.addProperty("name", nameStr);
         }
-        // If name is already a plain string: no change needed — codec accepts it as-is.
 
         // Strip non-string condition fields from origins entries so codec can parse them
         if (obj.has("origins") && obj.get("origins").isJsonArray()) {
