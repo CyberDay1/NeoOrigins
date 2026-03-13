@@ -20,7 +20,9 @@ public final class ConditionParser {
     private ConditionParser() {}
 
     public static EntityCondition parse(JsonObject json, String contextId) {
-        if (json == null) return EntityCondition.alwaysTrue();
+        if (json == null) {
+            return failClosed("root", contextId, "missing condition object");
+        }
         String type = json.has("type") ? json.get("type").getAsString() : "";
         try {
             return switch (type) {
@@ -59,21 +61,13 @@ public final class ConditionParser {
                         && sl.canSeeSky(p.blockPosition()) && !sl.isRaining();
                 };
                 case "origins:health", "apace:health"                   -> parseHealth(json);
-                case "origins:resource", "apace:resource"               -> parseResource(json);
-                case "origins:power_active", "apace:power_active"       -> parsePowerActive(json);
-                case "origins:on_block", "apace:on_block"               -> parseOnBlock(json);
-                // Unknown / complex conditions: fail closed (suppresses ability)
-                default -> {
-                    NeoOrigins.LOGGER.warn(
-                        "[CompatB] unsupported condition type '{}' in {} — defaulting to false",
-                        type, contextId);
-                    yield CompatPolicy.FALSE_CONDITION;
-                }
+                case "origins:resource", "apace:resource"               -> parseResource(json, contextId);
+                case "origins:power_active", "apace:power_active"       -> parsePowerActive(json, contextId);
+                case "origins:on_block", "apace:on_block"               -> parseOnBlock(json, contextId);
+                default -> failClosed(type, contextId, "unsupported condition type");
             };
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] failed to parse condition '{}' in {}: {}",
-                type, contextId, e.getMessage());
-            return CompatPolicy.FALSE_CONDITION;
+            return failClosed(type, contextId, "parse error: " + e.getMessage());
         }
     }
 
@@ -102,9 +96,10 @@ public final class ConditionParser {
     }
 
     private static EntityCondition parseNot(JsonObject json, String ctx) {
-        EntityCondition inner = json.has("condition")
-            ? parse(json.getAsJsonObject("condition"), ctx)
-            : EntityCondition.alwaysTrue();
+        if (!json.has("condition") || !json.get("condition").isJsonObject()) {
+            return failClosed("origins:not", ctx, "missing required field 'condition'");
+        }
+        EntityCondition inner = parse(json.getAsJsonObject("condition"), ctx);
         return player -> !inner.test(player);
     }
 
@@ -115,9 +110,11 @@ public final class ConditionParser {
         return player -> comparison.test(player.getHealth(), target);
     }
 
-    private static EntityCondition parseResource(JsonObject json) {
+    private static EntityCondition parseResource(JsonObject json, String contextId) {
         String powerId = json.has("resource") ? json.get("resource").getAsString() : null;
-        if (powerId == null) return EntityCondition.alwaysTrue();
+        if (powerId == null || powerId.isBlank()) {
+            return failClosed("origins:resource", contextId, "missing required field 'resource'");
+        }
         String comp   = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target    = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -127,18 +124,23 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parsePowerActive(JsonObject json) {
+    private static EntityCondition parsePowerActive(JsonObject json, String contextId) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
-        if (powerId == null) return EntityCondition.alwaysFalse();
+        if (powerId == null || powerId.isBlank()) {
+            return failClosed("origins:power_active", contextId, "missing required field 'power'");
+        }
         return player -> player.getData(CompatAttachments.toggleState()).isActive(powerId, false);
     }
 
-    private static EntityCondition parseOnBlock(JsonObject json) {
-        // Only support the simple block id sub-condition; unknown sub-conditions fail open.
-        if (!json.has("block_condition")) return EntityCondition.alwaysTrue();
+    private static EntityCondition parseOnBlock(JsonObject json, String contextId) {
+        if (!json.has("block_condition") || !json.get("block_condition").isJsonObject()) {
+            return failClosed("origins:on_block", contextId, "missing required field 'block_condition'");
+        }
         JsonObject blockCond = json.getAsJsonObject("block_condition");
         String blockId = blockCond.has("id") ? blockCond.get("id").getAsString() : null;
-        if (blockId == null) return EntityCondition.alwaysTrue();
+        if (blockId == null || blockId.isBlank()) {
+            return failClosed("origins:on_block", contextId, "missing required field 'block_condition.id'");
+        }
         Identifier bid = Identifier.parse(blockId);
         return player -> {
             if (!player.onGround()) return false;
@@ -146,5 +148,11 @@ public final class ConditionParser {
             Block block = player.level().getBlockState(below).getBlock();
             return BuiltInRegistries.BLOCK.getKey(block).equals(bid);
         };
+    }
+
+    private static EntityCondition failClosed(String type, String contextId, String detail) {
+        NeoOrigins.LOGGER.warn("[CompatB] condition '{}' in {} failed closed: {}",
+            type, contextId, detail);
+        return CompatPolicy.FALSE_CONDITION;
     }
 }

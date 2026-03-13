@@ -21,7 +21,9 @@ public final class ActionParser {
     private ActionParser() {}
 
     public static EntityAction parse(JsonObject json, String contextId) {
-        if (json == null) return EntityAction.noop();
+        if (json == null) {
+            return failNoop("root", contextId, "missing action object");
+        }
         String type = json.has("type") ? json.get("type").getAsString() : "";
         try {
             return switch (type) {
@@ -40,16 +42,10 @@ public final class ActionParser {
                 case "origins:exhaust", "apace:exhaust"                     -> parseExhaust(json);
                 case "origins:change_resource", "apace:change_resource"     -> parseChangeResource(json);
                 case "origins:nothing", "apace:nothing"                     -> EntityAction.noop();
-                default -> {
-                    NeoOrigins.LOGGER.debug(
-                        "[CompatB] unsupported action type '{}' in {} — no-op", type, contextId);
-                    yield CompatPolicy.NOOP_ACTION;
-                }
+                default -> failNoop(type, contextId, "unsupported action type");
             };
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] failed to parse action '{}' in {}: {}",
-                type, contextId, e.getMessage());
-            return CompatPolicy.NOOP_ACTION;
+            return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
     }
 
@@ -63,9 +59,9 @@ public final class ActionParser {
     }
 
     private static EntityAction parseIfElse(JsonObject json, String ctx) {
-        EntityCondition cond = json.has("condition")
+        EntityCondition cond = json.has("condition") && json.get("condition").isJsonObject()
             ? ConditionParser.parse(json.getAsJsonObject("condition"), ctx)
-            : EntityCondition.alwaysTrue();
+            : CompatPolicy.FALSE_CONDITION;
         EntityAction ifAction   = json.has("if_action")
             ? parse(json.getAsJsonObject("if_action"), ctx) : EntityAction.noop();
         EntityAction elseAction = json.has("else_action")
@@ -83,9 +79,9 @@ public final class ActionParser {
         for (JsonElement el : arr) {
             if (!el.isJsonObject()) continue;
             JsonObject obj = el.getAsJsonObject();
-            EntityCondition cond = obj.has("condition")
+            EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
                 ? ConditionParser.parse(obj.getAsJsonObject("condition"), ctx)
-                : EntityCondition.alwaysTrue();
+                : CompatPolicy.FALSE_CONDITION;
             EntityAction act = obj.has("action")
                 ? parse(obj.getAsJsonObject("action"), ctx) : EntityAction.noop();
             branches.add(new Branch(cond, act));
@@ -126,7 +122,7 @@ public final class ActionParser {
         return player -> {
             if (player.level().getServer() == null || command.isBlank()) return;
             try {
-                // Use the player's own source stack — permission level matches their op level.
+                // Compat commands run with the player's own permission level, not elevated server privileges.
                 player.level().getServer().getCommands().performPrefixedCommand(
                     player.createCommandSourceStack(), command
                 );
@@ -137,47 +133,45 @@ public final class ActionParser {
     }
 
     private static EntityAction parseApplyEffect(JsonObject json) {
-        // Origins apply_effect has two formats:
-        //   1. "effect": "minecraft:speed", "duration": 200, "amplifier": 0   (flat)
-        //   2. "effects": [{"effect": "minecraft:speed", "duration": 200, ...}]  (array)
-        // Resolve to the first effect in either case.
         String effectId = null;
-        int  duration  = 200;
-        int  amplifier = 0;
-        boolean ambient   = false;
+        int duration = 200;
+        int amplifier = 0;
+        boolean ambient = false;
         boolean particles = true;
-        boolean icon      = true;
+        boolean icon = true;
 
         if (json.has("effects") && json.get("effects").isJsonArray()) {
             JsonArray arr = json.getAsJsonArray("effects");
             if (!arr.isEmpty() && arr.get(0).isJsonObject()) {
                 JsonObject eff = arr.get(0).getAsJsonObject();
-                effectId  = resolveEffectId(eff);
-                duration  = eff.has("duration")       ? eff.get("duration").getAsInt()       : duration;
-                amplifier = eff.has("amplifier")      ? eff.get("amplifier").getAsInt()      : amplifier;
-                ambient   = eff.has("is_ambient")     && eff.get("is_ambient").getAsBoolean();
+                effectId = resolveEffectId(eff);
+                duration = eff.has("duration") ? eff.get("duration").getAsInt() : duration;
+                amplifier = eff.has("amplifier") ? eff.get("amplifier").getAsInt() : amplifier;
+                ambient = eff.has("is_ambient") && eff.get("is_ambient").getAsBoolean();
                 particles = !eff.has("show_particles") || eff.get("show_particles").getAsBoolean();
-                icon      = !eff.has("show_icon")      || eff.get("show_icon").getAsBoolean();
+                icon = !eff.has("show_icon") || eff.get("show_icon").getAsBoolean();
             }
         } else {
-            effectId  = resolveEffectId(json);
-            duration  = json.has("duration")       ? json.get("duration").getAsInt()       : duration;
-            amplifier = json.has("amplifier")      ? json.get("amplifier").getAsInt()      : amplifier;
-            ambient   = json.has("is_ambient")     && json.get("is_ambient").getAsBoolean();
+            effectId = resolveEffectId(json);
+            duration = json.has("duration") ? json.get("duration").getAsInt() : duration;
+            amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : amplifier;
+            ambient = json.has("is_ambient") && json.get("is_ambient").getAsBoolean();
             particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
-            icon      = !json.has("show_icon")      || json.get("show_icon").getAsBoolean();
+            icon = !json.has("show_icon") || json.get("show_icon").getAsBoolean();
         }
 
         if (effectId == null) return EntityAction.noop();
         Identifier effId = Identifier.parse(effectId);
-        final int  fDur  = duration, fAmp = amplifier;
-        final boolean fAmb = ambient, fPart = particles, fIcon = icon;
+        final int fDur = duration;
+        final int fAmp = amplifier;
+        final boolean fAmb = ambient;
+        final boolean fPart = particles;
+        final boolean fIcon = icon;
         return player -> BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(holder ->
             player.addEffect(new MobEffectInstance(holder, fDur, fAmp, fAmb, fPart, fIcon))
         );
     }
 
-    /** Resolves the effect ID string from a JSON object that may use "effect" or "id" keys. */
     private static String resolveEffectId(JsonObject obj) {
         if (obj.has("effect") && obj.get("effect").isJsonPrimitive()) {
             return obj.get("effect").getAsString();
@@ -206,7 +200,7 @@ public final class ActionParser {
         String soundId = json.has("sound") ? json.get("sound").getAsString() : null;
         if (soundId == null) return EntityAction.noop();
         float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
-        float pitch  = json.has("pitch")  ? json.get("pitch").getAsFloat()  : 1.0f;
+        float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
         Identifier sId = Identifier.parse(soundId);
         return player -> BuiltInRegistries.SOUND_EVENT.get(sId).ifPresent(h ->
             player.playSound(h.value(), volume, pitch)
@@ -214,13 +208,13 @@ public final class ActionParser {
     }
 
     private static EntityAction parseAddVelocity(JsonObject json) {
-        double x   = json.has("x") ? json.get("x").getAsDouble() : 0;
-        double y   = json.has("y") ? json.get("y").getAsDouble() : 0;
-        double z   = json.has("z") ? json.get("z").getAsDouble() : 0;
+        double x = json.has("x") ? json.get("x").getAsDouble() : 0;
+        double y = json.has("y") ? json.get("y").getAsDouble() : 0;
+        double z = json.has("z") ? json.get("z").getAsDouble() : 0;
         boolean set = json.has("set") && json.get("set").getAsBoolean();
         return player -> {
             if (set) player.setDeltaMovement(x, y, z);
-            else     player.push(x, y, z);
+            else player.push(x, y, z);
         };
     }
 
@@ -235,22 +229,23 @@ public final class ActionParser {
     }
 
     private static EntityAction parseChangeResource(JsonObject json) {
-        // origins:change_resource — modifies the integer value of an origins:resource power
         String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
         if (resourceId == null) return EntityAction.noop();
 
-        // Determine operation and amount
         String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
         int change = json.has("change") ? json.get("change").getAsInt() : 0;
 
-        // We need the min/max bounds — they're defined in the resource power itself.
-        // Without them, clamp to [Integer.MIN_VALUE, Integer.MAX_VALUE] (effectively unclamped).
-        // The resource power's own onTick will fire min/max actions when values go out of bounds.
         final String key = resourceId;
         return switch (operation) {
-            case "add"   -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
-            case "set"   -> player -> player.getData(CompatAttachments.resourceState()).set(key, change);
-            default      -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            case "add" -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            case "set" -> player -> player.getData(CompatAttachments.resourceState()).set(key, change);
+            default -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
         };
+    }
+
+    private static EntityAction failNoop(String type, String contextId, String detail) {
+        NeoOrigins.LOGGER.warn("[CompatB] action '{}' in {} defaulted to no-op: {}",
+            type, contextId, detail);
+        return CompatPolicy.NOOP_ACTION;
     }
 }

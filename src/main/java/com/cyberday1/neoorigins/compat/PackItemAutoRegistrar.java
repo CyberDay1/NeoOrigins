@@ -4,6 +4,7 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.registries.RegisterEvent;
@@ -120,7 +121,8 @@ public final class PackItemAutoRegistrar {
 
     private static void tryRegister(Identifier id, RegisterEvent event, int[] count) {
         if (BuiltInRegistries.ITEM.containsKey(id)) return;
-        event.register(Registries.ITEM, id, () -> new Item(new Item.Properties()));
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
+        event.register(Registries.ITEM, id, () -> new Item(new Item.Properties().setId(key)));
         count[0]++;
         NeoOrigins.LOGGER.debug("PackItemAutoRegistrar: registered {}", id);
     }

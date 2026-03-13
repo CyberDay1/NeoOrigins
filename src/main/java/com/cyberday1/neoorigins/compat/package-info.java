@@ -23,8 +23,8 @@
  *                Handles: active_self, action_over_time, action_on_callback, resource,
  *                         toggle, conditioned_attribute, conditioned_status_effect,
  *                         action_on_being_hit / self_action_when_hit, damage_over_time.
- *                Unknown action types  → CompatPolicy.NOOP_ACTION    (fail-open, [CompatB] WARN).
- *                Unknown condition types → CompatPolicy.FALSE_CONDITION (fail-closed, [CompatB] WARN).
+ *                Unknown action types  → CompatPolicy.NOOP_ACTION      (fail-safe no-op, [CompatB] WARN).
+ *                Unknown condition types → CompatPolicy.FALSE_CONDITION (fail-closed, [CompatB] WARN).`r`n *                Missing required action/condition fields follow the same policy.
  * </pre>
  *
  * <h2>Origin JSON normalization</h2>
@@ -42,3 +42,4 @@
  * populated during power_data / origins_compat_b.
  */
 package com.cyberday1.neoorigins.compat;
+

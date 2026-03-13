@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.Identifier;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -75,6 +76,64 @@ public final class OriginsPowerTranslator {
         "origins:cooldown",              "apace:cooldown"
     );
 
+    /**
+     * Lookup table: Origins Classes power IDs (origins:simple) → NeoOrigins power JSON.
+     * When a power with type origins:simple is encountered, we check its ID against this map.
+     * If found, the NeoOrigins JSON is returned directly (no further translation needed).
+     */
+    private static final Map<String, java.util.function.Supplier<JsonObject>> SIMPLE_POWER_OVERRIDES = Map.ofEntries(
+        Map.entry("origins-classes:no_sprint_exhaustion",   () -> simpleType("neoorigins:exhaustion_filter", "sources", listOf("sprint"))),
+        Map.entry("origins-classes:no_mining_exhaustion",   () -> simpleType("neoorigins:exhaustion_filter", "sources", listOf("mining"))),
+        Map.entry("origins-classes:better_bone_meal",       () -> simpleType("neoorigins:better_bone_meal")),
+        Map.entry("origins-classes:more_animal_loot",       () -> simpleType("neoorigins:more_animal_loot")),
+        Map.entry("origins-classes:twin_breeding",          () -> simpleType("neoorigins:twin_breeding")),
+        Map.entry("origins-classes:less_bow_slowdown",      () -> simpleType("neoorigins:less_item_use_slowdown", "item_type", "bow")),
+        Map.entry("origins-classes:less_shield_slowdown",   () -> simpleType("neoorigins:less_item_use_slowdown", "item_type", "shield")),
+        Map.entry("origins-classes:no_projectile_divergence", () -> simpleType("neoorigins:no_projectile_divergence")),
+        Map.entry("origins-classes:longer_potions",         () -> simpleType("neoorigins:longer_potions")),
+        Map.entry("origins-classes:better_enchanting",      () -> simpleType("neoorigins:better_enchanting")),
+        Map.entry("origins-classes:efficient_repairs",      () -> simpleType("neoorigins:efficient_repairs")),
+        Map.entry("origins-classes:quality_equipment",      () -> simpleType("neoorigins:quality_equipment")),
+        Map.entry("origins-classes:better_crafted_food",    () -> simpleType("neoorigins:better_crafted_food")),
+        Map.entry("origins-classes:more_smoker_xp",         () -> simpleType("neoorigins:more_smoker_xp")),
+        Map.entry("origins-classes:trade_availability",     () -> simpleType("neoorigins:trade_availability")),
+        Map.entry("origins-classes:rare_wandering_loot",    () -> simpleType("neoorigins:rare_wandering_loot")),
+        Map.entry("origins-classes:sneaky",                 () -> simpleType("neoorigins:sneaky")),
+        Map.entry("origins-classes:stealth",                () -> simpleType("neoorigins:stealth")),
+        Map.entry("origins-classes:tree_felling",           () -> simpleType("neoorigins:tree_felling")),
+        Map.entry("origins-classes:more_planks_from_logs",  () -> simpleType("neoorigins:craft_amount_bonus")),
+        Map.entry("origins-classes:tamed_animal_boost",     () -> simpleType("neoorigins:tamed_animal_boost")),
+        Map.entry("origins-classes:tamed_potion_diffusal",  () -> simpleType("neoorigins:tamed_potion_diffusal")),
+        Map.entry("origins-classes:stealth_descriptor",     () -> simpleType("neoorigins:more_smoker_xp")), // display-only, no-op
+        Map.entry("origins-classes:double_teleport_range",  () -> simpleType("neoorigins:teleport_range_modifier"))
+    );
+
+    private static JsonObject simpleType(String type) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", type);
+        return out;
+    }
+
+    private static JsonObject simpleType(String type, String key, String value) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", type);
+        out.addProperty(key, value);
+        return out;
+    }
+
+    private static JsonObject simpleType(String type, String key, JsonArray value) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", type);
+        out.add(key, value);
+        return out;
+    }
+
+    private static JsonArray listOf(String... values) {
+        JsonArray arr = new JsonArray();
+        for (String v : values) arr.add(v);
+        return arr;
+    }
+
     private OriginsPowerTranslator() {}
 
     /**
@@ -84,6 +143,18 @@ public final class OriginsPowerTranslator {
      */
     public static Optional<JsonObject> translate(Identifier id, JsonObject json) {
         String type = OriginsFormatDetector.getType(json);
+
+        // Check for origins:simple powers with known ID overrides (Origins Classes etc.)
+        String idStr = id.toString();
+        var override = SIMPLE_POWER_OVERRIDES.get(idStr);
+        if (override != null) {
+            JsonObject out = override.get();
+            if (json.has("name") && !out.has("name"))               out.add("name", json.get("name"));
+            if (json.has("description") && !out.has("description")) out.add("description", json.get("description"));
+            String mappedType = out.has("type") ? out.get("type").getAsString() : "?";
+            CompatTranslationLog.pass(id, type + " -> " + mappedType + " (simple override)");
+            return Optional.of(out);
+        }
 
         if (SKIP_TYPES.contains(type)) {
             CompatTranslationLog.skip(id, type, "no equivalent in Route A, requires Route B");
