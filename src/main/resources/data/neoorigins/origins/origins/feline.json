@@ -1,7 +1,7 @@
 {
   "name": "origins.neoorigins.feline.name",
   "description": "origins.neoorigins.feline.description",
-  "icon": "minecraft:raw_salmon",
+  "icon": "minecraft:salmon",
   "impact": "medium",
   "order": 10,
   "powers": [

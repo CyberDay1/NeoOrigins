@@ -43,6 +43,10 @@ repositories {
     maven { url = 'https://maven.neoforged.net/releases' }
 }
 
+sourceSets {
+    test.java.srcDirs = []   // tests need NeoForge test harness — disabled for now
+}
+
 tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [
             minecraft_version      : minecraft_version,
