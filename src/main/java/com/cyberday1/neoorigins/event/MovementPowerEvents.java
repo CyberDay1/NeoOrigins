@@ -6,10 +6,13 @@ import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.LivingFallEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -44,6 +47,22 @@ public class MovementPowerEvents {
         if (ActiveOriginService.has(sp, UnderwaterMiningSpeedPower.class, c -> true)
                 && sp.isInWater() && !sp.onGround()) {
             event.setNewSpeed(event.getNewSpeed() * 5.0f);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+        if (!(event.getEntity() instanceof Projectile proj)) return;
+        var owner = proj.getOwner();
+        if (!(owner instanceof ServerPlayer sp)) return;
+        if (!ActiveOriginService.has(sp, NoProjectileDivergencePower.class, c -> true)) return;
+
+        // Recalculate trajectory with zero divergence — normalize existing delta motion
+        Vec3 delta = proj.getDeltaMovement();
+        if (delta.lengthSqr() > 0) {
+            double speed = delta.length();
+            Vec3 look = sp.getLookAngle().normalize().scale(speed);
+            proj.setDeltaMovement(look);
         }
     }
 

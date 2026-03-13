@@ -9,17 +9,24 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent;
 import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+
+import java.util.*;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class WorldPowerEvents {
@@ -32,6 +39,29 @@ public class WorldPowerEvents {
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
                 cfg -> cfg.entityTypes().isEmpty() || cfg.entityTypes().contains(mobTypeId))) {
             event.setCanceled(true);
+            return;
+        }
+
+        // SneakyPower — reduce detection range
+        if (ActiveOriginService.has(sp, SneakyPower.class, c -> true)) {
+            var mob = event.getEntity();
+            double dist = mob.distanceTo(sp);
+            var followRange = mob.getAttribute(Attributes.FOLLOW_RANGE);
+            double range = followRange != null ? followRange.getValue() : 16.0;
+            final double[] mult = {1.0};
+            ActiveOriginService.forEachOfType(sp, SneakyPower.class, cfg ->
+                mult[0] = Math.min(mult[0], cfg.detectionMultiplier()));
+            if (dist > range * mult[0]) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
+        // StealthPower — if player has been sneaking long enough, cancel targeting
+        if (ActiveOriginService.has(sp, StealthPower.class, c -> true)) {
+            if (sp.hasEffect(net.minecraft.world.effect.MobEffects.INVISIBILITY)) {
+                event.setCanceled(true);
+            }
         }
     }
 
@@ -74,26 +104,88 @@ public class WorldPowerEvents {
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         if (event.isCanceled()) return;
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
-        if (!ActiveOriginService.has(sp, CropHarvestBonusPower.class, c -> true)) return;
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
 
         var state = event.getState();
-        boolean isMatureCrop = state.getBlock() instanceof CropBlock cb && cb.isMaxAge(state);
-        boolean isLog = state.is(BlockTags.LOGS);
-        if (!isMatureCrop && !isLog) return;
-
         BlockPos pos = event.getPos().immutable();
-        ItemStack tool = sp.getMainHandItem().copy();
 
-        sl.getServer().execute(() -> {
-            java.util.List<ItemStack> drops = Block.getDrops(state, sl, pos, null, sp, tool);
-            ActiveOriginService.forEachOfType(sp, CropHarvestBonusPower.class, cfg -> {
-                for (ItemStack drop : drops) {
-                    for (int i = 0; i < cfg.extraDrops(); i++) {
-                        Block.popResource(sl, pos, drop.copy());
-                    }
+        // CropHarvestBonusPower
+        if (ActiveOriginService.has(sp, CropHarvestBonusPower.class, c -> true)) {
+            boolean isMatureCrop = state.getBlock() instanceof CropBlock cb && cb.isMaxAge(state);
+            boolean isLog = state.is(BlockTags.LOGS);
+            if (isMatureCrop || isLog) {
+                ItemStack tool = sp.getMainHandItem().copy();
+                sl.getServer().execute(() -> {
+                    java.util.List<ItemStack> drops = Block.getDrops(state, sl, pos, null, sp, tool);
+                    ActiveOriginService.forEachOfType(sp, CropHarvestBonusPower.class, cfg -> {
+                        for (ItemStack drop : drops) {
+                            for (int i = 0; i < cfg.extraDrops(); i++) {
+                                Block.popResource(sl, pos, drop.copy());
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        // TreeFellingPower — BFS upward from broken log
+        if (state.is(BlockTags.LOGS) && !sp.isShiftKeyDown()) {
+            if (ActiveOriginService.has(sp, TreeFellingPower.class, c -> true)) {
+                final int[] maxBlocks = {64};
+                ActiveOriginService.forEachOfType(sp, TreeFellingPower.class, cfg ->
+                    maxBlocks[0] = Math.max(maxBlocks[0], cfg.maxBlocks()));
+                fellTree(sl, pos, maxBlocks[0]);
+            }
+        }
+    }
+
+    private static void fellTree(ServerLevel level, BlockPos origin, int maxBlocks) {
+        Queue<BlockPos> queue = new LinkedList<>();
+        Set<BlockPos> visited = new HashSet<>();
+        // Check neighbors above and adjacent for connected logs
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                queue.add(origin.offset(dx, 1, dz));
+            }
+        }
+        int broken = 0;
+        while (!queue.isEmpty() && broken < maxBlocks) {
+            BlockPos bp = queue.poll();
+            if (!visited.add(bp)) continue;
+            BlockState state = level.getBlockState(bp);
+            if (!state.is(BlockTags.LOGS)) continue;
+            level.destroyBlock(bp, true);
+            broken++;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    queue.add(bp.offset(dx, 1, dz));
                 }
-            });
+            }
+            // Also check same-y neighbors
+            queue.add(bp.north());
+            queue.add(bp.south());
+            queue.add(bp.east());
+            queue.add(bp.west());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBabyEntitySpawn(BabyEntitySpawnEvent event) {
+        if (!(event.getCausedByPlayer() instanceof ServerPlayer sp)) return;
+        if (!ActiveOriginService.has(sp, TwinBreedingPower.class, c -> true)) return;
+
+        AgeableMob child = event.getChild();
+        if (child == null) return;
+
+        ActiveOriginService.forEachOfType(sp, TwinBreedingPower.class, cfg -> {
+            if (sp.getRandom().nextFloat() < cfg.chance()) {
+                var twin = (AgeableMob) child.getType().create(child.level(), EntitySpawnReason.BREEDING);
+                if (twin != null) {
+                    twin.setBaby(true);
+                    twin.setPos(child.getX(), child.getY(), child.getZ());
+                    child.level().addFreshEntity(twin);
+                }
+            }
         });
     }
 }

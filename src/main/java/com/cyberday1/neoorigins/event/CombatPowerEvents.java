@@ -9,13 +9,19 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
@@ -90,6 +96,64 @@ public class CombatPowerEvents {
         var proj = event.getProjectile();
         if (ActiveOriginService.has(sp, ProjectileImmunityPower.class, cfg -> cfg.blocks(proj))) {
             event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingDrops(LivingDropsEvent event) {
+        var killer = event.getSource().getEntity();
+        if (!(killer instanceof ServerPlayer sp)) return;
+        LivingEntity killed = event.getEntity();
+        if (!(killed instanceof Animal)) return;
+
+        if (!ActiveOriginService.has(sp, MoreAnimalLootPower.class, c -> true)) return;
+
+        final float[] mult = {1.0f};
+        ActiveOriginService.forEachOfType(sp, MoreAnimalLootPower.class, cfg -> mult[0] = cfg.multiplier());
+
+        // Duplicate existing drops based on multiplier
+        int extraCopies = Math.max(0, Math.round(mult[0]) - 1);
+        if (extraCopies <= 0) return;
+
+        var originalDrops = new java.util.ArrayList<>(event.getDrops());
+        for (var drop : originalDrops) {
+            for (int i = 0; i < extraCopies; i++) {
+                var copy = drop.getItem().copy();
+                var newDrop = new net.minecraft.world.entity.item.ItemEntity(
+                    killed.level(), killed.getX(), killed.getY(), killed.getZ(), copy);
+                event.getDrops().add(newDrop);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMobEffectAdded(MobEffectEvent.Added event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        MobEffectInstance inst = event.getEffectInstance();
+        if (inst == null) return;
+
+        // LongerPotionsPower — multiply duration of newly added effects
+        final float[] dMult = {1.0f};
+        ActiveOriginService.forEachOfType(sp, LongerPotionsPower.class, cfg ->
+            dMult[0] *= cfg.durationMultiplier());
+        if (dMult[0] != 1.0f) {
+            int newDuration = (int)(inst.getDuration() * dMult[0]);
+            sp.addEffect(new MobEffectInstance(inst.getEffect(), newDuration,
+                inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
+        }
+
+        // TamedPotionDiffusalPower — share positive effects to nearby tamed animals
+        if (inst.getEffect().value().getCategory() == MobEffectCategory.BENEFICIAL) {
+            ActiveOriginService.forEachOfType(sp, TamedPotionDiffusalPower.class, cfg -> {
+                AABB area = sp.getBoundingBox().inflate(cfg.radius());
+                var animals = sp.level().getEntitiesOfClass(Animal.class, area);
+                for (Animal animal : animals) {
+                    if (!(animal instanceof OwnableEntity ownable)) continue;
+                    if (ownable.getOwner() == null || !sp.getUUID().equals(ownable.getOwner().getUUID())) continue;
+                    animal.addEffect(new MobEffectInstance(inst.getEffect(),
+                        inst.getDuration(), inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
+                }
+            });
         }
     }
 

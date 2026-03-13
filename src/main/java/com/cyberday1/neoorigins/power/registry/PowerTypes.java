@@ -76,6 +76,29 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ConditionalPower>         CONDITIONAL          = reg("conditional",          new ConditionalPower());
     public static final DeferredHolder<PowerType<?>, PhantomFormPower>         PHANTOM_FORM         = reg("phantom_form",         new PhantomFormPower());
 
+    // --- Origins Classes power types ---
+    public static final DeferredHolder<PowerType<?>, ExhaustionFilterPower>      EXHAUSTION_FILTER      = reg("exhaustion_filter",      new ExhaustionFilterPower());
+    public static final DeferredHolder<PowerType<?>, BetterBoneMealPower>        BETTER_BONE_MEAL       = reg("better_bone_meal",       new BetterBoneMealPower());
+    public static final DeferredHolder<PowerType<?>, MoreAnimalLootPower>        MORE_ANIMAL_LOOT       = reg("more_animal_loot",       new MoreAnimalLootPower());
+    public static final DeferredHolder<PowerType<?>, TwinBreedingPower>          TWIN_BREEDING          = reg("twin_breeding",          new TwinBreedingPower());
+    public static final DeferredHolder<PowerType<?>, LessItemUseSlowdownPower>   LESS_ITEM_USE_SLOWDOWN = reg("less_item_use_slowdown", new LessItemUseSlowdownPower());
+    public static final DeferredHolder<PowerType<?>, NoProjectileDivergencePower> NO_PROJECTILE_DIVERGENCE = reg("no_projectile_divergence", new NoProjectileDivergencePower());
+    public static final DeferredHolder<PowerType<?>, LongerPotionsPower>         LONGER_POTIONS         = reg("longer_potions",         new LongerPotionsPower());
+    public static final DeferredHolder<PowerType<?>, BetterEnchantingPower>      BETTER_ENCHANTING      = reg("better_enchanting",      new BetterEnchantingPower());
+    public static final DeferredHolder<PowerType<?>, EfficientRepairsPower>      EFFICIENT_REPAIRS      = reg("efficient_repairs",      new EfficientRepairsPower());
+    public static final DeferredHolder<PowerType<?>, QualityEquipmentPower>      QUALITY_EQUIPMENT      = reg("quality_equipment",      new QualityEquipmentPower());
+    public static final DeferredHolder<PowerType<?>, BetterCraftedFoodPower>     BETTER_CRAFTED_FOOD    = reg("better_crafted_food",    new BetterCraftedFoodPower());
+    public static final DeferredHolder<PowerType<?>, MoreSmokerXpPower>          MORE_SMOKER_XP         = reg("more_smoker_xp",         new MoreSmokerXpPower());
+    public static final DeferredHolder<PowerType<?>, TradeAvailabilityPower>     TRADE_AVAILABILITY     = reg("trade_availability",     new TradeAvailabilityPower());
+    public static final DeferredHolder<PowerType<?>, RareWanderingLootPower>     RARE_WANDERING_LOOT    = reg("rare_wandering_loot",    new RareWanderingLootPower());
+    public static final DeferredHolder<PowerType<?>, SneakyPower>                SNEAKY                 = reg("sneaky",                 new SneakyPower());
+    public static final DeferredHolder<PowerType<?>, StealthPower>               STEALTH                = reg("stealth",                new StealthPower());
+    public static final DeferredHolder<PowerType<?>, TreeFellingPower>           TREE_FELLING           = reg("tree_felling",           new TreeFellingPower());
+    public static final DeferredHolder<PowerType<?>, CraftAmountBonusPower>      CRAFT_AMOUNT_BONUS     = reg("craft_amount_bonus",     new CraftAmountBonusPower());
+    public static final DeferredHolder<PowerType<?>, TamedAnimalBoostPower>      TAMED_ANIMAL_BOOST     = reg("tamed_animal_boost",     new TamedAnimalBoostPower());
+    public static final DeferredHolder<PowerType<?>, TamedPotionDiffusalPower>   TAMED_POTION_DIFFUSAL  = reg("tamed_potion_diffusal",  new TamedPotionDiffusalPower());
+    public static final DeferredHolder<PowerType<?>, TeleportRangeModifierPower> TELEPORT_RANGE_MODIFIER = reg("teleport_range_modifier", new TeleportRangeModifierPower());
+
     // --- Active abilities ---
     public static final DeferredHolder<PowerType<?>, ActiveTeleportPower>      ACTIVE_TELEPORT      = reg("active_teleport",      new ActiveTeleportPower());
     public static final DeferredHolder<PowerType<?>, ActiveDashPower>          ACTIVE_DASH          = reg("active_dash",          new ActiveDashPower());
