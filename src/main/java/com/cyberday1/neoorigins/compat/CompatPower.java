@@ -55,7 +55,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
 
     /** Active only when this specific config has an onActivated consumer. */
     @Override
-    public boolean isActive(Config config) {
+    public boolean isActivePower(Config config) {
         return config.onActivated() != null;
     }
 

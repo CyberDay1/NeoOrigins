@@ -34,7 +34,7 @@ public class DamageInDaylightPower extends PowerType<DamageInDaylightPower.Confi
         boolean exposedToSky = level.getBrightness(LightLayer.SKY, headPos) >= 15
                 && level.canSeeSky(headPos)
                 && !level.isRaining()
-                && level.getDayTime() % 24000L < 13000L;
+                && level.getDefaultClockTime() % 24000L < 13000L;
 
         if (!exposedToSky || player.isInWater() || player.isOnFire()) return;
 

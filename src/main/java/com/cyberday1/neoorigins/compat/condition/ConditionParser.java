@@ -49,14 +49,14 @@ public final class ConditionParser {
                     return sl.isRainingAt(p.blockPosition());
                 };
                 case "origins:daytime", "apace:daytime"                 ->
-                    p -> p.level().getDayTime() % 24000L < 13000L;
+                    p -> p.level().getDefaultClockTime() % 24000L < 13000L;
                 case "origins:exposed_to_sky", "apace:exposed_to_sky"   -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     return sl.canSeeSky(p.blockPosition());
                 };
                 case "origins:exposed_to_sun", "apace:exposed_to_sun"   -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
-                    long time = sl.getDayTime() % 24000L;
+                    long time = sl.getDefaultClockTime() % 24000L;
                     return time > 6000L && time < 12000L
                         && sl.canSeeSky(p.blockPosition()) && !sl.isRaining();
                 };

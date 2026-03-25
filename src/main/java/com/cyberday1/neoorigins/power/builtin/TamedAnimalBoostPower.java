@@ -44,7 +44,8 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
         var animals = player.level().getEntitiesOfClass(Animal.class, area);
         for (Animal animal : animals) {
             if (!(animal instanceof OwnableEntity ownable)) continue;
-            if (ownable.getOwner() == null || !player.getUUID().equals(ownable.getOwner().getUUID())) continue;
+            var owner = ownable.getOwner();
+            if (owner == null || !player.getUUID().equals(owner.getUUID())) continue;
 
             AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
             if (healthAttr != null && healthAttr.getModifier(HEALTH_MOD_ID) == null) {

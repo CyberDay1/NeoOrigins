@@ -28,7 +28,7 @@ public class CraftingPowerEvents {
                 BlockState state = sl.getBlockState(pos);
                 if (state.getBlock() instanceof BonemealableBlock bmb) {
                     if (bmb.isValidBonemealTarget(sl, pos, state)) {
-                        bmb.performBonemeal(sl, sl.random, pos, state);
+                        bmb.performBonemeal(sl, sl.getRandom(), pos, state);
                     }
                 }
             }

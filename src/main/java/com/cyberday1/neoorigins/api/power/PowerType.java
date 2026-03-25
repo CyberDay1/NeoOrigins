@@ -69,9 +69,4 @@ public abstract class PowerType<C extends PowerConfiguration> {
      */
     public boolean isActivePower(C config) { return isActivePower(); }
 
-    // Legacy — delegates to isActivePower(); existing overrides of isActive() still work.
-    // After Phase 7: active types will override isActivePower() via AbstractActivePower;
-    // these methods will be removed.
-    public boolean isActive() { return isActivePower(); }
-    public boolean isActive(C config) { return isActive(); }
 }

@@ -17,7 +17,7 @@ import java.util.*;
  */
 public class BetterCraftedFoodPower extends PowerType<BetterCraftedFoodPower.Config> {
 
-    private static final Map<UUID, Set<Integer>> TRACKED = new WeakHashMap<>();
+    private static final Map<UUID, Set<Integer>> TRACKED = new HashMap<>();
 
     public record Config(float saturationBonus, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(

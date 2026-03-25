@@ -29,6 +29,9 @@ import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class CombatPowerEvents {
 
+    /** Re-entry guard: prevents LongerPotionsPower from recursing into MobEffectEvent.Added. */
+    private static final ThreadLocal<Boolean> LENGTHENING_EFFECT = ThreadLocal.withInitial(() -> false);
+
     @SubscribeEvent
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -129,6 +132,7 @@ public class CombatPowerEvents {
     @SubscribeEvent
     public static void onMobEffectAdded(MobEffectEvent.Added event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (LENGTHENING_EFFECT.get()) return;
         MobEffectInstance inst = event.getEffectInstance();
         if (inst == null) return;
 
@@ -138,8 +142,13 @@ public class CombatPowerEvents {
             dMult[0] *= cfg.durationMultiplier());
         if (dMult[0] != 1.0f) {
             int newDuration = (int)(inst.getDuration() * dMult[0]);
-            sp.addEffect(new MobEffectInstance(inst.getEffect(), newDuration,
-                inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
+            LENGTHENING_EFFECT.set(true);
+            try {
+                sp.addEffect(new MobEffectInstance(inst.getEffect(), newDuration,
+                    inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
+            } finally {
+                LENGTHENING_EFFECT.set(false);
+            }
         }
 
         // TamedPotionDiffusalPower — share positive effects to nearby tamed animals
@@ -149,7 +158,8 @@ public class CombatPowerEvents {
                 var animals = sp.level().getEntitiesOfClass(Animal.class, area);
                 for (Animal animal : animals) {
                     if (!(animal instanceof OwnableEntity ownable)) continue;
-                    if (ownable.getOwner() == null || !sp.getUUID().equals(ownable.getOwner().getUUID())) continue;
+                    var owner = ownable.getOwner();
+                    if (owner == null || !sp.getUUID().equals(owner.getUUID())) continue;
                     animal.addEffect(new MobEffectInstance(inst.getEffect(),
                         inst.getDuration(), inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
                 }

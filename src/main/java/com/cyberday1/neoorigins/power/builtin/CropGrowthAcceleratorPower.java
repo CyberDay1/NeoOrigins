@@ -59,12 +59,12 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
         int count = Math.min(config.growthsPerInterval(), candidates.size());
         // Pick random candidates using the level's random source
         for (int i = 0; i < count; i++) {
-            int idx = level.random.nextInt(candidates.size());
+            int idx = level.getRandom().nextInt(candidates.size());
             BlockPos pos = candidates.get(idx);
             BlockState state = level.getBlockState(pos);
             if (state.getBlock() instanceof BonemealableBlock bmb
                     && bmb.isValidBonemealTarget(level, pos, state)) {
-                bmb.performBonemeal(level, level.random, pos, state);
+                bmb.performBonemeal(level, level.getRandom(), pos, state);
                 level.levelEvent(2005, pos, 0); // bonemeal particles
             }
             candidates.remove(idx);

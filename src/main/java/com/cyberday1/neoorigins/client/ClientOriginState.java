@@ -1,14 +1,10 @@
 package com.cyberday1.neoorigins.client;
 
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-@OnlyIn(Dist.CLIENT)
 public class ClientOriginState {
 
     private static Map<Identifier, Identifier> origins = new HashMap<>();

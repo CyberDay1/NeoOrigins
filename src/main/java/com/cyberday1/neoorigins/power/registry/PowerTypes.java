@@ -66,7 +66,6 @@ public class PowerTypes {
     // --- Passive: scalars & misc ---
     public static final DeferredHolder<PowerType<?>, HungerDrainModifierPower> HUNGER_DRAIN_MODIFIER = reg("hunger_drain_modifier", new HungerDrainModifierPower());
     public static final DeferredHolder<PowerType<?>, NaturalRegenModifierPower> NATURAL_REGEN_MODIFIER = reg("natural_regen_modifier", new NaturalRegenModifierPower());
-    public static final DeferredHolder<PowerType<?>, XpGainModifierPower>      XP_GAIN_MODIFIER     = reg("xp_gain_modifier",     new XpGainModifierPower());
     public static final DeferredHolder<PowerType<?>, CropGrowthAcceleratorPower> CROP_GROWTH_ACCELERATOR = reg("crop_growth_accelerator", new CropGrowthAcceleratorPower());
     public static final DeferredHolder<PowerType<?>, CropHarvestBonusPower>    CROP_HARVEST_BONUS   = reg("crop_harvest_bonus",   new CropHarvestBonusPower());
     public static final DeferredHolder<PowerType<?>, StartingEquipmentPower>   STARTING_EQUIPMENT   = reg("starting_equipment",   new StartingEquipmentPower());

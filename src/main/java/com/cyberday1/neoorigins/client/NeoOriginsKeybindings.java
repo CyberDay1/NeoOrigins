@@ -2,12 +2,9 @@ package com.cyberday1.neoorigins.client;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
 
-@OnlyIn(Dist.CLIENT)
 public class NeoOriginsKeybindings {
 
     public static final KeyMapping.Category NEOORIGINS_CATEGORY =

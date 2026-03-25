@@ -22,8 +22,14 @@ public class ActiveRecallPower extends AbstractActivePower<ActiveRecallPower.Con
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
         if (!(player.level() instanceof ServerLevel sl)) return false;
-        BlockPos worldSpawn = sl.getRespawnData().pos();
-        player.teleportTo(worldSpawn.getX() + 0.5, worldSpawn.getY(), worldSpawn.getZ() + 0.5);
+        ServerPlayer.RespawnConfig respawnCfg = player.getRespawnConfig();
+        BlockPos target;
+        if (respawnCfg != null && respawnCfg.respawnData().dimension().equals(sl.dimension())) {
+            target = respawnCfg.respawnData().pos();
+        } else {
+            target = sl.getRespawnData().pos();
+        }
+        player.teleportTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
         return true;
     }
 }

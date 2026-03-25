@@ -2,21 +2,17 @@ package com.cyberday1.neoorigins.screen;
 
 import com.cyberday1.neoorigins.api.origin.Origin;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
 /**
  * Compact origin list item for the left panel of OriginSelectionScreen.
  * Renders a 16×16 icon and the origin name only — detail is shown in the right panel.
  */
-@OnlyIn(Dist.CLIENT)
 public class OriginButton extends Button {
 
     private final Origin origin;
@@ -32,14 +28,14 @@ public class OriginButton extends Button {
     public void setSelected(boolean selected)    { this.selected = selected; }
 
     @Override
-    public void renderContents(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         // Background
         int bg = isSelected() ? 0xFF1E3A6E : (isHovered() ? 0xFF1E1E32 : 0xFF14141F);
         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
 
         // Border — bright when selected, dim otherwise
         int border = isSelected() ? 0xFF4A90D9 : 0xFF2A2A44;
-        g.renderOutline(getX(), getY(), getWidth(), getHeight(), border);
+        g.outline(getX(), getY(), getWidth(), getHeight(), border);
 
         // 16×16 icon
         renderIcon(g, origin.icon(), getX() + 3, getY() + (getHeight() - 16) / 2);
@@ -48,7 +44,7 @@ public class OriginButton extends Button {
         int nameColor = isSelected() ? 0xFFFFFFFF : (isHovered() ? 0xFFDDDDDD : 0xFFAAAAAA);
         Minecraft mc = Minecraft.getInstance();
         int textY = getY() + (getHeight() - 8) / 2;
-        g.drawString(mc.font, origin.name(), getX() + 22, textY, nameColor, false);
+        g.text(mc.font, origin.name(), getX() + 22, textY, nameColor, false);
     }
 
     /**
@@ -57,10 +53,10 @@ public class OriginButton extends Button {
      * the texture at assets/<ns>/textures/item/<path>.png, which is available
      * when the origin pack has been mounted as a client resource pack.
      */
-    static void renderIcon(GuiGraphics g, Identifier iconId, int x, int y) {
+    static void renderIcon(GuiGraphicsExtractor g, Identifier iconId, int x, int y) {
         var item = BuiltInRegistries.ITEM.getValue(iconId);
         if (item != null && item != Items.AIR) {
-            g.renderItem(new ItemStack(item), x, y);
+            g.item(new ItemStack(item), x, y);
             return;
         }
         Identifier texture = Identifier.fromNamespaceAndPath(

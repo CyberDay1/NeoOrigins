@@ -7,8 +7,6 @@ import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
@@ -18,7 +16,6 @@ import java.util.*;
  * Stateful selection logic for the origin selection screen.
  * No Minecraft rendering imports — pure data logic.
  */
-@OnlyIn(Dist.CLIENT)
 public class OriginSelectionPresenter {
 
     private List<OriginLayer> pendingLayers  = List.of();

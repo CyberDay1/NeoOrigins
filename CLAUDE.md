@@ -10,12 +10,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew runServer      # Launch a dedicated server (headless)
 ```
 
-Build requires Java 21. Output JAR goes to `build/libs/`. Deploy to the test instance at `C:\Users\conno\curseforge\minecraft\Instances\Test 1.21.11\mods\`.
+Build requires Java 25. Output JAR goes to `build/libs/`. Deploy to the test instance at `C:\Users\conno\curseforge\minecraft\Instances\26.1 Test Build\mods\`.
 
 ## Key Technical Facts
 
-- **Stack:** NeoForge 21.11.38-beta / MC 1.21.11 / Java 21
+- **Stack:** NeoForge 26.1.0.1-beta / MC 26.1 / Java 25
 - **NeoForge API quirks:** Use `MobEffectEvent.Applicable.getEffectInstance()` (not `getEffect()`); use `MobEffectEvent.Applicable.Result.DO_NOT_APPLY` (not `DENY`); `Event.Result` does not exist in this version.
+- **MC 26.1 GUI changes:** `GuiGraphics` → `GuiGraphicsExtractor`; `render()` → `extractRenderState()`; `renderWidget()` → `extractWidgetRenderState()`; `drawString` → `text`; `drawCenteredString` → `centeredText`; `renderOutline` → `outline`; `renderItem` → `item`.
+- **MC 26.1 Level changes:** `level.random` is now protected — use `level.getRandom()`; `getDayTime()` replaced by `getDefaultClockTime()` (World Clock system).
 - **Data reload order is load-order-sensitive** (declared in `NeoOrigins.java`): `power_data` → `origins_compat_b` → `origin_data` → `layer_data`. This order is required because `OriginDataManager` reads `OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP` which is populated during `power_data`.
 
 ## Architecture

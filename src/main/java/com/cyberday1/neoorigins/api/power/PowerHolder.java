@@ -27,7 +27,7 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public Component description()    { return description; }
 
     /** Returns true if this power occupies a keybind slot (has active behaviour). */
-    public boolean isActive()                              { return type.isActive(config); }
+    public boolean isActive()                              { return type.isActivePower(config); }
 
     public void onGranted(ServerPlayer player)          { type.onGranted(player, config); }
     public void onRevoked(ServerPlayer player)          { type.onRevoked(player, config); }
