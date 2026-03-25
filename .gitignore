@@ -28,5 +28,6 @@ runs/
 # Reference sources (local only)
 reference/
 
-# Claude Code (local config)
+# Local tooling config
 .claude/
+CLAUDE.md
