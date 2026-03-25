@@ -27,7 +27,3 @@ runs/
 
 # Reference sources (local only)
 reference/
-
-# Local tooling config
-.claude/
-CLAUDE.md
