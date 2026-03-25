@@ -78,6 +78,7 @@ jobs:
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
 
       - name: Upload to CurseForge
+        if: vars.CURSEFORGE_PROJECT_ID != ''
         uses: itsmeow/curseforge-upload@v3
         with:
           file_path: ${{ steps.jar.outputs.path }}
@@ -87,3 +88,17 @@ jobs:
           token: ${{ secrets.CURSEFORGE_TOKEN }}
           release_type: beta
           display_name: NeoOrigins ${{ steps.version.outputs.tag }}
+
+      - name: Upload to Modrinth
+        if: vars.MODRINTH_PROJECT_ID != ''
+        uses: cloudnode-pro/modrinth-publish@v2
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          project: ${{ vars.MODRINTH_PROJECT_ID }}
+          file: ${{ steps.jar.outputs.path }}
+          name: NeoOrigins ${{ steps.version.outputs.tag }}
+          version: ${{ steps.version.outputs.tag }}
+          changelog: "Built for Minecraft 26.1 with NeoForge 26.1.0.1-beta."
+          loaders: neoforge
+          game-versions: "26.1"
+          version-type: beta
