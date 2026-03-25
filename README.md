@@ -1,6 +1,6 @@
 # NeoOrigins
 
-A modern, ground-up reimplementation of the Origins experience for **NeoForge 1.21.1**. Built without porting the original mod — no tech debt, no deprecated APIs, no compatibility shims baked into the core. Just clean NeoForge architecture with first-class support for the modern toolchain.
+A modern, ground-up reimplementation of the Origins experience for **NeoForge (MC 26.1)**.
 
 ---
 
@@ -44,7 +44,7 @@ A modern, ground-up reimplementation of the Origins experience for **NeoForge 1.
 
 ## Installation
 
-1. Install [NeoForge 21.11.38-beta](https://neoforged.net) for Minecraft 1.21.1
+1. Install [NeoForge 26.1.0.1-beta](https://neoforged.net) for Minecraft 26.1
 2. Drop `neoorigins-<version>.jar` into your `mods/` folder
 3. Launch — the `originpacks/` folder is created automatically in your game directory
 
@@ -200,7 +200,7 @@ cd NeoOrigins
 # Output: build/libs/neoorigins-<version>.jar
 ```
 
-Requires Java 21.
+Requires Java 25.
 
 ---
 
@@ -209,6 +209,11 @@ Requires Java 21.
 Tagged releases are built automatically via GitHub Actions. Each release on the [Releases page](https://github.com/CyberDay1/NeoOrigins/releases) includes the mod JAR built against the versions listed in its release notes.
 
 ---
+
+Originial Origin Mod 
+
+https://www.curseforge.com/minecraft/mc-mods/origins
+https://github.com/apace100/origins-fabric
 
 ## License
 

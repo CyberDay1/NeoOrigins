@@ -27,3 +27,6 @@ runs/
 
 # Reference sources (local only)
 reference/
+
+# Claude Code (local config)
+.claude/
