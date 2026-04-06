@@ -1,6 +1,6 @@
 {
   "type": "neoorigins:attribute_modifier",
-  "attribute": "minecraft:generic.fall_damage_multiplier",
+  "attribute": "minecraft:fall_damage_multiplier",
   "amount": -0.9,
   "operation": "add_multiplied_base",
   "name": "power.neoorigins.avian_slow_fall.name",

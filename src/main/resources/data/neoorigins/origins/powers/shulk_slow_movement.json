@@ -1,6 +1,6 @@
 {
   "type": "neoorigins:attribute_modifier",
-  "attribute": "minecraft:generic.movement_speed",
+  "attribute": "minecraft:movement_speed",
   "amount": -0.25,
   "operation": "add_multiplied_base",
   "name": "power.neoorigins.shulk_slow_movement.name",

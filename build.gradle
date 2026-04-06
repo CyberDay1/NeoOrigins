@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
-version = mod_version
+version = "${mod_version}+${stonecutter.current.version}"
 group = mod_group_id
 
 base {
@@ -13,7 +13,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 neoForge {
-    version = neo_version
+    version = property('deps.neoforge')
 
     runs {
         configureEach {
@@ -49,17 +49,17 @@ sourceSets {
 
 tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [
-            minecraft_version      : minecraft_version,
-            minecraft_version_range: minecraft_version_range,
-            neo_version            : neo_version,
-            neo_version_range      : neo_version_range,
-            loader_version_range   : loader_version_range,
-            mod_id                 : mod_id,
-            mod_name               : mod_name,
-            mod_license            : mod_license,
-            mod_version            : mod_version,
-            mod_authors            : mod_authors,
-            mod_description        : mod_description
+            minecraft_version      : project.property('minecraft_version'),
+            minecraft_version_range: project.property('minecraft_version_range'),
+            neo_version            : project.property('deps.neoforge'),
+            neo_version_range      : project.property('neo_version_range'),
+            loader_version_range   : project.property('loader_version_range'),
+            mod_id                 : project.property('mod_id'),
+            mod_name               : project.property('mod_name'),
+            mod_license            : project.property('mod_license'),
+            mod_version            : project.property('mod_version'),
+            mod_authors            : project.property('mod_authors'),
+            mod_description        : project.property('mod_description')
     ]
     inputs.properties replaceProperties
 

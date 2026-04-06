@@ -331,7 +331,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String idStr = id.toString();
         if (!json.has("attribute")) return null;
 
-        Identifier attrIdent = Identifier.parse(json.get("attribute").getAsString());
+        Identifier rawAttrIdent = Identifier.parse(json.get("attribute").getAsString());
+        // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
+        Identifier attrIdent = rawAttrIdent.getPath().startsWith("generic.")
+            ? Identifier.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
+                rawAttrIdent.getPath().substring("generic.".length()))
+            : rawAttrIdent;
 
         JsonObject modObj = json.has("modifier") ? json.getAsJsonObject("modifier") : json;
         double value = modObj.has("value")  ? modObj.get("value").getAsDouble()

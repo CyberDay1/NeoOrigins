@@ -265,7 +265,7 @@ public final class OriginsPowerTranslator {
         // Walk speed modifier — wrap in attribute translator structure
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:attribute_modifier");
-        out.addProperty("attribute", "minecraft:generic.movement_speed");
+        out.addProperty("attribute", "minecraft:movement_speed");
 
         if (src.has("modifier")) {
             JsonObject mod = src.getAsJsonObject("modifier");

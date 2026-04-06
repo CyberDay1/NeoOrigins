@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins;
 
+import com.cyberday1.neoorigins.content.ModItems;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader;
@@ -47,6 +48,9 @@ public class NeoOrigins {
 
         // Register custom power type registry
         PowerTypes.register(modEventBus);
+
+        // Register mod items (Orb of Origin, etc.)
+        ModItems.register(modEventBus);
 
         // Register attachment types (origin data + Route B compat state)
         OriginAttachments.register(modEventBus);

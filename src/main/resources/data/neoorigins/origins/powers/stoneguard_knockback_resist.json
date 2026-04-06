@@ -1,1 +1,1 @@
-{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:generic.knockback_resistance", "amount": 0.5, "operation": "add_value" }
+{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:knockback_resistance", "amount": 0.5, "operation": "add_value" }

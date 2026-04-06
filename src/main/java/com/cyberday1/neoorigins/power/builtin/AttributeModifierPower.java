@@ -57,13 +57,19 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
-        var attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(config.attribute());
+        // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
+        Identifier attrId = config.attribute();
+        String path = attrId.getPath();
+        if (path.startsWith("generic.")) {
+            attrId = Identifier.fromNamespaceAndPath(attrId.getNamespace(), path.substring("generic.".length()));
+        }
+        var attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
         if (attrHolderOpt.isEmpty()) return;
         var attrHolder = attrHolderOpt.get();
         AttributeInstance instance = player.getAttribute(attrHolder);
         if (instance == null) return;
 
-        Identifier modId = Identifier.fromNamespaceAndPath("neoorigins", "power_" + config.attribute().getPath());
+        Identifier modId = Identifier.fromNamespaceAndPath("neoorigins", "power_" + attrId.getPath());
         if (add) {
             if (instance.getModifier(modId) == null) {
                 instance.addPermanentModifier(new AttributeModifier(modId, config.amount(), config.operation()));
