@@ -302,5 +302,7 @@
   "power.neoorigins.stoneguard_active_glowstone.description": "Places a glowstone block at the surface you're looking at. 100-tick cooldown.",
 
   "power.neoorigins.verdant_harvest_bonus.name": "Bountiful Harvest",
-  "power.neoorigins.verdant_harvest_bonus.description": "Breaking mature crops or logs yields one additional set of drops."
+  "power.neoorigins.verdant_harvest_bonus.description": "Breaking mature crops or logs yields one additional set of drops.",
+
+  "item.neoorigins.orb_of_origin": "Orb of Origin"
 }
