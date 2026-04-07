@@ -7,8 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to release (e.g. v1.0.1)'
+        description: 'Version tag to release (e.g. v1.1.0)'
         required: true
+      changelog:
+        description: 'Release changelog (markdown)'
+        required: true
+        default: 'No changelog provided.'
 
 jobs:
   build-and-release:
@@ -51,6 +55,19 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Determine changelog
+        id: notes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            CHANGELOG="${{ github.event.inputs.changelog }}"
+          else
+            CHANGELOG="Release ${{ steps.version.outputs.tag }}"
+          fi
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "changelog<<$EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
       - name: Find JAR
         id: jar
         run: |
@@ -66,7 +83,9 @@ jobs:
           body: |
             ## NeoOrigins ${{ steps.version.outputs.tag }}
 
-            Built for **Minecraft 26.1** with **NeoForge 26.1.0.1-beta**.
+            Built for **Minecraft 26.1.1** with **NeoForge 26.1.0.1-beta**.
+
+            ${{ steps.notes.outputs.changelog }}
 
             ### Installation
             Drop `${{ steps.jar.outputs.name }}` into your `mods/` folder.
@@ -79,18 +98,21 @@ jobs:
 
       - name: Upload to CurseForge
         if: vars.CURSEFORGE_PROJECT_ID != ''
+        continue-on-error: true
         uses: itsmeow/curseforge-upload@v3
         with:
           file_path: ${{ steps.jar.outputs.path }}
           game_endpoint: minecraft
-          game_versions: "Minecraft 26.1,NeoForge"
+          game_versions: "Minecraft 26.1.1,NeoForge"
           project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           token: ${{ secrets.CURSEFORGE_TOKEN }}
-          release_type: beta
+          release_type: release
           display_name: NeoOrigins ${{ steps.version.outputs.tag }}
+          changelog: ${{ steps.notes.outputs.changelog }}
 
       - name: Upload to Modrinth
         if: vars.MODRINTH_PROJECT_ID != ''
+        continue-on-error: true
         uses: cloudnode-pro/modrinth-publish@v2
         with:
           token: ${{ secrets.MODRINTH_TOKEN }}
@@ -98,7 +120,7 @@ jobs:
           files: ${{ steps.jar.outputs.path }}
           name: NeoOrigins ${{ steps.version.outputs.tag }}
           version: ${{ steps.version.outputs.tag }}
-          changelog: "Built for Minecraft 26.1 with NeoForge 26.1.0.1-beta."
+          changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
-          game-versions: "26.1"
-          channel: beta
+          game-versions: "26.1.1"
+          channel: release
