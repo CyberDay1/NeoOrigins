@@ -54,7 +54,7 @@ jobs:
       - name: Find JAR
         id: jar
         run: |
-          JAR=$(ls build/libs/neoorigins-*.jar | grep -v sources | grep -v javadoc | head -1)
+          JAR=$(find versions/*/build/libs build/libs -name 'neoorigins-*.jar' 2>/dev/null | grep -v sources | grep -v javadoc | head -1)
           echo "path=$JAR" >> $GITHUB_OUTPUT
           echo "name=$(basename $JAR)" >> $GITHUB_OUTPUT
 
