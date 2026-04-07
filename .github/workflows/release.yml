@@ -103,7 +103,7 @@ jobs:
         with:
           file_path: ${{ steps.jar.outputs.path }}
           game_endpoint: minecraft
-          game_versions: "Minecraft 26.1.1,NeoForge"
+          game_versions: "Minecraft 26.1.1,NeoForge,Java 25"
           project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           token: ${{ secrets.CURSEFORGE_TOKEN }}
           release_type: release
