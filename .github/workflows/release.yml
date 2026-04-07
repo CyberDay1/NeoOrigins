@@ -95,10 +95,10 @@ jobs:
         with:
           token: ${{ secrets.MODRINTH_TOKEN }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
-          file: ${{ steps.jar.outputs.path }}
+          primary-file: ${{ steps.jar.outputs.path }}
           name: NeoOrigins ${{ steps.version.outputs.tag }}
           version: ${{ steps.version.outputs.tag }}
           changelog: "Built for Minecraft 26.1 with NeoForge 26.1.0.1-beta."
           loaders: neoforge
           game-versions: "26.1"
-          version-type: beta
+          channel: beta
