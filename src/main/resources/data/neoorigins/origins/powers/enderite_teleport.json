@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:active_teleport",
+  "range": 32,
+  "cooldown_ticks": 60
+}

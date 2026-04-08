@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:armor",
+  "amount": 6.0,
+  "operation": "add_value"
+}

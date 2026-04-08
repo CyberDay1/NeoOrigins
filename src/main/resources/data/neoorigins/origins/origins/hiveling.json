@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.hiveling.name",
+  "description": "origins.neoorigins.hiveling.description",
+  "icon": "minecraft:honeycomb",
+  "impact": "high",
+  "order": 28,
+  "powers": [
+    "neoorigins:hiveling_flight",
+    "neoorigins:hiveling_sting",
+    "neoorigins:hiveling_crop_growth",
+    "neoorigins:hiveling_size",
+    "neoorigins:hiveling_entity_group",
+    "neoorigins:hiveling_reduced_health",
+    "neoorigins:hiveling_hunger_drain"
+  ],
+  "upgrades": []
+}

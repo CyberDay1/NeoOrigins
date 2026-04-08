@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.frostborn.name",
+  "description": "origins.neoorigins.frostborn.description",
+  "icon": "minecraft:blue_ice",
+  "impact": "medium",
+  "order": 24,
+  "powers": [
+    "neoorigins:frostborn_freeze_aura",
+    "neoorigins:frostborn_cold_buff",
+    "neoorigins:frostborn_fire_weakness",
+    "neoorigins:frostborn_ice_walk",
+    "neoorigins:frostborn_natural_armor",
+    "neoorigins:frostborn_nether_damage",
+    "neoorigins:frostborn_freeze_immunity"
+  ],
+  "upgrades": []
+}

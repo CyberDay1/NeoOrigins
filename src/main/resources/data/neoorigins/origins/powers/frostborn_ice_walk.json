@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:active_place_block",
+  "block_id": "minecraft:ice",
+  "max_distance": 5.0,
+  "cooldown_ticks": 20
+}

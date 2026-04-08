@@ -1,0 +1,19 @@
+{
+  "name": "origins.neoorigins.sculkborn.name",
+  "description": "origins.neoorigins.sculkborn.description",
+  "icon": "minecraft:sculk",
+  "impact": "high",
+  "order": 30,
+  "powers": [
+    "neoorigins:sculkborn_sonic_bolt",
+    "neoorigins:sculkborn_darkness_aura",
+    "neoorigins:sculkborn_night_vision",
+    "neoorigins:sculkborn_natural_armor",
+    "neoorigins:sculkborn_knockback_resist",
+    "neoorigins:sculkborn_daylight_damage",
+    "neoorigins:sculkborn_projectile_immunity",
+    "neoorigins:sculkborn_slow_movement",
+    "neoorigins:sculkborn_reduced_health"
+  ],
+  "upgrades": []
+}

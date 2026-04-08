@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.inchling.name",
+  "description": "origins.neoorigins.inchling.description",
+  "icon": "minecraft:poppy",
+  "impact": "medium",
+  "order": 22,
+  "powers": [
+    "neoorigins:inchling_size",
+    "neoorigins:inchling_wall_climbing",
+    "neoorigins:inchling_no_fall_damage",
+    "neoorigins:inchling_reduced_health",
+    "neoorigins:inchling_speed_boost",
+    "neoorigins:inchling_hunger_efficiency"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:biome_buff",
+  "biome_tag": "minecraft:is_mushroom",
+  "effect": "minecraft:regeneration",
+  "amplifier": 1
+}
