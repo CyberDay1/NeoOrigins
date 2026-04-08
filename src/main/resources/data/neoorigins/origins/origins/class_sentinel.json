@@ -1,0 +1,13 @@
+{
+  "name": "origins.neoorigins.class_sentinel.name",
+  "description": "origins.neoorigins.class_sentinel.description",
+  "icon": "minecraft:shield",
+  "impact": "none",
+  "order": 6,
+  "powers": [
+    "neoorigins:class_sentinel_armor",
+    "neoorigins:class_sentinel_thorns",
+    "neoorigins:class_sentinel_knockback_resist"
+  ],
+  "upgrades": []
+}

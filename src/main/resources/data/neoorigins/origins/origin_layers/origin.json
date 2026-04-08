@@ -22,7 +22,17 @@
     "neoorigins:voidwalker",
     "neoorigins:stoneguard",
     "neoorigins:verdant",
-    "neoorigins:umbral"
+    "neoorigins:umbral",
+    "neoorigins:inchling",
+    "neoorigins:sporeling",
+    "neoorigins:frostborn",
+    "neoorigins:strider",
+    "neoorigins:siren",
+    "neoorigins:piglin",
+    "neoorigins:hiveling",
+    "neoorigins:cinderborn",
+    "neoorigins:sculkborn",
+    "neoorigins:enderite"
   ],
   "allow_random": true,
   "auto_choose": false,

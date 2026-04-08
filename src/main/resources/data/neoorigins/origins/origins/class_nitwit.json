@@ -1,0 +1,9 @@
+{
+  "name": "origins.neoorigins.class_nitwit.name",
+  "description": "origins.neoorigins.class_nitwit.description",
+  "icon": "minecraft:green_wool",
+  "impact": "none",
+  "order": 11,
+  "powers": [],
+  "upgrades": []
+}
