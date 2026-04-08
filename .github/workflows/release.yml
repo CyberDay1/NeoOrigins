@@ -68,12 +68,15 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
-      - name: Find JAR
-        id: jar
+      - name: Find JARs
+        id: jars
         run: |
-          JAR=$(find versions/*/build/libs build/libs -name 'neoorigins-*.jar' 2>/dev/null | grep -v sources | grep -v javadoc | head -1)
-          echo "path=$JAR" >> $GITHUB_OUTPUT
-          echo "name=$(basename $JAR)" >> $GITHUB_OUTPUT
+          JAR_26_1=$(find versions/26.1/build/libs -name 'neoorigins-*.jar' 2>/dev/null | grep -v sources | grep -v javadoc | head -1)
+          JAR_26_1_1=$(find versions/26.1.1/build/libs -name 'neoorigins-*.jar' 2>/dev/null | grep -v sources | grep -v javadoc | head -1)
+          echo "jar_26_1=$JAR_26_1" >> $GITHUB_OUTPUT
+          echo "jar_26_1_1=$JAR_26_1_1" >> $GITHUB_OUTPUT
+          echo "name_26_1=$(basename $JAR_26_1)" >> $GITHUB_OUTPUT
+          echo "name_26_1_1=$(basename $JAR_26_1_1)" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -83,43 +86,76 @@ jobs:
           body: |
             ## NeoOrigins ${{ steps.version.outputs.tag }}
 
-            Built for **Minecraft 26.1.1** with **NeoForge 26.1.0.1-beta**.
+            Built for **Minecraft 26.1** and **26.1.1** with **NeoForge**.
 
             ${{ steps.notes.outputs.changelog }}
 
             ### Installation
-            Drop `${{ steps.jar.outputs.name }}` into your `mods/` folder.
+            Download the JAR matching your Minecraft version and drop it into your `mods/` folder.
+            - `${{ steps.jars.outputs.name_26_1 }}` — for MC 26.1
+            - `${{ steps.jars.outputs.name_26_1_1 }}` — for MC 26.1.1
 
             ### Origins Compatibility
             Drop Origins mod content packs (`.jar`, `.zip`, or folder) into the `originpacks/` folder in your game directory.
-          files: ${{ steps.jar.outputs.path }}
+          files: |
+            ${{ steps.jars.outputs.jar_26_1 }}
+            ${{ steps.jars.outputs.jar_26_1_1 }}
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
 
-      - name: Upload to CurseForge
+      - name: Upload to CurseForge (MC 26.1)
         if: vars.CURSEFORGE_PROJECT_ID != ''
         continue-on-error: true
         uses: itsmeow/curseforge-upload@v3
         with:
-          file_path: ${{ steps.jar.outputs.path }}
+          file_path: ${{ steps.jars.outputs.jar_26_1 }}
+          game_endpoint: minecraft
+          game_versions: "Minecraft 26.1,NeoForge,Java 25"
+          project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          token: ${{ secrets.CURSEFORGE_TOKEN }}
+          release_type: release
+          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1)
+          changelog: ${{ steps.notes.outputs.changelog }}
+
+      - name: Upload to CurseForge (MC 26.1.1)
+        if: vars.CURSEFORGE_PROJECT_ID != ''
+        continue-on-error: true
+        uses: itsmeow/curseforge-upload@v3
+        with:
+          file_path: ${{ steps.jars.outputs.jar_26_1_1 }}
           game_endpoint: minecraft
           game_versions: "Minecraft 26.1.1,NeoForge,Java 25"
           project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           token: ${{ secrets.CURSEFORGE_TOKEN }}
           release_type: release
-          display_name: NeoOrigins ${{ steps.version.outputs.tag }}
+          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.1)
           changelog: ${{ steps.notes.outputs.changelog }}
 
-      - name: Upload to Modrinth
+      - name: Upload to Modrinth (MC 26.1)
         if: vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
         uses: cloudnode-pro/modrinth-publish@v2
         with:
           token: ${{ secrets.MODRINTH_TOKEN }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
-          files: ${{ steps.jar.outputs.path }}
-          name: NeoOrigins ${{ steps.version.outputs.tag }}
-          version: ${{ steps.version.outputs.tag }}
+          files: ${{ steps.jars.outputs.jar_26_1 }}
+          name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1)
+          version: ${{ steps.version.outputs.tag }}+26.1
+          changelog: ${{ steps.notes.outputs.changelog }}
+          loaders: neoforge
+          game-versions: "26.1"
+          channel: release
+
+      - name: Upload to Modrinth (MC 26.1.1)
+        if: vars.MODRINTH_PROJECT_ID != ''
+        continue-on-error: true
+        uses: cloudnode-pro/modrinth-publish@v2
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          project: ${{ vars.MODRINTH_PROJECT_ID }}
+          files: ${{ steps.jars.outputs.jar_26_1_1 }}
+          name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.1)
+          version: ${{ steps.version.outputs.tag }}+26.1.1
           changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
           game-versions: "26.1.1"
