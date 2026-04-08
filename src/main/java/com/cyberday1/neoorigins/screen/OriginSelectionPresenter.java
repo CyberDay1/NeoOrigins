@@ -51,6 +51,7 @@ public class OriginSelectionPresenter {
                 .filter(l -> !ClientOriginState.getOrigins().containsKey(l.id()))
                 .toList();
         }
+        skipEmptyLayers();
         return !pendingLayers.isEmpty() && currentLayerIndex < pendingLayers.size();
     }
 
@@ -123,6 +124,7 @@ public class OriginSelectionPresenter {
 
     /**
      * Confirm current selection, send the network packet, and advance to the next layer.
+     * Skips layers that have no available origins (e.g., all classes disabled).
      * Returns true if more layers remain, false if all layers are filled.
      */
     public boolean confirm() {
@@ -134,6 +136,7 @@ public class OriginSelectionPresenter {
         ClientOriginState.setOrigins(updated, false);
         currentLayerIndex++;
         selectedOriginId = null;
+        skipEmptyLayers();
         return !isDone();
     }
 
@@ -149,6 +152,20 @@ public class OriginSelectionPresenter {
     public Identifier randomId() {
         if (allOriginIds.isEmpty()) return null;
         return allOriginIds.get((int) (Math.random() * allOriginIds.size()));
+    }
+
+    /**
+     * Skip layers where all origins have been disabled/removed.
+     * Advances currentLayerIndex past any empty layers.
+     */
+    private void skipEmptyLayers() {
+        while (currentLayerIndex < pendingLayers.size()) {
+            OriginLayer layer = pendingLayers.get(currentLayerIndex);
+            boolean hasAny = layer.origins().stream()
+                .anyMatch(co -> OriginDataManager.INSTANCE.hasOrigin(co.origin()));
+            if (hasAny) break;
+            currentLayerIndex++;
+        }
     }
 
     public boolean isDone()                    { return currentLayerIndex >= pendingLayers.size(); }
