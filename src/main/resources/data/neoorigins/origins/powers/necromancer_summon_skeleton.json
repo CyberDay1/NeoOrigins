@@ -5,5 +5,8 @@
   "cooldown_ticks": 400,
   "hunger_cost": 4,
   "despawn_ticks": 18000,
-  "death_damage": 1.0
+  "death_damage": 1.0,
+  "head": "minecraft:iron_helmet",
+  "chest": "minecraft:chainmail_chestplate",
+  "mainhand": "minecraft:bow"
 }
