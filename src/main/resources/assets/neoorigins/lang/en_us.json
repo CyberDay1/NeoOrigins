@@ -679,6 +679,11 @@
   "power.neoorigins.kraken_beached.description": "Moves 30% slower on land — not built for walking.",
   "power.neoorigins.kraken_daylight_damage.name": "Surface Agony",
   "power.neoorigins.kraken_daylight_damage.description": "Takes 1 damage per second when exposed to direct sunlight.",
+  "power.neoorigins.kraken_summon_guardian.name": "Call of the Deep",
+  "power.neoorigins.kraken_summon_guardian.description": "Summons a guardian to fight for you. Max 2 at once. Costs 2.5 hunger. 20-second cooldown. You take 1 damage if it dies in combat.",
   "power.neoorigins.kraken_massive.name": "Colossal",
-  "power.neoorigins.kraken_massive.description": "30% larger than a normal player."
+  "power.neoorigins.kraken_massive.description": "30% larger than a normal player.",
+
+  "power.neoorigins.abyssal_summon_guardian.name": "Abyssal Command",
+  "power.neoorigins.abyssal_summon_guardian.description": "Summons a guardian to fight for you. Max 2 at once. Costs 2.5 hunger. 20-second cooldown. You take 1 damage if it dies in combat."
 }

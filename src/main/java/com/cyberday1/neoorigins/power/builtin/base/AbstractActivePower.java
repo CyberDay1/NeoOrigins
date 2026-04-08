@@ -34,10 +34,21 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
     @Override
     public final void onActivated(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        if (data.isOnCooldown(cooldownKey, player.tickCount)) return;
+        String key = getCooldownKey(config);
+        if (data.isOnCooldown(key, player.tickCount)) return;
         if (execute(player, config)) {
-            data.setCooldown(cooldownKey, player.tickCount, config.cooldownTicks());
+            data.setCooldown(key, player.tickCount, config.cooldownTicks());
         }
+    }
+
+    /**
+     * Returns the cooldown key for this power instance. By default uses the
+     * class name, meaning all instances of the same power type share a cooldown.
+     * Override to provide config-specific keys when multiple instances of the
+     * same power type should have independent cooldowns.
+     */
+    protected String getCooldownKey(C config) {
+        return cooldownKey;
     }
 
     /**
