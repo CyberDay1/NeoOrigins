@@ -54,6 +54,36 @@ public final class NeoOriginsConfig {
         BUILDER.pop();
     }
 
+    // ── Disabled Classes ────────────────────────────────────────────────
+    // Each built-in class can be disabled here. Disabled classes are
+    // removed after data loading. If ALL classes are disabled, the class
+    // selection screen is skipped entirely.
+
+    private static final String[] BUILT_IN_CLASSES = {
+        "class_warrior", "class_archer", "class_miner", "class_beastmaster",
+        "class_explorer", "class_sentinel", "class_herbalist", "class_scout",
+        "class_berserker", "class_titan", "class_rogue", "class_lumberjack",
+        "class_blacksmith", "class_cook", "class_merchant", "class_cleric",
+        "class_nitwit"
+    };
+
+    public static final Map<String, ModConfigSpec.BooleanValue> CLASS_TOGGLES;
+
+    static {
+        BUILDER.comment(
+            "Enable or disable built-in classes.",
+            "Set to false to remove a class from the selection screen.",
+            "If all classes are disabled, the class selection screen is skipped entirely."
+        ).push("classes");
+
+        Map<String, ModConfigSpec.BooleanValue> toggles = new LinkedHashMap<>();
+        for (String name : BUILT_IN_CLASSES) {
+            toggles.put(name, BUILDER.define(name, true));
+        }
+        CLASS_TOGGLES = Collections.unmodifiableMap(toggles);
+        BUILDER.pop();
+    }
+
     // ── Dimension Power Restrictions ────────────────────────────────────
     // Per-power dimension deny lists. Powers listed here are suppressed
     // when the player is in the specified dimension(s).
@@ -91,11 +121,14 @@ public final class NeoOriginsConfig {
     }
 
     /**
-     * Returns true if the given origin name (e.g. "merling") is a disabled built-in origin.
+     * Returns true if the given origin/class is disabled via config toggles.
+     * Checks both [origins] and [classes] sections.
      */
     public static boolean isOriginDisabled(Identifier originId) {
         if (!NeoOrigins.MOD_ID.equals(originId.getNamespace())) return false;
-        ModConfigSpec.BooleanValue toggle = ORIGIN_TOGGLES.get(originId.getPath());
+        String path = originId.getPath();
+        ModConfigSpec.BooleanValue toggle = ORIGIN_TOGGLES.get(path);
+        if (toggle == null) toggle = CLASS_TOGGLES.get(path);
         return toggle != null && !toggle.get();
     }
 
