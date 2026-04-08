@@ -1,0 +1,1138 @@
+================================================================================
+  NeoOrigins - Power Reference for Modpack Creators
+  Auto-generated from source JSON definitions
+================================================================================
+
+Table of Contents:
+  1. Origins & Their Powers (grouped by origin, sorted by order)
+  2. Power Type Reference
+
+================================================================================
+  1. ORIGINS & THEIR POWERS
+================================================================================
+
+--------------------------------------------------------------------------------
+  HUMAN
+  ID: human | Impact: NONE | Icon: minecraft:apple | Order: 1
+--------------------------------------------------------------------------------
+  No powers. The baseline vanilla experience.
+
+
+--------------------------------------------------------------------------------
+  MERLING
+  ID: merling | Impact: MEDIUM | Icon: minecraft:cod | Order: 2
+--------------------------------------------------------------------------------
+
+  neoorigins:merling_water_breathing
+    Type: neoorigins:water_breathing
+    Summary: Can breathe underwater indefinitely.
+
+  neoorigins:merling_aquatic_speed
+    Type: neoorigins:attribute_modifier
+    Summary: +60% water movement efficiency (attribute: water_movement_efficiency,
+             +0.6, add_value).
+
+  neoorigins:merling_land_slowdown
+    Type: neoorigins:attribute_modifier
+    Summary: -10% movement speed on land (attribute: movement_speed, -0.1,
+             add_multiplied_base). [WEAKNESS]
+
+  neoorigins:merling_no_drowning
+    Type: neoorigins:prevent_action
+    Summary: Immune to drowning damage (action: drown).
+
+
+--------------------------------------------------------------------------------
+  AVIAN
+  ID: avian | Impact: LOW | Icon: minecraft:feather | Order: 3
+--------------------------------------------------------------------------------
+
+  neoorigins:avian_slow_fall
+    Type: neoorigins:attribute_modifier
+    Summary: -90% fall damage multiplier (attribute: fall_damage_multiplier,
+             -0.9, add_multiplied_base). Greatly reduces fall damage.
+
+  neoorigins:avian_no_fall_damage
+    Type: neoorigins:prevent_action
+    Summary: Completely immune to fall damage (action: fall_damage).
+
+  neoorigins:avian_no_hunger_sprint
+    Type: neoorigins:status_effect
+    Summary: Permanent Saturation I effect (ambient, no particles). Sprinting
+             does not drain hunger.
+
+
+--------------------------------------------------------------------------------
+  BLAZELING
+  ID: blazeling | Impact: HIGH | Icon: minecraft:blaze_rod | Order: 4
+--------------------------------------------------------------------------------
+
+  neoorigins:blazeling_fire_immunity
+    Type: neoorigins:prevent_action
+    Summary: Immune to all fire damage (action: fire).
+
+  neoorigins:blazeling_water_damage
+    Type: neoorigins:modify_damage
+    Summary: Takes 2.5x drowning/water damage (damage_type: drown). [WEAKNESS]
+
+  neoorigins:blazeling_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+
+--------------------------------------------------------------------------------
+  ELYTRIAN
+  ID: elytrian | Impact: MEDIUM | Icon: minecraft:elytra | Order: 5
+--------------------------------------------------------------------------------
+
+  neoorigins:elytrian_elytra_boost
+    Type: neoorigins:elytra_boost
+    Summary: Provides an elytra flight speed boost ability.
+
+  neoorigins:elytrian_flight
+    Type: neoorigins:flight
+    Summary: Grants creative-style flight.
+
+
+--------------------------------------------------------------------------------
+  ENDERIAN
+  ID: enderian | Impact: HIGH | Icon: minecraft:ender_pearl | Order: 6
+--------------------------------------------------------------------------------
+
+  neoorigins:enderian_no_eye_damage
+    Type: neoorigins:prevent_action
+    Summary: Immune to eye-related damage (action: eye_damage). Safe from
+             Enderman-style eye contact triggers.
+
+  neoorigins:enderian_water_damage
+    Type: neoorigins:modify_damage
+    Summary: Takes 2.0x drowning/water damage (damage_type: drown). [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  ARACHNID
+  ID: arachnid | Impact: MEDIUM | Icon: minecraft:cobweb | Order: 7
+--------------------------------------------------------------------------------
+
+  neoorigins:arachnid_wall_climbing
+    Type: neoorigins:wall_climbing
+    Summary: Can climb walls like a spider.
+
+  neoorigins:arachnid_no_fall_damage_climbing
+    Type: neoorigins:conditional
+    Summary: Immune to fall damage while climbing (condition: climbing, delegates
+             to avian_no_fall_damage).
+
+
+--------------------------------------------------------------------------------
+  SHULK
+  ID: shulk | Impact: HIGH | Icon: minecraft:shulker_shell | Order: 8
+--------------------------------------------------------------------------------
+
+  neoorigins:shulk_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +8 natural armor points (attribute: armor, +8.0, add_value).
+             Equivalent to a full iron set.
+
+  neoorigins:shulk_slow_movement
+    Type: neoorigins:attribute_modifier
+    Summary: -25% movement speed (attribute: movement_speed, -0.25,
+             add_multiplied_base). [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  PHANTOM
+  ID: phantom | Impact: HIGH | Icon: minecraft:phantom_membrane | Order: 9
+--------------------------------------------------------------------------------
+
+  neoorigins:phantom_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:phantom_form
+    Type: neoorigins:phantom_form
+    Summary: Grants a spectral phantom form with invisibility and no-gravity
+             flight (invisibility: true, no_gravity: true).
+
+
+--------------------------------------------------------------------------------
+  FELINE
+  ID: feline | Impact: MEDIUM | Icon: minecraft:salmon | Order: 10
+--------------------------------------------------------------------------------
+
+  neoorigins:feline_no_fall_damage
+    Type: neoorigins:prevent_action
+    Summary: Immune to fall damage (action: FALL_DAMAGE).
+
+  neoorigins:feline_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:feline_speed_boost
+    Type: neoorigins:attribute_modifier
+    Summary: +10% movement speed (attribute: movement_speed, +0.1,
+             add_multiplied_base).
+
+  neoorigins:feline_mobs_ignore
+    Type: neoorigins:mobs_ignore_player
+    Summary: Creepers ignore this player (entity_types: [creeper]).
+
+  neoorigins:feline_active_launch
+    Type: neoorigins:active_dash
+    Summary: Active pounce/launch ability with vertical component (power: 2.2,
+             cooldown: 80 ticks / 4s, allow_vertical: true).
+
+  neoorigins:feline_water_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 1.5x incoming damage (general multiplier, no specific damage
+             type). [WEAKNESS]
+
+  neoorigins:feline_hunger_drain
+    Type: neoorigins:hunger_drain_modifier
+    Summary: Hunger drains 1.3x faster than normal. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  GOLEM
+  ID: golem | Impact: HIGH | Icon: minecraft:iron_ingot | Order: 11
+--------------------------------------------------------------------------------
+
+  neoorigins:golem_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +6 natural armor points (attribute: armor, +6.0, add_value).
+
+  neoorigins:golem_knockback_resist
+    Type: neoorigins:attribute_modifier
+    Summary: +80% knockback resistance (attribute: knockback_resistance, +0.8,
+             add_value). Nearly immovable.
+
+  neoorigins:golem_size
+    Type: neoorigins:size_scaling
+    Summary: 1.3x player size (30% larger than normal).
+
+  neoorigins:golem_effect_immunity
+    Type: neoorigins:effect_immunity
+    Summary: Immune to Poison, Wither, and Hunger status effects.
+
+  neoorigins:golem_slow_movement
+    Type: neoorigins:attribute_modifier
+    Summary: -25% movement speed (attribute: movement_speed, -0.25,
+             add_multiplied_base). [WEAKNESS]
+
+  neoorigins:golem_fire_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 1.8x incoming damage (general multiplier). [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  CAVEBORN
+  ID: caveborn | Impact: MEDIUM | Icon: minecraft:torch | Order: 12
+--------------------------------------------------------------------------------
+
+  neoorigins:caveborn_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:caveborn_no_fall_damage
+    Type: neoorigins:prevent_action
+    Summary: Immune to fall damage (action: FALL_DAMAGE).
+
+  neoorigins:caveborn_mining_speed
+    Type: neoorigins:break_speed_modifier
+    Summary: 2.0x mining/break speed for all blocks.
+
+  neoorigins:caveborn_daylight_damage
+    Type: neoorigins:damage_in_daylight
+    Summary: Takes 1.0 damage per second in daylight and catches fire
+             (ignite: true). [WEAKNESS]
+
+  neoorigins:caveborn_small_frame
+    Type: neoorigins:size_scaling
+    Summary: 0.85x player size (15% smaller than normal). Can fit through
+             tighter spaces.
+
+
+--------------------------------------------------------------------------------
+  SYLVAN
+  ID: sylvan | Impact: LOW | Icon: minecraft:oak_sapling | Order: 13
+--------------------------------------------------------------------------------
+
+  neoorigins:sylvan_mobs_ignore
+    Type: neoorigins:mobs_ignore_player
+    Summary: Hostile mobs passively ignore this player (all mob types).
+
+  neoorigins:sylvan_regen_in_water
+    Type: neoorigins:regen_in_fluid
+    Summary: Regenerates 1.0 HP per second while in water.
+
+  neoorigins:sylvan_forest_speed
+    Type: neoorigins:biome_buff
+    Summary: Gains Speed I while in forest biomes (biome_tag: is_forest).
+
+  neoorigins:sylvan_crop_growth
+    Type: neoorigins:crop_growth_accelerator
+    Summary: Accelerates nearby crop growth (radius: 4, tick_interval: 40,
+             growths_per_interval: 2).
+
+  neoorigins:sylvan_active_root
+    Type: neoorigins:active_aoe_effect
+    Summary: Active ability: roots nearby enemies with Slowness VI in a 6-block
+             radius for 4s (cooldown: 200 ticks / 10s).
+
+  neoorigins:sylvan_nether_damage
+    Type: neoorigins:damage_in_biome
+    Summary: Takes 1.0 damage per second in Nether biomes. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  DRACONIC
+  ID: draconic | Impact: HIGH | Icon: minecraft:dragon_breath | Order: 14
+--------------------------------------------------------------------------------
+
+  neoorigins:draconic_fire_immunity
+    Type: neoorigins:prevent_action
+    Summary: Immune to all fire damage (action: FIRE).
+
+  neoorigins:draconic_slow_fall
+    Type: neoorigins:prevent_action
+    Summary: Immune to fall damage (action: FALL_DAMAGE).
+
+  neoorigins:draconic_flight
+    Type: neoorigins:flight
+    Summary: Grants creative-style flight.
+
+  neoorigins:draconic_active_fireball
+    Type: neoorigins:active_fireball
+    Summary: Active ability: shoots a fireball (speed: 1.5, cooldown: 80 ticks
+             / 4s).
+
+  neoorigins:draconic_scare_mobs
+    Type: neoorigins:scare_entities
+    Summary: Nearby mobs flee from this player (all entity types).
+
+  neoorigins:draconic_size
+    Type: neoorigins:size_scaling
+    Summary: 1.2x player size (20% larger than normal).
+
+  neoorigins:draconic_attack_bonus
+    Type: neoorigins:attribute_modifier
+    Summary: +2 base attack damage (attribute: attack_damage, +2.0, add_value).
+
+  neoorigins:draconic_water_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 2.0x incoming damage (general multiplier). [WEAKNESS]
+
+  neoorigins:draconic_hunger_drain
+    Type: neoorigins:hunger_drain_modifier
+    Summary: Hunger drains 1.5x faster than normal. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  REVENANT
+  ID: revenant | Impact: MEDIUM | Icon: minecraft:rotten_flesh | Order: 15
+--------------------------------------------------------------------------------
+
+  neoorigins:revenant_entity_group
+    Type: neoorigins:entity_group
+    Summary: Classified as undead (group: undead). Affected by Smite enchantment,
+             healed by Harming potions, etc.
+
+  neoorigins:revenant_water_breathing
+    Type: neoorigins:water_breathing
+    Summary: Can breathe underwater indefinitely.
+
+  neoorigins:revenant_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:revenant_active_phase
+    Type: neoorigins:active_phase
+    Summary: Active ability: phase through up to 8 blocks of solid matter
+             (cooldown: 60 ticks / 3s, hunger_cost: 0).
+
+  neoorigins:revenant_active_bolt
+    Type: neoorigins:active_bolt
+    Summary: Active ability: fires a damaging bolt projectile (speed: 1.2,
+             cooldown: 80 ticks / 4s).
+
+  neoorigins:revenant_daylight_damage
+    Type: neoorigins:damage_in_daylight
+    Summary: Takes 2.0 damage per second in daylight and catches fire
+             (ignite: true). [WEAKNESS]
+
+  neoorigins:revenant_slow_regen
+    Type: neoorigins:natural_regen_modifier
+    Summary: Natural regeneration is only 40% as effective (multiplier: 0.4).
+             [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  TINY
+  ID: tiny | Impact: MEDIUM | Icon: minecraft:poppy | Order: 16
+--------------------------------------------------------------------------------
+
+  neoorigins:tiny_size
+    Type: neoorigins:size_scaling
+    Summary: 0.5x player size (half normal size).
+
+  neoorigins:tiny_wall_climbing
+    Type: neoorigins:wall_climbing
+    Summary: Can climb walls like a spider.
+
+  neoorigins:tiny_speed_boost
+    Type: neoorigins:attribute_modifier
+    Summary: +20% movement speed (attribute: movement_speed, +0.2,
+             add_multiplied_base).
+
+  neoorigins:tiny_no_fall_damage
+    Type: neoorigins:prevent_action
+    Summary: Immune to fall damage (action: FALL_DAMAGE).
+
+  neoorigins:tiny_item_magnetism
+    Type: neoorigins:item_magnetism
+    Summary: Items are magnetically attracted to the player from a distance.
+
+  neoorigins:tiny_attack_penalty
+    Type: neoorigins:attribute_modifier
+    Summary: -2 base attack damage (attribute: attack_damage, -2.0, add_value).
+             [WEAKNESS]
+
+  neoorigins:tiny_hunger_drain
+    Type: neoorigins:hunger_drain_modifier
+    Summary: Hunger drains 1.8x faster than normal. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  ABYSSAL
+  ID: abyssal | Impact: HIGH | Icon: minecraft:heart_of_the_sea | Order: 17
+--------------------------------------------------------------------------------
+
+  neoorigins:abyssal_water_breathing
+    Type: neoorigins:water_breathing
+    Summary: Can breathe underwater indefinitely.
+
+  neoorigins:abyssal_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:abyssal_thorns_aura
+    Type: neoorigins:thorns_aura
+    Summary: Reflects 30% of incoming melee damage back to attackers
+             (return_ratio: 0.3).
+
+  neoorigins:abyssal_underwater_mining
+    Type: neoorigins:underwater_mining_speed
+    Summary: Mines at full speed while underwater (removes aqua affinity
+             penalty).
+
+  neoorigins:abyssal_regen_in_water
+    Type: neoorigins:regen_in_fluid
+    Summary: Regenerates 2.0 HP per second while in water.
+
+  neoorigins:abyssal_starting_trident
+    Type: neoorigins:starting_equipment
+    Summary: Starts with an enchanted Trident (Mending I, Unbreaking III,
+             Riptide III). Grant ID: abyssal_trident.
+
+  neoorigins:abyssal_scare_ocean
+    Type: neoorigins:scare_entities
+    Summary: Scares away ocean creatures (squid, glow_squid, tropical_fish,
+             cod, salmon, pufferfish, dolphin).
+
+  neoorigins:abyssal_daylight_damage
+    Type: neoorigins:damage_in_daylight
+    Summary: Takes 1.5 damage per second in daylight, does not ignite
+             (ignite: false). [WEAKNESS]
+
+  neoorigins:abyssal_land_speed_penalty
+    Type: neoorigins:attribute_modifier
+    Summary: -10% movement speed on land (attribute: movement_speed, -0.1,
+             add_multiplied_base). [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  VOIDWALKER
+  ID: voidwalker | Impact: MEDIUM | Icon: minecraft:ender_pearl | Order: 18
+--------------------------------------------------------------------------------
+
+  neoorigins:voidwalker_active_phase
+    Type: neoorigins:active_phase
+    Summary: Active ability: phase through up to 10 blocks of solid matter
+             (cooldown: 80 ticks / 4s, hunger_cost: 3).
+
+  neoorigins:voidwalker_active_teleport
+    Type: neoorigins:active_teleport
+    Summary: Active ability: teleport to target location up to 24 blocks away
+             (cooldown: 80 ticks / 4s, mode: target).
+
+  neoorigins:voidwalker_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:voidwalker_mobs_ignore
+    Type: neoorigins:mobs_ignore_player
+    Summary: Hostile mobs passively ignore this player (all mob types).
+
+  neoorigins:voidwalker_water_damage
+    Type: neoorigins:modify_damage
+    Summary: Takes 1.75x incoming damage (general multiplier). [WEAKNESS]
+
+  neoorigins:voidwalker_no_hunger_sprint
+    Type: neoorigins:prevent_action
+    Summary: Sprinting does not consume hunger (action: SPRINT_FOOD).
+
+
+--------------------------------------------------------------------------------
+  STONEGUARD
+  ID: stoneguard | Impact: MEDIUM | Icon: minecraft:stone | Order: 19
+--------------------------------------------------------------------------------
+
+  neoorigins:stoneguard_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +3 natural armor points (attribute: armor, +3.0, add_value).
+
+  neoorigins:stoneguard_thorns_aura
+    Type: neoorigins:thorns_aura
+    Summary: Reflects 20% of incoming melee damage back to attackers
+             (return_ratio: 0.2).
+
+  neoorigins:stoneguard_knockback_resist
+    Type: neoorigins:attribute_modifier
+    Summary: +50% knockback resistance (attribute: knockback_resistance, +0.5,
+             add_value).
+
+  neoorigins:stoneguard_active_glowstone
+    Type: neoorigins:active_place_block
+    Summary: Active ability: places a glowstone block up to 5 blocks away
+             (cooldown: 100 ticks / 5s).
+
+  neoorigins:stoneguard_slow_movement
+    Type: neoorigins:attribute_modifier
+    Summary: -10% movement speed (attribute: movement_speed, -0.1,
+             add_multiplied_base). [WEAKNESS]
+
+  neoorigins:stoneguard_stone_mining
+    Type: neoorigins:break_speed_modifier
+    Summary: 3.0x mining speed on base overworld stone blocks
+             (block_tag: base_stone_overworld).
+
+  neoorigins:stoneguard_no_mob_spawns
+    Type: neoorigins:no_mob_spawns_nearby
+    Summary: Prevents mob spawns within a 24-block radius.
+
+
+--------------------------------------------------------------------------------
+  VERDANT
+  ID: verdant | Impact: LOW | Icon: minecraft:grass_block | Order: 20
+--------------------------------------------------------------------------------
+
+  neoorigins:verdant_mobs_ignore
+    Type: neoorigins:mobs_ignore_player
+    Summary: Hostile mobs passively ignore this player (all mob types).
+
+  neoorigins:verdant_no_fall_damage
+    Type: neoorigins:prevent_action
+    Summary: Immune to fall damage (action: FALL_DAMAGE).
+
+  neoorigins:verdant_no_hunger_sprint
+    Type: neoorigins:prevent_action
+    Summary: Sprinting does not consume hunger (action: SPRINT_FOOD).
+
+  neoorigins:verdant_harvest_bonus
+    Type: neoorigins:crop_harvest_bonus
+    Summary: Gains +1 extra drops when harvesting crops (extra_drops: 1).
+
+  neoorigins:verdant_forest_regen
+    Type: neoorigins:biome_buff
+    Summary: Gains Regeneration I while in forest biomes (biome_tag: is_forest).
+
+  neoorigins:verdant_nether_damage
+    Type: neoorigins:damage_in_biome
+    Summary: Takes 2.0 damage per second in Nether biomes. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  UMBRAL
+  ID: umbral | Impact: MEDIUM | Icon: minecraft:coal | Order: 21
+--------------------------------------------------------------------------------
+
+  neoorigins:umbral_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:umbral_shadow_orb
+    Type: neoorigins:shadow_orb
+    Summary: Summons shadow orbs that orbit and protect the player (max_orbs: 4,
+             radius: 28.0, cooldown: 60 ticks / 3s, tick_interval: 20).
+
+  neoorigins:umbral_active_dash
+    Type: neoorigins:active_dash
+    Summary: Active ability: horizontal dash forward (power: 2.0, cooldown: 60
+             ticks / 3s, allow_vertical: false).
+
+  neoorigins:umbral_daylight_damage
+    Type: neoorigins:damage_in_daylight
+    Summary: Takes 1.0 damage per second in daylight, does not ignite
+             (ignite: false). [WEAKNESS]
+
+  neoorigins:umbral_projectile_immunity
+    Type: neoorigins:projectile_immunity
+    Summary: Immune to arrow projectiles (projectile_types: [arrow]).
+
+  neoorigins:umbral_no_hunger_sprint
+    Type: neoorigins:prevent_action
+    Summary: Sprinting does not consume hunger (action: SPRINT_FOOD).
+
+
+--------------------------------------------------------------------------------
+  INCHLING
+  ID: inchling | Impact: MEDIUM | Icon: minecraft:poppy | Order: 22
+--------------------------------------------------------------------------------
+
+  neoorigins:inchling_size
+    Type: neoorigins:size_scaling
+    Summary: 0.25x player size (quarter normal size, extremely small).
+
+  neoorigins:inchling_wall_climbing
+    Type: neoorigins:wall_climbing
+    Summary: Can climb walls like a spider.
+
+  neoorigins:inchling_no_fall_damage
+    Type: neoorigins:prevent_action
+    Summary: Immune to fall damage (action: fall_damage).
+
+  neoorigins:inchling_reduced_health
+    Type: neoorigins:attribute_modifier
+    Summary: -10 max health (attribute: max_health, -10.0, add_value). Reduced
+             to 10 HP / 5 hearts. [WEAKNESS]
+
+  neoorigins:inchling_speed_boost
+    Type: neoorigins:attribute_modifier
+    Summary: +15% movement speed (attribute: movement_speed, +0.15,
+             add_multiplied_base).
+
+  neoorigins:inchling_hunger_efficiency
+    Type: neoorigins:hunger_drain_modifier
+    Summary: Hunger drains at only 50% the normal rate (multiplier: 0.5).
+             Very food-efficient.
+
+
+--------------------------------------------------------------------------------
+  SPORELING
+  ID: sporeling | Impact: MEDIUM | Icon: minecraft:red_mushroom | Order: 23
+--------------------------------------------------------------------------------
+
+  neoorigins:sporeling_spore_cloud
+    Type: neoorigins:active_aoe_effect
+    Summary: Active ability: releases a poison cloud dealing Poison II in a
+             5-block radius for 5s (cooldown: 240 ticks / 12s).
+
+  neoorigins:sporeling_poison_immunity
+    Type: neoorigins:effect_immunity
+    Summary: Immune to the Poison status effect.
+
+  neoorigins:sporeling_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:sporeling_mushroom_buff
+    Type: neoorigins:biome_buff
+    Summary: Gains Regeneration II while in mushroom biomes
+             (biome_tag: is_mushroom).
+
+  neoorigins:sporeling_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +4 natural armor points (attribute: armor, +4.0, add_value).
+
+  neoorigins:sporeling_daylight_damage
+    Type: neoorigins:damage_in_daylight
+    Summary: Takes 1.0 damage per second in daylight, does not ignite
+             (ignite: false). [WEAKNESS]
+
+  neoorigins:sporeling_slow_movement
+    Type: neoorigins:attribute_modifier
+    Summary: -10% movement speed (attribute: movement_speed, -0.1,
+             add_multiplied_base). [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  FROSTBORN
+  ID: frostborn | Impact: MEDIUM | Icon: minecraft:blue_ice | Order: 24
+--------------------------------------------------------------------------------
+
+  neoorigins:frostborn_freeze_aura
+    Type: neoorigins:active_aoe_effect
+    Summary: Active ability: inflicts Slowness IV on nearby entities in a
+             6-block radius for 5s (cooldown: 200 ticks / 10s).
+
+  neoorigins:frostborn_cold_buff
+    Type: neoorigins:biome_buff
+    Summary: Gains Strength I while in taiga biomes (biome_tag: is_taiga).
+
+  neoorigins:frostborn_fire_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 2.0x fire damage (damage_type: fire). [WEAKNESS]
+
+  neoorigins:frostborn_ice_walk
+    Type: neoorigins:active_place_block
+    Summary: Active ability: places ice blocks up to 5 blocks away
+             (cooldown: 20 ticks / 1s).
+
+  neoorigins:frostborn_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +4 natural armor points (attribute: armor, +4.0, add_value).
+
+  neoorigins:frostborn_nether_damage
+    Type: neoorigins:damage_in_biome
+    Summary: Takes 2.0 damage per second in Nether biomes. [WEAKNESS]
+
+  neoorigins:frostborn_freeze_immunity
+    Type: neoorigins:prevent_action
+    Summary: Immune to freezing damage (action: freeze).
+
+
+--------------------------------------------------------------------------------
+  STRIDER
+  ID: strider | Impact: HIGH | Icon: minecraft:magma_cream | Order: 25
+--------------------------------------------------------------------------------
+
+  neoorigins:strider_fire_immunity
+    Type: neoorigins:prevent_action
+    Summary: Immune to all fire damage (action: fire).
+
+  neoorigins:strider_nether_buff
+    Type: neoorigins:biome_buff
+    Summary: Gains Speed II while in Nether biomes (biome_tag: is_nether).
+
+  neoorigins:strider_water_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 3.0x drowning/water damage (damage_type: drown). [WEAKNESS]
+
+  neoorigins:strider_lava_regen
+    Type: neoorigins:regen_in_fluid
+    Summary: Regenerates 2.0 HP per second while in lava.
+
+  neoorigins:strider_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:strider_overworld_slowness
+    Type: neoorigins:biome_buff
+    Summary: Afflicted with Slowness I while in the Overworld
+             (biome_tag: is_overworld). [WEAKNESS]
+
+  neoorigins:strider_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +6 natural armor points (attribute: armor, +6.0, add_value).
+
+
+--------------------------------------------------------------------------------
+  SIREN
+  ID: siren | Impact: MEDIUM | Icon: minecraft:nautilus_shell | Order: 26
+--------------------------------------------------------------------------------
+
+  neoorigins:siren_charm
+    Type: neoorigins:mobs_ignore_player
+    Summary: All hostile mobs passively ignore this player (entity_types: [],
+             meaning all types).
+
+  neoorigins:siren_water_breathing
+    Type: neoorigins:water_breathing
+    Summary: Can breathe underwater indefinitely.
+
+  neoorigins:siren_aquatic_speed
+    Type: neoorigins:attribute_modifier
+    Summary: +80% water movement efficiency (attribute: water_movement_efficiency,
+             +0.8, add_value). Very fast swimmer.
+
+  neoorigins:siren_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:siren_land_slowdown
+    Type: neoorigins:attribute_modifier
+    Summary: -15% movement speed on land (attribute: movement_speed, -0.15,
+             add_multiplied_base). [WEAKNESS]
+
+  neoorigins:siren_reduced_health
+    Type: neoorigins:attribute_modifier
+    Summary: -4 max health (attribute: max_health, -4.0, add_value). Reduced to
+             16 HP / 8 hearts. [WEAKNESS]
+
+  neoorigins:siren_regen_in_water
+    Type: neoorigins:regen_in_fluid
+    Summary: Regenerates 1.0 HP per second while in water.
+
+
+--------------------------------------------------------------------------------
+  PIGLIN
+  ID: piglin | Impact: HIGH | Icon: minecraft:gold_ingot | Order: 27
+--------------------------------------------------------------------------------
+
+  neoorigins:piglin_nether_buff
+    Type: neoorigins:biome_buff
+    Summary: Gains Strength II while in Nether biomes (biome_tag: is_nether).
+
+  neoorigins:piglin_gold_affinity
+    Type: neoorigins:mobs_ignore_player
+    Summary: Piglins and Piglin Brutes ignore this player
+             (entity_types: [piglin, piglin_brute]).
+
+  neoorigins:piglin_fire_immunity
+    Type: neoorigins:prevent_action
+    Summary: Immune to all fire damage (action: fire).
+
+  neoorigins:piglin_attack_bonus
+    Type: neoorigins:attribute_modifier
+    Summary: +2 base attack damage (attribute: attack_damage, +2.0, add_value).
+
+  neoorigins:piglin_overworld_weakness
+    Type: neoorigins:biome_buff
+    Summary: Afflicted with Weakness I while in the Overworld
+             (biome_tag: is_overworld). [WEAKNESS]
+
+  neoorigins:piglin_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:piglin_soul_fire_damage
+    Type: neoorigins:damage_in_biome
+    Summary: Takes 1.0 damage per second near bastion remnants
+             (biome_tag: has_structure/bastion_remnant). [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  HIVELING
+  ID: hiveling | Impact: HIGH | Icon: minecraft:honeycomb | Order: 28
+--------------------------------------------------------------------------------
+
+  neoorigins:hiveling_flight
+    Type: neoorigins:flight
+    Summary: Grants creative-style flight.
+
+  neoorigins:hiveling_sting
+    Type: neoorigins:active_bolt
+    Summary: Active ability: fires a sting bolt projectile (speed: 1.0,
+             cooldown: 100 ticks / 5s).
+
+  neoorigins:hiveling_crop_growth
+    Type: neoorigins:crop_growth_accelerator
+    Summary: Accelerates nearby crop growth (radius: 6, tick_interval: 30,
+             growths_per_interval: 3). Acts as a pollinator.
+
+  neoorigins:hiveling_size
+    Type: neoorigins:size_scaling
+    Summary: 0.6x player size (40% smaller than normal).
+
+  neoorigins:hiveling_entity_group
+    Type: neoorigins:entity_group
+    Summary: Classified as arthropod (group: arthropod). Affected by Bane of
+             Arthropods enchantment.
+
+  neoorigins:hiveling_reduced_health
+    Type: neoorigins:attribute_modifier
+    Summary: -6 max health (attribute: max_health, -6.0, add_value). Reduced to
+             14 HP / 7 hearts. [WEAKNESS]
+
+  neoorigins:hiveling_hunger_drain
+    Type: neoorigins:hunger_drain_modifier
+    Summary: Hunger drains 1.5x faster than normal. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  CINDERBORN
+  ID: cinderborn | Impact: HIGH | Icon: minecraft:magma_block | Order: 29
+--------------------------------------------------------------------------------
+
+  neoorigins:cinderborn_fire_immunity
+    Type: neoorigins:prevent_action
+    Summary: Immune to all fire damage (action: fire).
+
+  neoorigins:cinderborn_fireball
+    Type: neoorigins:active_fireball
+    Summary: Active ability: shoots a fireball (speed: 1.2, cooldown: 100 ticks
+             / 5s).
+
+  neoorigins:cinderborn_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +6 natural armor points (attribute: armor, +6.0, add_value).
+
+  neoorigins:cinderborn_lava_regen
+    Type: neoorigins:regen_in_fluid
+    Summary: Regenerates 3.0 HP per second while in lava.
+
+  neoorigins:cinderborn_nether_buff
+    Type: neoorigins:biome_buff
+    Summary: Gains Strength I while in Nether biomes (biome_tag: is_nether).
+
+  neoorigins:cinderborn_water_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 3.0x drowning/water damage (damage_type: drown). [WEAKNESS]
+
+  neoorigins:cinderborn_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:cinderborn_scare_mobs
+    Type: neoorigins:scare_entities
+    Summary: Nearby mobs flee from this player (all entity types).
+
+
+--------------------------------------------------------------------------------
+  SCULKBORN
+  ID: sculkborn | Impact: HIGH | Icon: minecraft:sculk | Order: 30
+--------------------------------------------------------------------------------
+
+  neoorigins:sculkborn_sonic_bolt
+    Type: neoorigins:active_bolt
+    Summary: Active ability: fires a sonic bolt projectile (speed: 1.5,
+             cooldown: 120 ticks / 6s).
+
+  neoorigins:sculkborn_darkness_aura
+    Type: neoorigins:active_aoe_effect
+    Summary: Active ability: inflicts Darkness on nearby entities in an 8-block
+             radius for 10s (cooldown: 300 ticks / 15s).
+
+  neoorigins:sculkborn_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:sculkborn_natural_armor
+    Type: neoorigins:attribute_modifier
+    Summary: +8 natural armor points (attribute: armor, +8.0, add_value).
+             Equivalent to a full iron set.
+
+  neoorigins:sculkborn_knockback_resist
+    Type: neoorigins:attribute_modifier
+    Summary: +50% knockback resistance (attribute: knockback_resistance, +0.5,
+             add_value).
+
+  neoorigins:sculkborn_daylight_damage
+    Type: neoorigins:damage_in_daylight
+    Summary: Takes 2.0 damage per second in daylight, does not ignite
+             (ignite: false). [WEAKNESS]
+
+  neoorigins:sculkborn_projectile_immunity
+    Type: neoorigins:projectile_immunity
+    Summary: Immune to arrow and spectral arrow projectiles.
+
+  neoorigins:sculkborn_slow_movement
+    Type: neoorigins:attribute_modifier
+    Summary: -15% movement speed (attribute: movement_speed, -0.15,
+             add_multiplied_base). [WEAKNESS]
+
+  neoorigins:sculkborn_reduced_health
+    Type: neoorigins:attribute_modifier
+    Summary: -4 max health (attribute: max_health, -4.0, add_value). Reduced to
+             16 HP / 8 hearts. [WEAKNESS]
+
+
+--------------------------------------------------------------------------------
+  ENDERITE
+  ID: enderite | Impact: HIGH | Icon: minecraft:chorus_fruit | Order: 31
+--------------------------------------------------------------------------------
+
+  neoorigins:enderite_teleport
+    Type: neoorigins:active_teleport
+    Summary: Active ability: teleport to target location up to 32 blocks away
+             (cooldown: 60 ticks / 3s).
+
+  neoorigins:enderite_phase
+    Type: neoorigins:active_phase
+    Summary: Active ability: phase through solid blocks
+             (cooldown: 200 ticks / 10s).
+
+  neoorigins:enderite_slow_fall
+    Type: neoorigins:status_effect
+    Summary: Permanent Slow Falling effect (ambient, no particles).
+
+  neoorigins:enderite_night_vision
+    Type: neoorigins:night_vision
+    Summary: Permanent night vision effect.
+
+  neoorigins:enderite_scare_endermites
+    Type: neoorigins:scare_entities
+    Summary: Scares away Endermites and Silverfish
+             (entity_types: [endermite, silverfish]).
+
+  neoorigins:enderite_water_damage
+    Type: neoorigins:modify_damage
+    Summary: Takes 3.0x drowning/water damage (damage_type: drown). [WEAKNESS]
+
+  neoorigins:enderite_daylight_weakness
+    Type: neoorigins:modify_damage
+    Summary: Takes 1.5x incoming damage in general (no specific damage type).
+             [WEAKNESS]
+
+  neoorigins:enderite_attack_bonus
+    Type: neoorigins:attribute_modifier
+    Summary: +3 base attack damage (attribute: attack_damage, +3.0, add_value).
+
+
+================================================================================
+  2. POWER TYPE REFERENCE
+================================================================================
+
+  neoorigins:active_aoe_effect
+    Applies a status effect to all entities in a radius. Configurable effect,
+    amplifier, duration, radius, and cooldown. Used for crowd-control abilities.
+
+  neoorigins:active_bolt
+    Fires a damaging projectile bolt. Configurable speed and cooldown.
+
+  neoorigins:active_dash
+    Propels the player forward in a dash. Configurable power (velocity),
+    cooldown, and whether vertical movement is allowed.
+
+  neoorigins:active_fireball
+    Shoots a fireball projectile. Configurable speed and cooldown.
+
+  neoorigins:active_phase
+    Allows the player to phase through solid blocks. Configurable max depth,
+    cooldown, and hunger cost per use.
+
+  neoorigins:active_place_block
+    Places a specific block at the targeted location. Configurable block ID,
+    max placement distance, and cooldown.
+
+  neoorigins:active_teleport
+    Teleports the player to a target location within range. Configurable range,
+    cooldown, and targeting mode.
+
+  neoorigins:attribute_modifier
+    Modifies a player attribute (e.g., armor, speed, health, attack damage,
+    knockback resistance). Configurable attribute, amount, and operation
+    (add_value or add_multiplied_base).
+
+  neoorigins:biome_buff
+    Applies a status effect while the player is in specific biomes. Configurable
+    biome tag, effect, and amplifier.
+
+  neoorigins:break_speed_modifier
+    Multiplies block-breaking speed. Optionally restricted to a block tag.
+    Configurable multiplier.
+
+  neoorigins:conditional
+    Wraps another power with a condition. The inner power only activates when
+    the condition is met (e.g., "climbing").
+
+  neoorigins:crop_growth_accelerator
+    Accelerates crop growth in a radius around the player. Configurable radius,
+    tick interval, and growths per interval.
+
+  neoorigins:crop_harvest_bonus
+    Grants extra drops when harvesting crops. Configurable extra drop count.
+
+  neoorigins:damage_in_biome
+    Deals continuous damage while in specified biomes. Configurable biome tag
+    and damage per second.
+
+  neoorigins:damage_in_daylight
+    Deals continuous damage while exposed to sunlight. Configurable damage per
+    second and whether the player ignites.
+
+  neoorigins:effect_immunity
+    Grants immunity to specific status effects. Configurable list of effects.
+
+  neoorigins:entity_group
+    Assigns the player to an entity group (e.g., undead, arthropod). Affects
+    interactions with enchantments and potions.
+
+  neoorigins:elytra_boost
+    Provides a boost while using elytra flight.
+
+  neoorigins:flight
+    Grants creative-style free flight.
+
+  neoorigins:hunger_drain_modifier
+    Multiplies the rate at which hunger depletes. Values above 1.0 increase
+    drain; below 1.0 decrease it.
+
+  neoorigins:item_magnetism
+    Magnetically attracts dropped items toward the player from a distance.
+
+  neoorigins:mobs_ignore_player
+    Causes specified mob types to passively ignore the player. If entity_types
+    is empty or omitted, all hostile mobs are affected.
+
+  neoorigins:modify_damage
+    Multiplies incoming (or outgoing) damage. Can target a specific damage type
+    (e.g., drown, fire) or apply to all damage.
+
+  neoorigins:natural_regen_modifier
+    Multiplies the rate of natural health regeneration. Values below 1.0 slow
+    regen; above 1.0 speed it up.
+
+  neoorigins:night_vision
+    Grants permanent night vision. No configuration needed.
+
+  neoorigins:no_mob_spawns_nearby
+    Prevents hostile mob spawns within a configurable radius around the player.
+
+  neoorigins:phantom_form
+    Toggleable spectral form with optional invisibility and no-gravity flight.
+
+  neoorigins:prevent_action
+    Prevents a specific action or damage type from affecting the player. Known
+    actions: fall_damage, fire, drown, eye_damage, freeze, SPRINT_FOOD.
+
+  neoorigins:projectile_immunity
+    Grants immunity to specific projectile types (e.g., arrows, spectral
+    arrows).
+
+  neoorigins:regen_in_fluid
+    Regenerates health while submerged in a specified fluid (water or lava).
+    Configurable HP per second.
+
+  neoorigins:scare_entities
+    Causes nearby entities to flee from the player. Optionally restricted to
+    specific entity types; if omitted, all nearby mobs are affected.
+
+  neoorigins:shadow_orb
+    Summons orbiting shadow orbs that protect the player. Configurable max orb
+    count, orbit radius, cooldown, and tick interval.
+
+  neoorigins:size_scaling
+    Scales the player's model size. Values below 1.0 shrink; above 1.0 enlarge.
+
+  neoorigins:starting_equipment
+    Grants an item on first spawn. Configurable item, enchantments, and a
+    grant ID to prevent re-granting.
+
+  neoorigins:status_effect
+    Applies a permanent status effect. Configurable effect, amplifier, ambient
+    flag, and particle visibility.
+
+  neoorigins:thorns_aura
+    Reflects a percentage of incoming melee damage back to the attacker.
+    Configurable return ratio.
+
+  neoorigins:underwater_mining_speed
+    Removes the underwater mining speed penalty, allowing full mining speed
+    while submerged.
+
+  neoorigins:wall_climbing
+    Allows the player to climb vertical surfaces like a spider.
+
+  neoorigins:water_breathing
+    Grants the ability to breathe underwater indefinitely.
+
+
+================================================================================
+  QUICK STATS
+================================================================================
+
+  Total Origins:    31
+  Total Powers:     174
+  Impact None:      1  (Human)
+  Impact Low:       3  (Avian, Sylvan, Verdant)
+  Impact Medium:    15 (Merling, Elytrian, Arachnid, Caveborn, Feline,
+                        Revenant, Tiny, Voidwalker, Stoneguard, Umbral,
+                        Inchling, Sporeling, Frostborn, Siren, Phantom)
+  Impact High:      12 (Blazeling, Enderian, Shulk, Golem, Draconic, Abyssal,
+                        Piglin, Hiveling, Cinderborn, Sculkborn, Enderite,
+                        Strider)
+
+================================================================================
+  End of Power Reference
+================================================================================

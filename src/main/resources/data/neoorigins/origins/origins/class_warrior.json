@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_warrior.name",
+  "description": "origins.neoorigins.class_warrior.description",
+  "icon": "minecraft:iron_sword",
+  "impact": "none",
+  "order": 1,
+  "powers": [
+    "neoorigins:class_warrior_damage",
+    "neoorigins:class_warrior_knockback_resist"
+  ],
+  "upgrades": []
+}

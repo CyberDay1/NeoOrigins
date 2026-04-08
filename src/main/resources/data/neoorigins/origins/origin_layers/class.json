@@ -1,0 +1,21 @@
+{
+  "order": 2,
+  "name": "origins.layer.class",
+  "origins": [
+    "neoorigins:class_warrior",
+    "neoorigins:class_archer",
+    "neoorigins:class_miner",
+    "neoorigins:class_beastmaster",
+    "neoorigins:class_explorer",
+    "neoorigins:class_sentinel",
+    "neoorigins:class_herbalist",
+    "neoorigins:class_scout",
+    "neoorigins:class_berserker",
+    "neoorigins:class_titan",
+    "neoorigins:class_nitwit"
+  ],
+  "allow_random": true,
+  "auto_choose": false,
+  "hidden": false,
+  "enabled": true
+}

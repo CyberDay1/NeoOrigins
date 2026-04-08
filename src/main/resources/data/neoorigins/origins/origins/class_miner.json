@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_miner.name",
+  "description": "origins.neoorigins.class_miner.description",
+  "icon": "minecraft:iron_pickaxe",
+  "impact": "none",
+  "order": 3,
+  "powers": [
+    "neoorigins:class_miner_speed",
+    "neoorigins:class_miner_efficiency"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,13 @@
+{
+  "name": "origins.neoorigins.class_herbalist.name",
+  "description": "origins.neoorigins.class_herbalist.description",
+  "icon": "minecraft:wheat_seeds",
+  "impact": "none",
+  "order": 7,
+  "powers": [
+    "neoorigins:class_herbalist_growth",
+    "neoorigins:class_herbalist_poison_immunity",
+    "neoorigins:class_herbalist_harvest_bonus"
+  ],
+  "upgrades": []
+}

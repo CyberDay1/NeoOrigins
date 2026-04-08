@@ -1,0 +1,13 @@
+{
+  "name": "origins.neoorigins.class_titan.name",
+  "description": "origins.neoorigins.class_titan.description",
+  "icon": "minecraft:iron_block",
+  "impact": "none",
+  "order": 10,
+  "powers": [
+    "neoorigins:class_titan_size",
+    "neoorigins:class_titan_health",
+    "neoorigins:class_titan_reach"
+  ],
+  "upgrades": []
+}

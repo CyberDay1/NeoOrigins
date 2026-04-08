@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_berserker.name",
+  "description": "origins.neoorigins.class_berserker.description",
+  "icon": "minecraft:netherite_axe",
+  "impact": "none",
+  "order": 9,
+  "powers": [
+    "neoorigins:class_berserker_damage",
+    "neoorigins:class_berserker_hunger"
+  ],
+  "upgrades": []
+}

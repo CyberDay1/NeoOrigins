@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_archer.name",
+  "description": "origins.neoorigins.class_archer.description",
+  "icon": "minecraft:bow",
+  "impact": "none",
+  "order": 2,
+  "powers": [
+    "neoorigins:class_archer_accuracy",
+    "neoorigins:class_archer_agility"
+  ],
+  "upgrades": []
+}

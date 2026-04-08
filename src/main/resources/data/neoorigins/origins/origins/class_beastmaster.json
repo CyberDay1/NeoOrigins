@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_beastmaster.name",
+  "description": "origins.neoorigins.class_beastmaster.description",
+  "icon": "minecraft:lead",
+  "impact": "none",
+  "order": 4,
+  "powers": [
+    "neoorigins:class_beastmaster_diffusal",
+    "neoorigins:class_beastmaster_potions"
+  ],
+  "upgrades": []
+}
