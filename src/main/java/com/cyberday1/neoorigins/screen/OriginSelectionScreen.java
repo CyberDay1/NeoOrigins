@@ -179,7 +179,8 @@ public class OriginSelectionScreen extends Screen {
         g.fill(0, 0, width, height, 0xCC060610);
         if (presenter.isDone()) return;
 
-        g.centeredText(font, getTitle(), width / 2, 14, 0xFFFFFFFF);
+        var layerTitle = Component.translatable("screen.neoorigins.choose." + presenter.currentLayer().name());
+        g.centeredText(font, layerTitle, width / 2, 14, 0xFFFFFFFF);
         String prog = (presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers();
         g.text(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
 
