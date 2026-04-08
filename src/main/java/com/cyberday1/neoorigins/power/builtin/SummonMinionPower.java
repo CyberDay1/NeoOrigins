@@ -4,15 +4,21 @@ import com.cyberday1.neoorigins.service.MinionTracker;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -72,12 +78,27 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
         living.setPos(spawnPos.x, spawnPos.y, spawnPos.z);
 
-        // Make the mob not attack the summoner and target what they target
         if (living instanceof Mob mob) {
             mob.setPersistenceRequired();
+
+            // Equip undead mobs with a helmet so they don't burn in sunlight
+            if (mob.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
+                mob.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+                mob.setDropChance(EquipmentSlot.HEAD, 0.0f);
+            }
         }
 
         level.addFreshEntity(living);
+
+        // Sound + particle effects at spawn location
+        level.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z,
+            SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 0.8f);
+        level.sendParticles(ParticleTypes.SOUL,
+            spawnPos.x, spawnPos.y + 0.5, spawnPos.z,
+            20, 0.5, 0.5, 0.5, 0.02);
+        level.sendParticles(ParticleTypes.SMOKE,
+            spawnPos.x, spawnPos.y + 0.2, spawnPos.z,
+            10, 0.3, 0.3, 0.3, 0.01);
 
         // Consume hunger
         player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - config.hungerCost());
