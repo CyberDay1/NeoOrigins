@@ -1,0 +1,19 @@
+{
+  "name": "origins.neoorigins.kraken.name",
+  "description": "origins.neoorigins.kraken.description",
+  "icon": "minecraft:ink_sac",
+  "impact": "high",
+  "order": 35,
+  "powers": [
+    "neoorigins:kraken_tentacle_lash",
+    "neoorigins:kraken_ink_shot",
+    "neoorigins:kraken_water_breathing",
+    "neoorigins:kraken_deep_current",
+    "neoorigins:kraken_pressure_armor",
+    "neoorigins:kraken_regen_in_water",
+    "neoorigins:kraken_beached",
+    "neoorigins:kraken_daylight_damage",
+    "neoorigins:kraken_massive"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.gorgon.name",
+  "description": "origins.neoorigins.gorgon.description",
+  "icon": "minecraft:stone",
+  "impact": "high",
+  "order": 33,
+  "powers": [
+    "neoorigins:gorgon_petrifying_gaze",
+    "neoorigins:gorgon_stone_fists",
+    "neoorigins:gorgon_granite_hide",
+    "neoorigins:gorgon_knockback_resist",
+    "neoorigins:gorgon_heavy_frame",
+    "neoorigins:gorgon_size",
+    "neoorigins:gorgon_hunger_drain"
+  ],
+  "upgrades": []
+}

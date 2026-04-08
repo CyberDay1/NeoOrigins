@@ -74,6 +74,9 @@ public class CombatPowerEvents {
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
+        // Check if the dying entity is a tracked minion (notify summoner)
+        com.cyberday1.neoorigins.service.MinionTracker.onEntityDeath(event.getEntity());
+
         var killer = event.getSource().getEntity();
         if (!(killer instanceof ServerPlayer sp)) return;
         LivingEntity killed = event.getEntity();

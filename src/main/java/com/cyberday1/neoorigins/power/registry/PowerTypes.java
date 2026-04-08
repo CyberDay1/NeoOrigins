@@ -98,6 +98,9 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, TamedPotionDiffusalPower>   TAMED_POTION_DIFFUSAL  = reg("tamed_potion_diffusal",  new TamedPotionDiffusalPower());
     public static final DeferredHolder<PowerType<?>, TeleportRangeModifierPower> TELEPORT_RANGE_MODIFIER = reg("teleport_range_modifier", new TeleportRangeModifierPower());
 
+    // --- Minion summoning ---
+    public static final DeferredHolder<PowerType<?>, SummonMinionPower> SUMMON_MINION = reg("summon_minion", new SummonMinionPower());
+
     // --- Active abilities ---
     public static final DeferredHolder<PowerType<?>, ActiveTeleportPower>      ACTIVE_TELEPORT      = reg("active_teleport",      new ActiveTeleportPower());
     public static final DeferredHolder<PowerType<?>, ActiveDashPower>          ACTIVE_DASH          = reg("active_dash",          new ActiveDashPower());

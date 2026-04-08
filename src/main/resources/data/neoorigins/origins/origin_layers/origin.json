@@ -32,7 +32,11 @@
     "neoorigins:hiveling",
     "neoorigins:cinderborn",
     "neoorigins:sculkborn",
-    "neoorigins:enderite"
+    "neoorigins:enderite",
+    "neoorigins:necromancer",
+    "neoorigins:gorgon",
+    "neoorigins:automaton",
+    "neoorigins:kraken"
   ],
   "allow_random": true,
   "auto_choose": false,

@@ -34,7 +34,7 @@ public final class NeoOriginsConfig {
         "sylvan", "draconic", "revenant", "tiny", "abyssal", "voidwalker",
         "stoneguard", "verdant", "umbral", "inchling", "sporeling",
         "frostborn", "strider", "siren", "piglin", "hiveling", "cinderborn",
-        "sculkborn", "enderite"
+        "sculkborn", "enderite", "necromancer", "gorgon", "automaton", "kraken"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;

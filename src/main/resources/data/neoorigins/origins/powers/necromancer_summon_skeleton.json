@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:summon_minion",
+  "mob_type": "minecraft:skeleton",
+  "max_count": 3,
+  "cooldown_ticks": 400,
+  "hunger_cost": 4,
+  "despawn_ticks": 18000,
+  "death_damage": 1.0
+}
