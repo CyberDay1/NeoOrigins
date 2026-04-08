@@ -12,6 +12,12 @@
     "neoorigins:class_scout",
     "neoorigins:class_berserker",
     "neoorigins:class_titan",
+    "neoorigins:class_rogue",
+    "neoorigins:class_lumberjack",
+    "neoorigins:class_blacksmith",
+    "neoorigins:class_cook",
+    "neoorigins:class_merchant",
+    "neoorigins:class_cleric",
     "neoorigins:class_nitwit"
   ],
   "allow_random": true,

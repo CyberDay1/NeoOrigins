@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_blacksmith.name",
+  "description": "origins.neoorigins.class_blacksmith.description",
+  "icon": "minecraft:anvil",
+  "impact": "none",
+  "order": 14,
+  "powers": [
+    "neoorigins:class_blacksmith_quality",
+    "neoorigins:class_blacksmith_repairs"
+  ],
+  "upgrades": []
+}
