@@ -5,5 +5,8 @@
   "cooldown_ticks": 600,
   "hunger_cost": 6,
   "despawn_ticks": 18000,
-  "death_damage": 1.0
+  "death_damage": 1.0,
+  "head": "minecraft:netherite_helmet",
+  "chest": "minecraft:netherite_chestplate",
+  "mainhand": "minecraft:stone_sword"
 }
