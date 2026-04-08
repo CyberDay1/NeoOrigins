@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.siren.name",
+  "description": "origins.neoorigins.siren.description",
+  "icon": "minecraft:nautilus_shell",
+  "impact": "medium",
+  "order": 26,
+  "powers": [
+    "neoorigins:siren_charm",
+    "neoorigins:siren_water_breathing",
+    "neoorigins:siren_aquatic_speed",
+    "neoorigins:siren_night_vision",
+    "neoorigins:siren_land_slowdown",
+    "neoorigins:siren_reduced_health",
+    "neoorigins:siren_regen_in_water"
+  ],
+  "upgrades": []
+}

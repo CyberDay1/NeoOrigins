@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:water_movement_efficiency",
+  "amount": 0.8,
+  "operation": "add_value"
+}

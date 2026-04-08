@@ -1,0 +1,18 @@
+{
+  "name": "origins.neoorigins.cinderborn.name",
+  "description": "origins.neoorigins.cinderborn.description",
+  "icon": "minecraft:magma_block",
+  "impact": "high",
+  "order": 29,
+  "powers": [
+    "neoorigins:cinderborn_fire_immunity",
+    "neoorigins:cinderborn_fireball",
+    "neoorigins:cinderborn_natural_armor",
+    "neoorigins:cinderborn_lava_regen",
+    "neoorigins:cinderborn_nether_buff",
+    "neoorigins:cinderborn_water_weakness",
+    "neoorigins:cinderborn_night_vision",
+    "neoorigins:cinderborn_scare_mobs"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.strider.name",
+  "description": "origins.neoorigins.strider.description",
+  "icon": "minecraft:magma_cream",
+  "impact": "high",
+  "order": 25,
+  "powers": [
+    "neoorigins:strider_fire_immunity",
+    "neoorigins:strider_nether_buff",
+    "neoorigins:strider_water_weakness",
+    "neoorigins:strider_lava_regen",
+    "neoorigins:strider_night_vision",
+    "neoorigins:strider_overworld_slowness",
+    "neoorigins:strider_natural_armor"
+  ],
+  "upgrades": []
+}

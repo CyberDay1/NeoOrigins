@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.sporeling.name",
+  "description": "origins.neoorigins.sporeling.description",
+  "icon": "minecraft:red_mushroom",
+  "impact": "medium",
+  "order": 23,
+  "powers": [
+    "neoorigins:sporeling_spore_cloud",
+    "neoorigins:sporeling_poison_immunity",
+    "neoorigins:sporeling_night_vision",
+    "neoorigins:sporeling_mushroom_buff",
+    "neoorigins:sporeling_natural_armor",
+    "neoorigins:sporeling_daylight_damage",
+    "neoorigins:sporeling_slow_movement"
+  ],
+  "upgrades": []
+}

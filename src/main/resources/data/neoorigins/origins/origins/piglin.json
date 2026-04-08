@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.piglin.name",
+  "description": "origins.neoorigins.piglin.description",
+  "icon": "minecraft:gold_ingot",
+  "impact": "high",
+  "order": 27,
+  "powers": [
+    "neoorigins:piglin_nether_buff",
+    "neoorigins:piglin_gold_affinity",
+    "neoorigins:piglin_fire_immunity",
+    "neoorigins:piglin_attack_bonus",
+    "neoorigins:piglin_overworld_weakness",
+    "neoorigins:piglin_night_vision",
+    "neoorigins:piglin_soul_fire_damage"
+  ],
+  "upgrades": []
+}

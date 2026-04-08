@@ -1,0 +1,18 @@
+{
+  "name": "origins.neoorigins.enderite.name",
+  "description": "origins.neoorigins.enderite.description",
+  "icon": "minecraft:chorus_fruit",
+  "impact": "high",
+  "order": 31,
+  "powers": [
+    "neoorigins:enderite_teleport",
+    "neoorigins:enderite_phase",
+    "neoorigins:enderite_slow_fall",
+    "neoorigins:enderite_night_vision",
+    "neoorigins:enderite_scare_endermites",
+    "neoorigins:enderite_water_damage",
+    "neoorigins:enderite_daylight_weakness",
+    "neoorigins:enderite_attack_bonus"
+  ],
+  "upgrades": []
+}

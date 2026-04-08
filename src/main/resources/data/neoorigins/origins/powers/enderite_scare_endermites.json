@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:scare_entities",
+  "entity_types": [
+    "minecraft:endermite",
+    "minecraft:silverfish"
+  ]
+}

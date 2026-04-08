@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:active_aoe_effect",
+  "effect": "minecraft:darkness",
+  "amplifier": 0,
+  "duration_ticks": 200,
+  "radius": 8.0,
+  "cooldown_ticks": 300
+}

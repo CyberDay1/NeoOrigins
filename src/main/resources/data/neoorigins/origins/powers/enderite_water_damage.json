@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "multiplier": 3.0,
+  "damage_type": "drown"
+}

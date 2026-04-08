@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:active_aoe_effect",
+  "effect": "minecraft:poison",
+  "amplifier": 1,
+  "duration_ticks": 100,
+  "radius": 5.0,
+  "cooldown_ticks": 240
+}

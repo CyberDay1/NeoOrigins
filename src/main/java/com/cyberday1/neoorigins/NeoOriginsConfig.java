@@ -32,7 +32,9 @@ public final class NeoOriginsConfig {
         "human", "merling", "avian", "blazeling", "elytrian", "enderian",
         "arachnid", "shulk", "phantom", "feline", "golem", "caveborn",
         "sylvan", "draconic", "revenant", "tiny", "abyssal", "voidwalker",
-        "stoneguard", "verdant", "umbral"
+        "stoneguard", "verdant", "umbral", "inchling", "sporeling",
+        "frostborn", "strider", "siren", "piglin", "hiveling", "cinderborn",
+        "sculkborn", "enderite"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;

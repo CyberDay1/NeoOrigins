@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:biome_buff",
+  "biome_tag": "minecraft:is_nether",
+  "effect": "minecraft:strength",
+  "amplifier": 1
+}

@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:active_bolt",
+  "speed": 1.0,
+  "cooldown_ticks": 100
+}
