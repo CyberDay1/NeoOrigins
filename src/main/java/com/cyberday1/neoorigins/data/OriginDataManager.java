@@ -82,6 +82,13 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
                 NeoOrigins.LOGGER.error("Error loading origin {}", id, e);
             }
         }
+        // Filter out disabled built-in origins
+        int beforeFilter = loaded.size();
+        loaded.entrySet().removeIf(entry -> NeoOriginsConfig.isOriginDisabled(entry.getKey()));
+        if (loaded.size() < beforeFilter) {
+            NeoOrigins.LOGGER.info("Disabled {} built-in origin(s) via config", beforeFilter - loaded.size());
+        }
+
         this.origins = Collections.unmodifiableMap(loaded);
         NeoOrigins.LOGGER.info("Loaded {} origins", loaded.size());
 
