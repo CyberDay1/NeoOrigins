@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:craft_amount_bonus",
+  "item_id": "minecraft:oak_planks",
+  "bonus_count": 2
+}

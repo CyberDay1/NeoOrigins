@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_merchant.name",
+  "description": "origins.neoorigins.class_merchant.description",
+  "icon": "minecraft:emerald",
+  "impact": "none",
+  "order": 16,
+  "powers": [
+    "neoorigins:class_merchant_trades",
+    "neoorigins:class_merchant_rare_loot"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_cook.name",
+  "description": "origins.neoorigins.class_cook.description",
+  "icon": "minecraft:bread",
+  "impact": "none",
+  "order": 15,
+  "powers": [
+    "neoorigins:class_cook_food",
+    "neoorigins:class_cook_smoker_xp"
+  ],
+  "upgrades": []
+}

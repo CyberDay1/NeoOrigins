@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_rogue.name",
+  "description": "origins.neoorigins.class_rogue.description",
+  "icon": "minecraft:leather_boots",
+  "impact": "none",
+  "order": 12,
+  "powers": [
+    "neoorigins:class_rogue_sneaky",
+    "neoorigins:class_rogue_stealth"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_lumberjack.name",
+  "description": "origins.neoorigins.class_lumberjack.description",
+  "icon": "minecraft:iron_axe",
+  "impact": "none",
+  "order": 13,
+  "powers": [
+    "neoorigins:class_lumberjack_tree_felling",
+    "neoorigins:class_lumberjack_bonus_planks"
+  ],
+  "upgrades": []
+}
