@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -20,6 +21,7 @@ public class PlayerLifecycleEvents {
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         CompatTickScheduler.tick(sp);
+        MinionTracker.tick(sp);
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
     }
 
