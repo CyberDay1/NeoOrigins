@@ -4,7 +4,7 @@ import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -41,12 +41,12 @@ public class ActiveAoEEffectPower extends AbstractActivePower<ActiveAoEEffectPow
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
-        var effectOpt = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(config.effect()));
+        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(config.effect()));
         if (effectOpt.isEmpty()) return false;
         ServerLevel level = (ServerLevel) player.level();
         AABB box = player.getBoundingBox().inflate(config.radius());
         List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player);
-        var effectHolder = effectOpt.get();
+        var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
         var playerTeam = player.getTeam();
         for (LivingEntity target : targets) {
             if (playerTeam != null && target.isAlliedTo(playerTeam)) continue;

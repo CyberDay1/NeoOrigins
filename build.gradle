@@ -3,14 +3,14 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
-version = "${mod_version}+${stonecutter.current.version}"
+version = "${mod_version}+1.21.1"
 group = mod_group_id
 
 base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 neoForge {
     version = property('deps.neoforge')

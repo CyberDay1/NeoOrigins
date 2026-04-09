@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.compat;
 
 import com.cyberday1.neoorigins.NeoOrigins;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.IOException;
@@ -45,17 +45,17 @@ public final class CompatTranslationLog {
         }
     }
 
-    public static void pass(Identifier id, String detail) {
+    public static void pass(ResourceLocation id, String detail) {
         passed++;
         writeLine("[PASS] " + id + "  (" + detail + ")");
     }
 
-    public static void fail(Identifier id, String reason) {
+    public static void fail(ResourceLocation id, String reason) {
         failed++;
         writeLine("[FAIL] " + id + "  (" + reason + ")");
     }
 
-    public static void skip(Identifier id, String originType, String reason) {
+    public static void skip(ResourceLocation id, String originType, String reason) {
         skipped++;
         writeLine("[SKIP] " + id + "  (" + originType + " — " + reason + ")");
     }

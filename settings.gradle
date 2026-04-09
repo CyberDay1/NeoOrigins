@@ -1,23 +1,12 @@
 pluginManagement {
     repositories {
         maven { url = 'https://maven.neoforged.net/releases' }
-        maven { url = 'https://maven.kikugie.dev/releases' }
         gradlePluginPortal()
     }
 }
 
 plugins {
-    id 'dev.kikugie.stonecutter' version '0.9'
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
-}
-
-stonecutter {
-    kotlinController = false
-    centralScript = 'build.gradle'
-    create(getRootProject()) {
-        versions '26.1', '26.1.1'
-        vcsVersion = '26.1.1'
-    }
 }
 
 rootProject.name = 'NeoOrigins'

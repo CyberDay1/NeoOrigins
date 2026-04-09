@@ -13,7 +13,7 @@ import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -83,8 +83,8 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
 
-            Identifier layerId = payload.layer();
-            Identifier originId = payload.origin();
+            ResourceLocation layerId = payload.layer();
+            ResourceLocation originId = payload.origin();
 
             OriginLayer layer = LayerDataManager.INSTANCE.getLayer(layerId);
             if (layer == null) {
@@ -103,7 +103,7 @@ public class NeoOriginsNetwork {
             }
 
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
-            Identifier oldOrigin = data.getOrigin(layerId);
+            ResourceLocation oldOrigin = data.getOrigin(layerId);
 
             // Allow re-selection only via /origin gui (forceReselect).
             // Normal first-time selection always works; re-selection is blocked unless forced.

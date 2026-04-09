@@ -3,7 +3,7 @@ package com.cyberday1.neoorigins.compat;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,13 +28,13 @@ public final class OriginsMultipleExpander {
      * Maps each origins:multiple power ID to the list of synthetic sub-power IDs it expanded into.
      * Cleared and repopulated on each reload. Accessed by OriginsOriginTranslator.
      */
-    public static final Map<Identifier, List<Identifier>> MULTIPLE_EXPANSION_MAP = new HashMap<>();
+    public static final Map<ResourceLocation, List<ResourceLocation>> MULTIPLE_EXPANSION_MAP = new HashMap<>();
 
     /**
      * Maps each origins:multiple power ID to its display metadata (name/description JsonElements).
      * Used by the origin selection screen to collapse sub-powers back into one entry per parent.
      */
-    public static final Map<Identifier, JsonObject> MULTIPLE_DISPLAY_MAP = new HashMap<>();
+    public static final Map<ResourceLocation, JsonObject> MULTIPLE_DISPLAY_MAP = new HashMap<>();
 
     /** Keys in an origins:multiple JSON that are metadata, not sub-power entries. */
     /** Keys in an origins:multiple JSON that are metadata, not sub-power entries. Exposed for Route B loader. */
@@ -57,13 +57,13 @@ public final class OriginsMultipleExpander {
      *
      * Sub-powers that fail translation are omitted from the result (already logged).
      *
-     * @param id  The Identifier of the multiple power (e.g. fairy:origins/flight)
+     * @param id  The ResourceLocation of the multiple power (e.g. fairy:origins/flight)
      * @param src The full JSON of the origins:multiple power
-     * @return Map of synthetic Identifier → translated NeoOrigins power JSON
+     * @return Map of synthetic ResourceLocation → translated NeoOrigins power JSON
      */
-    public static Map<Identifier, JsonObject> expand(Identifier id, JsonObject src) {
-        Map<Identifier, JsonObject> result = new HashMap<>();
-        List<Identifier> syntheticIds = new ArrayList<>();
+    public static Map<ResourceLocation, JsonObject> expand(ResourceLocation id, JsonObject src) {
+        Map<ResourceLocation, JsonObject> result = new HashMap<>();
+        List<ResourceLocation> syntheticIds = new ArrayList<>();
 
         // Store display metadata from the parent multiple so the screen can collapse sub-powers.
         if (src.has("name") || src.has("description")) {
@@ -81,7 +81,7 @@ public final class OriginsMultipleExpander {
             JsonObject subPowerJson = entry.getValue().getAsJsonObject();
 
             // Synthetic ID: namespace:path/subkey
-            Identifier syntheticId = Identifier.fromNamespaceAndPath(
+            ResourceLocation syntheticId = ResourceLocation.fromNamespaceAndPath(
                 id.getNamespace(),
                 id.getPath() + "/" + key
             );
@@ -99,7 +99,7 @@ public final class OriginsMultipleExpander {
             String subType = OriginsFormatDetector.getType(subPowerJson);
             if ("origins:multiple".equals(subType) || "apace:multiple".equals(subType)) {
                 try {
-                    Map<Identifier, JsonObject> nested = expand(syntheticId, subPowerJson);
+                    Map<ResourceLocation, JsonObject> nested = expand(syntheticId, subPowerJson);
                     result.putAll(nested);
                     // Add all nested synthetic IDs to this level's list
                     if (MULTIPLE_EXPANSION_MAP.containsKey(syntheticId)) {

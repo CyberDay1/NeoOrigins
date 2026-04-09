@@ -6,12 +6,12 @@ import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import java.util.ArrayList;
@@ -88,7 +88,7 @@ public class OriginSelectionScreen extends Screen {
         updateDetail();
     }
 
-    private void selectOrigin(Identifier id) {
+    private void selectOrigin(ResourceLocation id) {
         presenter.select(id);
         detailScrollOffset = 0;
         originButtons.forEach(b -> b.setSelected(b.getOrigin().id().equals(id)));
@@ -138,7 +138,7 @@ public class OriginSelectionScreen extends Screen {
             } else {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(row.id());
                 if (origin != null) {
-                    final Identifier rowId = row.id();
+                    final ResourceLocation rowId = row.id();
                     var btn = new OriginButton(panelX, btnY, LEFT_W, LIST_BTN_H, origin,
                         b -> selectOrigin(rowId));
                     btn.setSelected(rowId.equals(presenter.selectedOriginId()));
@@ -154,7 +154,7 @@ public class OriginSelectionScreen extends Screen {
         int cx = width / 2;
 
         var randomBtn = Button.builder(Component.translatable("button.neoorigins.random"), b -> {
-            Identifier id = presenter.randomId();
+            ResourceLocation id = presenter.randomId();
             if (id != null) selectOrigin(id);
         }).bounds(panelX, cy, 70, 20).build();
         randomBtn.visible = layer.allowRandom();
@@ -175,36 +175,36 @@ public class OriginSelectionScreen extends Screen {
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+    public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
         g.fill(0, 0, width, height, 0xCC060610);
         if (presenter.isDone()) return;
 
         var layerTitle = Component.translatable("screen.neoorigins.choose." + presenter.currentLayer().name());
-        g.centeredText(font, layerTitle, width / 2, 14, 0xFFFFFFFF);
+        g.drawCenteredString(font, layerTitle, width / 2, 14, 0xFFFFFFFF);
         String prog = (presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers();
-        g.text(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
+        g.drawString(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
 
         g.fill(panelX - 1, PANEL_TOP - 1, panelX + LEFT_W + 1, panelBottom + 1, 0xFF0E0E1C);
-        g.outline(panelX - 1, PANEL_TOP - 1, LEFT_W + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        g.renderOutline(panelX - 1, PANEL_TOP - 1, LEFT_W + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
 
         for (var vh : visibleHeaders) {
             g.fill(panelX, vh.y(), panelX + LEFT_W, vh.y() + LIST_BTN_H, 0xFF080818);
             g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, 0xFF334488);
-            g.text(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
+            g.drawString(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
         }
         if (getMaxListScroll() > 0)
-            g.text(font, Component.translatable("gui.neoorigins.hint.scroll"), panelX, panelBottom + 3, 0xFF334466, false);
+            g.drawString(font, Component.translatable("gui.neoorigins.hint.scroll"), panelX, panelBottom + 3, 0xFF334466, false);
 
-        super.extractRenderState(g, mouseX, mouseY, partial);
+        super.render(g, mouseX, mouseY, partial);
         renderDetailPanel(g);
     }
 
-    private void renderDetailPanel(GuiGraphicsExtractor g) {
+    private void renderDetailPanel(GuiGraphics g) {
         g.fill(rightX, PANEL_TOP, rightX + rightW, panelBottom, 0xFF09091A);
-        g.outline(rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        g.renderOutline(rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
 
         if (detailViewModel.origin() == null) {
-            g.centeredText(font, Component.translatable("gui.neoorigins.hint.select"),
+            g.drawCenteredString(font, Component.translatable("gui.neoorigins.hint.select"),
                 rightX + rightW / 2, PANEL_TOP + (panelBottom - PANEL_TOP) / 2 - 4, 0xFF333355);
             return;
         }
@@ -214,10 +214,10 @@ public class OriginSelectionScreen extends Screen {
         int y  = PANEL_TOP + DETAIL_PAD;
 
         g.fill(cx - 16, y, cx + 16, y + 32, 0xFF0D1830);
-        g.outline(cx - 16, y, 32, 32, 0xFF4A90D9);
+        g.renderOutline(cx - 16, y, 32, 32, 0xFF4A90D9);
         OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
         y += 32 + 6;
-        g.centeredText(font, origin.name(), cx, y, 0xFFFFFFFF);
+        g.drawCenteredString(font, origin.name(), cx, y, 0xFFFFFFFF);
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
 
@@ -232,21 +232,21 @@ public class OriginSelectionScreen extends Screen {
         g.fill(rightX + DETAIL_PAD, sy + 3, rightX + rightW - DETAIL_PAD - 6, sy + 4, 0xFF252540);
         sy += 8;
         for (FormattedCharSequence line : descLines) {
-            g.text(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
+            g.drawString(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
             sy += 10;
         }
         sy += 8;
         List<String> pNames = detailViewModel.powerNames();
         List<String> pDescs = detailViewModel.powerDescs();
         if (!pNames.isEmpty()) {
-            g.text(font, Component.translatable("gui.neoorigins.detail.powers_header"), rightX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
+            g.drawString(font, Component.translatable("gui.neoorigins.detail.powers_header"), rightX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
                 g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, 0xFF4A90D9);
-                g.text(font, pNames.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
+                g.drawString(font, pNames.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
                 sy += 11;
                 if (i < pDescs.size() && !pDescs.get(i).isEmpty()) {
-                    g.text(font, pDescs.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                    g.drawString(font, pDescs.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF445566, false);
                     sy += 10;
                 }
             }
@@ -262,7 +262,7 @@ public class OriginSelectionScreen extends Screen {
         }
     }
 
-    private void drawImpactRow(GuiGraphicsExtractor g, int cx, int y, Impact impact) {
+    private void drawImpactRow(GuiGraphics g, int cx, int y, Impact impact) {
         int totalW = (DOT_COUNT - 1) * DOT_SPACING + DOT_SIZE;
         int x0     = cx - totalW / 2;
         for (int i = 0; i < DOT_COUNT; i++)
@@ -275,7 +275,7 @@ public class OriginSelectionScreen extends Screen {
                 case MEDIUM -> Component.translatable("origins.gui.impact.medium");
                 case HIGH   -> Component.translatable("origins.gui.impact.high");
             });
-        g.text(font, label, cx + totalW / 2 + 6, y - 1, 0xFF666688, false);
+        g.drawString(font, label, cx + totalW / 2 + 6, y - 1, 0xFF666688, false);
     }
 
     // ── Scrolling ─────────────────────────────────────────────────────────────

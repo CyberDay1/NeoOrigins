@@ -7,7 +7,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -60,9 +60,9 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         if (orbs.isEmpty()) return;
 
         ServerLevel level = (ServerLevel) player.level();
-        var darknessOpt = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse("minecraft:darkness"));
+        var darknessOpt = BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse("minecraft:darkness"));
         if (darknessOpt.isEmpty()) return;
-        var darkness = darknessOpt.get();
+        var darkness = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(darknessOpt.get());
 
         for (BlockPos orbPos : orbs) {
             AABB box = new AABB(orbPos).inflate(config.radius());

@@ -10,7 +10,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 
 import java.util.ArrayList;
@@ -161,15 +161,16 @@ public final class ActionParser {
         }
 
         if (effectId == null) return EntityAction.noop();
-        Identifier effId = Identifier.parse(effectId);
+        ResourceLocation effId = ResourceLocation.parse(effectId);
         final int fDur = duration;
         final int fAmp = amplifier;
         final boolean fAmb = ambient;
         final boolean fPart = particles;
         final boolean fIcon = icon;
-        return player -> BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(holder ->
-            player.addEffect(new MobEffectInstance(holder, fDur, fAmp, fAmb, fPart, fIcon))
-        );
+        return player -> BuiltInRegistries.MOB_EFFECT.getOptional(effId).ifPresent(effect -> {
+            var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect);
+            player.addEffect(new MobEffectInstance(holder, fDur, fAmp, fAmb, fPart, fIcon));
+        });
     }
 
     private static String resolveEffectId(JsonObject obj) {
@@ -187,8 +188,9 @@ public final class ActionParser {
         if (effectId == null) {
             return player -> player.removeAllEffects();
         }
-        Identifier effId = Identifier.parse(effectId);
-        return player -> BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(player::removeEffect);
+        ResourceLocation effId = ResourceLocation.parse(effectId);
+        return player -> BuiltInRegistries.MOB_EFFECT.getOptional(effId).ifPresent(effect ->
+            player.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect)));
     }
 
     private static EntityAction parseHeal(JsonObject json) {
@@ -201,9 +203,9 @@ public final class ActionParser {
         if (soundId == null) return EntityAction.noop();
         float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
         float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
-        Identifier sId = Identifier.parse(soundId);
-        return player -> BuiltInRegistries.SOUND_EVENT.get(sId).ifPresent(h ->
-            player.playSound(h.value(), volume, pitch)
+        ResourceLocation sId = ResourceLocation.parse(soundId);
+        return player -> BuiltInRegistries.SOUND_EVENT.getOptional(sId).ifPresent(sound ->
+            player.playSound(sound, volume, pitch)
         );
     }
 

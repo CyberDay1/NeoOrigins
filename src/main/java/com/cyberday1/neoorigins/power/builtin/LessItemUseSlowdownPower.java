@@ -5,7 +5,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -17,8 +17,8 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class LessItemUseSlowdownPower extends PowerType<LessItemUseSlowdownPower.Config> {
 
-    private static final Identifier MODIFIER_ID =
-        Identifier.fromNamespaceAndPath("neoorigins", "less_item_use_slowdown");
+    private static final ResourceLocation MODIFIER_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "less_item_use_slowdown");
 
     public record Config(String itemType, float speedMultiplier, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(

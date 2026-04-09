@@ -59,7 +59,7 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         for (int i = 0; i < 16; i++) {
             double tx = pos.x + (RANDOM.nextDouble() - 0.5) * range * 2;
             double tz = pos.z + (RANDOM.nextDouble() - 0.5) * range * 2;
-            double ty = Math.max(level.getMinY(), Math.min(level.getMaxY() - 2,
+            double ty = Math.max(level.getMinBuildHeight(), Math.min(level.getMaxBuildHeight() - 2,
                 pos.y + (RANDOM.nextDouble() - 0.5) * (range / 4)));
             BlockPos target = new BlockPos((int) tx, (int) ty, (int) tz);
             if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {

@@ -8,7 +8,7 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.locale.Language;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 
@@ -21,22 +21,22 @@ public record OriginDetailViewModel(
     public static final OriginDetailViewModel EMPTY =
         new OriginDetailViewModel(null, List.of(), List.of());
 
-    public static OriginDetailViewModel compute(Identifier selectedId) {
+    public static OriginDetailViewModel compute(ResourceLocation selectedId) {
         if (selectedId == null) return EMPTY;
         Origin origin = OriginDataManager.INSTANCE.getOrigin(selectedId);
         if (origin == null) return EMPTY;
 
-        Map<Identifier, Identifier> subToParent = new HashMap<>();
+        Map<ResourceLocation, ResourceLocation> subToParent = new HashMap<>();
         for (var entry : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.entrySet())
-            for (Identifier subId : entry.getValue())
+            for (ResourceLocation subId : entry.getValue())
                 subToParent.put(subId, entry.getKey());
-        Set<Identifier> seenParents = new HashSet<>();
+        Set<ResourceLocation> seenParents = new HashSet<>();
 
         Language lang = Language.getInstance();
         List<String> names = new ArrayList<>();
         List<String> descs = new ArrayList<>();
 
-        for (Identifier powerId : origin.powers()) {
+        for (ResourceLocation powerId : origin.powers()) {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             String holderName = holder != null ? holder.name().getString() : "";
             String holderDesc = holder != null ? holder.description().getString() : "";
@@ -49,7 +49,7 @@ public record OriginDetailViewModel(
                 : lang.has(descKey) ? lang.getOrDefault(descKey, "") : "";
 
             boolean isNamed  = !resolvedName.isEmpty();
-            Identifier parentId = subToParent.get(powerId);
+            ResourceLocation parentId = subToParent.get(powerId);
 
             if (parentId != null && !isNamed) {
                 if (!seenParents.add(parentId)) continue;
@@ -84,7 +84,7 @@ public record OriginDetailViewModel(
         return 8 + descLineCount * 10 + 8 + powerSectionH + 6;
     }
 
-    public static String formatPowerId(Identifier id) {
+    public static String formatPowerId(ResourceLocation id) {
         String path = id.getPath();
         int firstSlash = path.indexOf('/');
         if (firstSlash >= 0) path = path.substring(firstSlash + 1);

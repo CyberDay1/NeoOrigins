@@ -6,13 +6,13 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -81,16 +81,16 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         if (player.getFoodData().getFoodLevel() < config.hungerCost()) return false;
 
         // Resolve entity type
-        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.get(Identifier.parse(config.mobType()));
+        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(config.mobType()));
         if (entityTypeOpt.isEmpty()) return false;
-        EntityType<?> entityType = entityTypeOpt.get().value();
+        EntityType<?> entityType = entityTypeOpt.get();
 
         // Spawn the minion near the player
         ServerLevel level = (ServerLevel) player.level();
         Vec3 look = player.getLookAngle();
         Vec3 spawnPos = player.position().add(look.x * 2, 0, look.z * 2);
 
-        Entity entity = entityType.create(level, EntitySpawnReason.MOB_SUMMONED);
+        Entity entity = entityType.create(level);
         if (!(entity instanceof LivingEntity living)) return false;
 
         living.setPos(spawnPos.x, spawnPos.y, spawnPos.z);
@@ -136,9 +136,9 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
     private static void equipSlot(Mob mob, EquipmentSlot slot, Optional<String> configItem, ItemStack fallback) {
         if (configItem.isPresent()) {
-            var itemOpt = BuiltInRegistries.ITEM.get(Identifier.parse(configItem.get()));
+            var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(configItem.get()));
             if (itemOpt.isPresent()) {
-                mob.setItemSlot(slot, new ItemStack(itemOpt.get().value()));
+                mob.setItemSlot(slot, new ItemStack(itemOpt.get()));
             }
         } else if (fallback != null && mob.getItemBySlot(slot).isEmpty()) {
             mob.setItemSlot(slot, fallback.copy());

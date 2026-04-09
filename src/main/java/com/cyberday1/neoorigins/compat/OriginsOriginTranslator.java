@@ -4,7 +4,7 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Normalizes Origins-format origin JSONs to NeoOrigins format.
@@ -22,7 +22,7 @@ public final class OriginsOriginTranslator {
      *
      * Note: the "id" field is added by OriginDataManager AFTER this call, not here.
      */
-    public static JsonObject normalize(Identifier id, JsonObject src) {
+    public static JsonObject normalize(ResourceLocation id, JsonObject src) {
         try {
             return doNormalize(id, src);
         } catch (Exception e) {
@@ -33,7 +33,7 @@ public final class OriginsOriginTranslator {
         }
     }
 
-    private static JsonObject doNormalize(Identifier id, JsonObject src) {
+    private static JsonObject doNormalize(ResourceLocation id, JsonObject src) {
         JsonObject out = new JsonObject();
 
         // ---- name ----
@@ -99,10 +99,10 @@ public final class OriginsOriginTranslator {
             for (JsonElement el : src.getAsJsonArray("powers")) {
                 if (!el.isJsonPrimitive()) continue;
                 String powerIdStr = el.getAsString();
-                Identifier powerIdent = Identifier.tryParse(powerIdStr);
+                ResourceLocation powerIdent = ResourceLocation.tryParse(powerIdStr);
                 if (powerIdent != null && OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.containsKey(powerIdent)) {
                     // Replace the multiple power ID with all its synthetic sub-power IDs
-                    for (Identifier synthId : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.get(powerIdent)) {
+                    for (ResourceLocation synthId : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.get(powerIdent)) {
                         translatedPowers.add(synthId.toString());
                     }
                 } else {
@@ -136,11 +136,11 @@ public final class OriginsOriginTranslator {
     }
 
     /**
-     * Derive a human-readable display name from an origin Identifier.
+     * Derive a human-readable display name from an origin ResourceLocation.
      * Takes the last path segment (after the last '/'), replaces '_' with spaces,
      * and title-cases each word. E.g. "origins-plus-plus:voidling/voidling" → "Voidling".
      */
-    private static String deriveNameFromId(Identifier id) {
+    private static String deriveNameFromId(ResourceLocation id) {
         String path = id.getPath();
         int slash = path.lastIndexOf('/');
         if (slash >= 0) path = path.substring(slash + 1);

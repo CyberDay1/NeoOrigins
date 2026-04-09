@@ -6,7 +6,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -29,7 +29,7 @@ public class ActionOnHitTakenPower extends PowerType<ActionOnHitTakenPower.Confi
         String action,
         float minDamage,
         float chance,
-        Optional<Identifier> effect,
+        Optional<ResourceLocation> effect,
         int duration,
         int amplifier,
         String type
@@ -38,7 +38,7 @@ public class ActionOnHitTakenPower extends PowerType<ActionOnHitTakenPower.Confi
             Codec.STRING.optionalFieldOf("action", "teleport").forGetter(Config::action),
             Codec.FLOAT.optionalFieldOf("min_damage", 0.0f).forGetter(Config::minDamage),
             Codec.FLOAT.optionalFieldOf("chance", 1.0f).forGetter(Config::chance),
-            Identifier.CODEC.optionalFieldOf("effect").forGetter(Config::effect),
+            ResourceLocation.CODEC.optionalFieldOf("effect").forGetter(Config::effect),
             Codec.INT.optionalFieldOf("duration", 100).forGetter(Config::duration),
             Codec.INT.optionalFieldOf("amplifier", 0).forGetter(Config::amplifier),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
@@ -71,7 +71,7 @@ public class ActionOnHitTakenPower extends PowerType<ActionOnHitTakenPower.Confi
             double tx = pos.x + (RANDOM.nextDouble() - 0.5) * 16;
             double ty = pos.y + (RANDOM.nextDouble() - 0.5) * 8;
             double tz = pos.z + (RANDOM.nextDouble() - 0.5) * 16;
-            ty = Math.max(level.getMinY(), Math.min(level.getMaxY(), ty));
+            ty = Math.max(level.getMinBuildHeight(), Math.min(level.getMaxBuildHeight(), ty));
             BlockPos target = new BlockPos((int) tx, (int) ty, (int) tz);
             if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {
                 player.teleportTo(tx, ty, tz);

@@ -5,7 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
@@ -36,9 +36,9 @@ public class ActivePlaceBlockPower extends AbstractActivePower<ActivePlaceBlockP
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
-        var blockOpt = BuiltInRegistries.BLOCK.get(Identifier.parse(config.blockId()));
+        var blockOpt = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.parse(config.blockId()));
         if (blockOpt.isEmpty()) return false;
-        var block = blockOpt.get().value();
+        var block = blockOpt.get();
         if (block == Blocks.AIR) return false;
 
         HitResult hit = player.pick(config.maxDistance(), 0.0f, false);

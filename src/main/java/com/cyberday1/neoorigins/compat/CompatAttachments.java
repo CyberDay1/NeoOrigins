@@ -5,13 +5,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.attachment.AttachmentType;
-import net.neoforged.neoforge.attachment.IAttachmentHolder;
-import net.neoforged.neoforge.attachment.IAttachmentSerializer;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,34 +25,14 @@ public class CompatAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<ResourceState>> RESOURCE_STATE =
         ATTACHMENT_TYPES.register("resource_state", () ->
             AttachmentType.builder(ResourceState::new)
-                .serialize(new IAttachmentSerializer<>() {
-                    @Override
-                    public ResourceState read(IAttachmentHolder holder, ValueInput input) {
-                        return input.read("rs", ResourceState.CODEC).orElseGet(ResourceState::new);
-                    }
-                    @Override
-                    public boolean write(ResourceState attachment, ValueOutput output) {
-                        output.store("rs", ResourceState.CODEC, attachment);
-                        return true;
-                    }
-                })
+                .serialize(ResourceState.CODEC)
                 .copyOnDeath()
                 .build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<ToggleState>> TOGGLE_STATE =
         ATTACHMENT_TYPES.register("toggle_state", () ->
             AttachmentType.builder(ToggleState::new)
-                .serialize(new IAttachmentSerializer<>() {
-                    @Override
-                    public ToggleState read(IAttachmentHolder holder, ValueInput input) {
-                        return input.read("ts", ToggleState.CODEC).orElseGet(ToggleState::new);
-                    }
-                    @Override
-                    public boolean write(ToggleState attachment, ValueOutput output) {
-                        output.store("ts", ToggleState.CODEC, attachment);
-                        return true;
-                    }
-                })
+                .serialize(ToggleState.CODEC)
                 .copyOnDeath()
                 .build());
 

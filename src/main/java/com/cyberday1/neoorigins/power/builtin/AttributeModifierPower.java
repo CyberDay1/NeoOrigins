@@ -4,9 +4,8 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -15,7 +14,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
 
     public record Config(
-        Identifier attribute,
+        ResourceLocation attribute,
         double amount,
         AttributeModifier.Operation operation,
         String type
@@ -36,7 +35,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         );
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Identifier.CODEC.fieldOf("attribute").forGetter(Config::attribute),
+            ResourceLocation.CODEC.fieldOf("attribute").forGetter(Config::attribute),
             Codec.DOUBLE.fieldOf("amount").forGetter(Config::amount),
             OPERATION_CODEC.optionalFieldOf("operation", AttributeModifier.Operation.ADD_VALUE).forGetter(Config::operation),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
@@ -58,18 +57,18 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
         // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
-        Identifier attrId = config.attribute();
+        ResourceLocation attrId = config.attribute();
         String path = attrId.getPath();
         if (path.startsWith("generic.")) {
-            attrId = Identifier.fromNamespaceAndPath(attrId.getNamespace(), path.substring("generic.".length()));
+            attrId = ResourceLocation.fromNamespaceAndPath(attrId.getNamespace(), path.substring("generic.".length()));
         }
-        var attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        if (attrHolderOpt.isEmpty()) return;
-        var attrHolder = attrHolderOpt.get();
+        var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrId);
+        if (attrOpt.isEmpty()) return;
+        var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
         AttributeInstance instance = player.getAttribute(attrHolder);
         if (instance == null) return;
 
-        Identifier modId = Identifier.fromNamespaceAndPath("neoorigins", "power_" + attrId.getPath());
+        ResourceLocation modId = ResourceLocation.fromNamespaceAndPath("neoorigins", "power_" + attrId.getPath());
         if (add) {
             if (instance.getModifier(modId) == null) {
                 instance.addPermanentModifier(new AttributeModifier(modId, config.amount(), config.operation()));

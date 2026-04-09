@@ -5,12 +5,12 @@ import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.AgeableMob;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -34,7 +34,7 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
         if (!(event.getNewAboutToBeSetTarget() instanceof ServerPlayer sp)) return;
-        Identifier mobTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
+        ResourceLocation mobTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
         if (mobTypeId == null) return;
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
                 cfg -> cfg.entityTypes().isEmpty() || cfg.entityTypes().contains(mobTypeId))) {
@@ -179,7 +179,7 @@ public class WorldPowerEvents {
 
         ActiveOriginService.forEachOfType(sp, TwinBreedingPower.class, cfg -> {
             if (sp.getRandom().nextFloat() < cfg.chance()) {
-                var twin = (AgeableMob) child.getType().create(child.level(), EntitySpawnReason.BREEDING);
+                var twin = (AgeableMob) child.getType().create(child.level());
                 if (twin != null) {
                     twin.setBaby(true);
                     twin.setPos(child.getX(), child.getY(), child.getZ());

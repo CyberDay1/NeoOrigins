@@ -15,7 +15,7 @@ import com.google.gson.JsonParser;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
@@ -35,7 +35,7 @@ import java.util.*;
  * CompatPower.Config lambdas using the action/condition engine, and injects
  * them into PowerDataManager via injectExternalPowers().
  */
-public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
+public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map<ResourceLocation, JsonElement>> {
 
     public static final OriginsCompatPowerLoader INSTANCE = new OriginsCompatPowerLoader();
 
@@ -63,18 +63,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     // ---- SimplePreparableReloadListener ----
 
     @Override
-    protected Map<Identifier, JsonElement> prepare(ResourceManager rm, ProfilerFiller profiler) {
-        Map<Identifier, JsonElement> map = new HashMap<>();
+    protected Map<ResourceLocation, JsonElement> prepare(ResourceManager rm, ProfilerFiller profiler) {
+        Map<ResourceLocation, JsonElement> map = new HashMap<>();
         scanConverter(FILE_CONVERTER,  rm, map);
         scanConverter(COMPAT_CONVERTER, rm, map);
         return map;
     }
 
     private void scanConverter(FileToIdConverter converter, ResourceManager rm,
-                                Map<Identifier, JsonElement> map) {
+                                Map<ResourceLocation, JsonElement> map) {
         for (var entry : converter.listMatchingResources(rm).entrySet()) {
-            Identifier fileId = entry.getKey();
-            Identifier id     = converter.fileToId(fileId);
+            ResourceLocation fileId = entry.getKey();
+            ResourceLocation id     = converter.fileToId(fileId);
             if (map.containsKey(id)) continue;
             if (converter == COMPAT_CONVERTER && NeoOrigins.MOD_ID.equals(id.getNamespace())) continue;
             try (Reader reader = entry.getValue().openAsReader()) {
@@ -86,16 +86,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     @Override
-    protected void apply(Map<Identifier, JsonElement> data, ResourceManager rm, ProfilerFiller profiler) {
+    protected void apply(Map<ResourceLocation, JsonElement> data, ResourceManager rm, ProfilerFiller profiler) {
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
-        Map<Identifier, JsonObject> expanded = inlineExpand(data);
+        Map<ResourceLocation, JsonObject> expanded = inlineExpand(data);
 
-        Map<Identifier, PowerHolder<?>> injected = new HashMap<>();
+        Map<ResourceLocation, PowerHolder<?>> injected = new HashMap<>();
         // Track new synthetic IDs to add to MULTIPLE_EXPANSION_MAP
-        Map<Identifier, List<Identifier>> newExpansions = new HashMap<>();
+        Map<ResourceLocation, List<ResourceLocation>> newExpansions = new HashMap<>();
 
         for (var entry : expanded.entrySet()) {
-            Identifier id   = entry.getKey();
+            ResourceLocation id   = entry.getKey();
             JsonObject json = entry.getValue();
             String type = OriginsFormatDetector.getType(json);
 
@@ -120,7 +120,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 int lastSlash = idPath.lastIndexOf('/');
                 if (lastSlash > 0) {
                     String parentPath = idPath.substring(0, lastSlash);
-                    Identifier parentId = Identifier.fromNamespaceAndPath(id.getNamespace(), parentPath);
+                    ResourceLocation parentId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), parentPath);
                     newExpansions.computeIfAbsent(parentId, k -> new ArrayList<>()).add(id);
                 }
             } catch (Exception e) {
@@ -133,10 +133,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Merge new Route B synthetic IDs into OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP
         // so OriginDataManager includes them in origin power lists.
         for (var entry : newExpansions.entrySet()) {
-            List<Identifier> existing = OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP
+            List<ResourceLocation> existing = OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP
                 .getOrDefault(entry.getKey(), List.of());
-            List<Identifier> merged = new ArrayList<>(existing);
-            for (Identifier newId : entry.getValue()) {
+            List<ResourceLocation> merged = new ArrayList<>(existing);
+            for (ResourceLocation newId : entry.getValue()) {
                 if (!merged.contains(newId)) merged.add(newId);
             }
             OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.put(entry.getKey(),
@@ -152,8 +152,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * Returns a flat map of id → JsonObject covering both direct powers and sub-powers.
      * Does NOT call OriginsMultipleExpander (avoids touching its state twice).
      */
-    private Map<Identifier, JsonObject> inlineExpand(Map<Identifier, JsonElement> data) {
-        Map<Identifier, JsonObject> result = new HashMap<>();
+    private Map<ResourceLocation, JsonObject> inlineExpand(Map<ResourceLocation, JsonElement> data) {
+        Map<ResourceLocation, JsonObject> result = new HashMap<>();
         for (var entry : data.entrySet()) {
             if (!entry.getValue().isJsonObject()) continue;
             JsonObject json = entry.getValue().getAsJsonObject();
@@ -167,12 +167,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return result;
     }
 
-    private void expandMultiple(Identifier parentId, JsonObject json, Map<Identifier, JsonObject> out) {
+    private void expandMultiple(ResourceLocation parentId, JsonObject json, Map<ResourceLocation, JsonObject> out) {
         for (var subEntry : json.entrySet()) {
             if (MULTIPLE_META_KEYS.contains(subEntry.getKey())) continue;
             if (!subEntry.getValue().isJsonObject()) continue;
             JsonObject subJson = subEntry.getValue().getAsJsonObject();
-            Identifier syntheticId = Identifier.fromNamespaceAndPath(
+            ResourceLocation syntheticId = ResourceLocation.fromNamespaceAndPath(
                 parentId.getNamespace(), parentId.getPath() + "/" + subEntry.getKey()
             );
             String subType = OriginsFormatDetector.getType(subJson);
@@ -198,7 +198,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     // ---- Per-type parsers ----
 
-    private CompatPower.Config parseRouteB(Identifier id, String type, JsonObject json) {
+    private CompatPower.Config parseRouteB(ResourceLocation id, String type, JsonObject json) {
         return switch (type) {
             case "origins:active_self",                "apace:active_self"                -> parseActiveSelf(id, json);
             case "origins:action_over_time",           "apace:action_over_time"           -> parseActionOverTime(id, json);
@@ -216,7 +216,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         };
     }
 
-    private CompatPower.Config parseActiveSelf(Identifier id, JsonObject json) {
+    private CompatPower.Config parseActiveSelf(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         JsonObject actionJson = json.has("entity_action") ? json.getAsJsonObject("entity_action")
             : json.has("action") ? json.getAsJsonObject("action") : null;
@@ -237,7 +237,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseActionOverTime(Identifier id, JsonObject json) {
+    private CompatPower.Config parseActionOverTime(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 1);
 
@@ -262,7 +262,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseActionOnCallback(Identifier id, JsonObject json) {
+    private CompatPower.Config parseActionOnCallback(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         EntityAction respawnAction = json.has("respawn_action")
             ? ActionParser.parse(json.getAsJsonObject("respawn_action"), idStr) : EntityAction.noop();
@@ -278,7 +278,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseResource(Identifier id, JsonObject json) {
+    private CompatPower.Config parseResource(ResourceLocation id, JsonObject json) {
         String key       = id.toString();
         String idStr     = key;
         int min          = json.has("min")         ? json.get("min").getAsInt()         : 0;
@@ -308,7 +308,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseToggle(Identifier id, JsonObject json) {
+    private CompatPower.Config parseToggle(ResourceLocation id, JsonObject json) {
         String key = id.toString();
         boolean defaultActive = !json.has("active") || json.get("active").getAsBoolean();
 
@@ -327,14 +327,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseConditionedAttribute(Identifier id, JsonObject json) {
+    private CompatPower.Config parseConditionedAttribute(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         if (!json.has("attribute")) return null;
 
-        Identifier rawAttrIdent = Identifier.parse(json.get("attribute").getAsString());
+        ResourceLocation rawAttrIdent = ResourceLocation.parse(json.get("attribute").getAsString());
         // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
-        Identifier attrIdent = rawAttrIdent.getPath().startsWith("generic.")
-            ? Identifier.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
+        ResourceLocation attrIdent = rawAttrIdent.getPath().startsWith("generic.")
+            ? ResourceLocation.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
                 rawAttrIdent.getPath().substring("generic.".length()))
             : rawAttrIdent;
 
@@ -354,13 +354,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         // Stable modifier ID derived from the power ID.
         String safeKey = id.getPath().replace('/', '_');
-        Identifier modifierId = Identifier.fromNamespaceAndPath("neoorigins", "condattr_" + safeKey);
+        ResourceLocation modifierId = ResourceLocation.fromNamespaceAndPath("neoorigins", "condattr_" + safeKey);
 
         return CompatPower.Config.builder()
             .onTick(player -> {
-                var attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrIdent);
+                var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
                 if (attrOpt.isEmpty()) return;
-                AttributeInstance inst = player.getAttribute(attrOpt.get());
+                var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
+                AttributeInstance inst = player.getAttribute(attrHolder);
                 if (inst == null) return;
                 boolean shouldHave = condition.test(player);
                 boolean has = inst.getModifier(modifierId) != null;
@@ -371,15 +372,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .onRevoked(player -> {
-                var attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrIdent);
+                var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
                 if (attrOpt.isEmpty()) return;
-                AttributeInstance inst = player.getAttribute(attrOpt.get());
+                var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
+                AttributeInstance inst = player.getAttribute(attrHolder);
                 if (inst != null) inst.removeModifier(modifierId);
             })
             .build();
     }
 
-    private CompatPower.Config parseConditionedStatusEffect(Identifier id, JsonObject json) {
+    private CompatPower.Config parseConditionedStatusEffect(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
 
         // Resolve effect — try "effects" array or singular "effect" field.
@@ -409,7 +411,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
             : EntityCondition.alwaysTrue();
 
-        Identifier effId    = Identifier.parse(effectId);
+        ResourceLocation effId    = ResourceLocation.parse(effectId);
         int  finalAmp       = amplifier;
         boolean finalAmb    = ambient;
         boolean finalPart   = particles;
@@ -417,7 +419,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return CompatPower.Config.builder()
             .onTick(player -> {
                 if (!condition.test(player)) return;
-                BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(holder -> {
+                BuiltInRegistries.MOB_EFFECT.getOptional(effId).ifPresent(effect -> {
+                    var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect);
                     var existing = player.getEffect(holder);
                     // Re-apply at 200t duration if missing or about to expire (<100t).
                     if (existing == null || existing.getDuration() < 100) {
@@ -429,7 +432,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseSelfActionWhenHit(Identifier id, JsonObject json) {
+    private CompatPower.Config parseSelfActionWhenHit(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         EntityAction action = json.has("entity_action")
             ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
@@ -440,7 +443,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
-    private CompatPower.Config parseDamageOverTime(Identifier id, JsonObject json) {
+    private CompatPower.Config parseDamageOverTime(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
         float damage  = json.has("damage")            ? json.get("damage").getAsFloat()

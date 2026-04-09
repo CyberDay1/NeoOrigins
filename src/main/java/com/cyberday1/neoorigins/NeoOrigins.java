@@ -60,7 +60,7 @@ public class NeoOrigins {
         modEventBus.addListener(NeoOriginsNetwork::register);
 
         // Register client-only keybindings
-        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+        if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
         }
 
@@ -84,16 +84,16 @@ public class NeoOrigins {
         }
     }
 
-    private static void onAddReloadListeners(net.neoforged.neoforge.event.AddServerReloadListenersEvent event) {
+    private static void onAddReloadListeners(net.neoforged.neoforge.event.AddReloadListenerEvent event) {
         // Load order matters:
         //   1. power_data         — native Route A powers + compat translation
         //   2. origins_compat_b   — Route B powers injected into PowerDataManager
         //   3. origin_data        — reads MULTIPLE_EXPANSION_MAP (now includes Route B IDs); closes log
         //   4. layer_data
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"),       PowerDataManager.INSTANCE);
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origins_compat_b"), OriginsCompatPowerLoader.INSTANCE);
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"),      OriginDataManager.INSTANCE);
-        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"),       LayerDataManager.INSTANCE);
+        event.addListener(PowerDataManager.INSTANCE);
+        event.addListener(OriginsCompatPowerLoader.INSTANCE);
+        event.addListener(OriginDataManager.INSTANCE);
+        event.addListener(LayerDataManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

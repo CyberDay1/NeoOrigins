@@ -11,7 +11,7 @@ import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
@@ -46,7 +46,7 @@ public final class ActiveOriginService {
             .forEach(entry -> {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                 if (origin == null) return;
-                for (Identifier powerId : origin.powers()) {
+                for (ResourceLocation powerId : origin.powers()) {
                     if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dimension)) continue;
                     PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                     if (holder != null) action.accept(holder);
@@ -74,7 +74,7 @@ public final class ActiveOriginService {
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (Identifier powerId : origin.powers()) {
+            for (ResourceLocation powerId : origin.powers()) {
                 if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dimension)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null && typeClass.isInstance(holder.type())) {
@@ -95,7 +95,7 @@ public final class ActiveOriginService {
             .forEach(entry -> {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                 if (origin == null) return;
-                for (Identifier powerId : origin.powers()) {
+                for (ResourceLocation powerId : origin.powers()) {
                     if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dimension)) continue;
                     PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                     if (holder != null && holder.isActive()) result.add(holder);
@@ -113,7 +113,7 @@ public final class ActiveOriginService {
             .forEach(entry -> {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                 if (origin == null) return;
-                for (Identifier powerId : origin.powers()) {
+                for (ResourceLocation powerId : origin.powers()) {
                     PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                     if (holder != null) holder.onRevoked(player);
                 }
@@ -125,12 +125,12 @@ public final class ActiveOriginService {
      * Posts PowerRevokedEvent / PowerGrantedEvent for each power changed.
      * Grant/revoke bypasses dimension restrictions to ensure clean state transitions.
      */
-    public static void applyOriginPowers(ServerPlayer player, Identifier layerId,
-                                          Identifier oldOriginId, Identifier newOriginId) {
+    public static void applyOriginPowers(ServerPlayer player, ResourceLocation layerId,
+                                          ResourceLocation oldOriginId, ResourceLocation newOriginId) {
         if (oldOriginId != null) {
             Origin oldOrigin = OriginDataManager.INSTANCE.getOrigin(oldOriginId);
             if (oldOrigin != null) {
-                for (Identifier powerId : oldOrigin.powers()) {
+                for (ResourceLocation powerId : oldOrigin.powers()) {
                     PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                     if (holder != null) {
                         holder.onRevoked(player);
@@ -141,7 +141,7 @@ public final class ActiveOriginService {
         }
         Origin newOrigin = OriginDataManager.INSTANCE.getOrigin(newOriginId);
         if (newOrigin != null) {
-            for (Identifier powerId : newOrigin.powers()) {
+            for (ResourceLocation powerId : newOrigin.powers()) {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) {
                     holder.onGranted(player);

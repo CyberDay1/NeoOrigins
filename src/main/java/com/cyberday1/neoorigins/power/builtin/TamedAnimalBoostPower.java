@@ -10,7 +10,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.AABB;
 
 /**
@@ -19,10 +19,10 @@ import net.minecraft.world.phys.AABB;
  */
 public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Config> {
 
-    private static final Identifier HEALTH_MOD_ID =
-        Identifier.fromNamespaceAndPath("neoorigins", "tamed_health_boost");
-    private static final Identifier SPEED_MOD_ID =
-        Identifier.fromNamespaceAndPath("neoorigins", "tamed_speed_boost");
+    private static final ResourceLocation HEALTH_MOD_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "tamed_health_boost");
+    private static final ResourceLocation SPEED_MOD_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "tamed_speed_boost");
 
     public record Config(float healthBonus, float speedBonus, double radius, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(

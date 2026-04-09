@@ -12,7 +12,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OriginDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
+public class OriginDataManager extends SimplePreparableReloadListener<Map<ResourceLocation, JsonElement>> {
 
     public static final OriginDataManager INSTANCE = new OriginDataManager();
     // NeoOrigins format: data/<ns>/origins/origins/<name>.json
@@ -32,21 +32,21 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
     // Origins mod format: data/<ns>/origins/<name>.json
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("origins");
 
-    private Map<Identifier, Origin> origins = new HashMap<>();
+    private Map<ResourceLocation, Origin> origins = new HashMap<>();
 
     @Override
-    protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-        Map<Identifier, JsonElement> map = new HashMap<>();
+    protected Map<ResourceLocation, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<ResourceLocation, JsonElement> map = new HashMap<>();
         scanConverter(FILE_CONVERTER, resourceManager, map);
         // Also scan Origins-format path (data/<ns>/origins/), skipping IDs already loaded natively
         scanConverter(COMPAT_CONVERTER, resourceManager, map);
         return map;
     }
 
-    private void scanConverter(FileToIdConverter converter, ResourceManager resourceManager, Map<Identifier, JsonElement> map) {
+    private void scanConverter(FileToIdConverter converter, ResourceManager resourceManager, Map<ResourceLocation, JsonElement> map) {
         for (var entry : converter.listMatchingResources(resourceManager).entrySet()) {
-            Identifier fileId = entry.getKey();
-            Identifier id = converter.fileToId(fileId);
+            ResourceLocation fileId = entry.getKey();
+            ResourceLocation id = converter.fileToId(fileId);
             if (map.containsKey(id)) continue; // native format wins
             // Skip neoorigins namespace in the compat converter — FILE_CONVERTER already handles it
             if (converter == COMPAT_CONVERTER && NeoOrigins.MOD_ID.equals(id.getNamespace())) continue;
@@ -59,10 +59,10 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
     }
 
     @Override
-    protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
-        Map<Identifier, Origin> loaded = new HashMap<>();
-        for (Map.Entry<Identifier, JsonElement> entry : pObject.entrySet()) {
-            Identifier id = entry.getKey();
+    protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+        Map<ResourceLocation, Origin> loaded = new HashMap<>();
+        for (Map.Entry<ResourceLocation, JsonElement> entry : pObject.entrySet()) {
+            ResourceLocation id = entry.getKey();
             try {
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject json = entry.getValue().getAsJsonObject();
@@ -106,7 +106,7 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
         CompatTranslationLog.close();
     }
 
-    public Map<Identifier, Origin> getOrigins() { return origins; }
-    public Origin getOrigin(Identifier id) { return origins.get(id); }
-    public boolean hasOrigin(Identifier id) { return origins.containsKey(id); }
+    public Map<ResourceLocation, Origin> getOrigins() { return origins; }
+    public Origin getOrigin(ResourceLocation id) { return origins.get(id); }
+    public boolean hasOrigin(ResourceLocation id) { return origins.containsKey(id); }
 }

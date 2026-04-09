@@ -5,7 +5,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.EffectImmunityPower;
 import com.cyberday1.neoorigins.power.builtin.*;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -16,7 +16,7 @@ import net.neoforged.neoforge.registries.RegistryBuilder;
 public class PowerTypes {
 
     public static final ResourceKey<Registry<PowerType<?>>> REGISTRY_KEY =
-        ResourceKey.createRegistryKey(Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "power_type"));
+        ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "power_type"));
 
     public static final DeferredRegister<PowerType<?>> POWER_TYPES =
         DeferredRegister.create(REGISTRY_KEY, NeoOrigins.MOD_ID);
@@ -123,7 +123,7 @@ public class PowerTypes {
         event.create(new RegistryBuilder<>(REGISTRY_KEY));
     }
 
-    public static PowerType<?> get(Identifier id) {
+    public static PowerType<?> get(ResourceLocation id) {
         for (var holder : POWER_TYPES.getEntries())
             if (holder.getId().equals(id)) return holder.get();
         return null;

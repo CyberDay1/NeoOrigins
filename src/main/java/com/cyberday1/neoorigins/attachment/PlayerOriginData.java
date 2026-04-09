@@ -3,7 +3,7 @@ package com.cyberday1.neoorigins.attachment;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,17 +20,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class PlayerOriginData {
 
-    private final Map<Identifier, Identifier> origins = new LinkedHashMap<>();
+    private final Map<ResourceLocation, ResourceLocation> origins = new LinkedHashMap<>();
     private boolean hadAllOrigins = false;
     /** Tracks power grant_ids for StartingEquipmentPower — persisted so items aren't duplicated on respawn. */
     private final Set<String> grantedEquipmentPowers = new HashSet<>();
     /** Positions of placed shadow orbs for ShadowOrbPower — persisted. */
     private final List<BlockPos> shadowOrbs = new ArrayList<>();
+    /** How many times this player has used the Orb of Origin — persisted, drives escalating XP cost. */
+    private int orbUseCount = 0;
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new ConcurrentHashMap<>();
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-        Codec.unboundedMap(Identifier.CODEC, Identifier.CODEC)
+        Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
             .optionalFieldOf("origins", Map.of())
             .forGetter(d -> Map.copyOf(d.origins)),
         Codec.BOOL
@@ -41,33 +43,37 @@ public class PlayerOriginData {
             .forGetter(d -> new ArrayList<>(d.grantedEquipmentPowers)),
         BlockPos.CODEC.listOf()
             .optionalFieldOf("shadow_orbs", List.of())
-            .forGetter(d -> List.copyOf(d.shadowOrbs))
-    ).apply(inst, (map, hadAll, equipment, orbs) -> {
+            .forGetter(d -> List.copyOf(d.shadowOrbs)),
+        Codec.INT
+            .optionalFieldOf("orb_use_count", 0)
+            .forGetter(d -> d.orbUseCount)
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
         data.grantedEquipmentPowers.addAll(equipment);
         data.shadowOrbs.addAll(orbs);
+        data.orbUseCount = orbUses;
         return data;
     }));
 
-    public Map<Identifier, Identifier> getOrigins() {
+    public Map<ResourceLocation, ResourceLocation> getOrigins() {
         return Map.copyOf(origins);
     }
 
-    public Identifier getOrigin(Identifier layerId) {
+    public ResourceLocation getOrigin(ResourceLocation layerId) {
         return origins.get(layerId);
     }
 
-    public void setOrigin(Identifier layerId, Identifier originId) {
+    public void setOrigin(ResourceLocation layerId, ResourceLocation originId) {
         origins.put(layerId, originId);
     }
 
-    public void removeOrigin(Identifier layerId) {
+    public void removeOrigin(ResourceLocation layerId) {
         origins.remove(layerId);
     }
 
-    public boolean hasOriginForLayer(Identifier layerId) {
+    public boolean hasOriginForLayer(ResourceLocation layerId) {
         return origins.containsKey(layerId);
     }
 
@@ -105,6 +111,9 @@ public class PlayerOriginData {
         shadowOrbs.clear();
         shadowOrbs.addAll(orbs);
     }
+
+    public int getOrbUseCount() { return orbUseCount; }
+    public void incrementOrbUseCount() { orbUseCount++; }
 
     public void clear() {
         origins.clear();

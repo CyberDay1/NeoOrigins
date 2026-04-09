@@ -4,7 +4,7 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
 import java.util.Optional;
@@ -141,7 +141,7 @@ public final class OriginsPowerTranslator {
      * Returns Optional.empty() for skip/fail cases — these are already logged.
      * Does NOT handle origins:multiple — that is handled by OriginsMultipleExpander before this is called.
      */
-    public static Optional<JsonObject> translate(Identifier id, JsonObject json) {
+    public static Optional<JsonObject> translate(ResourceLocation id, JsonObject json) {
         String type = OriginsFormatDetector.getType(json);
 
         // Check for origins:simple powers with known ID overrides (Origins Classes etc.)
@@ -180,7 +180,7 @@ public final class OriginsPowerTranslator {
         }
     }
 
-    private static Optional<JsonObject> doTranslate(Identifier id, String type, JsonObject src) {
+    private static Optional<JsonObject> doTranslate(ResourceLocation id, String type, JsonObject src) {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);
             case "origins:elytra_flight",          "apace:elytra_flight"          -> translateSimple("neoorigins:flight");

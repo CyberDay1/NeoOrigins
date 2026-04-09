@@ -8,7 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
@@ -17,7 +17,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import java.io.Reader;
 import java.util.*;
 
-public class LayerDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonObject>> {
+public class LayerDataManager extends SimplePreparableReloadListener<Map<ResourceLocation, JsonObject>> {
 
     public static final LayerDataManager INSTANCE = new LayerDataManager();
     // NeoOrigins format: data/<ns>/origins/origin_layers/<name>.json
@@ -25,15 +25,15 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
     // Origins mod format: data/<ns>/origin_layers/<name>.json
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("origin_layers");
 
-    private static final Identifier ORIGINS_ORIGIN = Identifier.fromNamespaceAndPath("origins", "origin");
-    private static final Identifier NEO_ORIGIN = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "origin");
+    private static final ResourceLocation ORIGINS_ORIGIN = ResourceLocation.fromNamespaceAndPath("origins", "origin");
+    private static final ResourceLocation NEO_ORIGIN = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "origin");
 
-    private Map<Identifier, OriginLayer> layers = new HashMap<>();
+    private Map<ResourceLocation, OriginLayer> layers = new HashMap<>();
     private List<OriginLayer> sortedLayers = new ArrayList<>();
 
     @Override
-    protected Map<Identifier, JsonObject> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-        Map<Identifier, JsonObject> map = new HashMap<>();
+    protected Map<ResourceLocation, JsonObject> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<ResourceLocation, JsonObject> map = new HashMap<>();
         // Native format first — these are authoritative
         scanConverterStacks(FILE_CONVERTER, resourceManager, map, false);
         // Compat format second — merges into existing layers
@@ -48,10 +48,10 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
      * Uses listMatchingResourceStacks() to read ALL packs, not just the top-priority one.
      */
     private void scanConverterStacks(FileToIdConverter converter, ResourceManager resourceManager,
-                                     Map<Identifier, JsonObject> map, boolean isCompat) {
+                                     Map<ResourceLocation, JsonObject> map, boolean isCompat) {
         for (var entry : converter.listMatchingResourceStacks(resourceManager).entrySet()) {
-            Identifier fileId = entry.getKey();
-            Identifier id = converter.fileToId(fileId);
+            ResourceLocation fileId = entry.getKey();
+            ResourceLocation id = converter.fileToId(fileId);
             // Skip neoorigins namespace in compat converter — FILE_CONVERTER already handles it
             if (isCompat && NeoOrigins.MOD_ID.equals(id.getNamespace())) continue;
 
@@ -116,7 +116,7 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
      * base origins into the origins:origin layer so everything appears in one tab.
      * If only neoorigins:origin exists (no compat packs), rename it to origins:origin.
      */
-    private static void mergeNeoOriginsIntoCompat(Map<Identifier, JsonObject> map) {
+    private static void mergeNeoOriginsIntoCompat(Map<ResourceLocation, JsonObject> map) {
         JsonObject neo = map.get(NEO_ORIGIN);
         if (neo == null) return;
 
@@ -129,10 +129,10 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
     }
 
     @Override
-    protected void apply(Map<Identifier, JsonObject> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
-        Map<Identifier, OriginLayer> loaded = new HashMap<>();
-        for (Map.Entry<Identifier, JsonObject> entry : pObject.entrySet()) {
-            Identifier id = entry.getKey();
+    protected void apply(Map<ResourceLocation, JsonObject> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+        Map<ResourceLocation, OriginLayer> loaded = new HashMap<>();
+        for (Map.Entry<ResourceLocation, JsonObject> entry : pObject.entrySet()) {
+            ResourceLocation id = entry.getKey();
             try {
                 JsonObject obj = entry.getValue();
                 obj.addProperty("id", id.toString());
@@ -155,7 +155,7 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
     /**
      * Normalizes Origins-format layer JSON fields to NeoOrigins format in-place.
      */
-    private static void normalizeLayerJson(Identifier id, JsonObject obj) {
+    private static void normalizeLayerJson(ResourceLocation id, JsonObject obj) {
         if (!obj.has("name")) {
             obj.addProperty("name", id.getPath());
         } else if (obj.get("name").isJsonObject()) {
@@ -185,8 +185,8 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
         }
     }
 
-    public Map<Identifier, OriginLayer> getLayers() { return layers; }
+    public Map<ResourceLocation, OriginLayer> getLayers() { return layers; }
     public List<OriginLayer> getSortedLayers() { return sortedLayers; }
-    public OriginLayer getLayer(Identifier id) { return layers.get(id); }
-    public boolean hasLayer(Identifier id) { return layers.containsKey(id); }
+    public OriginLayer getLayer(ResourceLocation id) { return layers.get(id); }
+    public boolean hasLayer(ResourceLocation id) { return layers.containsKey(id); }
 }

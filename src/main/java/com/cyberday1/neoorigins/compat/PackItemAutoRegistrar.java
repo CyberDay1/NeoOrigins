@@ -3,8 +3,7 @@ package com.cyberday1.neoorigins.compat;
 import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.registries.RegisterEvent;
@@ -64,7 +63,7 @@ public final class PackItemAutoRegistrar {
     private static void scanZip(Path zipPath, RegisterEvent event, int[] count) throws IOException {
         try (ZipFile zip = new ZipFile(zipPath.toFile())) {
             zip.entries().asIterator().forEachRemaining(entry -> {
-                Identifier id = itemIdFromModelPath(entry.getName());
+                ResourceLocation id = itemIdFromModelPath(entry.getName());
                 if (id != null) tryRegister(id, event, count);
             });
         }
@@ -89,7 +88,7 @@ public final class PackItemAutoRegistrar {
                     for (Path model : models) {
                         String name = model.getFileName().toString();
                         name = name.substring(0, name.length() - 5); // strip .json
-                        tryRegister(Identifier.fromNamespaceAndPath(ns, name), event, count);
+                        tryRegister(ResourceLocation.fromNamespaceAndPath(ns, name), event, count);
                     }
                 }
             }
@@ -99,10 +98,10 @@ public final class PackItemAutoRegistrar {
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     /**
-     * Parses "assets/<ns>/models/item/<name>.json" → Identifier(<ns>, <name>).
+     * Parses "assets/<ns>/models/item/<name>.json" → ResourceLocation(<ns>, <name>).
      * Returns null for paths that don't match or should be skipped.
      */
-    private static Identifier itemIdFromModelPath(String path) {
+    private static ResourceLocation itemIdFromModelPath(String path) {
         // Expected: assets/<ns>/models/item/<name>.json  (exactly 5 segments)
         if (!path.startsWith("assets/") || !path.contains("/models/item/") || !path.endsWith(".json"))
             return null;
@@ -111,7 +110,7 @@ public final class PackItemAutoRegistrar {
         String ns   = parts[1];
         String name = parts[4].substring(0, parts[4].length() - 5); // strip .json
         if (shouldSkipNamespace(ns)) return null;
-        return Identifier.fromNamespaceAndPath(ns, name);
+        return ResourceLocation.fromNamespaceAndPath(ns, name);
     }
 
     /** Namespaces whose items are already handled and must not be re-registered. */
@@ -119,10 +118,9 @@ public final class PackItemAutoRegistrar {
         return "minecraft".equals(ns) || "neoorigins".equals(ns);
     }
 
-    private static void tryRegister(Identifier id, RegisterEvent event, int[] count) {
+    private static void tryRegister(ResourceLocation id, RegisterEvent event, int[] count) {
         if (BuiltInRegistries.ITEM.containsKey(id)) return;
-        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-        event.register(Registries.ITEM, id, () -> new Item(new Item.Properties().setId(key)));
+        event.register(Registries.ITEM, id, () -> new Item(new Item.Properties()));
         count[0]++;
         NeoOrigins.LOGGER.debug("PackItemAutoRegistrar: registered {}", id);
     }

@@ -5,7 +5,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -20,13 +20,13 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
  */
 public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
-    private static final Identifier MOD_SCALE        = Identifier.fromNamespaceAndPath("neoorigins", "size_scale");
-    private static final Identifier MOD_REACH_BLOCK  = Identifier.fromNamespaceAndPath("neoorigins", "size_reach_block");
-    private static final Identifier MOD_REACH_ENTITY = Identifier.fromNamespaceAndPath("neoorigins", "size_reach_entity");
+    private static final ResourceLocation MOD_SCALE        = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_scale");
+    private static final ResourceLocation MOD_REACH_BLOCK  = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_reach_block");
+    private static final ResourceLocation MOD_REACH_ENTITY = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_reach_entity");
 
-    private static final Identifier ATTR_SCALE        = Identifier.fromNamespaceAndPath("minecraft", "scale");
-    private static final Identifier ATTR_REACH_BLOCK  = Identifier.fromNamespaceAndPath("minecraft", "block_interaction_range");
-    private static final Identifier ATTR_REACH_ENTITY = Identifier.fromNamespaceAndPath("minecraft", "entity_interaction_range");
+    private static final ResourceLocation ATTR_SCALE        = ResourceLocation.fromNamespaceAndPath("minecraft", "scale");
+    private static final ResourceLocation ATTR_REACH_BLOCK  = ResourceLocation.fromNamespaceAndPath("minecraft", "block_interaction_range");
+    private static final ResourceLocation ATTR_REACH_ENTITY = ResourceLocation.fromNamespaceAndPath("minecraft", "entity_interaction_range");
 
     public record Config(float scale, boolean modifyReach, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -61,11 +61,11 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
         }
     }
 
-    private static void applyMod(ServerPlayer player, Identifier attrId, Identifier modId,
+    private static void applyMod(ServerPlayer player, ResourceLocation attrId, ResourceLocation modId,
                                   double amount, AttributeModifier.Operation op, boolean add) {
-        var holderOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        if (holderOpt.isEmpty()) return;
-        AttributeInstance inst = player.getAttribute(holderOpt.get());
+        var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrId);
+        if (attrOpt.isEmpty()) return;
+        AttributeInstance inst = player.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get()));
         if (inst == null) return;
         if (add) {
             if (inst.getModifier(modId) == null) {

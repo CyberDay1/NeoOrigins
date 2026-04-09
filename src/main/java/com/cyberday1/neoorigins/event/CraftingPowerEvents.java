@@ -61,8 +61,8 @@ public class CraftingPowerEvents {
         ActiveOriginService.forEachOfType(sp, EfficientRepairsPower.class, cfg ->
             mult[0] *= cfg.costMultiplier());
         if (mult[0] != 1.0f) {
-            int cost = Math.max(1, (int)(event.getXpCost() * mult[0]));
-            event.setXpCost(cost);
+            int cost = Math.max(1, (int)(event.getCost() * mult[0]));
+            event.setCost(cost);
         }
     }
 }

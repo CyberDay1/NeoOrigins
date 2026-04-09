@@ -6,9 +6,9 @@ import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
 
@@ -20,14 +20,14 @@ public class OriginSelectionPresenter {
 
     private List<OriginLayer> pendingLayers  = List.of();
     private int currentLayerIndex            = 0;
-    private Identifier selectedOriginId      = null;
+    private ResourceLocation selectedOriginId      = null;
     private int listScrollOffset             = 0;
     private String searchText                = "";
     private boolean forceReselect            = false;
 
     private final List<OriginListEntry> allRows      = new ArrayList<>();
     private final List<OriginListEntry> filteredRows = new ArrayList<>();
-    private final List<Identifier>      allOriginIds = new ArrayList<>();
+    private final List<ResourceLocation>      allOriginIds = new ArrayList<>();
 
     /** Set the forceReselect flag before calling init(). */
     public void setForceReselect(boolean forceReselect) {
@@ -64,14 +64,14 @@ public class OriginSelectionPresenter {
 
         OriginLayer layer = currentLayer();
 
-        List<Identifier> rawIds = new ArrayList<>();
+        List<ResourceLocation> rawIds = new ArrayList<>();
         for (var co : layer.origins()) {
             if (OriginDataManager.INSTANCE.hasOrigin(co.origin()))
                 rawIds.add(co.origin());
         }
 
-        Map<String, List<Identifier>> byNamespace = new LinkedHashMap<>();
-        for (Identifier id : rawIds)
+        Map<String, List<ResourceLocation>> byNamespace = new LinkedHashMap<>();
+        for (ResourceLocation id : rawIds)
             byNamespace.computeIfAbsent(id.getNamespace(), k -> new ArrayList<>()).add(id);
 
         List<String> namespaces = new ArrayList<>(byNamespace.keySet());
@@ -83,9 +83,9 @@ public class OriginSelectionPresenter {
 
         for (String ns : namespaces) {
             allRows.add(OriginListEntry.header(ns, getModName(ns)));
-            List<Identifier> nsIds = byNamespace.get(ns);
+            List<ResourceLocation> nsIds = byNamespace.get(ns);
             nsIds.sort(Comparator.comparing(id -> getOriginDisplayName(id).toLowerCase(Locale.ROOT)));
-            for (Identifier id : nsIds) {
+            for (ResourceLocation id : nsIds) {
                 allRows.add(OriginListEntry.origin(id, getOriginDisplayName(id), ns));
                 allOriginIds.add(id);
             }
@@ -118,7 +118,7 @@ public class OriginSelectionPresenter {
         return true;
     }
 
-    public void select(Identifier id) {
+    public void select(ResourceLocation id) {
         selectedOriginId = id;
     }
 
@@ -130,7 +130,7 @@ public class OriginSelectionPresenter {
     public boolean confirm() {
         if (selectedOriginId == null) return !isDone();
         OriginLayer layer = currentLayer();
-        ClientPacketDistributor.sendToServer(new ChooseOriginPayload(layer.id(), selectedOriginId));
+        PacketDistributor.sendToServer(new ChooseOriginPayload(layer.id(), selectedOriginId));
         var updated = new HashMap<>(ClientOriginState.getOrigins());
         updated.put(layer.id(), selectedOriginId);
         ClientOriginState.setOrigins(updated, false);
@@ -149,7 +149,7 @@ public class OriginSelectionPresenter {
     }
 
     /** Return a random origin ID from the current layer, or null if none. */
-    public Identifier randomId() {
+    public ResourceLocation randomId() {
         if (allOriginIds.isEmpty()) return null;
         return allOriginIds.get((int) (Math.random() * allOriginIds.size()));
     }
@@ -172,11 +172,11 @@ public class OriginSelectionPresenter {
     public OriginLayer currentLayer()          { return pendingLayers.get(currentLayerIndex); }
     public int currentLayerIndex()             { return currentLayerIndex; }
     public int totalLayers()                   { return pendingLayers.size(); }
-    public Identifier selectedOriginId()       { return selectedOriginId; }
+    public ResourceLocation selectedOriginId()       { return selectedOriginId; }
     public int listScrollOffset()              { return listScrollOffset; }
     public void setListScrollOffset(int v)     { listScrollOffset = v; }
     public List<OriginListEntry> filteredRows(){ return filteredRows; }
-    public List<Identifier> allOriginIds()     { return allOriginIds; }
+    public List<ResourceLocation> allOriginIds()     { return allOriginIds; }
     public String searchText()                 { return searchText; }
 
     private static String getModName(String namespace) {
@@ -187,7 +187,7 @@ public class OriginSelectionPresenter {
                 : Character.toUpperCase(namespace.charAt(0)) + namespace.substring(1));
     }
 
-    private static String getOriginDisplayName(Identifier id) {
+    private static String getOriginDisplayName(ResourceLocation id) {
         var o = OriginDataManager.INSTANCE.getOrigin(id);
         return o != null ? o.name().getString() : id.getPath();
     }

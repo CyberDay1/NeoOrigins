@@ -47,11 +47,13 @@ public class BetterCraftedFoodPower extends PowerType<BetterCraftedFoodPower.Con
             if (tracked.contains(hash)) continue;
             tracked.add(hash);
 
-            FoodProperties boosted = new FoodProperties(
-                food.nutrition(),
-                food.saturation() + config.saturationBonus(),
-                food.canAlwaysEat()
-            );
+            FoodProperties.Builder builder = new FoodProperties.Builder()
+                .nutrition(food.nutrition())
+                .saturationModifier(food.saturation() + config.saturationBonus());
+            if (food.canAlwaysEat()) {
+                builder.alwaysEdible();
+            }
+            FoodProperties boosted = builder.build();
             stack.set(DataComponents.FOOD, boosted);
         }
     }

@@ -5,7 +5,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
@@ -36,9 +36,9 @@ public class CraftAmountBonusPower extends PowerType<CraftAmountBonusPower.Confi
         if (player.tickCount % 5 != 0) return;
         if (!player.hasContainerOpen()) return;
 
-        var itemOpt = BuiltInRegistries.ITEM.get(Identifier.parse(config.outputItem()));
+        var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(config.outputItem()));
         if (itemOpt.isEmpty()) return;
-        var targetItem = itemOpt.get().value();
+        var targetItem = itemOpt.get();
 
         int count = 0;
         var inv = player.getInventory();

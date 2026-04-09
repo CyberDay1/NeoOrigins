@@ -16,7 +16,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -25,7 +25,7 @@ import java.io.Reader;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PowerDataManager extends SimplePreparableReloadListener<Map<Identifier, JsonElement>> {
+public class PowerDataManager extends SimplePreparableReloadListener<Map<ResourceLocation, JsonElement>> {
 
     public static final PowerDataManager INSTANCE = new PowerDataManager();
     // NeoOrigins format: data/<ns>/origins/powers/<name>.json
@@ -33,22 +33,22 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     // Origins mod format: data/<ns>/powers/<name>.json
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("powers");
 
-    private Map<Identifier, PowerHolder<?>> powers = new HashMap<>();
+    private Map<ResourceLocation, PowerHolder<?>> powers = new HashMap<>();
     /** Route B powers injected by OriginsCompatPowerLoader after native loading. */
-    private Map<Identifier, PowerHolder<?>> injectedPowers = new HashMap<>();
+    private Map<ResourceLocation, PowerHolder<?>> injectedPowers = new HashMap<>();
 
     @Override
-    protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
-        Map<Identifier, JsonElement> map = new HashMap<>();
+    protected Map<ResourceLocation, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
+        Map<ResourceLocation, JsonElement> map = new HashMap<>();
         scanConverter(FILE_CONVERTER, resourceManager, map);
         scanConverter(COMPAT_CONVERTER, resourceManager, map);
         return map;
     }
 
-    private void scanConverter(FileToIdConverter converter, ResourceManager resourceManager, Map<Identifier, JsonElement> map) {
+    private void scanConverter(FileToIdConverter converter, ResourceManager resourceManager, Map<ResourceLocation, JsonElement> map) {
         for (var entry : converter.listMatchingResources(resourceManager).entrySet()) {
-            Identifier fileId = entry.getKey();
-            Identifier id = converter.fileToId(fileId);
+            ResourceLocation fileId = entry.getKey();
+            ResourceLocation id = converter.fileToId(fileId);
             if (map.containsKey(id)) continue; // native format wins
             try (Reader reader = entry.getValue().openAsReader()) {
                 map.put(id, JsonParser.parseReader(reader));
@@ -59,21 +59,21 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     }
 
     @Override
-    protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+    protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         CompatTranslationLog.open();
         OriginsMultipleExpander.reset();
 
         // Build a working set, expanding any origins:multiple entries into synthetic sub-power entries
-        Map<Identifier, JsonElement> working = new HashMap<>(pObject);
-        for (Map.Entry<Identifier, JsonElement> entry : pObject.entrySet()) {
-            Identifier id = entry.getKey();
+        Map<ResourceLocation, JsonElement> working = new HashMap<>(pObject);
+        for (Map.Entry<ResourceLocation, JsonElement> entry : pObject.entrySet()) {
+            ResourceLocation id = entry.getKey();
             if (!entry.getValue().isJsonObject()) continue;
             JsonObject json = entry.getValue().getAsJsonObject();
             String typeStr = OriginsFormatDetector.getType(json);
             if ("origins:multiple".equals(typeStr) || "apace:multiple".equals(typeStr)) {
                 working.remove(id);
                 try {
-                    Map<Identifier, JsonObject> synthetics = OriginsMultipleExpander.expand(id, json);
+                    Map<ResourceLocation, JsonObject> synthetics = OriginsMultipleExpander.expand(id, json);
                     working.putAll(synthetics);
                 } catch (Exception e) {
                     String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -83,9 +83,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             }
         }
 
-        Map<Identifier, PowerHolder<?>> loaded = new HashMap<>();
-        for (Map.Entry<Identifier, JsonElement> entry : working.entrySet()) {
-            Identifier id = entry.getKey();
+        Map<ResourceLocation, PowerHolder<?>> loaded = new HashMap<>();
+        for (Map.Entry<ResourceLocation, JsonElement> entry : working.entrySet()) {
+            ResourceLocation id = entry.getKey();
             try {
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject json = entry.getValue().getAsJsonObject();
@@ -101,7 +101,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                     json = translated.get();
                 }
 
-                Identifier typeId = Identifier.parse(json.get("type").getAsString());
+                ResourceLocation typeId = ResourceLocation.parse(json.get("type").getAsString());
                 PowerType<?> type = PowerTypes.get(typeId);
                 if (type == null) {
                     NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}", typeId, id);
@@ -119,7 +119,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         // Per-namespace breakdown — toggled via config/neoorigins-common.toml
         if (NeoOriginsConfig.DEBUG_POWER_LOADING.get()) {
             Map<String, Long> byNamespace = loaded.keySet().stream()
-                .collect(Collectors.groupingBy(Identifier::getNamespace, Collectors.counting()));
+                .collect(Collectors.groupingBy(ResourceLocation::getNamespace, Collectors.counting()));
             byNamespace.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .forEach(e -> NeoOrigins.LOGGER.info("  [DEBUG] powers: {}  x{}", e.getKey(), e.getValue()));
@@ -128,8 +128,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
 
     @SuppressWarnings("unchecked")
     private <C extends PowerConfiguration> void parsePower(
-            Identifier id, PowerType<C> type, JsonObject json,
-            Map<Identifier, PowerHolder<?>> target) {
+            ResourceLocation id, PowerType<C> type, JsonObject json,
+            Map<ResourceLocation, PowerHolder<?>> target) {
         Component name = extractComponentField(json, "name");
         Component desc = extractComponentField(json, "description");
 
@@ -156,18 +156,18 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     }
 
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
-    public void injectExternalPowers(Map<Identifier, PowerHolder<?>> external) {
+    public void injectExternalPowers(Map<ResourceLocation, PowerHolder<?>> external) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
     }
 
-    public Map<Identifier, PowerHolder<?>> getPowers() { return powers; }
+    public Map<ResourceLocation, PowerHolder<?>> getPowers() { return powers; }
 
-    public PowerHolder<?> getPower(Identifier id) {
+    public PowerHolder<?> getPower(ResourceLocation id) {
         PowerHolder<?> holder = powers.get(id);
         return holder != null ? holder : injectedPowers.get(id);
     }
 
-    public boolean hasPower(Identifier id) {
+    public boolean hasPower(ResourceLocation id) {
         return powers.containsKey(id) || injectedPowers.containsKey(id);
     }
 }

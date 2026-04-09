@@ -8,7 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 
@@ -49,14 +49,14 @@ public final class ConditionParser {
                     return sl.isRainingAt(p.blockPosition());
                 };
                 case "origins:daytime", "apace:daytime"                 ->
-                    p -> p.level().getDefaultClockTime() % 24000L < 13000L;
+                    p -> p.level().getDayTime() % 24000L < 13000L;
                 case "origins:exposed_to_sky", "apace:exposed_to_sky"   -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     return sl.canSeeSky(p.blockPosition());
                 };
                 case "origins:exposed_to_sun", "apace:exposed_to_sun"   -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
-                    long time = sl.getDefaultClockTime() % 24000L;
+                    long time = sl.getDayTime() % 24000L;
                     return time > 6000L && time < 12000L
                         && sl.canSeeSky(p.blockPosition()) && !sl.isRaining();
                 };
@@ -141,7 +141,7 @@ public final class ConditionParser {
         if (blockId == null || blockId.isBlank()) {
             return failClosed("origins:on_block", contextId, "missing required field 'block_condition.id'");
         }
-        Identifier bid = Identifier.parse(blockId);
+        ResourceLocation bid = ResourceLocation.parse(blockId);
         return player -> {
             if (!player.onGround()) return false;
             BlockPos below = player.blockPosition().below();

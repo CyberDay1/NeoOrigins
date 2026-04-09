@@ -4,7 +4,7 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 public class ConditionalPower extends PowerType<ConditionalPower.Config> {
@@ -23,12 +23,12 @@ public class ConditionalPower extends PowerType<ConditionalPower.Config> {
 
     public record Config(
         Condition condition,
-        Identifier innerPower,
+        ResourceLocation innerPower,
         String type
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Condition.CODEC.optionalFieldOf("condition", Condition.ALWAYS).forGetter(Config::condition),
-            Identifier.CODEC.fieldOf("inner_power").forGetter(Config::innerPower),
+            ResourceLocation.CODEC.fieldOf("inner_power").forGetter(Config::innerPower),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }

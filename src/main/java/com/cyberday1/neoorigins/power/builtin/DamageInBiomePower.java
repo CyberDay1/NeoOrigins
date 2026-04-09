@@ -6,17 +6,17 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
 
 public class DamageInBiomePower extends PowerType<DamageInBiomePower.Config> {
 
-    public record Config(Identifier biomeTag, float damagePerSecond, String damageType, String type)
+    public record Config(ResourceLocation biomeTag, float damagePerSecond, String damageType, String type)
             implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Identifier.CODEC.fieldOf("biome_tag").forGetter(Config::biomeTag),
+            ResourceLocation.CODEC.fieldOf("biome_tag").forGetter(Config::biomeTag),
             Codec.FLOAT.optionalFieldOf("damage_per_second", 1.0f).forGetter(Config::damagePerSecond),
             Codec.STRING.optionalFieldOf("damage_type", "generic").forGetter(Config::damageType),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)

@@ -4,7 +4,7 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -15,10 +15,10 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public class FoodRestrictionPower extends PowerType<FoodRestrictionPower.Config> {
 
-    public record Config(String mode, Identifier itemTag, String type) implements PowerConfiguration {
+    public record Config(String mode, ResourceLocation itemTag, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("mode", "blacklist").forGetter(Config::mode),
-            Identifier.CODEC.fieldOf("item_tag").forGetter(Config::itemTag),
+            ResourceLocation.CODEC.fieldOf("item_tag").forGetter(Config::itemTag),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
 

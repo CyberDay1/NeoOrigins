@@ -3,7 +3,7 @@ package com.cyberday1.neoorigins.network.payload;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Sent client→server when the player presses a Skill keybind.
@@ -12,7 +12,7 @@ import net.minecraft.resources.Identifier;
 public record ActivatePowerPayload(int slot) implements CustomPacketPayload {
 
     public static final Type<ActivatePowerPayload> TYPE =
-        new Type<>(Identifier.fromNamespaceAndPath("neoorigins", "activate_power"));
+        new Type<>(ResourceLocation.fromNamespaceAndPath("neoorigins", "activate_power"));
 
     public static final StreamCodec<FriendlyByteBuf, ActivatePowerPayload> STREAM_CODEC =
         StreamCodec.of(

@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.ModConfigSpec;
@@ -114,7 +114,7 @@ public final class NeoOriginsConfig {
     /**
      * Returns true if the given power ID is restricted in the player's current dimension.
      */
-    public static boolean isPowerRestrictedInDimension(Identifier powerId, ResourceKey<Level> dimension) {
+    public static boolean isPowerRestrictedInDimension(ResourceLocation powerId, ResourceKey<Level> dimension) {
         Map<String, Set<ResourceKey<Level>>> map = getParsedRestrictions();
         Set<ResourceKey<Level>> denied = map.get(powerId.toString());
         return denied != null && denied.contains(dimension);
@@ -124,7 +124,7 @@ public final class NeoOriginsConfig {
      * Returns true if the given origin/class is disabled via config toggles.
      * Checks both [origins] and [classes] sections.
      */
-    public static boolean isOriginDisabled(Identifier originId) {
+    public static boolean isOriginDisabled(ResourceLocation originId) {
         if (!NeoOrigins.MOD_ID.equals(originId.getNamespace())) return false;
         String path = originId.getPath();
         ModConfigSpec.BooleanValue toggle = ORIGIN_TOGGLES.get(path);
@@ -146,7 +146,7 @@ public final class NeoOriginsConfig {
                 for (String dim : dims) {
                     String trimmed = dim.trim();
                     if (!trimmed.isEmpty()) {
-                        dimSet.add(ResourceKey.create(Registries.DIMENSION, Identifier.parse(trimmed)));
+                        dimSet.add(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(trimmed)));
                     }
                 }
             }
