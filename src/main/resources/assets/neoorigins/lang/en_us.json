@@ -308,6 +308,7 @@
   "power.neoorigins.verdant_harvest_bonus.description": "Breaking mature crops or logs yields one additional set of drops.",
 
   "item.neoorigins.orb_of_origin": "Orb of Origin",
+  "item.neoorigins.orb_of_origin.not_enough_xp": "You need %s experience levels to use this.",
 
   "origins.neoorigins.inchling.name": "Inchling",
   "origins.neoorigins.inchling.description": "A quarter-sized humanoid who scales walls with ease and moves with surprising speed — but a fragile body comes with the territory.",

@@ -26,6 +26,8 @@ public class PlayerOriginData {
     private final Set<String> grantedEquipmentPowers = new HashSet<>();
     /** Positions of placed shadow orbs for ShadowOrbPower — persisted. */
     private final List<BlockPos> shadowOrbs = new ArrayList<>();
+    /** Tracks how many times the player has used an Orb of Origin — persisted for escalating XP cost. */
+    private int orbUseCount = 0;
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new ConcurrentHashMap<>();
 
@@ -41,13 +43,17 @@ public class PlayerOriginData {
             .forGetter(d -> new ArrayList<>(d.grantedEquipmentPowers)),
         BlockPos.CODEC.listOf()
             .optionalFieldOf("shadow_orbs", List.of())
-            .forGetter(d -> List.copyOf(d.shadowOrbs))
-    ).apply(inst, (map, hadAll, equipment, orbs) -> {
+            .forGetter(d -> List.copyOf(d.shadowOrbs)),
+        Codec.INT
+            .optionalFieldOf("orb_use_count", 0)
+            .forGetter(d -> d.orbUseCount)
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
         data.grantedEquipmentPowers.addAll(equipment);
         data.shadowOrbs.addAll(orbs);
+        data.orbUseCount = orbUses;
         return data;
     }));
 
@@ -104,6 +110,14 @@ public class PlayerOriginData {
     public void setShadowOrbs(List<BlockPos> orbs) {
         shadowOrbs.clear();
         shadowOrbs.addAll(orbs);
+    }
+
+    public int getOrbUseCount() {
+        return orbUseCount;
+    }
+
+    public void incrementOrbUseCount() {
+        orbUseCount++;
     }
 
     public void clear() {

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GDG",
+    "DND",
+    "GDG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_block" },
+    "D": { "item": "minecraft:diamond_block" },
+    "N": { "item": "minecraft:netherite_ingot" }
+  },
+  "result": {
+    "item": "neoorigins:orb_of_origin",
+    "count": 1
+  }
+}
