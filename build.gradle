@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
-version = "${mod_version}+${stonecutter.current.version}"
+version = "${mod_version}+26.1"
 group = mod_group_id
 
 base {
