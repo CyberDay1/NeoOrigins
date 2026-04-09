@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "explorer_clock",
+  "item": "minecraft:clock"
+}

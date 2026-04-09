@@ -13,6 +13,7 @@ import net.minecraft.locale.Language;
 import net.minecraft.resources.Identifier;
 
 import java.util.*;
+import java.util.LinkedHashMap;
 
 /** Computed detail-panel data for a selected origin. No rendering imports. */
 public record OriginDetailViewModel(
@@ -37,6 +38,16 @@ public record OriginDetailViewModel(
         Language lang = Language.getInstance();
         List<String> names = new ArrayList<>();
         List<String> descs = new ArrayList<>();
+
+        // Pre-count skill slot assignments across all powers in this origin
+        int skillSlot = 1;
+        Map<Identifier, Integer> slotMap = new LinkedHashMap<>();
+        for (Identifier powerId : origin.powers()) {
+            PowerHolder<?> h = PowerDataManager.INSTANCE.getPower(powerId);
+            if (h != null && h.isActive() && skillSlot <= 4) {
+                slotMap.put(powerId, skillSlot++);
+            }
+        }
 
         for (Identifier powerId : origin.powers()) {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
@@ -64,13 +75,16 @@ public record OriginDetailViewModel(
             }
 
             String displayName = isNamed ? resolvedName : formatPowerId(powerId);
-            if (holder != null) {
+            String tag = "";
+            if (holder != null && slotMap.containsKey(powerId)) {
+                int slot = slotMap.get(powerId);
                 if (holder.type() instanceof AbstractTogglePower<?>) {
-                    displayName += " [Toggle]";
+                    tag = " [Skill " + slot + " - Toggle]";
                 } else if (holder.type() instanceof AbstractActivePower<?>) {
-                    displayName += " [Active]";
+                    tag = " [Skill " + slot + "]";
                 }
             }
+            displayName += tag;
             names.add(displayName);
             descs.add(resolvedDesc);
         }

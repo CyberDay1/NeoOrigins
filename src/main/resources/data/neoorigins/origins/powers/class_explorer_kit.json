@@ -1,17 +1,5 @@
 {
   "type": "neoorigins:starting_equipment",
-  "items": [
-    {
-      "id": "minecraft:compass",
-      "count": 1
-    },
-    {
-      "id": "minecraft:clock",
-      "count": 1
-    },
-    {
-      "id": "minecraft:map",
-      "count": 9
-    }
-  ]
+  "grant_id": "explorer_compass",
+  "item": "minecraft:compass"
 }
