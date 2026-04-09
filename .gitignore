@@ -27,3 +27,7 @@ runs/
 
 # Reference sources (local only)
 reference/
+
+# Claude
+CLAUDE.md
+.claude/

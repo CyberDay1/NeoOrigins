@@ -15,13 +15,10 @@ on:
         default: 'No changelog provided.'
 
 jobs:
-  build-and-release:
+  build-master:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout
+      - name: Checkout master
         uses: actions/checkout@v4
 
       - name: Set up JDK 25
@@ -36,15 +33,106 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-master-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-gradle-master-
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build
         run: ./gradlew build
+
+      - name: Find MC 26.1 JAR
+        id: jar-26-1
+        run: |
+          JAR=$(find versions/26.1/build/libs -name 'neoorigins-*.jar' | grep -v sources | grep -v javadoc | head -1)
+          echo "path=$JAR" >> $GITHUB_OUTPUT
+
+      - name: Upload MC 26.1 JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar-26-1
+          path: ${{ steps.jar-26-1.outputs.path }}
+
+      - name: Find MC 26.1.1 JAR
+        id: jar-26-1-1
+        run: |
+          JAR=$(find versions/26.1.1/build/libs -name 'neoorigins-*.jar' | grep -v sources | grep -v javadoc | head -1)
+          echo "path=$JAR" >> $GITHUB_OUTPUT
+
+      - name: Upload MC 26.1.1 JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar-26-1-1
+          path: ${{ steps.jar-26-1-1.outputs.path }}
+
+  build-1-21-1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 1.21.1 branch
+        uses: actions/checkout@v4
+        with:
+          ref: '1.21.1'
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-1211-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-1211-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build
+        run: ./gradlew build
+
+      - name: Find MC 1.21.1 JAR
+        id: jar-1-21-1
+        run: |
+          JAR=$(find build/libs -name 'neoorigins-*.jar' | grep -v sources | grep -v javadoc | head -1)
+          echo "path=$JAR" >> $GITHUB_OUTPUT
+
+      - name: Upload MC 1.21.1 JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar-1-21-1
+          path: ${{ steps.jar-1-21-1.outputs.path }}
+
+  release:
+    needs: [build-master, build-1-21-1]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download MC 26.1 JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: jar-26-1
+          path: jars/26.1
+
+      - name: Download MC 26.1.1 JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: jar-26-1-1
+          path: jars/26.1.1
+
+      - name: Download MC 1.21.1 JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: jar-1-21-1
+          path: jars/1.21.1
 
       - name: Determine version
         id: version
@@ -68,15 +156,18 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
-      - name: Find JARs
+      - name: Identify JARs
         id: jars
         run: |
-          JAR_26_1=$(find versions/26.1/build/libs -name 'neoorigins-*.jar' 2>/dev/null | grep -v sources | grep -v javadoc | head -1)
-          JAR_26_1_1=$(find versions/26.1.1/build/libs -name 'neoorigins-*.jar' 2>/dev/null | grep -v sources | grep -v javadoc | head -1)
+          JAR_26_1=$(ls jars/26.1/neoorigins-*.jar | head -1)
+          JAR_26_1_1=$(ls jars/26.1.1/neoorigins-*.jar | head -1)
+          JAR_1_21_1=$(ls jars/1.21.1/neoorigins-*.jar | head -1)
           echo "jar_26_1=$JAR_26_1" >> $GITHUB_OUTPUT
           echo "jar_26_1_1=$JAR_26_1_1" >> $GITHUB_OUTPUT
+          echo "jar_1_21_1=$JAR_1_21_1" >> $GITHUB_OUTPUT
           echo "name_26_1=$(basename $JAR_26_1)" >> $GITHUB_OUTPUT
           echo "name_26_1_1=$(basename $JAR_26_1_1)" >> $GITHUB_OUTPUT
+          echo "name_1_21_1=$(basename $JAR_1_21_1)" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -86,7 +177,7 @@ jobs:
           body: |
             ## NeoOrigins ${{ steps.version.outputs.tag }}
 
-            Built for **Minecraft 26.1** and **26.1.1** with **NeoForge**.
+            Built for **Minecraft 26.1**, **26.1.1**, and **1.21.1** with **NeoForge**.
 
             ${{ steps.notes.outputs.changelog }}
 
@@ -94,12 +185,14 @@ jobs:
             Download the JAR matching your Minecraft version and drop it into your `mods/` folder.
             - `${{ steps.jars.outputs.name_26_1 }}` — for MC 26.1
             - `${{ steps.jars.outputs.name_26_1_1 }}` — for MC 26.1.1
+            - `${{ steps.jars.outputs.name_1_21_1 }}` — for MC 1.21.1
 
             ### Origins Compatibility
             Drop Origins mod content packs (`.jar`, `.zip`, or folder) into the `originpacks/` folder in your game directory.
           files: |
             ${{ steps.jars.outputs.jar_26_1 }}
             ${{ steps.jars.outputs.jar_26_1_1 }}
+            ${{ steps.jars.outputs.jar_1_21_1 }}
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
 
@@ -131,6 +224,20 @@ jobs:
           display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.1)
           changelog: ${{ steps.notes.outputs.changelog }}
 
+      - name: Upload to CurseForge (MC 1.21.1)
+        if: vars.CURSEFORGE_PROJECT_ID != ''
+        continue-on-error: true
+        uses: itsmeow/curseforge-upload@v3
+        with:
+          file_path: ${{ steps.jars.outputs.jar_1_21_1 }}
+          game_endpoint: minecraft
+          game_versions: "Minecraft 1.21.1,NeoForge,Java 21"
+          project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          token: ${{ secrets.CURSEFORGE_TOKEN }}
+          release_type: release
+          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 1.21.1)
+          changelog: ${{ steps.notes.outputs.changelog }}
+
       - name: Upload to Modrinth (MC 26.1)
         if: vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
@@ -159,4 +266,19 @@ jobs:
           changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
           game-versions: "26.1.1"
+          channel: release
+
+      - name: Upload to Modrinth (MC 1.21.1)
+        if: vars.MODRINTH_PROJECT_ID != ''
+        continue-on-error: true
+        uses: cloudnode-pro/modrinth-publish@v2
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          project: ${{ vars.MODRINTH_PROJECT_ID }}
+          files: ${{ steps.jars.outputs.jar_1_21_1 }}
+          name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 1.21.1)
+          version: ${{ steps.version.outputs.tag }}+1.21.1
+          changelog: ${{ steps.notes.outputs.changelog }}
+          loaders: neoforge
+          game-versions: "1.21.1"
           channel: release
