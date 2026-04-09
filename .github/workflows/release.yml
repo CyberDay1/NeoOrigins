@@ -145,9 +145,11 @@ jobs:
 
       - name: Determine changelog
         id: notes
+        env:
+          INPUT_CHANGELOG: ${{ github.event.inputs.changelog }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CHANGELOG="${{ github.event.inputs.changelog }}"
+            CHANGELOG="$INPUT_CHANGELOG"
           else
             CHANGELOG="Release ${{ steps.version.outputs.tag }}"
           fi
