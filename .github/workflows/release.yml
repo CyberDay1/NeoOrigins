@@ -215,7 +215,7 @@ jobs:
           version: ${{ steps.version.outputs.tag }}+26.1
           changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
-          game-versions: "26.1,26.1.1,26.1.2"
+          game-versions: "26.1"
           channel: release
 
       - name: Upload to Modrinth (MC 1.21.1)
