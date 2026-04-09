@@ -2,6 +2,8 @@ package com.cyberday1.neoorigins.screen.model;
 
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
@@ -36,6 +38,16 @@ public record OriginDetailViewModel(
         List<String> names = new ArrayList<>();
         List<String> descs = new ArrayList<>();
 
+        // Pre-count skill slot assignments across all powers in this origin
+        int skillSlot = 1;
+        Map<ResourceLocation, Integer> slotMap = new LinkedHashMap<>();
+        for (ResourceLocation powerId : origin.powers()) {
+            PowerHolder<?> h = PowerDataManager.INSTANCE.getPower(powerId);
+            if (h != null && h.isActive() && skillSlot <= 4) {
+                slotMap.put(powerId, skillSlot++);
+            }
+        }
+
         for (ResourceLocation powerId : origin.powers()) {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             String holderName = holder != null ? holder.name().getString() : "";
@@ -61,7 +73,16 @@ public record OriginDetailViewModel(
                 continue;
             }
 
-            names.add(isNamed ? resolvedName : formatPowerId(powerId));
+            String tag = "";
+            if (holder != null && slotMap.containsKey(powerId)) {
+                int slot = slotMap.get(powerId);
+                if (holder.type() instanceof AbstractTogglePower<?>) {
+                    tag = " [Skill " + slot + " - Toggle]";
+                } else if (holder.type() instanceof AbstractActivePower<?>) {
+                    tag = " [Skill " + slot + "]";
+                }
+            }
+            names.add((isNamed ? resolvedName : formatPowerId(powerId)) + tag);
             descs.add(resolvedDesc);
         }
 

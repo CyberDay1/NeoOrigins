@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 
-public class StatusEffectPower extends PowerType<StatusEffectPower.Config> {
+public class StatusEffectPower extends AbstractTogglePower<StatusEffectPower.Config> {
 
     public record Config(
         ResourceLocation effect,
@@ -31,25 +31,20 @@ public class StatusEffectPower extends PowerType<StatusEffectPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
+    protected void tickEffect(ServerPlayer player, Config config) {
         var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(config.effect());
         if (effectOpt.isEmpty()) return;
         var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
-        // Only apply if not already active at the right level
         var existing = player.getEffect(effectHolder);
         if (existing == null || existing.getAmplifier() < config.amplifier()) {
             player.addEffect(new MobEffectInstance(
-                effectHolder,
-                300, // reapply every 15s (300 ticks), refreshed each tick
-                config.amplifier(),
-                config.ambient(),
-                config.showParticles()
+                effectHolder, 300, config.amplifier(), config.ambient(), config.showParticles()
             ));
         }
     }
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {
+    protected void removeEffect(ServerPlayer player, Config config) {
         var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(config.effect());
         effectOpt.ifPresent(effect ->
             player.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect)));

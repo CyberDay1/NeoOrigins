@@ -6,6 +6,8 @@
   "order": 5,
   "powers": [
     "neoorigins:class_explorer_kit",
+    "neoorigins:class_explorer_clock",
+    "neoorigins:class_explorer_maps",
     "neoorigins:class_explorer_stamina"
   ],
   "upgrades": []

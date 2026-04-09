@@ -1,12 +1,12 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
-public class WallClimbingPower extends PowerType<WallClimbingPower.Config> {
+public class WallClimbingPower extends AbstractTogglePower<WallClimbingPower.Config> {
 
     public record Config(String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -18,19 +18,15 @@ public class WallClimbingPower extends PowerType<WallClimbingPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
-        // Spider-climb: if player is touching a wall mid-air, slow their fall velocity
+    protected void tickEffect(ServerPlayer player, Config config) {
         if (player.horizontalCollision && !player.onGround()) {
             var delta = player.getDeltaMovement();
             if (delta.y < 0) {
-                // Clamp downward speed to simulate climbing
                 player.setDeltaMovement(delta.x, Math.max(delta.y, -0.15), delta.z);
             }
         }
     }
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {
-        // Stop climbing if they lose this power
-    }
+    protected void removeEffect(ServerPlayer player, Config config) {}
 }

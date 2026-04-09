@@ -1,10 +1,9 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -14,10 +13,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * After sneaking for a threshold number of ticks, grants invisibility and mob-ignore.
- * Clears when the player stops sneaking.
+ * After sneaking for a threshold number of ticks, grants invisibility.
+ * Clears when the player stops sneaking. Can be toggled off via keybind.
  */
-public class StealthPower extends PowerType<StealthPower.Config> {
+public class StealthPower extends AbstractTogglePower<StealthPower.Config> {
 
     private static final Map<UUID, Integer> SNEAK_TICKS = new ConcurrentHashMap<>();
 
@@ -32,7 +31,7 @@ public class StealthPower extends PowerType<StealthPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
+    protected void tickEffect(ServerPlayer player, Config config) {
         UUID id = player.getUUID();
         if (player.isShiftKeyDown()) {
             int ticks = SNEAK_TICKS.merge(id, 1, Integer::sum);
@@ -45,7 +44,7 @@ public class StealthPower extends PowerType<StealthPower.Config> {
     }
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {
+    protected void removeEffect(ServerPlayer player, Config config) {
         SNEAK_TICKS.remove(player.getUUID());
     }
 }

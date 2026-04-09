@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,7 +11,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-public class ItemMagnetismPower extends PowerType<ItemMagnetismPower.Config> {
+public class ItemMagnetismPower extends AbstractTogglePower<ItemMagnetismPower.Config> {
 
     public record Config(double radius, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -24,8 +24,8 @@ public class ItemMagnetismPower extends PowerType<ItemMagnetismPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
-        if (player.tickCount % 2 != 0) return; // every 2 ticks is enough
+    protected void tickEffect(ServerPlayer player, Config config) {
+        if (player.tickCount % 2 != 0) return;
         AABB box = player.getBoundingBox().inflate(config.radius());
         if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
         List<ItemEntity> items = sl.getEntitiesOfClass(ItemEntity.class, box,
@@ -35,4 +35,7 @@ public class ItemMagnetismPower extends PowerType<ItemMagnetismPower.Config> {
             item.setDeltaMovement(item.getDeltaMovement().add(dir));
         }
     }
+
+    @Override
+    protected void removeEffect(ServerPlayer player, Config config) {}
 }
