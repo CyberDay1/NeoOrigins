@@ -3,6 +3,8 @@ package com.cyberday1.neoorigins.screen.model;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.google.gson.JsonElement;
@@ -61,7 +63,15 @@ public record OriginDetailViewModel(
                 continue;
             }
 
-            names.add(isNamed ? resolvedName : formatPowerId(powerId));
+            String displayName = isNamed ? resolvedName : formatPowerId(powerId);
+            if (holder != null) {
+                if (holder.type() instanceof AbstractTogglePower<?>) {
+                    displayName += " [Toggle]";
+                } else if (holder.type() instanceof AbstractActivePower<?>) {
+                    displayName += " [Active]";
+                }
+            }
+            names.add(displayName);
             descs.add(resolvedDesc);
         }
 

@@ -1,12 +1,12 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
-public class FlightPower extends PowerType<FlightPower.Config> {
+public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
     public record Config(String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -21,10 +21,7 @@ public class FlightPower extends PowerType<FlightPower.Config> {
     public void onGranted(ServerPlayer player, Config config) {}
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {}
-
-    @Override
-    public void onTick(ServerPlayer player, Config config) {
+    protected void tickEffect(ServerPlayer player, Config config) {
         // Allow elytra glide without wearing an elytra.
         // Activate when the player is airborne, descending, and not already gliding.
         if (!player.onGround()
@@ -36,4 +33,7 @@ public class FlightPower extends PowerType<FlightPower.Config> {
             player.startFallFlying();
         }
     }
+
+    @Override
+    protected void removeEffect(ServerPlayer player, Config config) {}
 }

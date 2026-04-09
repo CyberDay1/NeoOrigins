@@ -1,4 +1,6 @@
 {
+  "neoorigins.toggle.on": "Power enabled",
+  "neoorigins.toggle.off": "Power disabled",
   "origins.layer.origin": "Origin",
   "origins.layer.class": "Class",
   "screen.neoorigins.choose_origin": "Choose Your Origin",

@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -9,7 +9,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 
-public class StatusEffectPower extends PowerType<StatusEffectPower.Config> {
+public class StatusEffectPower extends AbstractTogglePower<StatusEffectPower.Config> {
 
     public record Config(
         Identifier effect,
@@ -31,7 +31,7 @@ public class StatusEffectPower extends PowerType<StatusEffectPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
+    protected void tickEffect(ServerPlayer player, Config config) {
         var effectHolderOpt = BuiltInRegistries.MOB_EFFECT.get(config.effect());
         if (effectHolderOpt.isEmpty()) return;
         var effectHolder = effectHolderOpt.get();
@@ -49,7 +49,7 @@ public class StatusEffectPower extends PowerType<StatusEffectPower.Config> {
     }
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {
+    protected void removeEffect(ServerPlayer player, Config config) {
         var effectHolderOpt = BuiltInRegistries.MOB_EFFECT.get(config.effect());
         effectHolderOpt.ifPresent(player::removeEffect);
     }

@@ -1,14 +1,14 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 
-public class PhantomFormPower extends PowerType<PhantomFormPower.Config> {
+public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Config> {
 
     public record Config(
         boolean invisibility,
@@ -26,7 +26,7 @@ public class PhantomFormPower extends PowerType<PhantomFormPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
+    protected void tickEffect(ServerPlayer player, Config config) {
         if (config.invisibility()) {
             var existing = player.getEffect(MobEffects.INVISIBILITY);
             if (existing == null || existing.getDuration() < 210) {
@@ -39,7 +39,7 @@ public class PhantomFormPower extends PowerType<PhantomFormPower.Config> {
     }
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {
+    protected void removeEffect(ServerPlayer player, Config config) {
         if (config.invisibility()) {
             player.removeEffect(MobEffects.INVISIBILITY);
         }
