@@ -51,7 +51,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     protected abstract void tickEffect(ServerPlayer player, C config);
     protected abstract void removeEffect(ServerPlayer player, C config);
 
-    private boolean isToggledOff(ServerPlayer player) {
+    public boolean isToggledOff(ServerPlayer player) {
         Set<UUID> offSet = TOGGLED_OFF.get(getToggleKey());
         return offSet != null && offSet.contains(player.getUUID());
     }

@@ -9,10 +9,13 @@ import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
+import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
@@ -58,6 +61,18 @@ public class NeoOriginsNetwork {
             ActivatePowerPayload.TYPE,
             ActivatePowerPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleActivatePower
+        );
+
+        registrar.playToServer(
+            AirJumpPayload.TYPE,
+            AirJumpPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleAirJump
+        );
+
+        registrar.playToServer(
+            ActivateClassPowerPayload.TYPE,
+            ActivateClassPowerPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleActivateClassPower
         );
     }
 
@@ -135,6 +150,28 @@ public class NeoOriginsNetwork {
             if (slot >= actives.size()) return;
 
             actives.get(slot).onActivated(sp);
+        });
+    }
+
+    private static void handleActivateClassPower(ActivateClassPowerPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+
+            List<PowerHolder<?>> classActives = ActiveOriginService.activeClassPowers(sp);
+            if (classActives.isEmpty()) return;
+
+            // Activate the first (and typically only) class active power
+            classActives.get(0).onActivated(sp);
+        });
+    }
+
+    private static void handleAirJump(AirJumpPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (sp.onGround() || sp.isInWater() || sp.isPassenger() || sp.isSpectator()) return;
+            if (sp.isFallFlying()) return;
+            if (!FlightPower.isActive(sp)) return;
+            sp.startFallFlying();
         });
     }
 
