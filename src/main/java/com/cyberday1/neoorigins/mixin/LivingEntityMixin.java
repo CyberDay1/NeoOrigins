@@ -27,9 +27,14 @@ public abstract class LivingEntityMixin {
                 && FlightPower.isActive(sp)) {
             self.checkSlowFallDistance();
             if (!self.level().isClientSide) {
-                // Don't check canGlide() — allow flight without elytra.
-                // Don't damage equipment — there's no elytra to damage.
-                this.fallFlyTicks++;
+                // Stop flight on ground, in water, or as passenger (same as vanilla canGlide)
+                if (self.onGround() || self.isInWater() || self.isPassenger()) {
+                    sp.stopFallFlying();
+                } else {
+                    // Don't check canGlide() — allow flight without elytra.
+                    // Don't damage equipment — there's no elytra to damage.
+                    this.fallFlyTicks++;
+                }
             }
             ci.cancel();
         }
