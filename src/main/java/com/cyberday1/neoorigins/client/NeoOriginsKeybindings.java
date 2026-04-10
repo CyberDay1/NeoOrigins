@@ -32,10 +32,17 @@ public class NeoOriginsKeybindings {
         NEOORIGINS_CATEGORY
     );
 
+    public static final KeyMapping CLASS_SKILL = new KeyMapping(
+        "key.neoorigins.class_skill",
+        GLFW.GLFW_KEY_H,
+        NEOORIGINS_CATEGORY
+    );
+
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(SKILL_1);
         event.register(SKILL_2);
         event.register(SKILL_3);
         event.register(SKILL_4);
+        event.register(CLASS_SKILL);
     }
 }

@@ -64,7 +64,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     /** Called once when the power is toggled OFF or revoked. Clean up effects here. */
     protected abstract void removeEffect(ServerPlayer player, C config);
 
-    private boolean isToggledOff(ServerPlayer player) {
+    public boolean isToggledOff(ServerPlayer player) {
         Set<UUID> offSet = TOGGLED_OFF.get(getToggleKey());
         return offSet != null && offSet.contains(player.getUUID());
     }

@@ -25,10 +25,18 @@ public class ActiveFireballPower extends AbstractActivePower<ActiveFireballPower
     protected boolean execute(ServerPlayer player, Config config) {
         ServerLevel level = (ServerLevel) player.level();
         Vec3 look = player.getLookAngle();
-        SmallFireball fireball = new SmallFireball(level, player, look.scale(config.speed()));
         Vec3 spawn = player.getEyePosition().add(look.scale(2.0));
-        fireball.setPos(spawn.x, spawn.y, spawn.z);
-        level.addFreshEntity(fireball);
+        int count = 3 + player.getRandom().nextInt(2); // 3-4 fireballs
+        for (int i = 0; i < count; i++) {
+            // Add slight random spread to each fireball
+            double spreadX = (player.getRandom().nextDouble() - 0.5) * 0.15;
+            double spreadY = (player.getRandom().nextDouble() - 0.5) * 0.10;
+            double spreadZ = (player.getRandom().nextDouble() - 0.5) * 0.15;
+            Vec3 dir = look.add(spreadX, spreadY, spreadZ).normalize().scale(config.speed());
+            SmallFireball fireball = new SmallFireball(level, player, dir);
+            fireball.setPos(spawn.x, spawn.y, spawn.z);
+            level.addFreshEntity(fireball);
+        }
         return true;
     }
 }

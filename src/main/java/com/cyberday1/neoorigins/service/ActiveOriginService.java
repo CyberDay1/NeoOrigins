@@ -85,14 +85,28 @@ public final class ActiveOriginService {
         return false;
     }
 
-    /** Returns active (keybind-slot) power holders in deterministic order. */
+    private static final ResourceLocation CLASS_LAYER =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
+
+    /** Returns active (keybind-slot) power holders from origin layers only (excludes class). */
     public static List<PowerHolder<?>> activePowers(ServerPlayer player) {
+        return activePowersForLayer(player, false);
+    }
+
+    /** Returns active (keybind-slot) power holders from the class layer only. */
+    public static List<PowerHolder<?>> activeClassPowers(ServerPlayer player) {
+        return activePowersForLayer(player, true);
+    }
+
+    private static List<PowerHolder<?>> activePowersForLayer(ServerPlayer player, boolean classOnly) {
         ResourceKey<Level> dimension = player.level().dimension();
         List<PowerHolder<?>> result = new ArrayList<>();
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         data.getOrigins().entrySet().stream()
             .sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
             .forEach(entry -> {
+                boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+                if (classOnly != isClassLayer) return;
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                 if (origin == null) return;
                 for (ResourceLocation powerId : origin.powers()) {
