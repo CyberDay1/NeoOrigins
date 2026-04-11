@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -14,8 +15,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Periodically applies bone-meal growth to nearby bonemealable blocks (crops, saplings, etc.).
+ * Periodically applies bone-meal growth to nearby farm crops.
  * Radius is in blocks; growthsPerInterval controls how many random crops grow per interval.
+ *
+ * <p>Candidates are filtered by {@link BlockTags#CROPS} — wheat,
+ * carrots, potatoes, beetroot, pumpkin / melon stems, nether wart,
+ * cocoa, torchflower and pitcher crops. Grass blocks, seagrass,
+ * saplings, vines, kelp and other ambient "bonemealable" blocks are
+ * deliberately excluded so walking around as a Herbalist doesn't
+ * spawn random flowers, tall grass, seagrass or trees in the world
+ * around the player (reported bug — v1.3.1).
  */
 public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorPower.Config> {
 
@@ -46,7 +55,8 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
                 for (int z = -r; z <= r; z++) {
                     BlockPos pos = center.offset(x, y, z);
                     BlockState state = level.getBlockState(pos);
-                    if (state.getBlock() instanceof BonemealableBlock bmb
+                    if (isFarmCrop(state)
+                            && state.getBlock() instanceof BonemealableBlock bmb
                             && bmb.isValidBonemealTarget(level, pos, state)) {
                         candidates.add(pos.immutable());
                     }
@@ -62,12 +72,26 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
             int idx = level.getRandom().nextInt(candidates.size());
             BlockPos pos = candidates.get(idx);
             BlockState state = level.getBlockState(pos);
-            if (state.getBlock() instanceof BonemealableBlock bmb
+            if (isFarmCrop(state)
+                    && state.getBlock() instanceof BonemealableBlock bmb
                     && bmb.isValidBonemealTarget(level, pos, state)) {
                 bmb.performBonemeal(level, level.getRandom(), pos, state);
                 level.levelEvent(2005, pos, 0); // bonemeal particles
             }
             candidates.remove(idx);
         }
+    }
+
+    /**
+     * Whether a block state should be considered a "farm crop" for the
+     * purposes of the Herbalist growth power. Gates on
+     * {@link BlockTags#CROPS}, which in 1.21.1 covers wheat, carrots,
+     * potatoes, beetroot, pumpkin / melon stems (attached and free),
+     * nether wart, cocoa, torchflower and pitcher crops. Everything
+     * else — grass blocks, seagrass, saplings, kelp, vines, flowers,
+     * moss, dripleaf, etc. — is explicitly excluded.
+     */
+    private static boolean isFarmCrop(BlockState state) {
+        return state.is(BlockTags.CROPS);
     }
 }
