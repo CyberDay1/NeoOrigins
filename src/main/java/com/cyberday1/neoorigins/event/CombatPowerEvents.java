@@ -105,7 +105,12 @@ public class CombatPowerEvents {
             if (cfg.multiplier() <= 0.0f) {
                 event.setCanceled(true);
             } else {
-                event.setStrength(event.getStrength() * cfg.multiplier());
+                // Defence-in-depth clamp (see onLivingDamage) so a
+                // pathologically large multiplier can't push knockback
+                // strength to Infinity.
+                float scaled = event.getStrength() * cfg.multiplier();
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setStrength(scaled);
             }
         });
     }
