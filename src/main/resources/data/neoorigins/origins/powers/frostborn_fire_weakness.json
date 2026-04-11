@@ -2,5 +2,5 @@
   "type": "neoorigins:modify_damage",
   "direction": "in",
   "multiplier": 2.0,
-  "damage_type": "fire"
+  "damage_type": "onFire"
 }

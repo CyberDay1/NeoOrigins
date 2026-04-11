@@ -56,7 +56,18 @@ public class CombatPowerEvents {
             if (config.direction() == ModifyDamagePower.Direction.IN) {
                 if (config.damageType().isEmpty() ||
                         event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) {
-                    event.setAmount(event.getAmount() * config.multiplier());
+                    // Clamp the result to Float.MAX_VALUE. If we let the
+                    // multiplication overflow to +Infinity (which happens
+                    // when /kill deals Float.MAX_VALUE damage to a player
+                    // whose multiplier is >1), vanilla's damage pipeline
+                    // produces NaN absorption/health from `Infinity -
+                    // Infinity`, and the player ends up stuck in a
+                    // shaking, undying state with NaN health persisted
+                    // to NBT — the save-bricking bug reported against
+                    // Feline on v1.3.0.
+                    float scaled = event.getAmount() * config.multiplier();
+                    if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                    event.setAmount(scaled);
                 }
             }
         });
@@ -66,8 +77,12 @@ public class CombatPowerEvents {
             ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
             var attacker = event.getSource().getEntity();
             if (attacker instanceof LivingEntity le) {
-                ActiveOriginService.forEachOfType(sp, ThornsAuraPower.class, cfg ->
-                    le.hurt(sp.damageSources().magic(), amount * cfg.returnRatio()));
+                ActiveOriginService.forEachOfType(sp, ThornsAuraPower.class, cfg -> {
+                    // Same overflow-safe clamp for the thorns reflection.
+                    float reflected = amount * cfg.returnRatio();
+                    if (!Float.isFinite(reflected)) reflected = Float.MAX_VALUE;
+                    le.hurt(sp.damageSources().magic(), reflected);
+                });
             }
         }
     }
@@ -90,7 +105,12 @@ public class CombatPowerEvents {
             if (cfg.multiplier() <= 0.0f) {
                 event.setCanceled(true);
             } else {
-                event.setStrength(event.getStrength() * cfg.multiplier());
+                // Defence-in-depth clamp (see onLivingDamage) so a
+                // pathologically large multiplier can't push knockback
+                // strength to Infinity.
+                float scaled = event.getStrength() * cfg.multiplier();
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setStrength(scaled);
             }
         });
     }

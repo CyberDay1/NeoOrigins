@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:modify_damage",
   "direction": "in",
-  "multiplier": 1.5
+  "multiplier": 1.5,
+  "damage_type": "onFire"
 }

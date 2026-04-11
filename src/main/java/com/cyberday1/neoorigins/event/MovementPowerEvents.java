@@ -42,11 +42,19 @@ public class MovementPowerEvents {
                 TagKey<Block> tag = TagKey.create(Registries.BLOCK, tagId);
                 return event.getState().is(tag);
             }).orElse(true);
-            if (applies) event.setNewSpeed(event.getNewSpeed() * cfg.multiplier());
+            if (applies) {
+                // Defence-in-depth clamp against non-finite results
+                // (see CombatPowerEvents.onLivingDamage for context).
+                float scaled = event.getNewSpeed() * cfg.multiplier();
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setNewSpeed(scaled);
+            }
         });
         if (ActiveOriginService.has(sp, UnderwaterMiningSpeedPower.class, c -> true)
                 && sp.isInWater() && !sp.onGround()) {
-            event.setNewSpeed(event.getNewSpeed() * 5.0f);
+            float scaled = event.getNewSpeed() * 5.0f;
+            if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+            event.setNewSpeed(scaled);
         }
     }
 

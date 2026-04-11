@@ -97,7 +97,14 @@ public class WorldPowerEvents {
         final float[] mult = {1.0f};
         ActiveOriginService.forEachOfType(sp, NaturalRegenModifierPower.class,
             cfg -> mult[0] *= cfg.multiplier());
-        if (mult[0] != 1.0f) event.setAmount(event.getAmount() * mult[0]);
+        if (mult[0] != 1.0f) {
+            // Defence-in-depth clamp against non-finite results — see
+            // CombatPowerEvents.onLivingDamage for the full story of
+            // how an unclamped multiply can brick a save via NaN health.
+            float scaled = event.getAmount() * mult[0];
+            if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+            event.setAmount(scaled);
+        }
     }
 
     @SubscribeEvent
