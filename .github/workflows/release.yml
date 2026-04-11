@@ -126,6 +126,13 @@ jobs:
       contents: write
 
     steps:
+      # Full checkout so we have the annotated-tag metadata — we pull
+      # the changelog out of the tag's own message body below.
+      - name: Checkout (for tag metadata)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download MC 26.1 JAR
         uses: actions/download-artifact@v4
         with:
@@ -147,14 +154,42 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
+      # Extract the release changelog in priority order:
+      #   1. workflow_dispatch → the `changelog` input verbatim.
+      #   2. tag push on an annotated tag → the tag's message body,
+      #      stripping any trailing PGP signature block git may append.
+      #   3. tag push on a lightweight tag (no annotation) → the
+      #      pointed-at commit's message.
+      #   4. Last-resort fallback → "Release <tag>".
+      #
+      # The output is written as a heredoc-style multiline value so
+      # downstream steps can embed it in Markdown bodies and multi-line
+      # changelog fields (CurseForge, Modrinth, the GitHub Release body).
       - name: Determine changelog
         id: notes
         run: |
+          TAG="${{ steps.version.outputs.tag }}"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CHANGELOG="${{ github.event.inputs.changelog }}"
           else
-            CHANGELOG="Release ${{ steps.version.outputs.tag }}"
+            # Make sure the tag ref is available locally even if
+            # fetch-depth didn't grab it for some reason.
+            git fetch --tags --force origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
+
+            CHANGELOG=$(git tag -l --format='%(contents)' "$TAG" \
+              | sed '/-----BEGIN PGP SIGNATURE-----/,/-----END PGP SIGNATURE-----/d')
+
+            # Lightweight tag (no annotation) → use the commit body.
+            if [ -z "$(echo "$CHANGELOG" | tr -d '[:space:]')" ]; then
+              CHANGELOG=$(git log -1 --format=%B "$TAG" 2>/dev/null || true)
+            fi
+
+            if [ -z "$(echo "$CHANGELOG" | tr -d '[:space:]')" ]; then
+              CHANGELOG="Release $TAG"
+            fi
           fi
+
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "changelog<<$EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
@@ -195,63 +230,63 @@ jobs:
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
 
-      - name: Upload to CurseForge (MC 26.1 / 26.1.1 / 26.1.2)
-        if: vars.CURSEFORGE_PROJECT_ID != ''
-        continue-on-error: true
-        uses: itsmeow/curseforge-upload@v3
-        with:
-          file_path: ${{ steps.jars.outputs.jar_26_1 }}
-          game_endpoint: minecraft
-          game_versions: "Minecraft 26.1,Minecraft 26.1.1,Minecraft 26.1.2,NeoForge,Java 25"
-          project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
-          token: ${{ secrets.CURSEFORGE_TOKEN }}
-          release_type: release
-          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.x)
-          changelog: ${{ steps.notes.outputs.changelog }}
+      # ----------------------------------------------------------------
+      # Platform publishing — CurseForge + Modrinth
+      # ----------------------------------------------------------------
+      # Migrated from itsmeow/curseforge-upload + cloudnode-pro/modrinth-publish
+      # to Kir-Antipov/mc-publish, which resolves CurseForge game-version
+      # slugs via its own lookup table rather than the brittle string
+      # match the old action used. The old action was silently uploading
+      # jars without any game-version metadata on CurseForge, forcing a
+      # manual fixup in the web UI after every release.
+      #
+      # Each jar is published as one mc-publish invocation that hits
+      # both platforms in a single step.
 
-      - name: Upload to CurseForge (MC 1.21.1)
-        if: vars.CURSEFORGE_PROJECT_ID != ''
+      - name: Publish MC 26.1.x jar (CurseForge + Modrinth)
+        if: vars.CURSEFORGE_PROJECT_ID != '' || vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
-        uses: itsmeow/curseforge-upload@v3
+        uses: Kir-Antipov/mc-publish@v1.3
         with:
-          file_path: ${{ steps.jars.outputs.jar_1_21_1 }}
-          game_endpoint: minecraft
-          game_versions: "Minecraft 1.21.1,NeoForge,Java 21"
-          project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
-          token: ${{ secrets.CURSEFORGE_TOKEN }}
-          release_type: release
-          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 1.21.1)
-          changelog: ${{ steps.notes.outputs.changelog }}
-
-      - name: Upload to Modrinth (MC 26.1 / 26.1.1 / 26.1.2)
-        if: vars.MODRINTH_PROJECT_ID != ''
-        continue-on-error: true
-        uses: cloudnode-pro/modrinth-publish@v2
-        with:
-          token: ${{ secrets.MODRINTH_TOKEN }}
-          project: ${{ vars.MODRINTH_PROJECT_ID }}
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: ${{ steps.jars.outputs.jar_26_1 }}
           name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.x)
           version: ${{ steps.version.outputs.tag }}+26.1
+          version-type: release
           changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
           game-versions: |
             26.1
             26.1.1
             26.1.2
-          channel: release
+          java: |
+            25
+          retry-attempts: 2
+          retry-delay: 10000
+          fail-mode: warn
 
-      - name: Upload to Modrinth (MC 1.21.1)
-        if: vars.MODRINTH_PROJECT_ID != ''
+      - name: Publish MC 1.21.1 jar (CurseForge + Modrinth)
+        if: vars.CURSEFORGE_PROJECT_ID != '' || vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
-        uses: cloudnode-pro/modrinth-publish@v2
+        uses: Kir-Antipov/mc-publish@v1.3
         with:
-          token: ${{ secrets.MODRINTH_TOKEN }}
-          project: ${{ vars.MODRINTH_PROJECT_ID }}
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: ${{ steps.jars.outputs.jar_1_21_1 }}
           name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 1.21.1)
           version: ${{ steps.version.outputs.tag }}+1.21.1
+          version-type: release
           changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
-          game-versions: "1.21.1"
-          channel: release
+          game-versions: |
+            1.21.1
+          java: |
+            21
+          retry-attempts: 2
+          retry-delay: 10000
+          fail-mode: warn
