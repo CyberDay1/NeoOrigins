@@ -7,12 +7,24 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to release (e.g. v1.1.0)'
+        description: 'Version tag to release (e.g. v1.3.2)'
         required: true
       changelog:
         description: 'Release changelog (markdown)'
         required: true
         default: 'No changelog provided.'
+
+# Post-Stonecutter layout (2026-04):
+#   - `master` branch builds a single jar at `build/libs/` for MC
+#     26.1.2, declared compatible with [26.1, 26.2) via
+#     minecraft_version_range, and is published under all three MC
+#     26.1.x versions on CurseForge/Modrinth in a single upload.
+#   - `1.21.1` branch builds a single jar at `build/libs/` for MC
+#     1.21.1, published under 1.21.1.
+#
+# Neither branch uses Stonecutter any more, so the old `versions/26.1/`
+# and `versions/26.1.1/` subfolder paths from the v1.0.x workflow no
+# longer exist.
 
 jobs:
   build-master:
@@ -43,13 +55,18 @@ jobs:
       - name: Build
         run: ./gradlew build
 
-      - name: Find JAR
+      - name: Find MC 26.1 JAR
         id: jar-26-1
         run: |
-          JAR=$(find build/libs -name 'neoorigins-*.jar' | grep -v sources | grep -v javadoc | head -1)
+          JAR=$(find build/libs -name 'neoorigins-*+26.1.jar' ! -name '*sources*' ! -name '*javadoc*' | head -1)
+          if [ -z "$JAR" ]; then
+            echo "::error::Could not locate master jar under build/libs"
+            ls -la build/libs || true
+            exit 1
+          fi
           echo "path=$JAR" >> $GITHUB_OUTPUT
 
-      - name: Upload JAR
+      - name: Upload MC 26.1 JAR
         uses: actions/upload-artifact@v4
         with:
           name: jar-26-1
@@ -88,7 +105,12 @@ jobs:
       - name: Find MC 1.21.1 JAR
         id: jar-1-21-1
         run: |
-          JAR=$(find build/libs -name 'neoorigins-*.jar' | grep -v sources | grep -v javadoc | head -1)
+          JAR=$(find build/libs -name 'neoorigins-*+1.21.1.jar' ! -name '*sources*' ! -name '*javadoc*' | head -1)
+          if [ -z "$JAR" ]; then
+            echo "::error::Could not locate 1.21.1 jar under build/libs"
+            ls -la build/libs || true
+            exit 1
+          fi
           echo "path=$JAR" >> $GITHUB_OUTPUT
 
       - name: Upload MC 1.21.1 JAR
@@ -127,11 +149,9 @@ jobs:
 
       - name: Determine changelog
         id: notes
-        env:
-          INPUT_CHANGELOG: ${{ github.event.inputs.changelog }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CHANGELOG="$INPUT_CHANGELOG"
+            CHANGELOG="${{ github.event.inputs.changelog }}"
           else
             CHANGELOG="Release ${{ steps.version.outputs.tag }}"
           fi
@@ -158,13 +178,13 @@ jobs:
           body: |
             ## NeoOrigins ${{ steps.version.outputs.tag }}
 
-            Built for **Minecraft 26.1 — 26.1.2** and **1.21.1** with **NeoForge**.
+            Built for **Minecraft 26.1 / 26.1.1 / 26.1.2** and **1.21.1** with **NeoForge**.
 
             ${{ steps.notes.outputs.changelog }}
 
             ### Installation
             Download the JAR matching your Minecraft version and drop it into your `mods/` folder.
-            - `${{ steps.jars.outputs.name_26_1 }}` — for MC 26.1 — 26.1.2
+            - `${{ steps.jars.outputs.name_26_1 }}` — for MC 26.1, 26.1.1, and 26.1.2
             - `${{ steps.jars.outputs.name_1_21_1 }}` — for MC 1.21.1
 
             ### Origins Compatibility
@@ -175,7 +195,7 @@ jobs:
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
 
-      - name: Upload to CurseForge (MC 26.1+)
+      - name: Upload to CurseForge (MC 26.1 / 26.1.1 / 26.1.2)
         if: vars.CURSEFORGE_PROJECT_ID != ''
         continue-on-error: true
         uses: itsmeow/curseforge-upload@v3
@@ -186,7 +206,7 @@ jobs:
           project_id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           token: ${{ secrets.CURSEFORGE_TOKEN }}
           release_type: release
-          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1+)
+          display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.x)
           changelog: ${{ steps.notes.outputs.changelog }}
 
       - name: Upload to CurseForge (MC 1.21.1)
@@ -203,7 +223,7 @@ jobs:
           display_name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 1.21.1)
           changelog: ${{ steps.notes.outputs.changelog }}
 
-      - name: Upload to Modrinth (MC 26.1+)
+      - name: Upload to Modrinth (MC 26.1 / 26.1.1 / 26.1.2)
         if: vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
         uses: cloudnode-pro/modrinth-publish@v2
@@ -211,11 +231,14 @@ jobs:
           token: ${{ secrets.MODRINTH_TOKEN }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
           files: ${{ steps.jars.outputs.jar_26_1 }}
-          name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1+)
+          name: NeoOrigins ${{ steps.version.outputs.tag }} (MC 26.1.x)
           version: ${{ steps.version.outputs.tag }}+26.1
           changelog: ${{ steps.notes.outputs.changelog }}
           loaders: neoforge
-          game-versions: "26.1"
+          game-versions: |
+            26.1
+            26.1.1
+            26.1.2
           channel: release
 
       - name: Upload to Modrinth (MC 1.21.1)
