@@ -37,18 +37,18 @@ public class CraftingPowerEvents {
 
     @SubscribeEvent
     public static void onEnchantmentLevelSet(EnchantmentLevelSetEvent event) {
-        // EnchantmentLevelSetEvent has no player ref — scan nearby players within 8 blocks
+        // EnchantmentLevelSetEvent has no player ref — spatial query for nearby players
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
         BlockPos pos = event.getPos();
-        for (ServerPlayer sp : sl.players()) {
-            if (sp.blockPosition().closerThan(pos, 8)) {
-                final int[] bonus = {0};
-                ActiveOriginService.forEachOfType(sp, BetterEnchantingPower.class, cfg ->
-                    bonus[0] += cfg.bonusLevels());
-                if (bonus[0] > 0) {
-                    event.setEnchantLevel(event.getEnchantLevel() + bonus[0]);
-                    return;
-                }
+        var nearby = sl.getEntitiesOfClass(ServerPlayer.class,
+            new net.minecraft.world.phys.AABB(pos).inflate(8));
+        for (ServerPlayer sp : nearby) {
+            final int[] bonus = {0};
+            ActiveOriginService.forEachOfType(sp, BetterEnchantingPower.class, cfg ->
+                bonus[0] += cfg.bonusLevels());
+            if (bonus[0] > 0) {
+                event.setEnchantLevel(event.getEnchantLevel() + bonus[0]);
+                return;
             }
         }
     }

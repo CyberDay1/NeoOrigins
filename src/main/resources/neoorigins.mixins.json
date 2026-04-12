@@ -4,7 +4,8 @@
   "package": "com.cyberday1.neoorigins.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "LivingEntityMixin"
+    "LivingEntityMixin",
+    "FoodDataMixin"
   ],
   "injectors": {
     "defaultRequire": 1

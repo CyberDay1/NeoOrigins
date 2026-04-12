@@ -6,12 +6,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -20,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class PlayerOriginData {
 
-    private final Map<Identifier, Identifier> origins = new LinkedHashMap<>();
+    private final Map<Identifier, Identifier> origins = new TreeMap<>();
     private boolean hadAllOrigins = false;
     /** Tracks power grant_ids for StartingEquipmentPower — persisted so items aren't duplicated on respawn. */
     private final Set<String> grantedEquipmentPowers = new HashSet<>();
@@ -28,6 +30,8 @@ public class PlayerOriginData {
     private final List<BlockPos> shadowOrbs = new ArrayList<>();
     /** Tracks how many times the player has used an Orb of Origin — persisted for escalating XP cost. */
     private int orbUseCount = 0;
+    /** Persisted toggle-off state for AbstractTogglePower — keyed by power toggle key. */
+    private final Set<String> toggledOffPowers = new HashSet<>();
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new ConcurrentHashMap<>();
 
@@ -46,19 +50,23 @@ public class PlayerOriginData {
             .forGetter(d -> List.copyOf(d.shadowOrbs)),
         Codec.INT
             .optionalFieldOf("orb_use_count", 0)
-            .forGetter(d -> d.orbUseCount)
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses) -> {
+            .forGetter(d -> d.orbUseCount),
+        Codec.STRING.listOf()
+            .optionalFieldOf("toggled_off_powers", List.of())
+            .forGetter(d -> new ArrayList<>(d.toggledOffPowers))
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
         data.grantedEquipmentPowers.addAll(equipment);
         data.shadowOrbs.addAll(orbs);
         data.orbUseCount = orbUses;
+        data.toggledOffPowers.addAll(toggledOff);
         return data;
     }));
 
     public Map<Identifier, Identifier> getOrigins() {
-        return Map.copyOf(origins);
+        return Collections.unmodifiableMap(origins);
     }
 
     public Identifier getOrigin(Identifier layerId) {
@@ -120,11 +128,25 @@ public class PlayerOriginData {
         orbUseCount++;
     }
 
+    public boolean isPowerToggledOff(String toggleKey) {
+        return toggledOffPowers.contains(toggleKey);
+    }
+
+    public void setPowerToggledOff(String toggleKey, boolean off) {
+        if (off) toggledOffPowers.add(toggleKey);
+        else toggledOffPowers.remove(toggleKey);
+    }
+
+    public void clearToggles() {
+        toggledOffPowers.clear();
+    }
+
     public void clear() {
         origins.clear();
         hadAllOrigins = false;
         grantedEquipmentPowers.clear();
         shadowOrbs.clear();
+        toggledOffPowers.clear();
         activeCooldowns.clear();
     }
 }

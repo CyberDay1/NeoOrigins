@@ -78,6 +78,15 @@ public class PlayerLifecycleEvents {
     }
 
     @SubscribeEvent
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var uuid = sp.getUUID();
+        CompatTickScheduler.clearPlayer(uuid);
+        NeoOriginsNetwork.clearDebounce(uuid);
+        MinionTracker.clearAll(uuid);
+    }
+
+    @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
