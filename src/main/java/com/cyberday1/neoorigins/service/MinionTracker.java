@@ -31,9 +31,11 @@ public final class MinionTracker {
     public static int countAlive(UUID playerUuid, String mobType) {
         List<TrackedMinion> list = MINIONS.get(playerUuid);
         if (list == null) return 0;
-        return (int) list.stream()
-            .filter(m -> m.mobType().equals(mobType) && m.entity().isAlive())
-            .count();
+        int count = 0;
+        for (TrackedMinion m : list) {
+            if (m.mobType().equals(mobType) && m.entity().isAlive()) count++;
+        }
+        return count;
     }
 
     /**

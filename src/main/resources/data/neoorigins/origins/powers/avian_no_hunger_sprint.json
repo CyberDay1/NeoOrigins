@@ -1,9 +1,6 @@
 {
-  "type": "neoorigins:status_effect",
-  "effect": "minecraft:saturation",
-  "amplifier": 0,
-  "ambient": true,
-  "show_particles": false,
+  "type": "neoorigins:hunger_drain_modifier",
+  "multiplier": 0.25,
   "name": "power.neoorigins.avian_no_hunger_sprint.name",
   "description": "power.neoorigins.avian_no_hunger_sprint.description"
 }

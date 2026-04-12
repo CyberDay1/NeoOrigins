@@ -2,44 +2,29 @@ package com.cyberday1.neoorigins.power.builtin.base;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.attachment.OriginAttachments;
+import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * Base class for powers that can be toggled on/off via a skill keybind.
- *
- * <p>When toggled on (default), {@link #tickEffect} is called each server tick.
- * When toggled off, the power is dormant and {@link #removeEffect} is called once.
- * Pressing the skill key flips the state and sends a chat message.
- *
- * <p>Toggle state is session-only (resets to ON on login/respawn).
- */
 public abstract class AbstractTogglePower<C extends PowerConfiguration> extends PowerType<C> {
-
-    /** Players with this power toggled OFF. Absent = ON (default). */
-    private static final Map<String, Set<UUID>> TOGGLED_OFF = new ConcurrentHashMap<>();
 
     @Override
     public final boolean isActivePower() { return true; }
 
     @Override
     public final void onActivated(ServerPlayer player, C config) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
         String key = getToggleKey();
-        Set<UUID> offSet = TOGGLED_OFF.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet());
-        UUID id = player.getUUID();
+        boolean wasOff = data.isPowerToggledOff(key);
 
-        if (offSet.contains(id)) {
-            offSet.remove(id);
+        if (wasOff) {
+            data.setPowerToggledOff(key, false);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
-            offSet.add(id);
+            data.setPowerToggledOff(key, true);
             removeEffect(player, config);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
@@ -54,24 +39,17 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
 
     @Override
     public void onRevoked(ServerPlayer player, C config) {
-        clearToggle(player);
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        data.setPowerToggledOff(getToggleKey(), false);
         removeEffect(player, config);
     }
 
-    /** Called every tick when the power is toggled ON. */
     protected abstract void tickEffect(ServerPlayer player, C config);
-
-    /** Called once when the power is toggled OFF or revoked. Clean up effects here. */
     protected abstract void removeEffect(ServerPlayer player, C config);
 
     public boolean isToggledOff(ServerPlayer player) {
-        Set<UUID> offSet = TOGGLED_OFF.get(getToggleKey());
-        return offSet != null && offSet.contains(player.getUUID());
-    }
-
-    private void clearToggle(ServerPlayer player) {
-        Set<UUID> offSet = TOGGLED_OFF.get(getToggleKey());
-        if (offSet != null) offSet.remove(player.getUUID());
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        return data.isPowerToggledOff(getToggleKey());
     }
 
     private String getToggleKey() {

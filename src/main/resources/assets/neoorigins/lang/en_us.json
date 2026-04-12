@@ -71,7 +71,7 @@
   "power.neoorigins.avian_no_fall_damage.name": "Featherweight",
   "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling.",
   "power.neoorigins.avian_no_hunger_sprint.name": "Athlete's Diet",
-  "power.neoorigins.avian_no_hunger_sprint.description": "Sprinting does not drain extra hunger.",
+  "power.neoorigins.avian_no_hunger_sprint.description": "Uses 75% less energy from all actions.",
 
   "power.neoorigins.blazeling_fire_immunity.name": "Fire Immunity",
   "power.neoorigins.blazeling_fire_immunity.description": "Immune to fire, lava, and burning.",

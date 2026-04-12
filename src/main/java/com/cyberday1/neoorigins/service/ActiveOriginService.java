@@ -41,9 +41,7 @@ public final class ActiveOriginService {
     public static void forEach(ServerPlayer player, Consumer<PowerHolder<?>> action) {
         ResourceKey<Level> dimension = player.level().dimension();
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.getOrigins().entrySet().stream()
-            .sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
-            .forEach(entry -> {
+        data.getOrigins().entrySet().forEach(entry -> {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                 if (origin == null) return;
                 for (ResourceLocation powerId : origin.powers()) {
@@ -102,9 +100,7 @@ public final class ActiveOriginService {
         ResourceKey<Level> dimension = player.level().dimension();
         List<PowerHolder<?>> result = new ArrayList<>();
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.getOrigins().entrySet().stream()
-            .sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
-            .forEach(entry -> {
+        data.getOrigins().entrySet().forEach(entry -> {
                 boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
                 if (classOnly != isClassLayer) return;
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
@@ -122,9 +118,7 @@ public final class ActiveOriginService {
     public static void revokeAllPowers(ServerPlayer player) {
         // Revoke bypasses dimension restrictions — always clean up all powers
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.getOrigins().entrySet().stream()
-            .sorted((a, b) -> a.getKey().toString().compareTo(b.getKey().toString()))
-            .forEach(entry -> {
+        data.getOrigins().entrySet().forEach(entry -> {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                 if (origin == null) return;
                 for (ResourceLocation powerId : origin.powers()) {

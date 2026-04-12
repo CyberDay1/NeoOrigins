@@ -26,24 +26,28 @@ public class OriginSelectionScreen extends Screen {
     private static final int SEARCH_GAP       = 3;
     private static final int LIST_BTN_H       = 22;
     private static final int LIST_BTN_GAP     = 2;
-    private static final int LEFT_W           = 164;
+    private static final int MIN_LEFT_W       = 130;
+    private static final int MAX_LEFT_W       = 200;
     private static final int PANEL_GAP        = 8;
     private static final int DETAIL_PAD       = 10;
     private static final int HEADER_H         = DETAIL_PAD + 32 + 6 + 9 + 4 + 5 + 10; // 76
     private static final int DOT_SIZE         = 5;
     private static final int DOT_SPACING      = 8;
     private static final int DOT_COUNT        = 4;
+    private static final int LINE_H           = 10;
 
     private final boolean isOrb;
     private final boolean forceReselect;
     private final OriginSelectionPresenter presenter = new OriginSelectionPresenter();
 
     // Computed layout geometry
-    private int panelX, panelBottom, rightX, rightW, listTop, listVisibleCount;
+    private int panelX, panelBottom, leftW, rightX, rightW, listTop, listVisibleCount;
+    private int detailTextW; // usable text width inside the detail panel
 
     // Detail panel state
     private OriginDetailViewModel detailViewModel = OriginDetailViewModel.EMPTY;
     private List<FormattedCharSequence> descLines = List.of();
+    private List<List<FormattedCharSequence>> wrappedPowerDescs = List.of();
     private int detailScrollOffset = 0;
     private int detailContentH     = 0;
 
@@ -69,11 +73,13 @@ public class OriginSelectionScreen extends Screen {
     protected void init() {
         presenter.setForceReselect(forceReselect);
         if (!presenter.init()) { onClose(); return; }
-        int totalW       = Math.min(width - 40, 660);
+        int totalW       = Math.max(280, width - 40);
+        leftW            = Mth.clamp((int)(totalW * 0.30f), MIN_LEFT_W, MAX_LEFT_W);
         panelX           = (width - totalW) / 2;
         panelBottom      = height - PANEL_BTM_MARGIN;
-        rightX           = panelX + LEFT_W + PANEL_GAP;
-        rightW           = totalW - LEFT_W - PANEL_GAP;
+        rightX           = panelX + leftW + PANEL_GAP;
+        rightW           = totalW - leftW - PANEL_GAP;
+        detailTextW      = rightW - DETAIL_PAD * 2 - 6;
         listTop          = PANEL_TOP + SEARCH_H + SEARCH_GAP;
         listVisibleCount = Math.max(1, (panelBottom - listTop) / (LIST_BTN_H + LIST_BTN_GAP));
         presenter.buildRows();
@@ -105,12 +111,43 @@ public class OriginSelectionScreen extends Screen {
     private void updateDetail() {
         detailViewModel = OriginDetailViewModel.compute(presenter.selectedOriginId());
         if (detailViewModel.origin() != null) {
-            descLines      = font.split(detailViewModel.origin().description(), rightW - DETAIL_PAD * 2 - 6);
-            detailContentH = detailViewModel.computeContentHeight(descLines.size());
+            descLines = font.split(detailViewModel.origin().description(), detailTextW);
+
+            // Pre-wrap power descriptions
+            List<String> pDescs = detailViewModel.powerDescs();
+            List<List<FormattedCharSequence>> wrapped = new ArrayList<>();
+            int powerDescW = detailTextW - 8; // indent for bullet point
+            for (String desc : pDescs) {
+                if (desc.isEmpty()) {
+                    wrapped.add(List.of());
+                } else {
+                    wrapped.add(font.split(Component.literal(desc), powerDescW));
+                }
+            }
+            wrappedPowerDescs = wrapped;
+
+            // Compute content height with wrapped lines
+            detailContentH = computeContentHeight();
         } else {
-            descLines      = List.of();
+            descLines = List.of();
+            wrappedPowerDescs = List.of();
             detailContentH = 0;
         }
+    }
+
+    private int computeContentHeight() {
+        int h = 8 + descLines.size() * LINE_H + 8; // separator + desc + gap
+        List<String> pNames = detailViewModel.powerNames();
+        if (!pNames.isEmpty()) {
+            h += 9 + 4; // "Powers" header
+            for (int i = 0; i < pNames.size(); i++) {
+                h += 11; // power name line
+                if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
+                    h += wrappedPowerDescs.get(i).size() * LINE_H;
+                }
+            }
+        }
+        return h + 6; // bottom padding
     }
 
     private void refreshWidgets() {
@@ -118,7 +155,7 @@ public class OriginSelectionScreen extends Screen {
         originButtons.clear();
         visibleHeaders.clear();
 
-        var search = new EditBox(font, panelX, PANEL_TOP + 1, LEFT_W, SEARCH_H,
+        var search = new EditBox(font, panelX, PANEL_TOP + 1, leftW, SEARCH_H,
             Component.translatable("gui.neoorigins.search.label"));
         search.setMaxLength(64);
         search.setHint(Component.translatable("gui.neoorigins.search.hint"));
@@ -139,7 +176,7 @@ public class OriginSelectionScreen extends Screen {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(row.id());
                 if (origin != null) {
                     final ResourceLocation rowId = row.id();
-                    var btn = new OriginButton(panelX, btnY, LEFT_W, LIST_BTN_H, origin,
+                    var btn = new OriginButton(panelX, btnY, leftW, LIST_BTN_H, origin,
                         b -> selectOrigin(rowId));
                     btn.setSelected(rowId.equals(presenter.selectedOriginId()));
                     originButtons.add(btn);
@@ -184,11 +221,11 @@ public class OriginSelectionScreen extends Screen {
         String prog = (presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers();
         g.drawString(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
 
-        g.fill(panelX - 1, PANEL_TOP - 1, panelX + LEFT_W + 1, panelBottom + 1, 0xFF0E0E1C);
-        g.renderOutline(panelX - 1, PANEL_TOP - 1, LEFT_W + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        g.fill(panelX - 1, PANEL_TOP - 1, panelX + leftW + 1, panelBottom + 1, 0xFF0E0E1C);
+        g.renderOutline(panelX - 1, PANEL_TOP - 1, leftW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
 
         for (var vh : visibleHeaders) {
-            g.fill(panelX, vh.y(), panelX + LEFT_W, vh.y() + LIST_BTN_H, 0xFF080818);
+            g.fill(panelX, vh.y(), panelX + leftW, vh.y() + LIST_BTN_H, 0xFF080818);
             g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, 0xFF334488);
             g.drawString(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
         }
@@ -233,11 +270,10 @@ public class OriginSelectionScreen extends Screen {
         sy += 8;
         for (FormattedCharSequence line : descLines) {
             g.drawString(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
-            sy += 10;
+            sy += LINE_H;
         }
         sy += 8;
         List<String> pNames = detailViewModel.powerNames();
-        List<String> pDescs = detailViewModel.powerDescs();
         if (!pNames.isEmpty()) {
             g.drawString(font, Component.translatable("gui.neoorigins.detail.powers_header"), rightX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
             sy += 9 + 4;
@@ -245,9 +281,11 @@ public class OriginSelectionScreen extends Screen {
                 g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, 0xFF4A90D9);
                 g.drawString(font, pNames.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
                 sy += 11;
-                if (i < pDescs.size() && !pDescs.get(i).isEmpty()) {
-                    g.drawString(font, pDescs.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF445566, false);
-                    sy += 10;
+                if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
+                    for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
+                        g.drawString(font, dLine, rightX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                        sy += LINE_H;
+                    }
                 }
             }
         }
@@ -282,7 +320,7 @@ public class OriginSelectionScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        if (mx >= panelX && mx <= panelX + LEFT_W && my >= listTop && my <= panelBottom) {
+        if (mx >= panelX && mx <= panelX + leftW && my >= listTop && my <= panelBottom) {
             int next = Mth.clamp(presenter.listScrollOffset() + (sy > 0 ? -1 : 1), 0, getMaxListScroll());
             if (next != presenter.listScrollOffset()) { presenter.setListScrollOffset(next); refreshWidgets(); }
             return true;

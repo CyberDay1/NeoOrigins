@@ -174,6 +174,12 @@ public class NeoOriginsNetwork {
         });
     }
 
+    /** Clean up debounce entries for a player on logout. */
+    public static void clearDebounce(java.util.UUID playerUuid) {
+        String prefix = playerUuid + ":";
+        LAST_ACTIVATE_TICK.keySet().removeIf(key -> key.startsWith(prefix));
+    }
+
     /** Send the player's full origin data to themselves. */
     public static void syncToPlayer(ServerPlayer player) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());

@@ -2,37 +2,44 @@ package com.cyberday1.neoorigins.compat;
 
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
  * Lightweight tick-delayed action scheduler for Route B powers.
- * Entries are drained in OriginEventHandler.onPlayerTick.
+ * Entries are drained in PlayerLifecycleEvents.onPlayerTick.
  */
 public final class CompatTickScheduler {
 
     private CompatTickScheduler() {}
 
-    private record ScheduledAction(long tickTarget, UUID playerId, Consumer<ServerPlayer> action) {}
+    private record ScheduledAction(long tickTarget, Consumer<ServerPlayer> action) {}
 
-    private static final ConcurrentLinkedDeque<ScheduledAction> QUEUE = new ConcurrentLinkedDeque<>();
+    /** Player UUID → list of scheduled actions. */
+    private static final Map<UUID, Deque<ScheduledAction>> QUEUES = new ConcurrentHashMap<>();
 
     public static void schedule(long tickTarget, ServerPlayer player, Consumer<ServerPlayer> action) {
-        QUEUE.add(new ScheduledAction(tickTarget, player.getUUID(), action));
+        QUEUES.computeIfAbsent(player.getUUID(), k -> new ArrayDeque<>())
+            .add(new ScheduledAction(tickTarget, action));
     }
 
-    /** Called from OriginEventHandler.onPlayerTick. Drains and runs expired entries for this player. */
+    /** Called from PlayerLifecycleEvents.onPlayerTick. Drains expired entries for this player only. */
     public static void tick(ServerPlayer player) {
-        if (QUEUE.isEmpty()) return;
+        Deque<ScheduledAction> queue = QUEUES.get(player.getUUID());
+        if (queue == null || queue.isEmpty()) return;
         long currentTick = player.level().getServer() == null ? 0 : player.level().getServer().getTickCount();
-        UUID id = player.getUUID();
-        QUEUE.removeIf(sa -> {
-            if (sa.tickTarget() <= currentTick && sa.playerId().equals(id)) {
+        queue.removeIf(sa -> {
+            if (sa.tickTarget() <= currentTick) {
                 try { sa.action().accept(player); } catch (Exception ignored) {}
                 return true;
             }
             return false;
         });
+    }
+
+    /** Clean up all scheduled actions for a player (e.g., on logout). */
+    public static void clearPlayer(UUID playerUuid) {
+        QUEUES.remove(playerUuid);
     }
 }
