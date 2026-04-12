@@ -246,7 +246,7 @@ jobs:
       - name: Publish MC 26.1.x jar (CurseForge + Modrinth)
         if: vars.CURSEFORGE_PROJECT_ID != '' || vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
-        uses: Kir-Antipov/mc-publish@v1.3
+        uses: Kir-Antipov/mc-publish@v3.3
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
@@ -271,7 +271,7 @@ jobs:
       - name: Publish MC 1.21.1 jar (CurseForge + Modrinth)
         if: vars.CURSEFORGE_PROJECT_ID != '' || vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
-        uses: Kir-Antipov/mc-publish@v1.3
+        uses: Kir-Antipov/mc-publish@v3.3
         with:
           curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
