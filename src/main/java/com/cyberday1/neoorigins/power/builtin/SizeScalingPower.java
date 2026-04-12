@@ -24,9 +24,9 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
     private static final ResourceLocation MOD_REACH_BLOCK  = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_reach_block");
     private static final ResourceLocation MOD_REACH_ENTITY = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_reach_entity");
 
-    private static final ResourceLocation ATTR_SCALE        = ResourceLocation.fromNamespaceAndPath("minecraft", "scale");
-    private static final ResourceLocation ATTR_REACH_BLOCK  = ResourceLocation.fromNamespaceAndPath("minecraft", "block_interaction_range");
-    private static final ResourceLocation ATTR_REACH_ENTITY = ResourceLocation.fromNamespaceAndPath("minecraft", "entity_interaction_range");
+    private static final ResourceLocation ATTR_SCALE        = ResourceLocation.fromNamespaceAndPath("minecraft", "generic.scale");
+    private static final ResourceLocation ATTR_REACH_BLOCK  = ResourceLocation.fromNamespaceAndPath("minecraft", "player.block_interaction_range");
+    private static final ResourceLocation ATTR_REACH_ENTITY = ResourceLocation.fromNamespaceAndPath("minecraft", "player.entity_interaction_range");
 
     public record Config(float scale, boolean modifyReach, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(

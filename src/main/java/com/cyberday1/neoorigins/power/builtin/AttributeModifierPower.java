@@ -56,13 +56,22 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
-        // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
+        // Try the attribute ID as-is first; if not found, try adding the
+        // "generic." prefix (MC 1.21.1 still uses prefixed names like
+        // generic.scale, player.block_interaction_range, etc.)
         ResourceLocation attrId = config.attribute();
-        String path = attrId.getPath();
-        if (path.startsWith("generic.")) {
-            attrId = ResourceLocation.fromNamespaceAndPath(attrId.getNamespace(), path.substring("generic.".length()));
-        }
         var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrId);
+        if (attrOpt.isEmpty()) {
+            String path = attrId.getPath();
+            // Try with generic. prefix for unprefixed names (e.g. "scale" → "generic.scale")
+            attrId = ResourceLocation.fromNamespaceAndPath(attrId.getNamespace(), "generic." + path);
+            attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrId);
+        }
+        if (attrOpt.isEmpty()) {
+            // Try with player. prefix (e.g. "block_interaction_range" → "player.block_interaction_range")
+            attrId = ResourceLocation.fromNamespaceAndPath(config.attribute().getNamespace(), "player." + config.attribute().getPath());
+            attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrId);
+        }
         if (attrOpt.isEmpty()) return;
         var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
         AttributeInstance instance = player.getAttribute(attrHolder);
