@@ -41,6 +41,20 @@ neoForge {
 repositories {
     mavenLocal()
     maven { url = 'https://maven.neoforged.net/releases' }
+    maven { url = 'https://maven.blamejared.com' }      // JEI
+    maven { url = 'https://maven.shedaniel.me' }         // REI
+    maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
+}
+
+dependencies {
+    // JEI – compile-only so the mod works without JEI installed
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
+
+    // REI – no MC 26.1 build yet; uncomment when available
+    // compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:VERSION"
+    // compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:VERSION"
+    // compileOnly "dev.architectury:architectury-neoforge:VERSION"
 }
 
 sourceSets {

@@ -86,10 +86,9 @@ public class NeoOriginsNetwork {
     }
 
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(payload.isOrb(), payload.forceReselect()));
-        });
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(payload.isOrb(), payload.forceReselect())
+        );
     }
 
     // ---------- Server-side handlers ----------
