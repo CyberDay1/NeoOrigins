@@ -24,4 +24,9 @@ public class ClientOriginState {
     }
 
     public static boolean isHadAllOrigins() { return hadAllOrigins; }
+
+    public static void openSelectionScreen(boolean isOrb, boolean forceReselect) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect));
+    }
 }

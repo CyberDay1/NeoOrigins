@@ -23,5 +23,19 @@ license = "${mod_license}"
     ordering = "NONE"
     side = "BOTH"
 
+[[dependencies.${mod_id}]]
+    modId = "jei"
+    type = "optional"
+    versionRange = "[19,)"
+    ordering = "AFTER"
+    side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId = "roughlyenoughitems"
+    type = "optional"
+    versionRange = "[16,)"
+    ordering = "AFTER"
+    side = "CLIENT"
+
 [[mixins]]
     config = "neoorigins.mixins.json"

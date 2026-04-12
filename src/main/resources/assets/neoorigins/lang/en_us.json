@@ -313,6 +313,7 @@
 
   "item.neoorigins.orb_of_origin": "Orb of Origin",
   "item.neoorigins.orb_of_origin.not_enough_xp": "You need %s experience levels to use this.",
+  "jei.neoorigins.orb_of_origin.info": "Resets all origin selections and reopens the origin chooser. Costs 5 XP levels per previous use (first use is free). Consumed on use.",
 
   "origins.neoorigins.inchling.name": "Inchling",
   "origins.neoorigins.inchling.description": "A quarter-sized humanoid who scales walls with ease and moves with surprising speed — but a fragile body comes with the territory.",
