@@ -1,18 +1,26 @@
 package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.NeoOriginsConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.MinionTracker;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class PlayerLifecycleEvents {
@@ -52,7 +60,13 @@ public class PlayerLifecycleEvents {
         }
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
         NeoOriginsNetwork.syncToPlayer(sp);
-        if (needsOrigin) NeoOriginsNetwork.openSelectionScreen(sp, false);
+        if (needsOrigin) {
+            if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
+                assignRandomOrigins(sp);
+            } else {
+                NeoOriginsNetwork.openSelectionScreen(sp, false);
+            }
+        }
     }
 
     /**
@@ -89,7 +103,43 @@ public class PlayerLifecycleEvents {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
+        if (NeoOriginsConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
+            ActiveOriginService.revokeAllPowers(sp);
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            data.clear();
+            assignRandomOrigins(sp);
+        } else {
+            ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
+            NeoOriginsNetwork.syncToPlayer(sp);
+        }
+    }
+
+    /**
+     * Randomly assigns an origin for each layer that the player doesn't already have.
+     * After assignment, syncs data to the client and logs the result.
+     */
+    private static void assignRandomOrigins(ServerPlayer sp) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        List<String> assigned = new ArrayList<>();
+
+        for (OriginLayer layer : LayerDataManager.INSTANCE.getSortedLayers()) {
+            ResourceLocation layerId = layer.id();
+            if (data.hasOriginForLayer(layerId)) continue;
+
+            List<ResourceLocation> available = layer.getAvailableOriginIds().stream()
+                .filter(OriginDataManager.INSTANCE::hasOrigin)
+                .toList();
+            if (available.isEmpty()) continue;
+
+            ResourceLocation picked = available.get(sp.getRandom().nextInt(available.size()));
+            data.setOrigin(layerId, picked);
+            ActiveOriginService.applyOriginPowers(sp, layerId, null, picked);
+            assigned.add(picked.toString());
+        }
+
+        data.setHadAllOrigins(true);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
+            sp.getName().getString(), String.join(", ", assigned));
     }
 }

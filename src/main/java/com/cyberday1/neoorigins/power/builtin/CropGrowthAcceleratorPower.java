@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -67,10 +68,9 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
         if (candidates.isEmpty()) return;
 
         int count = Math.min(config.growthsPerInterval(), candidates.size());
-        // Pick random candidates using the level's random source
+        Collections.shuffle(candidates, new java.util.Random(level.getRandom().nextLong()));
         for (int i = 0; i < count; i++) {
-            int idx = level.getRandom().nextInt(candidates.size());
-            BlockPos pos = candidates.get(idx);
+            BlockPos pos = candidates.get(i);
             BlockState state = level.getBlockState(pos);
             if (isFarmCrop(state)
                     && state.getBlock() instanceof BonemealableBlock bmb
@@ -78,7 +78,6 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
                 bmb.performBonemeal(level, level.getRandom(), pos, state);
                 level.levelEvent(2005, pos, 0); // bonemeal particles
             }
-            candidates.remove(idx);
         }
     }
 

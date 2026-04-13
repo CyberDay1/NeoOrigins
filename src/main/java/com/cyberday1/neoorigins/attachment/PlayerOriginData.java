@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Stores a player's chosen origin per layer.
@@ -33,7 +32,7 @@ public class PlayerOriginData {
     /** Persisted toggle-off state for AbstractTogglePower — keyed by power toggle key. */
     private final Set<String> toggledOffPowers = new HashSet<>();
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
-    private final Map<String, Integer> activeCooldowns = new ConcurrentHashMap<>();
+    private final Map<String, Integer> activeCooldowns = new HashMap<>();
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)

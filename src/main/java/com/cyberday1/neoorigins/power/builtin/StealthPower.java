@@ -10,7 +10,7 @@ import net.minecraft.world.effect.MobEffects;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 
 /**
  * After sneaking for a threshold number of ticks, grants invisibility.
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class StealthPower extends AbstractTogglePower<StealthPower.Config> {
 
-    private static final Map<UUID, Integer> SNEAK_TICKS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> SNEAK_TICKS = new HashMap<>();
 
     public record Config(int activationTicks, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(

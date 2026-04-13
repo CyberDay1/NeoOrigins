@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.breeze.name",
+  "description": "origins.neoorigins.breeze.description",
+  "icon": "minecraft:wind_charge",
+  "impact": "high",
+  "order": 38,
+  "powers": [
+    "neoorigins:breeze_wind_charge",
+    "neoorigins:breeze_wind_dash",
+    "neoorigins:breeze_no_fall_damage",
+    "neoorigins:breeze_jump_boost",
+    "neoorigins:breeze_speed_boost",
+    "neoorigins:breeze_reduced_health",
+    "neoorigins:breeze_light_frame"
+  ],
+  "upgrades": []
+}

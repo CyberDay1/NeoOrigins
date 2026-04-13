@@ -69,12 +69,14 @@ public class WorldPowerEvents {
     public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
         Mob mob = event.getEntity();
+        if (mob.getType().getCategory() != MobCategory.MONSTER) return;
         for (ServerPlayer sp : sl.players()) {
             ActiveOriginService.forEachOfType(sp, NoMobSpawnsNearbyPower.class, cfg -> {
                 if (sp.distanceTo(mob) <= cfg.radius() && matchesSpawnCategory(cfg, mob)) {
                     event.setSpawnCancelled(true);
                 }
             });
+            if (event.isSpawnCancelled()) break;
         }
     }
 
@@ -149,30 +151,30 @@ public class WorldPowerEvents {
     private static void fellTree(ServerLevel level, BlockPos origin, int maxBlocks) {
         Queue<BlockPos> queue = new LinkedList<>();
         Set<BlockPos> visited = new HashSet<>();
-        // Check neighbors above and adjacent for connected logs
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                queue.add(origin.offset(dx, 1, dz));
+                BlockPos seed = origin.offset(dx, 1, dz);
+                if (visited.add(seed)) queue.add(seed);
             }
         }
         int broken = 0;
         while (!queue.isEmpty() && broken < maxBlocks) {
             BlockPos bp = queue.poll();
-            if (!visited.add(bp)) continue;
             BlockState state = level.getBlockState(bp);
             if (!state.is(BlockTags.LOGS)) continue;
             level.destroyBlock(bp, true);
             broken++;
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
-                    queue.add(bp.offset(dx, 1, dz));
+                    BlockPos neighbor = bp.offset(dx, 1, dz);
+                    if (visited.add(neighbor)) queue.add(neighbor);
                 }
             }
-            // Also check same-y neighbors
-            queue.add(bp.north());
-            queue.add(bp.south());
-            queue.add(bp.east());
-            queue.add(bp.west());
+            BlockPos n;
+            n = bp.north(); if (visited.add(n)) queue.add(n);
+            n = bp.south(); if (visited.add(n)) queue.add(n);
+            n = bp.east();  if (visited.add(n)) queue.add(n);
+            n = bp.west();  if (visited.add(n)) queue.add(n);
         }
     }
 

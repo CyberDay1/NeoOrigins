@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "whitelist",
+  "item_tag": "neoorigins:vampire_foods"
+}

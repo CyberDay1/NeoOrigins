@@ -36,7 +36,11 @@
     "neoorigins:necromancer",
     "neoorigins:gorgon",
     "neoorigins:automaton",
-    "neoorigins:kraken"
+    "neoorigins:kraken",
+    "neoorigins:warden",
+    "neoorigins:dwarf",
+    "neoorigins:breeze",
+    "neoorigins:vampire"
   ],
   "allow_random": true,
   "auto_choose": false,
