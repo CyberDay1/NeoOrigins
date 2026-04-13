@@ -47,7 +47,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
      * Override to provide config-specific keys when multiple instances of the
      * same power type should have independent cooldowns.
      */
-    protected String getCooldownKey(C config) {
+    public String getCooldownKey(C config) {
         return cooldownKey;
     }
 

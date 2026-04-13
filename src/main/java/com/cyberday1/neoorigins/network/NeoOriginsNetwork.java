@@ -14,8 +14,10 @@ import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
+import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
@@ -49,6 +51,12 @@ public class NeoOriginsNetwork {
             OpenOriginScreenPayload.TYPE,
             OpenOriginScreenPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleOpenScreen
+        );
+
+        registrar.playToClient(
+            SyncCooldownPayload.TYPE,
+            SyncCooldownPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncCooldown
         );
 
         registrar.playToServer(
@@ -88,6 +96,12 @@ public class NeoOriginsNetwork {
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(payload.isOrb(), payload.forceReselect())
+        );
+    }
+
+    private static void handleSyncCooldown(SyncCooldownPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientCooldownState.set(payload.slot(), payload.totalTicks(), payload.remainingTicks())
         );
     }
 
@@ -148,7 +162,9 @@ public class NeoOriginsNetwork {
             List<PowerHolder<?>> actives = ActiveOriginService.activePowers(sp);
             if (slot >= actives.size()) return;
 
-            actives.get(slot).onActivated(sp);
+            PowerHolder<?> holder = actives.get(slot);
+            holder.onActivated(sp);
+            syncCooldownIfStarted(sp, holder, slot);
         });
     }
 
@@ -160,7 +176,9 @@ public class NeoOriginsNetwork {
             if (classActives.isEmpty()) return;
 
             // Activate the first (and typically only) class active power
-            classActives.get(0).onActivated(sp);
+            PowerHolder<?> holder = classActives.get(0);
+            holder.onActivated(sp);
+            syncCooldownIfStarted(sp, holder, -1);
         });
     }
 
@@ -172,6 +190,18 @@ public class NeoOriginsNetwork {
             if (!FlightPower.isActive(sp)) return;
             sp.startFallFlying();
         });
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void syncCooldownIfStarted(ServerPlayer sp, PowerHolder<?> holder, int slot) {
+        if (!(holder.type() instanceof AbstractActivePower)) return;
+        AbstractActivePower ap = (AbstractActivePower) holder.type();
+        String key = ap.getCooldownKey((AbstractActivePower.Config) holder.config());
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        int remaining = data.remainingCooldown(key, sp.tickCount);
+        if (remaining > 0) {
+            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, remaining, remaining));
+        }
     }
 
     /** Clean up debounce entries for a player on logout. */

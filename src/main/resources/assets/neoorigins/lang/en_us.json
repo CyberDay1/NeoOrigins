@@ -23,6 +23,11 @@
   "key.neoorigins.skill_3": "Skill 3",
   "key.neoorigins.skill_4": "Skill 4",
   "key.neoorigins.class_skill": "Class Skill",
+  "key.neoorigins.view_info": "View Origin Info",
+
+  "screen.neoorigins.origin_info": "Origin Info",
+  "gui.neoorigins.info.no_origin": "No origin selected yet.",
+  "gui.neoorigins.info.close": "Close",
 
   "origins.gui.impact.impact": "Impact",
   "origins.gui.impact.none": "None",
