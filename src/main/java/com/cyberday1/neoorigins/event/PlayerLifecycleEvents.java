@@ -25,10 +25,29 @@ import java.util.List;
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class PlayerLifecycleEvents {
 
+    /** Grace period (in ticks) after login to retry the origin check if data wasn't loaded yet. */
+    private static final int LOGIN_RETRY_TICKS = 100;
+    private static final java.util.Map<java.util.UUID, Integer> pendingOriginCheck = new java.util.HashMap<>();
+
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         repairCorruptedVitals(sp);
+
+        // Retry origin check for players who logged in before data was loaded
+        Integer remaining = pendingOriginCheck.get(sp.getUUID());
+        if (remaining != null) {
+            if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
+                if (remaining <= 0) {
+                    pendingOriginCheck.remove(sp.getUUID());
+                } else {
+                    pendingOriginCheck.put(sp.getUUID(), remaining - 1);
+                }
+            } else {
+                pendingOriginCheck.remove(sp.getUUID());
+                checkAndPromptOrigin(sp);
+            }
+        }
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
@@ -41,13 +60,23 @@ public class PlayerLifecycleEvents {
 
         repairCorruptedVitals(sp);
 
+        ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
+        NeoOriginsNetwork.syncToPlayer(sp);
+
+        if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
+            // Data hasn't loaded yet — defer the origin check to tick handler
+            pendingOriginCheck.put(sp.getUUID(), LOGIN_RETRY_TICKS);
+        } else {
+            checkAndPromptOrigin(sp);
+        }
+    }
+
+    private static void checkAndPromptOrigin(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         boolean needsOrigin = false;
         for (var layer : LayerDataManager.INSTANCE.getSortedLayers()) {
             if (!data.hasOriginForLayer(layer.id())) { needsOrigin = true; break; }
         }
-        ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
-        NeoOriginsNetwork.syncToPlayer(sp);
         if (needsOrigin) {
             if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
                 assignRandomOrigins(sp);
@@ -76,6 +105,7 @@ public class PlayerLifecycleEvents {
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var uuid = sp.getUUID();
+        pendingOriginCheck.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
