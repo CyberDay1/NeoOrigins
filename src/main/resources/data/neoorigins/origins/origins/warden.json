@@ -1,0 +1,18 @@
+{
+  "name": "origins.neoorigins.warden.name",
+  "description": "origins.neoorigins.warden.description",
+  "icon": "minecraft:sculk_shrieker",
+  "impact": "high",
+  "order": 36,
+  "powers": [
+    "neoorigins:warden_sonic_boom",
+    "neoorigins:warden_echolocation",
+    "neoorigins:warden_strength",
+    "neoorigins:warden_ancient_hide",
+    "neoorigins:warden_night_vision",
+    "neoorigins:warden_hulking_frame",
+    "neoorigins:warden_daylight_damage",
+    "neoorigins:warden_lumbering"
+  ],
+  "upgrades": []
+}

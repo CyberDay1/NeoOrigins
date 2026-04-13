@@ -1,18 +1,26 @@
 package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.NeoOriginsConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.MinionTracker;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class PlayerLifecycleEvents {
@@ -20,11 +28,6 @@ public class PlayerLifecycleEvents {
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        // Save-recovery safety net: if a player entered the NaN/Infinity
-        // health state from the pre-1.3.1 ModifyDamagePower overflow bug
-        // and we didn't catch it at login (e.g. it corrupted mid-session
-        // from some other path), repair it here before any power tick
-        // can read getHealth() and propagate the NaN further.
         repairCorruptedVitals(sp);
 
         CompatTickScheduler.tick(sp);
@@ -36,13 +39,6 @@ public class PlayerLifecycleEvents {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
-        // Repair the damage/NBT state BEFORE any handlers below read
-        // vitals — pre-1.3.1 saves where a Feline (or any origin with
-        // a misconfigured ModifyDamagePower) ran /kill have NaN
-        // Health / AbsorptionAmount persisted to the player .dat file,
-        // which prevents them from ever dying and effectively bricks
-        // the world. This runs once on every login as a no-op for
-        // healthy players.
         repairCorruptedVitals(sp);
 
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
@@ -52,16 +48,15 @@ public class PlayerLifecycleEvents {
         }
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
         NeoOriginsNetwork.syncToPlayer(sp);
-        if (needsOrigin) NeoOriginsNetwork.openSelectionScreen(sp, false);
+        if (needsOrigin) {
+            if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
+                assignRandomOrigins(sp);
+            } else {
+                NeoOriginsNetwork.openSelectionScreen(sp, false);
+            }
+        }
     }
 
-    /**
-     * Clamp any non-finite Health/AbsorptionAmount back to sane values.
-     * Introduced in 1.3.1 as a save-recovery path for players whose
-     * worlds were bricked by the pre-1.3.1 ModifyDamagePower overflow
-     * bug (Float.MAX_VALUE * multiplier &gt; 1.0 → +Infinity → NaN
-     * health via vanilla's absorption math → never dies).
-     */
     private static void repairCorruptedVitals(ServerPlayer sp) {
         if (!Float.isFinite(sp.getHealth())) {
             NeoOrigins.LOGGER.warn(
@@ -89,7 +84,39 @@ public class PlayerLifecycleEvents {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
+        if (NeoOriginsConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
+            ActiveOriginService.revokeAllPowers(sp);
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            data.clear();
+            assignRandomOrigins(sp);
+        } else {
+            ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
+            NeoOriginsNetwork.syncToPlayer(sp);
+        }
+    }
+
+    private static void assignRandomOrigins(ServerPlayer sp) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        List<String> assigned = new ArrayList<>();
+
+        for (OriginLayer layer : LayerDataManager.INSTANCE.getSortedLayers()) {
+            Identifier layerId = layer.id();
+            if (data.hasOriginForLayer(layerId)) continue;
+
+            List<Identifier> available = layer.getAvailableOriginIds().stream()
+                .filter(OriginDataManager.INSTANCE::hasOrigin)
+                .toList();
+            if (available.isEmpty()) continue;
+
+            Identifier picked = available.get(sp.getRandom().nextInt(available.size()));
+            data.setOrigin(layerId, picked);
+            ActiveOriginService.applyOriginPowers(sp, layerId, null, picked);
+            assigned.add(picked.toString());
+        }
+
+        data.setHadAllOrigins(true);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
+            sp.getName().getString(), String.join(", ", assigned));
     }
 }

@@ -34,7 +34,8 @@ public final class NeoOriginsConfig {
         "sylvan", "draconic", "revenant", "tiny", "abyssal", "voidwalker",
         "stoneguard", "verdant", "umbral", "inchling", "sporeling",
         "frostborn", "strider", "siren", "piglin", "hiveling", "cinderborn",
-        "sculkborn", "enderite", "necromancer", "gorgon", "automaton", "kraken"
+        "sculkborn", "enderite", "necromancer", "gorgon", "automaton", "kraken",
+        "warden", "dwarf", "breeze", "vampire"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;
@@ -103,7 +104,38 @@ public final class NeoOriginsConfig {
 
     static { BUILDER.pop(); }
 
+    // ── Random Origin Assignment ─────────────────────────────────────────
+    public static final ModConfigSpec.EnumValue<RandomMode> RANDOM_MODE;
+    public static final ModConfigSpec.IntValue RANDOM_REROLLS;
+
+    public enum RandomMode { DISABLED, FIRST_JOIN, EVERY_DEATH }
+
+    static {
+        BUILDER.comment(
+            "Random origin assignment mode.",
+            "DISABLED: players choose their origin normally.",
+            "FIRST_JOIN: origins are randomly assigned on first join (no selection screen).",
+            "EVERY_DEATH: origins are randomly re-assigned on each respawn."
+        ).push("random_assignment");
+
+        RANDOM_MODE = BUILDER
+            .comment("When to randomly assign origins.")
+            .defineEnum("mode", RandomMode.DISABLED);
+
+        RANDOM_REROLLS = BUILDER
+            .comment("Number of times a player may reroll after random assignment.",
+                     "0 = no rerolls (stuck with what you get).",
+                     "-1 = unlimited rerolls via Orb of Origin.")
+            .defineInRange("rerolls", 0, -1, 100);
+
+        BUILDER.pop();
+    }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
+
+    public static RandomMode getRandomMode() {
+        return RANDOM_MODE.get();
+    }
 
     // ── Parsed dimension restriction cache ──────────────────────────────
     // Rebuilt on each access from the TOML list to keep in sync with config reloads.

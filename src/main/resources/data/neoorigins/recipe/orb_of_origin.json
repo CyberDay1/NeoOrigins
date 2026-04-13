@@ -6,12 +6,12 @@
     "GDG"
   ],
   "key": {
-    "G": { "item": "minecraft:gold_block" },
-    "D": { "item": "minecraft:diamond_block" },
-    "N": { "item": "minecraft:netherite_ingot" }
+    "G": "minecraft:gold_block",
+    "D": "minecraft:diamond_block",
+    "N": "minecraft:netherite_ingot"
   },
   "result": {
-    "item": "neoorigins:orb_of_origin",
+    "id": "neoorigins:orb_of_origin",
     "count": 1
   }
 }

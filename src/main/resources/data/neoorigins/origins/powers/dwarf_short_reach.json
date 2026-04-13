@@ -1,0 +1,1 @@
+{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:block_interaction_range", "amount": -0.5, "operation": "add_value" }

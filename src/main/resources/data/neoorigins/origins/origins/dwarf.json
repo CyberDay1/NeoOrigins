@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.dwarf.name",
+  "description": "origins.neoorigins.dwarf.description",
+  "icon": "minecraft:iron_pickaxe",
+  "impact": "medium",
+  "order": 37,
+  "powers": [
+    "neoorigins:dwarf_compact_frame",
+    "neoorigins:dwarf_stout_constitution",
+    "neoorigins:dwarf_darkvision",
+    "neoorigins:dwarf_sturdy_legs",
+    "neoorigins:dwarf_stonecunning",
+    "neoorigins:dwarf_short_reach",
+    "neoorigins:dwarf_mining_hunger"
+  ],
+  "upgrades": []
+}
