@@ -40,6 +40,12 @@ public class NeoOriginsKeybindings {
         NEOORIGINS_CATEGORY
     );
 
+    public static final KeyMapping VIEW_INFO = new KeyMapping(
+        "key.neoorigins.view_info",
+        GLFW.GLFW_KEY_O,
+        NEOORIGINS_CATEGORY
+    );
+
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.registerCategory(NEOORIGINS_CATEGORY);
         event.register(SKILL_1);
@@ -47,5 +53,6 @@ public class NeoOriginsKeybindings {
         event.register(SKILL_3);
         event.register(SKILL_4);
         event.register(CLASS_SKILL);
+        event.register(VIEW_INFO);
     }
 }

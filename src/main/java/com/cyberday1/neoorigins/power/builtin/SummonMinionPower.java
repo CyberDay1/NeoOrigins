@@ -67,7 +67,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
     @Override public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    protected String getCooldownKey(Config config) {
+    public String getCooldownKey(Config config) {
         return getClass().getName() + ":" + config.mobType();
     }
 

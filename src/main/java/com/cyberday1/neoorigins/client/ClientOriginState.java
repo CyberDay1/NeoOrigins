@@ -29,4 +29,9 @@ public class ClientOriginState {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect));
     }
+
+    public static void openInfoScreen() {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.setScreen(new com.cyberday1.neoorigins.screen.OriginInfoScreen());
+    }
 }
