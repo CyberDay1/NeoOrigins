@@ -20,20 +20,37 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class PlayerLifecycleEvents {
 
+    /** Grace period (in ticks) after login to retry the origin check if data wasn't loaded yet. */
+    private static final int LOGIN_RETRY_TICKS = 100;
+    private static final Map<UUID, Integer> pendingOriginCheck = new HashMap<>();
+
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        // Save-recovery safety net: if a player entered the NaN/Infinity
-        // health state from the pre-1.3.1 ModifyDamagePower overflow bug
-        // and we didn't catch it at login (e.g. it corrupted mid-session
-        // from some other path), repair it here before any power tick
-        // can read getHealth() and propagate the NaN further.
         repairCorruptedVitals(sp);
+
+        // Retry origin check for players who logged in before data was loaded
+        Integer remaining = pendingOriginCheck.get(sp.getUUID());
+        if (remaining != null) {
+            if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
+                if (remaining <= 0) {
+                    pendingOriginCheck.remove(sp.getUUID());
+                } else {
+                    pendingOriginCheck.put(sp.getUUID(), remaining - 1);
+                }
+            } else {
+                pendingOriginCheck.remove(sp.getUUID());
+                checkAndPromptOrigin(sp);
+            }
+        }
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
@@ -44,22 +61,24 @@ public class PlayerLifecycleEvents {
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
-        // Repair the damage/NBT state BEFORE any handlers below read
-        // vitals — pre-1.3.1 saves where a Feline (or any origin with
-        // a misconfigured ModifyDamagePower) ran /kill have NaN
-        // Health / AbsorptionAmount persisted to the player .dat file,
-        // which prevents them from ever dying and effectively bricks
-        // the world. This runs once on every login as a no-op for
-        // healthy players.
         repairCorruptedVitals(sp);
 
+        ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
+        NeoOriginsNetwork.syncToPlayer(sp);
+
+        if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
+            pendingOriginCheck.put(sp.getUUID(), LOGIN_RETRY_TICKS);
+        } else {
+            checkAndPromptOrigin(sp);
+        }
+    }
+
+    private static void checkAndPromptOrigin(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         boolean needsOrigin = false;
         for (var layer : LayerDataManager.INSTANCE.getSortedLayers()) {
             if (!data.hasOriginForLayer(layer.id())) { needsOrigin = true; break; }
         }
-        ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
-        NeoOriginsNetwork.syncToPlayer(sp);
         if (needsOrigin) {
             if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
                 assignRandomOrigins(sp);
@@ -69,13 +88,6 @@ public class PlayerLifecycleEvents {
         }
     }
 
-    /**
-     * Clamp any non-finite Health/AbsorptionAmount back to sane values.
-     * Introduced in 1.3.1 as a save-recovery path for players whose
-     * worlds were bricked by the pre-1.3.1 ModifyDamagePower overflow
-     * bug (Float.MAX_VALUE * multiplier &gt; 1.0 → +Infinity → NaN
-     * health via vanilla's absorption math → never dies).
-     */
     private static void repairCorruptedVitals(ServerPlayer sp) {
         if (!Float.isFinite(sp.getHealth())) {
             NeoOrigins.LOGGER.warn(
@@ -95,6 +107,7 @@ public class PlayerLifecycleEvents {
     public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var uuid = sp.getUUID();
+        pendingOriginCheck.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
@@ -114,10 +127,6 @@ public class PlayerLifecycleEvents {
         }
     }
 
-    /**
-     * Randomly assigns an origin for each layer that the player doesn't already have.
-     * After assignment, syncs data to the client and logs the result.
-     */
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         List<String> assigned = new ArrayList<>();
