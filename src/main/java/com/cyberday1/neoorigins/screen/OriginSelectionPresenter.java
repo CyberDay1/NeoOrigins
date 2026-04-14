@@ -183,8 +183,19 @@ public class OriginSelectionPresenter {
         return ModList.get()
             .getModContainerById(namespace)
             .map(c -> c.getModInfo().getDisplayName())
-            .orElseGet(() -> namespace.isEmpty() ? namespace
-                : Character.toUpperCase(namespace.charAt(0)) + namespace.substring(1));
+            .orElseGet(() -> formatNamespace(namespace));
+    }
+
+    private static String formatNamespace(String namespace) {
+        if (namespace.isEmpty()) return namespace;
+        StringBuilder sb = new StringBuilder();
+        for (String word : namespace.split("[-_]")) {
+            if (word.isEmpty()) continue;
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) sb.append(word.substring(1));
+        }
+        return sb.toString();
     }
 
     private static String getOriginDisplayName(ResourceLocation id) {

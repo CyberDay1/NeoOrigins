@@ -212,11 +212,17 @@ public class OriginSelectionScreen extends Screen {
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        // No-op: we draw our own background in render() to avoid the default
+        // darkened overlay that would wash out our custom UI elements.
+    }
+
+    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
         g.fill(0, 0, width, height, 0xCC060610);
         if (presenter.isDone()) return;
 
-        var layerTitle = Component.translatable("screen.neoorigins.choose." + presenter.currentLayer().name());
+        var layerTitle = Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name());
         g.drawCenteredString(font, layerTitle, width / 2, 14, 0xFFFFFFFF);
         String prog = (presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers();
         g.drawString(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
