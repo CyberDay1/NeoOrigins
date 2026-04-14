@@ -50,7 +50,7 @@ public final class OriginsPowerTranslator {
         // Misc behaviours without a direct equivalent
         "origins:keep_inventory",
         "origins:ignore_water",
-        "origins:climbing",              // handled separately via wall_climbing
+        // origins:climbing — translated in doTranslate()
         "origins:phasing",
         "origins:burn",
         "origins:fire_projectile",
@@ -196,6 +196,7 @@ public final class OriginsPowerTranslator {
             case "origins:disable_regen"                                          -> translateSimplePrevent("SPRINT_FOOD");
             case "origins:slow_falling"                                           -> translateSimplePrevent("FALL_DAMAGE");
             case "origins:walk_speed",             "apace:walk_speed"             -> translateWalkSpeed(src);
+            case "origins:climbing",               "apace:climbing"               -> translateSimple("neoorigins:wall_climbing");
             case "origins:entity_size",            "apace:entity_size"            -> translateEntitySize(src);
             case "origins:modify_break_speed",     "apace:modify_break_speed"     -> translateModifyBreakSpeed(src);
             case "origins:entity_group",           "apace:entity_group"           -> translateEntityGroup(src);
