@@ -53,6 +53,7 @@ public class OrbOfOriginItem extends Item {
             data.incrementOrbUseCount();
 
             // Sync and open selection screen
+            NeoOriginsNetwork.syncRegistryToPlayer(sp);
             NeoOriginsNetwork.syncToPlayer(sp);
             NeoOriginsNetwork.openSelectionScreen(sp, true, true);
         }

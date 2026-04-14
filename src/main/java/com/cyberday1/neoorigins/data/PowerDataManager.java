@@ -130,6 +130,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     private <C extends PowerConfiguration> void parsePower(
             Identifier id, PowerType<C> type, JsonObject json,
             Map<Identifier, PowerHolder<?>> target) {
+        // Apply config overrides before parsing
+        applyConfigOverrides(id, json);
+
         Component name = extractComponentField(json, "name");
         Component desc = extractComponentField(json, "description");
 
@@ -141,6 +144,26 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
             .ifPresent(config -> target.put(id, new PowerHolder<>(type, config, name, desc)));
+    }
+
+    /** Merges config-file overrides into the power JSON before CODEC parsing. */
+    private static void applyConfigOverrides(Identifier id, JsonObject json) {
+        Map<String, Object> overrides = NeoOriginsConfig.getPowerOverrides(id.toString());
+        if (overrides == null) return;
+
+        for (var entry : overrides.entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof Number n) {
+                json.addProperty(field, n);
+            } else if (value instanceof Boolean b) {
+                json.addProperty(field, b);
+            } else {
+                json.addProperty(field, value.toString());
+            }
+        }
+        NeoOrigins.LOGGER.info("Applied {} config override(s) to power {}: {}",
+            overrides.size(), id, overrides);
     }
 
     private static Component extractComponentField(JsonObject json, String field) {
@@ -158,6 +181,14 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
     public void injectExternalPowers(Map<Identifier, PowerHolder<?>> external) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
+    }
+
+    /** Returns all powers including Route B injected ones (used for registry sync). */
+    public Map<Identifier, PowerHolder<?>> getAllPowers() {
+        if (injectedPowers.isEmpty()) return powers;
+        Map<Identifier, PowerHolder<?>> all = new HashMap<>(powers);
+        all.putAll(injectedPowers);
+        return Collections.unmodifiableMap(all);
     }
 
     public Map<Identifier, PowerHolder<?>> getPowers() { return powers; }

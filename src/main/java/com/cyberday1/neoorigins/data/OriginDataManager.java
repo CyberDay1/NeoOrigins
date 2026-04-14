@@ -106,6 +106,11 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
         CompatTranslationLog.close();
     }
 
+    /** Replace the origin registry with data received from the server (client-side only). */
+    public void setClientData(Map<Identifier, Origin> clientOrigins) {
+        this.origins = Collections.unmodifiableMap(new HashMap<>(clientOrigins));
+    }
+
     public Map<Identifier, Origin> getOrigins() { return origins; }
     public Origin getOrigin(Identifier id) { return origins.get(id); }
     public boolean hasOrigin(Identifier id) { return origins.containsKey(id); }

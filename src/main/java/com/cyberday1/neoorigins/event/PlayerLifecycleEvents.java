@@ -72,6 +72,7 @@ public class PlayerLifecycleEvents {
         repairCorruptedVitals(sp);
 
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
+        NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
 
         if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {

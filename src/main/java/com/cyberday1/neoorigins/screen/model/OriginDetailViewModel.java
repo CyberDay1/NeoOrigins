@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.screen.model;
 
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
+import com.cyberday1.neoorigins.client.ClientPowerCache;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
@@ -10,6 +11,7 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 import java.util.*;
@@ -43,16 +45,16 @@ public record OriginDetailViewModel(
         int skillSlot = 1;
         Map<Identifier, Integer> slotMap = new LinkedHashMap<>();
         for (Identifier powerId : origin.powers()) {
-            PowerHolder<?> h = PowerDataManager.INSTANCE.getPower(powerId);
-            if (h != null && h.isActive() && skillSlot <= 4) {
+            if (isPowerActive(powerId) && skillSlot <= 4) {
                 slotMap.put(powerId, skillSlot++);
             }
         }
 
         for (Identifier powerId : origin.powers()) {
-            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
-            String holderName = holder != null ? holder.name().getString() : "";
-            String holderDesc = holder != null ? holder.description().getString() : "";
+            Component powerName = resolvePowerName(powerId);
+            Component powerDesc = resolvePowerDesc(powerId);
+            String holderName = powerName != null ? powerName.getString() : "";
+            String holderDesc = powerDesc != null ? powerDesc.getString() : "";
 
             String nameKey = "power." + powerId.getNamespace() + "." + powerId.getPath() + ".name";
             String descKey = "power." + powerId.getNamespace() + "." + powerId.getPath() + ".description";
@@ -76,11 +78,11 @@ public record OriginDetailViewModel(
 
             String displayName = isNamed ? resolvedName : formatPowerId(powerId);
             String tag = "";
-            if (holder != null && slotMap.containsKey(powerId)) {
+            if (slotMap.containsKey(powerId)) {
                 int slot = slotMap.get(powerId);
-                if (holder.type() instanceof AbstractTogglePower<?>) {
+                if (isPowerToggle(powerId)) {
                     tag = " [Skill " + slot + " - Toggle]";
-                } else if (holder.type() instanceof AbstractActivePower<?>) {
+                } else {
                     tag = " [Skill " + slot + "]";
                 }
             }
@@ -93,6 +95,38 @@ public record OriginDetailViewModel(
             origin,
             Collections.unmodifiableList(names),
             Collections.unmodifiableList(descs));
+    }
+
+    /** Returns true if the power occupies a keybind slot. Checks PowerDataManager first, then client cache. */
+    private static boolean isPowerActive(Identifier powerId) {
+        PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+        if (holder != null) return holder.isActive();
+        ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
+        return entry != null && entry.active();
+    }
+
+    /** Returns true if the power is a toggle power. Checks PowerDataManager first, then client cache. */
+    private static boolean isPowerToggle(Identifier powerId) {
+        PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+        if (holder != null) return holder.type() instanceof AbstractTogglePower<?>;
+        ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
+        return entry != null && entry.toggle();
+    }
+
+    /** Returns the power's name Component, or null if unknown. Checks PowerDataManager first, then client cache. */
+    private static Component resolvePowerName(Identifier powerId) {
+        PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+        if (holder != null) return holder.name();
+        ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
+        return entry != null ? entry.name() : null;
+    }
+
+    /** Returns the power's description Component, or null if unknown. Checks PowerDataManager first, then client cache. */
+    private static Component resolvePowerDesc(Identifier powerId) {
+        PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+        if (holder != null) return holder.description();
+        ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
+        return entry != null ? entry.description() : null;
     }
 
     /** Compute total scrollable content height given the number of wrapped description lines. */

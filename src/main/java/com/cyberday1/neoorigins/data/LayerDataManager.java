@@ -185,6 +185,12 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
         }
     }
 
+    /** Replace the layer registry with data received from the server (client-side only). */
+    public void setClientData(Map<Identifier, OriginLayer> clientLayers, List<OriginLayer> clientSortedLayers) {
+        this.layers = Collections.unmodifiableMap(new HashMap<>(clientLayers));
+        this.sortedLayers = List.copyOf(clientSortedLayers);
+    }
+
     public Map<Identifier, OriginLayer> getLayers() { return layers; }
     public List<OriginLayer> getSortedLayers() { return sortedLayers; }
     public OriginLayer getLayer(Identifier id) { return layers.get(id); }
