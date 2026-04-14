@@ -31,6 +31,7 @@ public class PlayerLifecycleEvents {
     /** Grace period (in ticks) after login to retry the origin check if data wasn't loaded yet. */
     private static final int LOGIN_RETRY_TICKS = 100;
     private static final Map<UUID, Integer> pendingOriginCheck = new HashMap<>();
+    private static final Map<UUID, Integer> pendingResync = new HashMap<>();
 
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
@@ -49,6 +50,16 @@ public class PlayerLifecycleEvents {
             } else {
                 pendingOriginCheck.remove(sp.getUUID());
                 checkAndPromptOrigin(sp);
+            }
+        }
+
+        Integer resyncRemaining = pendingResync.get(sp.getUUID());
+        if (resyncRemaining != null) {
+            if (resyncRemaining <= 0) {
+                pendingResync.remove(sp.getUUID());
+                NeoOriginsNetwork.syncToPlayer(sp);
+            } else {
+                pendingResync.put(sp.getUUID(), resyncRemaining - 1);
             }
         }
 
@@ -108,6 +119,7 @@ public class PlayerLifecycleEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var uuid = sp.getUUID();
         pendingOriginCheck.remove(uuid);
+        pendingResync.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
@@ -124,6 +136,7 @@ public class PlayerLifecycleEvents {
         } else {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
+            pendingResync.put(sp.getUUID(), 2);
         }
     }
 

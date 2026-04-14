@@ -93,7 +93,9 @@
   "power.neoorigins.enderian_no_eye_damage.name": "Ender Eyes",
   "power.neoorigins.enderian_no_eye_damage.description": "Immune to projectiles that target the eyes.",
   "power.neoorigins.enderian_water_damage.name": "Hydrophobia",
-  "power.neoorigins.enderian_water_damage.description": "Takes extra damage from water and rain.",
+  "power.neoorigins.enderian_water_damage.description": "Takes damage from contact with water and rain.",
+  "power.neoorigins.enderian_teleport.name": "Ender Warp",
+  "power.neoorigins.enderian_teleport.description": "Teleport to where you're looking — up to 50 blocks.",
 
   "power.neoorigins.arachnid_wall_climbing.name": "Wall Climbing",
   "power.neoorigins.arachnid_wall_climbing.description": "Can cling to and scale any surface.",

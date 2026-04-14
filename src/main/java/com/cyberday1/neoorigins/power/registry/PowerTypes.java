@@ -48,6 +48,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, BiomeBuffPower>           BIOME_BUFF           = reg("biome_buff",           new BiomeBuffPower());
     public static final DeferredHolder<PowerType<?>, DamageInBiomePower>       DAMAGE_IN_BIOME      = reg("damage_in_biome",      new DamageInBiomePower());
     public static final DeferredHolder<PowerType<?>, DamageInDaylightPower>    DAMAGE_IN_DAYLIGHT   = reg("damage_in_daylight",   new DamageInDaylightPower());
+    public static final DeferredHolder<PowerType<?>, DamageInWaterPower>      DAMAGE_IN_WATER      = reg("damage_in_water",      new DamageInWaterPower());
     public static final DeferredHolder<PowerType<?>, BurnAtHealthThresholdPower> BURN_AT_HEALTH_THRESHOLD = reg("burn_at_health_threshold", new BurnAtHealthThresholdPower());
     public static final DeferredHolder<PowerType<?>, RegenInFluidPower>        REGEN_IN_FLUID       = reg("regen_in_fluid",       new RegenInFluidPower());
     public static final DeferredHolder<PowerType<?>, BreathInFluidPower>       BREATH_IN_FLUID      = reg("breath_in_fluid",      new BreathInFluidPower());
