@@ -133,6 +133,7 @@ public class OriginCommand {
             data.clear();
         }
 
+        NeoOriginsNetwork.syncRegistryToPlayer(player);
         NeoOriginsNetwork.syncToPlayer(player);
         NeoOriginsNetwork.openSelectionScreen(player, false);
 
@@ -187,6 +188,7 @@ public class OriginCommand {
 
     private static int executeGui(CommandContext<CommandSourceStack> ctx, ServerPlayer player) throws CommandSyntaxException {
         ServerPlayer target = player != null ? player : ctx.getSource().getPlayerOrException();
+        NeoOriginsNetwork.syncRegistryToPlayer(target);
         NeoOriginsNetwork.openSelectionScreen(target, false, true);
         if (player != null) {
             ctx.getSource().sendSuccess(() -> Component.literal(

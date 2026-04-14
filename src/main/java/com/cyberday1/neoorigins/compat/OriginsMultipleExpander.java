@@ -43,6 +43,15 @@ public final class OriginsMultipleExpander {
         "order", "special", "unchoosable", "condition"
     );
 
+    /** Replace the expansion/display maps with data received from the server (client-side only). */
+    public static void setClientData(Map<ResourceLocation, List<ResourceLocation>> expansionMap,
+                                     Map<ResourceLocation, JsonObject> displayMap) {
+        MULTIPLE_EXPANSION_MAP.clear();
+        MULTIPLE_EXPANSION_MAP.putAll(expansionMap);
+        MULTIPLE_DISPLAY_MAP.clear();
+        MULTIPLE_DISPLAY_MAP.putAll(displayMap);
+    }
+
     private OriginsMultipleExpander() {}
 
     /** Clears the expansion and display maps. Call at the start of PowerDataManager.apply(). */

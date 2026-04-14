@@ -15,9 +15,11 @@ import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
+import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
@@ -40,6 +42,12 @@ public class NeoOriginsNetwork {
 
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar(NeoOrigins.MOD_ID).versioned(PROTOCOL_VERSION);
+
+        registrar.playToClient(
+            SyncOriginRegistryPayload.TYPE,
+            SyncOriginRegistryPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncRegistry
+        );
 
         registrar.playToClient(
             SyncOriginsPayload.TYPE,
@@ -85,6 +93,20 @@ public class NeoOriginsNetwork {
     }
 
     // ---------- Client-side handlers ----------
+
+    private static void handleSyncRegistry(SyncOriginRegistryPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            OriginDataManager.INSTANCE.setClientData(payload.origins());
+
+            java.util.Map<ResourceLocation, com.cyberday1.neoorigins.api.origin.OriginLayer> layerMap = new java.util.HashMap<>();
+            for (var layer : payload.sortedLayers()) layerMap.put(layer.id(), layer);
+            LayerDataManager.INSTANCE.setClientData(layerMap, payload.sortedLayers());
+
+            com.cyberday1.neoorigins.client.ClientPowerCache.set(payload.powers());
+            com.cyberday1.neoorigins.compat.OriginsMultipleExpander.setClientData(
+                payload.multipleExpansionMap(), payload.multipleDisplayMap());
+        });
+    }
 
     private static void handleSyncOrigins(SyncOriginsPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
@@ -225,5 +247,25 @@ public class NeoOriginsNetwork {
     /** Open the origin selection screen, optionally forcing re-selection of filled layers. */
     public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect) {
         PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect));
+    }
+
+    /** Sync the full origin/layer/power registry to a player so their client can render the GUI. */
+    public static void syncRegistryToPlayer(ServerPlayer player) {
+        // Build power display entries from all known powers
+        java.util.Map<ResourceLocation, com.cyberday1.neoorigins.client.ClientPowerCache.Entry> powerEntries = new java.util.HashMap<>();
+        for (var entry : com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getAllPowers().entrySet()) {
+            var holder = entry.getValue();
+            boolean isToggle = holder.type() instanceof AbstractTogglePower<?>;
+            powerEntries.put(entry.getKey(), new com.cyberday1.neoorigins.client.ClientPowerCache.Entry(
+                holder.name(), holder.description(), holder.isActive(), isToggle));
+        }
+
+        PacketDistributor.sendToPlayer(player, new SyncOriginRegistryPayload(
+            OriginDataManager.INSTANCE.getOrigins(),
+            LayerDataManager.INSTANCE.getSortedLayers(),
+            powerEntries,
+            com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP,
+            com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_DISPLAY_MAP
+        ));
     }
 }

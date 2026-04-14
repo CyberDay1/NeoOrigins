@@ -20,18 +20,14 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class PlayerLifecycleEvents {
 
     /** Grace period (in ticks) after login to retry the origin check if data wasn't loaded yet. */
     private static final int LOGIN_RETRY_TICKS = 100;
-    private static final Map<UUID, Integer> pendingOriginCheck = new HashMap<>();
-    private static final Map<UUID, Integer> pendingResync = new HashMap<>();
+    private static final java.util.Map<java.util.UUID, Integer> pendingOriginCheck = new java.util.HashMap<>();
 
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
@@ -53,6 +49,7 @@ public class PlayerLifecycleEvents {
             }
         }
 
+        // Drain deferred re-sync after respawn
         Integer resyncRemaining = pendingResync.get(sp.getUUID());
         if (resyncRemaining != null) {
             if (resyncRemaining <= 0) {
@@ -75,9 +72,11 @@ public class PlayerLifecycleEvents {
         repairCorruptedVitals(sp);
 
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
+        NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
 
         if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
+            // Data hasn't loaded yet — defer the origin check to tick handler
             pendingOriginCheck.put(sp.getUUID(), LOGIN_RETRY_TICKS);
         } else {
             checkAndPromptOrigin(sp);
@@ -136,9 +135,14 @@ public class PlayerLifecycleEvents {
         } else {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
+            // Deferred re-sync: the client may not be ready for packets at respawn time,
+            // causing the HUD/info to show stale state until relog.
             pendingResync.put(sp.getUUID(), 2);
         }
     }
+
+    /** Players awaiting a deferred origin re-sync after respawn (UUID → ticks remaining). */
+    private static final java.util.Map<java.util.UUID, Integer> pendingResync = new java.util.HashMap<>();
 
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
