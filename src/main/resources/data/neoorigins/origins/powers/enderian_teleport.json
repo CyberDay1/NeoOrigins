@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:active_teleport",
+  "range": 50.0,
+  "cooldown_ticks": 60,
+  "mode": "target",
+  "name": "power.neoorigins.enderian_teleport.name",
+  "description": "power.neoorigins.enderian_teleport.description"
+}

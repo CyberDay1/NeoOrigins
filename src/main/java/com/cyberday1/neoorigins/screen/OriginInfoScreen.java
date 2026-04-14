@@ -267,6 +267,7 @@ public class OriginInfoScreen extends Screen {
         return super.mouseScrolled(mx, my, sx, sy);
     }
 
+    @Override protected void extractBlurredBackground(GuiGraphicsExtractor g) { /* no blur */ }
     @Override public boolean isPauseScreen() { return false; }
     @Override public void onClose() { Minecraft.getInstance().setScreen(null); }
 }

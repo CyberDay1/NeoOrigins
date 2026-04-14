@@ -49,6 +49,17 @@ public class PlayerLifecycleEvents {
             }
         }
 
+        // Drain deferred re-sync after respawn
+        Integer resyncRemaining = pendingResync.get(sp.getUUID());
+        if (resyncRemaining != null) {
+            if (resyncRemaining <= 0) {
+                pendingResync.remove(sp.getUUID());
+                NeoOriginsNetwork.syncToPlayer(sp);
+            } else {
+                pendingResync.put(sp.getUUID(), resyncRemaining - 1);
+            }
+        }
+
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
@@ -106,6 +117,7 @@ public class PlayerLifecycleEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var uuid = sp.getUUID();
         pendingOriginCheck.remove(uuid);
+        pendingResync.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
@@ -122,8 +134,14 @@ public class PlayerLifecycleEvents {
         } else {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
+            // Deferred re-sync: the client may not be ready for packets at respawn time,
+            // causing the HUD/info to show stale state until relog.
+            pendingResync.put(sp.getUUID(), 2);
         }
     }
+
+    /** Players awaiting a deferred origin re-sync after respawn (UUID → ticks remaining). */
+    private static final java.util.Map<java.util.UUID, Integer> pendingResync = new java.util.HashMap<>();
 
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());

@@ -81,8 +81,13 @@ public class CompatPower extends PowerType<CompatPower.Config> {
 
     @Override
     public void onRespawn(ServerPlayer player, Config config) {
-        // Route B powers manage their own state; only run explicit respawn action.
-        if (config.onRespawn() != null) config.onRespawn().accept(player);
+        if (config.onRespawn() != null) {
+            config.onRespawn().accept(player);
+        } else {
+            // Fall back to onGranted so effects (attribute modifiers, state init, etc.)
+            // are re-applied after death — matches base PowerType.onRespawn behaviour.
+            onGranted(player, config);
+        }
     }
 
     @Override
