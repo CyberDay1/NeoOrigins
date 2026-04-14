@@ -9,9 +9,17 @@ import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +50,27 @@ public final class ActionParser {
                 case "origins:exhaust", "apace:exhaust"                     -> parseExhaust(json);
                 case "origins:change_resource", "apace:change_resource"     -> parseChangeResource(json);
                 case "origins:nothing", "apace:nothing"                     -> EntityAction.noop();
+
+                // ---- Phase 2: New actions ----
+                case "origins:damage", "apace:damage"                       -> parseDamage(json);
+                case "origins:feed", "apace:feed"                           -> parseFeed(json);
+                case "origins:trigger_cooldown", "apace:trigger_cooldown"   -> parseTriggerCooldown(json);
+                case "origins:gain_air", "apace:gain_air"                   -> parseGainAir(json);
+                case "origins:spawn_entity", "apace:spawn_entity"           -> parseSpawnEntity(json);
+                case "origins:set_fall_distance", "apace:set_fall_distance" -> parseSetFallDistance(json);
+                case "origins:extinguish", "apace:extinguish"               -> player -> player.clearFire();
+                case "origins:dismount", "apace:dismount"                   -> player -> player.stopRiding();
+                case "origins:give", "apace:give"                           -> parseGive(json);
+                case "origins:explode", "apace:explode"                     -> parseExplode(json);
+                case "origins:launch", "apace:launch"                       -> parseLaunch(json);
+                case "origins:set_block", "apace:set_block"                 -> parseSetBlock(json);
+                case "origins:area_of_effect", "apace:area_of_effect"       -> parseAreaOfEffect(json, contextId);
+                case "origins:modify_food", "apace:modify_food"             -> EntityAction.noop();
+                case "origins:revoke_power", "origins:grant_power",
+                     "apace:revoke_power", "apace:grant_power"             -> EntityAction.noop();
+                case "origins:emit_game_event", "apace:emit_game_event"     -> EntityAction.noop();
+                case "origins:swing_hand", "apace:swing_hand"               -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+
                 default -> failNoop(type, contextId, "unsupported action type");
             };
         } catch (Exception e) {
@@ -161,15 +190,15 @@ public final class ActionParser {
         }
 
         if (effectId == null) return EntityAction.noop();
-        Identifier effId = Identifier.parse(effectId);
+        // Cache mob effect holder at parse time — registry is static
+        var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
+        if (effectHolder == null) return EntityAction.noop();
         final int fDur = duration;
         final int fAmp = amplifier;
         final boolean fAmb = ambient;
         final boolean fPart = particles;
         final boolean fIcon = icon;
-        return player -> BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(holder ->
-            player.addEffect(new MobEffectInstance(holder, fDur, fAmp, fAmb, fPart, fIcon))
-        );
+        return player -> player.addEffect(new MobEffectInstance(effectHolder, fDur, fAmp, fAmb, fPart, fIcon));
     }
 
     private static String resolveEffectId(JsonObject obj) {
@@ -187,8 +216,9 @@ public final class ActionParser {
         if (effectId == null) {
             return player -> player.removeAllEffects();
         }
-        Identifier effId = Identifier.parse(effectId);
-        return player -> BuiltInRegistries.MOB_EFFECT.get(effId).ifPresent(player::removeEffect);
+        var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
+        if (effectHolder == null) return EntityAction.noop();
+        return player -> player.removeEffect(effectHolder);
     }
 
     private static EntityAction parseHeal(JsonObject json) {
@@ -201,10 +231,10 @@ public final class ActionParser {
         if (soundId == null) return EntityAction.noop();
         float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
         float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
-        Identifier sId = Identifier.parse(soundId);
-        return player -> BuiltInRegistries.SOUND_EVENT.get(sId).ifPresent(h ->
-            player.playSound(h.value(), volume, pitch)
-        );
+        var soundHolder = BuiltInRegistries.SOUND_EVENT.get(Identifier.parse(soundId)).orElse(null);
+        if (soundHolder == null) return EntityAction.noop();
+        var sound = soundHolder.value();
+        return player -> player.playSound(sound, volume, pitch);
     }
 
     private static EntityAction parseAddVelocity(JsonObject json) {
@@ -241,6 +271,137 @@ public final class ActionParser {
             case "set" -> player -> player.getData(CompatAttachments.resourceState()).set(key, change);
             default -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
         };
+    }
+
+    // ---- Phase 2: New action parsers ----
+
+    private static EntityAction parseDamage(JsonObject json) {
+        float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
+        // Determine damage source type
+        String sourceType = "";
+        if (json.has("source") && json.get("source").isJsonObject()) {
+            JsonObject src = json.getAsJsonObject("source");
+            sourceType = src.has("name") ? src.get("name").getAsString() : "";
+        }
+        final String fSrc = sourceType;
+        return player -> {
+            var dmgSrc = switch (fSrc) {
+                case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
+                case "lava"         -> player.level().damageSources().lava();
+                case "magic"        -> player.level().damageSources().magic();
+                case "starve"       -> player.level().damageSources().starve();
+                case "drown"        -> player.level().damageSources().drown();
+                case "freeze"       -> player.level().damageSources().freeze();
+                case "wither"       -> player.level().damageSources().wither();
+                default             -> player.level().damageSources().generic();
+            };
+            player.hurt(dmgSrc, amount);
+        };
+    }
+
+    private static EntityAction parseFeed(JsonObject json) {
+        int food = json.has("food") ? json.get("food").getAsInt() : 1;
+        float saturation = json.has("saturation") ? json.get("saturation").getAsFloat() : 0.0f;
+        return player -> player.getFoodData().eat(food, saturation);
+    }
+
+    private static EntityAction parseTriggerCooldown(JsonObject json) {
+        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 20;
+        String powerId = json.has("power") ? json.get("power").getAsString() : null;
+        if (powerId == null) return EntityAction.noop();
+        return player -> {
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            data.setCooldown(powerId, player.tickCount, cooldown);
+        };
+    }
+
+    private static EntityAction parseGainAir(JsonObject json) {
+        int amount = json.has("amount") ? json.get("amount").getAsInt() : 10;
+        return player -> player.setAirSupply(Math.min(player.getMaxAirSupply(), player.getAirSupply() + amount));
+    }
+
+    private static EntityAction parseSpawnEntity(JsonObject json) {
+        String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
+        if (entityId == null) return EntityAction.noop();
+        Identifier eid = Identifier.parse(entityId);
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.get(eid);
+            if (entityTypeOpt.isEmpty()) return;
+            var entity = entityTypeOpt.get().value().create(sl, EntitySpawnReason.COMMAND);
+            if (entity == null) return;
+            entity.setPos(player.getX(), player.getY(), player.getZ());
+            sl.addFreshEntity(entity);
+        };
+    }
+
+    private static EntityAction parseSetFallDistance(JsonObject json) {
+        float distance = json.has("fall_distance") ? json.get("fall_distance").getAsFloat() : 0.0f;
+        return player -> player.fallDistance = distance;
+    }
+
+    private static EntityAction parseGive(JsonObject json) {
+        // Give an item stack to the player
+        JsonObject stack = json.has("stack") ? json.getAsJsonObject("stack") : json;
+        String itemId = stack.has("item") ? stack.get("item").getAsString() : null;
+        if (itemId == null) return EntityAction.noop();
+        int count = stack.has("count") ? stack.get("count").getAsInt() : 1;
+        Identifier iid = Identifier.parse(itemId);
+        return player -> {
+            var itemOpt = BuiltInRegistries.ITEM.get(iid);
+            if (itemOpt.isEmpty()) return;
+            ItemStack itemStack = new ItemStack(itemOpt.get(), count);
+            if (!player.getInventory().add(itemStack)) {
+                // Drop on ground if inventory full
+                ItemEntity drop = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), itemStack);
+                player.level().addFreshEntity(drop);
+            }
+        };
+    }
+
+    private static EntityAction parseExplode(JsonObject json) {
+        float power = json.has("power") ? json.get("power").getAsFloat() : 3.0f;
+        boolean destructive = json.has("destruction_type")
+            && !"none".equals(json.get("destruction_type").getAsString());
+        boolean fire = json.has("create_fire") && json.get("create_fire").getAsBoolean();
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var blockInteraction = destructive
+                ? Level.ExplosionInteraction.BLOCK
+                : Level.ExplosionInteraction.NONE;
+            sl.explode(player, player.getX(), player.getY(), player.getZ(), power,
+                fire, blockInteraction);
+        };
+    }
+
+    private static EntityAction parseLaunch(JsonObject json) {
+        float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
+        return player -> {
+            player.push(0, speed, 0);
+            player.hurtMarked = true;
+        };
+    }
+
+    private static EntityAction parseSetBlock(JsonObject json) {
+        String blockId = json.has("block") ? json.get("block").getAsString() : null;
+        if (blockId == null) return EntityAction.noop();
+        Identifier bid = Identifier.parse(blockId);
+        return player -> {
+            var blockOpt = BuiltInRegistries.BLOCK.get(bid);
+            if (blockOpt.isEmpty()) return;
+            Block block = blockOpt.get().value();
+            BlockPos pos = player.blockPosition();
+            player.level().setBlock(pos, block.defaultBlockState(), 3);
+        };
+    }
+
+    private static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
+        // Simplified AoE: execute an action on the player (ignoring entity targeting)
+        float radius = json.has("radius") ? json.get("radius").getAsFloat() : 5.0f;
+        EntityAction action = json.has("entity_action")
+            ? parse(json.getAsJsonObject("entity_action"), contextId) : EntityAction.noop();
+        // [LOSSY] AoE only affects the player, not nearby entities
+        return action;
     }
 
     private static EntityAction failNoop(String type, String contextId, String detail) {

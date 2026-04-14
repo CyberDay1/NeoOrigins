@@ -414,6 +414,27 @@ public final class NeoOriginsConfig {
         BUILDER.pop();
     }
 
+    // ── Compat Origin Filtering ────────────────────────────────────────
+    // Origins from addon mods (Origins++, etc.) are hidden from the
+    // selection screen if too many of their powers failed to load.
+
+    public static final ModConfigSpec.DoubleValue COMPAT_MIN_POWER_RATIO;
+
+    static {
+        BUILDER.comment(
+            "Compat origin filtering.",
+            "Origins from addon mods are hidden if fewer than this fraction of their",
+            "powers loaded successfully. Set to 0.0 to show all origins regardless.",
+            "Default 0.5 = origins with <50% of powers working are hidden."
+        ).push("compat_filtering");
+
+        COMPAT_MIN_POWER_RATIO = BUILDER
+            .comment("Minimum ratio of loaded powers (0.0-1.0) for an addon origin to appear.")
+            .defineInRange("min_power_ratio", 0.5, 0.0, 1.0);
+
+        BUILDER.pop();
+    }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static RandomMode getRandomMode() {
