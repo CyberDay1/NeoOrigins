@@ -5,6 +5,7 @@
   "origins.layer.origin": "Origin",
   "origins.layer.class": "Class",
   "screen.neoorigins.choose_origin": "Choose Your Origin",
+  "screen.neoorigins.choose_prompt": "Choose Your %s",
   "screen.neoorigins.choose.origins.layer.origin": "Choose Your Origin",
   "screen.neoorigins.choose.origins.layer.class": "Choose Your Class",
   "button.neoorigins.random": "Random",
