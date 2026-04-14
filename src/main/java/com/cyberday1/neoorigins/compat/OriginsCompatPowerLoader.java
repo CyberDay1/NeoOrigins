@@ -16,13 +16,19 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.projectile.SmallFireball;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 
 import java.io.Reader;
 import java.util.*;
@@ -52,7 +58,28 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:self_action_when_hit",  "apace:self_action_when_hit",
         "origins:self_action_on_hit",    "apace:self_action_on_hit",
         "origins:action_on_hit",         "apace:action_on_hit",
-        "origins:damage_over_time",      "apace:damage_over_time"
+        "origins:damage_over_time",      "apace:damage_over_time",
+        "origins:action_on_kill",        "apace:action_on_kill",
+        // Phase 3: New Route B types
+        "origins:fire_projectile",       "apace:fire_projectile",
+        "origins:target_action_on_hit",  "apace:target_action_on_hit",
+        "origins:self_action_on_kill",   "apace:self_action_on_kill",
+        "origins:launch",               "apace:launch",
+        "origins:entity_glow",          "apace:entity_glow",
+        "origins:self_glow",            "apace:self_glow",
+        "origins:prevent_death",        "apace:prevent_death",
+        "origins:action_when_hit",      "apace:action_when_hit",
+        "origins:action_when_damage_taken", "apace:action_when_damage_taken",
+        "origins:attacker_action_when_hit", "apace:attacker_action_when_hit",
+        "origins:action_on_land",       "apace:action_on_land",
+        // Phase 5: Event-based powers (loaded here, events handled by CompatEventPowers)
+        "origins:prevent_item_use",     "apace:prevent_item_use",
+        "origins:restrict_armor",       "apace:restrict_armor",
+        "origins:prevent_sleep",        "apace:prevent_sleep",
+        "origins:prevent_block_use",    "apace:prevent_block_use",
+        "origins:prevent_entity_use",   "apace:prevent_entity_use",
+        "origins:modify_food",          "apace:modify_food",
+        "origins:modify_jump",          "apace:modify_jump"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -87,6 +114,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> data, ResourceManager rm, ProfilerFiller profiler) {
+        // Clear event power state from the previous reload cycle
+        CompatPlayerState.clearAll();
+
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
         Map<ResourceLocation, JsonObject> expanded = inlineExpand(data);
 
@@ -149,7 +179,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     /**
      * Inline-expand origins:multiple entries in the raw data map.
-     * Returns a flat map of id → JsonObject covering both direct powers and sub-powers.
+     * Returns a flat map of id -> JsonObject covering both direct powers and sub-powers.
      * Does NOT call OriginsMultipleExpander (avoids touching its state twice).
      */
     private Map<ResourceLocation, JsonObject> inlineExpand(Map<ResourceLocation, JsonElement> data) {
@@ -210,8 +240,29 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:action_on_being_hit",        "apace:action_on_being_hit",
                  "origins:self_action_when_hit",       "apace:self_action_when_hit",
                  "origins:self_action_on_hit",         "apace:self_action_on_hit",
-                 "origins:action_on_hit",              "apace:action_on_hit"              -> parseSelfActionWhenHit(id, json);
+                 "origins:action_on_hit",              "apace:action_on_hit",
+                 "origins:action_when_hit",            "apace:action_when_hit",
+                 "origins:action_when_damage_taken",   "apace:action_when_damage_taken",
+                 "origins:attacker_action_when_hit",   "apace:attacker_action_when_hit"   -> parseSelfActionWhenHit(id, json);
             case "origins:damage_over_time",           "apace:damage_over_time"           -> parseDamageOverTime(id, json);
+            // Phase 3: New Route B types
+            case "origins:fire_projectile",            "apace:fire_projectile"            -> parseFireProjectile(id, json);
+            case "origins:target_action_on_hit",       "apace:target_action_on_hit"       -> parseTargetActionOnHit(id, json);
+            case "origins:self_action_on_kill",        "apace:self_action_on_kill",
+                 "origins:action_on_kill",              "apace:action_on_kill"             -> parseSelfActionOnKill(id, json);
+            case "origins:launch",                     "apace:launch"                     -> parseLaunch(id, json);
+            case "origins:entity_glow",                "apace:entity_glow",
+                 "origins:self_glow",                  "apace:self_glow"                  -> parseEntityGlow(id, json);
+            case "origins:prevent_death",              "apace:prevent_death"              -> parsePreventDeath(id, json);
+            case "origins:action_on_land",             "apace:action_on_land"             -> parseActionOnLand(id, json);
+            // Phase 5: Event-based powers
+            case "origins:prevent_item_use",           "apace:prevent_item_use"           -> parsePreventItemUse(id, json);
+            case "origins:restrict_armor",             "apace:restrict_armor"             -> parseRestrictArmor(id, json);
+            case "origins:prevent_sleep",              "apace:prevent_sleep"              -> parsePreventSleep(id, json);
+            case "origins:prevent_block_use",          "apace:prevent_block_use"          -> parsePreventBlockUse(id, json);
+            case "origins:prevent_entity_use",         "apace:prevent_entity_use"         -> parsePreventEntityUse(id, json);
+            case "origins:modify_food",                "apace:modify_food"                -> parseModifyFood(id, json);
+            case "origins:modify_jump",                "apace:modify_jump"                -> parseModifyJump(id, json);
             default -> null;
         };
     }
@@ -338,6 +389,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 rawAttrIdent.getPath().substring("generic.".length()))
             : rawAttrIdent;
 
+        // Cache attribute holder at parse time
+        var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
+        if (attrOpt.isEmpty()) return null;
+        var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
+
         JsonObject modObj = json.has("modifier") ? json.getAsJsonObject("modifier") : json;
         double value = modObj.has("value")  ? modObj.get("value").getAsDouble()
                      : modObj.has("amount") ? modObj.get("amount").getAsDouble() : 0.0;
@@ -358,9 +414,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         return CompatPower.Config.builder()
             .onTick(player -> {
-                var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
-                if (attrOpt.isEmpty()) return;
-                var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
                 AttributeInstance inst = player.getAttribute(attrHolder);
                 if (inst == null) return;
                 boolean shouldHave = condition.test(player);
@@ -372,9 +425,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .onRevoked(player -> {
-                var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
-                if (attrOpt.isEmpty()) return;
-                var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
                 AttributeInstance inst = player.getAttribute(attrHolder);
                 if (inst != null) inst.removeModifier(modifierId);
             })
@@ -411,7 +461,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
             : EntityCondition.alwaysTrue();
 
-        ResourceLocation effId    = ResourceLocation.parse(effectId);
+        // Cache mob effect holder at parse time
+        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(effectId));
+        if (effectOpt.isEmpty()) return null;
+        var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
+
         int  finalAmp       = amplifier;
         boolean finalAmb    = ambient;
         boolean finalPart   = particles;
@@ -419,15 +473,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return CompatPower.Config.builder()
             .onTick(player -> {
                 if (!condition.test(player)) return;
-                BuiltInRegistries.MOB_EFFECT.getOptional(effId).ifPresent(effect -> {
-                    var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect);
-                    var existing = player.getEffect(holder);
-                    // Re-apply at 200t duration if missing or about to expire (<100t).
-                    if (existing == null || existing.getDuration() < 100) {
-                        player.addEffect(new MobEffectInstance(
-                            holder, 200, finalAmp, finalAmb, finalPart, true));
-                    }
-                });
+                var existing = player.getEffect(effectHolder);
+                // Re-apply at 200t duration if missing or about to expire (<100t).
+                if (existing == null || existing.getDuration() < 100) {
+                    player.addEffect(new MobEffectInstance(
+                        effectHolder, 200, finalAmp, finalAmb, finalPart, true));
+                }
             })
             .build();
     }
@@ -475,6 +526,358 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                         : player.level().damageSources().generic();
                     player.hurt(dmgSrc, finalDamage);
                 }
+            })
+            .build();
+    }
+
+    // ---- Phase 3: New Route B type parsers ----
+
+    private CompatPower.Config parseFireProjectile(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        String entityTypeStr = json.has("entity_type") ? json.get("entity_type").getAsString() : "minecraft:arrow";
+        float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
+        float divergence = json.has("divergence") ? json.get("divergence").getAsFloat() : 1.0f;
+        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+        int count = json.has("count") ? json.get("count").getAsInt() : 1;
+
+        return CompatPower.Config.builder()
+            .onActivated(player -> {
+                if (cooldown > 0) {
+                    PlayerOriginData data = player.getData(OriginAttachments.originData());
+                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    data.setCooldown(idStr, player.tickCount, cooldown);
+                }
+                if (!(player.level() instanceof ServerLevel sl)) return;
+                Vec3 look = player.getLookAngle();
+                for (int i = 0; i < count; i++) {
+                    if ("minecraft:small_fireball".equals(entityTypeStr)) {
+                        SmallFireball fb = new SmallFireball(sl, player, look.scale(speed));
+                        fb.setPos(player.getX(), player.getEyeY(), player.getZ());
+                        sl.addFreshEntity(fb);
+                    } else {
+                        // Default: use execute_command to summon the entity type
+                        // This handles snowball, arrow, and any other projectile type
+                        String cmd = String.format(
+                            "summon %s ~ ~1.5 ~ {Motion:[%fd,%fd,%fd]}",
+                            entityTypeStr,
+                            look.x * speed, look.y * speed, look.z * speed
+                        );
+                        sl.getServer().getCommands().performPrefixedCommand(
+                            player.createCommandSourceStack().withSuppressedOutput(), cmd
+                        );
+                    }
+                }
+            })
+            .build();
+    }
+
+    private CompatPower.Config parseTargetActionOnHit(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        // [LOSSY] target_action_on_hit fires on kill, not on every hit (no hit event for target entity)
+        EntityAction action = json.has("entity_action")
+            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
+            : EntityAction.noop();
+        return CompatPower.Config.builder()
+            .onKill(action::execute)
+            .build();
+    }
+
+    private CompatPower.Config parseSelfActionOnKill(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityAction action = json.has("entity_action")
+            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
+            : EntityAction.noop();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+        return CompatPower.Config.builder()
+            .onKill(player -> {
+                if (condition.test(player)) action.execute(player);
+            })
+            .build();
+    }
+
+    private CompatPower.Config parseLaunch(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
+        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+
+        return CompatPower.Config.builder()
+            .onActivated(player -> {
+                if (cooldown > 0) {
+                    PlayerOriginData data = player.getData(OriginAttachments.originData());
+                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    data.setCooldown(idStr, player.tickCount, cooldown);
+                }
+                player.push(0, speed, 0);
+                player.hurtMarked = true;
+            })
+            .build();
+    }
+
+    private CompatPower.Config parseEntityGlow(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                if (condition.test(player)) {
+                    player.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, true, false, false));
+                }
+            })
+            .build();
+    }
+
+    private CompatPower.Config parsePreventDeath(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityAction action = json.has("entity_action")
+            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
+            : EntityAction.noop();
+
+        // Prevent death by clamping health at 1hp each tick when it would drop below
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                if (player.getHealth() <= 0.0f && player.isAlive()) {
+                    player.setHealth(1.0f);
+                    action.execute(player);
+                }
+            })
+            .onHit(player -> {
+                // After being hit, clamp health to at least 1hp
+                if (player.getHealth() <= 0.5f) {
+                    player.setHealth(1.0f);
+                    action.execute(player);
+                }
+            })
+            .build();
+    }
+
+    private CompatPower.Config parseActionOnLand(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityAction action = json.has("entity_action")
+            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
+            : EntityAction.noop();
+
+        // Detect ground transition: was airborne, now grounded
+        String airborneKey = idStr + "/_airborne";
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                var state = player.getData(CompatAttachments.resourceState());
+                boolean wasAirborne = state.get(airborneKey, 0) == 1;
+                boolean isGrounded = player.onGround();
+                if (wasAirborne && isGrounded) {
+                    action.execute(player);
+                }
+                state.set(airborneKey, isGrounded ? 0 : 1);
+            })
+            .build();
+    }
+
+    // ---- Phase 5: Event-based power parsers ----
+    // All conditions are pre-compiled here at load time, not at event time.
+
+    private CompatPower.Config parsePreventItemUse(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        var itemPred = json.has("item_condition")
+            ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
+        var data = CompatPlayerState.EventPowerData.withItemPredicate(
+            idStr, CompatPlayerState.EventType.PREVENT_ITEM_USE, itemPred);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatPlayerState.register(player, data))
+            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    private CompatPower.Config parseRestrictArmor(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+
+        // Compile per-slot predicates
+        java.util.function.Predicate<ItemStack> globalPred = json.has("item_condition")
+            ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
+        java.util.function.Predicate<ItemStack> headPred = json.has("head")
+            ? compileItemPredicate(json.getAsJsonObject("head")) : null;
+        java.util.function.Predicate<ItemStack> chestPred = json.has("chest")
+            ? compileItemPredicate(json.getAsJsonObject("chest")) : null;
+        java.util.function.Predicate<ItemStack> legsPred = json.has("legs")
+            ? compileItemPredicate(json.getAsJsonObject("legs")) : null;
+        java.util.function.Predicate<ItemStack> feetPred = json.has("feet")
+            ? compileItemPredicate(json.getAsJsonObject("feet")) : null;
+
+        CompatPlayerState.ArmorPredicate armorPred = (stack, slot) -> {
+            var slotPred = switch (slot) {
+                case HEAD  -> headPred;
+                case CHEST -> chestPred;
+                case LEGS  -> legsPred;
+                case FEET  -> feetPred;
+                default    -> null;
+            };
+            if (slotPred != null) return slotPred.test(stack);
+            if (globalPred != null) return globalPred.test(stack);
+            return true; // No condition = restrict all armor
+        };
+
+        var data = CompatPlayerState.EventPowerData.withArmorPredicate(idStr, armorPred);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatPlayerState.register(player, data))
+            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    private CompatPower.Config parsePreventSleep(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
+        var data = CompatPlayerState.EventPowerData.withEntityCondition(
+            idStr, CompatPlayerState.EventType.PREVENT_SLEEP, condition);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatPlayerState.register(player, data))
+            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    private CompatPower.Config parsePreventBlockUse(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        var blockPred = json.has("block_condition")
+            ? compileBlockPredicate(json.getAsJsonObject("block_condition")) : null;
+        var data = CompatPlayerState.EventPowerData.withBlockPredicate(
+            idStr, CompatPlayerState.EventType.PREVENT_BLOCK_USE, blockPred);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatPlayerState.register(player, data))
+            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    private CompatPower.Config parsePreventEntityUse(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        var data = CompatPlayerState.EventPowerData.noCondition(
+            idStr, CompatPlayerState.EventType.PREVENT_ENTITY_USE);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatPlayerState.register(player, data))
+            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    private CompatPower.Config parseModifyFood(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        var data = CompatPlayerState.EventPowerData.noCondition(
+            idStr, CompatPlayerState.EventType.MODIFY_FOOD);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatPlayerState.register(player, data))
+            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    // ---- Compile-time predicate builders for event powers ----
+
+    /** Compile an item condition JSON into a Predicate<ItemStack> at load time. */
+    private static java.util.function.Predicate<ItemStack> compileItemPredicate(JsonObject condJson) {
+        if (condJson == null) return null;
+        String type = condJson.has("type") ? condJson.get("type").getAsString() : "";
+
+        // Handle "origins:ingredient" type
+        if (type.contains("ingredient") && condJson.has("ingredient")) {
+            var ingEl = condJson.get("ingredient");
+            if (ingEl.isJsonObject()) {
+                JsonObject ing = ingEl.getAsJsonObject();
+                if (ing.has("item")) {
+                    ResourceLocation itemId = ResourceLocation.parse(ing.get("item").getAsString());
+                    return stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(itemId);
+                }
+                if (ing.has("tag")) {
+                    var tagKey = net.minecraft.tags.TagKey.create(
+                        net.minecraft.core.registries.Registries.ITEM,
+                        ResourceLocation.parse(ing.get("tag").getAsString()));
+                    return stack -> stack.is(tagKey);
+                }
+            }
+        }
+
+        // Direct item ID check
+        if (condJson.has("id")) {
+            ResourceLocation itemId = ResourceLocation.parse(condJson.get("id").getAsString());
+            return stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(itemId);
+        }
+
+        // Item tag check
+        if (condJson.has("tag")) {
+            var tagKey = net.minecraft.tags.TagKey.create(
+                net.minecraft.core.registries.Registries.ITEM,
+                ResourceLocation.parse(condJson.get("tag").getAsString()));
+            return stack -> stack.is(tagKey);
+        }
+
+        // "origins:empty" type — match empty stacks
+        if (type.contains("empty")) {
+            return ItemStack::isEmpty;
+        }
+
+        // No recognized filter — match everything (fail-closed for restrictions)
+        return stack -> true;
+    }
+
+    /** Compile a block condition JSON into a BiPredicate at load time. */
+    private static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicate(
+            JsonObject condJson) {
+        if (condJson == null) return null;
+
+        String blockId = condJson.has("block") ? condJson.get("block").getAsString() : null;
+        if (blockId == null) blockId = condJson.has("id") ? condJson.get("id").getAsString() : null;
+        if (blockId != null) {
+            ResourceLocation bid = ResourceLocation.parse(blockId);
+            return (player, pos) -> {
+                var block = player.level().getBlockState(pos).getBlock();
+                return BuiltInRegistries.BLOCK.getKey(block).equals(bid);
+            };
+        }
+
+        String tag = condJson.has("tag") ? condJson.get("tag").getAsString() : null;
+        if (tag != null) {
+            var tagKey = net.minecraft.tags.TagKey.create(
+                net.minecraft.core.registries.Registries.BLOCK, ResourceLocation.parse(tag));
+            return (player, pos) -> player.level().getBlockState(pos).is(tagKey);
+        }
+
+        return (player, pos) -> true;
+    }
+
+    private CompatPower.Config parseModifyJump(ResourceLocation id, JsonObject json) {
+        // Extract the jump modifier value
+        double value = 0.0;
+        if (json.has("modifier") && json.get("modifier").isJsonObject()) {
+            JsonObject mod = json.getAsJsonObject("modifier");
+            value = mod.has("value") ? mod.get("value").getAsDouble()
+                  : mod.has("amount") ? mod.get("amount").getAsDouble() : 0.0;
+        }
+
+        // Cache attribute holder at parse time
+        var jumpOpt = BuiltInRegistries.ATTRIBUTE.getOptional(ResourceLocation.parse("minecraft:generic.jump_strength"));
+        if (jumpOpt.isEmpty()) return null;
+        var jumpHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(jumpOpt.get());
+
+        String safeKey = id.getPath().replace('/', '_');
+        ResourceLocation modifierId = ResourceLocation.fromNamespaceAndPath("neoorigins", "modjump_" + safeKey);
+        double finalValue = value;
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> {
+                AttributeInstance inst = player.getAttribute(jumpHolder);
+                if (inst == null) return;
+                if (inst.getModifier(modifierId) == null) {
+                    inst.addPermanentModifier(new AttributeModifier(
+                        modifierId, finalValue, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+                }
+            })
+            .onRevoked(player -> {
+                AttributeInstance inst = player.getAttribute(jumpHolder);
+                if (inst != null) inst.removeModifier(modifierId);
             })
             .build();
     }

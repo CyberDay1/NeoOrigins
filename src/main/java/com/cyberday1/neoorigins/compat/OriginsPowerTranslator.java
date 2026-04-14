@@ -37,12 +37,33 @@ public final class OriginsPowerTranslator {
         "origins:conditioned_attribute", "apace:conditioned_attribute",
         "origins:conditioned_status_effect", "apace:conditioned_status_effect",
         "origins:action_on_kill",        "apace:action_on_kill",
+        // Phase 3: Now handled by Route B
+        "origins:fire_projectile",       "apace:fire_projectile",
+        "origins:target_action_on_hit",  "apace:target_action_on_hit",
+        "origins:self_action_on_kill",   "apace:self_action_on_kill",
+        "origins:launch",               "apace:launch",
+        "origins:entity_glow",          "apace:entity_glow",
+        "origins:self_glow",            "apace:self_glow",
+        "origins:prevent_death",        "apace:prevent_death",
+        "origins:action_when_hit",      "apace:action_when_hit",
+        "origins:action_when_damage_taken", "apace:action_when_damage_taken",
+        "origins:attacker_action_when_hit", "apace:attacker_action_when_hit",
+        "origins:action_on_land",       "apace:action_on_land",
+        // Phase 5: Event-based powers (Route B)
+        "origins:prevent_item_use",      "apace:prevent_item_use",
+        "origins:restrict_armor",        "apace:restrict_armor",
+        "origins:prevent_sleep",         "apace:prevent_sleep",
+        "origins:prevent_block_use",     "apace:prevent_block_use",
+        "origins:prevent_entity_use",    "apace:prevent_entity_use",
+        "origins:modify_food",           "apace:modify_food",
+        "origins:modify_jump",           "apace:modify_jump",
         // Visual/rendering — no server-side equivalent
         "origins:overlay",
         "origins:shader",
         "origins:particle",
         "origins:lava_vision",
         "origins:model_color",
+        "origins:shaking",
         // Movement variants without a direct equivalent
         "origins:swim_speed",            "apace:swim_speed",
         "origins:air_acceleration",      "apace:air_acceleration",
@@ -53,23 +74,16 @@ public final class OriginsPowerTranslator {
         // origins:climbing — translated in doTranslate()
         "origins:phasing",
         "origins:burn",
-        "origins:fire_projectile",
         "origins:exhaust",               "apace:exhaust",
-        "origins:prevent_item_use",      "apace:prevent_item_use",
-        "origins:restrict_armor",        "apace:restrict_armor",
-        "origins:modify_food",           "apace:modify_food",
         "origins:modify_status_effect_amplifier",
         "origins:modify_player_spawn",
-        "origins:modify_jump",           "apace:modify_jump",
-        "origins:prevent_sleep",
-        "origins:action_on_land",
         "origins:action_on_wake_up",
         "origins:action_on_item_use",
         "origins:inventory",
         "origins:recipe",
         "origins:starting_equipment",
-        "origins:attacker_action_when_hit",
-        "origins:target_action_on_hit",
+        "origins:action_on_entity_use",  "apace:action_on_entity_use",
+        "origins:walk_on_fluid",         "apace:walk_on_fluid",
         // Display-only, no gameplay effect
         "origins:tooltip",               "apace:tooltip",
         "origins:simple",                "apace:simple",
@@ -202,6 +216,9 @@ public final class OriginsPowerTranslator {
             case "origins:entity_group",           "apace:entity_group"           -> translateEntityGroup(src);
             case "origins:invisibility",           "apace:invisibility"           -> translateInvisibility();
             case "origins:modify_exhaustion",      "apace:modify_exhaustion"      -> translateModifyExhaustion(src);
+            // Phase 4: New Route A translations
+            case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
+            case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();

@@ -89,6 +89,34 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
             NeoOrigins.LOGGER.info("Disabled {} built-in origin(s) via config", beforeFilter - loaded.size());
         }
 
+        // Filter out addon origins with too many broken powers
+        double minRatio = NeoOriginsConfig.COMPAT_MIN_POWER_RATIO.get();
+        if (minRatio > 0.0) {
+            int compatFiltered = 0;
+            var it = loaded.entrySet().iterator();
+            while (it.hasNext()) {
+                var entry = it.next();
+                // Skip neoorigins namespace — our own origins are always shown
+                if (NeoOrigins.MOD_ID.equals(entry.getKey().getNamespace())) continue;
+                Origin origin = entry.getValue();
+                if (origin.powers().isEmpty()) continue;
+                long loadedPowers = origin.powers().stream()
+                    .filter(PowerDataManager.INSTANCE::hasPower)
+                    .count();
+                double ratio = (double) loadedPowers / origin.powers().size();
+                if (ratio < minRatio) {
+                    NeoOrigins.LOGGER.info("[Compat] Hiding origin {} — only {}/{} powers loaded ({} < {})",
+                        entry.getKey(), loadedPowers, origin.powers().size(),
+                        String.format("%.0f%%", ratio * 100), String.format("%.0f%%", minRatio * 100));
+                    it.remove();
+                    compatFiltered++;
+                }
+            }
+            if (compatFiltered > 0) {
+                NeoOrigins.LOGGER.info("[Compat] Hidden {} addon origin(s) with insufficient power support", compatFiltered);
+            }
+        }
+
         this.origins = Collections.unmodifiableMap(loaded);
         NeoOrigins.LOGGER.info("Loaded {} origins", loaded.size());
 

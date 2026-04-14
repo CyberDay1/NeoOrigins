@@ -5,6 +5,7 @@ import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.NeoOriginsConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import com.cyberday1.neoorigins.compat.CompatPlayerState;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
@@ -120,6 +121,7 @@ public class PlayerLifecycleEvents {
         pendingOriginCheck.remove(uuid);
         pendingResync.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
+        CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
     }
