@@ -88,9 +88,26 @@ public class PlayerLifecycleEvents {
 
     private static void checkAndPromptOrigin(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
+
+        // If the player has any stored origins, they are a returning player — don't
+        // force a full re-selection. This covers both the hadAllOrigins flag and legacy
+        // players from before the flag was set during manual GUI selection.
+        if (data.isHadAllOrigins() || !data.getOrigins().isEmpty()) {
+            // Backfill the flag for legacy saves so future checks are fast
+            if (!data.isHadAllOrigins() && !data.getOrigins().isEmpty()) {
+                data.setHadAllOrigins(true);
+            }
+            return;
+        }
+
         boolean needsOrigin = false;
         for (var layer : LayerDataManager.INSTANCE.getSortedLayers()) {
-            if (!data.hasOriginForLayer(layer.id())) { needsOrigin = true; break; }
+            if (!data.hasOriginForLayer(layer.id())) {
+                NeoOrigins.LOGGER.debug("Player {} needs origin for layer {} (stored: {})",
+                    sp.getName().getString(), layer.id(), data.getOrigins().keySet());
+                needsOrigin = true;
+                break;
+            }
         }
         if (needsOrigin) {
             if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
