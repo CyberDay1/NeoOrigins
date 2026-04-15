@@ -8,9 +8,9 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
 ## Features
 
-- **39 built-in origins** across two layers — choose an origin *and* a class
+- **46 built-in origins** across two layers — choose an origin *and* a class
 - **17 built-in classes** — Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit
-- **116 power types** — attribute modifiers, status effects, flight, wall climbing, damage modification, active abilities, biome effects, summon minions, toggle powers, and more
+- **124 power types** — attribute modifiers, status effects, flight, wall climbing, damage modification, active abilities, biome effects, summon minions, tame hostile mobs, gravity wells, elemental magic, toggle powers, and more
 - **Random origin mode** — server config to randomly assign origins on first join or every death
 - **Cooldown HUD overlay** — shows active ability cooldown bars above the hotbar
 - **Origin info screen** — press O to view your current origin and class details
@@ -54,7 +54,7 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 | **Strider** | medium | Fire immunity, Nether speed buff, lava regen, night vision, +6 armor | Water weakness, overworld slowness |
 | **Siren** | medium | All mobs ignore, water breathing, fast swimming, night vision, water regen | −15% land speed, −2 hearts |
 | **Piglin** | high | Nether Strength II, piglin friendship, fire immune, +2 attack, night vision | Overworld weakness |
-| **Hiveling** | high | Flight, venomous sting, crop growth, 0.6× size, arthropod | −3 hearts, +50% hunger |
+| **Hiveling** | high | Flight, venomous sting, crop growth, 0.5× size, arthropod | −3 hearts, +50% hunger |
 | **Cinderborn** | high | Fire immune, fireball, +6 armor, lava regen, Nether strength, scare mobs, night vision | Water weakness |
 | **Sculkborn** | high | Sonic shriek, darkness AoE, +8 armor, knockback resist, projectile immune, night vision | Burns in daylight, −15% speed, −2 hearts |
 | **Enderite** | high | Teleport 32 blocks, phase through walls, slow fall, +3 attack, scare endermites, night vision | Water damage, daylight weakness |
@@ -63,9 +63,16 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 | **Automaton** | high | +8 armor, no drowning, no hunger, potion resistance, night vision, knockback resist | −20% speed, rigid joints |
 | **Kraken** | high | Water breathing, aquatic speed, tentacle strike, thorns, night vision, guardian summon, 1.3× size | Burns in daylight |
 | **Warden** | high | Sonic boom, echolocation (glow), +4 attack, +10 armor, 1.15× size, night vision | Burns in daylight, −30% speed |
-| **Dwarf** | medium | 0.8× size, +4 armor, night vision, +25% mining speed, −25% hunger drain | −15% speed, reduced reach |
+| **Dwarf** | medium | 0.5× size, +4 armor, night vision, +25% mining speed, −25% hunger drain | −15% speed, reduced reach |
 | **Breeze** | high | Wind charge, wind dash, slow falling, Jump Boost II, +15% speed, 0.9× size | −4 hearts |
 | **Vampire** | high | Undead, +2 attack, +15% speed, night vision | Burns in sunlight, raw meat diet, 40% regen, water weakness |
+| **Monster Tamer** | high | Tame hostile mobs (max 4), command pack to attack, pack regen | −25% melee damage, +50% hunger |
+| **Earth Mage** | high | Ground slam AoE, stone wall placement, +50% mining, −50% knockback | Can't swim, +50% fall damage |
+| **Water Mage** | high | Tidal wave cone, healing mist AoE, water breathing, swim speed, water regen | Desert/badlands damage, −25% melee |
+| **Fire Mage** | high | Fireball volley, inferno burst AoE, flame cloak, fire immunity | Water damage, +50% hunger |
+| **Air Mage** | high | Wind charge, updraft launch, no fall damage, slow fall, +20% speed | −4 hearts, +50% knockback taken |
+| **Gravity Mage** | high | Gravity well vortex (pull + damage), repulse blast, slow fall, no fall damage | +75% knockback taken, −25% melee |
+| **Darkness Mage** | high | Shadow orbs (Darkness AoE), shadow step teleport, night vision, stealth | Burns in sunlight, −30% mining speed |
 
 ---
 
