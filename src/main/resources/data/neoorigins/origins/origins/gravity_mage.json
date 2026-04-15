@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.gravity_mage.name",
+  "description": "origins.neoorigins.gravity_mage.description",
+  "icon": "minecraft:ender_eye",
+  "impact": "high",
+  "order": 44,
+  "powers": [
+    "neoorigins:gravity_mage_well",
+    "neoorigins:gravity_mage_repulse",
+    "neoorigins:gravity_mage_levitation",
+    "neoorigins:gravity_mage_no_fall_damage",
+    "neoorigins:gravity_mage_unmoored",
+    "neoorigins:gravity_mage_frail"
+  ],
+  "upgrades": []
+}

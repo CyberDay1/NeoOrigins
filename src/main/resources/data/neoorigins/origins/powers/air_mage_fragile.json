@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.max_health",
+  "modifier_id": "neoorigins:air_mage_health",
+  "amount": -4.0,
+  "operation": "ADD_VALUE"
+}

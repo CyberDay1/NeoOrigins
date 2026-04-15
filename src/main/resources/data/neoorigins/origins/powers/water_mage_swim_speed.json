@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.water_movement_efficiency",
+  "modifier_id": "neoorigins:water_mage_swim",
+  "amount": 0.5,
+  "operation": "ADD_VALUE"
+}

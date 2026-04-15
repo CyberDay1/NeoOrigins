@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:healing_mist",
+  "heal_amount": 6.0,
+  "radius": 8.0,
+  "heal_self": true,
+  "cooldown_ticks": 200
+}

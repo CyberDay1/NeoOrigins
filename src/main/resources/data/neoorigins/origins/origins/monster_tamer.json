@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.monster_tamer.name",
+  "description": "origins.neoorigins.monster_tamer.description",
+  "icon": "minecraft:lead",
+  "impact": "high",
+  "order": 39,
+  "powers": [
+    "neoorigins:tamer_tame_mob",
+    "neoorigins:tamer_command_pack",
+    "neoorigins:tamer_horde_regen",
+    "neoorigins:tamer_weak_alone",
+    "neoorigins:tamer_hunger_drain"
+  ],
+  "upgrades": []
+}

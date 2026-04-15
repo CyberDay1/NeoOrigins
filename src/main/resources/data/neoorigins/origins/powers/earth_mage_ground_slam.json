@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:ground_slam",
+  "damage": 6.0,
+  "knockback_strength": 1.5,
+  "radius": 6.0,
+  "cooldown_ticks": 120
+}

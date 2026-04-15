@@ -40,7 +40,14 @@
     "neoorigins:warden",
     "neoorigins:dwarf",
     "neoorigins:breeze",
-    "neoorigins:vampire"
+    "neoorigins:vampire",
+    "neoorigins:monster_tamer",
+    "neoorigins:earth_mage",
+    "neoorigins:water_mage",
+    "neoorigins:fire_mage",
+    "neoorigins:air_mage",
+    "neoorigins:gravity_mage",
+    "neoorigins:darkness_mage"
   ],
   "allow_random": true,
   "auto_choose": false,

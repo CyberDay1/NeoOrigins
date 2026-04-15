@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.darkness_mage.name",
+  "description": "origins.neoorigins.darkness_mage.description",
+  "icon": "minecraft:sculk",
+  "impact": "high",
+  "order": 45,
+  "powers": [
+    "neoorigins:darkness_mage_shadow_orb",
+    "neoorigins:darkness_mage_shadow_step",
+    "neoorigins:darkness_mage_night_vision",
+    "neoorigins:darkness_mage_shadow_cloak",
+    "neoorigins:darkness_mage_sunburn",
+    "neoorigins:darkness_mage_light_sensitivity"
+  ],
+  "upgrades": []
+}
