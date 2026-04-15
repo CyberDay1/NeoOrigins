@@ -111,8 +111,8 @@ public class OriginCommand {
 
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         ResourceLocation oldOrigin = data.getOrigin(layerId);
-        ActiveOriginService.applyOriginPowers(player, layerId, oldOrigin, originId);
         data.setOrigin(layerId, originId);
+        ActiveOriginService.applyOriginPowers(player, layerId, oldOrigin, originId);
         NeoOriginsNetwork.syncToPlayer(player);
 
         var origin = OriginDataManager.INSTANCE.getOrigin(originId);

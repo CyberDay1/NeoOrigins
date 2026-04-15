@@ -218,11 +218,12 @@ public class NeoOriginsNetwork {
     private static void syncCooldownIfStarted(ServerPlayer sp, PowerHolder<?> holder, int slot) {
         if (!(holder.type() instanceof AbstractActivePower)) return;
         AbstractActivePower ap = (AbstractActivePower) holder.type();
-        String key = ap.getCooldownKey((AbstractActivePower.Config) holder.config());
+        AbstractActivePower.Config cfg = (AbstractActivePower.Config) holder.config();
+        String key = ap.getCooldownKey(cfg);
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         int remaining = data.remainingCooldown(key, sp.tickCount);
         if (remaining > 0) {
-            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, remaining, remaining));
+            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, cfg.cooldownTicks(), remaining));
         }
     }
 
