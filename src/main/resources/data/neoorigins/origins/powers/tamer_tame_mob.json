@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:tame_mob",
+  "range": 16.0,
+  "max_tamed": 4,
+  "cooldown_ticks": 200,
+  "hunger_cost": 3,
+  "despawn_ticks": 36000,
+  "death_damage": 0.5
+}

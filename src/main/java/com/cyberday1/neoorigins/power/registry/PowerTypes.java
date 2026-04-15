@@ -102,6 +102,11 @@ public class PowerTypes {
     // --- Minion summoning ---
     public static final DeferredHolder<PowerType<?>, SummonMinionPower> SUMMON_MINION = reg("summon_minion", new SummonMinionPower());
 
+    // --- Taming & pack control ---
+    public static final DeferredHolder<PowerType<?>, TameMobPower>     TAME_MOB     = reg("tame_mob",      new TameMobPower());
+    public static final DeferredHolder<PowerType<?>, CommandPackPower> COMMAND_PACK = reg("command_pack",  new CommandPackPower());
+    public static final DeferredHolder<PowerType<?>, HordeRegenPower>  HORDE_REGEN  = reg("horde_regen",   new HordeRegenPower());
+
     // --- Active abilities ---
     public static final DeferredHolder<PowerType<?>, ActiveTeleportPower>      ACTIVE_TELEPORT      = reg("active_teleport",      new ActiveTeleportPower());
     public static final DeferredHolder<PowerType<?>, ActiveDashPower>          ACTIVE_DASH          = reg("active_dash",          new ActiveDashPower());
@@ -114,6 +119,13 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ActiveAoEEffectPower>     ACTIVE_AOE_EFFECT    = reg("active_aoe_effect",    new ActiveAoEEffectPower());
     public static final DeferredHolder<PowerType<?>, ActivePlaceBlockPower>    ACTIVE_PLACE_BLOCK   = reg("active_place_block",   new ActivePlaceBlockPower());
     public static final DeferredHolder<PowerType<?>, ShadowOrbPower>           SHADOW_ORB           = reg("shadow_orb",           new ShadowOrbPower());
+
+    // --- Elemental mage abilities ---
+    public static final DeferredHolder<PowerType<?>, ActiveGroundSlamPower>   GROUND_SLAM   = reg("ground_slam",    new ActiveGroundSlamPower());
+    public static final DeferredHolder<PowerType<?>, ActiveTidalWavePower>   TIDAL_WAVE    = reg("tidal_wave",     new ActiveTidalWavePower());
+    public static final DeferredHolder<PowerType<?>, ActiveHealingMistPower> HEALING_MIST  = reg("healing_mist",   new ActiveHealingMistPower());
+    public static final DeferredHolder<PowerType<?>, ActiveGravityWellPower> GRAVITY_WELL  = reg("gravity_well",   new ActiveGravityWellPower());
+    public static final DeferredHolder<PowerType<?>, ActiveRepulsePower>     REPULSE       = reg("repulse",        new ActiveRepulsePower());
 
     public static void register(IEventBus modEventBus) {
         modEventBus.addListener(PowerTypes::onNewRegistry);

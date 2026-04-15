@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:active_aoe_effect",
+  "effect": "minecraft:instant_damage",
+  "amplifier": 0,
+  "duration_ticks": 1,
+  "radius": 5.0,
+  "cooldown_ticks": 160
+}

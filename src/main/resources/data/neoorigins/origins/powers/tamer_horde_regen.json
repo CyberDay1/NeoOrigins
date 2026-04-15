@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:horde_regen",
+  "heal_amount": 1.0,
+  "interval_ticks": 120,
+  "combat_cooldown_ticks": 100
+}

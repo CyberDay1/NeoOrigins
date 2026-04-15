@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.earth_mage.name",
+  "description": "origins.neoorigins.earth_mage.description",
+  "icon": "minecraft:cobblestone",
+  "impact": "high",
+  "order": 40,
+  "powers": [
+    "neoorigins:earth_mage_ground_slam",
+    "neoorigins:earth_mage_stone_wall",
+    "neoorigins:earth_mage_stonecunning",
+    "neoorigins:earth_mage_rooted",
+    "neoorigins:earth_mage_heavy",
+    "neoorigins:earth_mage_earthbound"
+  ],
+  "upgrades": []
+}

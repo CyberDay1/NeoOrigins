@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.water_mage.name",
+  "description": "origins.neoorigins.water_mage.description",
+  "icon": "minecraft:heart_of_the_sea",
+  "impact": "high",
+  "order": 41,
+  "powers": [
+    "neoorigins:water_mage_tidal_wave",
+    "neoorigins:water_mage_healing_mist",
+    "neoorigins:water_mage_aquatic",
+    "neoorigins:water_mage_swim_speed",
+    "neoorigins:water_mage_moisture_regen",
+    "neoorigins:water_mage_dehydration",
+    "neoorigins:water_mage_fragile"
+  ],
+  "upgrades": []
+}

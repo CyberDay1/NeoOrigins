@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.fire_mage.name",
+  "description": "origins.neoorigins.fire_mage.description",
+  "icon": "minecraft:fire_charge",
+  "impact": "high",
+  "order": 42,
+  "powers": [
+    "neoorigins:fire_mage_fireball",
+    "neoorigins:fire_mage_inferno_burst",
+    "neoorigins:fire_mage_flame_cloak",
+    "neoorigins:fire_mage_fire_immunity",
+    "neoorigins:fire_mage_water_weakness",
+    "neoorigins:fire_mage_hunger"
+  ],
+  "upgrades": []
+}

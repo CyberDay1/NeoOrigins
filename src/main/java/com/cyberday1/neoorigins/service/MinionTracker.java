@@ -87,6 +87,17 @@ public final class MinionTracker {
         }
     }
 
+    /** Get all living tracked minions of a given mob type for a player. */
+    public static List<TrackedMinion> getAlive(UUID playerUuid, String mobType) {
+        List<TrackedMinion> list = MINIONS.get(playerUuid);
+        if (list == null) return List.of();
+        List<TrackedMinion> alive = new ArrayList<>();
+        for (TrackedMinion m : list) {
+            if (m.mobType().equals(mobType) && m.entity().isAlive()) alive.add(m);
+        }
+        return alive;
+    }
+
     /** Clean up all minions for a player (e.g., on logout or origin change). */
     public static void clearAll(UUID playerUuid) {
         List<TrackedMinion> list = MINIONS.remove(playerUuid);

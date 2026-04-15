@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.movement_speed",
+  "modifier_id": "neoorigins:air_mage_speed",
+  "amount": 0.02,
+  "operation": "ADD_VALUE"
+}

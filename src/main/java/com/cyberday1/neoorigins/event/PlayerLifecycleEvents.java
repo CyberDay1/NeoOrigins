@@ -12,6 +12,7 @@ import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.power.builtin.ActiveGravityWellPower;
 import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -63,6 +64,7 @@ public class PlayerLifecycleEvents {
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
+        ActiveGravityWellPower.tickWells();
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
     }
 
