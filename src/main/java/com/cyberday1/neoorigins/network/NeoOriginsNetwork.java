@@ -163,6 +163,14 @@ public class NeoOriginsNetwork {
 
             data.setOrigin(layerId, event.getNewOrigin());
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
+
+            // Mark complete once all enabled layers have a selection
+            boolean allFilled = true;
+            for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
+                if (!data.hasOriginForLayer(l.id())) { allFilled = false; break; }
+            }
+            if (allFilled) data.setHadAllOrigins(true);
+
             syncToPlayer(sp);
         });
     }
