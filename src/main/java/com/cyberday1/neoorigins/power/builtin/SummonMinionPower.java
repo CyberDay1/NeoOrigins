@@ -17,6 +17,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
@@ -75,10 +77,18 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
     protected boolean execute(ServerPlayer player, Config config) {
         // Check cap
         int alive = MinionTracker.countAlive(player.getUUID(), config.mobType());
-        if (alive >= config.maxCount()) return false;
+        if (alive >= config.maxCount()) {
+            player.sendSystemMessage(Component.translatable(
+                "power.neoorigins.summon_minion.max_reached").withStyle(ChatFormatting.RED), true);
+            return false;
+        }
 
         // Check hunger
-        if (player.getFoodData().getFoodLevel() < config.hungerCost()) return false;
+        if (player.getFoodData().getFoodLevel() < config.hungerCost()) {
+            player.sendSystemMessage(Component.translatable(
+                "power.neoorigins.summon_minion.not_enough_hunger").withStyle(ChatFormatting.RED), true);
+            return false;
+        }
 
         // Resolve entity type
         var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.get(Identifier.parse(config.mobType()));

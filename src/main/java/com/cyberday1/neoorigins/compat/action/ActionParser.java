@@ -152,8 +152,9 @@ public final class ActionParser {
             if (player.level().getServer() == null || command.isBlank()) return;
             try {
                 // Compat commands run with the player's own permission level, not elevated server privileges.
+                // Suppress output to avoid spamming chat with "Unknown function" etc.
                 player.level().getServer().getCommands().performPrefixedCommand(
-                    player.createCommandSourceStack(), command
+                    player.createCommandSourceStack().withSuppressedOutput(), command
                 );
             } catch (Exception e) {
                 NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());

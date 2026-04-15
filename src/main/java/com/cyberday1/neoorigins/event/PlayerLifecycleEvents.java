@@ -137,10 +137,10 @@ public class PlayerLifecycleEvents {
         } else {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
-            // Deferred re-sync: the client may not be ready for packets at respawn time,
-            // causing the HUD/info to show stale state until relog.
-            pendingResync.put(sp.getUUID(), 2);
         }
+        // Deferred re-sync: the client may not be ready for packets at respawn time,
+        // causing the HUD/info to show stale state until relog.
+        pendingResync.put(sp.getUUID(), 2);
     }
 
     /** Players awaiting a deferred origin re-sync after respawn (UUID → ticks remaining). */

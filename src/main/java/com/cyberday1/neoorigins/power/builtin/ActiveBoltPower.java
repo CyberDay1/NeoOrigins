@@ -5,12 +5,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.projectile.hurtingprojectile.DragonFireball;
+import net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.WindCharge;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Shoots a dragon-fire bolt (purple ender-breath projectile) in the player's look direction.
- * On impact it creates an area of dragon's breath that deals damage over time.
+ * Shoots a wind charge in the player's look direction.
+ * On impact it creates a wind burst that knocks back entities.
  */
 public class ActiveBoltPower extends AbstractActivePower<ActiveBoltPower.Config> {
 
@@ -28,10 +28,10 @@ public class ActiveBoltPower extends AbstractActivePower<ActiveBoltPower.Config>
     protected boolean execute(ServerPlayer player, Config config) {
         ServerLevel level = (ServerLevel) player.level();
         Vec3 look = player.getLookAngle();
-        DragonFireball bolt = new DragonFireball(level, player, look.scale(config.speed()));
-        Vec3 spawn = player.getEyePosition().add(look.scale(2.0));
-        bolt.setPos(spawn.x, spawn.y, spawn.z);
-        level.addFreshEntity(bolt);
+        Vec3 spawn = player.getEyePosition().add(look.scale(1.5));
+        WindCharge charge = new WindCharge(player, level, spawn.x, spawn.y, spawn.z);
+        charge.setDeltaMovement(look.scale(config.speed()));
+        level.addFreshEntity(charge);
         return true;
     }
 }
