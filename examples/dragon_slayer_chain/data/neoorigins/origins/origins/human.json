@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.human.name",
+  "description": "origins.neoorigins.human.description",
+  "icon": "minecraft:apple",
+  "impact": "none",
+  "order": 1,
+  "powers": [],
+  "upgrades": [
+    {
+      "advancement": "minecraft:story/enter_the_end",
+      "origin": "neoorigins:revenant",
+      "announcement": "examples.dragon_slayer_chain.upgrade.revenant"
+    }
+  ]
+}
