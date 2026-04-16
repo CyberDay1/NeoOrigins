@@ -12,5 +12,8 @@
     "neoorigins:umbral_projectile_immunity",
     "neoorigins:umbral_no_hunger_sprint"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/umbral.geo.json",
+  "fur_texture": "neoorigins:textures/fur/umbral.png",
+  "fur_animation": "neoorigins:animations/fur/umbral.animation.json"
 }

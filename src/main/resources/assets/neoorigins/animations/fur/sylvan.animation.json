@@ -1,0 +1,55 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.neoorigins.sylvan.idle": {
+      "loop": true,
+      "animation_length": 4.0,
+      "bones": {
+        "head_fur_leaves": {
+          "rotation": {
+            "0.0":  [0, 0, 0],
+            "1.0":  [0, 0, 2],
+            "2.0":  [0, 0, 0],
+            "3.0":  [0, 0, -2],
+            "4.0":  [0, 0, 0]
+          }
+        }
+      }
+    },
+    "animation.neoorigins.sylvan.walk": {
+      "loop": true,
+      "animation_length": 1.0,
+      "bones": {
+        "head_fur_leaves": {
+          "rotation": {
+            "0.0":  [0, 0, 0],
+            "0.25": [-3, 0, 6],
+            "0.5":  [0, 0, 0],
+            "0.75": [-3, 0, -6],
+            "1.0":  [0, 0, 0]
+          }
+        },
+        "chest_fur_moss": {
+          "rotation": {
+            "0.0":  [0, 0, 0],
+            "0.5":  [1, 0, 0],
+            "1.0":  [0, 0, 0]
+          }
+        }
+      }
+    },
+    "animation.neoorigins.sylvan.jump": {
+      "loop": false,
+      "animation_length": 0.4,
+      "bones": {
+        "head_fur_leaves": {
+          "rotation": {
+            "0.0":  [0, 0, 0],
+            "0.15": [-8, 0, 0],
+            "0.4":  [0, 0, 0]
+          }
+        }
+      }
+    }
+  }
+}

@@ -12,5 +12,8 @@
     "neoorigins:sylvan_active_root",
     "neoorigins:sylvan_nether_damage"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/sylvan.geo.json",
+  "fur_texture": "neoorigins:textures/fur/sylvan.png",
+  "fur_animation": "neoorigins:animations/fur/sylvan.animation.json"
 }

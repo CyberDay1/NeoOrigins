@@ -1,0 +1,80 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.neoorigins.sylvan",
+        "texture_width": 32,
+        "texture_height": 32,
+        "visible_bounds_width": 3,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1, 0]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [0, 0, 0]
+        },
+        {
+          "name": "head_anchor",
+          "parent": "root",
+          "pivot": [0, 24, 0]
+        },
+        {
+          "name": "head_fur_leaves",
+          "parent": "head_anchor",
+          "pivot": [0, 32, 0],
+          "cubes": [
+            {
+              "origin": [-4.5, 32.0, -2.0],
+              "size": [1, 2, 1],
+              "uv": [0, 0]
+            },
+            {
+              "origin": [3.5, 32.0, -2.0],
+              "size": [1, 2, 1],
+              "uv": [4, 0]
+            },
+            {
+              "origin": [-0.5, 33.0, -2.0],
+              "size": [1, 2, 1],
+              "uv": [8, 0]
+            },
+            {
+              "origin": [-2.5, 32.0, 1.5],
+              "size": [1, 2, 1],
+              "uv": [12, 0]
+            },
+            {
+              "origin": [1.5, 32.0, 1.5],
+              "size": [1, 2, 1],
+              "uv": [16, 0]
+            }
+          ]
+        },
+        {
+          "name": "body_anchor",
+          "parent": "root",
+          "pivot": [0, 12, 0]
+        },
+        {
+          "name": "chest_fur_moss",
+          "parent": "body_anchor",
+          "pivot": [0, 22, 0],
+          "cubes": [
+            {
+              "origin": [-6.0, 21.0, -2.5],
+              "size": [2, 1, 5],
+              "uv": [20, 0]
+            },
+            {
+              "origin": [4.0, 21.0, -2.5],
+              "size": [2, 1, 5],
+              "uv": [20, 8]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

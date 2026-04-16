@@ -15,5 +15,8 @@
     "neoorigins:draconic_water_weakness",
     "neoorigins:draconic_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/draconic.geo.json",
+  "fur_texture": "neoorigins:textures/fur/draconic.png",
+  "fur_animation": "neoorigins:animations/fur/draconic.animation.json"
 }

@@ -11,5 +11,8 @@
     "neoorigins:caveborn_daylight_damage",
     "neoorigins:caveborn_small_frame"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/caveborn.geo.json",
+  "fur_texture": "neoorigins:textures/fur/caveborn.png",
+  "fur_animation": "neoorigins:animations/fur/caveborn.animation.json"
 }
