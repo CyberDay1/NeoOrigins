@@ -21,7 +21,7 @@
           "pivot": [0, 24, 0]
         },
         {
-          "name": "ears",
+          "name": "head_fur_ears",
           "parent": "head_anchor",
           "pivot": [0, 28, 0],
           "cubes": [
