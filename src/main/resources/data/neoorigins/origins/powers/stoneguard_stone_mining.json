@@ -1,1 +1,1 @@
-{ "type": "neoorigins:break_speed_modifier", "block_tag": "minecraft:base_stone_overworld", "multiplier": 3.0 }
+{ "type": "neoorigins:break_speed_modifier", "multiplier": 2.0 }

@@ -148,6 +148,11 @@ public class PlayerLifecycleEvents {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // Clear per-slot activation debounce — the new ServerPlayer's tickCount
+        // resets to 0 on respawn, so any stored "last activate tick" from before
+        // death would block all skill activations until the new tickCount caught
+        // up (potentially tens of minutes).
+        NeoOriginsNetwork.clearDebounce(sp.getUUID());
         if (NeoOriginsConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
             ActiveOriginService.revokeAllPowers(sp);
             PlayerOriginData data = sp.getData(OriginAttachments.originData());

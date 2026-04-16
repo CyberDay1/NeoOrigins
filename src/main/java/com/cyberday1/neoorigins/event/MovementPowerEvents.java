@@ -8,14 +8,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.LivingFallEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class MovementPowerEvents {
@@ -34,29 +32,15 @@ public class MovementPowerEvents {
         }
     }
 
-    @SubscribeEvent
-    public static void onBreakSpeed(PlayerEvent.BreakSpeed event) {
-        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        ActiveOriginService.forEachOfType(sp, BreakSpeedModifierPower.class, cfg -> {
-            boolean applies = cfg.blockTag().map(tagId -> {
-                TagKey<Block> tag = TagKey.create(Registries.BLOCK, tagId);
-                return event.getState().is(tag);
-            }).orElse(true);
-            if (applies) {
-                // Defence-in-depth clamp against non-finite results
-                // (see CombatPowerEvents.onLivingDamage for context).
-                float scaled = event.getNewSpeed() * cfg.multiplier();
-                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
-                event.setNewSpeed(scaled);
-            }
-        });
-        if (ActiveOriginService.has(sp, UnderwaterMiningSpeedPower.class, c -> true)
-                && sp.isInWater() && !sp.onGround()) {
-            float scaled = event.getNewSpeed() * 5.0f;
-            if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
-            event.setNewSpeed(scaled);
-        }
-    }
+    // BreakSpeedModifierPower used to be handled here via PlayerEvent.BreakSpeed,
+    // but that event fires client-side for the local player and the
+    // ServerPlayer guard silently filtered every call → mining speed never
+    // applied. Powers now use the vanilla player.block_break_speed attribute,
+    // which auto-syncs to the client. See BreakSpeedModifierPower.
+    //
+    // TODO: UnderwaterMiningSpeedPower is still broken for the same reason —
+    // it has a positional condition (in water + airborne) that attribute
+    // modifiers can't express, so it needs a client-aware fix.
 
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {

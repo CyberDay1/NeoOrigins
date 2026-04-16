@@ -301,7 +301,7 @@ public final class NeoOriginsConfig {
         p("stoneguard_natural_armor");  f("amount", 3.0, -100, 100); ep();
         p("stoneguard_knockback_resist");f("amount", 0.5, -1, 1); ep();
         p("stoneguard_active_glowstone");f("max_distance", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); ep();
-        p("stoneguard_stone_mining");   f("multiplier", 3.0, 0, 100); ep();
+        p("stoneguard_stone_mining");   f("multiplier", 2.0, 0, 100); ep();
         p("stoneguard_slow_movement");  f("amount", -0.1, -1, 1); ep();
         p("stoneguard_no_mob_spawns");  fi("radius", 24, 1, 256); ep();
 

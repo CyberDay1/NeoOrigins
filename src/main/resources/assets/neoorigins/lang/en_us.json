@@ -255,7 +255,7 @@
   "power.neoorigins.stoneguard_slow_movement.name": "Stone-Footed",
   "power.neoorigins.stoneguard_slow_movement.description": "Moves 10% slower than a normal human.",
   "power.neoorigins.stoneguard_stone_mining.name": "Stonecrusher",
-  "power.neoorigins.stoneguard_stone_mining.description": "Breaks stone, deepslate, and related blocks three times as fast.",
+  "power.neoorigins.stoneguard_stone_mining.description": "Breaks blocks twice as fast.",
   "power.neoorigins.stoneguard_no_mob_spawns.name": "Warding Presence",
   "power.neoorigins.stoneguard_no_mob_spawns.description": "Monsters do not spawn within 24 blocks.",
 

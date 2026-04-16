@@ -135,7 +135,7 @@ public class CombatPowerEvents {
         if (!ActiveOriginService.has(sp, MoreAnimalLootPower.class, c -> true)) return;
 
         final float[] mult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, MoreAnimalLootPower.class, cfg -> mult[0] = cfg.multiplier());
+        ActiveOriginService.forEachOfType(sp, MoreAnimalLootPower.class, cfg -> mult[0] *= cfg.multiplier());
 
         // Duplicate existing drops based on multiplier
         int extraCopies = Math.max(0, Math.round(mult[0]) - 1);
