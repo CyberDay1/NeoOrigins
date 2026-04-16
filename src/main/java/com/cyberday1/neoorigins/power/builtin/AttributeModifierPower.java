@@ -57,13 +57,23 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
-        // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
+        // MC 26.1 still registers attributes with "generic." / "player." prefixes
+        // (e.g. minecraft:generic.fall_damage_multiplier). Powers author IDs without
+        // the prefix for portability, so try the ID as given and fall back to
+        // prefixed variants. The previous "strip generic." logic only worked if
+        // callers had already written the prefixed form.
         Identifier attrId = config.attribute();
-        String path = attrId.getPath();
-        if (path.startsWith("generic.")) {
-            attrId = Identifier.fromNamespaceAndPath(attrId.getNamespace(), path.substring("generic.".length()));
-        }
         var attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
+        if (attrHolderOpt.isEmpty()) {
+            Identifier prefixed = Identifier.fromNamespaceAndPath(attrId.getNamespace(), "generic." + attrId.getPath());
+            attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(prefixed);
+            if (attrHolderOpt.isPresent()) attrId = prefixed;
+        }
+        if (attrHolderOpt.isEmpty()) {
+            Identifier prefixed = Identifier.fromNamespaceAndPath(attrId.getNamespace(), "player." + attrId.getPath());
+            attrHolderOpt = BuiltInRegistries.ATTRIBUTE.get(prefixed);
+            if (attrHolderOpt.isPresent()) attrId = prefixed;
+        }
         if (attrHolderOpt.isEmpty()) return;
         var attrHolder = attrHolderOpt.get();
         AttributeInstance instance = player.getAttribute(attrHolder);

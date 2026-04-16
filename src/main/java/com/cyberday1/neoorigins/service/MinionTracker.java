@@ -1,8 +1,12 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,12 +14,35 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Tracks summoned minions per player. Handles despawn timers and
  * notifies the summoner when a minion dies in combat.
+ *
+ * <p>Minions are tracked by UUID rather than by Java reference so that
+ * entries survive dimension changes — when a minion walks through a portal,
+ * vanilla creates a new {@link Entity} instance in the target dimension but
+ * preserves the UUID. Storing the old reference made {@code isAlive()}
+ * return false and the tracker silently forget the minion. Resolving by
+ * UUID via {@link MinecraftServer#getAllLevels()} picks up the new instance
+ * in whichever dimension it's currently loaded in.
  */
 public final class MinionTracker {
 
     private MinionTracker() {}
 
-    public record TrackedMinion(LivingEntity entity, String mobType, int spawnTick, int despawnTick, float deathDamage) {}
+    public record TrackedMinion(UUID minionUuid, String mobType, int spawnTick, int despawnTick, float deathDamage) {
+        /**
+         * Resolves this minion's current entity by scanning all loaded server
+         * dimensions for its UUID. Returns null if the minion is unloaded,
+         * despawned, or dead.
+         */
+        public LivingEntity entity() {
+            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+            if (server == null) return null;
+            for (ServerLevel level : server.getAllLevels()) {
+                Entity e = level.getEntity(minionUuid);
+                if (e instanceof LivingEntity le && !le.isRemoved()) return le;
+            }
+            return null;
+        }
+    }
 
     /** Player UUID → list of tracked minions. */
     private static final Map<UUID, List<TrackedMinion>> MINIONS = new ConcurrentHashMap<>();
@@ -24,7 +51,7 @@ public final class MinionTracker {
     public static void track(ServerPlayer summoner, LivingEntity minion, String mobType,
                              int currentTick, int despawnTicks, float deathDamage) {
         MINIONS.computeIfAbsent(summoner.getUUID(), k -> new ArrayList<>())
-            .add(new TrackedMinion(minion, mobType, currentTick, currentTick + despawnTicks, deathDamage));
+            .add(new TrackedMinion(minion.getUUID(), mobType, currentTick, currentTick + despawnTicks, deathDamage));
     }
 
     /** Count living minions of a given mob type for a player. */
@@ -33,7 +60,9 @@ public final class MinionTracker {
         if (list == null) return 0;
         int count = 0;
         for (TrackedMinion m : list) {
-            if (m.mobType().equals(mobType) && m.entity().isAlive()) count++;
+            if (!m.mobType().equals(mobType)) continue;
+            LivingEntity entity = m.entity();
+            if (entity != null && entity.isAlive()) count++;
         }
         return count;
     }
@@ -50,12 +79,22 @@ public final class MinionTracker {
         Iterator<TrackedMinion> it = list.iterator();
         while (it.hasNext()) {
             TrackedMinion m = it.next();
-            if (!m.entity().isAlive()) {
+            LivingEntity entity = m.entity();
+
+            // Entity not resolvable (in an unloaded chunk, or already gone).
+            // Keep the entry until despawn time so we don't evict minions that
+            // are just temporarily unloaded.
+            if (entity == null) {
+                if (currentTick >= m.despawnTick()) it.remove();
+                continue;
+            }
+
+            if (!entity.isAlive()) {
                 it.remove();
                 continue;
             }
             if (currentTick >= m.despawnTick()) {
-                m.entity().discard();
+                entity.discard();
                 it.remove();
             }
         }
@@ -66,11 +105,12 @@ public final class MinionTracker {
      * from combat (not discarded/despawned), damage the summoner.
      */
     public static void onEntityDeath(LivingEntity entity) {
+        UUID entityUuid = entity.getUUID();
         for (var entry : MINIONS.entrySet()) {
             Iterator<TrackedMinion> it = entry.getValue().iterator();
             while (it.hasNext()) {
                 TrackedMinion m = it.next();
-                if (m.entity() == entity) {
+                if (m.minionUuid().equals(entityUuid)) {
                     it.remove();
                     // Damage the summoner — the entity died in combat, not from discard
                     ServerPlayer summoner = entity.level().getServer() != null
@@ -93,7 +133,9 @@ public final class MinionTracker {
         if (list == null) return List.of();
         List<TrackedMinion> alive = new ArrayList<>();
         for (TrackedMinion m : list) {
-            if (m.mobType().equals(mobType) && m.entity().isAlive()) alive.add(m);
+            if (!m.mobType().equals(mobType)) continue;
+            LivingEntity entity = m.entity();
+            if (entity != null && entity.isAlive()) alive.add(m);
         }
         return alive;
     }
@@ -103,7 +145,8 @@ public final class MinionTracker {
         List<TrackedMinion> list = MINIONS.remove(playerUuid);
         if (list != null) {
             for (TrackedMinion m : list) {
-                if (m.entity().isAlive()) m.entity().discard();
+                LivingEntity entity = m.entity();
+                if (entity != null && entity.isAlive()) entity.discard();
             }
         }
     }
