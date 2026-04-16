@@ -1,0 +1,20 @@
+{
+  "name": "origins.neoorigins.class_explorer.name",
+  "description": "origins.neoorigins.class_explorer.description",
+  "icon": "minecraft:compass",
+  "impact": "none",
+  "order": 5,
+  "powers": [
+    "neoorigins:class_explorer_kit",
+    "neoorigins:class_explorer_clock",
+    "neoorigins:class_explorer_maps",
+    "neoorigins:class_explorer_stamina"
+  ],
+  "upgrades": [
+    {
+      "advancement": "minecraft:adventure/adventuring_time",
+      "origin": "neoorigins:class_scout",
+      "announcement": "examples.class_tier_up.upgrade.scout"
+    }
+  ]
+}

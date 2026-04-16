@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "NeoOrigins example: multi-stage upgrade chain (Human -> Revenant -> Voidwalker) driven by End progression.",
+    "pack_format": 48
+  }
+}
