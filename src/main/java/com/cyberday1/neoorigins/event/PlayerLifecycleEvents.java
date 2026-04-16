@@ -78,6 +78,11 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
 
+        // Remote-fur sync: bring the new player up to speed on everyone already
+        // online, then tell everyone (including the new player) about them.
+        NeoOriginsNetwork.syncAllRemoteOriginsTo(sp);
+        NeoOriginsNetwork.broadcastPlayerOrigins(sp);
+
         if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
             // Data hasn't loaded yet — defer the origin check to tick handler
             pendingOriginCheck.put(sp.getUUID(), LOGIN_RETRY_TICKS);
@@ -142,6 +147,7 @@ public class PlayerLifecycleEvents {
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
+        NeoOriginsNetwork.clearPlayerOrigins(uuid);
         MinionTracker.clearAll(uuid);
     }
 
@@ -162,6 +168,9 @@ public class PlayerLifecycleEvents {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
         }
+        // Re-broadcast after respawn so every viewer's RemoteOriginCache stays
+        // in lock-step with the (potentially re-rolled) origin map.
+        NeoOriginsNetwork.broadcastPlayerOrigins(sp);
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
         pendingResync.put(sp.getUUID(), 2);
@@ -191,6 +200,7 @@ public class PlayerLifecycleEvents {
 
         data.setHadAllOrigins(true);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.broadcastPlayerOrigins(sp);
         NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
             sp.getName().getString(), String.join(", ", assigned));
     }

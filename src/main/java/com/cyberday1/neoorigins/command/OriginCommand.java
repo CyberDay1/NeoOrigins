@@ -114,6 +114,7 @@ public class OriginCommand {
         data.setOrigin(layerId, originId);
         ActiveOriginService.applyOriginPowers(player, layerId, oldOrigin, originId);
         NeoOriginsNetwork.syncToPlayer(player);
+        NeoOriginsNetwork.broadcastPlayerOrigins(player);
 
         var origin = OriginDataManager.INSTANCE.getOrigin(originId);
         String name = origin != null ? origin.name().getString() : originId.toString();
@@ -135,6 +136,7 @@ public class OriginCommand {
 
         NeoOriginsNetwork.syncRegistryToPlayer(player);
         NeoOriginsNetwork.syncToPlayer(player);
+        NeoOriginsNetwork.broadcastPlayerOrigins(player);
         NeoOriginsNetwork.openSelectionScreen(player, false);
 
         String scope = layerId != null ? "layer " + layerId : "all layers";

@@ -9,6 +9,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -38,5 +39,11 @@ public class NeoOriginsClientEvents {
                 && !player.isFallFlying() && !player.isPassenger()) {
             PacketDistributor.sendToServer(new AirJumpPayload());
         }
+    }
+
+    /** Drop cached remote-origin entries when leaving a world so they don't leak across sessions. */
+    @SubscribeEvent
+    public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        com.cyberday1.neoorigins.client.RemoteOriginCache.clear();
     }
 }

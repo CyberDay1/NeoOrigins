@@ -17,6 +17,7 @@ import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.network.payload.SyncRemoteOriginsPayload;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
@@ -65,6 +66,12 @@ public class NeoOriginsNetwork {
             SyncCooldownPayload.TYPE,
             SyncCooldownPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncCooldown
+        );
+
+        registrar.playToClient(
+            SyncRemoteOriginsPayload.TYPE,
+            SyncRemoteOriginsPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncRemoteOrigins
         );
 
         registrar.playToServer(
@@ -128,6 +135,12 @@ public class NeoOriginsNetwork {
         );
     }
 
+    private static void handleSyncRemoteOrigins(SyncRemoteOriginsPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.RemoteOriginCache.put(payload.playerUuid(), payload.origins())
+        );
+    }
+
     // ---------- Server-side handlers ----------
 
     private static void handleChooseOrigin(ChooseOriginPayload payload, IPayloadContext ctx) {
@@ -173,6 +186,7 @@ public class NeoOriginsNetwork {
             if (allFilled) data.setHadAllOrigins(true);
 
             syncToPlayer(sp);
+            broadcastPlayerOrigins(sp);
         });
     }
 
@@ -247,6 +261,40 @@ public class NeoOriginsNetwork {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         PacketDistributor.sendToPlayer(player,
             new SyncOriginsPayload(data.getOrigins(), data.isHadAllOrigins()));
+    }
+
+    /**
+     * Broadcast {@code player}'s per-layer origin map to every player on the
+     * server (including {@code player} — cheap enough and keeps the receiver
+     * logic uniform). Used for remote fur rendering.
+     */
+    public static void broadcastPlayerOrigins(ServerPlayer player) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        PacketDistributor.sendToAllPlayers(
+            new SyncRemoteOriginsPayload(player.getUUID(), data.getOrigins()));
+    }
+
+    /**
+     * Broadcast an empty origins map for {@code uuid} so every client evicts
+     * the player from its remote origin cache. Called on logout.
+     */
+    public static void clearPlayerOrigins(UUID uuid) {
+        PacketDistributor.sendToAllPlayers(
+            new SyncRemoteOriginsPayload(uuid, java.util.Map.of()));
+    }
+
+    /**
+     * Send every currently-online player's origin map to {@code receiver}, so
+     * a freshly-joined client can render fur for players who joined before it.
+     */
+    public static void syncAllRemoteOriginsTo(ServerPlayer receiver) {
+        var server = receiver.getServer();
+        if (server == null) return;
+        for (ServerPlayer other : server.getPlayerList().getPlayers()) {
+            PlayerOriginData data = other.getData(OriginAttachments.originData());
+            PacketDistributor.sendToPlayer(receiver,
+                new SyncRemoteOriginsPayload(other.getUUID(), data.getOrigins()));
+        }
     }
 
     /** Open the origin selection screen on the client. */
