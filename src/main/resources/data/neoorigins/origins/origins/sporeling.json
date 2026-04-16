@@ -13,5 +13,8 @@
     "neoorigins:sporeling_daylight_damage",
     "neoorigins:sporeling_slow_movement"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/sporeling.geo.json",
+  "fur_texture": "neoorigins:textures/fur/sporeling.png",
+  "fur_animation": "neoorigins:animations/fur/sporeling.animation.json"
 }

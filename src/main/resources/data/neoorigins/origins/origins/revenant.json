@@ -13,5 +13,8 @@
     "neoorigins:revenant_daylight_damage",
     "neoorigins:revenant_slow_regen"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/revenant.geo.json",
+  "fur_texture": "neoorigins:textures/fur/revenant.png",
+  "fur_animation": "neoorigins:animations/fur/revenant.animation.json"
 }

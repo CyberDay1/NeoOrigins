@@ -1,0 +1,93 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.neoorigins.strider",
+        "texture_width": 64,
+        "texture_height": 32,
+        "visible_bounds_width": 3,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1, 0]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [0, 0, 0]
+        },
+        {
+          "name": "head_anchor",
+          "parent": "root",
+          "pivot": [0, 24, 0]
+        },
+        {
+          "name": "head_fur_fuzz",
+          "parent": "head_anchor",
+          "pivot": [0, 32, 0],
+          "cubes": [
+            {
+              "origin": [-4.5, 32.0, -4.5],
+              "size": [9, 2, 9],
+              "uv": [0, 0]
+            },
+            {
+              "origin": [-3.5, 30.5, -4.5],
+              "size": [7, 2, 1],
+              "uv": [0, 12]
+            }
+          ]
+        },
+        {
+          "name": "body_anchor",
+          "parent": "root",
+          "pivot": [0, 12, 0]
+        },
+        {
+          "name": "chest_fur_coat",
+          "parent": "body_anchor",
+          "pivot": [0, 22, 0],
+          "cubes": [
+            {
+              "origin": [-5.0, 14.0, -3.0],
+              "size": [10, 10, 6],
+              "uv": [0, 16],
+              "inflate": 0.45
+            }
+          ]
+        },
+        {
+          "name": "legs_fur_coat",
+          "parent": "root",
+          "pivot": [0, 12, 0],
+          "cubes": [
+            {
+              "origin": [-2.5, 6.0, -2.5],
+              "size": [2, 6, 5],
+              "uv": [36, 16],
+              "inflate": 0.3
+            },
+            {
+              "origin": [0.5, 6.0, -2.5],
+              "size": [2, 6, 5],
+              "uv": [50, 16],
+              "inflate": 0.3
+            }
+          ]
+        },
+        {
+          "name": "tail",
+          "parent": "body_anchor",
+          "pivot": [0, 13, 2],
+          "rotation": [20, 0, 0],
+          "cubes": [
+            {
+              "origin": [-1.5, 10.0, 2.0],
+              "size": [3, 3, 2],
+              "uv": [40, 0]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

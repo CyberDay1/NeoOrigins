@@ -9,5 +9,8 @@
     "neoorigins:enderian_water_damage",
     "neoorigins:enderian_teleport"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/enderian.geo.json",
+  "fur_texture": "neoorigins:textures/fur/enderian.png",
+  "fur_animation": "neoorigins:animations/fur/enderian.animation.json"
 }

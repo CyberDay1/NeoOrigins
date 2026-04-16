@@ -8,5 +8,8 @@
     "neoorigins:shulk_natural_armor",
     "neoorigins:shulk_slow_movement"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/shulk.geo.json",
+  "fur_texture": "neoorigins:textures/fur/shulk.png",
+  "fur_animation": "neoorigins:animations/fur/shulk.animation.json"
 }

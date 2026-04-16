@@ -1,0 +1,70 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.neoorigins.shulk",
+        "texture_width": 32,
+        "texture_height": 32,
+        "visible_bounds_width": 2,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1, 0]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [0, 0, 0]
+        },
+        {
+          "name": "head_anchor",
+          "parent": "root",
+          "pivot": [0, 24, 0]
+        },
+        {
+          "name": "head_fur_tentacles",
+          "parent": "head_anchor",
+          "pivot": [0, 32, 0],
+          "cubes": [
+            {
+              "origin": [-3.0, 32.0, -2.0],
+              "size": [1, 2, 1],
+              "uv": [0, 0]
+            },
+            {
+              "origin": [2.0, 32.0, -2.0],
+              "size": [1, 2, 1],
+              "uv": [4, 0]
+            },
+            {
+              "origin": [-0.5, 32.0, -2.0],
+              "size": [1, 3, 1],
+              "uv": [8, 0]
+            }
+          ]
+        },
+        {
+          "name": "body_anchor",
+          "parent": "root",
+          "pivot": [0, 12, 0]
+        },
+        {
+          "name": "chest_fur_shell",
+          "parent": "body_anchor",
+          "pivot": [0, 22, 2],
+          "cubes": [
+            {
+              "origin": [-5.0, 18.5, 2.0],
+              "size": [10, 6, 2],
+              "uv": [0, 12]
+            },
+            {
+              "origin": [-5.0, 13.0, 2.0],
+              "size": [10, 5, 2],
+              "uv": [0, 22]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

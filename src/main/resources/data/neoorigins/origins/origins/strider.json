@@ -13,5 +13,8 @@
     "neoorigins:strider_overworld_slowness",
     "neoorigins:strider_natural_armor"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/strider.geo.json",
+  "fur_texture": "neoorigins:textures/fur/strider.png",
+  "fur_animation": "neoorigins:animations/fur/strider.animation.json"
 }

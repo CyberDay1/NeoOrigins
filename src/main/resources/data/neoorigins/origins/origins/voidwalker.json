@@ -12,5 +12,8 @@
     "neoorigins:voidwalker_water_damage",
     "neoorigins:voidwalker_no_hunger_sprint"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/voidwalker.geo.json",
+  "fur_texture": "neoorigins:textures/fur/voidwalker.png",
+  "fur_animation": "neoorigins:animations/fur/voidwalker.animation.json"
 }
