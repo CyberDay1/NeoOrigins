@@ -41,9 +41,10 @@ public class NeoOriginsClientEvents {
         }
     }
 
-    /** Drop cached remote-origin entries when leaving a world so they don't leak across sessions. */
+    /** Drop cached remote-origin entries + per-player fur animatables when leaving a world. */
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         com.cyberday1.neoorigins.client.RemoteOriginCache.clear();
+        com.cyberday1.neoorigins.client.render.PlayerFurRenderLayer.clearAnimatables();
     }
 }

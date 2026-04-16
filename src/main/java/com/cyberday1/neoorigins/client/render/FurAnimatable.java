@@ -1,6 +1,5 @@
 package com.cyberday1.neoorigins.client.render;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -13,26 +12,24 @@ import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
- * Lightweight singleton animatable that the Origin Furs render layer drives a
- * {@link software.bernie.geckolib.renderer.GeoObjectRenderer} with.
+ * Per-player animatable for the fur render layer. Holds a reference to the
+ * player currently being rendered so GeckoLib's animation controllers can
+ * choose walk / idle / jump based on that specific entity's state.
  *
- * <p>The fur overlay does not need per-player state — the model, texture and
- * animation vary per origin (handled by {@link FurGeoModel}), not per entity.
- * A single shared instance keeps GeckoLib's animation caches warm and avoids
- * allocating a new animatable every frame.</p>
+ * <p>Earlier phases used a shared singleton which worked only while fur was
+ * gated to the local player. Once {@code PlayerFurRenderLayer} started
+ * rendering remote players too (Phase 2a), the singleton's single controller
+ * would smear state across every remote cat — they'd all play the same
+ * animation at the same phase regardless of what each player was actually
+ * doing. {@link PlayerFurRenderLayer} now keeps a per-UUID map of these
+ * animatables so every player drives their own controller.</p>
  *
- * <p>Phase 2b adds idle / walk / jump controllers keyed off the local player's
- * velocity and {@code onGround} state. Because Phase 1 already gates rendering
- * to the local player only (see {@code PlayerFurRenderLayer}), the state
- * handler reads {@code Minecraft.getInstance().player} directly — no extra
- * plumbing is required to thread the player through the model. If a future
- * phase renders remote players too, the singleton pattern will need to be
- * revisited so controller state doesn't smear between players.</p>
+ * <p>The {@link #setCurrentPlayer(AbstractClientPlayer)} call before render
+ * is important — GeckoLib's state handler runs {@link #handleAnimation} and
+ * inspects the player stored here to decide the pose.</p>
  */
 @OnlyIn(Dist.CLIENT)
 public final class FurAnimatable implements GeoAnimatable {
-
-    public static final FurAnimatable INSTANCE = new FurAnimatable();
 
     /** Threshold (blocks/tick, squared) above which the player is considered to be walking. */
     private static final double WALK_SPEED_SQ_THRESHOLD = 1.0E-4;
@@ -46,22 +43,26 @@ public final class FurAnimatable implements GeoAnimatable {
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    private FurAnimatable() {}
+    /** The player currently being rendered. Set by the render layer each frame. */
+    private AbstractClientPlayer currentPlayer;
+
+    public FurAnimatable() {}
+
+    /**
+     * Point this animatable at the player about to be rendered. The state
+     * handler will use {@code player}'s velocity/onGround in its next tick.
+     */
+    public void setCurrentPlayer(AbstractClientPlayer player) {
+        this.currentPlayer = player;
+    }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController<>(this, "fur_pose", 4, this::handleAnimation));
     }
 
-    /**
-     * Chooses which raw animation to play based on the local player's current
-     * movement state. The render layer only invokes the renderer for the local
-     * player, so reading {@code mc.player} here is equivalent to inspecting
-     * the entity currently being rendered.
-     */
     private PlayState handleAnimation(software.bernie.geckolib.animation.AnimationState<FurAnimatable> state) {
-        Minecraft mc = Minecraft.getInstance();
-        AbstractClientPlayer player = mc.player;
+        AbstractClientPlayer player = this.currentPlayer;
         if (player == null) {
             state.setAnimation(IDLE_ANIM);
             return PlayState.CONTINUE;
@@ -90,11 +91,6 @@ public final class FurAnimatable implements GeoAnimatable {
         return this.cache;
     }
 
-    /**
-     * GeckoLib uses this as the animation clock. Phase 2b keyframed animations
-     * still need a monotonically increasing tick, so we pull
-     * {@code System.nanoTime} converted to ticks (20 tps).
-     */
     @Override
     public double getTick(Object object) {
         return System.nanoTime() / 50_000_000.0;

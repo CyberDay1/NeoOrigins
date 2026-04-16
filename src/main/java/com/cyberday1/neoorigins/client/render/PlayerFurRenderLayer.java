@@ -66,6 +66,24 @@ public class PlayerFurRenderLayer extends RenderLayer<AbstractClientPlayer, Play
     private final GeoObjectRenderer<FurAnimatable> renderer = new GeoObjectRenderer<>(this.model);
 
     /**
+     * One {@link FurAnimatable} per player UUID so every player's animation
+     * controller has its own phase + blend state. A shared singleton would
+     * smear state across every rendered cat.
+     *
+     * <p>Static because the render layer is instantiated per player model
+     * variant ({@code DEFAULT} and {@code SLIM}); both variants must share
+     * animatables so a skin change doesn't reset the animation phase.
+     * Cleared on disconnect by {@link NeoOriginsClientEvents}.</p>
+     */
+    private static final java.util.Map<java.util.UUID, FurAnimatable> ANIMATABLES =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Cleanup hook for disconnect. */
+    public static void clearAnimatables() {
+        ANIMATABLES.clear();
+    }
+
+    /**
      * Tracks origins whose assets have already failed to load, so we log the
      * failure exactly once rather than spamming on every frame.
      */
@@ -89,6 +107,10 @@ public class PlayerFurRenderLayer extends RenderLayer<AbstractClientPlayer, Play
 
         if (this.warnedOrigins.contains(originId)) return;
 
+        FurAnimatable animatable = ANIMATABLES.computeIfAbsent(
+            player.getUUID(), uuid -> new FurAnimatable());
+        animatable.setCurrentPlayer(player);
+
         poseStack.pushPose();
         try {
             // Anchor at the player's feet. The geo model's pivots were authored in
@@ -96,7 +118,7 @@ public class PlayerFurRenderLayer extends RenderLayer<AbstractClientPlayer, Play
             // additional translation is required here for Phase 1.
             this.model.setContext(fur.model(), fur.texture(), fur.animation());
             applyBoneVisibility(player, fur.model());
-            this.renderer.render(poseStack, FurAnimatable.INSTANCE, bufferSource, null, null,
+            this.renderer.render(poseStack, animatable, bufferSource, null, null,
                 packedLight, partialTick);
         } catch (Throwable t) {
             NeoOrigins.LOGGER.warn("Failed to render fur for origin {} on player {}: {}",
