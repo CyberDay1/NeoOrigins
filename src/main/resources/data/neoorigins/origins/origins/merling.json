@@ -10,5 +10,8 @@
     "neoorigins:merling_land_slowdown",
     "neoorigins:merling_no_drowning"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/merling.geo.json",
+  "fur_texture": "neoorigins:textures/fur/merling.png",
+  "fur_animation": "neoorigins:animations/fur/merling.animation.json"
 }

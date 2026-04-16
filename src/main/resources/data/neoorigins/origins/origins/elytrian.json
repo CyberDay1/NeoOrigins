@@ -8,5 +8,8 @@
     "neoorigins:elytrian_elytra_boost",
     "neoorigins:elytrian_flight"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/elytrian.geo.json",
+  "fur_texture": "neoorigins:textures/fur/elytrian.png",
+  "fur_animation": "neoorigins:animations/fur/elytrian.animation.json"
 }

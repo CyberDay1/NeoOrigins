@@ -8,5 +8,8 @@
     "neoorigins:arachnid_wall_climbing",
     "neoorigins:arachnid_no_fall_damage_climbing"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/arachnid.geo.json",
+  "fur_texture": "neoorigins:textures/fur/arachnid.png",
+  "fur_animation": "neoorigins:animations/fur/arachnid.animation.json"
 }

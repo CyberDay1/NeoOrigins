@@ -8,5 +8,8 @@
     "neoorigins:phantom_night_vision",
     "neoorigins:phantom_form"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/phantom.geo.json",
+  "fur_texture": "neoorigins:textures/fur/phantom.png",
+  "fur_animation": "neoorigins:animations/fur/phantom.animation.json"
 }

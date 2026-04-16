@@ -9,5 +9,8 @@
     "neoorigins:avian_no_fall_damage",
     "neoorigins:avian_no_hunger_sprint"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/avian.geo.json",
+  "fur_texture": "neoorigins:textures/fur/avian.png",
+  "fur_animation": "neoorigins:animations/fur/avian.animation.json"
 }

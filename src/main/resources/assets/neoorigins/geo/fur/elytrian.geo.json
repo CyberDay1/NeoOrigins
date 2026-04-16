@@ -1,0 +1,70 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.neoorigins.elytrian",
+        "texture_width": 64,
+        "texture_height": 32,
+        "visible_bounds_width": 3,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1, 0]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [0, 0, 0]
+        },
+        {
+          "name": "head_anchor",
+          "parent": "root",
+          "pivot": [0, 24, 0]
+        },
+        {
+          "name": "head_fur_crest",
+          "parent": "head_anchor",
+          "pivot": [0, 32, 0],
+          "cubes": [
+            {
+              "origin": [-1.0, 32.0, -1.5],
+              "size": [2, 2, 3],
+              "uv": [0, 0]
+            }
+          ]
+        },
+        {
+          "name": "body_anchor",
+          "parent": "root",
+          "pivot": [0, 12, 0]
+        },
+        {
+          "name": "chest_fur_wings",
+          "parent": "body_anchor",
+          "pivot": [0, 22, 2],
+          "cubes": [
+            {
+              "origin": [-8.0, 15.0, 2.0],
+              "size": [5, 9, 1],
+              "uv": [10, 0]
+            },
+            {
+              "origin": [3.0, 15.0, 2.0],
+              "size": [5, 9, 1],
+              "uv": [22, 0]
+            },
+            {
+              "origin": [-9.0, 20.0, 2.0],
+              "size": [1, 4, 1],
+              "uv": [34, 0]
+            },
+            {
+              "origin": [8.0, 20.0, 2.0],
+              "size": [1, 4, 1],
+              "uv": [38, 0]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
