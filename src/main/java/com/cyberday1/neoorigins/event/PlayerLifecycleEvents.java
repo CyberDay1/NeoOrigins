@@ -9,15 +9,19 @@ import com.cyberday1.neoorigins.compat.CompatPlayerState;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
+import com.cyberday1.neoorigins.api.origin.OriginUpgrade;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.power.builtin.ActiveGravityWellPower;
 import com.cyberday1.neoorigins.service.MinionTracker;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -169,6 +173,58 @@ public class PlayerLifecycleEvents {
 
     /** Players awaiting a deferred origin re-sync after respawn (UUID → ticks remaining). */
     private static final java.util.Map<java.util.UUID, Integer> pendingResync = new java.util.HashMap<>();
+
+    /**
+     * Applies datapack-defined origin upgrades when a player earns an advancement.
+     * Each origin can declare {@code upgrades: [{advancement, origin, announcement}]}
+     * in its JSON; when the referenced advancement fires and the player is currently
+     * that origin on some layer, we swap them to the target origin on the same layer.
+     *
+     * <p>Runs every origin-layer the player currently has — so the same advancement
+     * can drive different swaps on different layers (e.g. an origin evolution on the
+     * origin layer and an unrelated class promotion on the class layer).
+     */
+    @SubscribeEvent
+    public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        Identifier earnedId = event.getAdvancement().id();
+
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        // Snapshot before iteration — applyOriginPowers mutates the data map.
+        var snapshot = new java.util.ArrayList<>(data.getOrigins().entrySet());
+        for (var entry : snapshot) {
+            Identifier layerId = entry.getKey();
+            Identifier currentOriginId = entry.getValue();
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(currentOriginId);
+            if (origin == null) continue;
+
+            for (OriginUpgrade upgrade : origin.upgrades()) {
+                if (!earnedId.equals(upgrade.advancement())) continue;
+                if (!OriginDataManager.INSTANCE.hasOrigin(upgrade.origin())) {
+                    NeoOrigins.LOGGER.warn(
+                        "Origin upgrade from {} references unknown target origin {} — skipping",
+                        currentOriginId, upgrade.origin());
+                    continue;
+                }
+
+                data.setOrigin(layerId, upgrade.origin());
+                ActiveOriginService.applyOriginPowers(sp, layerId, currentOriginId, upgrade.origin());
+                NeoOriginsNetwork.syncToPlayer(sp);
+
+                String announcement = upgrade.announcement();
+                if (announcement != null && !announcement.isEmpty()) {
+                    sp.sendSystemMessage(Component.translatable(announcement));
+                }
+
+                NeoOrigins.LOGGER.info(
+                    "Upgraded {}'s origin on layer {}: {} → {} (via advancement {})",
+                    sp.getName().getString(), layerId, currentOriginId, upgrade.origin(), earnedId);
+                // One upgrade per layer per advancement — if authors want chains,
+                // they should use distinct advancements.
+                break;
+            }
+        }
+    }
 
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
