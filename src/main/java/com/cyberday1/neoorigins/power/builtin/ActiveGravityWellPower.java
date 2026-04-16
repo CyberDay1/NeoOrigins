@@ -41,8 +41,8 @@ public class ActiveGravityWellPower extends AbstractActivePower<ActiveGravityWel
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("projectile_speed", 1.2f).forGetter(Config::projectileSpeed),
-            Codec.DOUBLE.optionalFieldOf("max_range", 32.0).forGetter(Config::maxRange),
-            Codec.DOUBLE.optionalFieldOf("pull_radius", 8.0).forGetter(Config::pullRadius),
+            Codec.DOUBLE.optionalFieldOf("max_range", 64.0).forGetter(Config::maxRange),
+            Codec.DOUBLE.optionalFieldOf("pull_radius", 16.0).forGetter(Config::pullRadius),
             Codec.FLOAT.optionalFieldOf("pull_strength", 0.35f).forGetter(Config::pullStrength),
             Codec.FLOAT.optionalFieldOf("damage_per_tick", 0.5f).forGetter(Config::damagePerTick),
             Codec.INT.optionalFieldOf("duration_ticks", 80).forGetter(Config::durationTicks),

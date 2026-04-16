@@ -1,8 +1,8 @@
 {
   "type": "neoorigins:gravity_well",
   "projectile_speed": 0.6,
-  "max_range": 32.0,
-  "pull_radius": 8.0,
+  "max_range": 64.0,
+  "pull_radius": 16.0,
   "pull_strength": 0.35,
   "damage_per_tick": 0.5,
   "duration_ticks": 80,

@@ -461,16 +461,9 @@ public final class OriginsPowerTranslator {
         // [LOSSY] all Origins operations (addition, multiply_base, multiply_total) collapse to (1 + value).
         out.addProperty("multiplier", (float)(1.0 + value));
 
-        // Try to extract a block tag from the block_condition, if present.
-        if (src.has("block_condition")) {
-            JsonObject bc = src.getAsJsonObject("block_condition");
-            String bcType = bc.has("type") ? bc.get("type").getAsString() : "";
-            if (("origins:block_tag".equals(bcType) || "apace:block_tag".equals(bcType)) && bc.has("tag")) {
-                out.addProperty("block_tag", bc.get("tag").getAsString());
-            }
-            // [LOSSY] non-block_tag conditions are dropped; power applies to all blocks.
-        }
-        // No block_condition → no block_tag field → applies to all blocks.
+        // [LOSSY] block_condition is dropped — break speed is applied via the
+        // vanilla player.block_break_speed attribute, which can't filter by block.
+        // The power applies to all blocks.
 
         return Optional.of(out);
     }
