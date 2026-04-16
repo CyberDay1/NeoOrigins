@@ -8,6 +8,16 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Codec-driven origin definition. Loaded from
+ * {@code data/<namespace>/origins/origins/<id>.json} by {@code OriginDataManager}
+ * and synced to clients verbatim via {@code SyncOriginRegistryPayload}.
+ *
+ * <p>The {@code furModel}, {@code furTexture} and {@code furAnimation} fields are optional
+ * Phase 1 hooks for the Origin Furs feature — when present, the client renders a
+ * GeckoLib {@code GeoModel} as a cosmetic overlay on the local player's vanilla body.
+ * Missing fields are treated as "no fur" and existing origin JSONs deserialize unchanged.</p>
+ */
 public record Origin(
     ResourceLocation id,
     List<ResourceLocation> powers,
@@ -18,7 +28,10 @@ public record Origin(
     boolean special,
     Component name,
     Component description,
-    List<OriginUpgrade> upgrades
+    List<OriginUpgrade> upgrades,
+    Optional<ResourceLocation> furModel,
+    Optional<ResourceLocation> furTexture,
+    Optional<ResourceLocation> furAnimation
 ) {
     public static final Codec<Origin> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         ResourceLocation.CODEC.fieldOf("id").forGetter(Origin::id),
@@ -30,6 +43,9 @@ public record Origin(
         Codec.BOOL.optionalFieldOf("special", false).forGetter(Origin::special),
         ComponentCodecHelper.CODEC.fieldOf("name").forGetter(Origin::name),
         ComponentCodecHelper.CODEC.fieldOf("description").forGetter(Origin::description),
-        OriginUpgrade.CODEC.listOf().optionalFieldOf("upgrades", List.of()).forGetter(Origin::upgrades)
+        OriginUpgrade.CODEC.listOf().optionalFieldOf("upgrades", List.of()).forGetter(Origin::upgrades),
+        ResourceLocation.CODEC.optionalFieldOf("fur_model").forGetter(Origin::furModel),
+        ResourceLocation.CODEC.optionalFieldOf("fur_texture").forGetter(Origin::furTexture),
+        ResourceLocation.CODEC.optionalFieldOf("fur_animation").forGetter(Origin::furAnimation)
     ).apply(inst, Origin::new));
 }

@@ -24,6 +24,13 @@ license = "${mod_license}"
     side = "BOTH"
 
 [[dependencies.${mod_id}]]
+    modId = "geckolib"
+    type = "required"
+    versionRange = "[4.8,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
     modId = "jei"
     type = "optional"
     versionRange = "[19,)"

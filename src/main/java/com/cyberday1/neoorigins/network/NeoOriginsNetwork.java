@@ -103,6 +103,7 @@ public class NeoOriginsNetwork {
             LayerDataManager.INSTANCE.setClientData(layerMap, payload.sortedLayers());
 
             com.cyberday1.neoorigins.client.ClientPowerCache.set(payload.powers());
+            com.cyberday1.neoorigins.client.ClientOriginFurCache.rebuild(payload.origins());
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.setClientData(
                 payload.multipleExpansionMap(), payload.multipleDisplayMap());
         });

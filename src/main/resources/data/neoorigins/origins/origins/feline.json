@@ -13,5 +13,8 @@
     "neoorigins:feline_water_weakness",
     "neoorigins:feline_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "fur_model": "neoorigins:geo/fur/feline.geo.json",
+  "fur_texture": "neoorigins:textures/fur/feline.png",
+  "fur_animation": "neoorigins:animations/fur/feline.animation.json"
 }
