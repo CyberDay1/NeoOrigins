@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
@@ -9,6 +10,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Scales the player's visual and collision size using the minecraft:scale attribute.
@@ -61,10 +65,20 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
         }
     }
 
+    /** Attribute IDs we've already warned about, so missing attrs don't spam logs on every grant. */
+    private static final Set<Identifier> WARNED_MISSING_ATTRS = new HashSet<>();
+
     private static void applyMod(ServerPlayer player, Identifier attrId, Identifier modId,
                                   double amount, AttributeModifier.Operation op, boolean add) {
         var holderOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        if (holderOpt.isEmpty()) return;
+        if (holderOpt.isEmpty()) {
+            if (WARNED_MISSING_ATTRS.add(attrId)) {
+                NeoOrigins.LOGGER.warn(
+                    "SizeScalingPower: attribute '{}' not found in registry — scaling power will skip this attribute. "
+                    + "This usually indicates a missing mod or an incompatible MC version.", attrId);
+            }
+            return;
+        }
         AttributeInstance inst = player.getAttribute(holderOpt.get());
         if (inst == null) return;
         if (add) {

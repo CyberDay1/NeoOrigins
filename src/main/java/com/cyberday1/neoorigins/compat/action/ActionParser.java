@@ -33,6 +33,9 @@ public final class ActionParser {
             return failNoop("root", contextId, "missing action object");
         }
         String type = json.has("type") ? json.get("type").getAsString() : "";
+        if (!type.isEmpty() && type.indexOf(':') < 0) {
+            type = "origins:" + type;
+        }
         try {
             return switch (type) {
                 case "origins:and", "apace:and"                             -> parseAnd(json, contextId);
@@ -202,10 +205,16 @@ public final class ActionParser {
             icon = !json.has("show_icon") || json.get("show_icon").getAsBoolean();
         }
 
-        if (effectId == null) return EntityAction.noop();
+        if (effectId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] apply_effect: missing effect id — action will no-op");
+            return EntityAction.noop();
+        }
         // Cache mob effect holder at parse time — registry is static
         var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
-        if (effectHolder == null) return EntityAction.noop();
+        if (effectHolder == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] apply_effect: unknown effect '{}' — action will no-op", effectId);
+            return EntityAction.noop();
+        }
         final int fDur = duration;
         final int fAmp = amplifier;
         final boolean fAmb = ambient;
@@ -230,7 +239,10 @@ public final class ActionParser {
             return player -> player.removeAllEffects();
         }
         var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
-        if (effectHolder == null) return EntityAction.noop();
+        if (effectHolder == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] clear_effect: unknown effect '{}' — action will no-op", effectId);
+            return EntityAction.noop();
+        }
         return player -> player.removeEffect(effectHolder);
     }
 
@@ -241,11 +253,17 @@ public final class ActionParser {
 
     private static EntityAction parsePlaySound(JsonObject json) {
         String soundId = json.has("sound") ? json.get("sound").getAsString() : null;
-        if (soundId == null) return EntityAction.noop();
+        if (soundId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] play_sound: missing sound id — action will no-op");
+            return EntityAction.noop();
+        }
         float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
         float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
         var soundHolder = BuiltInRegistries.SOUND_EVENT.get(Identifier.parse(soundId)).orElse(null);
-        if (soundHolder == null) return EntityAction.noop();
+        if (soundHolder == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] play_sound: unknown sound '{}' — action will no-op", soundId);
+            return EntityAction.noop();
+        }
         var sound = soundHolder.value();
         return player -> player.playSound(sound, volume, pitch);
     }
@@ -335,13 +353,20 @@ public final class ActionParser {
 
     private static EntityAction parseSpawnEntity(JsonObject json) {
         String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
-        if (entityId == null) return EntityAction.noop();
+        if (entityId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: missing entity_type — action will no-op");
+            return EntityAction.noop();
+        }
         Identifier eid = Identifier.parse(entityId);
+        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.get(eid);
+        if (entityTypeOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: unknown entity type '{}' — action will no-op", eid);
+            return EntityAction.noop();
+        }
+        final EntityType<?> entityType = entityTypeOpt.get().value();
         return player -> {
             if (!(player.level() instanceof ServerLevel sl)) return;
-            var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.get(eid);
-            if (entityTypeOpt.isEmpty()) return;
-            var entity = entityTypeOpt.get().value().create(sl, EntitySpawnReason.COMMAND);
+            var entity = entityType.create(sl, EntitySpawnReason.COMMAND);
             if (entity == null) return;
             entity.setPos(player.getX(), player.getY(), player.getZ());
             sl.addFreshEntity(entity);
@@ -357,7 +382,10 @@ public final class ActionParser {
         // Give an item stack to the player
         JsonObject stack = json.has("stack") ? json.getAsJsonObject("stack") : json;
         String itemId = stack.has("item") ? stack.get("item").getAsString() : null;
-        if (itemId == null) return EntityAction.noop();
+        if (itemId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] give: missing item id — action will no-op");
+            return EntityAction.noop();
+        }
         int count = stack.has("count") ? stack.get("count").getAsInt() : 1;
         Identifier iid = Identifier.parse(itemId);
         return player -> {
@@ -397,7 +425,10 @@ public final class ActionParser {
 
     private static EntityAction parseSetBlock(JsonObject json) {
         String blockId = json.has("block") ? json.get("block").getAsString() : null;
-        if (blockId == null) return EntityAction.noop();
+        if (blockId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] set_block: missing block id — action will no-op");
+            return EntityAction.noop();
+        }
         Identifier bid = Identifier.parse(blockId);
         return player -> {
             var blockOpt = BuiltInRegistries.BLOCK.get(bid);
