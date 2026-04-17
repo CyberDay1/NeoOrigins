@@ -4,13 +4,17 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.BonemealEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.enchanting.EnchantmentLevelSetEvent;
 import net.neoforged.neoforge.event.AnvilUpdateEvent;
 
@@ -51,6 +55,39 @@ public class CraftingPowerEvents {
                 return;
             }
         }
+    }
+
+    @SubscribeEvent
+    public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        boostFoodIfCook(sp, event.getCrafting());
+    }
+
+    @SubscribeEvent
+    public static void onItemSmelted(PlayerEvent.ItemSmeltedEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        boostFoodIfCook(sp, event.getSmelting());
+    }
+
+    /**
+     * One-shot food saturation boost for BetterCraftedFoodPower. Applied once
+     * at craft/smelt time — no tick scanning, no identity-hash tracking, no
+     * compound re-application.
+     */
+    private static void boostFoodIfCook(ServerPlayer sp, ItemStack result) {
+        FoodProperties food = result.get(DataComponents.FOOD);
+        if (food == null) return;
+
+        final float[] bonus = {0f};
+        ActiveOriginService.forEachOfType(sp, BetterCraftedFoodPower.class,
+            cfg -> bonus[0] += cfg.saturationBonus());
+        if (bonus[0] <= 0f) return;
+
+        FoodProperties.Builder builder = new FoodProperties.Builder()
+            .nutrition(food.nutrition())
+            .saturationModifier(food.saturation() + bonus[0]);
+        if (food.canAlwaysEat()) builder.alwaysEdible();
+        result.set(DataComponents.FOOD, builder.build());
     }
 
     @SubscribeEvent
