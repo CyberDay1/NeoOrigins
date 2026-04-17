@@ -151,10 +151,22 @@ public final class ActionParser {
         return player -> {
             if (player.level().getServer() == null || command.isBlank()) return;
             try {
-                // Compat commands run with the player's own permission level, not elevated server privileges.
-                // Suppress output to avoid spamming chat with "Unknown function" etc.
+                // Upstream Origins runs execute_command at server-level permissions so
+                // addon packs can invoke /function, /effect, /give, etc. for non-op
+                // players. Permission level 2 matches vanilla's function-permission-level
+                // default — the same level datapack advancement rewards run at.
+                // Run as the server, but positioned at + targeting the player.
+                // This sidesteps any MC-version-specific permission-level API
+                // differences while matching upstream Origins' behaviour of
+                // running execute_command at server authority.
+                var serverSource = player.level().getServer().createCommandSourceStack()
+                    .withSuppressedOutput()
+                    .withEntity(player)
+                    .withPosition(player.position())
+                    .withRotation(player.getRotationVector())
+                    .withLevel((net.minecraft.server.level.ServerLevel) player.level());
                 player.level().getServer().getCommands().performPrefixedCommand(
-                    player.createCommandSourceStack().withSuppressedOutput(), command
+                    serverSource, command
                 );
             } catch (Exception e) {
                 NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());
