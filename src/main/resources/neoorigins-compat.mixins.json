@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.cyberday1.neoorigins.mixin.compat",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EpicFightScaleMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
