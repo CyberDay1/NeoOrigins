@@ -318,16 +318,40 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String idStr = id.toString();
         EntityAction respawnAction = json.has("respawn_action")
             ? ActionParser.parse(json.getAsJsonObject("respawn_action"), idStr) : EntityAction.noop();
-        EntityAction addedAction   = json.has("added_action")
-            ? ActionParser.parse(json.getAsJsonObject("added_action"), idStr)   : EntityAction.noop();
         EntityAction removedAction = json.has("removed_action")
             ? ActionParser.parse(json.getAsJsonObject("removed_action"), idStr) : EntityAction.noop();
 
+        // Upstream Origins has separate triggers for "gained" (every grant, including
+        // login) and "chosen" (only when the player selects from the GUI). We merge
+        // both into onGranted — the distinction is lost, but most addon packs use
+        // entity_action_chosen for one-time setup (e.g. granting starter items via
+        // /function) and the commands are typically idempotent.
+        EntityAction addedAction = EntityAction.noop();
+        if (json.has("entity_action_chosen")) {
+            addedAction = ActionParser.parse(json.getAsJsonObject("entity_action_chosen"), idStr);
+        }
+        if (json.has("entity_action_gained")) {
+            addedAction = mergeActions(addedAction,
+                ActionParser.parse(json.getAsJsonObject("entity_action_gained"), idStr));
+        }
+        if (json.has("added_action")) {
+            addedAction = mergeActions(addedAction,
+                ActionParser.parse(json.getAsJsonObject("added_action"), idStr));
+        }
+
+        EntityAction finalAdded = addedAction;
         return CompatPower.Config.builder()
-            .onGranted(addedAction::execute)
+            .onGranted(finalAdded::execute)
             .onRevoked(removedAction::execute)
             .onRespawn(respawnAction::execute)
             .build();
+    }
+
+    /** Combine two entity actions into one that runs both sequentially. */
+    private static EntityAction mergeActions(EntityAction first, EntityAction second) {
+        if (first == EntityAction.noop()) return second;
+        if (second == EntityAction.noop()) return first;
+        return player -> { first.execute(player); second.execute(player); };
     }
 
     private CompatPower.Config parseResource(Identifier id, JsonObject json) {
