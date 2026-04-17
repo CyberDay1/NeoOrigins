@@ -147,6 +147,7 @@ public class PlayerLifecycleEvents {
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
+        ActiveOriginService.invalidate(uuid);
     }
 
     @SubscribeEvent

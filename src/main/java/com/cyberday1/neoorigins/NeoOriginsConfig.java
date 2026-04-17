@@ -457,6 +457,14 @@ public final class NeoOriginsConfig {
     }
 
     /**
+     * Version counter for the dimension-restrictions config. Bumps whenever the rules list
+     * content changes. Used by ActiveOriginService's per-player power cache for invalidation.
+     */
+    public static int restrictionsVersion() {
+        return DIMENSION_RESTRICTIONS.get().hashCode();
+    }
+
+    /**
      * Returns true if the given origin/class is disabled via config toggles.
      * Checks both [origins] and [classes] sections.
      */
