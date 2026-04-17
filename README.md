@@ -18,6 +18,8 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 - **Hot-reload** — `/reload` rebuilds all origins and powers without restarting the server
 - **Origins pack compatibility** — drop existing Origins mod content packs into `originpacks/` and they load automatically
 - **Data-driven** — all origins and powers defined in JSON; fully overridable via datapacks
+- **Advancement-based origin upgrades** — any origin can declare upgrade paths in its JSON; when the player earns the advancement, their origin swaps automatically (see [examples/](examples/))
+- **Epic Fight compatibility** — sized origins maintain correct scale when Epic Fight takes over rendering in combat mode
 - **Per-origin config toggles** — disable any built-in origin or class in `neoorigins-common.toml`
 - **Dimension restrictions** — disable specific powers in specific dimensions via config
 
@@ -45,7 +47,7 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 | **Tiny** | medium | 0.5× size, wall climbing, +20% speed, no fall damage, item magnet | −2 attack, +80% hunger |
 | **Abyssal** | high | Water breathing, night vision, thorns, underwater mining, water regen, trident, guardian summon | Burns in daylight, −10% land speed |
 | **Voidwalker** | medium | Night vision, mobs ignore, phase, teleport | Water damage |
-| **Stoneguard** | medium | +3 armor, thorns, knockback resist, glowstone placement, 3× stone mining, suppresses mob spawns | −10% speed |
+| **Stoneguard** | medium | +3 armor, thorns, knockback resist, glowstone placement, 2× mining speed, suppresses mob spawns | −10% speed |
 | **Verdant** | low | Mobs ignore, no fall damage, no sprint-hunger, bonus harvest drops, forest regen | Nether damage |
 | **Umbral** | medium | Night vision, shadow orbs (Darkness AoE), shadow dash, projectile immunity | Burns in sunlight |
 | **Inchling** | medium | 0.25× size, wall climbing, no fall damage, +15% speed, 50% less hunger | −5 hearts |
@@ -223,6 +225,34 @@ NeoOrigins format example:
 ```
 
 For Origins-mod-compatible path layout (`data/<ns>/origins/`, `data/<ns>/powers/`, `data/<ns>/origin_layers/`) the translation pass runs automatically.
+
+---
+
+## Advancement-Based Origin Upgrades
+
+Any origin can declare upgrade paths that fire when the player earns specific advancements. This is fully datapack-driven — no Java code required.
+
+Add an `upgrades` list to any origin JSON:
+
+```json
+{
+  "name": "...",
+  "powers": ["..."],
+  "upgrades": [
+    {
+      "advancement": "minecraft:story/enter_the_nether",
+      "origin": "neoorigins:strider",
+      "announcement": "mypack.upgrade.strider"
+    }
+  ]
+}
+```
+
+- **Per-layer**: the same advancement can drive different swaps on different layers (origin + class)
+- **Chainable**: each intermediate origin defines its own `upgrades` to the next stage
+- **announcement** is optional — a translation key sent as a system message on upgrade
+
+See the [examples/](examples/) folder for working datapacks demonstrating simple upgrades, multi-stage chains, and class-layer promotions.
 
 ---
 
