@@ -32,6 +32,11 @@ public final class ActionParser {
             return failNoop("root", contextId, "missing action object");
         }
         String type = json.has("type") ? json.get("type").getAsString() : "";
+        // Normalize bare type names (pre-namespace Origins JSON and loose community packs).
+        // `"type": "heal"` → `"type": "origins:heal"`.
+        if (!type.isEmpty() && type.indexOf(':') < 0) {
+            type = "origins:" + type;
+        }
         try {
             return switch (type) {
                 case "origins:and", "apace:and"                             -> parseAnd(json, contextId);
@@ -195,7 +200,10 @@ public final class ActionParser {
         // Cache mob effect holder at parse time — registry is static
         ResourceLocation effId = ResourceLocation.parse(effectId);
         var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(effId);
-        if (effectOpt.isEmpty()) return EntityAction.noop();
+        if (effectOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] apply_effect: unknown mob effect '{}' — action will no-op", effId);
+            return EntityAction.noop();
+        }
         var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
         final int fDur = duration;
         final int fAmp = amplifier;
@@ -223,7 +231,10 @@ public final class ActionParser {
         // Cache mob effect holder at parse time
         ResourceLocation effId = ResourceLocation.parse(effectId);
         var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(effId);
-        if (effectOpt.isEmpty()) return EntityAction.noop();
+        if (effectOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] clear_effect: unknown mob effect '{}' — action will no-op", effId);
+            return EntityAction.noop();
+        }
         var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
         return player -> player.removeEffect(effectHolder);
     }
@@ -241,7 +252,10 @@ public final class ActionParser {
         // Cache sound at parse time
         ResourceLocation sId = ResourceLocation.parse(soundId);
         var soundOpt = BuiltInRegistries.SOUND_EVENT.getOptional(sId);
-        if (soundOpt.isEmpty()) return EntityAction.noop();
+        if (soundOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] play_sound: unknown sound event '{}' — action will no-op", sId);
+            return EntityAction.noop();
+        }
         var sound = soundOpt.get();
         return player -> player.playSound(sound, volume, pitch);
     }
@@ -333,10 +347,15 @@ public final class ActionParser {
         String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
         if (entityId == null) return EntityAction.noop();
         ResourceLocation eid = ResourceLocation.parse(entityId);
+        // Resolve at parse time so a typo logs once at load, not NPEs on every activation.
+        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(eid);
+        if (entityTypeOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: unknown entity type '{}' — action will no-op", eid);
+            return EntityAction.noop();
+        }
+        final EntityType<?> entityType = entityTypeOpt.get();
         return player -> {
             if (!(player.level() instanceof ServerLevel sl)) return;
-            // On 1.21.1, BuiltInRegistries.ENTITY_TYPE.get() returns EntityType directly
-            EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(eid);
             var entity = entityType.create(sl);
             if (entity == null) return;
             entity.setPos(player.getX(), player.getY(), player.getZ());
@@ -358,7 +377,10 @@ public final class ActionParser {
         // Cache item at parse time
         ResourceLocation iid = ResourceLocation.parse(itemId);
         var itemOpt = BuiltInRegistries.ITEM.getOptional(iid);
-        if (itemOpt.isEmpty()) return EntityAction.noop();
+        if (itemOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] give: unknown item '{}' — action will no-op", iid);
+            return EntityAction.noop();
+        }
         var item = itemOpt.get();
         return player -> {
             ItemStack itemStack = new ItemStack(item, count);
@@ -399,7 +421,10 @@ public final class ActionParser {
         // Cache block at parse time
         ResourceLocation bid = ResourceLocation.parse(blockId);
         var blockOpt = BuiltInRegistries.BLOCK.getOptional(bid);
-        if (blockOpt.isEmpty()) return EntityAction.noop();
+        if (blockOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] set_block: unknown block '{}' — action will no-op", bid);
+            return EntityAction.noop();
+        }
         Block block = blockOpt.get();
         return player -> {
             BlockPos pos = player.blockPosition();

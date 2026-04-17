@@ -34,6 +34,11 @@ public final class ConditionParser {
             return failClosed("root", contextId, "missing condition object");
         }
         String type = json.has("type") ? json.get("type").getAsString() : "";
+        // Normalize bare type names (pre-namespace Origins JSON and loose community packs).
+        // `"type": "and"` → `"type": "origins:and"`.
+        if (!type.isEmpty() && type.indexOf(':') < 0) {
+            type = "origins:" + type;
+        }
         try {
             return switch (type) {
                 case "origins:and", "apace:and"                         -> parseAnd(json, contextId);

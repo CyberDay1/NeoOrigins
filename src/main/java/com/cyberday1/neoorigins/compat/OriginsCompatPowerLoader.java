@@ -315,10 +315,33 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseActionOnCallback(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityAction respawnAction = json.has("respawn_action")
-            ? ActionParser.parse(json.getAsJsonObject("respawn_action"), idStr) : EntityAction.noop();
-        EntityAction removedAction = json.has("removed_action")
-            ? ActionParser.parse(json.getAsJsonObject("removed_action"), idStr) : EntityAction.noop();
+
+        // Respawn: upstream Apoli uses `respawn_entity_action`; we historically supported
+        // our own `respawn_action`. Accept both; merge if present.
+        EntityAction respawnAction = EntityAction.noop();
+        if (json.has("respawn_entity_action")) {
+            respawnAction = ActionParser.parse(json.getAsJsonObject("respawn_entity_action"), idStr);
+        }
+        if (json.has("respawn_action")) {
+            respawnAction = mergeActions(respawnAction,
+                ActionParser.parse(json.getAsJsonObject("respawn_action"), idStr));
+        }
+
+        // Removal: upstream Apoli uses `entity_action_lost` (and some forks use
+        // `entity_action_removed`). We historically supported our own `removed_action`.
+        // Accept all three; merge if multiple are present.
+        EntityAction removedAction = EntityAction.noop();
+        if (json.has("entity_action_lost")) {
+            removedAction = ActionParser.parse(json.getAsJsonObject("entity_action_lost"), idStr);
+        }
+        if (json.has("entity_action_removed")) {
+            removedAction = mergeActions(removedAction,
+                ActionParser.parse(json.getAsJsonObject("entity_action_removed"), idStr));
+        }
+        if (json.has("removed_action")) {
+            removedAction = mergeActions(removedAction,
+                ActionParser.parse(json.getAsJsonObject("removed_action"), idStr));
+        }
 
         // Upstream Origins has separate triggers for "gained" (every grant, including
         // login) and "chosen" (only when the player selects from the GUI). We merge
@@ -415,7 +438,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         // Cache attribute holder at parse time
         var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
-        if (attrOpt.isEmpty()) return null;
+        if (attrOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: unknown attribute '{}' (raw: '{}') — power will no-op",
+                idStr, attrIdent, rawAttrIdent);
+            return null;
+        }
         var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
 
         JsonObject modObj = json.has("modifier") ? json.getAsJsonObject("modifier") : json;
@@ -486,8 +513,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             : EntityCondition.alwaysTrue();
 
         // Cache mob effect holder at parse time
-        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(effectId));
-        if (effectOpt.isEmpty()) return null;
+        ResourceLocation effectIdent = ResourceLocation.parse(effectId);
+        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(effectIdent);
+        if (effectOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: unknown mob effect '{}' — power will no-op", idStr, effectIdent);
+            return null;
+        }
         var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
 
         int  finalAmp       = amplifier;
@@ -882,8 +913,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
 
         // Cache attribute holder at parse time
-        var jumpOpt = BuiltInRegistries.ATTRIBUTE.getOptional(ResourceLocation.parse("minecraft:generic.jump_strength"));
-        if (jumpOpt.isEmpty()) return null;
+        ResourceLocation jumpAttrId = ResourceLocation.parse("minecraft:generic.jump_strength");
+        var jumpOpt = BuiltInRegistries.ATTRIBUTE.getOptional(jumpAttrId);
+        if (jumpOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: jump_strength attribute '{}' not found — modify_jump power will no-op",
+                id, jumpAttrId);
+            return null;
+        }
         var jumpHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(jumpOpt.get());
 
         String safeKey = id.getPath().replace('/', '_');

@@ -17,6 +17,7 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
@@ -32,7 +33,9 @@ public class CombatPowerEvents {
     /** Re-entry guard: prevents LongerPotionsPower from recursing into MobEffectEvent.Added. */
     private static final ThreadLocal<Boolean> LENGTHENING_EFFECT = ThreadLocal.withInitial(() -> false);
 
-    @SubscribeEvent
+    // Run at HIGH so our ModifyDamagePower multipliers apply before other mods' handlers,
+    // and so VitalsGuards (at LOWEST) stays the final sanitizer regardless of mod order.
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
@@ -98,7 +101,7 @@ public class CombatPowerEvents {
         ActiveOriginService.forEach(sp, holder -> holder.onKill(sp, killed));
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingKnockBack(LivingKnockBackEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ActiveOriginService.forEachOfType(sp, KnockbackModifierPower.class, cfg -> {
