@@ -36,6 +36,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     private Map<ResourceLocation, PowerHolder<?>> powers = new HashMap<>();
     /** Route B powers injected by OriginsCompatPowerLoader after native loading. */
     private Map<ResourceLocation, PowerHolder<?>> injectedPowers = new HashMap<>();
+    /** Bumped on every datapack reload and Route-B injection so per-player power caches can invalidate. */
+    private int version = 0;
+    public int version() { return version; }
 
     @Override
     protected Map<ResourceLocation, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
@@ -114,6 +117,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         }
         this.powers = Collections.unmodifiableMap(loaded);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
+        this.version++;
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
         // Per-namespace breakdown — toggled via config/neoorigins-common.toml
@@ -181,6 +185,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
     public void injectExternalPowers(Map<ResourceLocation, PowerHolder<?>> external) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
+        this.version++;
     }
 
     /** Returns all powers including Route B injected ones (used for registry sync). */

@@ -33,6 +33,9 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("origins");
 
     private Map<ResourceLocation, Origin> origins = new HashMap<>();
+    /** Bumped on every datapack reload so per-player power caches can invalidate. */
+    private int version = 0;
+    public int version() { return version; }
 
     @Override
     protected Map<ResourceLocation, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
@@ -118,6 +121,7 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
         }
 
         this.origins = Collections.unmodifiableMap(loaded);
+        this.version++;
         NeoOrigins.LOGGER.info("Loaded {} origins", loaded.size());
 
         if (NeoOriginsConfig.DEBUG_POWER_LOADING.get()) {
@@ -137,6 +141,7 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
     /** Replace the origin registry with data received from the server (client-side only). */
     public void setClientData(Map<ResourceLocation, Origin> clientOrigins) {
         this.origins = Collections.unmodifiableMap(new HashMap<>(clientOrigins));
+        this.version++;
     }
 
     public Map<ResourceLocation, Origin> getOrigins() { return origins; }

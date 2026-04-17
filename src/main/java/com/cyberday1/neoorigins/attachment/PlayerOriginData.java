@@ -33,6 +33,9 @@ public class PlayerOriginData {
     private final Set<String> toggledOffPowers = new HashSet<>();
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new HashMap<>();
+    /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
+     *  used by ActiveOriginService's per-player power cache for invalidation. */
+    private transient int version = 0;
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
@@ -74,10 +77,12 @@ public class PlayerOriginData {
 
     public void setOrigin(ResourceLocation layerId, ResourceLocation originId) {
         origins.put(layerId, originId);
+        version++;
     }
 
     public void removeOrigin(ResourceLocation layerId) {
         origins.remove(layerId);
+        version++;
     }
 
     public boolean hasOriginForLayer(ResourceLocation layerId) {
@@ -142,5 +147,9 @@ public class PlayerOriginData {
         shadowOrbs.clear();
         toggledOffPowers.clear();
         activeCooldowns.clear();
+        version++;
     }
+
+    /** Version counter for ActiveOriginService's per-player power cache. Bumped on every mutation. */
+    public int version() { return version; }
 }
