@@ -4,9 +4,11 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Client-side mirror of the local player's currently-granted powers.
+ * Client-side mirror of the local player's currently-granted powers and the union
+ * of their capability tags.
  *
  * Populated by {@code SyncActivePowersPayload} on login, respawn, origin change,
  * and toggle change. Queried by client-predicted movement mixins (wall-climb,
@@ -17,13 +19,16 @@ import java.util.Map;
 public final class ClientActivePowers {
 
     private static Map<ResourceLocation, Boolean> powers = Map.of();
+    private static Set<String> capabilities = Set.of();
 
-    public static void set(Map<ResourceLocation, Boolean> data) {
-        powers = Map.copyOf(data);
+    public static void set(Map<ResourceLocation, Boolean> powersData, Set<String> capData) {
+        powers = Map.copyOf(powersData);
+        capabilities = Set.copyOf(capData);
     }
 
     public static void clear() {
         powers = Map.of();
+        capabilities = Set.of();
     }
 
     /** True if the local player has power {@code id} granted, regardless of toggle state. */
@@ -39,9 +44,23 @@ public final class ClientActivePowers {
         return Boolean.TRUE.equals(powers.get(id));
     }
 
+    /**
+     * True if any active power on the local player grants the given capability tag.
+     * This is the preferred query for client-predicted mixins — they should ask
+     * "do I have wall_climb?" rather than "do I have power X?".
+     */
+    public static boolean hasCapability(String tag) {
+        return capabilities.contains(tag);
+    }
+
     /** Unmodifiable view of the full map — for debug HUDs and the power-tester screen. */
     public static Map<ResourceLocation, Boolean> all() {
         return Collections.unmodifiableMap(powers);
+    }
+
+    /** Unmodifiable view of active capability tags. */
+    public static Set<String> activeCapabilities() {
+        return Collections.unmodifiableSet(capabilities);
     }
 
     private ClientActivePowers() {}

@@ -5,12 +5,14 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Server → client. Pushes the full set of powers currently granted to the local player,
- * plus per-power toggle state (for toggleable powers). Non-toggleable powers that are
- * granted have value {@code true}.
+ * plus per-power toggle state, plus the union of {@link com.cyberday1.neoorigins.api.power.PowerType#capabilities}
+ * from powers that are currently active (granted AND not toggled off).
  *
  * Sent on login, respawn, origin change, and toggle change. This is the client-side
  * source of truth for "does my player have power X right now?" — used by client-predicted
@@ -18,7 +20,8 @@ import java.util.Map;
  * tester GUI.
  */
 public record SyncActivePowersPayload(
-    Map<ResourceLocation, Boolean> powers
+    Map<ResourceLocation, Boolean> powers,
+    Set<String> capabilities
 ) implements CustomPacketPayload {
 
     public static final Type<SyncActivePowersPayload> TYPE =
@@ -31,13 +34,22 @@ public record SyncActivePowersPayload(
         buf.writeMap(payload.powers(),
             FriendlyByteBuf::writeResourceLocation,
             FriendlyByteBuf::writeBoolean);
+        buf.writeVarInt(payload.capabilities().size());
+        for (String cap : payload.capabilities()) {
+            buf.writeUtf(cap);
+        }
     }
 
     private static SyncActivePowersPayload decode(FriendlyByteBuf buf) {
         Map<ResourceLocation, Boolean> powers = buf.readMap(
             FriendlyByteBuf::readResourceLocation,
             FriendlyByteBuf::readBoolean);
-        return new SyncActivePowersPayload(powers);
+        int capCount = buf.readVarInt();
+        Set<String> capabilities = new HashSet<>(capCount);
+        for (int i = 0; i < capCount; i++) {
+            capabilities.add(buf.readUtf());
+        }
+        return new SyncActivePowersPayload(powers, capabilities);
     }
 
     @Override

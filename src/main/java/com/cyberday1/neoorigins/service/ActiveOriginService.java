@@ -170,6 +170,28 @@ public final class ActiveOriginService {
         return getOrBuild(player).classActive;
     }
 
+    /**
+     * True if any power currently granted to the player (dimension-filtered,
+     * and for toggleable powers, not toggled off) declares the given
+     * {@link com.cyberday1.neoorigins.api.power.PowerType#capabilities capability} tag.
+     *
+     * Server-side counterpart to {@code ClientActivePowers.hasCapability}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static boolean hasCapability(ServerPlayer player, String tag) {
+        for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
+            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
+                    && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
+                            .isToggledOff(player, holder.config())) {
+                continue;
+            }
+            if (((PowerHolder) holder).type().capabilities(holder.config()).contains(tag)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ── Mutating operations (bypass dimension restrictions) ─────────────
 
     /** Revokes all powers across all layers. Called on player reset. */
