@@ -392,9 +392,10 @@ public final class OriginsPowerTranslator {
     }
 
     private static Optional<JsonObject> translateModifyDamage(JsonObject src, String direction) {
-        // Conditional damage modifiers cannot be safely translated to Route A because
-        // native modify_damage has no condition support.  Skip to avoid creating
-        // unconditional damage immunity from what should be a gated ability.
+        // Conditional damage modifiers cannot be expressed by native ModifyDamagePower,
+        // so we leave them for Route B (OriginsCompatPowerLoader.parseConditionedModifyDamageTaken)
+        // to compile. Returning empty here ensures Route A doesn't create an
+        // unconditional damage modifier from a gated ability.
         if (src.has("condition")) return Optional.empty();
 
         JsonObject out = new JsonObject();

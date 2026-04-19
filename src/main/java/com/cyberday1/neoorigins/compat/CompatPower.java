@@ -6,6 +6,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 
 import java.util.function.Consumer;
 
@@ -28,13 +29,15 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         Consumer<ServerPlayer> onActivated,
         Consumer<ServerPlayer> onRespawn,
         Consumer<ServerPlayer> onHit,
-        Consumer<ServerPlayer> onKill
+        Consumer<ServerPlayer> onKill,
+        Consumer<LivingIncomingDamageEvent> onIncomingDamage
     ) implements PowerConfiguration {
 
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
             private Consumer<ServerPlayer> onGranted, onRevoked, onTick, onActivated, onRespawn, onHit, onKill;
+            private Consumer<LivingIncomingDamageEvent> onIncomingDamage;
 
             public Builder onGranted(Consumer<ServerPlayer> c)   { onGranted   = c; return this; }
             public Builder onRevoked(Consumer<ServerPlayer> c)   { onRevoked   = c; return this; }
@@ -43,9 +46,13 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             public Builder onRespawn(Consumer<ServerPlayer> c)   { onRespawn   = c; return this; }
             public Builder onHit(Consumer<ServerPlayer> c)       { onHit       = c; return this; }
             public Builder onKill(Consumer<ServerPlayer> c)      { onKill      = c; return this; }
+            public Builder onIncomingDamage(Consumer<LivingIncomingDamageEvent> c) {
+                onIncomingDamage = c; return this;
+            }
 
             public Config build() {
-                return new Config(onGranted, onRevoked, onTick, onActivated, onRespawn, onHit, onKill);
+                return new Config(onGranted, onRevoked, onTick, onActivated, onRespawn,
+                    onHit, onKill, onIncomingDamage);
             }
         }
     }
@@ -53,7 +60,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public Codec<Config> codec() {
         // Never called for Route B powers — they are injected directly, not codec-decoded.
-        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null)).codec();
+        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null)).codec();
     }
 
     /** Active only when this specific config has an onActivated consumer. */

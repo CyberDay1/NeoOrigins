@@ -67,6 +67,13 @@ public class CombatPowerEvents {
             }
         }
 
+        // Route B conditioned_modify_damage — compiled lambdas that can gate on
+        // arbitrary conditions, so they run before the un-conditioned native pass.
+        ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.compat.CompatPower.class, cfg -> {
+            if (cfg.onIncomingDamage() != null) cfg.onIncomingDamage().accept(event);
+        });
+        if (event.isCanceled()) return;
+
         ActiveOriginService.forEachOfType(sp, ModifyDamagePower.class, config -> {
             if (config.direction() == ModifyDamagePower.Direction.IN) {
                 if (config.damageType().isEmpty() ||
