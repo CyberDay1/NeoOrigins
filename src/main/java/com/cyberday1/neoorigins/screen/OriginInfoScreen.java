@@ -112,6 +112,11 @@ public class OriginInfoScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.close"), b -> onClose())
             .bounds(width / 2 - 40, height - 24, 80, 20).build());
+
+        // Debug button (client-only, reveals live power/capability state)
+        addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
+                b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
+            .bounds(width / 2 + 48, height - 24, 60, 20).build());
     }
 
     private void updateDetail() {
