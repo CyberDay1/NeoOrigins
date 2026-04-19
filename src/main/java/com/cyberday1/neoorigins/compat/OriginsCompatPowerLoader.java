@@ -130,7 +130,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             JsonObject json = entry.getValue();
             String type = OriginsFormatDetector.getType(json);
 
-            if (!ROUTE_B_TYPES.contains(type)) continue;
+            // modify_damage_taken/dealt are Route A types normally, but when a
+            // condition is present we fall through to Route B so the condition
+            // can gate the damage modifier — native ModifyDamagePower has no
+            // condition support.
+            boolean conditionedModifyDamage = isModifyDamageTakenType(type) && json.has("condition");
+            if (!ROUTE_B_TYPES.contains(type) && !conditionedModifyDamage) continue;
             // Route A already loaded this ID — skip
             if (PowerDataManager.INSTANCE.hasPower(id)) continue;
 
@@ -264,8 +269,62 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:prevent_entity_use",         "apace:prevent_entity_use"         -> parsePreventEntityUse(id, json);
             case "origins:modify_food",                "apace:modify_food"                -> parseModifyFood(id, json);
             case "origins:modify_jump",                "apace:modify_jump"                -> parseModifyJump(id, json);
+            // Conditioned modify_damage_taken — only dispatched here when a condition is present.
+            case "origins:modify_damage_taken",        "apace:modify_damage_taken"        -> parseConditionedModifyDamageTaken(id, json);
             default -> null;
         };
+    }
+
+    private static boolean isModifyDamageTakenType(String type) {
+        return "origins:modify_damage_taken".equals(type) || "apace:modify_damage_taken".equals(type);
+    }
+
+    private CompatPower.Config parseConditionedModifyDamageTaken(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+
+        // Extract the multiplier from the Origins modifier object. All operations
+        // collapse to (1 + value) — same lossy mapping as Route A's translateModifyDamage.
+        float multiplier = 1.0f;
+        if (json.has("modifier") && json.get("modifier").isJsonObject()) {
+            JsonObject mod = json.getAsJsonObject("modifier");
+            if (mod.has("value")) {
+                multiplier = (float)(1.0 + mod.get("value").getAsDouble());
+            }
+        }
+
+        // Optional damage type filter — msgId-based, mirrors native ModifyDamagePower.
+        String damageTypeFilter = null;
+        if (json.has("damage_condition") && json.get("damage_condition").isJsonObject()) {
+            JsonObject dc = json.getAsJsonObject("damage_condition");
+            String dcType = dc.has("type") ? dc.get("type").getAsString() : "";
+            if (("origins:name".equals(dcType) || "apace:name".equals(dcType)) && dc.has("name")) {
+                damageTypeFilter = dc.get("name").getAsString();
+            }
+        }
+
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+
+        final float  finalMultiplier = multiplier;
+        final String finalDmgFilter  = damageTypeFilter;
+
+        return CompatPower.Config.builder()
+            .onIncomingDamage(event -> {
+                if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+                if (!condition.test(sp)) return;
+                if (finalDmgFilter != null
+                        && !event.getSource().getMsgId().equalsIgnoreCase(finalDmgFilter)) {
+                    return;
+                }
+                // Overflow-safe multiply (same clamp used by CombatPowerEvents native path).
+                float scaled = event.getAmount() * finalMultiplier;
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setAmount(scaled);
+                // A 0-multiplier effectively cancels the hit; callers commonly rely on that.
+                if (scaled <= 0.0f) event.setCanceled(true);
+            })
+            .build();
     }
 
     private CompatPower.Config parseActiveSelf(Identifier id, JsonObject json) {
