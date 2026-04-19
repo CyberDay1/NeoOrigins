@@ -13,6 +13,8 @@ import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
+import com.cyberday1.neoorigins.network.payload.EditorTogglePowerPayload;
+import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
@@ -80,6 +82,12 @@ public class NeoOriginsNetwork {
             NeoOriginsNetwork::handleSyncActivePowers
         );
 
+        registrar.playToClient(
+            OpenEditorScreenPayload.TYPE,
+            OpenEditorScreenPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleOpenEditorScreen
+        );
+
         registrar.playToServer(
             ChooseOriginPayload.TYPE,
             ChooseOriginPayload.STREAM_CODEC,
@@ -102,6 +110,12 @@ public class NeoOriginsNetwork {
             ActivateClassPowerPayload.TYPE,
             ActivateClassPowerPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleActivateClassPower
+        );
+
+        registrar.playToServer(
+            EditorTogglePowerPayload.TYPE,
+            EditorTogglePowerPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleEditorTogglePower
         );
     }
 
@@ -144,6 +158,13 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers(), payload.capabilities())
         );
+    }
+
+    private static void handleOpenEditorScreen(OpenEditorScreenPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            mc.setScreen(new com.cyberday1.neoorigins.screen.OriginEditorScreen(null));
+        });
     }
 
     // ---------- Server-side handlers ----------
@@ -234,6 +255,34 @@ public class NeoOriginsNetwork {
             if (holder.type() instanceof AbstractTogglePower<?>) {
                 syncActivePowersToPlayer(sp);
             }
+        });
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void handleEditorTogglePower(EditorTogglePowerPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            Identifier powerId = payload.powerId();
+
+            // The player must actually have this power granted (via their current origins).
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            boolean granted = false;
+            for (var entry : data.getOrigins().entrySet()) {
+                Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                if (origin != null && origin.powers().contains(powerId)) { granted = true; break; }
+            }
+            if (!granted) {
+                NeoOrigins.LOGGER.warn("Player {} tried to editor-toggle power {} they don't have",
+                    sp.getName().getString(), powerId);
+                return;
+            }
+
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder == null) return;
+            if (!(holder.type() instanceof AbstractTogglePower<?>)) return;
+
+            holder.onActivated(sp);
+            syncActivePowersToPlayer(sp);
         });
     }
 

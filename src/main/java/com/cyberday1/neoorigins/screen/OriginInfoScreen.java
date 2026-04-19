@@ -122,6 +122,11 @@ public class OriginInfoScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
                 b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
             .bounds(width / 2 + 48, height - 24, 60, 20).build());
+
+        // Edit button — opens the in-game origin/power editor
+        addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
+                b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
+            .bounds(width / 2 - 108, height - 24, 60, 20).build());
     }
 
     private void updateDetail() {
