@@ -440,12 +440,41 @@ public final class ActionParser {
     }
 
     private static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
-        // Simplified AoE: execute an action on the player (ignoring entity targeting)
-        float radius = json.has("radius") ? json.get("radius").getAsFloat() : 5.0f;
+        // AoE: run entity_action against every ServerPlayer within the radius.
+        // [LOSSY] Non-player living entities are skipped because EntityAction is
+        // keyed on ServerPlayer — supporting arbitrary LivingEntity targets would
+        // require broadening the action type across the compat layer.
+        float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16.0f;
+        String shape = json.has("shape") ? json.get("shape").getAsString() : "sphere";
+        boolean includeSelf = !json.has("include_source") || json.get("include_source").getAsBoolean();
+
         EntityAction action = json.has("entity_action")
             ? parse(json.getAsJsonObject("entity_action"), contextId) : EntityAction.noop();
-        // [LOSSY] AoE only affects the player, not nearby entities
-        return action;
+        EntityCondition targetCondition = json.has("entity_condition")
+            ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), contextId)
+            : EntityCondition.alwaysTrue();
+
+        final float  finalRadius       = radius;
+        final boolean finalIncludeSelf = includeSelf;
+        final String  finalShape       = shape;
+        final EntityAction finalAction = action;
+        final EntityCondition finalCond = targetCondition;
+
+        return source -> {
+            var level = source.level();
+            double r = finalRadius;
+            var aabb = source.getBoundingBox().inflate(r);
+            var candidates = level.getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class, aabb);
+            double r2 = r * r;
+            var srcPos = source.position();
+            for (var target : candidates) {
+                if (target == source && !finalIncludeSelf) continue;
+                if ("sphere".equalsIgnoreCase(finalShape)
+                        && target.position().distanceToSqr(srcPos) > r2) continue;
+                if (!finalCond.test(target)) continue;
+                finalAction.execute(target);
+            }
+        };
     }
 
     private static EntityAction failNoop(String type, String contextId, String detail) {
