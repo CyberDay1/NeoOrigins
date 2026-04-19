@@ -57,6 +57,7 @@ public class PowerTypes {
 
     // --- Passive: combat ---
     public static final DeferredHolder<PowerType<?>, ModifyDamagePower>        MODIFY_DAMAGE        = reg("modify_damage",        new ModifyDamagePower());
+    public static final DeferredHolder<PowerType<?>, InvulnerabilityPower>     INVULNERABILITY      = reg("invulnerability",      new InvulnerabilityPower());
     public static final DeferredHolder<PowerType<?>, KnockbackModifierPower>   KNOCKBACK_MODIFIER   = reg("knockback_modifier",   new KnockbackModifierPower());
     public static final DeferredHolder<PowerType<?>, ThornsAuraPower>          THORNS_AURA          = reg("thorns_aura",          new ThornsAuraPower());
     public static final DeferredHolder<PowerType<?>, ProjectileImmunityPower>  PROJECTILE_IMMUNITY  = reg("projectile_immunity",  new ProjectileImmunityPower());

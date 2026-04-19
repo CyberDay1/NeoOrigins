@@ -39,6 +39,14 @@ public class CombatPowerEvents {
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
+        // Native InvulnerabilityPower — cancels damage whose source matches configured filters.
+        // Runs before any other damage logic so the event is short-circuited cleanly.
+        if (ActiveOriginService.has(sp, InvulnerabilityPower.class,
+                cfg -> cfg.matches(event.getSource()))) {
+            event.setCanceled(true);
+            return;
+        }
+
         if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
                 || event.getSource().is(DamageTypes.LAVA)) {
             if (ActiveOriginService.has(sp, PreventActionPower.class,
