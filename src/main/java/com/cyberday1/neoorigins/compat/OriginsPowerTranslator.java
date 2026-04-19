@@ -324,45 +324,51 @@ public final class OriginsPowerTranslator {
     }
 
     private static Optional<JsonObject> translateStackingStatusEffect(JsonObject src) {
-        // [LOSSY] stacking_status_effect: only the first effect is applied; the amplifier ramp is lost.
+        // Maps to the native neoorigins:stacking_status_effects, which keeps ALL
+        // effects from the source — previously only the first was retained.
         // Three field variants seen in the wild:
         //   "effects": [{...}, ...]  — array of effect objects
         //   "effects": {...}         — single effect object
         //   "effect":  {...}         — singular effect object (some packs omit the 's')
-        JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:status_effect");
-
-        JsonObject effectObj = null;
+        JsonArray entries = new JsonArray();
 
         if (src.has("effects")) {
             JsonElement effectsEl = src.get("effects");
             if (effectsEl.isJsonArray()) {
-                JsonArray arr = effectsEl.getAsJsonArray();
-                if (arr.isEmpty()) throw new IllegalArgumentException("'effects' array is empty");
-                effectObj = arr.get(0).getAsJsonObject();
+                for (JsonElement el : effectsEl.getAsJsonArray()) {
+                    if (el.isJsonObject()) entries.add(buildEffectEntry(el.getAsJsonObject()));
+                }
             } else if (effectsEl.isJsonObject()) {
-                effectObj = effectsEl.getAsJsonObject();
+                entries.add(buildEffectEntry(effectsEl.getAsJsonObject()));
             }
         } else if (src.has("effect")) {
             JsonElement effectEl = src.get("effect");
             if (effectEl.isJsonObject()) {
-                effectObj = effectEl.getAsJsonObject();
+                entries.add(buildEffectEntry(effectEl.getAsJsonObject()));
             } else if (effectEl.isJsonPrimitive()) {
-                // Bare string effect ID — treat directly
-                out.addProperty("effect", effectEl.getAsString());
-                return Optional.of(out);
+                JsonObject entry = new JsonObject();
+                entry.addProperty("effect", effectEl.getAsString());
+                entries.add(entry);
             }
         }
 
-        if (effectObj == null) throw new IllegalArgumentException("no 'effects'/'effect' field found");
-        if (!effectObj.has("effect")) throw new IllegalArgumentException("effect object missing 'effect' id field");
+        if (entries.isEmpty()) throw new IllegalArgumentException("no 'effects'/'effect' field found");
 
-        out.addProperty("effect", effectObj.get("effect").getAsString());
-        if (effectObj.has("amplifier"))      out.addProperty("amplifier", effectObj.get("amplifier").getAsInt());
-        if (effectObj.has("ambient"))        out.addProperty("ambient", effectObj.get("ambient").getAsBoolean());
-        if (effectObj.has("show_particles")) out.addProperty("show_particles", effectObj.get("show_particles").getAsBoolean());
-
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:stacking_status_effects");
+        out.add("effects", entries);
         return Optional.of(out);
+    }
+
+    /** Normalises a single Origins effect object into a StackingStatusEffectsPower.Entry JSON. */
+    private static JsonObject buildEffectEntry(JsonObject src) {
+        if (!src.has("effect")) throw new IllegalArgumentException("effect object missing 'effect' id field");
+        JsonObject entry = new JsonObject();
+        entry.addProperty("effect", src.get("effect").getAsString());
+        if (src.has("amplifier"))      entry.addProperty("amplifier", src.get("amplifier").getAsInt());
+        if (src.has("ambient"))        entry.addProperty("ambient", src.get("ambient").getAsBoolean());
+        if (src.has("show_particles")) entry.addProperty("show_particles", src.get("show_particles").getAsBoolean());
+        return entry;
     }
 
     private static Optional<JsonObject> translateEffectImmunity(JsonObject src) {

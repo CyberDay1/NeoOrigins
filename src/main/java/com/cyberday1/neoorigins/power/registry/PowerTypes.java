@@ -28,6 +28,7 @@ public class PowerTypes {
     // --- Passive: attribute & status ---
     public static final DeferredHolder<PowerType<?>, AttributeModifierPower>   ATTRIBUTE_MODIFIER   = reg("attribute_modifier",   new AttributeModifierPower());
     public static final DeferredHolder<PowerType<?>, StatusEffectPower>        STATUS_EFFECT        = reg("status_effect",        new StatusEffectPower());
+    public static final DeferredHolder<PowerType<?>, StackingStatusEffectsPower> STACKING_STATUS_EFFECTS = reg("stacking_status_effects", new StackingStatusEffectsPower());
     public static final DeferredHolder<PowerType<?>, NightVisionPower>         NIGHT_VISION         = reg("night_vision",         new NightVisionPower());
     public static final DeferredHolder<PowerType<?>, GlowPower>                GLOW                 = reg("glow",                 new GlowPower());
     public static final DeferredHolder<PowerType<?>, WaterBreathingPower>      WATER_BREATHING      = reg("water_breathing",      new WaterBreathingPower());
