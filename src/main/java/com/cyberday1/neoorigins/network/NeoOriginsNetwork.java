@@ -25,6 +25,8 @@ import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
@@ -140,7 +142,7 @@ public class NeoOriginsNetwork {
 
     private static void handleSyncActivePowers(SyncActivePowersPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers())
+            com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers(), payload.capabilities())
         );
     }
 
@@ -284,22 +286,28 @@ public class NeoOriginsNetwork {
     }
 
     /**
-     * Push the player's current set of granted powers + toggle state to their client.
-     * Call after any change that affects the active-powers map: origin change, toggle
-     * flip, dimension transition (dimension restrictions filter the map).
+     * Push the player's current set of granted powers + toggle state + active
+     * capability tags to their client. Call after any change that affects the
+     * active-powers map: origin change, toggle flip, dimension transition
+     * (dimension restrictions filter the map).
      */
     public static void syncActivePowersToPlayer(ServerPlayer player) {
-        PacketDistributor.sendToPlayer(player,
-            new SyncActivePowersPayload(buildActivePowersMap(player)));
+        Map<Identifier, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(player, powerMap, capabilities);
+        PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
     }
 
     /**
-     * Builds the {@code powerId → toggleOn} map for the given player, applying
-     * dimension restrictions. Non-toggleable granted powers map to {@code true};
-     * toggleable powers map to {@code !toggledOff}.
+     * Populates {@code powerMapOut} with {@code powerId → toggleOn} for every power
+     * currently granted to the player (dimension restrictions applied) and
+     * {@code capabilitiesOut} with the union of capability tags from powers that
+     * are currently active (granted AND, if toggleable, toggled on).
      */
-    private static Map<Identifier, Boolean> buildActivePowersMap(ServerPlayer player) {
-        Map<Identifier, Boolean> result = new HashMap<>();
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void collectActivePowers(ServerPlayer player,
+                                            Map<Identifier, Boolean> powerMapOut,
+                                            Set<String> capabilitiesOut) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         var dim = player.level().dimension();
         for (var entry : data.getOrigins().entrySet()) {
@@ -313,10 +321,12 @@ public class NeoOriginsNetwork {
                 if (holder.type() instanceof AbstractTogglePower<?> togglePower) {
                     toggledOn = !togglePower.isToggledOff(player);
                 }
-                result.put(powerId, toggledOn);
+                powerMapOut.put(powerId, toggledOn);
+                if (toggledOn) {
+                    capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(holder.config()));
+                }
             }
         }
-        return result;
     }
 
     /** Open the origin selection screen on the client. */
