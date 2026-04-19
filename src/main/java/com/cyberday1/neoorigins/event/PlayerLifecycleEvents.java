@@ -150,6 +150,16 @@ public class PlayerLifecycleEvents {
         ActiveOriginService.invalidate(uuid);
     }
 
+    /**
+     * Dimension restrictions filter the active-powers map, so any dimension
+     * transition invalidates the client's mirror. Push a fresh sync.
+     */
+    @SubscribeEvent
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        NeoOriginsNetwork.syncActivePowersToPlayer(sp);
+    }
+
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
