@@ -434,11 +434,43 @@ public final class OriginsPowerTranslator {
     }
 
     private static Optional<JsonObject> translateInvulnerability(JsonObject src) {
-        // [LOSSY] invulnerability blocks all damage, but Route A can only prevent one damage type;
-        // approximated as FIRE immunity only.
+        // Native neoorigins:invulnerability supports damage_types / damage_tags / msg_ids filters.
+        // If the Origins power has a damage_condition sub-object, try to project it into those fields;
+        // otherwise emit an unconditional invulnerability (blocks all damage).
         JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:prevent_action");
-        out.addProperty("action", "FIRE");
+        out.addProperty("type", "neoorigins:invulnerability");
+
+        if (src.has("damage_condition") && src.get("damage_condition").isJsonObject()) {
+            JsonObject dc = src.getAsJsonObject("damage_condition");
+            String type = dc.has("type") ? dc.get("type").getAsString() : "";
+
+            JsonArray msgIds   = new JsonArray();
+            JsonArray dmgTypes = new JsonArray();
+            JsonArray dmgTags  = new JsonArray();
+
+            switch (type) {
+                case "origins:name", "apace:name" -> {
+                    if (dc.has("name")) msgIds.add(dc.get("name").getAsString());
+                }
+                case "origins:in_tag", "apace:in_tag", "origins:tag", "apace:tag" -> {
+                    if (dc.has("tag")) dmgTags.add(dc.get("tag").getAsString());
+                }
+                case "origins:attacker", "apace:attacker" -> {
+                    // [LOSSY] attacker sub-conditions can't be projected into damage-source filters.
+                    // Fall back to blocking nothing — let the power act as all-damage-block if
+                    // the author intended that, or be pruned if they didn't.
+                }
+                default -> {
+                    // Unknown sub-condition — fall back to no filter (block-all), matching
+                    // Origins' behaviour when damage_condition is absent.
+                }
+            }
+
+            if (!msgIds.isEmpty())   out.add("msg_ids", msgIds);
+            if (!dmgTypes.isEmpty()) out.add("damage_types", dmgTypes);
+            if (!dmgTags.isEmpty())  out.add("damage_tags", dmgTags);
+        }
+
         return Optional.of(out);
     }
 
