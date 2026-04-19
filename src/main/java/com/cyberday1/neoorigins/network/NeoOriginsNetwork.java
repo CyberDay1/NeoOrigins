@@ -14,12 +14,17 @@ import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
+import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
+import java.util.HashMap;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
@@ -65,6 +70,12 @@ public class NeoOriginsNetwork {
             SyncCooldownPayload.TYPE,
             SyncCooldownPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncCooldown
+        );
+
+        registrar.playToClient(
+            SyncActivePowersPayload.TYPE,
+            SyncActivePowersPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncActivePowers
         );
 
         registrar.playToServer(
@@ -124,6 +135,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncCooldown(SyncCooldownPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientCooldownState.set(payload.slot(), payload.totalTicks(), payload.remainingTicks())
+        );
+    }
+
+    private static void handleSyncActivePowers(SyncActivePowersPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers())
         );
     }
 
@@ -203,6 +220,9 @@ public class NeoOriginsNetwork {
             PowerHolder<?> holder = actives.get(slot);
             holder.onActivated(sp);
             syncCooldownIfStarted(sp, holder, slot);
+            if (holder.type() instanceof AbstractTogglePower<?>) {
+                syncActivePowersToPlayer(sp);
+            }
         });
     }
 
@@ -217,6 +237,9 @@ public class NeoOriginsNetwork {
             PowerHolder<?> holder = classActives.get(0);
             holder.onActivated(sp);
             syncCooldownIfStarted(sp, holder, -1);
+            if (holder.type() instanceof AbstractTogglePower<?>) {
+                syncActivePowersToPlayer(sp);
+            }
         });
     }
 
@@ -249,11 +272,61 @@ public class NeoOriginsNetwork {
         LAST_ACTIVATE_TICK.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
-    /** Send the player's full origin data to themselves. */
+    /**
+     * Send the player's full origin state to themselves: chosen origins + the
+     * resolved active-powers map (granted powers + toggle state).
+     *
+     * Callers that only want one or the other can use {@link #syncOriginsOnlyToPlayer}
+     * or {@link #syncActivePowersToPlayer} directly.
+     */
     public static void syncToPlayer(ServerPlayer player) {
+        syncOriginsOnlyToPlayer(player);
+        syncActivePowersToPlayer(player);
+    }
+
+    /** Origins-map sync only; does not push active-powers. */
+    public static void syncOriginsOnlyToPlayer(ServerPlayer player) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         PacketDistributor.sendToPlayer(player,
             new SyncOriginsPayload(data.getOrigins(), data.isHadAllOrigins()));
+    }
+
+    /**
+     * Push the player's current set of granted powers + toggle state to their client.
+     * Call after any change that affects the active-powers map: origin change, toggle
+     * flip, dimension transition (dimension restrictions filter the map).
+     */
+    public static void syncActivePowersToPlayer(ServerPlayer player) {
+        PacketDistributor.sendToPlayer(player,
+            new SyncActivePowersPayload(buildActivePowersMap(player)));
+    }
+
+    /**
+     * Builds the {@code powerId → toggleOn} map for the given player, applying
+     * dimension restrictions. Non-toggleable granted powers map to {@code true};
+     * toggleable powers map to {@code !toggledOff}.
+     */
+    private static Map<ResourceLocation, Boolean> buildActivePowersMap(ServerPlayer player) {
+        Map<ResourceLocation, Boolean> result = new HashMap<>();
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        var dim = player.level().dimension();
+        for (var entry : data.getOrigins().entrySet()) {
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin == null) continue;
+            for (ResourceLocation powerId : origin.powers()) {
+                if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+                PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+                if (holder == null) continue;
+                boolean toggledOn = true;
+                if (holder.type() instanceof AbstractTogglePower<?>) {
+                    @SuppressWarnings({"unchecked", "rawtypes"})
+                    AbstractTogglePower tp = (AbstractTogglePower) holder.type();
+                    toggledOn = !tp.isToggledOff(player, holder.config());
+                }
+                result.put(powerId, toggledOn);
+            }
+        }
+        return result;
     }
 
     /** Open the origin selection screen on the client. */
