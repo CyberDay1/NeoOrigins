@@ -27,8 +27,13 @@
   "key.neoorigins.view_info": "View Origin Info",
 
   "screen.neoorigins.origin_info": "Origin Info",
+  "screen.neoorigins.debug_powers": "Active Powers (debug)",
   "gui.neoorigins.info.no_origin": "No origin selected yet.",
   "gui.neoorigins.info.close": "Close",
+  "gui.neoorigins.info.debug": "Debug",
+  "gui.neoorigins.debug.capabilities_header": "Active Capabilities",
+  "gui.neoorigins.debug.powers_header": "Granted Powers",
+  "gui.neoorigins.debug.none": "(none)",
 
   "origins.gui.impact.impact": "Impact",
   "origins.gui.impact.none": "None",
