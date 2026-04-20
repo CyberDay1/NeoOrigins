@@ -8,9 +8,10 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+
+import java.util.Optional;
 
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
 
@@ -18,6 +19,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         ResourceLocation attribute,
         double amount,
         AttributeModifier.Operation operation,
+        Optional<String> condition,
         String type
     ) implements PowerConfiguration {
 
@@ -39,6 +41,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             ResourceLocation.CODEC.fieldOf("attribute").forGetter(Config::attribute),
             Codec.DOUBLE.fieldOf("amount").forGetter(Config::amount),
             OPERATION_CODEC.optionalFieldOf("operation", AttributeModifier.Operation.ADD_VALUE).forGetter(Config::operation),
+            Codec.STRING.optionalFieldOf("condition").forGetter(Config::condition),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -48,12 +51,35 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        applyModifier(player, config, true);
+        // Unconditional powers apply immediately; conditional ones are driven by onTick.
+        if (config.condition().isEmpty()) {
+            applyModifier(player, config, true);
+        }
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         applyModifier(player, config, false);
+    }
+
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (config.condition().isEmpty()) return;
+        if (player.tickCount % 5 != 0) return;
+        boolean shouldApply = evaluate(config.condition().get(), player);
+        applyModifier(player, config, shouldApply);
+    }
+
+    private static boolean evaluate(String condition, ServerPlayer player) {
+        return switch (condition) {
+            case "in_water" -> player.isInWater();
+            case "on_land"  -> !player.isInWater();
+            case "in_lava"  -> player.isInLava();
+            default -> {
+                NeoOrigins.LOGGER.warn("attribute_modifier condition '{}' is unknown — expected one of in_water, on_land, in_lava. Treating as always-on.", condition);
+                yield true;
+            }
+        };
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
