@@ -32,15 +32,12 @@ public class MovementPowerEvents {
         }
     }
 
-    // BreakSpeedModifierPower used to be handled here via PlayerEvent.BreakSpeed,
-    // but that event fires client-side for the local player and the
-    // ServerPlayer guard silently filtered every call → mining speed never
-    // applied. Powers now use the vanilla player.block_break_speed attribute,
-    // which auto-syncs to the client. See BreakSpeedModifierPower.
-    //
-    // TODO: UnderwaterMiningSpeedPower is still broken for the same reason —
-    // it has a positional condition (in water + airborne) that attribute
-    // modifiers can't express, so it needs a client-aware fix.
+    // BreakSpeedModifierPower and UnderwaterMiningSpeedPower used to be handled
+    // here via PlayerEvent.BreakSpeed, but that event fires client-side for the
+    // local player and the ServerPlayer guard silently filtered every call →
+    // mining speed never applied. Both now use vanilla attributes
+    // (player.block_break_speed and player.submerged_mining_speed respectively),
+    // which auto-sync to the client.
 
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
