@@ -26,6 +26,10 @@ public class PowerTypes {
     }
 
     // --- Passive: attribute & status ---
+    // 2.0 Phase 2 consolidation target: persistent_effect collapses status_effect +
+    // stacking_status_effects + night_vision + glow + water_breathing + breath_in_fluid +
+    // regen_in_fluid. Legacy types below remain during the deprecation window.
+    public static final DeferredHolder<PowerType<?>, PersistentEffectPower>    PERSISTENT_EFFECT    = reg("persistent_effect",    new PersistentEffectPower());
     public static final DeferredHolder<PowerType<?>, AttributeModifierPower>   ATTRIBUTE_MODIFIER   = reg("attribute_modifier",   new AttributeModifierPower());
     public static final DeferredHolder<PowerType<?>, StatusEffectPower>        STATUS_EFFECT        = reg("status_effect",        new StatusEffectPower());
     public static final DeferredHolder<PowerType<?>, StackingStatusEffectsPower> STACKING_STATUS_EFFECTS = reg("stacking_status_effects", new StackingStatusEffectsPower());
@@ -57,6 +61,12 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
 
     // --- Passive: combat ---
+    // 2.0 Phase 5 consolidation target: event_triggered dispatches via EventPowerIndex
+    // for action_on_kill, action_on_hit_taken, thorns_aura, scare_entities analogues.
+    public static final DeferredHolder<PowerType<?>, EventTriggeredPower>      EVENT_TRIGGERED      = reg("event_triggered",      new EventTriggeredPower());
+    // 2.0 Phase 6 consolidation target: one power covering ~26 Origins-Classes
+    // hook types (crafting/food/xp/bonemeal/breed/trade/...) via action+modifier DSL.
+    public static final DeferredHolder<PowerType<?>, ActionOnEventPower>       ACTION_ON_EVENT      = reg("action_on_event",      new ActionOnEventPower());
     public static final DeferredHolder<PowerType<?>, ModifyDamagePower>        MODIFY_DAMAGE        = reg("modify_damage",        new ModifyDamagePower());
     public static final DeferredHolder<PowerType<?>, InvulnerabilityPower>     INVULNERABILITY      = reg("invulnerability",      new InvulnerabilityPower());
     public static final DeferredHolder<PowerType<?>, KnockbackModifierPower>   KNOCKBACK_MODIFIER   = reg("knockback_modifier",   new KnockbackModifierPower());
@@ -75,6 +85,10 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, StartingEquipmentPower>   STARTING_EQUIPMENT   = reg("starting_equipment",   new StartingEquipmentPower());
 
     // --- Tick-driven & conditional ---
+    // 2.0 Phase 4 consolidation target: condition_passive collapses biome_buff,
+    // damage_in_biome/daylight/water, burn_at_health_threshold, mobs_ignore_player,
+    // no_mob_spawns_nearby, item_magnetism — and supersedes tick_action.
+    public static final DeferredHolder<PowerType<?>, ConditionPassivePower>    CONDITION_PASSIVE    = reg("condition_passive",    new ConditionPassivePower());
     public static final DeferredHolder<PowerType<?>, TickActionPower>          TICK_ACTION          = reg("tick_action",          new TickActionPower());
     public static final DeferredHolder<PowerType<?>, ConditionalPower>         CONDITIONAL          = reg("conditional",          new ConditionalPower());
     public static final DeferredHolder<PowerType<?>, PhantomFormPower>         PHANTOM_FORM         = reg("phantom_form",         new PhantomFormPower());
@@ -111,6 +125,9 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, HordeRegenPower>  HORDE_REGEN  = reg("horde_regen",   new HordeRegenPower());
 
     // --- Active abilities ---
+    // 2.0 consolidation: generic action-driven active ability. Legacy types below stay
+    // registered during the deprecation window (see LegacyPowerTypeAliases).
+    public static final DeferredHolder<PowerType<?>, ActiveAbilityPower>       ACTIVE_ABILITY       = reg("active_ability",       new ActiveAbilityPower());
     public static final DeferredHolder<PowerType<?>, ActiveTeleportPower>      ACTIVE_TELEPORT      = reg("active_teleport",      new ActiveTeleportPower());
     public static final DeferredHolder<PowerType<?>, ActiveDashPower>          ACTIVE_DASH          = reg("active_dash",          new ActiveDashPower());
     public static final DeferredHolder<PowerType<?>, ActiveLaunchPower>        ACTIVE_LAUNCH        = reg("active_launch",        new ActiveLaunchPower());
@@ -142,6 +159,15 @@ public class PowerTypes {
     public static PowerType<?> get(ResourceLocation id) {
         for (var holder : POWER_TYPES.getEntries())
             if (holder.getId().equals(id)) return holder.get();
+        return null;
+    }
+
+    /** Reverse lookup: given a PowerType instance, return its registered identifier (or null). */
+    public static ResourceLocation getId(PowerType<?> type) {
+        if (type == null) return null;
+        for (var holder : POWER_TYPES.getEntries()) {
+            if (holder.get() == type) return holder.getId();
+        }
         return null;
     }
 }

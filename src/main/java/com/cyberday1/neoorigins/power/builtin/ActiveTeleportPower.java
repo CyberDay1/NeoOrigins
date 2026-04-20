@@ -40,6 +40,10 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         ActiveOriginService.forEachOfType(player, TeleportRangeModifierPower.class,
             cfg -> mult[0] *= cfg.multiplier());
         range *= mult[0];
+        // 2.0: chain any action_on_event powers declared for MOD_TELEPORT_RANGE.
+        range = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_TELEPORT_RANGE,
+            null, (float) range);
         return "random".equalsIgnoreCase(config.mode())
             ? randomTeleport(player, range)
             : targetTeleport(player, range);

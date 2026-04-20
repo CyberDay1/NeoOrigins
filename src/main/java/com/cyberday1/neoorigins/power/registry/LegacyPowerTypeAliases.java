@@ -1,0 +1,437 @@
+package com.cyberday1.neoorigins.power.registry;
+
+import com.cyberday1.neoorigins.NeoOrigins;
+import com.google.gson.JsonObject;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+
+/**
+ * Registry of old NeoOrigins power-type IDs → new (generic) type ID + optional
+ * field remap. Applied by PowerDataManager before {@code PowerTypes.get(typeId)}.
+ *
+ * <p>Part of the 2.0 power-type consolidation: as 88 PowerType classes collapse
+ * into ~25 generic composable types, legacy JSON payloads authored against the
+ * old class IDs must continue to load. Deprecation warnings fire once per unique
+ * old type ID per boot so pack authors see the migration path in logs.
+ *
+ * <p>Planned retirement: remove after 2 major versions (i.e. NeoOrigins 4.0).
+ */
+public final class LegacyPowerTypeAliases {
+
+    private LegacyPowerTypeAliases() {}
+
+    /** Mutates the JSON in place to conform to the new type's schema. */
+    @FunctionalInterface
+    public interface FieldRemapper extends BiConsumer<JsonObject, ResourceLocation> {}
+
+    private record Alias(ResourceLocation newType, FieldRemapper remap) {}
+
+    private static final Map<ResourceLocation, Alias> ALIASES = new HashMap<>();
+    private static final Set<ResourceLocation> WARNED = new HashSet<>();
+
+    /** Register an alias. Should be called during mod construction / registry setup. */
+    public static void register(ResourceLocation oldType, ResourceLocation newType, FieldRemapper remap) {
+        ALIASES.put(oldType, new Alias(newType, remap != null ? remap : (j, id) -> {}));
+    }
+
+    public static void register(ResourceLocation oldType, ResourceLocation newType) {
+        register(oldType, newType, null);
+    }
+
+    /**
+     * If {@code typeId} is an alias, rewrite it to the new type, remap fields in
+     * {@code json}, and return the new type ID. Otherwise returns {@code typeId}
+     * unchanged.
+     *
+     * <p>Fires one deprecation warning per unique old type per boot.
+     */
+    public static ResourceLocation apply(ResourceLocation typeId, JsonObject json, ResourceLocation powerId) {
+        Alias alias = ALIASES.get(typeId);
+        if (alias == null) return typeId;
+        // Never override an extant legacy type — only kick in once the legacy
+        // Java class is deleted. This lets us register aliases upfront without
+        // them stealing traffic from still-registered classes.
+        if (PowerTypes.get(typeId) != null) return typeId;
+        if (WARNED.add(typeId)) {
+            NeoOrigins.LOGGER.warn(
+                "[2.0-legacy] power type '{}' is deprecated — remap to '{}' (first seen on power '{}')",
+                typeId, alias.newType, powerId);
+        }
+        try {
+            alias.remap.accept(json, powerId);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.warn("[2.0-legacy] field remap for '{}' on power '{}' failed: {}",
+                typeId, powerId, e.getMessage());
+        }
+        // Ensure the JSON's own `type` field reflects the new type for downstream parsers.
+        json.addProperty("type", alias.newType.toString());
+        return alias.newType;
+    }
+
+    /** For testing / diagnostics: clear the warned-set so the next apply re-logs. */
+    public static void resetWarnings() {
+        WARNED.clear();
+    }
+
+    /** Count of registered aliases — used by startup diagnostics. */
+    public static int size() {
+        return ALIASES.size();
+    }
+
+    // ── Bootstrap ──────────────────────────────────────────────────────────
+    //
+    // One working alias as an infrastructure test. Phase 1+ will register many more.
+    // `neoorigins:active_teleport` → `neoorigins:active_ability` with a marker field
+    // that tells the generic active_ability power which legacy handler to run.
+    // The actual `neoorigins:active_ability` type doesn't exist yet — it's a Phase 1
+    // deliverable — so this registration is commented out until then.
+
+    public static void bootstrap() {
+        registerActiveAbilityAliases();
+        registerModifierHookAliases();
+        NeoOrigins.LOGGER.debug("[2.0-legacy] power-type alias table initialised ({} entries)", size());
+    }
+
+    // ── Phase 6: Origins-Classes modifier hook aliases ─────────────────────
+    //
+    // Each legacy modifier power collapses into action_on_event with an event
+    // key + modifier block. Dormant until the legacy Java class is removed
+    // (PowerTypes.get(typeId) != null guard in apply()).
+
+    private static final ResourceLocation ID_ACTION_ON_EVENT =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "action_on_event");
+
+    private static void registerModifierHookAliases() {
+        // hunger_drain_modifier → action_on_event { event: mod_exhaustion }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "hunger_drain_modifier"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 1.0f;
+                    json.addProperty("event", "mod_exhaustion");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("multiplier");
+                });
+
+        // natural_regen_modifier → action_on_event { event: mod_natural_regen }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "natural_regen_modifier"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 1.0f;
+                    json.addProperty("event", "mod_natural_regen");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("multiplier");
+                });
+
+        // knockback_modifier → action_on_event { event: mod_knockback }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "knockback_modifier"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 1.0f;
+                    json.addProperty("event", "mod_knockback");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("multiplier");
+                });
+
+        // longer_potions → action_on_event { event: mod_potion_duration }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "longer_potions"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("duration_multiplier") ? json.get("duration_multiplier").getAsFloat() : 1.0f;
+                    json.addProperty("event", "mod_potion_duration");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("duration_multiplier");
+                });
+
+        // more_animal_loot → action_on_event { event: mod_harvest_drops }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "more_animal_loot"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 1.0f;
+                    json.addProperty("event", "mod_harvest_drops");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("multiplier");
+                });
+
+        // efficient_repairs → action_on_event { event: mod_anvil_cost }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "efficient_repairs"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("cost_multiplier") ? json.get("cost_multiplier").getAsFloat() : 1.0f;
+                    json.addProperty("event", "mod_anvil_cost");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("cost_multiplier");
+                });
+
+        // better_enchanting → action_on_event { event: mod_enchant_level }
+        // BetterEnchanting is additive (+N levels) — alias emits add_base_early.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "better_enchanting"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    int lv = json.has("bonus_levels") ? json.get("bonus_levels").getAsInt() : 5;
+                    json.addProperty("event", "mod_enchant_level");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "add_base");
+                    mod.addProperty("value", (float) lv);
+                    json.add("modifier", mod);
+                    json.remove("bonus_levels");
+                });
+
+        // better_crafted_food → action_on_event { event: mod_crafted_food_saturation }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "better_crafted_food"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float bonus = json.has("saturation_bonus") ? json.get("saturation_bonus").getAsFloat() : 0.5f;
+                    json.addProperty("event", "mod_crafted_food_saturation");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "add_base");
+                    mod.addProperty("value", bonus);
+                    json.add("modifier", mod);
+                    json.remove("saturation_bonus");
+                });
+
+        // better_bone_meal → action_on_event { event: mod_bonemeal_extra }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "better_bone_meal"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    int extra = json.has("extra_applications") ? json.get("extra_applications").getAsInt() : 1;
+                    json.addProperty("event", "mod_bonemeal_extra");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "add_base");
+                    mod.addProperty("value", (float) extra);
+                    json.add("modifier", mod);
+                    json.remove("extra_applications");
+                });
+
+        // teleport_range_modifier → action_on_event { event: mod_teleport_range }
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "teleport_range_modifier"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float m = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 2.0f;
+                    json.addProperty("event", "mod_teleport_range");
+                    com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+                    mod.addProperty("operation", "multiplication");
+                    mod.addProperty("value", m);
+                    json.add("modifier", mod);
+                    json.remove("multiplier");
+                });
+
+        // action_on_hit_taken → action_on_event { event: hit_taken, entity_action: ... }
+        // Subactions: teleport → neoorigins:random_teleport,
+        //             ignite_attacker → neoorigins:ignite_attacker,
+        //             effect_on_attacker → neoorigins:effect_on_attacker.
+        // `chance` wraps the chosen action in origins:chance; `min_damage` is
+        // not modelled here (would need a context-aware condition) — packs that
+        // relied on the threshold should adjust manually post-migration.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "action_on_hit_taken"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    String act = json.has("action") ? json.get("action").getAsString() : "teleport";
+                    float chance = json.has("chance") ? json.get("chance").getAsFloat() : 1.0f;
+                    com.google.gson.JsonObject inner = new com.google.gson.JsonObject();
+                    switch (act) {
+                        case "ignite_attacker" -> {
+                            inner.addProperty("type", "neoorigins:ignite_attacker");
+                            inner.addProperty("ticks", json.has("duration")
+                                ? json.get("duration").getAsInt() : 60);
+                        }
+                        case "effect_on_attacker" -> {
+                            inner.addProperty("type", "neoorigins:effect_on_attacker");
+                            if (json.has("effect"))
+                                inner.addProperty("effect", json.get("effect").getAsString());
+                            inner.addProperty("duration",
+                                json.has("duration") ? json.get("duration").getAsInt() : 100);
+                            inner.addProperty("amplifier",
+                                json.has("amplifier") ? json.get("amplifier").getAsInt() : 0);
+                        }
+                        default -> {          // "teleport" + any unknown → random teleport
+                            inner.addProperty("type", "neoorigins:random_teleport");
+                            inner.addProperty("horizontal_range", 16.0);
+                            inner.addProperty("vertical_range", 8.0);
+                        }
+                    }
+                    com.google.gson.JsonObject root;
+                    if (chance < 1.0f) {
+                        root = new com.google.gson.JsonObject();
+                        root.addProperty("type", "origins:chance");
+                        root.addProperty("chance", chance);
+                        root.add("action", inner);
+                    } else {
+                        root = inner;
+                    }
+                    json.addProperty("event", "hit_taken");
+                    json.add("entity_action", root);
+                    json.remove("action");
+                    json.remove("min_damage");
+                    json.remove("chance");
+                    json.remove("effect");
+                    json.remove("duration");
+                    json.remove("amplifier");
+                });
+
+        // thorns_aura → action_on_event { event: hit_taken, entity_action: damage_attacker }
+        // return_ratio becomes a flat amount (default 1.0); packs wanting ratio-of-damage
+        // behaviour should keep using the legacy class. The alias gives a sensible
+        // constant-damage fallback once the Java class is removed.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "thorns_aura"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    float ratio = json.has("return_ratio") ? json.get("return_ratio").getAsFloat() : 0.25f;
+                    com.google.gson.JsonObject entityAction = new com.google.gson.JsonObject();
+                    entityAction.addProperty("type", "neoorigins:damage_attacker");
+                    // Approximate: reflect ~4 base HP × ratio at minimum, capped at 20.
+                    entityAction.addProperty("amount", Math.min(20f, Math.max(0.5f, ratio * 4f)));
+                    com.google.gson.JsonObject src = new com.google.gson.JsonObject();
+                    src.addProperty("name", "magic");
+                    entityAction.add("source", src);
+                    json.addProperty("event", "hit_taken");
+                    json.add("entity_action", entityAction);
+                    json.remove("return_ratio");
+                });
+
+        // food_restriction → action_on_event { event: food_eaten, condition: item tag, action: cancel }
+        // Uses the origins `in_tag` item condition via a condition on the item
+        // (not directly supported — context-item conditions aren't wired yet).
+        // For now, the alias maps to a cancel-always pairing with a comment.
+        // Pack authors using this should keep the legacy class until Phase 6.6.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "food_restriction"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    com.google.gson.JsonObject entityAction = new com.google.gson.JsonObject();
+                    entityAction.addProperty("type", "neoorigins:cancel_event");
+                    json.addProperty("event", "food_eaten");
+                    json.add("entity_action", entityAction);
+                    // Preserve the tag/mode hints as a comment so authors can
+                    // convert by hand — the generic alias can't express
+                    // "cancel only when the held item matches tag X" yet.
+                    json.addProperty("_migration_note",
+                        "food_restriction alias cancels ALL food — re-author with an item-tag condition");
+                });
+
+        // action_on_kill → action_on_event { event: kill, entity_action: ... }
+        // Maps the 3 subactions (restore_health, restore_hunger, grant_effect)
+        // to their ActionParser equivalents (origins:heal, origins:feed, origins:apply_effect).
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "action_on_kill"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> {
+                    String act = json.has("action") ? json.get("action").getAsString() : "restore_health";
+                    float amount = json.has("amount") ? json.get("amount").getAsFloat() : 4.0f;
+                    com.google.gson.JsonObject entityAction = new com.google.gson.JsonObject();
+                    switch (act) {
+                        case "restore_hunger" -> {
+                            entityAction.addProperty("type", "origins:feed");
+                            entityAction.addProperty("food", (int) amount);
+                        }
+                        case "grant_effect" -> {
+                            entityAction.addProperty("type", "origins:apply_effect");
+                            if (json.has("effect"))
+                                entityAction.addProperty("effect", json.get("effect").getAsString());
+                            entityAction.addProperty("duration",
+                                json.has("duration") ? json.get("duration").getAsInt() : 200);
+                            entityAction.addProperty("amplifier",
+                                json.has("amplifier") ? json.get("amplifier").getAsInt() : 0);
+                        }
+                        default -> {          // "restore_health" + any unknown → heal
+                            entityAction.addProperty("type", "origins:heal");
+                            entityAction.addProperty("amount", amount);
+                        }
+                    }
+                    json.addProperty("event", "kill");
+                    json.add("entity_action", entityAction);
+                    json.remove("action");
+                    json.remove("amount");
+                    json.remove("effect");
+                    json.remove("duration");
+                    json.remove("amplifier");
+                });
+    }
+
+    // ── Phase 1: active-ability aliases ────────────────────────────────────
+    //
+    // Only registers aliases for legacy active types whose behaviour maps
+    // cleanly onto the ActionParser DSL. The more bespoke ones (active_teleport,
+    // active_recall, active_fireball, active_bolt, shadow_orb) keep their
+    // dedicated Java classes during the deprecation window.
+
+    private static final ResourceLocation ID_ACTIVE_ABILITY =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "active_ability");
+
+    private static void registerActiveAbilityAliases() {
+        // active_launch: vertical push of `power` blocks/tick upward.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "active_launch"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float y = json.has("power") ? json.get("power").getAsFloat() : 1.5f;
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "origins:add_velocity");
+                    action.addProperty("y", y);
+                    json.add("entity_action", action);
+                    json.remove("power");
+                });
+
+        // active_dash: forward velocity in player look direction — translated to
+        // add_velocity with the MC-side decision to use `set=false` and approximate
+        // look projection via launch-style vertical component removed at runtime.
+        // Lossy translation: dash forward uses a dedicated handler in the legacy
+        // class; the JSON shape here lands as a horizontal impulse. Packs needing
+        // precise behaviour should keep the legacy type until Phase 7.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "active_dash"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float strength = json.has("strength") ? json.get("strength").getAsFloat() : 1.2f;
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "neoorigins:pull_entities");
+                    action.addProperty("radius", 0f);
+                    action.addProperty("strength", -strength); // push outward = negative pull
+                    json.add("entity_action", action);
+                    json.remove("strength");
+                });
+
+        // active_repulse: AoE outward push on nearby entities.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "repulse"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float radius = json.has("radius") ? json.get("radius").getAsFloat() : 6f;
+                    float strength = json.has("strength") ? json.get("strength").getAsFloat() : 1.0f;
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "neoorigins:pull_entities");
+                    action.addProperty("radius", radius);
+                    action.addProperty("strength", -strength);
+                    action.addProperty("include_players", true);
+                    json.add("entity_action", action);
+                    json.remove("radius");
+                    json.remove("strength");
+                });
+
+        // active_aoe_effect: applies a status effect to nearby entities in a sphere.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "active_aoe_effect"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float radius = json.has("radius") ? json.get("radius").getAsFloat() : 8f;
+                    String effect = json.has("effect") ? json.get("effect").getAsString() : "minecraft:weakness";
+                    int duration = json.has("duration") ? json.get("duration").getAsInt() : 200;
+                    int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+
+                    com.google.gson.JsonObject effectAction = new com.google.gson.JsonObject();
+                    effectAction.addProperty("type", "origins:apply_effect");
+                    effectAction.addProperty("effect", effect);
+                    effectAction.addProperty("duration", duration);
+                    effectAction.addProperty("amplifier", amplifier);
+
+                    com.google.gson.JsonObject aoeAction = new com.google.gson.JsonObject();
+                    aoeAction.addProperty("type", "origins:area_of_effect");
+                    aoeAction.addProperty("radius", radius);
+                    aoeAction.add("entity_action", effectAction);
+
+                    json.add("entity_action", aoeAction);
+                    json.remove("radius");
+                    json.remove("effect");
+                    json.remove("duration");
+                    json.remove("amplifier");
+                });
+    }
+}

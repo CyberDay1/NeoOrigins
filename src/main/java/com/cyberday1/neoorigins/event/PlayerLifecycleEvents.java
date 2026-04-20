@@ -70,6 +70,8 @@ public class PlayerLifecycleEvents {
         MinionTracker.tick(sp);
         ActiveGravityWellPower.tickWells();
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
     }
 
     @SubscribeEvent
@@ -148,6 +150,7 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
         ActiveOriginService.invalidate(uuid);
+        com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
     }
 
     /**
@@ -158,6 +161,8 @@ public class PlayerLifecycleEvents {
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         NeoOriginsNetwork.syncActivePowersToPlayer(sp);
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DIMENSION_CHANGE);
     }
 
     @SubscribeEvent
@@ -177,12 +182,11 @@ public class PlayerLifecycleEvents {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
         }
-        // If the player had no bed/respawn anchor (event.isEndConquered() is the
-        // "returned from End" path which keeps their normal spawn — skip that),
-        // route them to their origin's spawn_location instead of world spawn.
         if (!event.isEndConquered() && sp.getRespawnPosition() == null) {
             com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
         }
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
         pendingResync.put(sp.getUUID(), 2);

@@ -96,14 +96,18 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingHeal(LivingHealEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // Legacy class scan (backward compat while NaturalRegenModifierPower exists).
         final float[] mult = {1.0f};
         ActiveOriginService.forEachOfType(sp, NaturalRegenModifierPower.class,
             cfg -> mult[0] *= cfg.multiplier());
-        if (mult[0] != 1.0f) {
+        float scaled = event.getAmount() * mult[0];
+        // 2.0: chain any action_on_event powers declared for MOD_NATURAL_REGEN.
+        scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_NATURAL_REGEN, null, scaled);
+        if (scaled != event.getAmount()) {
             // Defence-in-depth clamp against non-finite results — see
             // CombatPowerEvents.onLivingDamage for the full story of
             // how an unclamped multiply can brick a save via NaN health.
-            float scaled = event.getAmount() * mult[0];
             if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
             event.setAmount(scaled);
         }
@@ -114,6 +118,9 @@ public class WorldPowerEvents {
         if (event.isCanceled()) return;
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
+
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.BLOCK_BREAK, event);
 
         var state = event.getState();
         BlockPos pos = event.getPos().immutable();
@@ -176,6 +183,13 @@ public class WorldPowerEvents {
             n = bp.east();  if (visited.add(n)) queue.add(n);
             n = bp.west();  if (visited.add(n)) queue.add(n);
         }
+    }
+
+    @SubscribeEvent
+    public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.BLOCK_PLACE, event);
     }
 
     @SubscribeEvent

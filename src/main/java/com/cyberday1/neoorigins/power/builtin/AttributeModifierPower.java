@@ -4,6 +4,11 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.condition.LocationCondition;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.compat.condition.ConditionParser;
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -49,19 +54,25 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         String type
     ) implements PowerConfiguration {
 
-        private static final Codec<AttributeModifier.Operation> OPERATION_CODEC = Codec.STRING.xmap(
-            s -> switch (s) {
+        private static AttributeModifier.Operation parseOp(String s) {
+            return switch (s) {
                 case "add_value" -> AttributeModifier.Operation.ADD_VALUE;
                 case "add_multiplied_base" -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
                 case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
                 default -> AttributeModifier.Operation.ADD_VALUE;
-            },
-            op -> switch (op) {
+            };
+        }
+
+        private static String opToString(AttributeModifier.Operation op) {
+            return switch (op) {
                 case ADD_VALUE -> "add_value";
                 case ADD_MULTIPLIED_BASE -> "add_multiplied_base";
                 case ADD_MULTIPLIED_TOTAL -> "add_multiplied_total";
-            }
-        );
+            };
+        }
+
+        private static final Codec<AttributeModifier.Operation> OPERATION_CODEC = Codec.STRING.xmap(
+            Config::parseOp, Config::opToString);
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             ResourceLocation.CODEC.fieldOf("attribute").forGetter(Config::attribute),

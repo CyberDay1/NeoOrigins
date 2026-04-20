@@ -49,6 +49,9 @@ public class NeoOrigins {
         // Register custom power type registry
         PowerTypes.register(modEventBus);
 
+        // 2.0 — bootstrap legacy power-type aliases so old JSON still loads.
+        com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.bootstrap();
+
         // Register mod items (Orb of Origin, etc.)
         ModItems.register(modEventBus);
 

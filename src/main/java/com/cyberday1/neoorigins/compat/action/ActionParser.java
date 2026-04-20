@@ -69,11 +69,26 @@ public final class ActionParser {
                 case "origins:launch", "apace:launch"                       -> parseLaunch(json);
                 case "origins:set_block", "apace:set_block"                 -> parseSetBlock(json);
                 case "origins:area_of_effect", "apace:area_of_effect"       -> parseAreaOfEffect(json, contextId);
-                case "origins:modify_food", "apace:modify_food"             -> EntityAction.noop();
-                case "origins:revoke_power", "origins:grant_power",
-                     "apace:revoke_power", "apace:grant_power"             -> EntityAction.noop();
-                case "origins:emit_game_event", "apace:emit_game_event"     -> EntityAction.noop();
+                case "origins:modify_food", "apace:modify_food"             -> parseModifyFood(json);
+                case "origins:grant_power", "apace:grant_power"             -> parseGrantPower(json);
+                case "origins:revoke_power", "apace:revoke_power"           -> parseRevokePower(json);
+                case "origins:emit_game_event", "apace:emit_game_event"     -> parseEmitGameEvent(json);
                 case "origins:swing_hand", "apace:swing_hand"               -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+
+                // ---- Phase 0/1: new actions for consolidation (active_ability) ----
+                case "origins:spawn_projectile", "apace:spawn_projectile",
+                     "neoorigins:spawn_projectile"                          -> parseSpawnProjectile(json);
+                case "neoorigins:chain_to_nearest"                          -> parseChainToNearest(json, contextId);
+                case "neoorigins:pull_entities"                             -> parsePullEntities(json, contextId);
+                case "neoorigins:swap_with_entity"                          -> parseSwapWithEntity(json, contextId);
+                case "neoorigins:teleport_to_marker"                        -> parseTeleportToMarker(json);
+
+                // ---- Phase 6.5: context-aware verbs (read from ActionContextHolder) ----
+                case "neoorigins:damage_attacker"                           -> parseDamageAttacker(json);
+                case "neoorigins:ignite_attacker"                           -> parseIgniteAttacker(json);
+                case "neoorigins:effect_on_attacker"                        -> parseEffectOnAttacker(json);
+                case "neoorigins:random_teleport"                           -> parseRandomTeleport(json);
+                case "neoorigins:cancel_event"                              -> parseCancelEvent();
 
                 default -> failNoop(type, contextId, "unsupported action type");
             };
@@ -466,6 +481,353 @@ public final class ActionParser {
                         && target.position().distanceToSqr(srcPos) > r2) continue;
                 if (!finalCond.test(target)) continue;
                 finalAction.execute(target);
+            }
+        };
+    }
+
+    // ---- Phase 0: filled stubs ----
+
+    private static EntityAction parseModifyFood(JsonObject json) {
+        // Apoli modify_food only applies in the context of an `action_on_item_use`
+        // style hook where a food item is being consumed. In our action context we
+        // have no item-stack reference, so the best we can do is apply a one-shot
+        // food/saturation adjustment to the player right now.
+        int foodDelta = json.has("food") ? json.get("food").getAsInt()
+                      : json.has("food_component_food") ? json.get("food_component_food").getAsInt()
+                      : 0;
+        float satDelta = json.has("saturation") ? json.get("saturation").getAsFloat()
+                       : json.has("food_component_saturation") ? json.get("food_component_saturation").getAsFloat()
+                       : 0.0f;
+        return player -> {
+            var food = player.getFoodData();
+            int newFood = Math.max(0, Math.min(20, food.getFoodLevel() + foodDelta));
+            float newSat = Math.max(0f, Math.min(newFood, food.getSaturationLevel() + satDelta));
+            food.setFoodLevel(newFood);
+            food.setSaturation(newSat);
+        };
+    }
+
+    private static EntityAction parseGrantPower(JsonObject json) {
+        String powerId = json.has("power") ? json.get("power").getAsString()
+                       : json.has("power_id") ? json.get("power_id").getAsString() : null;
+        if (powerId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] grant_power: missing power id — action will no-op");
+            return EntityAction.noop();
+        }
+        final ResourceLocation pid = ResourceLocation.parse(powerId);
+        return player -> {
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            if (data.hasDynamicGrant(pid)) return;
+            var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
+            if (holder == null) {
+                NeoOrigins.LOGGER.warn("[CompatB] grant_power: unknown power '{}'", pid);
+                return;
+            }
+            // Skip onGranted callback if already granted via an origin (avoid double-grant);
+            // we still record the dynamic flag so revoke can clean up if the origin changes.
+            boolean fromOrigin = false;
+            for (var entry : data.getOrigins().entrySet()) {
+                var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                if (origin != null && origin.powers().contains(pid)) { fromOrigin = true; break; }
+            }
+            if (fromOrigin) {
+                data.addDynamicGrant(pid);
+                return;
+            }
+            if (data.addDynamicGrant(pid)) {
+                holder.onGranted(player);
+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, pid));
+                com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
+            }
+        };
+    }
+
+    private static EntityAction parseRevokePower(JsonObject json) {
+        String powerId = json.has("power") ? json.get("power").getAsString()
+                       : json.has("power_id") ? json.get("power_id").getAsString() : null;
+        if (powerId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] revoke_power: missing power id — action will no-op");
+            return EntityAction.noop();
+        }
+        final ResourceLocation pid = ResourceLocation.parse(powerId);
+        return player -> {
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            if (!data.hasDynamicGrant(pid)) return;
+            var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
+            if (data.removeDynamicGrant(pid) && holder != null) {
+                // Only call onRevoked if the power isn't still granted by an origin.
+                boolean stillGranted = false;
+                for (var entry : data.getOrigins().entrySet()) {
+                    var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                    if (origin != null && origin.powers().contains(pid)) { stillGranted = true; break; }
+                }
+                if (!stillGranted) {
+                    holder.onRevoked(player);
+                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                        new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, pid));
+                }
+                com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
+            }
+        };
+    }
+
+    private static EntityAction parseEmitGameEvent(JsonObject json) {
+        String eventId = json.has("event") ? json.get("event").getAsString()
+                       : json.has("game_event") ? json.get("game_event").getAsString() : null;
+        if (eventId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: missing event id — action will no-op");
+            return EntityAction.noop();
+        }
+        ResourceLocation eid = ResourceLocation.parse(eventId);
+        var evOpt = BuiltInRegistries.GAME_EVENT.getOptional(eid);
+        if (evOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: unknown event '{}' — action will no-op", eid);
+            return EntityAction.noop();
+        }
+        final var gameEvent = evOpt.get();
+        final var gameEventHolder = BuiltInRegistries.GAME_EVENT.wrapAsHolder(gameEvent);
+        return player -> player.level().gameEvent(player, gameEventHolder, player.position());
+    }
+
+    // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
+
+    private static EntityAction parseSpawnProjectile(JsonObject json) {
+        String entityId = json.has("entity_type") ? json.get("entity_type").getAsString()
+                        : json.has("projectile") ? json.get("projectile").getAsString() : null;
+        if (entityId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: missing entity_type/projectile — no-op");
+            return EntityAction.noop();
+        }
+        ResourceLocation eid = ResourceLocation.parse(entityId);
+        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(eid);
+        if (entityTypeOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: unknown entity '{}' — no-op", eid);
+            return EntityAction.noop();
+        }
+        final EntityType<?> entityType = entityTypeOpt.get();
+        final float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
+        final float inaccuracy = json.has("inaccuracy") ? json.get("inaccuracy").getAsFloat() : 0f;
+        final float verticalOffset = json.has("vertical_offset") ? json.get("vertical_offset").getAsFloat() : 0f;
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var entity = entityType.create(sl);
+            if (entity == null) return;
+            entity.setPos(player.getX(), player.getEyeY() + verticalOffset, player.getZ());
+            if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
+                proj.setOwner(player);
+                proj.shootFromRotation(player, player.getXRot(), player.getYRot(), 0f, speed, inaccuracy);
+            } else {
+                var look = player.getLookAngle();
+                entity.setDeltaMovement(look.x * speed, look.y * speed, look.z * speed);
+            }
+            sl.addFreshEntity(entity);
+        };
+    }
+
+    private static EntityAction parseChainToNearest(JsonObject json, String contextId) {
+        // Pull the player toward the nearest entity matching `entity_condition` (default: any living).
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
+        final float speed  = json.has("speed")  ? json.get("speed").getAsFloat()  : 1.0f;
+        EntityCondition playerCond = json.has("target_condition")
+            ? ConditionParser.parse(json.getAsJsonObject("target_condition"), contextId)
+            : EntityCondition.alwaysTrue();
+        final EntityCondition targetCond = playerCond;
+        return player -> {
+            var level = player.level();
+            var aabb = player.getBoundingBox().inflate(radius);
+            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb,
+                e -> e != player && e.isAlive());
+            net.minecraft.world.entity.LivingEntity best = null;
+            double bestDist = Double.MAX_VALUE;
+            var origin = player.position();
+            for (var e : candidates) {
+                if (e instanceof net.minecraft.server.level.ServerPlayer sp && !targetCond.test(sp)) continue;
+                double d = e.position().distanceToSqr(origin);
+                if (d < bestDist) { bestDist = d; best = e; }
+            }
+            if (best == null) return;
+            var dir = best.position().subtract(origin).normalize();
+            player.setDeltaMovement(dir.x * speed, dir.y * speed + 0.1, dir.z * speed);
+            player.hurtMarked = true;
+        };
+    }
+
+    private static EntityAction parsePullEntities(JsonObject json, String contextId) {
+        // Pull nearby entities toward the caster.
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 8f;
+        final float strength = json.has("strength") ? json.get("strength").getAsFloat() : 0.5f;
+        final boolean includePlayers = !json.has("include_players") || json.get("include_players").getAsBoolean();
+        EntityCondition targetCond = json.has("entity_condition")
+            ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), contextId)
+            : EntityCondition.alwaysTrue();
+        final EntityCondition fCond = targetCond;
+        return player -> {
+            var level = player.level();
+            var aabb = player.getBoundingBox().inflate(radius);
+            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb,
+                e -> e != player && e.isAlive());
+            var origin = player.position();
+            for (var e : candidates) {
+                if (!includePlayers && e instanceof net.minecraft.world.entity.player.Player) continue;
+                if (e instanceof net.minecraft.server.level.ServerPlayer sp && !fCond.test(sp)) continue;
+                var dir = origin.subtract(e.position()).normalize();
+                e.push(dir.x * strength, dir.y * strength + 0.1, dir.z * strength);
+                e.hurtMarked = true;
+            }
+        };
+    }
+
+    private static EntityAction parseSwapWithEntity(JsonObject json, String contextId) {
+        // Swap positions with the nearest matching entity in radius.
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
+        EntityCondition tgtCond = json.has("target_condition")
+            ? ConditionParser.parse(json.getAsJsonObject("target_condition"), contextId)
+            : EntityCondition.alwaysTrue();
+        final EntityCondition fCond = tgtCond;
+        return player -> {
+            var level = player.level();
+            var aabb = player.getBoundingBox().inflate(radius);
+            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb,
+                e -> e != player && e.isAlive());
+            net.minecraft.world.entity.LivingEntity best = null;
+            double bestDist = Double.MAX_VALUE;
+            var origin = player.position();
+            for (var e : candidates) {
+                if (e instanceof net.minecraft.server.level.ServerPlayer sp && !fCond.test(sp)) continue;
+                double d = e.position().distanceToSqr(origin);
+                if (d < bestDist) { bestDist = d; best = e; }
+            }
+            if (best == null) return;
+            double px = player.getX(), py = player.getY(), pz = player.getZ();
+            float pyaw = player.getYRot(), ppitch = player.getXRot();
+            player.teleportTo(best.getX(), best.getY(), best.getZ());
+            player.setYRot(best.getYRot());
+            player.setXRot(best.getXRot());
+            best.teleportTo(px, py, pz);
+            best.setYRot(pyaw);
+            best.setXRot(ppitch);
+        };
+    }
+
+    private static EntityAction parseTeleportToMarker(JsonObject json) {
+        // Teleport to a named marker stored on the player. Markers are keyed by a string
+        // and stored as session state on the player's PlayerOriginData shadowOrbs list analogue;
+        // for now, support absolute coordinates under "position" or named offset "dx"/"dy"/"dz".
+        final double dx = json.has("dx") ? json.get("dx").getAsDouble() : 0;
+        final double dy = json.has("dy") ? json.get("dy").getAsDouble() : 0;
+        final double dz = json.has("dz") ? json.get("dz").getAsDouble() : 0;
+        final boolean absolute = json.has("position");
+        final double px = absolute ? json.getAsJsonObject("position").get("x").getAsDouble() : 0;
+        final double py = absolute ? json.getAsJsonObject("position").get("y").getAsDouble() : 0;
+        final double pz = absolute ? json.getAsJsonObject("position").get("z").getAsDouble() : 0;
+        return player -> {
+            if (absolute) {
+                player.teleportTo(px, py, pz);
+            } else {
+                player.teleportTo(player.getX() + dx, player.getY() + dy, player.getZ() + dz);
+            }
+        };
+    }
+
+    // ---- Phase 6.5: context-aware verbs ----
+    //
+    // These verbs read the currently-dispatched event context from
+    // ActionContextHolder. EventPowerIndex.dispatch publishes the context
+    // while running handlers for a given event, so at action-execution time
+    // the holder carries the right record (HitTakenContext, FoodContext, ...).
+
+    /** Hurt the attacker recorded in the current HIT_TAKEN context. */
+    private static EntityAction parseDamageAttacker(JsonObject json) {
+        final float amount = json.has("amount") ? json.get("amount").getAsFloat() : 2.0f;
+        final String srcName = json.has("source") && json.get("source").isJsonObject()
+            && json.getAsJsonObject("source").has("name")
+            ? json.getAsJsonObject("source").get("name").getAsString()
+            : "magic";
+        return player -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
+            var attacker = htc.source().getEntity();
+            if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
+            var ds = switch (srcName) {
+                case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
+                case "lava"   -> player.level().damageSources().lava();
+                case "magic"  -> player.level().damageSources().magic();
+                case "generic" -> player.level().damageSources().generic();
+                default       -> player.level().damageSources().magic();
+            };
+            float dmg = amount;
+            if (!Float.isFinite(dmg)) dmg = Float.MAX_VALUE;
+            le.hurt(ds, dmg);
+        };
+    }
+
+    /** Set the current HIT_TAKEN attacker on fire. */
+    private static EntityAction parseIgniteAttacker(JsonObject json) {
+        final int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 60;
+        return player -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
+            var attacker = htc.source().getEntity();
+            if (attacker == null) return;
+            attacker.setRemainingFireTicks(ticks);
+        };
+    }
+
+    /** Apply a mob effect to the current HIT_TAKEN attacker. */
+    private static EntityAction parseEffectOnAttacker(JsonObject json) {
+        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
+        if (effectId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] effect_on_attacker: missing effect id — no-op");
+            return EntityAction.noop();
+        }
+        final int duration = json.has("duration") ? json.get("duration").getAsInt() : 100;
+        final int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(effectId));
+        if (effectOpt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] effect_on_attacker: unknown effect '{}' — no-op", effectId);
+            return EntityAction.noop();
+        }
+        final var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
+        return player -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
+            var attacker = htc.source().getEntity();
+            if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
+            le.addEffect(new MobEffectInstance(effectHolder, duration, amplifier));
+        };
+    }
+
+    /** Random-teleport the player within a bounded box. */
+    private static EntityAction parseRandomTeleport(JsonObject json) {
+        final double hRange = json.has("horizontal_range") ? json.get("horizontal_range").getAsDouble()
+                            : json.has("range") ? json.get("range").getAsDouble() : 16.0;
+        final double vRange = json.has("vertical_range") ? json.get("vertical_range").getAsDouble() : 8.0;
+        final int attempts = json.has("attempts") ? json.get("attempts").getAsInt() : 16;
+        return player -> {
+            if (!(player.level() instanceof ServerLevel level)) return;
+            var rng = player.getRandom();
+            double px = player.getX(), py = player.getY(), pz = player.getZ();
+            for (int i = 0; i < attempts; i++) {
+                double tx = px + (rng.nextDouble() - 0.5) * hRange * 2;
+                double ty = py + (rng.nextDouble() - 0.5) * vRange * 2;
+                double tz = pz + (rng.nextDouble() - 0.5) * hRange * 2;
+                ty = Math.max(level.getMinBuildHeight(), Math.min(level.getMaxBuildHeight() - 2, ty));
+                BlockPos target = BlockPos.containing(tx, ty, tz);
+                if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {
+                    player.teleportTo(tx, ty, tz);
+                    return;
+                }
+            }
+        };
+    }
+
+    /** Cancel the current dispatch if its context is an ICancellableEvent. */
+    private static EntityAction parseCancelEvent() {
+        return player -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (ctx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
+                ce.setCanceled(true);
             }
         };
     }

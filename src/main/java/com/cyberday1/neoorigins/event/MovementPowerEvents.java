@@ -65,5 +65,15 @@ public class MovementPowerEvents {
             boolean shouldBlock = cfg.isWhitelist() ? !inTag : inTag;
             if (shouldBlock) event.setCanceled(true);
         });
+        // 2.0: dispatch FOOD_EATEN with the cancellable event as context so
+        // `neoorigins:cancel_event` can veto the eat via ICancellableEvent.
+        // Fires only for edible items to approximate the legacy food_restriction
+        // semantics (which only cared about food).
+        if (item.has(net.minecraft.core.component.DataComponents.FOOD)) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                sp,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.FOOD_EATEN,
+                event);
+        }
     }
 }

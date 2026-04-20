@@ -31,6 +31,8 @@ public class PlayerOriginData {
     private int orbUseCount = 0;
     /** Persisted toggle-off state for AbstractTogglePower — keyed by power toggle key. */
     private final Set<String> toggledOffPowers = new HashSet<>();
+    /** Powers granted at runtime via action grant_power (not tied to any origin). Persisted. */
+    private final Set<ResourceLocation> dynamicGrantedPowers = new HashSet<>();
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new HashMap<>();
     /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
@@ -55,8 +57,11 @@ public class PlayerOriginData {
             .forGetter(d -> d.orbUseCount),
         Codec.STRING.listOf()
             .optionalFieldOf("toggled_off_powers", List.of())
-            .forGetter(d -> new ArrayList<>(d.toggledOffPowers))
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff) -> {
+            .forGetter(d -> new ArrayList<>(d.toggledOffPowers)),
+        ResourceLocation.CODEC.listOf()
+            .optionalFieldOf("dynamic_granted_powers", List.of())
+            .forGetter(d -> new ArrayList<>(d.dynamicGrantedPowers))
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
@@ -64,6 +69,7 @@ public class PlayerOriginData {
         data.shadowOrbs.addAll(orbs);
         data.orbUseCount = orbUses;
         data.toggledOffPowers.addAll(toggledOff);
+        data.dynamicGrantedPowers.addAll(dynamic);
         return data;
     }));
 
@@ -140,12 +146,36 @@ public class PlayerOriginData {
         toggledOffPowers.clear();
     }
 
+    /** Dynamic grants: powers added at runtime via the grant_power action. */
+    public Set<ResourceLocation> getDynamicGrantedPowers() {
+        return Collections.unmodifiableSet(dynamicGrantedPowers);
+    }
+
+    public boolean hasDynamicGrant(ResourceLocation powerId) {
+        return dynamicGrantedPowers.contains(powerId);
+    }
+
+    /** @return true if the set changed (i.e. power was newly granted). */
+    public boolean addDynamicGrant(ResourceLocation powerId) {
+        boolean added = dynamicGrantedPowers.add(powerId);
+        if (added) version++;
+        return added;
+    }
+
+    /** @return true if the set changed (i.e. power was actually removed). */
+    public boolean removeDynamicGrant(ResourceLocation powerId) {
+        boolean removed = dynamicGrantedPowers.remove(powerId);
+        if (removed) version++;
+        return removed;
+    }
+
     public void clear() {
         origins.clear();
         hadAllOrigins = false;
         grantedEquipmentPowers.clear();
         shadowOrbs.clear();
         toggledOffPowers.clear();
+        dynamicGrantedPowers.clear();
         activeCooldowns.clear();
         version++;
     }
