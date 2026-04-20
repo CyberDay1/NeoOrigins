@@ -6,17 +6,29 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
 
+import java.util.List;
+import java.util.Optional;
+
 public class DamageInBiomePower extends PowerType<DamageInBiomePower.Config> {
 
-    public record Config(ResourceLocation biomeTag, float damagePerSecond, String damageType, String type)
+    /**
+     * Accepts either a single {@code biome_tag} (TagKey ResourceLocation) or a
+     * {@code biomes} list of specific biome IDs. At least one must be supplied;
+     * if both are present, both match paths are checked (union).
+     */
+    public record Config(Optional<ResourceLocation> biomeTag, Optional<List<ResourceLocation>> biomes,
+                         float damagePerSecond, String damageType, String type)
             implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            ResourceLocation.CODEC.fieldOf("biome_tag").forGetter(Config::biomeTag),
+            ResourceLocation.CODEC.optionalFieldOf("biome_tag").forGetter(Config::biomeTag),
+            ResourceLocation.CODEC.listOf().optionalFieldOf("biomes").forGetter(Config::biomes),
             Codec.FLOAT.optionalFieldOf("damage_per_second", 1.0f).forGetter(Config::damagePerSecond),
             Codec.STRING.optionalFieldOf("damage_type", "generic").forGetter(Config::damageType),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
@@ -29,10 +41,23 @@ public class DamageInBiomePower extends PowerType<DamageInBiomePower.Config> {
     @Override
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % 20 != 0) return;
-        if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
-        TagKey<Biome> tag = TagKey.create(Registries.BIOME, config.biomeTag());
+        if (!(player.level() instanceof ServerLevel sl)) return;
         Holder<Biome> biome = sl.getBiome(player.blockPosition());
-        if (biome.is(tag)) {
+
+        boolean match = false;
+        if (config.biomeTag().isPresent()) {
+            TagKey<Biome> tag = TagKey.create(Registries.BIOME, config.biomeTag().get());
+            if (biome.is(tag)) match = true;
+        }
+        if (!match && config.biomes().isPresent()) {
+            for (ResourceLocation id : config.biomes().get()) {
+                if (biome.is(ResourceKey.create(Registries.BIOME, id))) {
+                    match = true;
+                    break;
+                }
+            }
+        }
+        if (match) {
             player.hurt(player.damageSources().generic(), config.damagePerSecond());
         }
     }
