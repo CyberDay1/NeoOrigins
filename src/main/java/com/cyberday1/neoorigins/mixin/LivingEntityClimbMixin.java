@@ -2,8 +2,10 @@ package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.power.builtin.WallClimbingPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -11,33 +13,49 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Makes {@code LivingEntity.onClimbable()} return {@code true} when the entity is a
- * {@link ServerPlayer} with a granted {@link WallClimbingPower} AND is pressed
- * against a wall while airborne.
+ * player with a granted {@link WallClimbingPower} AND is pressed against a wall
+ * while airborne. Applies on both sides:
  *
- * <p>Enabling vanilla climbing via {@code onClimbable} causes the server to apply
- * ladder/vine physics — including jump-to-ascend and grip-to-slow-fall — in
- * lockstep with the tick handler. In singleplayer the integrated server drives
- * LocalPlayer position correction so the player visibly climbs with no
- * rubber-banding. On dedicated servers the client may briefly predict falling
- * before the next position packet corrects it; this is accepted as a 1.21.1
- * limitation (2.0 adds a synced capability-tag system that removes the gap).
+ * <ul>
+ *   <li><b>Server (ServerPlayer)</b>: authoritative check against
+ *       {@link ActiveOriginService}.</li>
+ *   <li><b>Client (LocalPlayer)</b>: mirror check via the synced
+ *       {@code ClientPowerCache}, which carries the registry type ID for each
+ *       power so we can ask "does my origin carry any wall_climbing power?"
+ *       without shipping PowerType classes to the client.</li>
+ * </ul>
  *
- * <p>Ported from 2.0-dev's {@code LivingEntityClimbMixin}, adapted to use the
- * 1.21.1 {@link ActiveOriginService} directly instead of the 2.0 capability-tag
- * subsystem.
+ * <p>Needing both sides is load-bearing: vanilla's client-side movement
+ * prediction runs {@code LivingEntity.travel} locally every tick, so if the
+ * client still returns {@code false} from {@code onClimbable()} it will predict
+ * the player falling and rubber-band every server correction. With both sides
+ * agreeing, the player climbs smoothly — no rubber-band even on dedicated
+ * servers.
  */
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityClimbMixin {
 
+    private static final ResourceLocation WALL_CLIMBING_TYPE_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "wall_climbing");
+
     @Inject(method = "onClimbable", at = @At("HEAD"), cancellable = true)
     private void neoorigins$wallClimbPower(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
-        if (!(self instanceof ServerPlayer sp)) return;
+        if (!(self instanceof Player)) return;
         // Only hijack the return when the entity is actually pressed against a wall —
         // otherwise ordinary climbing on ladders and vines is unchanged.
         if (!self.horizontalCollision) return;
         if (self.onGround()) return;
-        if (!ActiveOriginService.has(sp, WallClimbingPower.class, cfg -> true)) return;
-        cir.setReturnValue(true);
+
+        boolean hasPower;
+        if (self instanceof ServerPlayer sp) {
+            hasPower = ActiveOriginService.has(sp, WallClimbingPower.class, cfg -> true);
+        } else if (self.level().isClientSide) {
+            hasPower = com.cyberday1.neoorigins.client.ClientPowerCache.localPlayerHasPowerOfType(WALL_CLIMBING_TYPE_ID);
+        } else {
+            hasPower = false;
+        }
+
+        if (hasPower) cir.setReturnValue(true);
     }
 }
