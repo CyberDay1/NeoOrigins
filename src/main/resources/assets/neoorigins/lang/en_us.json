@@ -89,7 +89,7 @@
   "power.neoorigins.elytrian_elytra_boost.name": "Elytra Boost",
   "power.neoorigins.elytrian_elytra_boost.description": "Gains a burst of speed when launching with an elytra.",
   "power.neoorigins.elytrian_flight.name": "Natural Flight",
-  "power.neoorigins.elytrian_flight.description": "Can fly freely without wearing an elytra.",
+  "power.neoorigins.elytrian_flight.description": "Glide freely without an elytra. Jump while mid-air to start flying; press this power's Skill keybind to toggle it on or off.",
 
   "power.neoorigins.enderian_no_eye_damage.name": "Ender Eyes",
   "power.neoorigins.enderian_no_eye_damage.description": "Immune to projectiles that target the eyes.",
@@ -291,7 +291,7 @@
   "power.neoorigins.feline_active_launch.description": "Launches you powerfully in the direction you're looking. 80-tick cooldown.",
 
   "power.neoorigins.draconic_flight.name": "Dragon Wings",
-  "power.neoorigins.draconic_flight.description": "Glides freely through the air using powerful draconic wings.",
+  "power.neoorigins.draconic_flight.description": "Glide freely on draconic wings. Jump while mid-air to start flying; press this power's Skill keybind to toggle it on or off.",
   "power.neoorigins.draconic_active_fireball.name": "Flame Breath",
   "power.neoorigins.draconic_active_fireball.description": "Launches a fireball in the direction you're looking. 80-tick cooldown.",
 
@@ -429,7 +429,7 @@
   "origins.neoorigins.hiveling.name": "Hiveling",
   "origins.neoorigins.hiveling.description": "A bee-like insectoid who flies freely and nurtures crops — but a fragile body and endless hunger are the price of wings.",
   "power.neoorigins.hiveling_flight.name": "Buzzing Wings",
-  "power.neoorigins.hiveling_flight.description": "Can fly freely through the air.",
+  "power.neoorigins.hiveling_flight.description": "Glide freely on insect wings. Jump while mid-air to start flying; press this power's Skill keybind to toggle it on or off.",
   "power.neoorigins.hiveling_sting.name": "Venomous Sting",
   "power.neoorigins.hiveling_sting.description": "Fires a venomous bolt at your target. 5-second cooldown.",
   "power.neoorigins.hiveling_crop_growth.name": "Pollinator",
