@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
@@ -72,10 +73,24 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             attrId = ResourceLocation.fromNamespaceAndPath(config.attribute().getNamespace(), "player." + config.attribute().getPath());
             attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrId);
         }
-        if (attrOpt.isEmpty()) return;
+        if (attrOpt.isEmpty()) {
+            if (add) {
+                NeoOrigins.LOGGER.warn(
+                    "attribute_modifier power references unknown attribute '{}' — tried with no prefix, 'generic.', and 'player.' variants. Check the JSON.",
+                    config.attribute());
+            }
+            return;
+        }
         var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
         AttributeInstance instance = player.getAttribute(attrHolder);
-        if (instance == null) return;
+        if (instance == null) {
+            if (add) {
+                NeoOrigins.LOGGER.warn(
+                    "attribute_modifier power references attribute '{}' which exists in the registry but is not attached to the player — no-op.",
+                    attrId);
+            }
+            return;
+        }
 
         ResourceLocation modId = ResourceLocation.fromNamespaceAndPath("neoorigins", "power_" + attrId.getPath());
         if (add) {
