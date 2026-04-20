@@ -31,6 +31,11 @@ public class StatusEffectPower extends AbstractTogglePower<StatusEffectPower.Con
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
+    protected String getToggleKey(Config config) {
+        return getClass().getName() + ":" + config.effect();
+    }
+
+    @Override
     protected void tickEffect(ServerPlayer player, Config config) {
         var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(config.effect());
         if (effectOpt.isEmpty()) return;
