@@ -111,7 +111,7 @@
   "power.neoorigins.phantom_night_vision.name": "Night Eyes",
   "power.neoorigins.phantom_night_vision.description": "Can see clearly in total darkness.",
   "power.neoorigins.phantom_form.name": "Phantom Form",
-  "power.neoorigins.phantom_form.description": "Becomes invisible and drifts weightlessly.",
+  "power.neoorigins.phantom_form.description": "Toggle on to become invisible and drift weightlessly. Press this power's Skill keybind to switch modes.",
 
   "origins.neoorigins.feline.name": "Feline",
   "origins.neoorigins.feline.description": "A quick and nimble cat-person who lands on their feet — but loathes water.",
@@ -208,7 +208,7 @@
   "power.neoorigins.tiny_no_fall_damage.name": "Light as a Feather",
   "power.neoorigins.tiny_no_fall_damage.description": "So small that falling barely matters. Takes no fall damage.",
   "power.neoorigins.tiny_item_magnetism.name": "Collector",
-  "power.neoorigins.tiny_item_magnetism.description": "Items are attracted from a greater distance.",
+  "power.neoorigins.tiny_item_magnetism.description": "Pulls nearby items toward you. Press this power's Skill keybind to toggle it on or off.",
   "power.neoorigins.tiny_attack_penalty.name": "Tiny Arms",
   "power.neoorigins.tiny_attack_penalty.description": "Deals 2 less damage per hit.",
   "power.neoorigins.tiny_hunger_drain.name": "Tiny Stomach",
