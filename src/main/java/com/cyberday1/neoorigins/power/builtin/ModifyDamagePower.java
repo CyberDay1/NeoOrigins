@@ -16,6 +16,7 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
         Direction direction,
         float multiplier,
         Optional<String> damageType,
+        Optional<String> targetGroup,
         String type
     ) implements PowerConfiguration {
 
@@ -28,6 +29,7 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
             DIR_CODEC.optionalFieldOf("direction", Direction.IN).forGetter(Config::direction),
             Codec.FLOAT.optionalFieldOf("multiplier", 1.0f).forGetter(Config::multiplier),
             Codec.STRING.optionalFieldOf("damage_type").forGetter(Config::damageType),
+            Codec.STRING.optionalFieldOf("target_group").forGetter(Config::targetGroup),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -35,7 +37,7 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
-    // Event handling done in OriginEventHandler
+    // Event handling done in CombatPowerEvents.
     @Override public void onGranted(ServerPlayer player, Config config) {}
     @Override public void onRevoked(ServerPlayer player, Config config) {}
 }

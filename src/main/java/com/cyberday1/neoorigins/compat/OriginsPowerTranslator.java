@@ -415,6 +415,21 @@ public final class OriginsPowerTranslator {
 
         if (!out.has("multiplier")) out.addProperty("multiplier", 1.0f);
 
+        // Translate target_condition when it's an entity_group check — the most common
+        // pattern (e.g. "undead" damage bonuses). Other target_condition shapes skip
+        // translation entirely to avoid applying an unconditional buff.
+        if (src.has("target_condition")) {
+            JsonObject tc = src.getAsJsonObject("target_condition");
+            String tcType = tc.has("type") ? tc.get("type").getAsString() : "";
+            if (("origins:entity_group".equals(tcType) || "apace:entity_group".equals(tcType))
+                && tc.has("group")) {
+                out.addProperty("target_group", tc.get("group").getAsString());
+            } else {
+                // Unsupported target_condition shape → skip to avoid silent mis-apply.
+                return Optional.empty();
+            }
+        }
+
         return Optional.of(out);
     }
 
