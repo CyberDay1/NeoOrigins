@@ -98,7 +98,7 @@ public final class ConditionParser {
                 case "origins:command", "apace:command"                 -> parseCommand(json);
                 case "origins:passenger", "origins:riding", "apace:passenger", "apace:riding"
                                                                         -> p -> p.isPassenger();
-                case "origins:entity_type", "apace:entity_type"         -> EntityCondition.alwaysTrue();
+                case "origins:entity_type", "apace:entity_type"         -> parseEntityType(json);
                 case "origins:fluid_height", "apace:fluid_height"       -> parseFluidHeight(json);
                 case "origins:in_block", "origins:in_block_anywhere",
                      "apace:in_block", "apace:in_block_anywhere"       -> parseInBlock(json, contextId);
@@ -109,11 +109,18 @@ public final class ConditionParser {
                 case "origins:armor_value", "apace:armor_value"         -> parseArmorValue(json);
                 case "origins:amount", "apace:amount"                   -> parseAmount(json);
                 case "origins:using_item", "apace:using_item"           -> p -> p.isUsingItem();
-                case "origins:ticking", "apace:ticking"                 -> EntityCondition.alwaysTrue();
-                case "origins:exists", "apace:exists"                   -> EntityCondition.alwaysTrue();
-                case "origins:living", "apace:living"                   -> EntityCondition.alwaysTrue();
+                case "origins:ticking", "apace:ticking"                 -> p -> !p.isRemoved();
+                case "origins:exists", "apace:exists"                   -> p -> p != null && !p.isRemoved();
+                case "origins:living", "apace:living"                   -> p -> p.isAlive();
                 case "origins:creative_flying", "apace:creative_flying" -> p -> p.getAbilities().flying;
-                case "origins:power_type", "apace:power_type"           -> EntityCondition.alwaysTrue();
+                case "origins:power_type", "apace:power_type"           -> parsePowerType(json, contextId);
+
+                // ---- Phase 0 consolidation: new verbs ----
+                case "origins:time_of_day", "apace:time_of_day"         -> parseTimeOfDay(json);
+                case "origins:weather", "apace:weather"                 -> parseWeather(json);
+                case "origins:xp_level", "apace:xp_level"               -> parseXpLevel(json);
+                case "origins:xp_points", "apace:xp_points"             -> parseXpPoints(json);
+                case "origins:moon_phase", "apace:moon_phase"           -> parseMoonPhase(json);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -496,6 +503,92 @@ public final class ConditionParser {
         ComparisonType comparison = ComparisonType.fromString(comp);
         // amount condition is context-dependent; when standalone, check health as default
         return player -> comparison.test(player.getHealth(), target);
+    }
+
+    private static EntityCondition parseEntityType(JsonObject json) {
+        // For a player context, player entity type is always minecraft:player.
+        // A JSON author using this against the player really only has one meaningful match.
+        String expected = json.has("entity_type") ? json.get("entity_type").getAsString()
+                        : json.has("type_id") ? json.get("type_id").getAsString() : "";
+        if (expected.isEmpty()) return EntityCondition.alwaysTrue();
+        final String target = expected;
+        return p -> {
+            Identifier typeId = BuiltInRegistries.ENTITY_TYPE.getKey(p.getType());
+            return typeId != null && typeId.toString().equals(target);
+        };
+    }
+
+    private static EntityCondition parsePowerType(JsonObject json, String contextId) {
+        // Predicate: "does the player have any granted power whose type matches this id?"
+        // Delegates to ActiveOriginService for the lookup.
+        String expected = json.has("power_type") ? json.get("power_type").getAsString()
+                        : json.has("id") ? json.get("id").getAsString() : null;
+        if (expected == null || expected.isBlank()) {
+            return failClosed("origins:power_type", contextId, "missing 'power_type' field");
+        }
+        final String target = expected.indexOf(':') < 0 ? "origins:" + expected : expected;
+        return p -> {
+            var data = p.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            for (var originEntry : data.getOrigins().entrySet()) {
+                var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(originEntry.getValue());
+                if (origin == null) continue;
+                for (Identifier powerId : origin.powers()) {
+                    var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(powerId);
+                    if (holder == null) continue;
+                    Identifier typeId = com.cyberday1.neoorigins.power.registry.PowerTypes.getId(holder.type());
+                    if (typeId != null && typeId.toString().equals(target)) return true;
+                }
+            }
+            return false;
+        };
+    }
+
+    private static EntityCondition parseTimeOfDay(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        long target = json.has("compare_to") ? json.get("compare_to").getAsLong() : 0L;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> comparison.test(p.level().getDefaultClockTime() % 24000L, target);
+    }
+
+    private static EntityCondition parseWeather(JsonObject json) {
+        String state = json.has("state") ? json.get("state").getAsString().toLowerCase()
+                     : json.has("value") ? json.get("value").getAsString().toLowerCase() : "clear";
+        return p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            return switch (state) {
+                case "clear" -> !sl.isRaining() && !sl.isThundering();
+                case "rain", "raining" -> sl.isRaining() && !sl.isThundering();
+                case "thunder", "thundering" -> sl.isThundering();
+                default -> false;
+            };
+        };
+    }
+
+    private static EntityCondition parseXpLevel(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> comparison.test(p.experienceLevel, target);
+    }
+
+    private static EntityCondition parseXpPoints(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> comparison.test(p.totalExperience, target);
+    }
+
+    private static EntityCondition parseMoonPhase(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : "==";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            // MC's moon phase is an 8-phase cycle derived from the world clock.
+            int phase = (int) ((sl.getDefaultClockTime() / 24000L) % 8L);
+            if (phase < 0) phase += 8;
+            return comparison.test(phase, target);
+        };
     }
 
     private static EntityCondition failClosed(String type, String contextId, String detail) {

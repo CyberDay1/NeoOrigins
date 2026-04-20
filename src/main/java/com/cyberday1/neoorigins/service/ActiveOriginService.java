@@ -93,6 +93,7 @@ public final class ActiveOriginService {
         List<PowerHolder<?>> all = new ArrayList<>();
         List<PowerHolder<?>> originActive = new ArrayList<>();
         List<PowerHolder<?>> classActive = new ArrayList<>();
+        java.util.HashSet<Identifier> seen = new java.util.HashSet<>();
         for (var entry : data.getOrigins().entrySet()) {
             boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
@@ -101,12 +102,22 @@ public final class ActiveOriginService {
                 if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;
+                if (!seen.add(powerId)) continue;
                 all.add(holder);
                 if (holder.isActive()) {
                     if (isClassLayer) classActive.add(holder);
                     else originActive.add(holder);
                 }
             }
+        }
+        // Dynamic grants from grant_power action — treated as origin-layer powers.
+        for (Identifier powerId : data.getDynamicGrantedPowers()) {
+            if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+            if (!seen.add(powerId)) continue;
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder == null) continue;
+            all.add(holder);
+            if (holder.isActive()) originActive.add(holder);
         }
 
         CacheEntry fresh = new CacheEntry(dim, dv, omv, pmv, rv,
@@ -199,13 +210,25 @@ public final class ActiveOriginService {
         // Iterate the raw origin map directly; we don't care about the cache here
         // (and the caller will typically mutate `data` right after, invalidating it).
         PlayerOriginData data = player.getData(OriginAttachments.originData());
+        java.util.HashSet<Identifier> revoked = new java.util.HashSet<>();
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
             for (Identifier powerId : origin.powers()) {
+                if (!revoked.add(powerId)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) holder.onRevoked(player);
             }
+        }
+        // Also revoke dynamic grants.
+        for (Identifier powerId : new java.util.ArrayList<>(data.getDynamicGrantedPowers())) {
+            if (!revoked.add(powerId)) {
+                data.removeDynamicGrant(powerId);
+                continue;
+            }
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder != null) holder.onRevoked(player);
+            data.removeDynamicGrant(powerId);
         }
     }
 

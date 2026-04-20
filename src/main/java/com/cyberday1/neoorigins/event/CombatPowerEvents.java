@@ -93,6 +93,10 @@ public class CombatPowerEvents {
         if (!event.isCanceled()) {
             float amount = event.getAmount();
             ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                sp,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.HIT_TAKEN,
+                new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource()));
             var attacker = event.getSource().getEntity();
             if (attacker instanceof LivingEntity le) {
                 ActiveOriginService.forEachOfType(sp, ThornsAuraPower.class, cfg -> {
@@ -110,10 +114,20 @@ public class CombatPowerEvents {
         // Check if the dying entity is a tracked minion (notify summoner)
         com.cyberday1.neoorigins.service.MinionTracker.onEntityDeath(event.getEntity());
 
+        // Dispatch DEATH event for the dying player (if applicable)
+        if (event.getEntity() instanceof ServerPlayer dyingSp) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                dyingSp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DEATH);
+        }
+
         var killer = event.getSource().getEntity();
         if (!(killer instanceof ServerPlayer sp)) return;
         LivingEntity killed = event.getEntity();
         ActiveOriginService.forEach(sp, holder -> holder.onKill(sp, killed));
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.KILL,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.KillContext(killed));
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
@@ -131,16 +145,51 @@ public class CombatPowerEvents {
                 event.setStrength(scaled);
             }
         });
+        if (event.isCanceled()) return;
+        // 2.0: chain any action_on_event powers declared for MOD_KNOCKBACK.
+        float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_KNOCKBACK, null, event.getStrength());
+        if (chained != event.getStrength()) {
+            if (chained <= 0.0f) { event.setCanceled(true); return; }
+            if (!Float.isFinite(chained)) chained = Float.MAX_VALUE;
+            event.setStrength(chained);
+        }
     }
 
     @SubscribeEvent
     public static void onProjectileImpact(ProjectileImpactEvent event) {
+        var proj = event.getProjectile();
+
+        // Dispatch PROJECTILE_HIT to the projectile's owning player (if any).
+        if (proj.getOwner() instanceof ServerPlayer ownerSp) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                ownerSp,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.PROJECTILE_HIT,
+                new com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext(
+                    proj, event.getRayTraceResult()));
+        }
+
         if (!(event.getRayTraceResult() instanceof EntityHitResult ehr)) return;
         if (!(ehr.getEntity() instanceof ServerPlayer sp)) return;
-        var proj = event.getProjectile();
         if (ActiveOriginService.has(sp, ProjectileImmunityPower.class, cfg -> cfg.blocks(proj))) {
             event.setCanceled(true);
         }
+    }
+
+    @SubscribeEvent
+    public static void onAttackEntity(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.ATTACK,
+            event.getTarget());
+    }
+
+    @SubscribeEvent
+    public static void onLivingJump(net.neoforged.neoforge.event.entity.living.LivingEvent.LivingJumpEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.JUMP);
     }
 
     @SubscribeEvent
@@ -150,10 +199,11 @@ public class CombatPowerEvents {
         LivingEntity killed = event.getEntity();
         if (!(killed instanceof Animal)) return;
 
-        if (!ActiveOriginService.has(sp, MoreAnimalLootPower.class, c -> true)) return;
-
         final float[] mult = {1.0f};
         ActiveOriginService.forEachOfType(sp, MoreAnimalLootPower.class, cfg -> mult[0] *= cfg.multiplier());
+        // 2.0: chain any action_on_event powers declared for MOD_HARVEST_DROPS.
+        mult[0] = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_HARVEST_DROPS, killed, mult[0]);
 
         // Duplicate existing drops based on multiplier
         int extraCopies = Math.max(0, Math.round(mult[0]) - 1);
@@ -181,6 +231,9 @@ public class CombatPowerEvents {
         final float[] dMult = {1.0f};
         ActiveOriginService.forEachOfType(sp, LongerPotionsPower.class, cfg ->
             dMult[0] *= cfg.durationMultiplier());
+        // 2.0: chain any action_on_event powers declared for MOD_POTION_DURATION.
+        dMult[0] = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_POTION_DURATION, inst, dMult[0]);
         if (dMult[0] != 1.0f) {
             int newDuration = (int)(inst.getDuration() * dMult[0]);
             LENGTHENING_EFFECT.set(true);

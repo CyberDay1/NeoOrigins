@@ -21,11 +21,14 @@ public class FoodDataMixin {
     private float neoorigins$modifyExhaustion(float amount) {
         Player self = (Player) (Object) this;
         if (!(self instanceof ServerPlayer sp)) return amount;
+        // Legacy class scan (backward compat while HungerDrainModifierPower exists).
         final float[] mult = {1.0f};
         ActiveOriginService.forEachOfType(sp, HungerDrainModifierPower.class,
             cfg -> mult[0] *= cfg.multiplier());
-        if (mult[0] == 1.0f) return amount;
         float scaled = amount * mult[0];
+        // 2.0: chain any action_on_event powers declared for MOD_EXHAUSTION.
+        scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_EXHAUSTION, null, scaled);
         return Float.isFinite(scaled) ? scaled : amount;
     }
 }
