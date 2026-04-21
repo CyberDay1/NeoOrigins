@@ -154,3 +154,21 @@ tasks.register('migrateLegacyPowers') {
         }
     }
 }
+
+// ── 2.0 alias smoke test ────────────────────────────────────────────────────
+//
+// Runs PowerAliasSmokeTest against src/main/resources/data to validate every
+// legacy-typed internal power JSON flows cleanly through LegacyPowerTypeAliases
+// and has the right structural fields for its target generic. Catches remap-
+// lambda bugs (missing field writes, wrong field names) without needing a
+// runtime environment.
+//
+// Run: ./gradlew smokeTestAliases
+tasks.register('smokeTestAliases', JavaExec) {
+    group = 'neoorigins'
+    description = '[2.0] Validate LegacyPowerTypeAliases remaps against internal pack JSON.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.PowerAliasSmokeTest'
+    args 'src/main/resources/data'
+}
