@@ -130,15 +130,9 @@ public class CombatPowerEvents {
                 sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.HIT_TAKEN,
                 new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource()));
-            var attacker = event.getSource().getEntity();
-            if (attacker instanceof LivingEntity le) {
-                ActiveOriginService.forEachOfType(sp, ThornsAuraPower.class, cfg -> {
-                    // Same overflow-safe clamp for the thorns reflection.
-                    float reflected = amount * cfg.returnRatio();
-                    if (!Float.isFinite(reflected)) reflected = Float.MAX_VALUE;
-                    le.hurt(sp.damageSources().magic(), reflected);
-                });
-            }
+            // thorns_aura moved to action_on_event with a damage_attacker
+            // entity_action (reads HitTakenContext.amount × amount_ratio).
+            // The HIT_TAKEN dispatch above runs any such powers.
         }
     }
 
@@ -179,20 +173,9 @@ public class CombatPowerEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingKnockBack(LivingKnockBackEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        ActiveOriginService.forEachOfType(sp, KnockbackModifierPower.class, cfg -> {
-            if (cfg.multiplier() <= 0.0f) {
-                event.setCanceled(true);
-            } else {
-                // Defence-in-depth clamp (see onLivingDamage) so a
-                // pathologically large multiplier can't push knockback
-                // strength to Infinity.
-                float scaled = event.getStrength() * cfg.multiplier();
-                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
-                event.setStrength(scaled);
-            }
-        });
-        if (event.isCanceled()) return;
-        // 2.0: chain any action_on_event powers declared for MOD_KNOCKBACK.
+        // knockback_modifier moved to action_on_event (MOD_KNOCKBACK). A
+        // multiplier <= 0 cancels the knockback outright; otherwise scale
+        // event.getStrength(). Clamp non-finite to MAX_VALUE.
         float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_KNOCKBACK, null, event.getStrength());
         if (chained != event.getStrength()) {
@@ -245,14 +228,11 @@ public class CombatPowerEvents {
         LivingEntity killed = event.getEntity();
         if (!(killed instanceof Animal)) return;
 
-        final float[] mult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, MoreAnimalLootPower.class, cfg -> mult[0] *= cfg.multiplier());
-        // 2.0: chain any action_on_event powers declared for MOD_HARVEST_DROPS.
-        mult[0] = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_HARVEST_DROPS, killed, mult[0]);
+        float mult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_HARVEST_DROPS, killed, 1.0f);
 
         // Duplicate existing drops based on multiplier
-        int extraCopies = Math.max(0, Math.round(mult[0]) - 1);
+        int extraCopies = Math.max(0, Math.round(mult) - 1);
         if (extraCopies <= 0) return;
 
         var originalDrops = new java.util.ArrayList<>(event.getDrops());
@@ -273,15 +253,11 @@ public class CombatPowerEvents {
         MobEffectInstance inst = event.getEffectInstance();
         if (inst == null) return;
 
-        // LongerPotionsPower — multiply duration of newly added effects
-        final float[] dMult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, LongerPotionsPower.class, cfg ->
-            dMult[0] *= cfg.durationMultiplier());
-        // 2.0: chain any action_on_event powers declared for MOD_POTION_DURATION.
-        dMult[0] = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_POTION_DURATION, inst, dMult[0]);
-        if (dMult[0] != 1.0f) {
-            int newDuration = (int)(inst.getDuration() * dMult[0]);
+        // longer_potions moved to action_on_event (MOD_POTION_DURATION).
+        float dMult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_POTION_DURATION, inst, 1.0f);
+        if (dMult != 1.0f) {
+            int newDuration = (int)(inst.getDuration() * dMult);
             LENGTHENING_EFFECT.set(true);
             try {
                 sp.addEffect(new MobEffectInstance(inst.getEffect(), newDuration,

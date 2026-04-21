@@ -45,7 +45,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ElytraBoostPower>         ELYTRA_BOOST         = reg("elytra_boost",         new ElytraBoostPower());
     public static final DeferredHolder<PowerType<?>, SizeScalingPower>         SIZE_SCALING         = reg("size_scaling",         new SizeScalingPower());
     public static final DeferredHolder<PowerType<?>, ItemMagnetismPower>       ITEM_MAGNETISM       = reg("item_magnetism",       new ItemMagnetismPower());
-    public static final DeferredHolder<PowerType<?>, FoodRestrictionPower>     FOOD_RESTRICTION     = reg("food_restriction",     new FoodRestrictionPower());
+    // food_restriction retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, BreakSpeedModifierPower>  BREAK_SPEED_MODIFIER = reg("break_speed_modifier", new BreakSpeedModifierPower());
     public static final DeferredHolder<PowerType<?>, UnderwaterMiningSpeedPower> UNDERWATER_MINING_SPEED = reg("underwater_mining_speed", new UnderwaterMiningSpeedPower());
     // biome_buff, damage_in_biome/daylight/water, burn_at_health_threshold,
@@ -61,17 +61,14 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ActionOnEventPower>       ACTION_ON_EVENT      = reg("action_on_event",      new ActionOnEventPower());
     public static final DeferredHolder<PowerType<?>, ModifyDamagePower>        MODIFY_DAMAGE        = reg("modify_damage",        new ModifyDamagePower());
     public static final DeferredHolder<PowerType<?>, InvulnerabilityPower>     INVULNERABILITY      = reg("invulnerability",      new InvulnerabilityPower());
-    public static final DeferredHolder<PowerType<?>, KnockbackModifierPower>   KNOCKBACK_MODIFIER   = reg("knockback_modifier",   new KnockbackModifierPower());
-    public static final DeferredHolder<PowerType<?>, ThornsAuraPower>          THORNS_AURA          = reg("thorns_aura",          new ThornsAuraPower());
+    // knockback_modifier, thorns_aura, action_on_kill, action_on_hit_taken
+    // retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, ProjectileImmunityPower>  PROJECTILE_IMMUNITY  = reg("projectile_immunity",  new ProjectileImmunityPower());
     public static final DeferredHolder<PowerType<?>, ScareEntitiesPower>       SCARE_ENTITIES       = reg("scare_entities",       new ScareEntitiesPower());
-    public static final DeferredHolder<PowerType<?>, ActionOnKillPower>        ACTION_ON_KILL       = reg("action_on_kill",       new ActionOnKillPower());
-    public static final DeferredHolder<PowerType<?>, ActionOnHitTakenPower>    ACTION_ON_HIT_TAKEN  = reg("action_on_hit_taken",  new ActionOnHitTakenPower());
     public static final DeferredHolder<PowerType<?>, ActionOnHitPower>         ACTION_ON_HIT        = reg("action_on_hit",        new ActionOnHitPower());
 
     // --- Passive: scalars & misc ---
-    public static final DeferredHolder<PowerType<?>, HungerDrainModifierPower> HUNGER_DRAIN_MODIFIER = reg("hunger_drain_modifier", new HungerDrainModifierPower());
-    public static final DeferredHolder<PowerType<?>, NaturalRegenModifierPower> NATURAL_REGEN_MODIFIER = reg("natural_regen_modifier", new NaturalRegenModifierPower());
+    // hunger_drain_modifier, natural_regen_modifier retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, CropGrowthAcceleratorPower> CROP_GROWTH_ACCELERATOR = reg("crop_growth_accelerator", new CropGrowthAcceleratorPower());
     public static final DeferredHolder<PowerType<?>, CropHarvestBonusPower>    CROP_HARVEST_BONUS   = reg("crop_harvest_bonus",   new CropHarvestBonusPower());
     public static final DeferredHolder<PowerType<?>, StartingEquipmentPower>   STARTING_EQUIPMENT   = reg("starting_equipment",   new StartingEquipmentPower());
@@ -87,16 +84,13 @@ public class PowerTypes {
 
     // --- Origins Classes power types ---
     public static final DeferredHolder<PowerType<?>, ExhaustionFilterPower>      EXHAUSTION_FILTER      = reg("exhaustion_filter",      new ExhaustionFilterPower());
-    public static final DeferredHolder<PowerType<?>, BetterBoneMealPower>        BETTER_BONE_MEAL       = reg("better_bone_meal",       new BetterBoneMealPower());
-    public static final DeferredHolder<PowerType<?>, MoreAnimalLootPower>        MORE_ANIMAL_LOOT       = reg("more_animal_loot",       new MoreAnimalLootPower());
+    // better_bone_meal, more_animal_loot, longer_potions, better_enchanting,
+    // efficient_repairs, better_crafted_food, teleport_range_modifier,
+    // food_restriction retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, TwinBreedingPower>          TWIN_BREEDING          = reg("twin_breeding",          new TwinBreedingPower());
     public static final DeferredHolder<PowerType<?>, LessItemUseSlowdownPower>   LESS_ITEM_USE_SLOWDOWN = reg("less_item_use_slowdown", new LessItemUseSlowdownPower());
     public static final DeferredHolder<PowerType<?>, NoProjectileDivergencePower> NO_PROJECTILE_DIVERGENCE = reg("no_projectile_divergence", new NoProjectileDivergencePower());
-    public static final DeferredHolder<PowerType<?>, LongerPotionsPower>         LONGER_POTIONS         = reg("longer_potions",         new LongerPotionsPower());
-    public static final DeferredHolder<PowerType<?>, BetterEnchantingPower>      BETTER_ENCHANTING      = reg("better_enchanting",      new BetterEnchantingPower());
-    public static final DeferredHolder<PowerType<?>, EfficientRepairsPower>      EFFICIENT_REPAIRS      = reg("efficient_repairs",      new EfficientRepairsPower());
     public static final DeferredHolder<PowerType<?>, QualityEquipmentPower>      QUALITY_EQUIPMENT      = reg("quality_equipment",      new QualityEquipmentPower());
-    public static final DeferredHolder<PowerType<?>, BetterCraftedFoodPower>     BETTER_CRAFTED_FOOD    = reg("better_crafted_food",    new BetterCraftedFoodPower());
     public static final DeferredHolder<PowerType<?>, MoreSmokerXpPower>          MORE_SMOKER_XP         = reg("more_smoker_xp",         new MoreSmokerXpPower());
     public static final DeferredHolder<PowerType<?>, TradeAvailabilityPower>     TRADE_AVAILABILITY     = reg("trade_availability",     new TradeAvailabilityPower());
     public static final DeferredHolder<PowerType<?>, RareWanderingLootPower>     RARE_WANDERING_LOOT    = reg("rare_wandering_loot",    new RareWanderingLootPower());
@@ -106,7 +100,6 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, CraftAmountBonusPower>      CRAFT_AMOUNT_BONUS     = reg("craft_amount_bonus",     new CraftAmountBonusPower());
     public static final DeferredHolder<PowerType<?>, TamedAnimalBoostPower>      TAMED_ANIMAL_BOOST     = reg("tamed_animal_boost",     new TamedAnimalBoostPower());
     public static final DeferredHolder<PowerType<?>, TamedPotionDiffusalPower>   TAMED_POTION_DIFFUSAL  = reg("tamed_potion_diffusal",  new TamedPotionDiffusalPower());
-    public static final DeferredHolder<PowerType<?>, TeleportRangeModifierPower> TELEPORT_RANGE_MODIFIER = reg("teleport_range_modifier", new TeleportRangeModifierPower());
 
     // --- Minion summoning ---
     public static final DeferredHolder<PowerType<?>, SummonMinionPower> SUMMON_MINION = reg("summon_minion", new SummonMinionPower());

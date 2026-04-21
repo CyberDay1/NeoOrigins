@@ -221,8 +221,17 @@ public final class EventPowerIndex {
     /** Context for crafting-table / inventory-crafting events. */
     public record CraftContext(net.minecraft.world.item.ItemStack result) {}
 
-    /** Context for food-eaten events. */
-    public record FoodContext(net.minecraft.world.item.ItemStack stack) {}
+    /**
+     * Context for food-eaten events. Carries both the held {@link
+     * net.minecraft.world.item.ItemStack} (for item-tag conditions) and the
+     * cancellable wrapper event (so {@code neoorigins:cancel_event} can veto
+     * the eat).
+     */
+    public record FoodContext(net.minecraft.world.item.ItemStack stack,
+                               net.neoforged.bus.api.ICancellableEvent event) {
+        /** Stack-only ctor for call sites that don't need cancel semantics. */
+        public FoodContext(net.minecraft.world.item.ItemStack stack) { this(stack, null); }
+    }
 
     /** Context for bonemeal / crop events. */
     public record BlockInteractContext(net.minecraft.core.BlockPos pos,
