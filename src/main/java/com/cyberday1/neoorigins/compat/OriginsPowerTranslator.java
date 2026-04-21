@@ -360,7 +360,7 @@ public final class OriginsPowerTranslator {
         return Optional.of(out);
     }
 
-    /** Normalises a single Origins effect object into a StackingStatusEffectsPower.Entry JSON. */
+    /** Normalises a single Origins effect object into a persistent_effect effects-array entry JSON. */
     private static JsonObject buildEffectEntry(JsonObject src) {
         if (!src.has("effect")) throw new IllegalArgumentException("effect object missing 'effect' id field");
         JsonObject entry = new JsonObject();
