@@ -84,6 +84,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, TogglePower>              TOGGLE               = reg("toggle",               new TogglePower());
     public static final DeferredHolder<PowerType<?>, RestrictArmorPower>       RESTRICT_ARMOR       = reg("restrict_armor",       new RestrictArmorPower());
     public static final DeferredHolder<PowerType<?>, KeepInventoryPower>       KEEP_INVENTORY       = reg("keep_inventory",       new KeepInventoryPower());
+    public static final DeferredHolder<PowerType<?>, ModifyPlayerSpawnPower>   MODIFY_PLAYER_SPAWN  = reg("modify_player_spawn",  new ModifyPlayerSpawnPower());
 
     // --- Origins Classes power types ---
     public static final DeferredHolder<PowerType<?>, ExhaustionFilterPower>      EXHAUSTION_FILTER      = reg("exhaustion_filter",      new ExhaustionFilterPower());

@@ -185,10 +185,29 @@ public class PlayerLifecycleEvents {
         }
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
-        // If the player had no bed/respawn anchor, route them to their origin's
-        // spawn_location instead of world spawn.
-        if (!event.isEndConquered() && sp.getRespawnConfig() == null) {
-            com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+        // modify_player_spawn — per-power respawn override. Runs before the
+        // bed-less fallback and may also override the bed if override_bed=true.
+        if (!event.isEndConquered()) {
+            final boolean[] teleported = {false};
+            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.ModifyPlayerSpawnPower.class, cfg -> {
+                if (teleported[0]) return;
+                if (!cfg.overrideBed() && sp.getRespawnConfig() != null) return;
+                var target = cfg.location().locateSpawn(sp);
+                if (target.isEmpty()) return;
+                var pos = target.get().pos();
+                if (target.get().level() == sp.level()) {
+                    sp.teleportTo(pos.x, pos.y, pos.z);
+                } else {
+                    sp.teleport(new net.minecraft.world.level.portal.TeleportTransition(
+                        target.get().level(), pos, net.minecraft.world.phys.Vec3.ZERO,
+                        sp.getYRot(), sp.getXRot(),
+                        net.minecraft.world.level.portal.TeleportTransition.DO_NOTHING));
+                }
+                teleported[0] = true;
+            });
+            if (!teleported[0] && sp.getRespawnConfig() == null) {
+                com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+            }
         }
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
