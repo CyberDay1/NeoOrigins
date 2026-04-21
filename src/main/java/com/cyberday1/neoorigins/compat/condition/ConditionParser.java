@@ -137,6 +137,22 @@ public final class ConditionParser {
                 case "neoorigins:hit_taken_amount"                      -> parseHitTakenAmount(json);
                 case "neoorigins:food_item_in_tag"                      -> parseFoodItemInTag(json);
 
+                // ---- Bientity conditions (read target from current dispatch context) ----
+                case "origins:distance", "apace:distance"               -> parseDistance(json);
+                case "origins:can_see", "apace:can_see"                 -> parseCanSee();
+                case "origins:equal", "apace:equal"                     -> parseEqual();
+                case "origins:target_type", "apace:target_type"         -> parseTargetType(json);
+                case "origins:target_group", "apace:target_group"       -> parseTargetGroup(json);
+
+                // ---- Damage conditions (read DamageSource from HitTakenContext) ----
+                case "origins:from_fire", "apace:from_fire"             -> parseFromFire();
+                case "origins:from_projectile", "apace:from_projectile" -> parseFromProjectile();
+                case "origins:from_explosion", "apace:from_explosion"   -> parseFromExplosion();
+                case "origins:damage_type", "apace:damage_type"         -> parseDamageType(json);
+                case "origins:damage_tag", "apace:damage_tag"           -> parseDamageTag(json);
+                case "origins:damage_name", "apace:damage_name",
+                     "origins:name", "apace:name"                       -> parseDamageName(json);
+
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
         } catch (Exception e) {
@@ -778,6 +794,152 @@ public final class ConditionParser {
                 return false;
             }
             return comparison.test(htc.amount(), target);
+        };
+    }
+
+    // ---- Bientity helpers ----
+
+    /**
+     * Extract the "target" LivingEntity from the current dispatch context.
+     * Returns null outside any bientity-relevant context, causing bientity
+     * conditions to fail closed.
+     */
+    private static net.minecraft.world.entity.LivingEntity extractTarget(Object ctx) {
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc) {
+            var e = htc.source().getEntity();
+            return e instanceof net.minecraft.world.entity.LivingEntity le ? le : null;
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.KillContext kc) {
+            return kc.killed();
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext eic) {
+            return eic.target();
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+            if (phc.result() instanceof net.minecraft.world.phys.EntityHitResult ehr
+                && ehr.getEntity() instanceof net.minecraft.world.entity.LivingEntity le) {
+                return le;
+            }
+        }
+        return null;
+    }
+
+    /** Extract the DamageSource from HitTakenContext; null outside a hit-taken dispatch. */
+    private static net.minecraft.world.damagesource.DamageSource extractDamageSource(Object ctx) {
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc) {
+            return htc.source();
+        }
+        return null;
+    }
+
+    private static EntityCondition parseDistance(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : "<=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> {
+            var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return false;
+            return comparison.test(p.distanceTo(le), target);
+        };
+    }
+
+    private static EntityCondition parseCanSee() {
+        return p -> {
+            var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return false;
+            return p.hasLineOfSight(le);
+        };
+    }
+
+    private static EntityCondition parseEqual() {
+        return p -> {
+            var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return le != null && le.getUUID().equals(p.getUUID());
+        };
+    }
+
+    private static EntityCondition parseTargetType(JsonObject json) {
+        String et = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
+        if (et == null || et.isBlank()) return CompatPolicy.FALSE_CONDITION;
+        final String target = et;
+        return p -> {
+            var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return false;
+            if (target.startsWith("#")) {
+                TagKey<net.minecraft.world.entity.EntityType<?>> tag = TagKey.create(
+                    Registries.ENTITY_TYPE, ResourceLocation.parse(target.substring(1)));
+                return le.getType().is(tag);
+            }
+            ResourceLocation expected = ResourceLocation.parse(target);
+            ResourceLocation actual = BuiltInRegistries.ENTITY_TYPE.getKey(le.getType());
+            return expected.equals(actual);
+        };
+    }
+
+    private static EntityCondition parseTargetGroup(JsonObject json) {
+        String group = json.has("group") ? json.get("group").getAsString() : null;
+        if (group == null || group.isBlank()) return CompatPolicy.FALSE_CONDITION;
+        TagKey<net.minecraft.world.entity.EntityType<?>> tag = TagKey.create(
+            Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("minecraft", group));
+        return p -> {
+            var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return false;
+            return le.getType().is(tag);
+        };
+    }
+
+    // ---- Damage helpers ----
+
+    private static EntityCondition parseFromFire() {
+        return p -> {
+            var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return src != null && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE);
+        };
+    }
+
+    private static EntityCondition parseFromProjectile() {
+        return p -> {
+            var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return src != null && src.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE);
+        };
+    }
+
+    private static EntityCondition parseFromExplosion() {
+        return p -> {
+            var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return src != null && src.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION);
+        };
+    }
+
+    private static EntityCondition parseDamageType(JsonObject json) {
+        String id = json.has("damage_type") ? json.get("damage_type").getAsString() : null;
+        if (id == null || id.isBlank()) return CompatPolicy.FALSE_CONDITION;
+        final net.minecraft.resources.ResourceKey<net.minecraft.world.damagesource.DamageType> key =
+            net.minecraft.resources.ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.parse(id));
+        return p -> {
+            var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return src != null && src.is(key);
+        };
+    }
+
+    private static EntityCondition parseDamageTag(JsonObject json) {
+        String tag = json.has("tag") ? json.get("tag").getAsString() : null;
+        if (tag == null || tag.isBlank()) return CompatPolicy.FALSE_CONDITION;
+        final TagKey<net.minecraft.world.damagesource.DamageType> key =
+            TagKey.create(Registries.DAMAGE_TYPE, ResourceLocation.parse(tag.startsWith("#") ? tag.substring(1) : tag));
+        return p -> {
+            var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return src != null && src.is(key);
+        };
+    }
+
+    private static EntityCondition parseDamageName(JsonObject json) {
+        String name = json.has("name") ? json.get("name").getAsString() : null;
+        if (name == null || name.isBlank()) return CompatPolicy.FALSE_CONDITION;
+        final String expected = name;
+        return p -> {
+            var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            return src != null && expected.equalsIgnoreCase(src.getMsgId());
         };
     }
 
