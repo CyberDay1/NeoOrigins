@@ -78,6 +78,23 @@ public final class LegacyPowerTypeAliases {
         WARNED.clear();
     }
 
+    /**
+     * Dev-only helper that runs the alias remap regardless of the dormancy
+     * guard. Used by the {@code smokeTestAliases} gradle task to validate
+     * remap lambdas against the internal JSON pack without needing to delete
+     * the legacy Java classes first. Not used in production paths.
+     *
+     * <p>Returns the new type id if {@code typeId} is an alias (and mutates
+     * {@code json} accordingly), otherwise returns {@code typeId} unchanged.
+     */
+    public static ResourceLocation simulateApply(ResourceLocation typeId, JsonObject json, ResourceLocation powerId) {
+        Alias alias = ALIASES.get(typeId);
+        if (alias == null) return typeId;
+        alias.remap.accept(json, powerId);
+        json.addProperty("type", alias.newType.toString());
+        return alias.newType;
+    }
+
     /** Count of registered aliases — used by startup diagnostics. */
     public static int size() {
         return ALIASES.size();
