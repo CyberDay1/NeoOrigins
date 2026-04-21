@@ -106,11 +106,17 @@ tasks.register('migrateLegacyPowers') {
             'neoorigins:repulse'                : 'neoorigins:active_ability',
             'neoorigins:active_aoe_effect'      : 'neoorigins:active_ability',
             'neoorigins:status_effect'          : 'neoorigins:persistent_effect',
+            'neoorigins:stacking_status_effects': 'neoorigins:persistent_effect',
             'neoorigins:night_vision'           : 'neoorigins:persistent_effect',
             'neoorigins:glow'                   : 'neoorigins:persistent_effect',
             'neoorigins:water_breathing'        : 'neoorigins:persistent_effect',
-            'neoorigins:breath_in_fluid'        : 'neoorigins:persistent_effect',
-            'neoorigins:regen_in_fluid'         : 'neoorigins:persistent_effect',
+            // breath_in_fluid / regen_in_fluid move under condition_passive in Phase 4 —
+            // they're tick-driven fluid checks, not MobEffect applications.
+            'neoorigins:breath_in_fluid'        : 'neoorigins:condition_passive',
+            'neoorigins:regen_in_fluid'         : 'neoorigins:condition_passive',
+            // effect_immunity is a MobEffectEvent canceler — lands in Phase 6 under
+            // action_on_event with a cancel_event entity_action.
+            'neoorigins:effect_immunity'        : 'neoorigins:action_on_event',
             'neoorigins:biome_buff'             : 'neoorigins:condition_passive',
             'neoorigins:damage_in_biome'        : 'neoorigins:condition_passive',
             'neoorigins:damage_in_daylight'     : 'neoorigins:condition_passive',
