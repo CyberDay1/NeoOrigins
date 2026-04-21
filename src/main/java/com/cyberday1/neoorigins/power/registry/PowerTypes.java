@@ -82,6 +82,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ConditionalPower>         CONDITIONAL          = reg("conditional",          new ConditionalPower());
     public static final DeferredHolder<PowerType<?>, PhantomFormPower>         PHANTOM_FORM         = reg("phantom_form",         new PhantomFormPower());
     public static final DeferredHolder<PowerType<?>, TogglePower>              TOGGLE               = reg("toggle",               new TogglePower());
+    public static final DeferredHolder<PowerType<?>, RestrictArmorPower>       RESTRICT_ARMOR       = reg("restrict_armor",       new RestrictArmorPower());
 
     // --- Origins Classes power types ---
     public static final DeferredHolder<PowerType<?>, ExhaustionFilterPower>      EXHAUSTION_FILTER      = reg("exhaustion_filter",      new ExhaustionFilterPower());
