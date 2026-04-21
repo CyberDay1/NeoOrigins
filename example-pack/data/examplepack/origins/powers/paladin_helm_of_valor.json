@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.attack_damage",
+  "amount": 1.0,
+  "operation": "add_value",
+  "equipment_condition": {
+    "slot": "head",
+    "tag": "minecraft:helmets"
+  },
+  "name": "power.examplepack.paladin_helm_of_valor.name",
+  "description": "power.examplepack.paladin_helm_of_valor.description"
+}

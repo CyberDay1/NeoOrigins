@@ -93,6 +93,19 @@ public class CombatPowerEvents {
                 if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
                 event.setAmount(scaled);
             });
+
+            // ActionOnHitPower — fire self/target actions when the attacker's filters match.
+            final float hitAmount = event.getAmount();
+            ActiveOriginService.forEachOfType(attackerSp, ActionOnHitPower.class, config -> {
+                if (hitAmount < config.minDamage()) return;
+                if (config.damageType().isPresent()
+                        && !event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) return;
+                if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
+                if (config.targetType().isPresent()
+                        && !config.targetType().get().equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()))) return;
+                if (!ActionOnHitPower.rollChance(config)) return;
+                ActionOnHitPower.execute(attackerSp, config, target);
+            });
         }
 
         if (!event.isCanceled()) {

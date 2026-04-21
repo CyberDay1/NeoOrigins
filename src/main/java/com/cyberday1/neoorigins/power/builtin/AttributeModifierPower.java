@@ -1,25 +1,51 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.api.condition.LocationCondition;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Optional;
 
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
+
+    /**
+     * Equipment-slot predicate: active when the stack worn in {@code slot} matches
+     * either the given {@code item} ID or the given {@code tag}. At least one of
+     * {@code item}/{@code tag} must be present; if both are supplied, either match
+     * satisfies the condition.
+     */
+    public record EquipmentCondition(
+        String slot,
+        Optional<ResourceLocation> item,
+        Optional<ResourceLocation> tag
+    ) {
+        public static final Codec<EquipmentCondition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            Codec.STRING.fieldOf("slot").forGetter(EquipmentCondition::slot),
+            ResourceLocation.CODEC.optionalFieldOf("item").forGetter(EquipmentCondition::item),
+            ResourceLocation.CODEC.optionalFieldOf("tag").forGetter(EquipmentCondition::tag)
+        ).apply(inst, EquipmentCondition::new));
+    }
 
     public record Config(
         ResourceLocation attribute,
         double amount,
         AttributeModifier.Operation operation,
         Optional<String> condition,
+        Optional<EquipmentCondition> equipmentCondition,
+        Optional<LocationCondition> locationCondition,
         String type
     ) implements PowerConfiguration {
 
@@ -42,6 +68,8 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             Codec.DOUBLE.fieldOf("amount").forGetter(Config::amount),
             OPERATION_CODEC.optionalFieldOf("operation", AttributeModifier.Operation.ADD_VALUE).forGetter(Config::operation),
             Codec.STRING.optionalFieldOf("condition").forGetter(Config::condition),
+            EquipmentCondition.CODEC.optionalFieldOf("equipment_condition").forGetter(Config::equipmentCondition),
+            LocationCondition.CODEC.optionalFieldOf("location_condition").forGetter(Config::locationCondition),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -52,7 +80,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     @Override
     public void onGranted(ServerPlayer player, Config config) {
         // Unconditional powers apply immediately; conditional ones are driven by onTick.
-        if (config.condition().isEmpty()) {
+        if (isUnconditional(config)) {
             applyModifier(player, config, true);
         }
     }
@@ -64,10 +92,25 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
-        if (config.condition().isEmpty()) return;
+        if (isUnconditional(config)) return;
         if (player.tickCount % 5 != 0) return;
-        boolean shouldApply = evaluate(config.condition().get(), player);
+        boolean shouldApply = true;
+        if (config.condition().isPresent()) {
+            shouldApply = evaluate(config.condition().get(), player);
+        }
+        if (shouldApply && config.equipmentCondition().isPresent()) {
+            shouldApply = evaluateEquipment(config.equipmentCondition().get(), player);
+        }
+        if (shouldApply && config.locationCondition().isPresent()) {
+            shouldApply = config.locationCondition().get().test(player);
+        }
         applyModifier(player, config, shouldApply);
+    }
+
+    private static boolean isUnconditional(Config config) {
+        return config.condition().isEmpty()
+            && config.equipmentCondition().isEmpty()
+            && config.locationCondition().isEmpty();
     }
 
     private static boolean evaluate(String condition, ServerPlayer player) {
@@ -80,6 +123,29 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
                 yield true;
             }
         };
+    }
+
+    private static boolean evaluateEquipment(EquipmentCondition cond, ServerPlayer player) {
+        EquipmentSlot slot;
+        try {
+            slot = EquipmentSlot.byName(cond.slot());
+        } catch (IllegalArgumentException ex) {
+            NeoOrigins.LOGGER.warn("attribute_modifier equipment_condition.slot '{}' is unknown — expected one of mainhand, offhand, head, chest, legs, feet, body.", cond.slot());
+            return false;
+        }
+        ItemStack stack = player.getItemBySlot(slot);
+        if (stack.isEmpty()) return false;
+
+        if (cond.item().isPresent()) {
+            Item item = BuiltInRegistries.ITEM.get(cond.item().get());
+            if (stack.is(item)) return true;
+        }
+        if (cond.tag().isPresent()) {
+            TagKey<Item> tagKey = TagKey.create(Registries.ITEM, cond.tag().get());
+            if (stack.is(tagKey)) return true;
+        }
+        // If neither item nor tag is supplied, treat as "any non-empty stack in this slot".
+        return cond.item().isEmpty() && cond.tag().isEmpty();
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {

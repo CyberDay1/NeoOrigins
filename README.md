@@ -10,7 +10,7 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
 - **46 built-in origins** across two layers — choose an origin *and* a class
 - **17 built-in classes** — Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit
-- **124 power types** — attribute modifiers, status effects, flight, wall climbing, damage modification, active abilities, biome effects, summon minions, tame hostile mobs, gravity wells, elemental magic, toggle powers, and more
+- **125 power types** — attribute modifiers (with optional environment or equipment-slot gating), status effects, flight, wall climbing, damage modification, on-hit/on-kill actions, active abilities, biome effects, summon minions, tame hostile mobs, gravity wells, elemental magic, toggle powers, and more
 - **Random origin mode** — server config to randomly assign origins on first join or every death
 - **Cooldown HUD overlay** — shows active ability cooldown bars above the hotbar
 - **Origin info screen** — press O to view your current origin and class details
@@ -225,6 +225,42 @@ NeoOrigins format example:
 ```
 
 For Origins-mod-compatible path layout (`data/<ns>/origins/`, `data/<ns>/powers/`, `data/<ns>/origin_layers/`) the translation pass runs automatically.
+
+---
+
+## Origin Spawn Locations
+
+Any origin can declare a `spawn_location` that the mod will teleport the player to:
+
+1. **Immediately when they pick the origin** (via the selection screen or an Orb of Origin), and
+2. **On death when they have no bed or respawn anchor set** — instead of world spawn.
+
+```json
+{
+  "name": "origins.mypack.void_knight.name",
+  "description": "origins.mypack.void_knight.description",
+  "icon": "minecraft:end_crystal",
+  "powers": [ "mypack:void_knight_flight" ],
+  "spawn_location": {
+    "dimension": "minecraft:the_end",
+    "structure": "minecraft:end_city"
+  }
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `dimension` | Identifier | Target dimension (player is switched to this level) |
+| `biome` | Identifier | Find a position inside this biome ID |
+| `biome_tag` | Identifier | Find a position inside a biome with this tag |
+| `structure` | Identifier | Find a position inside this structure |
+| `structure_tag` | Identifier | Find a position inside a structure with this tag |
+
+All fields are optional; fields combine with AND (dimension narrows the search, then structure/biome pins down the position within that dimension). Structure match takes precedence over biome when both are specified. Y is resolved via the motion-blocking heightmap, so the player lands on the surface. Search radius is 6400 blocks from that dimension's world spawn; if no match is found, the origin selection/respawn proceeds without teleport (with a warning in the log).
+
+On a respawn **with** a set bed or respawn anchor, vanilla behavior applies — `spawn_location` is only used when there's no respawn point to honor.
+
+The same five fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition` — see [docs/POWER_TYPES.md](docs/POWER_TYPES.md#neooriginsattribute_modifier).
 
 ---
 

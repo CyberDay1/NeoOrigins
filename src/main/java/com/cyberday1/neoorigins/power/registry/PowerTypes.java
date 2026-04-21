@@ -63,6 +63,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ScareEntitiesPower>       SCARE_ENTITIES       = reg("scare_entities",       new ScareEntitiesPower());
     public static final DeferredHolder<PowerType<?>, ActionOnKillPower>        ACTION_ON_KILL       = reg("action_on_kill",       new ActionOnKillPower());
     public static final DeferredHolder<PowerType<?>, ActionOnHitTakenPower>    ACTION_ON_HIT_TAKEN  = reg("action_on_hit_taken",  new ActionOnHitTakenPower());
+    public static final DeferredHolder<PowerType<?>, ActionOnHitPower>         ACTION_ON_HIT        = reg("action_on_hit",        new ActionOnHitPower());
 
     // --- Passive: scalars & misc ---
     public static final DeferredHolder<PowerType<?>, HungerDrainModifierPower> HUNGER_DRAIN_MODIFIER = reg("hunger_drain_modifier", new HungerDrainModifierPower());

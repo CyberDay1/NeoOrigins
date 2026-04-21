@@ -4,7 +4,9 @@
   "origins": [
     "examplepack:pyromancer",
     "examplepack:golem",
-    "examplepack:specter"
+    "examplepack:specter",
+    "examplepack:paladin",
+    "examplepack:void_knight"
   ],
   "allow_random": true,
   "auto_choose": false,

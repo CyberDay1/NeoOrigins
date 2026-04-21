@@ -8,6 +8,12 @@
   "origins.examplepack.specter.name": "Specter",
   "origins.examplepack.specter.description": "An ethereal being that slips between the living world and the void.",
 
+  "origins.examplepack.paladin.name": "Paladin",
+  "origins.examplepack.paladin.description": "A holy warrior empowered by armor and the hunt for undead.",
+
+  "origins.examplepack.void_knight.name": "Void Knight",
+  "origins.examplepack.void_knight.description": "A guardian of the End. Picking this origin warps you to an End City — and sends you back there on death if you have no bed.",
+
   "power.examplepack.pyromancer_fire_immunity.name": "Fire Immunity",
   "power.examplepack.pyromancer_fire_immunity.description": "Immune to fire, lava, and all burning damage.",
 
@@ -69,5 +75,17 @@
   "power.examplepack.specter_no_fall_base.description": "Passes through the air without suffering fall damage.",
 
   "power.examplepack.specter_conditional_fall.name": "Spider's Drift",
-  "power.examplepack.specter_conditional_fall.description": "Takes no fall damage while clinging to walls."
+  "power.examplepack.specter_conditional_fall.description": "Takes no fall damage while clinging to walls.",
+
+  "power.examplepack.paladin_helm_of_valor.name": "Helm of Valor",
+  "power.examplepack.paladin_helm_of_valor.description": "Wearing any helmet grants +1 melee damage.",
+
+  "power.examplepack.paladin_smite_vigor.name": "Smite Vigor",
+  "power.examplepack.paladin_smite_vigor.description": "Striking undead restores half a heart.",
+
+  "power.examplepack.paladin_holy_mark.name": "Holy Mark",
+  "power.examplepack.paladin_holy_mark.description": "Undead you hit briefly glow with holy light.",
+
+  "power.examplepack.void_knight_end_ward.name": "End Ward",
+  "power.examplepack.void_knight_end_ward.description": "Grants +2 armor while in The End."
 }
