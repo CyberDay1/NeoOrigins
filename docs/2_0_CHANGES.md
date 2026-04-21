@@ -174,13 +174,19 @@ Collapses 26 modifier/action hook powers into `action_on_event`.
 - `action_on_hit_taken`: `min_damage` now wraps the inner action in `origins:if_else` gated by a new `neoorigins:hit_taken_amount` context-aware condition.
 - `food_restriction`: item-tag filter is expressed via a new `neoorigins:food_item_in_tag` context-aware condition that reads `FoodContext.stack`. Whitelist mode wraps it in `origins:not`.
 
-### Phase 7 — Legacy class retirement (not started)
-- Delete migrated legacy PowerType classes once the aliases are loss-free.
-- Generalise `ConditionalPower` into the full `ConditionPassivePower` pipeline.
-- Collapse `tick_action` into `condition_passive`.
-- Grep audit for deleted class references across events/services.
-- Remove the migration gradle task (currently disabled-writes mode).
-- Update user-facing `POWER_TYPES.md` to document `action_on_event` and drop legacy entries.
+### Phase 7 — Legacy class retirement (in progress)
+
+**First cut (done):** deleted 14 loss-free classes — Phase 1 (`active_launch`, `active_aoe_effect`, `healing_mist`, `repulse`), Phase 2 (`status_effect`, `stacking_status_effects`, `night_vision`, `glow`), Phase 4 (`biome_buff`, `damage_in_biome`, `damage_in_daylight`, `damage_in_water`, `burn_at_health_threshold`, `regen_in_fluid`). Matching type IDs now route through `LegacyPowerTypeAliases` at load time.
+
+**Second cut (done):** retired the 14 Phase 6 dual-path classes — pruned the `forEachOfType(player, XxxPower.class, ...)` legacy scan from each handler site and relied on the existing `EventPowerIndex.dispatchModifier` / `.dispatch` call that was already chaining. Classes deleted: `HungerDrainModifierPower`, `NaturalRegenModifierPower`, `KnockbackModifierPower`, `LongerPotionsPower`, `MoreAnimalLootPower`, `EfficientRepairsPower`, `BetterEnchantingPower`, `BetterCraftedFoodPower`, `BetterBoneMealPower`, `TeleportRangeModifierPower`, `ActionOnKillPower`, `ActionOnHitTakenPower`, `ThornsAuraPower`, `FoodRestrictionPower`. `FoodContext` gained an optional `event` field so `food_item_in_tag` conditions and `cancel_event` actions share a single dispatch context.
+
+**Total Phase 7 deletions:** 28 classes — 88 → 60.
+
+**Deferred:**
+- Generalise `ConditionalPower` into the full `ConditionPassivePower` pipeline. Current shape is a wrapper around an `inner_power` lookup — semantically different from the tick-passive model; needs careful rework.
+- Collapse `tick_action` into `condition_passive`. Current `TickActionPower` has externally-dispatched behavior (`TELEPORT_ON_DAMAGE` action-type resolved in `OriginEventHandler`), not a DSL action — aliasing requires that handler to move to event dispatch first.
+- Remove the migration gradle task (still useful as a diagnostic; retire when no legacy IDs remain in internal JSON).
+- User-facing `POWER_TYPES.md` rewrite to document `persistent_effect` / `condition_passive` / `action_on_event` / `active_ability` as the canonical types and drop retired entries.
 
 ### Phase 8 — Regression pass (not started)
 - Requires runtime; deferred until after Phase 7.
