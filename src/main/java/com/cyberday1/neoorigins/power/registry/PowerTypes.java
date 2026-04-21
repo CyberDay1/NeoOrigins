@@ -61,11 +61,9 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
 
     // --- Passive: combat ---
-    // 2.0 Phase 5 consolidation target: event_triggered dispatches via EventPowerIndex
-    // for action_on_kill, action_on_hit_taken, thorns_aura, scare_entities analogues.
-    public static final DeferredHolder<PowerType<?>, EventTriggeredPower>      EVENT_TRIGGERED      = reg("event_triggered",      new EventTriggeredPower());
     // 2.0 Phase 6 consolidation target: one power covering ~26 Origins-Classes
     // hook types (crafting/food/xp/bonemeal/breed/trade/...) via action+modifier DSL.
+    // Phase 5's separate `event_triggered` type was folded into this one.
     public static final DeferredHolder<PowerType<?>, ActionOnEventPower>       ACTION_ON_EVENT      = reg("action_on_event",      new ActionOnEventPower());
     public static final DeferredHolder<PowerType<?>, ModifyDamagePower>        MODIFY_DAMAGE        = reg("modify_damage",        new ModifyDamagePower());
     public static final DeferredHolder<PowerType<?>, InvulnerabilityPower>     INVULNERABILITY      = reg("invulnerability",      new InvulnerabilityPower());
