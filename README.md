@@ -255,12 +255,14 @@ Any origin can declare a `spawn_location` that the mod will teleport the player 
 | `biome_tag` | Identifier | Find a position inside a biome with this tag |
 | `structure` | Identifier | Find a position inside this structure |
 | `structure_tag` | Identifier | Find a position inside a structure with this tag |
+| `allow_water_surface` | boolean | Default `false`. If no dry land column is found, accept the topmost water column — player spawns feet-in-water, head above. |
+| `allow_ocean_floor` | boolean | Default `false`. If no dry land column is found, accept the seabed — player spawns submerged on the floor (needs water breathing to survive). |
 
-All fields are optional; fields combine with AND (dimension narrows the search, then structure/biome pins down the position within that dimension). Structure match takes precedence over biome when both are specified. Y is resolved via the motion-blocking heightmap, so the player lands on the surface. Search radius is 6400 blocks from that dimension's world spawn; if no match is found, the origin selection/respawn proceeds without teleport (with a warning in the log).
+All fields are optional; fields combine with AND (dimension narrows the search, then structure/biome pins down the position within that dimension). Structure match takes precedence over biome when both are specified. The finder sweeps a 5×5 column area around the hit and scans top-down for the first `(solid, air, air)` column — logical height is respected, so Nether spawns stay below the bedrock ceiling. When that strict land pass finds nothing, `allow_ocean_floor` tries `(solid, water, water)`, then `allow_water_surface` tries the water surface. Search radius is 6400 blocks from that dimension's world spawn; if nothing matches at all, the origin selection/respawn proceeds without teleport (with a warning in the log).
 
 On a respawn **with** a set bed or respawn anchor, vanilla behavior applies — `spawn_location` is only used when there's no respawn point to honor.
 
-The same five fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition` — see [docs/POWER_TYPES.md](docs/POWER_TYPES.md#neooriginsattribute_modifier).
+The same dimension/biome/structure fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition` — see [docs/POWER_TYPES.md](docs/POWER_TYPES.md#neooriginsattribute_modifier). (`allow_water_surface` / `allow_ocean_floor` are ignored in the gate path — they only influence the spawn finder.)
 
 ---
 

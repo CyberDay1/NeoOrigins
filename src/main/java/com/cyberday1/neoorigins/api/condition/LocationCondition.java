@@ -11,10 +11,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 
@@ -33,14 +34,18 @@ public record LocationCondition(
     Optional<Identifier> biome,
     Optional<Identifier> biomeTag,
     Optional<Identifier> structure,
-    Optional<Identifier> structureTag
+    Optional<Identifier> structureTag,
+    boolean allowWaterSurface,
+    boolean allowOceanFloor
 ) {
     public static final Codec<LocationCondition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Identifier.CODEC.optionalFieldOf("dimension").forGetter(LocationCondition::dimension),
         Identifier.CODEC.optionalFieldOf("biome").forGetter(LocationCondition::biome),
         Identifier.CODEC.optionalFieldOf("biome_tag").forGetter(LocationCondition::biomeTag),
         Identifier.CODEC.optionalFieldOf("structure").forGetter(LocationCondition::structure),
-        Identifier.CODEC.optionalFieldOf("structure_tag").forGetter(LocationCondition::structureTag)
+        Identifier.CODEC.optionalFieldOf("structure_tag").forGetter(LocationCondition::structureTag),
+        Codec.BOOL.optionalFieldOf("allow_water_surface", false).forGetter(LocationCondition::allowWaterSurface),
+        Codec.BOOL.optionalFieldOf("allow_ocean_floor", false).forGetter(LocationCondition::allowOceanFloor)
     ).apply(inst, LocationCondition::new));
 
     public boolean isEmpty() {
@@ -148,34 +153,75 @@ public record LocationCondition(
         // yet be generated.
         target.getChunk(found.getX() >> 4, found.getZ() >> 4);
 
-        // Scan from the dimension's top downward for the highest solid block
-        // with two air blocks above it. Don't rely on
-        // MOTION_BLOCKING_NO_LEAVES as the starting Y — on ungenerated
-        // chunks it returns minY and the scan exits before finding anything.
-        // If the exact column at `found` has no safe floor (e.g. The End
-        // structure chunk center lands in a gap between islands), sweep a
-        // 5x5 XZ area looking for a safe spot. Use logicalHeight so ceiling
-        // dimensions (Nether) don't place the player on the bedrock roof.
+        // Use logicalHeight so ceiling dimensions (Nether) don't scan the
+        // dead-air layer above the bedrock roof.
         final int minY = target.dimensionType().minY();
         final int topY = minY + target.dimensionType().logicalHeight() - 1;
+
+        // Pass 1: strict land column — solid floor, two air blocks above.
+        Optional<Vec3> land = findColumn(target, found, minY, topY, LocationCondition::isLandColumn);
+        if (land.isPresent()) return Optional.of(new SpawnTarget(target, land.get()));
+
+        // Pass 2: submerged spawn on the ocean/lake floor (water-breathing
+        // origins). Same column shape as land, but feet+head are water.
+        if (allowOceanFloor) {
+            Optional<Vec3> floor = findColumn(target, found, minY, topY, LocationCondition::isOceanFloorColumn);
+            if (floor.isPresent()) return Optional.of(new SpawnTarget(target, floor.get()));
+        }
+
+        // Pass 3: water surface — feet submerged in the topmost water block,
+        // head in open air. Doesn't require any solid floor beneath.
+        if (allowWaterSurface) {
+            Optional<Vec3> surface = findColumn(target, found, minY, topY, LocationCondition::isWaterSurfaceColumn);
+            if (surface.isPresent()) return Optional.of(new SpawnTarget(target, surface.get()));
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Scans a 5x5 XZ area centered on {@code found} (center-first), and for
+     * each column scans top-down from {@code topY} to {@code minY} looking
+     * for the highest Y satisfying {@code test}. Returns the (x+0.5, y,
+     * z+0.5) spawn position, or empty if no column matches.
+     */
+    private static Optional<Vec3> findColumn(ServerLevel target, BlockPos found, int minY, int topY, ColumnTest test) {
         for (int dx = 0; dx <= 4; dx++) {
             for (int dz = 0; dz <= 4; dz++) {
                 int tryX = found.getX() + (dx % 2 == 0 ? dx / 2 : -((dx + 1) / 2));
                 int tryZ = found.getZ() + (dz % 2 == 0 ? dz / 2 : -((dz + 1) / 2));
                 target.getChunk(tryX >> 4, tryZ >> 4);
                 for (int y = topY; y > minY; y--) {
-                    BlockPos floorPos = new BlockPos(tryX, y - 1, tryZ);
-                    BlockPos feetPos  = new BlockPos(tryX, y,     tryZ);
-                    BlockPos headPos  = new BlockPos(tryX, y + 1, tryZ);
-                    if (target.getBlockState(floorPos).isSolid()
-                        && target.getBlockState(feetPos).isAir()
-                        && target.getBlockState(headPos).isAir()) {
-                        Vec3 spawnPos = new Vec3(tryX + 0.5, y, tryZ + 0.5);
-                        return Optional.of(new SpawnTarget(target, spawnPos));
+                    if (test.matches(target, tryX, y, tryZ)) {
+                        return Optional.of(new Vec3(tryX + 0.5, y, tryZ + 0.5));
                     }
                 }
             }
         }
         return Optional.empty();
+    }
+
+    @FunctionalInterface
+    private interface ColumnTest {
+        boolean matches(ServerLevel level, int x, int y, int z);
+    }
+
+    private static boolean isLandColumn(ServerLevel level, int x, int y, int z) {
+        BlockState floor = level.getBlockState(new BlockPos(x, y - 1, z));
+        BlockState feet  = level.getBlockState(new BlockPos(x, y,     z));
+        BlockState head  = level.getBlockState(new BlockPos(x, y + 1, z));
+        return floor.isSolid() && feet.isAir() && head.isAir();
+    }
+
+    private static boolean isOceanFloorColumn(ServerLevel level, int x, int y, int z) {
+        BlockState floor = level.getBlockState(new BlockPos(x, y - 1, z));
+        return floor.isSolid()
+            && level.getFluidState(new BlockPos(x, y,     z)).is(FluidTags.WATER)
+            && level.getFluidState(new BlockPos(x, y + 1, z)).is(FluidTags.WATER);
+    }
+
+    private static boolean isWaterSurfaceColumn(ServerLevel level, int x, int y, int z) {
+        return level.getFluidState(new BlockPos(x, y, z)).is(FluidTags.WATER)
+            && level.getBlockState(new BlockPos(x, y + 1, z)).isAir();
     }
 }
