@@ -122,6 +122,10 @@ public final class ConditionParser {
                 case "origins:xp_points", "apace:xp_points"             -> parseXpPoints(json);
                 case "origins:moon_phase", "apace:moon_phase"           -> parseMoonPhase(json);
 
+                // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
+                case "neoorigins:hit_taken_amount"                      -> parseHitTakenAmount(json);
+                case "neoorigins:food_item_in_tag"                      -> parseFoodItemInTag(json);
+
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
         } catch (Exception e) {
@@ -588,6 +592,50 @@ public final class ConditionParser {
             int phase = (int) ((sl.getDefaultClockTime() / 24000L) % 8L);
             if (phase < 0) phase += 8;
             return comparison.test(phase, target);
+        };
+    }
+
+    /**
+     * Context-aware condition that checks whether the current FOOD_EATEN
+     * event's held {@link ItemStack} is in the named item tag. Requires an
+     * active {@link com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext}
+     * in the {@link com.cyberday1.neoorigins.service.ActionContextHolder};
+     * evaluates to false outside that context. Used by the
+     * {@code food_restriction} alias to re-express its item-tag filter.
+     */
+    private static EntityCondition parseFoodItemInTag(JsonObject json) {
+        String tag = json.has("tag") ? json.get("tag").getAsString() : null;
+        if (tag == null) return CompatPolicy.FALSE_CONDITION;
+        TagKey<net.minecraft.world.item.Item> itemTag =
+            TagKey.create(Registries.ITEM, Identifier.parse(tag));
+        return p -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
+                return false;
+            }
+            return fc.stack().is(itemTag);
+        };
+    }
+
+    /**
+     * Context-aware condition that compares the current HIT_TAKEN event's
+     * {@code amount} field against a threshold. Requires an active
+     * {@link com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext}
+     * in the {@link com.cyberday1.neoorigins.service.ActionContextHolder} —
+     * evaluates to false outside that context. Used by the
+     * {@code action_on_hit_taken} alias to re-express {@code min_damage}
+     * gating.
+     */
+    private static EntityCondition parseHitTakenAmount(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) {
+                return false;
+            }
+            return comparison.test(htc.amount(), target);
         };
     }
 

@@ -169,13 +169,10 @@ Collapses 26 modifier/action hook powers into `action_on_event`.
 - `craft_amount_bonus` — no reliable `ItemCraftedEvent` fire point; currently tick-polled
 - `more_smoker_xp` — no furnace XP event in NeoForge 21.11.38
 
-**Known alias lossiness (document pack-author limitations before retiring Java classes):**
-- `thorns_aura` alias reflects a flat `amount` instead of ratio-of-incoming-damage. Fix:
-  add an `amount_from: "hit_taken_amount"` field on `damage_attacker`, or a ratio multiplier.
-- `food_restriction` alias cancels ALL food — loses the item-tag filter. Fix: add an
-  item-tag condition that reads `FoodContext.stack` from `ActionContextHolder`.
-- `action_on_hit_taken` alias drops `min_damage`. Fix: add context-aware condition
-  reading `HitTakenContext.amount`.
+**Known alias lossiness — all three fixed via context-aware DSL extensions:**
+- `thorns_aura`: the `neoorigins:damage_attacker` action now accepts an `amount_ratio` field that reads `HitTakenContext.amount` and applies the ratio faithfully (min 0.5). Alias maps `return_ratio` → `amount_ratio`.
+- `action_on_hit_taken`: `min_damage` now wraps the inner action in `origins:if_else` gated by a new `neoorigins:hit_taken_amount` context-aware condition.
+- `food_restriction`: item-tag filter is expressed via a new `neoorigins:food_item_in_tag` context-aware condition that reads `FoodContext.stack`. Whitelist mode wraps it in `origins:not`.
 
 ### Phase 7 — Legacy class retirement (not started)
 - Delete migrated legacy PowerType classes once the aliases are loss-free.

@@ -743,9 +743,22 @@ public final class ActionParser {
     // while running handlers for a given event, so at action-execution time
     // the holder carries the right record (HitTakenContext, FoodContext, ...).
 
-    /** Hurt the attacker recorded in the current HIT_TAKEN context. */
+    /**
+     * Hurt the attacker recorded in the current HIT_TAKEN context.
+     *
+     * <p>Damage amount resolution order:
+     * <ol>
+     *   <li>If {@code amount_ratio} is present, damage = {@code htc.amount() * amount_ratio}
+     *       (minimum 0.5 so very-small incoming hits still draw some blood).</li>
+     *   <li>Otherwise use the fixed {@code amount} field (default 2.0).</li>
+     * </ol>
+     * The ratio path is how {@code thorns_aura}'s alias reflects a fraction of
+     * the incoming damage instead of a flat number.
+     */
     private static EntityAction parseDamageAttacker(JsonObject json) {
         final float amount = json.has("amount") ? json.get("amount").getAsFloat() : 2.0f;
+        final boolean useRatio = json.has("amount_ratio");
+        final float ratio = useRatio ? json.get("amount_ratio").getAsFloat() : 0f;
         final String srcName = json.has("source") && json.get("source").isJsonObject()
             && json.getAsJsonObject("source").has("name")
             ? json.getAsJsonObject("source").get("name").getAsString()
@@ -762,7 +775,7 @@ public final class ActionParser {
                 case "generic" -> player.level().damageSources().generic();
                 default       -> player.level().damageSources().magic();
             };
-            float dmg = amount;
+            float dmg = useRatio ? Math.max(0.5f, htc.amount() * ratio) : amount;
             if (!Float.isFinite(dmg)) dmg = Float.MAX_VALUE;
             le.hurt(ds, dmg);
         };
