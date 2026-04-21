@@ -422,9 +422,18 @@ public final class LegacyPowerTypeAliases {
     // ── Phase 1: active-ability aliases ────────────────────────────────────
     //
     // Only registers aliases for legacy active types whose behaviour maps
-    // cleanly onto the ActionParser DSL. The more bespoke ones (active_teleport,
-    // active_recall, active_fireball, active_bolt, shadow_orb) keep their
-    // dedicated Java classes during the deprecation window.
+    // cleanly onto the ActionParser DSL. The following legacy classes stay
+    // standalone because the DSL can't express their runtime model:
+    //   - active_teleport   (no look-direction teleport verb)
+    //   - active_recall     (stateful saved position)
+    //   - active_place_block (no raycast-and-place verb)
+    //   - shadow_orb        (stateful orb with tick loop)
+    //   - ground_slam       (AoE on mobs — area_of_effect is players-only)
+    //   - tidal_wave        (cone shape — not modelled in area_of_effect)
+    //   - gravity_well      (stateful projectile + vortex)
+    //   - active_phase      (movement state toggle — not an active ability)
+    // Packs using these keep legacy behaviour through the deprecation window.
+    // Phase 7 may add raycast/cone/mob-AoE verbs and shrink this list.
 
     private static final Identifier ID_ACTIVE_ABILITY =
         Identifier.fromNamespaceAndPath("neoorigins", "active_ability");
@@ -497,6 +506,74 @@ public final class LegacyPowerTypeAliases {
                     json.remove("effect");
                     json.remove("duration");
                     json.remove("amplifier");
+                });
+
+        // active_swap: swap positions with a targeted entity. Legacy picks the
+        // entity in the look direction at `range`; the DSL swap_with_entity
+        // swaps with the NEAREST in a radius. Semantics differ slightly — packs
+        // that must target a specific entity in the crosshair should keep the
+        // legacy class until a raycast-based DSL verb exists.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "active_swap"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float range = json.has("range") ? json.get("range").getAsFloat() : 20f;
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "neoorigins:swap_with_entity");
+                    action.addProperty("radius", range);
+                    json.add("entity_action", action);
+                    json.remove("range");
+                });
+
+        // active_fireball: legacy shoots 3–4 small fireballs with a random
+        // spread. Alias collapses to a single projectile — the multi-shot
+        // spread is a lossy simplification. Packs that want the shotgun
+        // behaviour should stay on the legacy class.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "active_fireball"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "origins:spawn_projectile");
+                    action.addProperty("entity_type", "minecraft:small_fireball");
+                    action.addProperty("speed", speed);
+                    json.add("entity_action", action);
+                    json.remove("speed");
+                    json.addProperty("_migration_note",
+                        "active_fireball alias shoots a single fireball — legacy fired 3-4 with spread");
+                });
+
+        // active_bolt: single wind charge in look direction — clean alias.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "active_bolt"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.2f;
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "origins:spawn_projectile");
+                    action.addProperty("entity_type", "minecraft:wind_charge");
+                    action.addProperty("speed", speed);
+                    json.add("entity_action", action);
+                    json.remove("speed");
+                });
+
+        // healing_mist: AoE heal on the caster + nearby players. area_of_effect
+        // is players-only, matching the legacy Player.class filter exactly.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "healing_mist"),
+                 ID_ACTIVE_ABILITY, (json, powerId) -> {
+                    float amount = json.has("heal_amount") ? json.get("heal_amount").getAsFloat() : 6f;
+                    float radius = json.has("radius") ? json.get("radius").getAsFloat() : 8f;
+                    boolean healSelf = !json.has("heal_self") || json.get("heal_self").getAsBoolean();
+
+                    com.google.gson.JsonObject healAction = new com.google.gson.JsonObject();
+                    healAction.addProperty("type", "origins:heal");
+                    healAction.addProperty("amount", amount);
+
+                    com.google.gson.JsonObject aoeAction = new com.google.gson.JsonObject();
+                    aoeAction.addProperty("type", "origins:area_of_effect");
+                    aoeAction.addProperty("radius", radius);
+                    aoeAction.addProperty("include_source", healSelf);
+                    aoeAction.add("entity_action", healAction);
+
+                    json.add("entity_action", aoeAction);
+                    json.remove("heal_amount");
+                    json.remove("radius");
+                    json.remove("heal_self");
                 });
     }
 }
