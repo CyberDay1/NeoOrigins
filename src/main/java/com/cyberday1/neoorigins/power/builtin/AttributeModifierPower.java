@@ -149,27 +149,36 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     }
 
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
-        // Try the attribute ID as-is first; if not found, try adding the
-        // "generic." prefix (MC 1.21.1 still uses prefixed names like
-        // generic.scale, player.block_interaction_range, etc.)
-        Identifier attrId = config.attribute();
+        // Resolve the attribute ID. 1.21.1 uses prefixed names like
+        // "generic.armor" / "player.block_interaction_range"; 26.1 dropped
+        // the prefix entirely — attributes register as bare "armor",
+        // "max_health", etc. Origin authors may JSON-write either form, so
+        // probe both directions: strip the prefix if present, add one if
+        // absent.
+        final Identifier original = config.attribute();
+        Identifier attrId = original;
         var attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        if (attrOpt.isEmpty()) {
-            String path = attrId.getPath();
-            // Try with generic. prefix for unprefixed names (e.g. "scale" → "generic.scale")
-            attrId = Identifier.fromNamespaceAndPath(attrId.getNamespace(), "generic." + path);
+        if (attrOpt.isEmpty() && original.getPath().startsWith("generic.")) {
+            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), original.getPath().substring("generic.".length()));
+            attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
+        }
+        if (attrOpt.isEmpty() && original.getPath().startsWith("player.")) {
+            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), original.getPath().substring("player.".length()));
             attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
         }
         if (attrOpt.isEmpty()) {
-            // Try with player. prefix (e.g. "block_interaction_range" → "player.block_interaction_range")
-            attrId = Identifier.fromNamespaceAndPath(config.attribute().getNamespace(), "player." + config.attribute().getPath());
+            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), "generic." + original.getPath());
+            attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
+        }
+        if (attrOpt.isEmpty()) {
+            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), "player." + original.getPath());
             attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
         }
         if (attrOpt.isEmpty()) {
             if (add) {
                 NeoOrigins.LOGGER.warn(
-                    "attribute_modifier power references unknown attribute '{}' — tried with no prefix, 'generic.', and 'player.' variants. Check the JSON.",
-                    config.attribute());
+                    "attribute_modifier power references unknown attribute '{}' — tried the ID as-is, with and without 'generic.' / 'player.' prefixes. Check the JSON.",
+                    original);
             }
             return;
         }
