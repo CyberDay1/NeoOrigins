@@ -538,13 +538,14 @@ public final class LegacyPowerTypeAliases {
         // Subactions: teleport → neoorigins:random_teleport,
         //             ignite_attacker → neoorigins:ignite_attacker,
         //             effect_on_attacker → neoorigins:effect_on_attacker.
-        // `chance` wraps the chosen action in origins:chance; `min_damage` is
-        // not modelled here (would need a context-aware condition) — packs that
-        // relied on the threshold should adjust manually post-migration.
+        // `chance` wraps the chosen action in origins:chance.
+        // `min_damage` wraps the action in origins:if_else gated by the
+        // neoorigins:hit_taken_amount context-aware condition.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "action_on_hit_taken"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> {
                     String act = json.has("action") ? json.get("action").getAsString() : "teleport";
                     float chance = json.has("chance") ? json.get("chance").getAsFloat() : 1.0f;
+                    float minDamage = json.has("min_damage") ? json.get("min_damage").getAsFloat() : 0f;
                     com.google.gson.JsonObject inner = new com.google.gson.JsonObject();
                     switch (act) {
                         case "ignite_attacker" -> {
@@ -576,6 +577,17 @@ public final class LegacyPowerTypeAliases {
                     } else {
                         root = inner;
                     }
+                    if (minDamage > 0f) {
+                        com.google.gson.JsonObject gate = new com.google.gson.JsonObject();
+                        gate.addProperty("type", "origins:if_else");
+                        com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
+                        cond.addProperty("type", "neoorigins:hit_taken_amount");
+                        cond.addProperty("comparison", ">=");
+                        cond.addProperty("compare_to", minDamage);
+                        gate.add("condition", cond);
+                        gate.add("if_action", root);
+                        root = gate;
+                    }
                     json.addProperty("event", "hit_taken");
                     json.add("entity_action", root);
                     json.remove("action");
@@ -587,16 +599,15 @@ public final class LegacyPowerTypeAliases {
                 });
 
         // thorns_aura → action_on_event { event: hit_taken, entity_action: damage_attacker }
-        // return_ratio becomes a flat amount (default 1.0); packs wanting ratio-of-damage
-        // behaviour should keep using the legacy class. The alias gives a sensible
-        // constant-damage fallback once the Java class is removed.
+        // return_ratio maps to damage_attacker.amount_ratio which reads the
+        // current HitTakenContext.amount — faithful reflection of the legacy
+        // "return N% of incoming damage" behaviour.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "thorns_aura"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> {
                     float ratio = json.has("return_ratio") ? json.get("return_ratio").getAsFloat() : 0.25f;
                     com.google.gson.JsonObject entityAction = new com.google.gson.JsonObject();
                     entityAction.addProperty("type", "neoorigins:damage_attacker");
-                    // Approximate: reflect ~4 base HP × ratio at minimum, capped at 20.
-                    entityAction.addProperty("amount", Math.min(20f, Math.max(0.5f, ratio * 4f)));
+                    entityAction.addProperty("amount_ratio", ratio);
                     com.google.gson.JsonObject src = new com.google.gson.JsonObject();
                     src.addProperty("name", "magic");
                     entityAction.add("source", src);
@@ -605,22 +616,42 @@ public final class LegacyPowerTypeAliases {
                     json.remove("return_ratio");
                 });
 
-        // food_restriction → action_on_event { event: food_eaten, condition: item tag, action: cancel }
-        // Uses the origins `in_tag` item condition via a condition on the item
-        // (not directly supported — context-item conditions aren't wired yet).
-        // For now, the alias maps to a cancel-always pairing with a comment.
-        // Pack authors using this should keep the legacy class until Phase 6.6.
+        // food_restriction → action_on_event { event: food_eaten, entity_action: if_else(...) }
+        // mode=blacklist: cancel if held item is in item_tag.
+        // mode=whitelist: cancel if held item is NOT in item_tag.
+        // Uses neoorigins:food_item_in_tag — a context-aware condition that
+        // reads FoodContext.stack from the ActionContextHolder.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "food_restriction"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> {
-                    com.google.gson.JsonObject entityAction = new com.google.gson.JsonObject();
-                    entityAction.addProperty("type", "neoorigins:cancel_event");
+                    String tag = json.has("item_tag") ? json.get("item_tag").getAsString() : "";
+                    boolean whitelist = json.has("mode")
+                        && "whitelist".equalsIgnoreCase(json.get("mode").getAsString());
+
+                    com.google.gson.JsonObject itemInTag = new com.google.gson.JsonObject();
+                    itemInTag.addProperty("type", "neoorigins:food_item_in_tag");
+                    itemInTag.addProperty("tag", tag);
+
+                    com.google.gson.JsonObject matchCond;
+                    if (whitelist) {
+                        // cancel when item NOT in tag → wrap in origins:not
+                        matchCond = new com.google.gson.JsonObject();
+                        matchCond.addProperty("type", "origins:not");
+                        matchCond.add("condition", itemInTag);
+                    } else {
+                        matchCond = itemInTag;
+                    }
+
+                    com.google.gson.JsonObject cancel = new com.google.gson.JsonObject();
+                    cancel.addProperty("type", "neoorigins:cancel_event");
+                    com.google.gson.JsonObject gate = new com.google.gson.JsonObject();
+                    gate.addProperty("type", "origins:if_else");
+                    gate.add("condition", matchCond);
+                    gate.add("if_action", cancel);
+
                     json.addProperty("event", "food_eaten");
-                    json.add("entity_action", entityAction);
-                    // Preserve the tag/mode hints as a comment so authors can
-                    // convert by hand — the generic alias can't express
-                    // "cancel only when the held item matches tag X" yet.
-                    json.addProperty("_migration_note",
-                        "food_restriction alias cancels ALL food — re-author with an item-tag condition");
+                    json.add("entity_action", gate);
+                    json.remove("item_tag");
+                    json.remove("mode");
                 });
 
         // action_on_kill → action_on_event { event: kill, entity_action: ... }
