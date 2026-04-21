@@ -106,7 +106,7 @@ public class CombatPowerEvents {
                         && !event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) return;
                 if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
                 if (config.targetType().isPresent()
-                        && !config.targetType().get().equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()))) return;
+                        && !matchesEntityIdOrTag(target, config.targetType().get())) return;
                 if (!ActionOnHitPower.rollChance(config)) return;
                 ActionOnHitPower.execute(attackerSp, config, target);
             });
@@ -136,6 +136,21 @@ public class CombatPowerEvents {
             Registries.ENTITY_TYPE,
             Identifier.fromNamespaceAndPath("minecraft", group));
         return target.getType().getTags().anyMatch(t -> t.equals(tag));
+    }
+
+    /**
+     * Matches an entity against a target identifier string. Supports both raw IDs
+     * ({@code "minecraft:zombie"}) and tag references ({@code "#mymod:my_tag"}).
+     * Shared by ActionOnHit, MobsIgnorePlayer, and ScareEntities filter sites so
+     * pack-author JSON is uniform.
+     */
+    public static boolean matchesEntityIdOrTag(LivingEntity target, String idOrTag) {
+        if (idOrTag.startsWith("#")) {
+            TagKey<EntityType<?>> tag = TagKey.create(
+                Registries.ENTITY_TYPE, Identifier.parse(idOrTag.substring(1)));
+            return target.getType().getTags().anyMatch(t -> t.equals(tag));
+        }
+        return Identifier.parse(idOrTag).equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()));
     }
 
     @SubscribeEvent
