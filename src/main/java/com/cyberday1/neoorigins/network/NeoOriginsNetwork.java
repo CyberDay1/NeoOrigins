@@ -213,10 +213,13 @@ public class NeoOriginsNetwork {
 
             syncToPlayer(sp);
 
-            // Teleport the player to the origin's spawn_location, if any.
-            // Runs last so power application and layer-completion bookkeeping
-            // see the player at their pre-teleport position.
-            com.cyberday1.neoorigins.service.OriginSpawnService.teleportToOriginSpawn(sp, event.getNewOrigin());
+            // Teleport to the origin's spawn_location, if any — but only once
+            // the player has finished picking on every layer. Firing after the
+            // first layer's selection would yank them out of the picker
+            // mid-flow (before they've chosen a class, etc.).
+            if (allFilled) {
+                com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+            }
         });
     }
 
