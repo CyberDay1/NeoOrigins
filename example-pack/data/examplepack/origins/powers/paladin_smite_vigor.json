@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:action_on_hit",
+  "action": "restore_health",
+  "amount": 1.0,
+  "target_group": "undead",
+  "name": "power.examplepack.paladin_smite_vigor.name",
+  "description": "power.examplepack.paladin_smite_vigor.description"
+}

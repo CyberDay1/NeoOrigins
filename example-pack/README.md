@@ -15,8 +15,8 @@ Drop this folder (or zip it first) into the `originpacks/` directory in your Min
 | **Pyromancer** | `prevent_action` (fire), `night_vision`, `status_effect`, `modify_damage` (out), `modify_damage` (in) |
 | **Golem** | `attribute_modifier` (armor + speed), `prevent_action` (fall), `effect_immunity`, `no_slowdown`, `scare_entities` |
 | **Specter** | `flight`, `elytra_boost`, `phantom_form`, `water_breathing`, `prevent_action` (sprint food), `wall_climbing`, `scare_entities`, `tick_action`, `conditional` |
-
-All 15 built-in power types are represented across the three origins.
+| **Paladin** | `attribute_modifier` with `equipment_condition` (helmet-gated), `action_on_hit` (self-heal vs undead), `action_on_hit` (apply effect to target) |
+| **Void Knight** | Origin-level `spawn_location` (teleports to an End City on pick + on bed-less respawn), `attribute_modifier` with `location_condition` (End-dimension armor) |
 
 ## File layout
 
@@ -24,8 +24,8 @@ All 15 built-in power types are represented across the three origins.
 example-pack/
   pack.mcmeta
   data/examplepack/origins/
-    origins/         pyromancer.json, golem.json, specter.json
-    powers/          one file per power (16 total)
+    origins/         pyromancer.json, golem.json, specter.json, paladin.json
+    powers/          one file per power
     origin_layers/   examplepack.json   (separate layer from built-in origins)
   assets/examplepack/lang/
     en_us.json       all display names and descriptions

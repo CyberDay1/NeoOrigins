@@ -6,6 +6,10 @@ import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
@@ -90,6 +94,24 @@ public class CombatPowerEvents {
             }
         });
 
+        // ActionOnHitPower — when the attacker is a ServerPlayer, fire its
+        // configured self/target actions against the damaged entity.
+        var attackerEntity = event.getSource().getEntity();
+        if (attackerEntity instanceof ServerPlayer attackerSp && attackerSp != sp) {
+            LivingEntity target = event.getEntity();
+            final float hitAmount = event.getAmount();
+            ActiveOriginService.forEachOfType(attackerSp, ActionOnHitPower.class, config -> {
+                if (hitAmount < config.minDamage()) return;
+                if (config.damageType().isPresent()
+                        && !event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) return;
+                if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
+                if (config.targetType().isPresent()
+                        && !config.targetType().get().equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()))) return;
+                if (!ActionOnHitPower.rollChance(config)) return;
+                ActionOnHitPower.execute(attackerSp, config, target);
+            });
+        }
+
         if (!event.isCanceled()) {
             float amount = event.getAmount();
             ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
@@ -101,6 +123,19 @@ public class CombatPowerEvents {
             // entity_action (reads HitTakenContext.amount × amount_ratio).
             // The HIT_TAKEN dispatch above runs any such powers.
         }
+    }
+
+    /**
+     * Matches an entity against an Origins-style "entity group" name (e.g. "undead",
+     * "arthropod", "illager", "aquatic") by looking up {@code minecraft:<group>} as
+     * a vanilla entity-type tag. Vanilla ships these tags so canonical Origins
+     * groups translate directly.
+     */
+    private static boolean matchesEntityGroup(LivingEntity target, String group) {
+        TagKey<EntityType<?>> tag = TagKey.create(
+            Registries.ENTITY_TYPE,
+            Identifier.fromNamespaceAndPath("minecraft", group));
+        return target.getType().getTags().anyMatch(t -> t.equals(tag));
     }
 
     @SubscribeEvent

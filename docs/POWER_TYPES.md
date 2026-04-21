@@ -14,20 +14,45 @@ If neither field is present, NeoOrigins falls back to the lang key convention:
 
 ## `neoorigins:attribute_modifier`
 
-Permanently adds or multiplies a player attribute while the origin is active.
+Adds or multiplies a player attribute while the origin is active. Optionally gated on an environment condition, an equipped-item condition, or both (AND).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `attribute` | Identifier | yes | — | Attribute to modify, e.g. `minecraft:generic.movement_speed` |
 | `amount` | double | yes | — | Amount to add or multiply |
 | `operation` | string | no | `add_value` | `add_value`, `add_multiplied_base`, or `add_multiplied_total` |
+| `condition` | string | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`. Tick-driven apply/remove. |
+| `equipment_condition` | object | no | — | Equipment gate (see below). Tick-driven apply/remove. |
+| `location_condition` | object | no | — | Location gate — dimension / biome / structure (see below). Tick-driven apply/remove. |
 
 **Operations:**
 - `add_value` — flat addition to base value
 - `add_multiplied_base` — adds `base * amount` (e.g. `-0.1` = 10% slower)
 - `add_multiplied_total` — multiplies total after all other modifiers
 
-**Example — 8 flat armor:**
+**`equipment_condition` object:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `slot` | string | yes | One of `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body` |
+| `item` | Identifier | no | Exact item ID to match (e.g. `minecraft:iron_helmet`) |
+| `tag` | Identifier | no | Item tag to match (e.g. `minecraft:helmets`) |
+
+If both `item` and `tag` are given, either match satisfies the condition (OR). If neither is given, any non-empty stack in the slot counts as a match. When multiple of `condition` / `equipment_condition` / `location_condition` are set, **all** must hold for the modifier to apply.
+
+**`location_condition` object:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `dimension` | Identifier | no | Match only in this dimension, e.g. `minecraft:the_end` |
+| `biome` | Identifier | no | Match only in this specific biome, e.g. `minecraft:plains` |
+| `biome_tag` | Identifier | no | Match only in biomes with this tag, e.g. `minecraft:is_forest` |
+| `structure` | Identifier | no | Match only inside this structure, e.g. `minecraft:end_city` |
+| `structure_tag` | Identifier | no | Match only inside structures with this tag, e.g. `minecraft:on_ocean_monument_maps` |
+
+All fields are optional and combine with AND. So `{ "dimension": "minecraft:the_end", "structure": "minecraft:end_city" }` is "only when standing inside an End City in The End." Structure membership is evaluated server-side via `ServerLevel.structureManager()`.
+
+**Example — 8 flat armor (unconditional):**
 ```json
 {
   "type": "neoorigins:attribute_modifier",
@@ -36,6 +61,49 @@ Permanently adds or multiplies a player attribute while the origin is active.
   "operation": "add_value",
   "name": "Shell",
   "description": "Has permanent natural armor."
+}
+```
+
+**Example — slower on land only:**
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.movement_speed",
+  "amount": -0.25,
+  "operation": "add_multiplied_base",
+  "condition": "on_land",
+  "name": "Landwalker",
+  "description": "Moves slower while out of water."
+}
+```
+
+**Example — +1 attack when wearing any helmet:**
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.attack_damage",
+  "amount": 1.0,
+  "equipment_condition": {
+    "slot": "head",
+    "tag": "minecraft:helmets"
+  },
+  "name": "Helm of Valor",
+  "description": "Empowered while helmeted."
+}
+```
+
+**Example — +2 armor only inside End Cities:**
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.armor",
+  "amount": 2.0,
+  "location_condition": {
+    "dimension": "minecraft:the_end",
+    "structure": "minecraft:end_city"
+  },
+  "name": "Void Ward",
+  "description": "Armored while within the towers of the End."
 }
 ```
 
@@ -112,13 +180,14 @@ Prevents a specific harmful action or event from affecting the player.
 
 ## `neoorigins:modify_damage`
 
-Multiplies damage dealt or received, optionally filtered to a specific damage type.
+Multiplies damage dealt or received, optionally filtered to a specific damage type and, for `direction: out`, restricted to a target entity group.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `direction` | string | no | `in` | `in` (damage received) or `out` (damage dealt) |
 | `multiplier` | float | no | `1.0` | Damage multiplier (e.g. `2.0` = double, `0.5` = half) |
 | `damage_type` | string | no | _(all types)_ | Optional vanilla damage type to filter, e.g. `drown`, `fire`, `fall` |
+| `target_group` | string | no | _(any)_ | Outgoing only. Restrict to targets in this entity group: `undead`, `arthropod`, `illager`, `aquatic`. Resolved as the vanilla `minecraft:<group>` entity-type tag. |
 
 **Example — double incoming water damage:**
 ```json
@@ -141,6 +210,18 @@ Multiplies damage dealt or received, optionally filtered to a specific damage ty
   "damage_type": "fire",
   "name": "Fire Mastery",
   "description": "Deals extra fire damage."
+}
+```
+
+**Example — +50% damage to undead:**
+```json
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "out",
+  "multiplier": 1.5,
+  "target_group": "undead",
+  "name": "Smite",
+  "description": "Strikes the undead harder."
 }
 ```
 
@@ -604,10 +685,10 @@ Triggers an action each time the player kills a living entity.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `action` | string | no | `restore_health` | Action to perform: `restore_health`, `restore_hunger`, `grant_effect` |
-| `amount` | float | no | `2.0` | Health or hunger to restore |
+| `amount` | float | no | `4.0` | Health or hunger to restore |
 | `effect` | Identifier | no | — | Effect to grant (when `action` is `grant_effect`) |
 | `amplifier` | int | no | `0` | Effect level |
-| `duration_ticks` | int | no | `200` | Effect duration |
+| `duration` | int | no | `200` | Effect duration in ticks |
 
 **Example — restore 1 heart on kill:**
 ```json
@@ -624,15 +705,17 @@ Triggers an action each time the player kills a living entity.
 
 ## `neoorigins:action_on_hit_taken`
 
-Triggers an action each time the player takes damage from a living entity.
+Triggers an action each time the player takes damage.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `action` | string | no | `grant_effect` | Action to perform: `restore_health`, `restore_hunger`, `grant_effect` |
-| `amount` | float | no | `2.0` | Health or hunger to restore |
-| `effect` | Identifier | no | — | Effect to grant (when `action` is `grant_effect`) |
+| `action` | string | no | `teleport` | Action to perform: `teleport`, `restore_health`, `restore_hunger`, `grant_effect`, `ignite_attacker`, `effect_on_attacker` |
+| `min_damage` | float | no | `0.0` | Only fires when incoming damage ≥ this |
+| `chance` | float | no | `1.0` | Probability to fire, from 0.0 to 1.0 |
+| `amount` | float | no | `2.0` | Health or hunger to restore (where applicable) |
+| `effect` | Identifier | no | — | Effect to apply (for `grant_effect` / `effect_on_attacker`) |
 | `amplifier` | int | no | `0` | Effect level |
-| `duration_ticks` | int | no | `200` | Effect duration |
+| `duration` | int | no | `100` | Effect duration in ticks |
 
 **Example — gain Speed II briefly when hit:**
 ```json
@@ -641,9 +724,70 @@ Triggers an action each time the player takes damage from a living entity.
   "action": "grant_effect",
   "effect": "minecraft:speed",
   "amplifier": 1,
-  "duration_ticks": 60,
+  "duration": 60,
   "name": "Combat Rush",
   "description": "Gains a burst of speed when struck."
+}
+```
+
+---
+
+## `neoorigins:action_on_hit`
+
+Triggers an action each time the player deals damage to a living entity, optionally restricted by target entity group, target entity type, or damage type. The configured `action` may target the player (self) or the victim.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | string | no | `restore_health` | One of `restore_health`, `restore_hunger`, `grant_effect` (self), `target_effect` (victim) |
+| `amount` | float | no | `2.0` | Health or hunger amount (for the restore actions) |
+| `effect` | Identifier | no | — | Effect to apply for `grant_effect` / `target_effect` |
+| `duration` | int | no | `100` | Effect duration in ticks |
+| `amplifier` | int | no | `0` | Effect level |
+| `min_damage` | float | no | `0.0` | Only fires when outgoing damage ≥ this |
+| `chance` | float | no | `1.0` | Probability to fire, from 0.0 to 1.0 |
+| `target_group` | string | no | _(any)_ | Restrict to targets in group: `undead`, `arthropod`, `illager`, `aquatic` (vanilla `minecraft:<group>` entity-type tag) |
+| `target_type` | Identifier | no | _(any)_ | Restrict to a specific entity type, e.g. `minecraft:zombie` |
+| `damage_type` | string | no | _(all)_ | Restrict to a specific vanilla damage type, e.g. `mob_attack`, `magic` |
+
+Filters are combined with AND: every configured filter must match for the action to fire. The `chance` roll happens last.
+
+**Example — heal 0.5 hearts on striking any undead:**
+```json
+{
+  "type": "neoorigins:action_on_hit",
+  "action": "restore_health",
+  "amount": 1.0,
+  "target_group": "undead",
+  "name": "Smite Vigor",
+  "description": "Drains life from the undead with each blow."
+}
+```
+
+**Example — mark the victim with Glowing when striking undead:**
+```json
+{
+  "type": "neoorigins:action_on_hit",
+  "action": "target_effect",
+  "effect": "minecraft:glowing",
+  "duration": 60,
+  "target_group": "undead",
+  "name": "Holy Mark",
+  "description": "Hit undead are illuminated briefly."
+}
+```
+
+**Example — 20% chance to gain Strength I on hitting a zombie, on melee only:**
+```json
+{
+  "type": "neoorigins:action_on_hit",
+  "action": "grant_effect",
+  "effect": "minecraft:strength",
+  "duration": 60,
+  "chance": 0.2,
+  "damage_type": "mob_attack",
+  "target_type": "minecraft:zombie",
+  "name": "Adrenal Surge",
+  "description": "Sometimes empowered when you melee a zombie."
 }
 ```
 

@@ -65,6 +65,7 @@ public class PowerTypes {
     // retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, ProjectileImmunityPower>  PROJECTILE_IMMUNITY  = reg("projectile_immunity",  new ProjectileImmunityPower());
     public static final DeferredHolder<PowerType<?>, ScareEntitiesPower>       SCARE_ENTITIES       = reg("scare_entities",       new ScareEntitiesPower());
+    public static final DeferredHolder<PowerType<?>, ActionOnHitPower>         ACTION_ON_HIT        = reg("action_on_hit",        new ActionOnHitPower());
 
     // --- Passive: scalars & misc ---
     // hunger_drain_modifier, natural_regen_modifier retired in 2.0; aliased to action_on_event.

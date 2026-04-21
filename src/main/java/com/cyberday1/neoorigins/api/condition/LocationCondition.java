@@ -1,0 +1,149 @@
+package com.cyberday1.neoorigins.api.condition;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.Optional;
+
+/**
+ * A reusable predicate over a player's current location. All fields are
+ * optional and combine with AND — a condition is satisfied only when every
+ * present field matches.
+ *
+ * <p>Evaluated server-side: structure lookups rely on
+ * {@code ServerLevel.structureManager()} which is not populated on the client.
+ */
+public record LocationCondition(
+    Optional<Identifier> dimension,
+    Optional<Identifier> biome,
+    Optional<Identifier> biomeTag,
+    Optional<Identifier> structure,
+    Optional<Identifier> structureTag
+) {
+    public static final Codec<LocationCondition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+        Identifier.CODEC.optionalFieldOf("dimension").forGetter(LocationCondition::dimension),
+        Identifier.CODEC.optionalFieldOf("biome").forGetter(LocationCondition::biome),
+        Identifier.CODEC.optionalFieldOf("biome_tag").forGetter(LocationCondition::biomeTag),
+        Identifier.CODEC.optionalFieldOf("structure").forGetter(LocationCondition::structure),
+        Identifier.CODEC.optionalFieldOf("structure_tag").forGetter(LocationCondition::structureTag)
+    ).apply(inst, LocationCondition::new));
+
+    public boolean isEmpty() {
+        return dimension.isEmpty() && biome.isEmpty() && biomeTag.isEmpty()
+            && structure.isEmpty() && structureTag.isEmpty();
+    }
+
+    /** Tests the player's current server-side location against this condition. */
+    public boolean test(ServerPlayer player) {
+        ServerLevel level = player.level();
+        BlockPos pos = player.blockPosition();
+
+        if (dimension.isPresent() && !level.dimension().identifier().equals(dimension.get())) return false;
+
+        if (biome.isPresent() || biomeTag.isPresent()) {
+            Holder<Biome> biomeHolder = level.getBiome(pos);
+            if (biome.isPresent()) {
+                var key = biomeHolder.unwrapKey();
+                if (key.isEmpty() || !key.get().identifier().equals(biome.get())) return false;
+            }
+            if (biomeTag.isPresent()) {
+                TagKey<Biome> tag = TagKey.create(Registries.BIOME, biomeTag.get());
+                if (!biomeHolder.is(tag)) return false;
+            }
+        }
+
+        if (structure.isPresent()) {
+            var structureHolder = level.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(structure.get());
+            if (structureHolder.isEmpty()) return false;
+            if (!level.structureManager().getStructureWithPieceAt(pos, structureHolder.get().value()).isValid()) return false;
+        }
+        if (structureTag.isPresent()) {
+            TagKey<Structure> tag = TagKey.create(Registries.STRUCTURE, structureTag.get());
+            if (!level.structureManager().getStructureWithPieceAt(pos, tag).isValid()) return false;
+        }
+
+        return true;
+    }
+
+    /** Resolved (level, position) pair returned by {@link #locateSpawn}. */
+    public record SpawnTarget(ServerLevel level, Vec3 pos) {}
+
+    /**
+     * Searches for a position matching this spec, starting from the target
+     * dimension's shared spawn. Structure match takes precedence over biome
+     * when both are specified (structure search already constrains location).
+     *
+     * <p>Returns empty when the spec is empty, when the target dimension is
+     * not loaded, or when no matching biome/structure is found within the
+     * search radius.
+     */
+    public Optional<SpawnTarget> locateSpawn(ServerPlayer player) {
+        if (isEmpty()) return Optional.empty();
+
+        ServerLevel target;
+        if (dimension.isPresent()) {
+            ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, dimension.get());
+            target = player.level().getServer() != null ? player.level().getServer().getLevel(dimKey) : null;
+            if (target == null) return Optional.empty();
+        } else {
+            target = player.level();
+        }
+
+        // Search from the dimension's world origin — structure generation is
+        // centered on (0,0,0), so the closest match from there is the canonical
+        // "spawn-area" structure for that dimension. Matches the 1.21.1 branch's
+        // getSharedSpawnPos() intent now that 26.1 removed that accessor.
+        BlockPos searchOrigin = BlockPos.ZERO;
+        BlockPos found = null;
+
+        if (structure.isPresent() || structureTag.isPresent()) {
+            if (structureTag.isPresent()) {
+                TagKey<Structure> tag = TagKey.create(Registries.STRUCTURE, structureTag.get());
+                found = target.findNearestMapStructure(tag, searchOrigin, 6400, false);
+            } else {
+                Registry<Structure> reg = target.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+                var strHolderOpt = reg.get(structure.get());
+                if (strHolderOpt.isEmpty()) return Optional.empty();
+                HolderSet<Structure> set = HolderSet.direct(strHolderOpt.get());
+                var pair = target.getChunkSource().getGenerator().findNearestMapStructure(target, set, searchOrigin, 6400, false);
+                if (pair != null) found = pair.getFirst();
+            }
+            if (found == null) return Optional.empty();
+        } else if (biome.isPresent() || biomeTag.isPresent()) {
+            var pair = target.findClosestBiome3d(holder -> {
+                if (biome.isPresent()) {
+                    var key = holder.unwrapKey();
+                    if (key.isEmpty() || !key.get().identifier().equals(biome.get())) return false;
+                }
+                if (biomeTag.isPresent()) {
+                    TagKey<Biome> tag = TagKey.create(Registries.BIOME, biomeTag.get());
+                    if (!holder.is(tag)) return false;
+                }
+                return true;
+            }, searchOrigin, 6400, 32, 64);
+            if (pair == null) return Optional.empty();
+            found = pair.getFirst();
+        } else {
+            found = searchOrigin;
+        }
+
+        int y = target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, found.getX(), found.getZ());
+        Vec3 spawnPos = new Vec3(found.getX() + 0.5, y, found.getZ() + 0.5);
+        return Optional.of(new SpawnTarget(target, spawnPos));
+    }
+}

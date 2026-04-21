@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.api.origin;
 
+import com.cyberday1.neoorigins.api.condition.LocationCondition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
@@ -18,7 +19,8 @@ public record Origin(
     boolean special,
     Component name,
     Component description,
-    List<OriginUpgrade> upgrades
+    List<OriginUpgrade> upgrades,
+    Optional<LocationCondition> spawnLocation
 ) {
     public static final Codec<Origin> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Identifier.CODEC.fieldOf("id").forGetter(Origin::id),
@@ -30,6 +32,7 @@ public record Origin(
         Codec.BOOL.optionalFieldOf("special", false).forGetter(Origin::special),
         ComponentCodecHelper.CODEC.fieldOf("name").forGetter(Origin::name),
         ComponentCodecHelper.CODEC.fieldOf("description").forGetter(Origin::description),
-        OriginUpgrade.CODEC.listOf().optionalFieldOf("upgrades", List.of()).forGetter(Origin::upgrades)
+        OriginUpgrade.CODEC.listOf().optionalFieldOf("upgrades", List.of()).forGetter(Origin::upgrades),
+        LocationCondition.CODEC.optionalFieldOf("spawn_location").forGetter(Origin::spawnLocation)
     ).apply(inst, Origin::new));
 }
