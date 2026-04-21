@@ -1,11 +1,15 @@
 package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.power.builtin.RestrictArmorPower;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.EventPowerIndex;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 
@@ -43,5 +47,21 @@ public class InteractionPowerEvents {
     public static void onItemUseFinish(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, event.getItem());
+    }
+
+    @SubscribeEvent
+    public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack neu = event.getTo();
+        if (neu.isEmpty()) return;
+        final var slot = event.getSlot();
+        final boolean[] rejected = {false};
+        ActiveOriginService.forEachOfType(sp, RestrictArmorPower.class, cfg -> {
+            if (RestrictArmorPower.isRestricted(neu, slot, cfg)) rejected[0] = true;
+        });
+        if (rejected[0]) {
+            sp.setItemSlot(slot, ItemStack.EMPTY);
+            if (!sp.getInventory().add(neu)) sp.drop(neu, false);
+        }
     }
 }
