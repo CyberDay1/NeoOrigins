@@ -86,7 +86,7 @@ tasks.withType(ProcessResources).configureEach {
 //
 // Scans built-in power JSONs for legacy types that are slated to be collapsed
 // into the 2.0 generics (active_ability / persistent_effect / condition_passive /
-// event_triggered). Currently read-only: reports hits only. Field-remap writes
+// action_on_event). Currently read-only: reports hits only. Field-remap writes
 // will be enabled once the remappers in LegacyPowerTypeAliases are confirmed
 // lossless for every internal JSON. Task is removed in Phase 7.
 //
@@ -120,8 +120,8 @@ tasks.register('migrateLegacyPowers') {
             'neoorigins:no_mob_spawns_nearby'   : 'neoorigins:condition_passive',
             'neoorigins:burn_at_health_threshold': 'neoorigins:condition_passive',
             'neoorigins:tick_action'            : 'neoorigins:condition_passive',
-            'neoorigins:action_on_kill'         : 'neoorigins:event_triggered',
-            'neoorigins:action_on_hit_taken'    : 'neoorigins:event_triggered',
+            'neoorigins:action_on_kill'         : 'neoorigins:action_on_event',
+            'neoorigins:action_on_hit_taken'    : 'neoorigins:action_on_event',
         ]
         def counts = [:].withDefault { 0 }
         int scanned = 0

@@ -93,7 +93,7 @@ per boot (`WARNED` set).
 - Client-side power sync infrastructure, capability-tag system
 - Flight capability + dimension-change sync
 - Wall-climb via `onClimbable` mixin
-- Generic types landed: `ActiveAbilityPower`, `PersistentEffectPower`, `ConditionPassivePower`, `EventTriggeredPower`
+- Generic types landed: `ActiveAbilityPower`, `PersistentEffectPower`, `ConditionPassivePower`, `ActionOnEventPower`
 
 ### Phase 2 — Action/Condition DSL (done)
 - `ActionParser` with ~30 verbs (Origins + Apace + NeoOrigins namespaces)
@@ -226,7 +226,6 @@ either-or.
 - `power/builtin/ActionOnEventPower.java` — the Phase 6 generic type
 - `power/builtin/ActiveAbilityPower.java` — Phase 1 active generic
 - `power/builtin/ConditionPassivePower.java` — Phase 1 passive generic
-- `power/builtin/EventTriggeredPower.java` — predecessor to `ActionOnEventPower` (kept during transition)
 - `power/builtin/PersistentEffectPower.java` — Phase 1 persistent effect generic
 - `power/registry/LegacyPowerTypeAliases.java` — the alias rewrite table
 - `compat/modifier/ModifierParser.java` — FloatModifier DSL
