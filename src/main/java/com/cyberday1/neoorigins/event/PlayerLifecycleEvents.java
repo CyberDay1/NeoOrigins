@@ -279,4 +279,45 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.WAKE_UP);
     }
+
+    /** Per-player stash for items kept across death via KeepInventoryPower. */
+    private static final java.util.Map<java.util.UUID, java.util.List<net.minecraft.world.item.ItemStack>> KEPT_STASH
+        = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGH)
+    public static void onLivingDeath(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var inv = sp.getInventory();
+        var kept = new java.util.ArrayList<net.minecraft.world.item.ItemStack>();
+        int total = inv.getContainerSize();
+        for (int i = 0; i < total; i++) {
+            var stack = inv.getItem(i);
+            if (stack.isEmpty()) continue;
+            final int slotIdx = i;
+            final var stackRef = stack;
+            final boolean[] match = {false};
+            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.class, cfg -> {
+                var cat = com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.SlotCategory.forInventoryIndex(slotIdx);
+                if (!com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.matchesSlot(cfg, cat)) return;
+                if (!com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.matchesItem(cfg, stackRef)) return;
+                match[0] = true;
+            });
+            if (match[0]) {
+                kept.add(stack.copy());
+                inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+            }
+        }
+        if (!kept.isEmpty()) KEPT_STASH.put(sp.getUUID(), kept);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        if (!event.isWasDeath()) return;
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var stash = KEPT_STASH.remove(sp.getUUID());
+        if (stash == null) return;
+        for (var stack : stash) {
+            if (!sp.getInventory().add(stack)) sp.drop(stack, false);
+        }
+    }
 }
