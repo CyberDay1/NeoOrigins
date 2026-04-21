@@ -183,8 +183,29 @@ public class PlayerLifecycleEvents {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
         }
-        if (!event.isEndConquered() && sp.getRespawnPosition() == null) {
-            com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+        // modify_player_spawn — per-power respawn override. Runs before the
+        // bed-less fallback and may also override the bed if override_bed=true.
+        if (!event.isEndConquered()) {
+            final boolean[] teleported = {false};
+            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.ModifyPlayerSpawnPower.class, cfg -> {
+                if (teleported[0]) return;
+                if (!cfg.overrideBed() && sp.getRespawnPosition() != null) return;
+                var target = cfg.location().locateSpawn(sp);
+                if (target.isEmpty()) return;
+                var pos = target.get().pos();
+                if (target.get().level() == sp.level()) {
+                    sp.teleportTo(pos.x, pos.y, pos.z);
+                } else {
+                    sp.changeDimension(new net.minecraft.world.level.portal.DimensionTransition(
+                        target.get().level(), pos, net.minecraft.world.phys.Vec3.ZERO,
+                        sp.getYRot(), sp.getXRot(),
+                        net.minecraft.world.level.portal.DimensionTransition.DO_NOTHING));
+                }
+                teleported[0] = true;
+            });
+            if (!teleported[0] && sp.getRespawnPosition() == null) {
+                com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+            }
         }
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
