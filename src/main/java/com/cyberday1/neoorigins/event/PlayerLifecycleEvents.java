@@ -167,6 +167,12 @@ public class PlayerLifecycleEvents {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
         }
+        // If the player had no bed/respawn anchor (event.isEndConquered() is the
+        // "returned from End" path which keeps their normal spawn — skip that),
+        // route them to their origin's spawn_location instead of world spawn.
+        if (!event.isEndConquered() && sp.getRespawnConfig() == null) {
+            com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+        }
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
         pendingResync.put(sp.getUUID(), 2);

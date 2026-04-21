@@ -1,0 +1,13 @@
+{
+  "name": "origins.examplepack.paladin.name",
+  "description": "origins.examplepack.paladin.description",
+  "icon": "minecraft:golden_helmet",
+  "impact": "medium",
+  "order": 12,
+  "powers": [
+    "examplepack:paladin_helm_of_valor",
+    "examplepack:paladin_smite_vigor",
+    "examplepack:paladin_holy_mark"
+  ],
+  "upgrades": []
+}

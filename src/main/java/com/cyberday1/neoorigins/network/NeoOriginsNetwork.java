@@ -172,6 +172,11 @@ public class NeoOriginsNetwork {
             if (allFilled) data.setHadAllOrigins(true);
 
             syncToPlayer(sp);
+
+            // Teleport the player to the origin's spawn_location, if any.
+            // Runs last so power application and layer-completion bookkeeping
+            // see the player at their pre-teleport position.
+            com.cyberday1.neoorigins.service.OriginSpawnService.teleportToOriginSpawn(sp, event.getNewOrigin());
         });
     }
 
