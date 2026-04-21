@@ -93,8 +93,73 @@ public final class LegacyPowerTypeAliases {
 
     public static void bootstrap() {
         registerActiveAbilityAliases();
+        registerPersistentEffectAliases();
         registerModifierHookAliases();
         NeoOrigins.LOGGER.debug("[2.0-legacy] power-type alias table initialised ({} entries)", size());
+    }
+
+    // ── Phase 2: persistent-effect aliases ─────────────────────────────────
+    //
+    // Collapses the 5 legacy types that are semantically "apply one or more
+    // mob effects while some condition holds" into neoorigins:persistent_effect.
+    // The three legacy types that do NOT fit this shape (breath_in_fluid,
+    // regen_in_fluid, effect_immunity) stay on their own classes and will
+    // migrate in Phase 4 / Phase 6 under different generics.
+
+    private static final Identifier ID_PERSISTENT_EFFECT =
+        Identifier.fromNamespaceAndPath("neoorigins", "persistent_effect");
+
+    private static void registerPersistentEffectAliases() {
+        // status_effect: single MobEffect with amplifier/ambient/show_particles —
+        // already compatible with persistent_effect's top-level fallback parse.
+        // Default toggleable stays true, matching AbstractTogglePower semantics.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "status_effect"),
+                 ID_PERSISTENT_EFFECT);
+
+        // stacking_status_effects: list of effects, passive (not toggleable).
+        // Effects list passes through verbatim; force toggleable off since
+        // the default on persistent_effect is true.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "stacking_status_effects"),
+                 ID_PERSISTENT_EFFECT, (json, powerId) -> {
+                    json.addProperty("toggleable", false);
+                });
+
+        // night_vision: toggle, no effect config in legacy JSON.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "night_vision"),
+                 ID_PERSISTENT_EFFECT, (json, powerId) -> {
+                    writeSingleEffect(json, "minecraft:night_vision", false);
+                });
+
+        // glow: toggle, no effect config in legacy JSON.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "glow"),
+                 ID_PERSISTENT_EFFECT, (json, powerId) -> {
+                    writeSingleEffect(json, "minecraft:glowing", true);
+                });
+
+        // water_breathing: apply water_breathing while in water. Icon hidden
+        // to match legacy "no HUD indicator" behaviour (original just refilled
+        // air supply directly). Not toggleable.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "water_breathing"),
+                 ID_PERSISTENT_EFFECT, (json, powerId) -> {
+                    writeSingleEffect(json, "minecraft:water_breathing", false);
+                    json.addProperty("toggleable", false);
+                    com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
+                    cond.addProperty("type", "origins:in_water");
+                    json.add("condition", cond);
+                });
+    }
+
+    /** Build an effects: [ { effect, show_icon } ] array on the given JSON. */
+    private static void writeSingleEffect(JsonObject json, String effectId, boolean showIcon) {
+        com.google.gson.JsonObject spec = new com.google.gson.JsonObject();
+        spec.addProperty("effect", effectId);
+        spec.addProperty("amplifier", 0);
+        spec.addProperty("ambient", true);
+        spec.addProperty("show_particles", false);
+        spec.addProperty("show_icon", showIcon);
+        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
+        effects.add(spec);
+        json.add("effects", effects);
     }
 
     // ── Phase 6: Origins-Classes modifier hook aliases ─────────────────────
