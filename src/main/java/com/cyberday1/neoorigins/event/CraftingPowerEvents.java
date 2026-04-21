@@ -27,14 +27,10 @@ public class CraftingPowerEvents {
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
 
         BlockPos pos = event.getPos();
-        // Legacy class scan.
-        final int[] extras = {0};
-        ActiveOriginService.forEachOfType(sp, BetterBoneMealPower.class,
-            cfg -> extras[0] += cfg.extraApplications());
-        // 2.0: chain any action_on_event powers declared for MOD_BONEMEAL_EXTRA.
+        // better_bone_meal moved to action_on_event (MOD_BONEMEAL_EXTRA).
         float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_BONEMEAL_EXTRA,
-            event, (float) extras[0]);
+            event, 0f);
         int total = Math.max(0, Math.round(chained));
         for (int i = 0; i < total; i++) {
             BlockState state = sl.getBlockState(pos);
@@ -54,16 +50,12 @@ public class CraftingPowerEvents {
         var nearby = sl.getEntitiesOfClass(ServerPlayer.class,
             new net.minecraft.world.phys.AABB(pos).inflate(8));
         for (ServerPlayer sp : nearby) {
-            final int[] bonus = {0};
-            ActiveOriginService.forEachOfType(sp, BetterEnchantingPower.class, cfg ->
-                bonus[0] += cfg.bonusLevels());
-            // 2.0: chain any action_on_event powers declared for MOD_ENCHANT_LEVEL.
-            // Modifier is applied to the current level as the base; chain converts
-            // int ↔ float at the boundary.
+            // better_enchanting moved to action_on_event (MOD_ENCHANT_LEVEL).
+            // Modifier is applied to the current level as the base.
             float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
                 sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ENCHANT_LEVEL,
                 event, (float) event.getEnchantLevel());
-            int finalLevel = Math.max(1, Math.round(chained)) + bonus[0];
+            int finalLevel = Math.max(1, Math.round(chained));
             if (finalLevel != event.getEnchantLevel()) {
                 event.setEnchantLevel(finalLevel);
                 return;
@@ -92,18 +84,15 @@ public class CraftingPowerEvents {
         FoodProperties food = result.get(DataComponents.FOOD);
         if (food == null) return;
 
-        final float[] bonus = {0f};
-        ActiveOriginService.forEachOfType(sp, BetterCraftedFoodPower.class,
-            cfg -> bonus[0] += cfg.saturationBonus());
-        // 2.0: chain any action_on_event powers declared for MOD_CRAFTED_FOOD_SATURATION.
-        bonus[0] = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+        // better_crafted_food moved to action_on_event (MOD_CRAFTED_FOOD_SATURATION).
+        float bonus = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_CRAFTED_FOOD_SATURATION,
-            result, bonus[0]);
-        if (bonus[0] <= 0f) return;
+            result, 0f);
+        if (bonus <= 0f) return;
 
         FoodProperties.Builder builder = new FoodProperties.Builder()
             .nutrition(food.nutrition())
-            .saturationModifier(food.saturation() + bonus[0]);
+            .saturationModifier(food.saturation() + bonus);
         if (food.canAlwaysEat()) builder.alwaysEdible();
         result.set(DataComponents.FOOD, builder.build());
     }
@@ -112,14 +101,11 @@ public class CraftingPowerEvents {
     public static void onAnvilUpdate(AnvilUpdateEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
 
-        final float[] mult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, EfficientRepairsPower.class, cfg ->
-            mult[0] *= cfg.costMultiplier());
-        // 2.0: chain any action_on_event powers declared for MOD_ANVIL_COST.
-        mult[0] = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ANVIL_COST, event, mult[0]);
-        if (mult[0] != 1.0f) {
-            int cost = Math.max(1, (int)(event.getXpCost() * mult[0]));
+        // efficient_repairs moved to action_on_event (MOD_ANVIL_COST).
+        float mult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ANVIL_COST, event, 1.0f);
+        if (mult != 1.0f) {
+            int cost = Math.max(1, (int)(event.getXpCost() * mult));
             event.setXpCost(cost);
         }
     }

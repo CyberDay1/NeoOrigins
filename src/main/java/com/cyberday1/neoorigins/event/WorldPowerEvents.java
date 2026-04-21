@@ -94,14 +94,8 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingHeal(LivingHealEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        // Legacy class scan (backward compat while NaturalRegenModifierPower exists).
-        final float[] mult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, NaturalRegenModifierPower.class,
-            cfg -> mult[0] *= cfg.multiplier());
-        float scaled = event.getAmount() * mult[0];
-        // 2.0: chain any action_on_event powers declared for MOD_NATURAL_REGEN.
-        scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_NATURAL_REGEN, null, scaled);
+        float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_NATURAL_REGEN, null, event.getAmount());
         if (scaled != event.getAmount()) {
             // Defence-in-depth clamp against non-finite results — see
             // CombatPowerEvents.onLivingDamage for the full story of

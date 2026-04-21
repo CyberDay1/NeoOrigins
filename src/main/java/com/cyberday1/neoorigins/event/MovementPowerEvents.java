@@ -62,21 +62,16 @@ public class MovementPowerEvents {
     public static void onItemUseStart(LivingEntityUseItemEvent.Start event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack item = event.getItem();
-        ActiveOriginService.forEachOfType(sp, FoodRestrictionPower.class, cfg -> {
-            var tag = TagKey.create(Registries.ITEM, cfg.itemTag());
-            boolean inTag = item.is(tag);
-            boolean shouldBlock = cfg.isWhitelist() ? !inTag : inTag;
-            if (shouldBlock) event.setCanceled(true);
-        });
-        // 2.0: dispatch FOOD_EATEN with the cancellable event as context so
-        // `neoorigins:cancel_event` can veto the eat via ICancellableEvent.
-        // Fires only for edible items to approximate the legacy food_restriction
-        // semantics (which only cared about food).
+        // food_restriction moved to action_on_event (FOOD_EATEN). Publish the
+        // cancellable event itself as the dispatch target (so cancel_event
+        // works via ICancellableEvent) while also stashing a FoodContext on
+        // the ActionContextHolder so neoorigins:food_item_in_tag can read the
+        // held stack.
         if (item.has(net.minecraft.core.component.DataComponents.FOOD)) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.FOOD_EATEN,
-                event);
+                new com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext(item, event));
         }
     }
 }

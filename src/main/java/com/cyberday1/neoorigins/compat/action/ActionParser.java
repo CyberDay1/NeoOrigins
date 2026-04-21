@@ -844,6 +844,12 @@ public final class ActionParser {
     private static EntityAction parseCancelEvent() {
         return player -> {
             Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            // Some contexts wrap the cancellable event — unwrap those first.
+            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc
+                && fc.event() != null) {
+                fc.event().setCanceled(true);
+                return;
+            }
             if (ctx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
                 ce.setCanceled(true);
             }
