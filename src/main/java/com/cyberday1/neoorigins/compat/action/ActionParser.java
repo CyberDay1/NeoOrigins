@@ -89,6 +89,7 @@ public final class ActionParser {
                 case "neoorigins:effect_on_attacker"                        -> parseEffectOnAttacker(json);
                 case "neoorigins:random_teleport"                           -> parseRandomTeleport(json);
                 case "neoorigins:cancel_event"                              -> parseCancelEvent();
+                case "neoorigins:toggle"                                    -> parseToggle(json);
 
                 default -> failNoop(type, contextId, "unsupported action type");
             };
@@ -848,6 +849,21 @@ public final class ActionParser {
             if (ctx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
                 ce.setCanceled(true);
             }
+        };
+    }
+
+    /** Flip (or set, if `value` is given) the toggle state for the named power id. */
+    private static EntityAction parseToggle(JsonObject json) {
+        String powerId = json.has("power") ? json.get("power").getAsString() : null;
+        if (powerId == null || powerId.isBlank()) {
+            return failNoop("neoorigins:toggle", "root", "missing 'power' field");
+        }
+        final Boolean explicit = json.has("value") ? json.get("value").getAsBoolean() : null;
+        final String key = powerId;
+        return player -> {
+            var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.toggleState());
+            if (explicit != null) state.set(key, explicit);
+            else state.toggle(key, false);
         };
     }
 

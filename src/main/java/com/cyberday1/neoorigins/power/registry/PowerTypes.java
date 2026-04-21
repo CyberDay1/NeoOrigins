@@ -81,6 +81,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, TickActionPower>          TICK_ACTION          = reg("tick_action",          new TickActionPower());
     public static final DeferredHolder<PowerType<?>, ConditionalPower>         CONDITIONAL          = reg("conditional",          new ConditionalPower());
     public static final DeferredHolder<PowerType<?>, PhantomFormPower>         PHANTOM_FORM         = reg("phantom_form",         new PhantomFormPower());
+    public static final DeferredHolder<PowerType<?>, TogglePower>              TOGGLE               = reg("toggle",               new TogglePower());
 
     // --- Origins Classes power types ---
     public static final DeferredHolder<PowerType<?>, ExhaustionFilterPower>      EXHAUSTION_FILTER      = reg("exhaustion_filter",      new ExhaustionFilterPower());
