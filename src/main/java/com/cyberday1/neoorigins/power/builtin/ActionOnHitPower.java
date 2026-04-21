@@ -44,7 +44,7 @@ public class ActionOnHitPower extends PowerType<ActionOnHitPower.Config> {
         float minDamage,
         float chance,
         Optional<String> targetGroup,
-        Optional<ResourceLocation> targetType,
+        Optional<String> targetType,
         Optional<String> damageType,
         String type
     ) implements PowerConfiguration {
@@ -57,7 +57,7 @@ public class ActionOnHitPower extends PowerType<ActionOnHitPower.Config> {
             Codec.FLOAT.optionalFieldOf("min_damage", 0.0f).forGetter(Config::minDamage),
             Codec.FLOAT.optionalFieldOf("chance", 1.0f).forGetter(Config::chance),
             Codec.STRING.optionalFieldOf("target_group").forGetter(Config::targetGroup),
-            ResourceLocation.CODEC.optionalFieldOf("target_type").forGetter(Config::targetType),
+            Codec.STRING.optionalFieldOf("target_type").forGetter(Config::targetType),
             Codec.STRING.optionalFieldOf("damage_type").forGetter(Config::damageType),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));

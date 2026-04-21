@@ -34,10 +34,10 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
         if (!(event.getNewAboutToBeSetTarget() instanceof ServerPlayer sp)) return;
-        ResourceLocation mobTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
-        if (mobTypeId == null) return;
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
-                cfg -> cfg.entityTypes().isEmpty() || cfg.entityTypes().contains(mobTypeId))) {
+                cfg -> cfg.entityTypes().isEmpty()
+                    || cfg.entityTypes().stream().anyMatch(id ->
+                        com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
             event.setCanceled(true);
             return;
         }

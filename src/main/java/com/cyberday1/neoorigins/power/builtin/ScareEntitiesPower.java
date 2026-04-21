@@ -4,10 +4,9 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.phys.AABB;
@@ -15,15 +14,21 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
+/**
+ * Nearby matching entities flee the player.
+ *
+ * <p>{@code entity_types} accepts raw IDs ({@code "minecraft:creeper"}) and tag
+ * references ({@code "#mymod:scary_to_florae"}).
+ */
 public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
 
     private static final double RANGE = 8.0;
     private static final int TICK_INTERVAL = 10;
     private static final double FLEE_SPEED = 1.3;
 
-    public record Config(List<ResourceLocation> entityTypes, String type) implements PowerConfiguration {
+    public record Config(List<String> entityTypes, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            ResourceLocation.CODEC.listOf().optionalFieldOf("entity_types", List.of()).forGetter(Config::entityTypes),
+            Codec.STRING.listOf().optionalFieldOf("entity_types", List.of()).forGetter(Config::entityTypes),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -39,8 +44,15 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
         AABB box = player.getBoundingBox().inflate(RANGE);
         for (Entity e : player.level().getEntities(player, box)) {
             if (!(e instanceof PathfinderMob mob)) continue;
-            ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
-            if (!config.entityTypes().contains(typeId)) continue;
+            if (!(e instanceof LivingEntity le)) continue;
+            boolean matches = false;
+            for (String id : config.entityTypes()) {
+                if (com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(le, id)) {
+                    matches = true;
+                    break;
+                }
+            }
+            if (!matches) continue;
             if (!mob.getNavigation().isDone()
                 && mob.getNavigation().getTargetPos() != null
                 && mob.getNavigation().getTargetPos().distSqr(player.blockPosition()) > RANGE * RANGE) {
