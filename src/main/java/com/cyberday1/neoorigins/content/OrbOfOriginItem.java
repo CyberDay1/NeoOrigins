@@ -27,38 +27,39 @@ public class OrbOfOriginItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!level.isClientSide() && player instanceof ServerPlayer sp) {
-            PlayerOriginData data = sp.getData(OriginAttachments.originData());
-            int cost = data.getOrbUseCount() * LEVELS_PER_USE;
 
-            // Check XP cost (creative players bypass)
-            if (!sp.isCreative() && cost > 0 && sp.experienceLevel < cost) {
-                sp.sendSystemMessage(Component.translatable("item.neoorigins.orb_of_origin.not_enough_xp", cost)
-                    .withStyle(ChatFormatting.RED));
-                return InteractionResultHolder.fail(stack);
-            }
-
-            // Deduct XP
-            if (!sp.isCreative() && cost > 0) {
-                sp.giveExperienceLevels(-cost);
-            }
-            data.incrementOrbUseCount();
-
-            // Revoke all current powers
-            ActiveOriginService.revokeAllPowers(sp);
-
-            // Reset all layer origins
-            for (var layer : LayerDataManager.INSTANCE.getLayers().values()) {
-                data.removeOrigin(layer.id());
-            }
-            data.setHadAllOrigins(false);
-
-            // Sync and open selection screen
-            NeoOriginsNetwork.syncRegistryToPlayer(sp);
-            NeoOriginsNetwork.syncToPlayer(sp);
-            NeoOriginsNetwork.openSelectionScreen(sp, true, true);
+        // Client prediction can't see XP state reliably across the XP check,
+        // so defer the whole decision — including the stack shrink — to the
+        // server. The server's inventory sync is authoritative.
+        if (level.isClientSide() || !(player instanceof ServerPlayer sp)) {
+            return InteractionResultHolder.consume(stack);
         }
-        if (!player.isCreative()) {
+
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        int cost = data.getOrbUseCount() * LEVELS_PER_USE;
+
+        if (!sp.isCreative() && cost > 0 && sp.experienceLevel < cost) {
+            sp.sendSystemMessage(Component.translatable("item.neoorigins.orb_of_origin.not_enough_xp", cost)
+                .withStyle(ChatFormatting.RED));
+            return InteractionResultHolder.fail(stack);
+        }
+
+        if (!sp.isCreative() && cost > 0) {
+            sp.giveExperienceLevels(-cost);
+        }
+        data.incrementOrbUseCount();
+
+        ActiveOriginService.revokeAllPowers(sp);
+        for (var layer : LayerDataManager.INSTANCE.getLayers().values()) {
+            data.removeOrigin(layer.id());
+        }
+        data.setHadAllOrigins(false);
+
+        NeoOriginsNetwork.syncRegistryToPlayer(sp);
+        NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.openSelectionScreen(sp, true, true);
+
+        if (!sp.isCreative()) {
             stack.shrink(1);
         }
         return InteractionResultHolder.consume(stack);
