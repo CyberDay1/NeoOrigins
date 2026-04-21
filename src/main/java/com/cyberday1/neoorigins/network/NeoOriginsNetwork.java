@@ -267,11 +267,14 @@ public class NeoOriginsNetwork {
     public static void syncRegistryToPlayer(ServerPlayer player) {
         // Build power display entries from all known powers
         java.util.Map<Identifier, com.cyberday1.neoorigins.client.ClientPowerCache.Entry> powerEntries = new java.util.HashMap<>();
+        net.minecraft.core.Registry<com.cyberday1.neoorigins.api.power.PowerType<?>> typeRegistry =
+            player.level().getServer().registryAccess().lookupOrThrow(com.cyberday1.neoorigins.power.registry.PowerTypes.REGISTRY_KEY);
         for (var entry : com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getAllPowers().entrySet()) {
             var holder = entry.getValue();
             boolean isToggle = holder.type() instanceof AbstractTogglePower<?>;
+            Identifier typeId = typeRegistry.getKey(holder.type());
             powerEntries.put(entry.getKey(), new com.cyberday1.neoorigins.client.ClientPowerCache.Entry(
-                holder.name(), holder.description(), holder.isActive(), isToggle));
+                holder.name(), holder.description(), holder.isActive(), isToggle, typeId));
         }
 
         PacketDistributor.sendToPlayer(player, new SyncOriginRegistryPayload(

@@ -8,9 +8,9 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -79,11 +79,22 @@ public class CombatPowerEvents {
             }
         });
 
-        // ActionOnHitPower — when the attacker is a ServerPlayer, fire its
-        // configured self/target actions against the damaged entity.
+        // Outgoing damage (direction=OUT): when the player is the attacker,
+        // apply their ModifyDamagePower multipliers to the damage they deal.
         var attackerEntity = event.getSource().getEntity();
         if (attackerEntity instanceof ServerPlayer attackerSp && attackerSp != sp) {
             LivingEntity target = event.getEntity();
+            ActiveOriginService.forEachOfType(attackerSp, ModifyDamagePower.class, config -> {
+                if (config.direction() != ModifyDamagePower.Direction.OUT) return;
+                if (config.damageType().isPresent()
+                        && !event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) return;
+                if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
+                float scaled = event.getAmount() * config.multiplier();
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setAmount(scaled);
+            });
+
+            // ActionOnHitPower — fire self/target actions when the attacker's filters match.
             final float hitAmount = event.getAmount();
             ActiveOriginService.forEachOfType(attackerSp, ActionOnHitPower.class, config -> {
                 if (hitAmount < config.minDamage()) return;
@@ -115,8 +126,8 @@ public class CombatPowerEvents {
     /**
      * Matches an entity against an Origins-style "entity group" name (e.g. "undead",
      * "arthropod", "illager", "aquatic") by looking up {@code minecraft:<group>} as
-     * a vanilla entity-type tag. Vanilla ships these tags so canonical Origins
-     * groups translate directly.
+     * a vanilla entity-type tag. Vanilla 1.21 ships these tags so the canonical
+     * Origins groups translate directly.
      */
     private static boolean matchesEntityGroup(LivingEntity target, String group) {
         TagKey<EntityType<?>> tag = TagKey.create(

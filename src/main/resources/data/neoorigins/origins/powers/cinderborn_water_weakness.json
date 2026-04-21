@@ -1,6 +1,1 @@
-{
-  "type": "neoorigins:modify_damage",
-  "direction": "in",
-  "multiplier": 3.0,
-  "damage_type": "drown"
-}
+{ "type": "neoorigins:damage_in_water", "damage_per_second": 1.5, "include_rain": true }

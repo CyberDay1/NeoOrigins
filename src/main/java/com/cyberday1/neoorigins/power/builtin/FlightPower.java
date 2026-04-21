@@ -13,8 +13,8 @@ public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
     /** Returns true if the player has the flight power granted AND toggled on. */
     public static boolean isActive(ServerPlayer player) {
-        return ActiveOriginService.has(player, FlightPower.class, c -> true)
-                && !INSTANCE.isToggledOff(player);
+        return ActiveOriginService.has(player, FlightPower.class,
+            config -> !INSTANCE.isToggledOff(player, config));
     }
 
     public record Config(String type) implements PowerConfiguration {

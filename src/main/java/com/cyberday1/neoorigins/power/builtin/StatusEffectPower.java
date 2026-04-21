@@ -31,26 +31,27 @@ public class StatusEffectPower extends AbstractTogglePower<StatusEffectPower.Con
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
+    protected String getToggleKey(Config config) {
+        return getClass().getName() + ":" + config.effect();
+    }
+
+    @Override
     protected void tickEffect(ServerPlayer player, Config config) {
-        var effectHolderOpt = BuiltInRegistries.MOB_EFFECT.get(config.effect());
-        if (effectHolderOpt.isEmpty()) return;
-        var effectHolder = effectHolderOpt.get();
-        // Only apply if not already active at the right level
+        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(config.effect());
+        if (effectOpt.isEmpty()) return;
+        var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
         var existing = player.getEffect(effectHolder);
         if (existing == null || existing.getAmplifier() < config.amplifier()) {
             player.addEffect(new MobEffectInstance(
-                effectHolder,
-                300, // reapply every 15s (300 ticks), refreshed each tick
-                config.amplifier(),
-                config.ambient(),
-                config.showParticles()
+                effectHolder, 300, config.amplifier(), config.ambient(), config.showParticles()
             ));
         }
     }
 
     @Override
     protected void removeEffect(ServerPlayer player, Config config) {
-        var effectHolderOpt = BuiltInRegistries.MOB_EFFECT.get(config.effect());
-        effectHolderOpt.ifPresent(player::removeEffect);
+        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(config.effect());
+        effectOpt.ifPresent(effect ->
+            player.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect)));
     }
 }

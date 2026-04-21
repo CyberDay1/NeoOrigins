@@ -5,8 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LivingEntityMixin",
-    "LivingEntityAccessor",
-    "FoodDataMixin"
+    "LivingEntityClimbMixin",
+    "FoodDataMixin",
+    "FoodDataTickMixin"
   ],
   "injectors": {
     "defaultRequire": 1
