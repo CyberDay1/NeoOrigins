@@ -248,6 +248,8 @@ public final class ActiveOriginService {
                     if (holder != null) {
                         holder.onRevoked(player);
                         NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
+                        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                            player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LOST, powerId);
                     }
                 }
             }
@@ -259,6 +261,8 @@ public final class ActiveOriginService {
                 if (holder != null) {
                     holder.onGranted(player);
                     NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, powerId));
+                    com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                        player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.GAINED, powerId);
                 }
             }
         }

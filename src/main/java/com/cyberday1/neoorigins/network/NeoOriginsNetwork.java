@@ -203,6 +203,8 @@ public class NeoOriginsNetwork {
 
             data.setOrigin(layerId, event.getNewOrigin());
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
 
             // Mark complete once all enabled layers have a selection
             boolean allFilled = true;

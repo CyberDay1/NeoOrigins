@@ -60,6 +60,19 @@ public final class EventPowerIndex {
         TRADE_COMPLETED,        // villager trade finished
         VILLAGER_INTERACT,      // right-click villager
 
+        // ----- Origin / power lifecycle -----
+        GAINED,                 // power was just granted to the player
+        LOST,                   // power was just revoked from the player
+        CHOSEN,                 // player chose an origin (ChooseOriginPayload)
+
+        // ----- Extended interaction / movement -----
+        WAKE_UP,                // player woke from sleeping
+        LAND,                   // player hit the ground after falling
+        BLOCK_USE,              // right-click on a block (general)
+        ENTITY_USE,             // right-click on an entity (general, not villager-specific)
+        ITEM_PICKUP,            // item entity picked up
+        ITEM_USE_FINISH,        // finished using an item (distinct from ITEM_USE which fires at use-start)
+
         // ----- Origins-Classes hooks: modifiers (return a float) -----
         MOD_EXHAUSTION,         // hunger drain multiplier
         MOD_BREAK_SPEED,        // block break speed multiplier

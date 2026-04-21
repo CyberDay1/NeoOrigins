@@ -23,6 +23,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.ArrayList;
@@ -270,5 +271,12 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
             sp.getName().getString(), String.join(", ", assigned));
+    }
+
+    @SubscribeEvent
+    public static void onPlayerWakeUp(PlayerWakeUpEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.WAKE_UP);
     }
 }

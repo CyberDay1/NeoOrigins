@@ -30,6 +30,8 @@ public class MovementPowerEvents {
                 config.innerPower().getPath().contains("no_fall"))) {
             event.setCanceled(true);
         }
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND, event.getDistance());
     }
 
     // BreakSpeedModifierPower and UnderwaterMiningSpeedPower used to be handled
