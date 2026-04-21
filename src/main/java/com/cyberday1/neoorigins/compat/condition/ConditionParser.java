@@ -6,7 +6,15 @@ import com.cyberday1.neoorigins.compat.CompatPolicy;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.JsonOps;
+import net.minecraft.advancements.criterion.BlockPredicate;
+import net.minecraft.advancements.criterion.EntityPredicate;
+import net.minecraft.advancements.criterion.FluidPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.advancements.criterion.LocationPredicate;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -114,6 +122,7 @@ public final class ConditionParser {
                 case "origins:living", "apace:living"                   -> p -> p.isAlive();
                 case "origins:creative_flying", "apace:creative_flying" -> p -> p.getAbilities().flying;
                 case "origins:power_type", "apace:power_type"           -> parsePowerType(json, contextId);
+                case "origins:predicate", "apace:predicate"             -> parsePredicate(json, contextId);
 
                 // ---- Phase 0 consolidation: new verbs ----
                 case "origins:time_of_day", "apace:time_of_day"         -> parseTimeOfDay(json);
@@ -544,6 +553,120 @@ public final class ConditionParser {
                 }
             }
             return false;
+        };
+    }
+
+    // ---- origins:predicate (Apoli meta-wrapper around vanilla MC predicates) ----
+
+    private static EntityCondition parsePredicate(JsonObject json, String contextId) {
+        String predicateType = json.has("predicate_type") ? json.get("predicate_type").getAsString() : null;
+        JsonElement predicateJson = json.has("predicate") ? json.get("predicate") : null;
+        if (predicateType == null || predicateJson == null) {
+            return failClosed("origins:predicate", contextId,
+                "missing required field 'predicate_type' or 'predicate'");
+        }
+        return switch (predicateType) {
+            case "biome"             -> parseBiomePredicate(predicateJson, contextId);
+            case "block_state"       -> parseBlockStatePredicate(predicateJson, contextId);
+            case "entity_properties" -> parseEntityPropertiesPredicate(predicateJson, contextId);
+            case "fluid_state"       -> parseFluidStatePredicate(predicateJson, contextId);
+            case "item"              -> parseItemPredicate(predicateJson, contextId);
+            case "location"          -> parseLocationPredicate(predicateJson, contextId);
+            case "damage"            -> failClosed("origins:predicate", contextId,
+                "predicate_type 'damage' requires damage-source context (use action-on-hit hooks)");
+            default                  -> failClosed("origins:predicate", contextId,
+                "unknown predicate_type '" + predicateType + "'");
+        };
+    }
+
+    private static EntityCondition parseBiomePredicate(JsonElement predicateJson, String contextId) {
+        if (!predicateJson.isJsonObject()) {
+            return failClosed("origins:predicate/biome", contextId, "predicate must be a JSON object");
+        }
+        JsonObject obj = predicateJson.getAsJsonObject();
+        List<ResourceKey<Biome>> biomeKeys = new ArrayList<>();
+        if (obj.has("biomes") && obj.get("biomes").isJsonArray()) {
+            for (JsonElement el : obj.getAsJsonArray("biomes")) {
+                biomeKeys.add(ResourceKey.create(Registries.BIOME, Identifier.parse(el.getAsString())));
+            }
+        }
+        TagKey<Biome> tagKey = null;
+        if (obj.has("tag")) {
+            tagKey = TagKey.create(Registries.BIOME, Identifier.parse(obj.get("tag").getAsString()));
+        }
+        if (biomeKeys.isEmpty() && tagKey == null) {
+            return failClosed("origins:predicate/biome", contextId, "expected 'biomes' list or 'tag'");
+        }
+        final TagKey<Biome> fTagKey = tagKey;
+        return player -> {
+            Holder<Biome> holder = player.level().getBiome(player.blockPosition());
+            if (fTagKey != null && holder.is(fTagKey)) return true;
+            for (ResourceKey<Biome> key : biomeKeys) {
+                if (holder.is(key)) return true;
+            }
+            return false;
+        };
+    }
+
+    private static EntityCondition parseBlockStatePredicate(JsonElement predicateJson, String contextId) {
+        DataResult<BlockPredicate> result = BlockPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
+        if (result.error().isPresent()) {
+            return failClosed("origins:predicate/block_state", contextId,
+                result.error().get().message());
+        }
+        BlockPredicate pred = result.result().orElseThrow();
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return false;
+            return pred.matches(sl, player.blockPosition());
+        };
+    }
+
+    private static EntityCondition parseEntityPropertiesPredicate(JsonElement predicateJson, String contextId) {
+        DataResult<EntityPredicate> result = EntityPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
+        if (result.error().isPresent()) {
+            return failClosed("origins:predicate/entity_properties", contextId,
+                result.error().get().message());
+        }
+        EntityPredicate pred = result.result().orElseThrow();
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return false;
+            return pred.matches(sl, player.position(), player);
+        };
+    }
+
+    private static EntityCondition parseFluidStatePredicate(JsonElement predicateJson, String contextId) {
+        DataResult<FluidPredicate> result = FluidPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
+        if (result.error().isPresent()) {
+            return failClosed("origins:predicate/fluid_state", contextId,
+                result.error().get().message());
+        }
+        FluidPredicate pred = result.result().orElseThrow();
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return false;
+            return pred.matches(sl, player.blockPosition());
+        };
+    }
+
+    private static EntityCondition parseItemPredicate(JsonElement predicateJson, String contextId) {
+        DataResult<ItemPredicate> result = ItemPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
+        if (result.error().isPresent()) {
+            return failClosed("origins:predicate/item", contextId,
+                result.error().get().message());
+        }
+        ItemPredicate pred = result.result().orElseThrow();
+        return player -> pred.test(player.getItemBySlot(EquipmentSlot.MAINHAND));
+    }
+
+    private static EntityCondition parseLocationPredicate(JsonElement predicateJson, String contextId) {
+        DataResult<LocationPredicate> result = LocationPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
+        if (result.error().isPresent()) {
+            return failClosed("origins:predicate/location", contextId,
+                result.error().get().message());
+        }
+        LocationPredicate pred = result.result().orElseThrow();
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return false;
+            return pred.matches(sl, player.getX(), player.getY(), player.getZ());
         };
     }
 
