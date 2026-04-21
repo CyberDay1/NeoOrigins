@@ -125,11 +125,10 @@ tasks.register('migrateLegacyPowers') {
             'neoorigins:damage_in_biome'        : 'neoorigins:condition_passive',
             'neoorigins:damage_in_daylight'     : 'neoorigins:condition_passive',
             'neoorigins:damage_in_water'        : 'neoorigins:condition_passive',
-            'neoorigins:item_magnetism'         : 'neoorigins:condition_passive',
-            'neoorigins:mobs_ignore_player'     : 'neoorigins:condition_passive',
-            'neoorigins:no_mob_spawns_nearby'   : 'neoorigins:condition_passive',
             'neoorigins:burn_at_health_threshold': 'neoorigins:condition_passive',
             'neoorigins:tick_action'            : 'neoorigins:condition_passive',
+            // item_magnetism (needs pull_items verb), mobs_ignore_player + no_mob_spawns_nearby
+            // (event interceptors, not tick passives) stay on their own classes.
             'neoorigins:action_on_kill'         : 'neoorigins:action_on_event',
             'neoorigins:action_on_hit_taken'    : 'neoorigins:action_on_event',
             'neoorigins:less_item_use_slowdown' : 'neoorigins:attribute_modifier',

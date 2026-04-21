@@ -95,8 +95,201 @@ public final class LegacyPowerTypeAliases {
         registerActiveAbilityAliases();
         registerPersistentEffectAliases();
         registerAttributeModifierAliases();
+        registerConditionPassiveAliases();
         registerModifierHookAliases();
         NeoOrigins.LOGGER.debug("[2.0-legacy] power-type alias table initialised ({} entries)", size());
+    }
+
+    // ── Phase 4: condition_passive aliases ─────────────────────────────────
+    //
+    // Tick-driven condition + action pairs. Four of the ten originally-scoped
+    // legacy types stay standalone because their runtime model is not a
+    // tick-based condition check:
+    //   - mobs_ignore_player     (LivingChangeTargetEvent interceptor)
+    //   - no_mob_spawns_nearby   (MobSpawnEvent.FinalizeSpawn interceptor)
+    //   - item_magnetism         (item-entity pull — no DSL verb yet)
+    //   - breath_in_fluid        (air-supply drain — no DSL verb yet)
+    // The other six (incl. regen_in_fluid reassigned from Phase 2) alias cleanly.
+
+    private static final Identifier ID_CONDITION_PASSIVE =
+        Identifier.fromNamespaceAndPath("neoorigins", "condition_passive");
+
+    private static void registerConditionPassiveAliases() {
+        // biome_buff: apply mob effect while in a biome tag.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "biome_buff"),
+                 ID_CONDITION_PASSIVE, (json, powerId) -> {
+                    String biomeTag = json.has("biome_tag") ? json.get("biome_tag").getAsString() : "";
+                    String effect = json.has("effect") ? json.get("effect").getAsString() : "minecraft:regeneration";
+                    int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+
+                    json.add("condition", biomeTagCondition(biomeTag));
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "origins:apply_effect");
+                    action.addProperty("effect", effect);
+                    action.addProperty("duration", 300);
+                    action.addProperty("amplifier", amplifier);
+                    json.add("entity_action", action);
+                    json.addProperty("interval", 20);
+                    json.remove("biome_tag");
+                    json.remove("effect");
+                    json.remove("amplifier");
+                });
+
+        // damage_in_biome: damage while in a biome tag.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "damage_in_biome"),
+                 ID_CONDITION_PASSIVE, (json, powerId) -> {
+                    String biomeTag = json.has("biome_tag") ? json.get("biome_tag").getAsString() : "";
+                    float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    String damageType = json.has("damage_type") ? json.get("damage_type").getAsString() : "generic";
+
+                    json.add("condition", biomeTagCondition(biomeTag));
+                    json.add("entity_action", damageAction(damageType, dps));
+                    json.addProperty("interval", 20);
+                    json.remove("biome_tag");
+                    json.remove("damage_per_second");
+                    json.remove("damage_type");
+                });
+
+        // damage_in_daylight: damage/ignite while exposed_to_sun AND not in
+        // water AND not already on fire. Compose via origins:and.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "damage_in_daylight"),
+                 ID_CONDITION_PASSIVE, (json, powerId) -> {
+                    float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    boolean ignite = json.has("ignite") && json.get("ignite").getAsBoolean();
+
+                    com.google.gson.JsonObject inSun = new com.google.gson.JsonObject();
+                    inSun.addProperty("type", "origins:exposed_to_sun");
+                    com.google.gson.JsonObject notWet = notCondition(simpleCondition("origins:in_water"));
+                    com.google.gson.JsonObject notBurning = notCondition(simpleCondition("origins:on_fire"));
+                    json.add("condition", andConditions(inSun, notWet, notBurning));
+
+                    if (ignite) {
+                        com.google.gson.JsonObject fire = new com.google.gson.JsonObject();
+                        fire.addProperty("type", "origins:set_on_fire");
+                        fire.addProperty("ticks", 40);
+                        json.add("entity_action", fire);
+                    } else {
+                        json.add("entity_action", damageAction("in_fire", dps));
+                    }
+                    json.addProperty("interval", 20);
+                    json.remove("damage_per_second");
+                    json.remove("ignite");
+                });
+
+        // damage_in_water: damage while in water, or while exposed to rain
+        // (when include_rain is true). Compose via origins:or + origins:and.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "damage_in_water"),
+                 ID_CONDITION_PASSIVE, (json, powerId) -> {
+                    float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    boolean includeRain = !json.has("include_rain") || json.get("include_rain").getAsBoolean();
+
+                    com.google.gson.JsonObject inWater = simpleCondition("origins:in_water");
+                    if (includeRain) {
+                        com.google.gson.JsonObject inRain = simpleCondition("origins:in_rain");
+                        json.add("condition", orConditions(inWater, inRain));
+                    } else {
+                        json.add("condition", inWater);
+                    }
+                    json.add("entity_action", damageAction("magic", dps));
+                    json.addProperty("interval", 20);
+                    json.remove("damage_per_second");
+                    json.remove("include_rain");
+                });
+
+        // burn_at_health_threshold: set on fire while relative_health <= threshold.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "burn_at_health_threshold"),
+                 ID_CONDITION_PASSIVE, (json, powerId) -> {
+                    float threshold = json.has("threshold_percent") ? json.get("threshold_percent").getAsFloat() : 0.25f;
+                    int fireTicks = json.has("fire_ticks") ? json.get("fire_ticks").getAsInt() : 60;
+
+                    com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
+                    cond.addProperty("type", "origins:relative_health");
+                    cond.addProperty("comparison", "<=");
+                    cond.addProperty("compare_to", threshold);
+                    json.add("condition", cond);
+
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "origins:set_on_fire");
+                    action.addProperty("ticks", fireTicks);
+                    json.add("entity_action", action);
+                    json.addProperty("interval", 20);
+                    json.remove("threshold_percent");
+                    json.remove("fire_ticks");
+                });
+
+        // regen_in_fluid: heal while in water (or lava, if fluid=lava). Reassigned
+        // here from Phase 2 because this is a tick-condition pair, not a MobEffect.
+        register(Identifier.fromNamespaceAndPath("neoorigins", "regen_in_fluid"),
+                 ID_CONDITION_PASSIVE, (json, powerId) -> {
+                    String fluid = json.has("fluid") ? json.get("fluid").getAsString() : "water";
+                    float amount = json.has("amount_per_second") ? json.get("amount_per_second").getAsFloat() : 1.0f;
+
+                    com.google.gson.JsonObject cond;
+                    if ("lava".equalsIgnoreCase(fluid)) {
+                        cond = new com.google.gson.JsonObject();
+                        cond.addProperty("type", "origins:submerged_in");
+                        cond.addProperty("fluid", "minecraft:lava");
+                    } else {
+                        cond = simpleCondition("origins:in_water");
+                    }
+                    json.add("condition", cond);
+
+                    com.google.gson.JsonObject action = new com.google.gson.JsonObject();
+                    action.addProperty("type", "origins:heal");
+                    action.addProperty("amount", amount);
+                    json.add("entity_action", action);
+                    json.addProperty("interval", 20);
+                    json.remove("fluid");
+                    json.remove("amount_per_second");
+                });
+    }
+
+    private static com.google.gson.JsonObject simpleCondition(String type) {
+        com.google.gson.JsonObject c = new com.google.gson.JsonObject();
+        c.addProperty("type", type);
+        return c;
+    }
+
+    private static com.google.gson.JsonObject biomeTagCondition(String tag) {
+        com.google.gson.JsonObject c = new com.google.gson.JsonObject();
+        c.addProperty("type", "origins:biome");
+        c.addProperty("tag", tag);
+        return c;
+    }
+
+    private static com.google.gson.JsonObject notCondition(com.google.gson.JsonObject inner) {
+        com.google.gson.JsonObject c = new com.google.gson.JsonObject();
+        c.addProperty("type", "origins:not");
+        c.add("condition", inner);
+        return c;
+    }
+
+    private static com.google.gson.JsonObject andConditions(com.google.gson.JsonObject... conds) {
+        com.google.gson.JsonObject c = new com.google.gson.JsonObject();
+        c.addProperty("type", "origins:and");
+        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+        for (var cond : conds) arr.add(cond);
+        c.add("conditions", arr);
+        return c;
+    }
+
+    private static com.google.gson.JsonObject orConditions(com.google.gson.JsonObject... conds) {
+        com.google.gson.JsonObject c = new com.google.gson.JsonObject();
+        c.addProperty("type", "origins:or");
+        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+        for (var cond : conds) arr.add(cond);
+        c.add("conditions", arr);
+        return c;
+    }
+
+    private static com.google.gson.JsonObject damageAction(String sourceName, float amount) {
+        com.google.gson.JsonObject c = new com.google.gson.JsonObject();
+        c.addProperty("type", "origins:damage");
+        c.addProperty("amount", amount);
+        com.google.gson.JsonObject src = new com.google.gson.JsonObject();
+        src.addProperty("name", sourceName);
+        c.add("source", src);
+        return c;
     }
 
     // ── Phase 3: attribute_modifier condition aliases ──────────────────────
