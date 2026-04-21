@@ -31,10 +31,8 @@ public class PowerTypes {
     // regen_in_fluid. Legacy types below remain during the deprecation window.
     public static final DeferredHolder<PowerType<?>, PersistentEffectPower>    PERSISTENT_EFFECT    = reg("persistent_effect",    new PersistentEffectPower());
     public static final DeferredHolder<PowerType<?>, AttributeModifierPower>   ATTRIBUTE_MODIFIER   = reg("attribute_modifier",   new AttributeModifierPower());
-    public static final DeferredHolder<PowerType<?>, StatusEffectPower>        STATUS_EFFECT        = reg("status_effect",        new StatusEffectPower());
-    public static final DeferredHolder<PowerType<?>, StackingStatusEffectsPower> STACKING_STATUS_EFFECTS = reg("stacking_status_effects", new StackingStatusEffectsPower());
-    public static final DeferredHolder<PowerType<?>, NightVisionPower>         NIGHT_VISION         = reg("night_vision",         new NightVisionPower());
-    public static final DeferredHolder<PowerType<?>, GlowPower>                GLOW                 = reg("glow",                 new GlowPower());
+    // status_effect, stacking_status_effects, night_vision, glow retired in 2.0;
+    // their type IDs now alias to persistent_effect via LegacyPowerTypeAliases.
     public static final DeferredHolder<PowerType<?>, WaterBreathingPower>      WATER_BREATHING      = reg("water_breathing",      new WaterBreathingPower());
     public static final DeferredHolder<PowerType<?>, EffectImmunityPower>      EFFECT_IMMUNITY      = reg("effect_immunity",      new EffectImmunityPower());
     public static final DeferredHolder<PowerType<?>, EntityGroupPower>         ENTITY_GROUP         = reg("entity_group",         new EntityGroupPower());
@@ -50,12 +48,8 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, FoodRestrictionPower>     FOOD_RESTRICTION     = reg("food_restriction",     new FoodRestrictionPower());
     public static final DeferredHolder<PowerType<?>, BreakSpeedModifierPower>  BREAK_SPEED_MODIFIER = reg("break_speed_modifier", new BreakSpeedModifierPower());
     public static final DeferredHolder<PowerType<?>, UnderwaterMiningSpeedPower> UNDERWATER_MINING_SPEED = reg("underwater_mining_speed", new UnderwaterMiningSpeedPower());
-    public static final DeferredHolder<PowerType<?>, BiomeBuffPower>           BIOME_BUFF           = reg("biome_buff",           new BiomeBuffPower());
-    public static final DeferredHolder<PowerType<?>, DamageInBiomePower>       DAMAGE_IN_BIOME      = reg("damage_in_biome",      new DamageInBiomePower());
-    public static final DeferredHolder<PowerType<?>, DamageInDaylightPower>    DAMAGE_IN_DAYLIGHT   = reg("damage_in_daylight",   new DamageInDaylightPower());
-    public static final DeferredHolder<PowerType<?>, DamageInWaterPower>      DAMAGE_IN_WATER      = reg("damage_in_water",      new DamageInWaterPower());
-    public static final DeferredHolder<PowerType<?>, BurnAtHealthThresholdPower> BURN_AT_HEALTH_THRESHOLD = reg("burn_at_health_threshold", new BurnAtHealthThresholdPower());
-    public static final DeferredHolder<PowerType<?>, RegenInFluidPower>        REGEN_IN_FLUID       = reg("regen_in_fluid",       new RegenInFluidPower());
+    // biome_buff, damage_in_biome/daylight/water, burn_at_health_threshold,
+    // regen_in_fluid retired in 2.0; aliased to condition_passive.
     public static final DeferredHolder<PowerType<?>, BreathInFluidPower>       BREATH_IN_FLUID      = reg("breath_in_fluid",      new BreathInFluidPower());
     public static final DeferredHolder<PowerType<?>, MobsIgnorePlayerPower>    MOBS_IGNORE_PLAYER   = reg("mobs_ignore_player",   new MobsIgnorePlayerPower());
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
@@ -127,22 +121,22 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ActiveAbilityPower>       ACTIVE_ABILITY       = reg("active_ability",       new ActiveAbilityPower());
     public static final DeferredHolder<PowerType<?>, ActiveTeleportPower>      ACTIVE_TELEPORT      = reg("active_teleport",      new ActiveTeleportPower());
     public static final DeferredHolder<PowerType<?>, ActiveDashPower>          ACTIVE_DASH          = reg("active_dash",          new ActiveDashPower());
-    public static final DeferredHolder<PowerType<?>, ActiveLaunchPower>        ACTIVE_LAUNCH        = reg("active_launch",        new ActiveLaunchPower());
+    // active_launch retired in 2.0; aliased to active_ability.
     public static final DeferredHolder<PowerType<?>, ActiveRecallPower>        ACTIVE_RECALL        = reg("active_recall",        new ActiveRecallPower());
     public static final DeferredHolder<PowerType<?>, ActiveSwapPower>          ACTIVE_SWAP          = reg("active_swap",          new ActiveSwapPower());
     public static final DeferredHolder<PowerType<?>, ActiveFireballPower>      ACTIVE_FIREBALL      = reg("active_fireball",      new ActiveFireballPower());
     public static final DeferredHolder<PowerType<?>, ActiveBoltPower>          ACTIVE_BOLT          = reg("active_bolt",          new ActiveBoltPower());
     public static final DeferredHolder<PowerType<?>, ActivePhasePower>         ACTIVE_PHASE         = reg("active_phase",         new ActivePhasePower());
-    public static final DeferredHolder<PowerType<?>, ActiveAoEEffectPower>     ACTIVE_AOE_EFFECT    = reg("active_aoe_effect",    new ActiveAoEEffectPower());
+    // active_aoe_effect retired in 2.0; aliased to active_ability.
     public static final DeferredHolder<PowerType<?>, ActivePlaceBlockPower>    ACTIVE_PLACE_BLOCK   = reg("active_place_block",   new ActivePlaceBlockPower());
     public static final DeferredHolder<PowerType<?>, ShadowOrbPower>           SHADOW_ORB           = reg("shadow_orb",           new ShadowOrbPower());
 
     // --- Elemental mage abilities ---
     public static final DeferredHolder<PowerType<?>, ActiveGroundSlamPower>   GROUND_SLAM   = reg("ground_slam",    new ActiveGroundSlamPower());
     public static final DeferredHolder<PowerType<?>, ActiveTidalWavePower>   TIDAL_WAVE    = reg("tidal_wave",     new ActiveTidalWavePower());
-    public static final DeferredHolder<PowerType<?>, ActiveHealingMistPower> HEALING_MIST  = reg("healing_mist",   new ActiveHealingMistPower());
+    // healing_mist retired in 2.0; aliased to active_ability.
     public static final DeferredHolder<PowerType<?>, ActiveGravityWellPower> GRAVITY_WELL  = reg("gravity_well",   new ActiveGravityWellPower());
-    public static final DeferredHolder<PowerType<?>, ActiveRepulsePower>     REPULSE       = reg("repulse",        new ActiveRepulsePower());
+    // repulse retired in 2.0; aliased to active_ability.
 
     public static void register(IEventBus modEventBus) {
         modEventBus.addListener(PowerTypes::onNewRegistry);
