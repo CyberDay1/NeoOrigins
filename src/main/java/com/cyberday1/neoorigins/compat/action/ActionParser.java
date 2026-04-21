@@ -856,6 +856,21 @@ public final class ActionParser {
         };
     }
 
+    /** Flip (or set, if `value` is given) the toggle state for the named power id. */
+    private static EntityAction parseToggle(JsonObject json) {
+        String powerId = json.has("power") ? json.get("power").getAsString() : null;
+        if (powerId == null || powerId.isBlank()) {
+            return failNoop("neoorigins:toggle", "root", "missing 'power' field");
+        }
+        final Boolean explicit = json.has("value") ? json.get("value").getAsBoolean() : null;
+        final String key = powerId;
+        return player -> {
+            var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.toggleState());
+            if (explicit != null) state.set(key, explicit);
+            else state.toggle(key, false);
+        };
+    }
+
     private static EntityAction failNoop(String type, String contextId, String detail) {
         NeoOrigins.LOGGER.warn("[CompatB] action '{}' in {} defaulted to no-op: {}",
             type, contextId, detail);
