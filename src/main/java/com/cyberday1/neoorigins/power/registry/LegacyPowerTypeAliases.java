@@ -94,8 +94,56 @@ public final class LegacyPowerTypeAliases {
     public static void bootstrap() {
         registerActiveAbilityAliases();
         registerPersistentEffectAliases();
+        registerAttributeModifierAliases();
         registerModifierHookAliases();
         NeoOrigins.LOGGER.debug("[2.0-legacy] power-type alias table initialised ({} entries)", size());
+    }
+
+    // ── Phase 3: attribute_modifier condition aliases ──────────────────────
+    //
+    // The architectural Phase 3 work — extending attribute_modifier with a
+    // condition field for edge-triggered add/remove — landed earlier as part
+    // of the v1.12 line. Of the ten legacy types originally tagged for Phase
+    // 3, six already moved to action_on_event under Phase 6 (hunger_drain,
+    // natural_regen, knockback, longer_potions, teleport_range_modifier,
+    // food_restriction), two are deliberately skipped because their
+    // PlayerEvent.BreakSpeed hooks only fire client-side in current NeoForge
+    // (break_speed_modifier, underwater_mining_speed), and NoSlowdownPower
+    // is a currently-unwired data holder pending a slowdown-source DSL.
+    //
+    // That leaves less_item_use_slowdown, which aliases cleanly to
+    // attribute_modifier with a using_item condition.
+
+    private static final ResourceLocation ID_ATTRIBUTE_MODIFIER =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "attribute_modifier");
+
+    private static void registerAttributeModifierAliases() {
+        // less_item_use_slowdown: +speed_multiplier to movement_speed while
+        // isUsingItem(). The legacy class also has an item_type filter
+        // (bow/shield/any) — the alias drops it because no item-type
+        // condition exists yet. Packs filtering by item_type should keep
+        // the legacy class until a future DSL verb lands.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "less_item_use_slowdown"),
+                 ID_ATTRIBUTE_MODIFIER, (json, powerId) -> {
+                    float mult = json.has("speed_multiplier") ? json.get("speed_multiplier").getAsFloat() : 0.5f;
+                    boolean filteringByItem = json.has("item_type")
+                        && !"any".equalsIgnoreCase(json.get("item_type").getAsString());
+
+                    json.addProperty("attribute", "minecraft:movement_speed");
+                    json.addProperty("amount", mult);
+                    json.addProperty("operation", "add_multiplied_base");
+
+                    com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
+                    cond.addProperty("type", "origins:using_item");
+                    json.add("condition", cond);
+
+                    if (filteringByItem) {
+                        json.addProperty("_migration_note",
+                            "less_item_use_slowdown alias applies to any item-use — legacy item_type filter was dropped");
+                    }
+                    json.remove("speed_multiplier");
+                    json.remove("item_type");
+                });
     }
 
     // ── Phase 2: persistent-effect aliases ─────────────────────────────────

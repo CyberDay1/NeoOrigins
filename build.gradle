@@ -132,6 +132,7 @@ tasks.register('migrateLegacyPowers') {
             'neoorigins:tick_action'            : 'neoorigins:condition_passive',
             'neoorigins:action_on_kill'         : 'neoorigins:action_on_event',
             'neoorigins:action_on_hit_taken'    : 'neoorigins:action_on_event',
+            'neoorigins:less_item_use_slowdown' : 'neoorigins:attribute_modifier',
         ]
         def counts = [:].withDefault { 0 }
         int scanned = 0

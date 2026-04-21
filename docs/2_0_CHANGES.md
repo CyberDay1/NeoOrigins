@@ -119,6 +119,8 @@ per boot (`WARNED` set).
 
 **Persistent effect (done):** `status_effect`, `stacking_status_effects`, `night_vision`, `glow`, `water_breathing` → `persistent_effect`. Field remaps build the effect-spec array from legacy shapes; `stacking_status_effects` forces `toggleable: false`, `water_breathing` adds `condition: origins:in_water` and hides the HUD icon.
 
+**Attribute modifier (done):** `less_item_use_slowdown` → `attribute_modifier` with `condition: origins:using_item`. Phase 3 architectural work (condition + edge-triggered apply/remove) was already complete; six of the originally-scoped ten classes moved to `action_on_event` under Phase 6 (`hunger_drain_modifier`, `natural_regen_modifier`, `knockback_modifier`, `longer_potions`, `teleport_range_modifier`, `food_restriction`); two more (`break_speed_modifier`, `underwater_mining_speed`) are deliberately skipped because NeoForge's `PlayerEvent.BreakSpeed` only fires client-side; `no_slowdown` stays bespoke pending a slowdown-source DSL. `less_item_use_slowdown` alias is lossy for `item_type != "any"` (the item-type filter drops).
+
 **Scope note:** three legacy types originally lumped under Phase 2 don't semantically fit `persistent_effect` and have been reassigned:
 - `breath_in_fluid` / `regen_in_fluid` → Phase 4 `condition_passive` (tick-driven fluid checks, not MobEffect applications)
 - `effect_immunity` → Phase 6 `action_on_event` with a `cancel_event` entity_action (event canceler, not a persistent effect)
