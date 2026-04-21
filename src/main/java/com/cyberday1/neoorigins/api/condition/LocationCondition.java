@@ -14,7 +14,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 
@@ -138,8 +137,40 @@ public record LocationCondition(
             found = searchOrigin;
         }
 
-        int y = target.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, found.getX(), found.getZ());
-        Vec3 spawnPos = new Vec3(found.getX() + 0.5, y, found.getZ() + 0.5);
-        return Optional.of(new SpawnTarget(target, spawnPos));
+        // Force-load the chunk at `found` so its structures have actually
+        // placed blocks and the heightmap is populated. On a fresh world
+        // that's never had the target dimension visited, the chunk may not
+        // yet be generated.
+        target.getChunk(found.getX() >> 4, found.getZ() >> 4);
+
+        // Scan from the dimension's top downward for the highest solid block
+        // with two air blocks above it. Don't rely on
+        // MOTION_BLOCKING_NO_LEAVES as the starting Y — on ungenerated
+        // chunks it returns minY and the scan exits before finding anything.
+        // If the exact column at `found` has no safe floor (e.g. The End
+        // structure chunk center lands in a gap between islands), sweep a
+        // 5x5 XZ area looking for a safe spot. Use logicalHeight so ceiling
+        // dimensions (Nether) don't place the player on the bedrock roof.
+        final int minY = target.dimensionType().minY();
+        final int topY = minY + target.dimensionType().logicalHeight() - 1;
+        for (int dx = 0; dx <= 4; dx++) {
+            for (int dz = 0; dz <= 4; dz++) {
+                int tryX = found.getX() + (dx % 2 == 0 ? dx / 2 : -((dx + 1) / 2));
+                int tryZ = found.getZ() + (dz % 2 == 0 ? dz / 2 : -((dz + 1) / 2));
+                target.getChunk(tryX >> 4, tryZ >> 4);
+                for (int y = topY; y > minY; y--) {
+                    BlockPos floorPos = new BlockPos(tryX, y - 1, tryZ);
+                    BlockPos feetPos  = new BlockPos(tryX, y,     tryZ);
+                    BlockPos headPos  = new BlockPos(tryX, y + 1, tryZ);
+                    if (target.getBlockState(floorPos).isSolid()
+                        && target.getBlockState(feetPos).isAir()
+                        && target.getBlockState(headPos).isAir()) {
+                        Vec3 spawnPos = new Vec3(tryX + 0.5, y, tryZ + 0.5);
+                        return Optional.of(new SpawnTarget(target, spawnPos));
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 }
