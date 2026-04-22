@@ -1,10 +1,13 @@
 package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
 import com.cyberday1.neoorigins.power.builtin.RestrictArmorPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.EventPowerIndex;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -47,6 +50,29 @@ public class InteractionPowerEvents {
     public static void onItemUseFinish(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, event.getItem());
+    }
+
+    @SubscribeEvent
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack stack = event.getItemStack();
+        if (stack.isEmpty()) return;
+        final boolean[] consumed = {false};
+        ActiveOriginService.forEachOfType(sp, EdibleItemPower.class, cfg -> {
+            if (consumed[0]) return;
+            if (!EdibleItemPower.matches(stack, cfg)) return;
+            if (!cfg.alwaysEdible() && sp.getFoodData().getFoodLevel() >= 20) return;
+            sp.getFoodData().eat(cfg.nutrition(), cfg.saturation());
+            stack.shrink(1);
+            cfg.consumeSound().ifPresent(soundId -> {
+                var snd = BuiltInRegistries.SOUND_EVENT.getOptional(soundId);
+                snd.ifPresent(s -> sp.level().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                    s, SoundSource.PLAYERS, 1.0f, 1.0f));
+            });
+            EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, stack);
+            consumed[0] = true;
+        });
+        if (consumed[0]) event.setCanceled(true);
     }
 
     @SubscribeEvent
