@@ -383,10 +383,13 @@ public final class LegacyPowerTypeAliases {
                     json.addProperty("toggleable", false);
                 });
 
-        // night_vision: toggle, no effect config in legacy JSON.
+        // night_vision: always-on, no HUD icon, no toggle. The toggle UX lives
+        // on neoorigins:enhanced_vision; basic night_vision is meant to be
+        // permanently on for origins that have it.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "night_vision"),
                  ID_PERSISTENT_EFFECT, (json, powerId) -> {
                     writeSingleEffect(json, "minecraft:night_vision", false);
+                    json.addProperty("toggleable", false);
                 });
 
         // glow: toggle, no effect config in legacy JSON.
