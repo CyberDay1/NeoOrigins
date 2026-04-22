@@ -7,7 +7,8 @@
     "LivingEntityMixin",
     "LivingEntityClimbMixin",
     "FoodDataMixin",
-    "FoodDataTickMixin"
+    "FoodDataTickMixin",
+    "FoodDataNoRegenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
