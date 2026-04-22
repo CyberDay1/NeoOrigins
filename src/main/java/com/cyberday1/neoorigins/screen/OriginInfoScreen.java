@@ -113,15 +113,19 @@ public class OriginInfoScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.close"), b -> onClose())
             .bounds(width / 2 - 40, height - 24, 80, 20).build());
 
-        // Debug button (client-only, reveals live power/capability state)
-        addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
-                b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
-            .bounds(width / 2 + 48, height - 24, 60, 20).build());
-
-        // Edit button — opens the in-game origin/power editor
-        addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
-                b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
-            .bounds(width / 2 - 108, height - 24, 60, 20).build());
+        // Debug + Edit are dev-GUI tools — hidden unless the player is in
+        // Creative. Survival players don't need the power tester or the
+        // origin editor, and exposing them clutters the info screen.
+        var lp = Minecraft.getInstance().player;
+        boolean showDevGui = lp != null && lp.isCreative();
+        if (showDevGui) {
+            addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
+                    b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
+                .bounds(width / 2 + 48, height - 24, 60, 20).build());
+            addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
+                    b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
+                .bounds(width / 2 - 108, height - 24, 60, 20).build());
+        }
     }
 
     private void updateDetail() {
