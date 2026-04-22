@@ -1,1 +1,7 @@
-{ "type": "neoorigins:prevent_action", "action": "fall_damage", "name": "power.neoorigins.avian_no_fall_damage.name", "description": "power.neoorigins.avian_no_fall_damage.description" }
+{
+  "type": "neoorigins:prevent_action",
+  "action": "fall_damage",
+  "active_when": "not_sneaking",
+  "name": "power.neoorigins.avian_no_fall_damage.name",
+  "description": "power.neoorigins.avian_no_fall_damage.description"
+}
