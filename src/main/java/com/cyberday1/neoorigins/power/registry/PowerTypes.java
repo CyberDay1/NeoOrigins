@@ -38,6 +38,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, EntityGroupPower>         ENTITY_GROUP         = reg("entity_group",         new EntityGroupPower());
     public static final DeferredHolder<PowerType<?>, EntitySetPower>           ENTITY_SET           = reg("entity_set",           new EntitySetPower());
     public static final DeferredHolder<PowerType<?>, EnhancedVisionPower>      ENHANCED_VISION      = reg("enhanced_vision",      new EnhancedVisionPower());
+    public static final DeferredHolder<PowerType<?>, EnderGazeImmunityPower>   ENDER_GAZE_IMMUNITY  = reg("ender_gaze_immunity",  new EnderGazeImmunityPower());
 
     // --- Passive: movement & environment ---
     public static final DeferredHolder<PowerType<?>, PreventActionPower>       PREVENT_ACTION       = reg("prevent_action",       new PreventActionPower());

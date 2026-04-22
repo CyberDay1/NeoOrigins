@@ -6,6 +6,7 @@
   "order": 6,
   "powers": [
     "neoorigins:enderian_no_eye_damage",
+    "neoorigins:enderian_projectile_dodge",
     "neoorigins:enderian_water_damage",
     "neoorigins:enderian_teleport"
   ],

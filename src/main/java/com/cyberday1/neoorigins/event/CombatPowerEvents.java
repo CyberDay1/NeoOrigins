@@ -43,6 +43,17 @@ public class CombatPowerEvents {
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
+        // First-pick invulnerability — the player is still choosing their
+        // origin/class on first login. Cancel damage so they can't die or get
+        // shoved around while the picker is open. Orb-of-Origin re-picks
+        // (orbUseCount > 0) don't qualify — they chose to re-enter the flow.
+        com.cyberday1.neoorigins.attachment.PlayerOriginData pod =
+            sp.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+        if (!pod.isHadAllOrigins() && pod.getOrbUseCount() == 0) {
+            event.setCanceled(true);
+            return;
+        }
+
         // Native InvulnerabilityPower — cancels damage whose source matches configured filters.
         // Runs before any other damage logic so the event is short-circuited cleanly.
         if (ActiveOriginService.has(sp, InvulnerabilityPower.class,
@@ -215,9 +226,36 @@ public class CombatPowerEvents {
 
         if (!(event.getRayTraceResult() instanceof EntityHitResult ehr)) return;
         if (!(ehr.getEntity() instanceof ServerPlayer sp)) return;
-        if (ActiveOriginService.has(sp, ProjectileImmunityPower.class, cfg -> cfg.blocks(proj))) {
+        final boolean[] handled = {false};
+        ActiveOriginService.forEachOfType(sp, ProjectileImmunityPower.class, cfg -> {
+            if (handled[0]) return;
+            if (!cfg.blocks(proj)) return;
+            if (cfg.chance() < 1.0f && sp.getRandom().nextFloat() >= cfg.chance()) return;
             event.setCanceled(true);
-        }
+            handled[0] = true;
+            if (cfg.teleport()) {
+                // Enderman-style random teleport on successful dodge. Try up to
+                // 16 candidate positions within the configured range; first safe
+                // one wins. Silently no-op if nothing works — the dodge already
+                // cancelled the damage, so the teleport is pure flavour.
+                var random = sp.getRandom();
+                double baseX = sp.getX();
+                double baseY = sp.getY();
+                double baseZ = sp.getZ();
+                int range = cfg.teleportRange();
+                for (int attempt = 0; attempt < 16; attempt++) {
+                    double nx = baseX + (random.nextDouble() - 0.5) * 2 * range;
+                    double ny = baseY + (random.nextInt(range) - range / 2);
+                    double nz = baseZ + (random.nextDouble() - 0.5) * 2 * range;
+                    if (sp.randomTeleport(nx, ny, nz, true)) {
+                        sp.level().playSound(null, baseX, baseY, baseZ,
+                            net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT,
+                            net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f);
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     @SubscribeEvent

@@ -86,10 +86,10 @@
   "power.neoorigins.merling_no_drowning.name": "No Drowning",
   "power.neoorigins.merling_no_drowning.description": "Cannot drown.",
 
-  "power.neoorigins.avian_slow_fall.name": "Slow Falling",
-  "power.neoorigins.avian_slow_fall.description": "Drifts slowly downward and takes greatly reduced fall damage.",
   "power.neoorigins.avian_no_fall_damage.name": "Featherweight",
-  "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling — unless crouching, which lets you land critical hits.",
+  "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling.",
+  "power.neoorigins.avian_slow_fall.name": "Slow Falling",
+  "power.neoorigins.avian_slow_fall.description": "Toggleable: drifts slowly downward. Disabled by default. Note: critical hits require falling normally, so keep this off to crit.",
   "power.neoorigins.avian_no_hunger_sprint.name": "Athlete's Diet",
   "power.neoorigins.avian_no_hunger_sprint.description": "Uses 75% less energy from all actions.",
 
@@ -106,7 +106,9 @@
   "power.neoorigins.elytrian_flight.description": "Glide freely without an elytra. Jump while mid-air to start flying; press this power's Skill keybind to toggle it on or off.",
 
   "power.neoorigins.enderian_no_eye_damage.name": "Ender Eyes",
-  "power.neoorigins.enderian_no_eye_damage.description": "Immune to projectiles that target the eyes.",
+  "power.neoorigins.enderian_no_eye_damage.description": "Endermen ignore your gaze — look at them without provoking an attack.",
+  "power.neoorigins.enderian_projectile_dodge.name": "Void Step",
+  "power.neoorigins.enderian_projectile_dodge.description": "50% chance to teleport away and avoid damage when struck by a projectile.",
   "power.neoorigins.enderian_water_damage.name": "Hydrophobia",
   "power.neoorigins.enderian_water_damage.description": "Takes 2 damage/s while in water or rain.",
   "power.neoorigins.enderian_teleport.name": "Ender Warp",
