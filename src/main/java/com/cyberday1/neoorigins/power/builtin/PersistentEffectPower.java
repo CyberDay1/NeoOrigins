@@ -133,7 +133,22 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     @Override
     public boolean isActivePower(Config config) { return config.toggleable(); }
 
-    private String toggleKey() { return getClass().getName(); }
+    /**
+     * Per-instance toggle key — includes the effect IDs so that multiple
+     * persistent_effect powers on the same player (e.g. Breeze's Cushion of
+     * Air and Updraft) don't share one toggle flag. Without this, pressing
+     * either keybind would flip both powers' state in lockstep.
+     */
+    private String toggleKey(Config config) {
+        if (config.effects().isEmpty()) return getClass().getName();
+        StringBuilder sb = new StringBuilder(getClass().getName());
+        for (EffectSpec spec : config.effects()) {
+            sb.append(':');
+            var key = spec.effect().unwrapKey();
+            sb.append(key.map(k -> k.location().toString()).orElse("unknown"));
+        }
+        return sb.toString();
+    }
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
@@ -143,7 +158,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         // immediately apply the effect on the next tick.
         if (config.toggleable() && config.defaultOff()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            data.setPowerToggledOff(toggleKey(), true);
+            data.setPowerToggledOff(toggleKey(config), true);
         }
     }
 
@@ -151,13 +166,13 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public void onActivated(ServerPlayer player, Config config) {
         if (!config.toggleable()) return;
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        boolean wasOff = data.isPowerToggledOff(toggleKey());
+        boolean wasOff = data.isPowerToggledOff(toggleKey(config));
         if (wasOff) {
-            data.setPowerToggledOff(toggleKey(), false);
+            data.setPowerToggledOff(toggleKey(config), false);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
-            data.setPowerToggledOff(toggleKey(), true);
+            data.setPowerToggledOff(toggleKey(config), true);
             clearEffects(player, config);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
@@ -168,7 +183,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public void onTick(ServerPlayer player, Config config) {
         if (config.toggleable()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            if (data.isPowerToggledOff(toggleKey())) return;
+            if (data.isPowerToggledOff(toggleKey(config))) return;
         }
         if (!config.condition().test(player)) {
             // Condition now false: clear our effects so the player isn't permanently buffed.
@@ -194,7 +209,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setPowerToggledOff(toggleKey(), false);
+        data.setPowerToggledOff(toggleKey(config), false);
         clearEffects(player, config);
     }
 
