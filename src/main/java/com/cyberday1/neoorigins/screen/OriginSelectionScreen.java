@@ -232,8 +232,13 @@ public class OriginSelectionScreen extends Screen {
             g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, 0xFF334488);
             g.text(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
         }
-        if (getMaxListScroll() > 0)
-            g.text(font, Component.translatable("gui.neoorigins.hint.scroll"), panelX, panelBottom + 3, 0xFF334466, false);
+        // Scroll hint sits above the list panel so it doesn't collide with the
+        // Random / Back / Confirm button row at the bottom.
+        if (getMaxListScroll() > 0) {
+            var hint = Component.translatable("gui.neoorigins.hint.scroll");
+            int hintY = PANEL_TOP - 10;
+            g.text(font, hint, panelX, hintY, 0xFF334466, false);
+        }
 
         super.extractRenderState(g, mouseX, mouseY, partial);
         renderDetailPanel(g);

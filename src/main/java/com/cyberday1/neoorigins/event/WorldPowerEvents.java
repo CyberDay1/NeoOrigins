@@ -34,6 +34,15 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
         if (!(event.getNewAboutToBeSetTarget() instanceof ServerPlayer sp)) return;
+
+        // Summoned minions must never target their own summoner. Overrides the
+        // retaliation window below — even if the player hits their own minion
+        // by accident, the minion should not turn on them.
+        if (com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(event.getEntity(), sp.getUUID())) {
+            event.setCanceled(true);
+            return;
+        }
+
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
                 cfg -> cfg.entityTypes().isEmpty()
                     || cfg.entityTypes().stream().anyMatch(id ->

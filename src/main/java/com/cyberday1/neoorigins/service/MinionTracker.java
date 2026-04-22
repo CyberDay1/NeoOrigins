@@ -127,6 +127,22 @@ public final class MinionTracker {
         }
     }
 
+    /**
+     * True if {@code entity} is currently tracked as a minion summoned by the
+     * player identified by {@code summonerUuid}. Used by the targeting
+     * interceptor to stop summoned mobs from attacking their own summoner.
+     */
+    public static boolean isTrackedMinionOf(Entity entity, UUID summonerUuid) {
+        if (entity == null) return false;
+        List<TrackedMinion> list = MINIONS.get(summonerUuid);
+        if (list == null) return false;
+        UUID entityUuid = entity.getUUID();
+        for (TrackedMinion m : list) {
+            if (m.minionUuid().equals(entityUuid)) return true;
+        }
+        return false;
+    }
+
     /** Get all living tracked minions of a given mob type for a player. */
     public static List<TrackedMinion> getAlive(UUID playerUuid, String mobType) {
         List<TrackedMinion> list = MINIONS.get(playerUuid);
