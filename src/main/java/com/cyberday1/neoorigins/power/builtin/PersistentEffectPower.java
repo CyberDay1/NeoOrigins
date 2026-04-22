@@ -145,7 +145,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         for (EffectSpec spec : config.effects()) {
             sb.append(':');
             var key = spec.effect().unwrapKey();
-            sb.append(key.map(k -> k.location().toString()).orElse("unknown"));
+            sb.append(key.map(k -> k.identifier().toString()).orElse("unknown"));
         }
         return sb.toString();
     }

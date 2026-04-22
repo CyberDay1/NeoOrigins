@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.attachment;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.UUIDUtil;
 import net.neoforged.bus.api.IEventBus;
@@ -31,7 +32,7 @@ public class EntityAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<MinionOwner>> MINION_OWNER =
         ATTACHMENT_TYPES.register("minion_owner", () ->
             AttachmentType.builder(MinionOwner::empty)
-                .serialize(MinionOwner.CODEC)
+                .serialize(MinionOwner.MAP_CODEC)
                 .build());
 
     public static void register(IEventBus modEventBus) {
@@ -43,9 +44,10 @@ public class EntityAttachments {
     }
 
     public record MinionOwner(Optional<UUID> ownerUuid) {
-        public static final Codec<MinionOwner> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+        public static final MapCodec<MinionOwner> MAP_CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
             UUIDUtil.CODEC.optionalFieldOf("owner").forGetter(MinionOwner::ownerUuid)
         ).apply(inst, MinionOwner::new));
+        public static final Codec<MinionOwner> CODEC = MAP_CODEC.codec();
 
         public static MinionOwner empty() {
             return new MinionOwner(Optional.empty());
