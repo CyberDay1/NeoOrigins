@@ -561,11 +561,11 @@ Multiplies the rate at which the player's hunger depletes.
 
 ## `neoorigins:natural_regen_modifier`
 
-Multiplies the rate of natural health regeneration.
+Multiplies all healing the player receives via `LivingHealEvent`. **Note:** this is *not* limited to food-tick natural regen — it also scales Regeneration potion ticks, beacon regen, totem of undying, and any data-pack `origins:heal` actions. If you want to cancel food-tick regen specifically while leaving other heals intact, use `neoorigins:no_natural_regen` instead.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `multiplier` | float | no | `1.0` | Regen rate multiplier (`0.5` = half regen, `2.0` = double regen) |
+| `multiplier` | float | no | `1.0` | Heal multiplier (`0.5` = half all heals, `2.0` = double all heals, `0.0` = block all heals) |
 
 **Example:**
 ```json
@@ -574,6 +574,23 @@ Multiplies the rate of natural health regeneration.
   "multiplier": 0.5,
   "name": "Slow Recovery",
   "description": "Heals at half the normal rate."
+}
+```
+
+---
+
+## `neoorigins:no_natural_regen`
+
+Cancels vanilla food-based natural regeneration only. Both regen branches (saturation-based fast regen and food-level-≥18 slow regen) are skipped. Other heal sources — Regeneration potion, beacon, totem, `origins:heal` — still work normally. Pair with an alternate healing mechanic for "metabolism-less" origins like Automaton variants.
+
+No fields. Presence of the power is the entire configuration.
+
+**Example:**
+```json
+{
+  "type": "neoorigins:no_natural_regen",
+  "name": "No Pulse",
+  "description": "Hunger doesn't restore HP. Only direct healing effects do."
 }
 ```
 
@@ -1297,3 +1314,40 @@ Active ability that places a persistent shadow orb at the player's position. Eac
   "description": "Places orbs that shroud the area in darkness."
 }
 ```
+
+---
+
+# Pack-author patterns
+
+Recipes that compose existing power types to cover use cases the built-in types don't expose directly. Most rely on the Apoli compat surface (`origins:`-prefixed types handled by `OriginsCompatPowerLoader`).
+
+## Periodic feed / heal via `origins:action_over_time`
+
+NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_ON_DAMAGE` behaviour. For any other periodic action — periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action — use `origins:action_over_time` from the Apoli compat layer.
+
+**Periodic hunger restoration** (e.g. for an origin that doesn't eat conventionally):
+```json
+{
+  "type": "origins:action_over_time",
+  "interval": 40,
+  "entity_action": {
+    "type": "origins:feed",
+    "food": 1,
+    "saturation": 0.2
+  }
+}
+```
+
+**Periodic healing** (independent of food / `natural_regen_modifier`):
+```json
+{
+  "type": "origins:action_over_time",
+  "interval": 60,
+  "entity_action": {
+    "type": "origins:heal",
+    "amount": 0.5
+  }
+}
+```
+
+`interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. Any verb supported by `ActionParser` works (`origins:apply_effect`, `origins:damage`, `origins:execute_command`, `origins:if_else` for conditional wrapping, etc.).
