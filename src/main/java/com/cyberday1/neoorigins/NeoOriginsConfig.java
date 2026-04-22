@@ -143,7 +143,6 @@ public final class NeoOriginsConfig {
         p("automaton_rigid_joints");    f("multiplier", 0.25, 0, 10); ep();
 
         // ── Avian ──
-        p("avian_slow_fall");           f("amount", -0.9, -1, 0); ep();
         p("avian_no_hunger_sprint");    f("multiplier", 0.25, 0, 10); ep();
 
         // ── Blazeling ──
