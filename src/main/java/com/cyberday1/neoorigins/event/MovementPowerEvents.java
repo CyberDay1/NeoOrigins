@@ -22,7 +22,8 @@ public class MovementPowerEvents {
     public static void onLivingFall(LivingFallEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (ActiveOriginService.has(sp, PreventActionPower.class,
-                config -> config.action() == PreventActionPower.Action.FALL_DAMAGE)) {
+                config -> config.action() == PreventActionPower.Action.FALL_DAMAGE
+                       && PreventActionPower.isGateOpen(sp, config))) {
             event.setCanceled(true);
         }
         if (sp.onClimbable() && ActiveOriginService.has(sp, ConditionalPower.class, config ->
