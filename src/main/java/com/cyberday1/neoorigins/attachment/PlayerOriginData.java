@@ -4,16 +4,19 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 /**
  * Stores a player's chosen origin per layer.
@@ -33,6 +36,8 @@ public class PlayerOriginData {
     private final Set<String> toggledOffPowers = new HashSet<>();
     /** Powers granted at runtime via action grant_power (not tied to any origin). Persisted. */
     private final Set<ResourceLocation> dynamicGrantedPowers = new HashSet<>();
+    /** Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs). Persisted as Map&lt;String, List&lt;String&gt;&gt;. */
+    private final Map<String, Set<UUID>> entitySets = new HashMap<>();
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new HashMap<>();
     /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
@@ -60,8 +65,19 @@ public class PlayerOriginData {
             .forGetter(d -> new ArrayList<>(d.toggledOffPowers)),
         ResourceLocation.CODEC.listOf()
             .optionalFieldOf("dynamic_granted_powers", List.of())
-            .forGetter(d -> new ArrayList<>(d.dynamicGrantedPowers))
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic) -> {
+            .forGetter(d -> new ArrayList<>(d.dynamicGrantedPowers)),
+        Codec.unboundedMap(Codec.STRING, Codec.STRING.listOf())
+            .optionalFieldOf("entity_sets", Map.of())
+            .forGetter(d -> {
+                Map<String, List<String>> out = new LinkedHashMap<>();
+                for (var e : d.entitySets.entrySet()) {
+                    List<String> uuids = new ArrayList<>(e.getValue().size());
+                    for (UUID u : e.getValue()) uuids.add(u.toString());
+                    out.put(e.getKey(), uuids);
+                }
+                return out;
+            })
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
@@ -70,6 +86,13 @@ public class PlayerOriginData {
         data.orbUseCount = orbUses;
         data.toggledOffPowers.addAll(toggledOff);
         data.dynamicGrantedPowers.addAll(dynamic);
+        for (var e : sets.entrySet()) {
+            Set<UUID> parsed = new LinkedHashSet<>();
+            for (String s : e.getValue()) {
+                try { parsed.add(UUID.fromString(s)); } catch (IllegalArgumentException ignored) {}
+            }
+            if (!parsed.isEmpty()) data.entitySets.put(e.getKey(), parsed);
+        }
         return data;
     }));
 
@@ -174,6 +197,54 @@ public class PlayerOriginData {
         return removed;
     }
 
+    // ---- Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs) ----
+
+    /**
+     * Returns an unmodifiable snapshot of the named UUID set, or an empty set if unknown.
+     * The snapshot is NOT GC'd — use {@link #addToEntitySet}/{@link #removeFromEntitySet}
+     * for mutating calls (which GC on every write).
+     */
+    public Set<UUID> getEntitySet(String name) {
+        Set<UUID> s = entitySets.get(name);
+        return s == null ? Collections.emptySet() : Collections.unmodifiableSet(s);
+    }
+
+    /**
+     * Add a UUID to the named set, then sweep out any UUIDs in that set whose entity has
+     * despawned or died in {@code sp.level()}. Creates the set if it doesn't exist.
+     */
+    public void addToEntitySet(ServerPlayer sp, String name, UUID uuid) {
+        Set<UUID> set = entitySets.computeIfAbsent(name, k -> new LinkedHashSet<>());
+        set.add(uuid);
+        gcSet(sp, set);
+        version++;
+    }
+
+    /**
+     * Remove a UUID from the named set, then sweep out any despawned UUIDs.
+     * No-op if the set doesn't exist.
+     */
+    public void removeFromEntitySet(ServerPlayer sp, String name, UUID uuid) {
+        Set<UUID> set = entitySets.get(name);
+        if (set == null) return;
+        set.remove(uuid);
+        gcSet(sp, set);
+        if (set.isEmpty()) entitySets.remove(name);
+        version++;
+    }
+
+    /** Drop the entire named set. */
+    public void clearEntitySet(String name) {
+        if (entitySets.remove(name) != null) version++;
+    }
+
+    private static void gcSet(ServerPlayer sp, Set<UUID> set) {
+        if (sp == null) return;
+        var lvl = sp.level();
+        if (!(lvl instanceof net.minecraft.server.level.ServerLevel server)) return;
+        set.removeIf(u -> server.getEntity(u) == null);
+    }
+
     public void clear() {
         origins.clear();
         hadAllOrigins = false;
@@ -181,6 +252,7 @@ public class PlayerOriginData {
         shadowOrbs.clear();
         toggledOffPowers.clear();
         dynamicGrantedPowers.clear();
+        entitySets.clear();
         activeCooldowns.clear();
         version++;
     }
