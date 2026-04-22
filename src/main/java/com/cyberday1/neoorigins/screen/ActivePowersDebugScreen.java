@@ -150,6 +150,11 @@ public class ActivePowersDebugScreen extends Screen {
         return super.mouseScrolled(mx, my, sx, sy);
     }
 
+    @Override
+    protected void renderBlurredBackground(float partialTick) {
+        // No-op: disable background blur so our semi-transparent fill is visible
+    }
+
     @Override public boolean isPauseScreen() { return false; }
     @Override public void onClose() { Minecraft.getInstance().setScreen(parent); }
 }
