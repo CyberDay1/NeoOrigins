@@ -69,6 +69,7 @@ public class PowerTypes {
 
     // --- Passive: scalars & misc ---
     // hunger_drain_modifier, natural_regen_modifier retired in 2.0; aliased to action_on_event.
+    public static final DeferredHolder<PowerType<?>, NoNaturalRegenPower>      NO_NATURAL_REGEN     = reg("no_natural_regen",     new NoNaturalRegenPower());
     public static final DeferredHolder<PowerType<?>, CropGrowthAcceleratorPower> CROP_GROWTH_ACCELERATOR = reg("crop_growth_accelerator", new CropGrowthAcceleratorPower());
     public static final DeferredHolder<PowerType<?>, CropHarvestBonusPower>    CROP_HARVEST_BONUS   = reg("crop_harvest_bonus",   new CropHarvestBonusPower());
     public static final DeferredHolder<PowerType<?>, StartingEquipmentPower>   STARTING_EQUIPMENT   = reg("starting_equipment",   new StartingEquipmentPower());
