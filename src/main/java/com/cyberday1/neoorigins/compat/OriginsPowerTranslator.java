@@ -219,6 +219,7 @@ public final class OriginsPowerTranslator {
             // Phase 4: New Route A translations
             case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
             case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
+            case "origins:food_restriction",       "apace:food_restriction"       -> translateFoodRestriction(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -231,6 +232,17 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> translateSimple(String neoType) {
         JsonObject out = new JsonObject();
         out.addProperty("type", neoType);
+        return Optional.of(out);
+    }
+
+    // Rewrites to neoorigins:food_restriction; LegacyPowerTypeAliases then
+    // remaps it to action_on_event (food_eaten event). Packs commonly declare
+    // the origins:/apace: prefix — without this case the power silently drops.
+    private static Optional<JsonObject> translateFoodRestriction(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:food_restriction");
+        if (src.has("item_tag")) out.add("item_tag", src.get("item_tag"));
+        if (src.has("mode"))     out.add("mode", src.get("mode"));
         return Optional.of(out);
     }
 
