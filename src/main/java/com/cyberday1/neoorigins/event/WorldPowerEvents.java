@@ -38,6 +38,10 @@ public class WorldPowerEvents {
                 cfg -> cfg.entityTypes().isEmpty()
                     || cfg.entityTypes().stream().anyMatch(id ->
                         com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
+            // Retaliation window: if the player recently hit this mob, allow
+            // targeting so the mob can fight back. Vanilla clears
+            // getLastHurtByMob() on its own timer; we just defer to it.
+            if (event.getEntity().getLastHurtByMob() == sp) return;
             event.setCanceled(true);
             return;
         }

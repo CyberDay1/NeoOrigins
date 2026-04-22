@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
@@ -58,7 +59,14 @@ public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.C
      */
     private static void refreshModifier(ServerPlayer player) {
         AttributeInstance instance = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-        if (instance == null) return;
+        if (instance == null) {
+            NeoOrigins.LOGGER.warn(
+                "[break_speed_modifier] player {} has no BLOCK_BREAK_SPEED attribute — modifier cannot apply. "
+                + "This usually means the power was granted before attributes were registered. "
+                + "Fires once per grant attempt.",
+                player.getName().getString());
+            return;
+        }
 
         instance.removeModifier(MODIFIER_ID);
 
@@ -76,5 +84,17 @@ public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.C
             instance.addPermanentModifier(new AttributeModifier(
                 MODIFIER_ID, product[0] - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         }
+    }
+
+    // Safety net: re-apply the modifier periodically. The attribute is NOT on
+    // LivingEntity's default supplier for older NeoForge builds, and there
+    // have been reports of Miner's Hands appearing inert (#29). This self-
+    // heals any timing issue without being meaningfully expensive.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (player.tickCount % 40 != 0) return;
+        AttributeInstance instance = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
+        if (instance == null) return;
+        if (instance.getModifier(MODIFIER_ID) == null) refreshModifier(player);
     }
 }

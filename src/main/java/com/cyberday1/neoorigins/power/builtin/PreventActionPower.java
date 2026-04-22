@@ -35,4 +35,15 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
     // These methods are intentionally no-op; the event handler checks the action field
     @Override public void onGranted(ServerPlayer player, Config config) {}
     @Override public void onRevoked(ServerPlayer player, Config config) {}
+
+    // Clear residual fire ticks for FIRE-immune players so the burning visual
+    // doesn't flicker on contact with lava / fire sources — damage is already
+    // cancelled in CombatPowerEvents, but the fire-tick counter ticks on
+    // independently and the player model still renders flames. See issue #27.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (config.action() == Action.FIRE && player.getRemainingFireTicks() > 0) {
+            player.setRemainingFireTicks(0);
+        }
+    }
 }
