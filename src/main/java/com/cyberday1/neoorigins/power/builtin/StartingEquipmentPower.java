@@ -4,6 +4,7 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponents;
@@ -19,9 +20,19 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import java.util.List;
 
 /**
- * Gives the player a specific item (optionally enchanted) the first time this power is granted.
- * Uses grantId to track whether the item has already been given, preventing duplicate grants
- * on respawn or re-login.
+ * Gives the player a specific item (optionally enchanted) the first time this power is granted —
+ * but only after the player has committed to their full origin selection. During the initial
+ * picker walk-through the player can click through multiple origins before confirming; granting
+ * items on each preview click creates a dupe where backing out and picking a different origin
+ * leaves the original origin's items in the inventory (issue #22).
+ *
+ * <p>Gate: {@link PlayerOriginData#isHadAllOrigins()} must be true when onGranted fires.
+ * {@link NeoOriginsNetwork#handleChooseOrigin} calls {@link #grantAllPending} once that flag
+ * flips so any deferred grants catch up.
+ *
+ * <p>Dedup: {@code grantId} is stored in {@link PlayerOriginData#grantedEquipmentPowers} so the
+ * same item can't be given twice. The set is cleared by the Orb of Origin and full
+ * {@code /origin reset} so users re-pay for re-granted items.
  */
 public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Config> {
 
@@ -54,6 +65,28 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
     @Override
     public void onGranted(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
+        // Defer until the player has committed to their full origin set.
+        // Otherwise a player can pick an origin, receive its items, click "back",
+        // and pick a different origin — keeping the first origin's items. See
+        // handleChooseOrigin which calls grantAllPending once hadAllOrigins flips.
+        if (!data.isHadAllOrigins()) return;
+        grantIfUngranted(player, config, data);
+    }
+
+    /**
+     * Runs all currently-active StartingEquipmentPower grants for the player.
+     * Called by handleChooseOrigin once the picker commits (hadAllOrigins true)
+     * so previously-deferred grants catch up. Idempotent: grantId flags prevent
+     * double-granting.
+     */
+    public static void grantAllPending(ServerPlayer player) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        if (!data.isHadAllOrigins()) return;
+        ActiveOriginService.forEachOfType(player, StartingEquipmentPower.class,
+            cfg -> grantIfUngranted(player, cfg, data));
+    }
+
+    private static void grantIfUngranted(ServerPlayer player, Config config, PlayerOriginData data) {
         if (data.hasGrantedEquipment(config.grantId())) return;
 
         var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(config.item()));

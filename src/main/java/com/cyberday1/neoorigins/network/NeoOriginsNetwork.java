@@ -169,7 +169,13 @@ public class NeoOriginsNetwork {
             for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
                 if (!data.hasOriginForLayer(l.id())) { allFilled = false; break; }
             }
-            if (allFilled) data.setHadAllOrigins(true);
+            if (allFilled) {
+                data.setHadAllOrigins(true);
+                // Fire any StartingEquipmentPower grants that were deferred during
+                // the picker walk-through. The power's onGranted gates on
+                // hadAllOrigins to prevent back-button dupes (issue #22).
+                com.cyberday1.neoorigins.power.builtin.StartingEquipmentPower.grantAllPending(sp);
+            }
 
             syncToPlayer(sp);
 
