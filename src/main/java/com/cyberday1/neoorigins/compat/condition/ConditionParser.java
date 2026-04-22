@@ -77,8 +77,13 @@ public final class ConditionParser {
                 };
                 case "origins:exposed_to_sun", "apace:exposed_to_sun"   -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
+                    // Vanilla daytime is 0–12000 (sunrise to sunset). The prior
+                    // impl gated on 6000–12000, which skipped morning hours and
+                    // silently made sun-damage origins (Abyssal Surface Burn,
+                    // Enderian, Cinderborn daylight variants) fail to damage
+                    // until around noon.
                     long time = sl.getDefaultClockTime() % 24000L;
-                    return time > 6000L && time < 12000L
+                    return time < 12000L
                         && sl.canSeeSky(p.blockPosition()) && !sl.isRaining();
                 };
                 case "origins:health", "apace:health"                   -> parseHealth(json);
