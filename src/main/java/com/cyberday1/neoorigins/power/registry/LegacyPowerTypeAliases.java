@@ -168,30 +168,59 @@ public final class LegacyPowerTypeAliases {
                     json.remove("damage_type");
                 });
 
-        // damage_in_daylight: damage/ignite while exposed_to_sun AND not in
-        // water AND not already on fire. Compose via origins:and.
+        // damage_in_daylight: while exposed_to_sun AND not in water, apply any
+        // combination of damage and/or ignition per JSON knobs.
+        //
+        //   damage_per_second  (float,   default 1.0)  — damage each interval.
+        //                                                 Set to 0 to disable.
+        //   ignite             (boolean, default false) — also set the player on fire.
+        //   fire_ticks         (int,     default 40)   — burn duration when ignite=true.
+        //
+        // Damage and ignition can be combined (both apply each tick). Because the
+        // condition does NOT require "not on fire", damage continues while the
+        // player is burning from a prior ignite, giving a proper continuous-burn
+        // feel — the vanilla fire tick deals its own damage, and the authored
+        // damage_per_second stacks on top.
         register(Identifier.fromNamespaceAndPath("neoorigins", "damage_in_daylight"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
                     float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
                     boolean ignite = json.has("ignite") && json.get("ignite").getAsBoolean();
+                    int fireTicks = json.has("fire_ticks") ? json.get("fire_ticks").getAsInt() : 40;
 
                     com.google.gson.JsonObject inSun = new com.google.gson.JsonObject();
                     inSun.addProperty("type", "origins:exposed_to_sun");
                     com.google.gson.JsonObject notWet = notCondition(simpleCondition("origins:in_water"));
-                    com.google.gson.JsonObject notBurning = notCondition(simpleCondition("origins:on_fire"));
-                    json.add("condition", andConditions(inSun, notWet, notBurning));
+                    json.add("condition", andConditions(inSun, notWet));
 
+                    com.google.gson.JsonArray actions = new com.google.gson.JsonArray();
+                    if (dps > 0) {
+                        actions.add(damageAction("in_fire", dps));
+                    }
                     if (ignite) {
                         com.google.gson.JsonObject fire = new com.google.gson.JsonObject();
                         fire.addProperty("type", "origins:set_on_fire");
-                        fire.addProperty("ticks", 40);
-                        json.add("entity_action", fire);
-                    } else {
-                        json.add("entity_action", damageAction("in_fire", dps));
+                        fire.addProperty("ticks", fireTicks);
+                        actions.add(fire);
                     }
+
+                    if (actions.size() == 1) {
+                        json.add("entity_action", actions.get(0).getAsJsonObject());
+                    } else if (actions.size() > 1) {
+                        com.google.gson.JsonObject and = new com.google.gson.JsonObject();
+                        and.addProperty("type", "origins:and");
+                        and.add("actions", actions);
+                        json.add("entity_action", and);
+                    } else {
+                        // Both disabled — harmless no-op so the power still loads.
+                        com.google.gson.JsonObject nothing = new com.google.gson.JsonObject();
+                        nothing.addProperty("type", "origins:nothing");
+                        json.add("entity_action", nothing);
+                    }
+
                     json.addProperty("interval", 20);
                     json.remove("damage_per_second");
                     json.remove("ignite");
+                    json.remove("fire_ticks");
                 });
 
         // damage_in_water: damage while in water, or while exposed to rain

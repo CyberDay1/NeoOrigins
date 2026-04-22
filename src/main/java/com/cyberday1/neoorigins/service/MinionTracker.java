@@ -1,6 +1,8 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.attachment.EntityAttachments;
+import com.cyberday1.neoorigins.attachment.EntityAttachments.MinionOwner;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -47,11 +49,14 @@ public final class MinionTracker {
     /** Player UUID → list of tracked minions. */
     private static final Map<UUID, List<TrackedMinion>> MINIONS = new ConcurrentHashMap<>();
 
-    /** Register a newly summoned minion. */
+    /** Register a newly summoned minion. Also stamps the mob with a persistent
+     * {@code minion_owner} attachment so ownership survives dimension changes
+     * and server restarts (the in-memory {@link #MINIONS} map is session-scoped). */
     public static void track(ServerPlayer summoner, LivingEntity minion, String mobType,
                              int currentTick, int despawnTicks, float deathDamage) {
         MINIONS.computeIfAbsent(summoner.getUUID(), k -> new ArrayList<>())
             .add(new TrackedMinion(minion.getUUID(), mobType, currentTick, currentTick + despawnTicks, deathDamage));
+        minion.setData(EntityAttachments.minionOwner(), MinionOwner.of(summoner.getUUID()));
     }
 
     /** Count living minions of a given mob type for a player. */
@@ -131,14 +136,39 @@ public final class MinionTracker {
      * True if {@code entity} is currently tracked as a minion summoned by the
      * player identified by {@code summonerUuid}. Used by the targeting
      * interceptor to stop summoned mobs from attacking their own summoner.
+     *
+     * <p>Checks the persistent {@code minion_owner} attachment first (survives
+     * dimension changes + server restarts), then falls back to the in-memory
+     * map so entries from older saves without the attachment still resolve
+     * during the current session.
      */
     public static boolean isTrackedMinionOf(Entity entity, UUID summonerUuid) {
         if (entity == null) return false;
+        MinionOwner owner = entity.getData(EntityAttachments.minionOwner());
+        if (owner.isOwnedBy(summonerUuid)) return true;
         List<TrackedMinion> list = MINIONS.get(summonerUuid);
         if (list == null) return false;
         UUID entityUuid = entity.getUUID();
         for (TrackedMinion m : list) {
             if (m.minionUuid().equals(entityUuid)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * True if {@code entity} is a summoned minion for any player. Used by the
+     * loot-drop interceptor — summoned mobs should never leave gear/items behind
+     * because the summoner effectively conjured them (and their equipment) for
+     * free. Checks the persistent attachment first, then the in-memory map.
+     */
+    public static boolean isAnyTrackedMinion(Entity entity) {
+        if (entity == null) return false;
+        if (entity.getData(EntityAttachments.minionOwner()).isOwned()) return true;
+        UUID entityUuid = entity.getUUID();
+        for (List<TrackedMinion> list : MINIONS.values()) {
+            for (TrackedMinion m : list) {
+                if (m.minionUuid().equals(entityUuid)) return true;
+            }
         }
         return false;
     }
