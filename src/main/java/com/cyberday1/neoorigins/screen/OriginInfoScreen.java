@@ -51,13 +51,17 @@ public class OriginInfoScreen extends Screen {
     @Override
     protected void init() {
         tabs.clear();
+        // Iterate layers in their declared order (origin layer first, then class),
+        // not the raw client-state map which is alphabetical and would put Class
+        // before Origin.
         Map<ResourceLocation, ResourceLocation> origins = ClientOriginState.getOrigins();
-        for (var entry : origins.entrySet()) {
-            if (entry.getValue() == null) continue;
-            Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+        for (var layer : com.cyberday1.neoorigins.data.LayerDataManager.INSTANCE.getSortedLayers()) {
+            ResourceLocation originId = origins.get(layer.id());
+            if (originId == null) continue;
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
             if (origin == null) continue;
-            String layerName = getLayerDisplayName(entry.getKey());
-            tabs.add(new TabEntry(entry.getKey(), layerName, OriginDetailViewModel.compute(entry.getValue())));
+            String layerName = getLayerDisplayName(layer.id());
+            tabs.add(new TabEntry(layer.id(), layerName, OriginDetailViewModel.compute(originId)));
         }
 
         panelW = Math.min(width - 40, 400);
