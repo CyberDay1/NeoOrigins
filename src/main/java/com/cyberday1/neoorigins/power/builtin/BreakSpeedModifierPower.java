@@ -49,7 +49,16 @@ public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.C
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        refreshModifier(player);
+        // Just remove; don't recompute from the active set. `revokeAllPowers`
+        // (used by /origin reset and Orb of Origin) fires onRevoked *before*
+        // the origin map is cleared, so an active-set recompute would still
+        // see the being-revoked powers and leave the modifier in place. If
+        // other break_speed_modifier powers remain after this revoke, the
+        // onTick self-heal re-applies with the correct product on the next
+        // 40-tick cycle.
+        AttributeInstance instance = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
+        if (instance == null) return;
+        instance.removeModifier(MODIFIER_ID);
     }
 
     /**
