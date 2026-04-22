@@ -65,6 +65,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         EntityCondition condition,
         int refreshInterval,
         boolean toggleable,
+        boolean defaultOff,
         String type
     ) implements PowerConfiguration {
 
@@ -84,6 +85,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:persistent_effect";
                 int refresh = obj.has("refresh_interval") ? obj.get("refresh_interval").getAsInt() : 300;
                 boolean toggleable = !obj.has("toggleable") || obj.get("toggleable").getAsBoolean();
+                boolean defaultOff = obj.has("default_off") && obj.get("default_off").getAsBoolean();
 
                 List<EffectSpec> specs = new ArrayList<>();
                 if (obj.has("effects") && obj.get("effects").isJsonArray()) {
@@ -102,7 +104,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     : EntityCondition.alwaysTrue();
 
                 return DataResult.success(Pair.of(
-                    new Config(List.copyOf(specs), cond, Math.max(1, refresh), toggleable, t),
+                    new Config(List.copyOf(specs), cond, Math.max(1, refresh), toggleable, defaultOff, t),
                     ops.empty()));
             }
 
@@ -133,6 +135,18 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public boolean isActivePower(Config config) { return config.toggleable(); }
 
     private String toggleKey() { return getClass().getName(); }
+
+    @Override
+    public void onGranted(ServerPlayer player, Config config) {
+        // Seed the toggle off-state on first grant when the pack authored
+        // default_off:true — we want the power to START disabled so the
+        // player opts in. Without this, PersistentEffectPower's onTick would
+        // immediately apply the effect on the next tick.
+        if (config.toggleable() && config.defaultOff()) {
+            PlayerOriginData data = player.getData(OriginAttachments.originData());
+            data.setPowerToggledOff(toggleKey(), true);
+        }
+    }
 
     @Override
     public void onActivated(ServerPlayer player, Config config) {

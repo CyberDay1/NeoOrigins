@@ -1,7 +1,9 @@
 {
-  "type": "neoorigins:prevent_action",
-  "action": "fall_damage",
-  "active_when": "not_sneaking",
+  "type": "neoorigins:persistent_effect",
+  "toggleable": true,
+  "effects": [
+    { "effect": "minecraft:slow_falling", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+  ],
   "name": "power.neoorigins.avian_no_fall_damage.name",
   "description": "power.neoorigins.avian_no_fall_damage.description"
 }

@@ -151,6 +151,13 @@ public class ActivePowersDebugScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        // No-op: our render() draws its own backdrop; vanilla's renderBackground
+        // paints the blurred world behind it, which bleeds through our semi-
+        // transparent fill. Override (matching OriginSelectionScreen) to skip it.
+    }
+
+    @Override
     protected void renderBlurredBackground(float partialTick) {
         // No-op: disable background blur so our semi-transparent fill is visible
     }
