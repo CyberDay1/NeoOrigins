@@ -36,6 +36,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, WaterBreathingPower>      WATER_BREATHING      = reg("water_breathing",      new WaterBreathingPower());
     public static final DeferredHolder<PowerType<?>, EffectImmunityPower>      EFFECT_IMMUNITY      = reg("effect_immunity",      new EffectImmunityPower());
     public static final DeferredHolder<PowerType<?>, EntityGroupPower>         ENTITY_GROUP         = reg("entity_group",         new EntityGroupPower());
+    public static final DeferredHolder<PowerType<?>, EntitySetPower>           ENTITY_SET           = reg("entity_set",           new EntitySetPower());
 
     // --- Passive: movement & environment ---
     public static final DeferredHolder<PowerType<?>, PreventActionPower>       PREVENT_ACTION       = reg("prevent_action",       new PreventActionPower());

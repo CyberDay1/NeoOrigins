@@ -141,6 +141,8 @@ public final class ConditionParser {
                 case "origins:equal", "apace:equal"                     -> parseEqual();
                 case "origins:target_type", "apace:target_type"         -> parseTargetType(json);
                 case "origins:target_group", "apace:target_group"       -> parseTargetGroup(json);
+                case "origins:in_set", "apace:in_set",
+                     "neoorigins:in_set"                                -> parseInSet(json, contextId);
 
                 // ---- Damage conditions (read DamageSource from HitTakenContext) ----
                 case "origins:from_fire", "apace:from_fire"             -> parseFromFire();
@@ -866,6 +868,26 @@ public final class ConditionParser {
             var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             if (le == null) return false;
             return le.getType().getTags().anyMatch(t -> t.equals(tag));
+        };
+    }
+
+    /**
+     * Bientity condition: true iff the current target's UUID is in the actor's named
+     * entity-set. The {@code set} field is used verbatim as the key — pack authors
+     * are expected to namespace it (e.g. {@code "mypack:kill_streak"}) to avoid collision.
+     * Fails closed outside a bientity context.
+     */
+    private static EntityCondition parseInSet(JsonObject json, String contextId) {
+        String setName = json.has("set") ? json.get("set").getAsString() : null;
+        if (setName == null || setName.isBlank()) {
+            return failClosed("origins:in_set", contextId, "missing required field 'set'");
+        }
+        final String key = setName;
+        return p -> {
+            var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return false;
+            var data = p.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            return data.getEntitySet(key).contains(le.getUUID());
         };
     }
 

@@ -89,6 +89,10 @@ public final class ActionParser {
                 case "neoorigins:random_teleport"                           -> parseRandomTeleport(json);
                 case "neoorigins:cancel_event"                              -> parseCancelEvent();
 
+                // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
+                case "neoorigins:add_to_set", "origins:add_to_set"          -> parseAddToSet(json, contextId);
+                case "neoorigins:remove_from_set", "origins:remove_from_set" -> parseRemoveFromSet(json, contextId);
+
                 default -> failNoop(type, contextId, "unsupported action type");
             };
         } catch (Exception e) {
@@ -868,6 +872,68 @@ public final class ActionParser {
             var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.toggleState());
             if (explicit != null) state.set(key, explicit);
             else state.toggle(key, false);
+        };
+    }
+
+    /**
+     * Extract the bientity "target" entity from the current dispatch context.
+     * Returns null outside any bientity-relevant context, causing entity-set mutators
+     * to no-op silently. Mirrors {@code ConditionParser.extractTarget} — any context
+     * shape that carries a target LivingEntity is honoured.
+     */
+    private static net.minecraft.world.entity.LivingEntity extractBientityTarget(Object ctx) {
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc) {
+            var e = htc.source().getEntity();
+            return e instanceof net.minecraft.world.entity.LivingEntity le ? le : null;
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.KillContext kc) {
+            return kc.killed();
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext eic) {
+            return eic.target();
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+            if (phc.result() instanceof net.minecraft.world.phys.EntityHitResult ehr
+                && ehr.getEntity() instanceof net.minecraft.world.entity.LivingEntity le) {
+                return le;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Add the current bientity target's UUID to the actor player's named entity-set.
+     * No-op if no bientity context is active or the {@code set} field is missing.
+     */
+    private static EntityAction parseAddToSet(JsonObject json, String contextId) {
+        String setName = json.has("set") ? json.get("set").getAsString() : null;
+        if (setName == null || setName.isBlank()) {
+            return failNoop("neoorigins:add_to_set", contextId, "missing required field 'set'");
+        }
+        final String key = setName;
+        return player -> {
+            var le = extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return;
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            data.addToEntitySet(player, key, le.getUUID());
+        };
+    }
+
+    /**
+     * Remove the current bientity target's UUID from the actor player's named entity-set.
+     * No-op if no bientity context is active or the {@code set} field is missing.
+     */
+    private static EntityAction parseRemoveFromSet(JsonObject json, String contextId) {
+        String setName = json.has("set") ? json.get("set").getAsString() : null;
+        if (setName == null || setName.isBlank()) {
+            return failNoop("neoorigins:remove_from_set", contextId, "missing required field 'set'");
+        }
+        final String key = setName;
+        return player -> {
+            var le = extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (le == null) return;
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            data.removeFromEntitySet(player, key, le.getUUID());
         };
     }
 
