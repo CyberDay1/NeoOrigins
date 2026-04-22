@@ -54,14 +54,16 @@ public class CombatPowerEvents {
         if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
                 || event.getSource().is(DamageTypes.LAVA)) {
             if (ActiveOriginService.has(sp, PreventActionPower.class,
-                    config -> config.action() == PreventActionPower.Action.FIRE)) {
+                    config -> config.action() == PreventActionPower.Action.FIRE
+                           && PreventActionPower.isGateOpen(sp, config))) {
                 event.setCanceled(true);
                 return;
             }
         }
         if (event.getSource().is(DamageTypes.DROWN)) {
             if (ActiveOriginService.has(sp, PreventActionPower.class,
-                    config -> config.action() == PreventActionPower.Action.DROWN)) {
+                    config -> config.action() == PreventActionPower.Action.DROWN
+                           && PreventActionPower.isGateOpen(sp, config))) {
                 event.setCanceled(true);
                 return;
             }

@@ -89,7 +89,7 @@
   "power.neoorigins.avian_slow_fall.name": "Slow Falling",
   "power.neoorigins.avian_slow_fall.description": "Drifts slowly downward and takes greatly reduced fall damage.",
   "power.neoorigins.avian_no_fall_damage.name": "Featherweight",
-  "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling.",
+  "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling — unless crouching, which lets you land critical hits.",
   "power.neoorigins.avian_no_hunger_sprint.name": "Athlete's Diet",
   "power.neoorigins.avian_no_hunger_sprint.description": "Uses 75% less energy from all actions.",
 
