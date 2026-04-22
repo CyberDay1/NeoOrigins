@@ -1,1 +1,1 @@
-{ "type": "neoorigins:night_vision", "name": "power.neoorigins.phantom_night_vision.name", "description": "power.neoorigins.phantom_night_vision.description" }
+{ "type": "neoorigins:enhanced_vision", "exposure": 0.7, "name": "power.neoorigins.phantom_night_vision.name", "description": "power.neoorigins.phantom_night_vision.description" }
