@@ -28,7 +28,16 @@ public class NeoOriginsClientEvents {
         if (NeoOriginsKeybindings.SKILL_3.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(2));
         if (NeoOriginsKeybindings.SKILL_4.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(3));
         if (NeoOriginsKeybindings.CLASS_SKILL.consumeClick()) ClientPacketDistributor.sendToServer(new ActivateClassPowerPayload());
-        if (NeoOriginsKeybindings.VIEW_INFO.consumeClick()) ClientOriginState.openInfoScreen();
+        if (NeoOriginsKeybindings.VIEW_INFO.consumeClick()) {
+            // If the player never finished the origin picker (Escape'd out, died
+            // before committing, etc.), the info screen has nothing to show.
+            // Re-open the selector instead so they can complete selection.
+            if (!ClientOriginState.isHadAllOrigins()) {
+                ClientOriginState.openSelectionScreen(false, false);
+            } else {
+                ClientOriginState.openInfoScreen();
+            }
+        }
 
         // Detect jump press while airborne for flight power activation
         boolean jumpHeld = Minecraft.getInstance().options.keyJump.isDown();

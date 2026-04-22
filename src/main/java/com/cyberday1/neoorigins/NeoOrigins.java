@@ -33,17 +33,43 @@ public class NeoOrigins {
     public static final String MOD_ID = "neoorigins";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    /**
+     * Canonical location for origin-packs as of NeoOrigins 2.0: {@code config/originpacks/}.
+     * Legacy installs put the folder at {@code originpacks/} in the game root;
+     * {@link #resolveOriginpacksDir()} falls back to the legacy path when the new one
+     * is absent so existing setups keep loading without manual intervention.
+     */
+    public static java.nio.file.Path resolveOriginpacksDir() {
+        java.nio.file.Path configDir = FMLPaths.CONFIGDIR.get().resolve("originpacks");
+        if (java.nio.file.Files.exists(configDir)) return configDir;
+        java.nio.file.Path legacy = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        if (java.nio.file.Files.exists(legacy)) {
+            if (LEGACY_WARNED.compareAndSet(false, true)) {
+                LOGGER.warn("[originpacks] Legacy 'originpacks/' folder found at game root. "
+                    + "Please move it to 'config/originpacks/' — the game-root location is deprecated "
+                    + "and will be removed in a future release.");
+            }
+            return legacy;
+        }
+        return configDir;
+    }
+
+    private static final java.util.concurrent.atomic.AtomicBoolean LEGACY_WARNED =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
+
     public NeoOrigins(IEventBus modEventBus, ModContainer modContainer) {
         LOGGER.info("NeoOrigins initializing...");
 
         // Register TOML config (config/neoorigins-common.toml)
         modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
 
-        // Create originpacks/ folder in game directory on first launch
+        // Create config/originpacks/ folder on first launch. If a legacy
+        // originpacks/ folder exists at the game root it will still be picked
+        // up by resolveOriginpacksDir() for back-compat.
         try {
-            java.nio.file.Files.createDirectories(FMLPaths.GAMEDIR.get().resolve("originpacks"));
+            java.nio.file.Files.createDirectories(FMLPaths.CONFIGDIR.get().resolve("originpacks"));
         } catch (java.io.IOException e) {
-            LOGGER.error("Failed to create originpacks/ folder", e);
+            LOGGER.error("Failed to create config/originpacks/ folder", e);
         }
 
         // Register custom power type registry
@@ -80,7 +106,7 @@ public class NeoOrigins {
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {
-        var folder = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        var folder = resolveOriginpacksDir();
         if (event.getPackType() == PackType.SERVER_DATA || event.getPackType() == PackType.CLIENT_RESOURCES) {
             event.addRepositorySource(new OriginsPackFinder(folder));
             LOGGER.info("Registered originpacks/ for {} at {}", event.getPackType(), folder);
