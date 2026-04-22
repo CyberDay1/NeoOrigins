@@ -64,7 +64,7 @@ public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.C
                 "[break_speed_modifier] player {} has no BLOCK_BREAK_SPEED attribute — modifier cannot apply. "
                 + "This usually means the power was granted before attributes were registered. "
                 + "Fires once per grant attempt.",
-                player.getGameProfile().getName());
+                player.getName().getString());
             return;
         }
 
