@@ -2,7 +2,9 @@ package com.cyberday1.neoorigins.screen;
 
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.client.ClientOriginState;
 import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
 import net.minecraft.client.Minecraft;
@@ -14,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -339,5 +342,25 @@ public class OriginSelectionScreen extends Screen {
     }
 
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void onClose() { Minecraft.getInstance().setScreen(null); }
+
+    private static final net.minecraft.resources.Identifier CLASS_LAYER_ID =
+        net.minecraft.resources.Identifier.fromNamespaceAndPath("neoorigins", "class");
+    private static final net.minecraft.resources.Identifier NITWIT_ORIGIN_ID =
+        net.minecraft.resources.Identifier.fromNamespaceAndPath("neoorigins", "class_nitwit");
+
+    @Override
+    public void onClose() {
+        // If the player escaped out with their primary origin picked but no
+        // class, auto-assign the nitwit class (no-effect default) so the
+        // server sees `hadAllOrigins` flip true and runs grantAllPending.
+        // Otherwise the player would sit in a half-selected state with no
+        // starting_equipment items granted. See tester feedback 2026-04-22.
+        var origins = ClientOriginState.getOrigins();
+        boolean hasClass = origins.keySet().stream().anyMatch(CLASS_LAYER_ID::equals);
+        boolean hasAnyOrigin = !origins.isEmpty();
+        if (hasAnyOrigin && !hasClass) {
+            ClientPacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
+        }
+        Minecraft.getInstance().setScreen(null);
+    }
 }
