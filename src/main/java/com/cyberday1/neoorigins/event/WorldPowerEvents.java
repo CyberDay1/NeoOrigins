@@ -38,6 +38,10 @@ public class WorldPowerEvents {
         if (mobTypeId == null) return;
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
                 cfg -> cfg.entityTypes().isEmpty() || cfg.entityTypes().contains(mobTypeId))) {
+            // Retaliation window: if the player recently hit this mob, allow
+            // targeting so the mob can fight back. Vanilla clears
+            // getLastHurtByMob() on its own timer; we just defer to it.
+            if (event.getEntity().getLastHurtByMob() == sp) return;
             event.setCanceled(true);
             return;
         }
