@@ -903,5 +903,14 @@ public final class LegacyPowerTypeAliases {
         };
         register(ResourceLocation.fromNamespaceAndPath("apugli", "edible_item"), edibleItem, remapEdibleItem);
         register(ResourceLocation.fromNamespaceAndPath("apoli",  "edible_item"), edibleItem, remapEdibleItem);
+
+        // Apugli action_on_jump / action_on_target_death already have direct
+        // equivalents in our action_on_event dispatch (JUMP / KILL) — a thin
+        // event-key injection is all the remap needs. Apugli passes the
+        // entity_action verbatim, which matches our action_on_event contract.
+        register(ResourceLocation.fromNamespaceAndPath("apugli", "action_on_jump"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> json.addProperty("event", "jump"));
+        register(ResourceLocation.fromNamespaceAndPath("apugli", "action_on_target_death"),
+                 ID_ACTION_ON_EVENT, (json, powerId) -> json.addProperty("event", "kill"));
     }
 }
