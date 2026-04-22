@@ -5,7 +5,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
 import java.io.IOException;
@@ -31,7 +30,7 @@ public final class PackItemAutoRegistrar {
         // Only act when the ITEM registry fires
         if (!event.getRegistryKey().equals(Registries.ITEM)) return;
 
-        Path originpacks = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        Path originpacks = NeoOrigins.resolveOriginpacksDir();
         if (!Files.exists(originpacks)) return;
 
         int[] count = {0};
