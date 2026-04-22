@@ -10,6 +10,9 @@
     "FoodDataTickMixin",
     "FoodDataNoRegenMixin"
   ],
+  "client": [
+    "client.LightTextureMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
