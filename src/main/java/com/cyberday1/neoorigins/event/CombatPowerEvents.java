@@ -27,6 +27,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
@@ -275,7 +276,23 @@ public class CombatPowerEvents {
     }
 
     @SubscribeEvent
+    public static void onLivingExperienceDrop(LivingExperienceDropEvent event) {
+        // Summoned minions must not be an XP farm.
+        if (com.cyberday1.neoorigins.service.MinionTracker.isAnyTrackedMinion(event.getEntity())) {
+            event.setDroppedExperience(0);
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingDrops(LivingDropsEvent event) {
+        // Summoned/tamed minions never leave loot — their gear and drops were
+        // conjured for free, so letting them drop would let the summoner farm
+        // iron helmets (Necromancer skeletons) or infinite meat (Abyssal guardians).
+        if (com.cyberday1.neoorigins.service.MinionTracker.isAnyTrackedMinion(event.getEntity())) {
+            event.setCanceled(true);
+            return;
+        }
+
         var killer = event.getSource().getEntity();
         if (!(killer instanceof ServerPlayer sp)) return;
         LivingEntity killed = event.getEntity();

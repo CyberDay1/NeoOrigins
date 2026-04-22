@@ -245,12 +245,55 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         }
         ResourceLocation modId = modIdFor(resolved.id, config);
         if (add) {
+            purgeStaleModifiers(instance, resolved.id, modId);
             if (instance.getModifier(modId) == null) {
                 instance.addPermanentModifier(new AttributeModifier(modId, config.amount(), config.operation()));
             }
         } else {
             instance.removeModifier(modId);
         }
+    }
+
+    private static final java.util.Set<String> OPERATION_PREFIXES;
+    static {
+        java.util.Set<String> s = new java.util.HashSet<>();
+        for (AttributeModifier.Operation op : AttributeModifier.Operation.values()) {
+            s.add(op.name().toLowerCase(java.util.Locale.ROOT));
+        }
+        OPERATION_PREFIXES = java.util.Set.copyOf(s);
+    }
+
+    /**
+     * Removes legacy-format modifiers for this attribute whose IDs predate the
+     * JVM-stable hash fix. The old {@code modIdFor} hashed the operation enum,
+     * whose {@code hashCode()} varies per-process, so every login generated a
+     * fresh ID like {@code neoorigins:power_max_health_<unstable-hex>} while
+     * NBT kept the previous session's modifier around — max_health stacked
+     * indefinitely across relogs.
+     *
+     * <p>The new format is {@code power_<attrpath>_<opname>_<hex>}. Any
+     * {@code power_<attrpath>_<hex>} (no opname between) is an old orphan and
+     * gets removed. Other powers targeting the same attribute with different
+     * amounts use their own {@code keep}-equivalent IDs and are left alone.
+     */
+    private static void purgeStaleModifiers(AttributeInstance instance, ResourceLocation attrId, ResourceLocation keep) {
+        String prefix = "power_" + attrId.getPath() + "_";
+        java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
+        for (AttributeModifier m : instance.getModifiers()) {
+            ResourceLocation id = m.id();
+            if (!"neoorigins".equals(id.getNamespace())) continue;
+            String path = id.getPath();
+            if (!path.startsWith(prefix)) continue;
+            if (id.equals(keep)) continue;
+
+            String suffix = path.substring(prefix.length());
+            int underscore = suffix.indexOf('_');
+            if (underscore > 0 && OPERATION_PREFIXES.contains(suffix.substring(0, underscore))) {
+                continue; // new-format modifier belonging to a different power
+            }
+            stale.add(id);
+        }
+        for (ResourceLocation id : stale) instance.removeModifier(id);
     }
 
     /** Resolves the attribute with prefix tolerance. 1.21.1 registers attributes
@@ -290,9 +333,17 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     private record ResolvedAttribute(ResourceLocation id, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> holder) {}
 
     private ResourceLocation modIdFor(ResourceLocation attrId, Config config) {
-        int h = java.util.Objects.hash(config.amount(), config.operation());
+        // Only hash values with stable hashCode() across JVM restarts. Enum
+        // hashCode() is identity-based and varied per-process, which made
+        // every login generate a fresh modifier ID — the persisted NBT
+        // modifier from the last session stuck around, the new one got
+        // added alongside it, and max_health powers stacked indefinitely
+        // across relogs (#tester).
+        int h = Double.hashCode(config.amount());
         return ResourceLocation.fromNamespaceAndPath(
             "neoorigins",
-            "power_" + attrId.getPath() + "_" + Integer.toHexString(h));
+            "power_" + attrId.getPath() + "_"
+                + config.operation().name().toLowerCase(java.util.Locale.ROOT) + "_"
+                + Integer.toHexString(h));
     }
 }

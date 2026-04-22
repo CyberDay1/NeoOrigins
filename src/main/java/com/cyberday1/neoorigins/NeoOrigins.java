@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins;
 
 import com.cyberday1.neoorigins.content.ModItems;
+import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader;
@@ -81,9 +82,10 @@ public class NeoOrigins {
         // Register mod items (Orb of Origin, etc.)
         ModItems.register(modEventBus);
 
-        // Register attachment types (origin data + Route B compat state)
+        // Register attachment types (origin data + Route B compat state + entity minion-owner)
         OriginAttachments.register(modEventBus);
         CompatAttachments.register(modEventBus);
+        EntityAttachments.register(modEventBus);
 
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
