@@ -161,14 +161,17 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
             clearEffects(player, config);
             return;
         }
-        int refresh = config.refreshInterval();
+        // Apply effects with INFINITE_DURATION so they never tick down and the
+        // vanilla "potion ending" flicker never triggers. Revoke / toggle-off /
+        // condition-false all call clearEffects explicitly, so we don't rely on
+        // the effect expiring naturally.
         for (EffectSpec spec : config.effects()) {
             var existing = player.getEffect(spec.effect());
             if (existing == null
                 || existing.getAmplifier() < spec.amplifier()
-                || existing.getDuration() < refresh / 2) {
+                || !existing.isInfiniteDuration()) {
                 player.addEffect(new MobEffectInstance(
-                    spec.effect(), refresh, spec.amplifier(),
+                    spec.effect(), MobEffectInstance.INFINITE_DURATION, spec.amplifier(),
                     spec.ambient(), spec.showParticles(), spec.showIcon()));
             }
         }
