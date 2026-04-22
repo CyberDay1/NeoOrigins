@@ -121,6 +121,11 @@ public class PlayerOriginData {
         grantedEquipmentPowers.add(grantId);
     }
 
+    /** Reset the equipment-grant ledger so a re-pick (orb / admin reset) can re-grant items. */
+    public void clearGrantedEquipment() {
+        grantedEquipmentPowers.clear();
+    }
+
     public List<BlockPos> getShadowOrbs() {
         return List.copyOf(shadowOrbs);
     }
