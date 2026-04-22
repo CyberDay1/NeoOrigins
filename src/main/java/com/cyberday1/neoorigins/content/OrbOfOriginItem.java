@@ -55,6 +55,9 @@ public class OrbOfOriginItem extends Item {
         }
         data.setHadAllOrigins(false);
         data.incrementOrbUseCount();
+        // Clear equipment-grant ledger so re-picked origins re-grant their items.
+        // Player already paid XP (LEVELS_PER_USE × orbUseCount) for this reset.
+        data.clearGrantedEquipment();
 
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
