@@ -220,6 +220,7 @@ public final class OriginsPowerTranslator {
             case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
             case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
             case "origins:food_restriction",       "apace:food_restriction"       -> translateFoodRestriction(src);
+            case "origins:edible_item",            "apace:edible_item"            -> translateEdibleItem(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -243,6 +244,35 @@ public final class OriginsPowerTranslator {
         out.addProperty("type", "neoorigins:food_restriction");
         if (src.has("item_tag")) out.add("item_tag", src.get("item_tag"));
         if (src.has("mode"))     out.add("mode", src.get("mode"));
+        return Optional.of(out);
+    }
+
+    // Apoli/Apace edible_item uses a nested food_component + singular item/tag
+    // fields. Flatten to our schema: items/tags lists + top-level nutrition /
+    // saturation / always_edible. food_component.effect / action / return_stack
+    // are dropped (documented non-goals — pack authors chain effects via
+    // action_on_event.ITEM_USE_FINISH instead).
+    private static Optional<JsonObject> translateEdibleItem(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:edible_item");
+        if (src.has("item")) {
+            JsonArray items = new JsonArray();
+            items.add(src.get("item").getAsString());
+            out.add("items", items);
+        }
+        if (src.has("items")) out.add("items", src.get("items"));
+        if (src.has("tag")) {
+            JsonArray tags = new JsonArray();
+            tags.add(src.get("tag").getAsString());
+            out.add("tags", tags);
+        }
+        if (src.has("tags")) out.add("tags", src.get("tags"));
+        JsonObject fc = src.has("food_component") && src.get("food_component").isJsonObject()
+            ? src.getAsJsonObject("food_component") : src;
+        if (fc.has("nutrition"))             out.addProperty("nutrition", fc.get("nutrition").getAsInt());
+        if (fc.has("saturation_modifier"))   out.addProperty("saturation", fc.get("saturation_modifier").getAsFloat());
+        else if (fc.has("saturation"))       out.addProperty("saturation", fc.get("saturation").getAsFloat());
+        if (fc.has("always_edible"))         out.addProperty("always_edible", fc.get("always_edible").getAsBoolean());
         return Optional.of(out);
     }
 

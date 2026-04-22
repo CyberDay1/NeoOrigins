@@ -114,6 +114,7 @@ public final class LegacyPowerTypeAliases {
         registerAttributeModifierAliases();
         registerConditionPassiveAliases();
         registerModifierHookAliases();
+        registerCrossModCompatAliases();
         NeoOrigins.LOGGER.debug("[2.0-legacy] power-type alias table initialised ({} entries)", size());
     }
 
@@ -864,5 +865,43 @@ public final class LegacyPowerTypeAliases {
                     json.remove("radius");
                     json.remove("heal_self");
                 });
+    }
+
+    // ── Cross-mod compat aliases ───────────────────────────────────────────
+    //
+    // Apugli (abandoned at 2.11.0+1.20.4) and legacy Apoli prefixes that
+    // pack authors still ship against on 1.21.1 / 26.1 as extracted datapacks.
+    // The translator handles origins:/apace: edible_item; this section
+    // handles the apugli:/apoli: prefixes which bypass the translator
+    // (isOriginsFormat only matches origins:/apace:).
+    private static void registerCrossModCompatAliases() {
+        Identifier edibleItem = Identifier.fromNamespaceAndPath("neoorigins", "edible_item");
+        FieldRemapper remapEdibleItem = (json, powerId) -> {
+            // Hoist singular item → items[], tag → tags[], and flatten
+            // food_component.{nutrition,saturation_modifier,always_edible} up.
+            if (json.has("item") && json.get("item").isJsonPrimitive()) {
+                com.google.gson.JsonArray items = new com.google.gson.JsonArray();
+                items.add(json.get("item").getAsString());
+                json.add("items", items);
+                json.remove("item");
+            }
+            if (json.has("tag") && json.get("tag").isJsonPrimitive()) {
+                com.google.gson.JsonArray tags = new com.google.gson.JsonArray();
+                tags.add(json.get("tag").getAsString());
+                json.add("tags", tags);
+                json.remove("tag");
+            }
+            if (json.has("food_component") && json.get("food_component").isJsonObject()) {
+                com.google.gson.JsonObject fc = json.getAsJsonObject("food_component");
+                if (fc.has("nutrition"))           json.addProperty("nutrition", fc.get("nutrition").getAsInt());
+                if (fc.has("saturation_modifier")) json.addProperty("saturation", fc.get("saturation_modifier").getAsFloat());
+                else if (fc.has("saturation"))     json.addProperty("saturation", fc.get("saturation").getAsFloat());
+                if (fc.has("always_edible"))       json.addProperty("always_edible", fc.get("always_edible").getAsBoolean());
+                json.remove("food_component");
+            }
+            // effect / action / return_stack dropped (see translator comment).
+        };
+        register(Identifier.fromNamespaceAndPath("apugli", "edible_item"), edibleItem, remapEdibleItem);
+        register(Identifier.fromNamespaceAndPath("apoli",  "edible_item"), edibleItem, remapEdibleItem);
     }
 }
