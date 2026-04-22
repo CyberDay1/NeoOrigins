@@ -175,7 +175,7 @@
   "origins.neoorigins.sylvan.name": "Sylvan",
   "origins.neoorigins.sylvan.description": "A spirit of the old forest — gentle, at peace with nature, and deeply harmed by the corruption of the Nether.",
   "power.neoorigins.sylvan_mobs_ignore.name": "One With Nature",
-  "power.neoorigins.sylvan_mobs_ignore.description": "Passive and neutral mobs will not attack you unless you strike first.",
+  "power.neoorigins.sylvan_mobs_ignore.description": "Hostile mobs leave you alone — they only retaliate if you strike first.",
   "power.neoorigins.sylvan_regen_in_water.name": "Rain's Embrace",
   "power.neoorigins.sylvan_regen_in_water.description": "Slowly heals while in contact with water.",
   "power.neoorigins.sylvan_forest_speed.name": "Forest Born",
