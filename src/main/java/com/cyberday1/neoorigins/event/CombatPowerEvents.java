@@ -4,6 +4,7 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.EffectImmunityPower;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -42,6 +43,17 @@ public class CombatPowerEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+
+        // Drop any damage dealt by a tracked minion of this player. `getEntity()`
+        // resolves to the shooter for projectiles, so this covers both the
+        // melee case and arrows/bolts fired by skeleton/etc summons.
+        if (event.getSource().getEntity() instanceof LivingEntity attacker
+                && MinionTracker.summonerOf(attacker)
+                    .filter(summoner -> summoner.getUUID().equals(sp.getUUID()))
+                    .isPresent()) {
+            event.setCanceled(true);
+            return;
+        }
 
         if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
                 || event.getSource().is(DamageTypes.LAVA)) {

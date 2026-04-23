@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.event;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -34,6 +35,17 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
         if (!(event.getNewAboutToBeSetTarget() instanceof ServerPlayer sp)) return;
+
+        // A tracked minion can never target its own summoner. Covers every
+        // minion source that routes through MinionTracker (summon_minion,
+        // tame_mob, and any future additions).
+        if (MinionTracker.summonerOf(event.getEntity())
+                .filter(summoner -> summoner.getUUID().equals(sp.getUUID()))
+                .isPresent()) {
+            event.setCanceled(true);
+            return;
+        }
+
         Identifier mobTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
         if (mobTypeId == null) return;
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
