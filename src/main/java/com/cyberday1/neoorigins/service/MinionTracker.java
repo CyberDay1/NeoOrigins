@@ -127,6 +127,27 @@ public final class MinionTracker {
         }
     }
 
+    /**
+     * Reverse lookup: given an entity, return the ServerPlayer that summoned it
+     * if it is a currently-tracked minion. Iterates the full tracker map;
+     * acceptable because tracked-minion counts stay small (per-player caps
+     * enforced by the power configs).
+     */
+    public static Optional<ServerPlayer> summonerOf(LivingEntity entity) {
+        if (entity == null) return Optional.empty();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return Optional.empty();
+        UUID entityUuid = entity.getUUID();
+        for (var entry : MINIONS.entrySet()) {
+            for (TrackedMinion m : entry.getValue()) {
+                if (m.minionUuid().equals(entityUuid)) {
+                    return Optional.ofNullable(server.getPlayerList().getPlayer(entry.getKey()));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     /** Get all living tracked minions of a given mob type for a player. */
     public static List<TrackedMinion> getAlive(UUID playerUuid, String mobType) {
         List<TrackedMinion> list = MINIONS.get(playerUuid);

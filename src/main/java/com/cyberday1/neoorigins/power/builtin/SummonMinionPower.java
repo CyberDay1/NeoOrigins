@@ -17,6 +17,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -107,6 +110,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
         if (living instanceof Mob mob) {
             mob.setPersistenceRequired();
+            rewriteAiForSummoner(mob, player);
 
             // Apply configured equipment (or default helmet for sun protection)
             equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
@@ -142,6 +146,32 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             player.tickCount, config.despawnTicks(), config.deathDamage());
 
         return true;
+    }
+
+    /**
+     * Strip the default player-targeting goals vanilla mobs ship with and
+     * install owner-aware replacements: the minion fights back against
+     * anything that hits it (except the summoner) and helps attack whatever
+     * recently hurt the summoner. Mirrors TameMobPower's rewrite.
+     */
+    private static void rewriteAiForSummoner(Mob mob, ServerPlayer summoner) {
+        mob.targetSelector.getAvailableGoals().clear();
+
+        if (mob instanceof PathfinderMob pathfinder) {
+            mob.targetSelector.addGoal(1, new TameMobPower.OwnerAwareHurtByTargetGoal(pathfinder, summoner));
+        }
+
+        mob.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(
+            mob, LivingEntity.class, 5, false, false,
+            e -> {
+                if (e == summoner) return false;
+                LivingEntity lastHurt = summoner.getLastHurtByMob();
+                return lastHurt != null && lastHurt == e
+                    && summoner.tickCount - summoner.getLastHurtByMobTimestamp() < 100;
+            }
+        ));
+
+        mob.goalSelector.getAvailableGoals().removeIf(g -> g.getGoal() instanceof AvoidEntityGoal);
     }
 
     private static void equipSlot(Mob mob, EquipmentSlot slot, Optional<String> configItem, ItemStack fallback) {
