@@ -1,15 +1,9 @@
 {
-  "order": 10,
-  "name": { "text": "Example Pack" },
   "origins": [
     "examplepack:pyromancer",
     "examplepack:golem",
     "examplepack:specter",
     "examplepack:paladin",
     "examplepack:void_knight"
-  ],
-  "allow_random": true,
-  "auto_choose": false,
-  "hidden": false,
-  "enabled": true
+  ]
 }
