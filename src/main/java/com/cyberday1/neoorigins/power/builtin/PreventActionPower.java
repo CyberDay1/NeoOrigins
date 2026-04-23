@@ -6,6 +6,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Locale;
+
 public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
     public enum Action {
@@ -14,10 +16,10 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
         public static final Codec<Action> CODEC = Codec.STRING.xmap(
             s -> {
-                try { return Action.valueOf(s.toUpperCase()); }
+                try { return Action.valueOf(s.toUpperCase(Locale.ROOT)); }
                 catch (IllegalArgumentException e) { return NONE; }
             },
-            a -> a.name().toLowerCase()
+            a -> a.name().toLowerCase(Locale.ROOT)
         );
     }
 
@@ -32,10 +34,10 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
         public static final Codec<ActiveWhen> CODEC = Codec.STRING.xmap(
             s -> {
-                try { return ActiveWhen.valueOf(s.toUpperCase()); }
+                try { return ActiveWhen.valueOf(s.toUpperCase(Locale.ROOT)); }
                 catch (IllegalArgumentException e) { return ALWAYS; }
             },
-            a -> a.name().toLowerCase()
+            a -> a.name().toLowerCase(Locale.ROOT)
         );
     }
 
