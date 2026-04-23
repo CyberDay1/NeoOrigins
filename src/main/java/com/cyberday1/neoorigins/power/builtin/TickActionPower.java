@@ -6,6 +6,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Locale;
+
 public class TickActionPower extends PowerType<TickActionPower.Config> {
 
     public enum ActionType {
@@ -13,10 +15,10 @@ public class TickActionPower extends PowerType<TickActionPower.Config> {
 
         public static final Codec<ActionType> CODEC = Codec.STRING.xmap(
             s -> {
-                try { return ActionType.valueOf(s.toUpperCase()); }
+                try { return ActionType.valueOf(s.toUpperCase(Locale.ROOT)); }
                 catch (IllegalArgumentException e) { return NONE; }
             },
-            a -> a.name().toLowerCase()
+            a -> a.name().toLowerCase(Locale.ROOT)
         );
     }
 
