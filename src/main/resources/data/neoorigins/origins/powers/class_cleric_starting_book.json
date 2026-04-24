@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_cleric_starting_book",
+  "item": "minecraft:writable_book"
+}

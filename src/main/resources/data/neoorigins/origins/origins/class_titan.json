@@ -7,7 +7,10 @@
   "powers": [
     "neoorigins:class_titan_size",
     "neoorigins:class_titan_health",
-    "neoorigins:class_titan_reach"
+    "neoorigins:class_titan_reach",
+    "neoorigins:class_titan_crushing_grip",
+    "neoorigins:class_titan_unmoving",
+    "neoorigins:class_titan_heavy_steps"
   ],
   "upgrades": []
 }

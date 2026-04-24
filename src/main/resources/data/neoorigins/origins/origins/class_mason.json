@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.class_mason.name",
+  "description": "origins.neoorigins.class_mason.description",
+  "icon": "minecraft:stone_pickaxe",
+  "impact": "medium",
+  "order": 19,
+  "powers": [
+    "neoorigins:class_mason_stone_hands",
+    "neoorigins:class_mason_strong_grip",
+    "neoorigins:class_mason_stone_speed",
+    "neoorigins:class_mason_starting_pickaxe",
+    "neoorigins:class_mason_starting_stone"
+  ],
+  "upgrades": []
+}

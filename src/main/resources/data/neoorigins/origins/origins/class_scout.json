@@ -7,7 +7,9 @@
   "powers": [
     "neoorigins:class_scout_night_vision",
     "neoorigins:class_scout_speed",
-    "neoorigins:class_scout_no_fall_damage"
+    "neoorigins:class_scout_no_fall_damage",
+    "neoorigins:class_scout_trackers_stride",
+    "neoorigins:class_scout_trail_rations"
   ],
   "upgrades": []
 }

@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_merchant_starting_emeralds",
+  "item": "minecraft:emerald"
+}

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_archer_starting_bow",
+  "item": "minecraft:bow",
+  "enchantments": [
+    { "id": "minecraft:power", "level": 1 }
+  ]
+}

@@ -6,7 +6,10 @@
   "order": 17,
   "powers": [
     "neoorigins:class_cleric_enchanting",
-    "neoorigins:class_cleric_potions"
+    "neoorigins:class_cleric_potions",
+    "neoorigins:class_cleric_turn_undead",
+    "neoorigins:class_cleric_divine_sight",
+    "neoorigins:class_cleric_starting_book"
   ],
   "upgrades": []
 }

@@ -6,7 +6,9 @@
   "order": 13,
   "powers": [
     "neoorigins:class_lumberjack_tree_felling",
-    "neoorigins:class_lumberjack_bonus_planks"
+    "neoorigins:class_lumberjack_bonus_planks",
+    "neoorigins:class_lumberjack_axe_hands",
+    "neoorigins:class_lumberjack_starting_axe"
   ],
   "upgrades": []
 }

@@ -8,7 +8,10 @@
     "neoorigins:class_explorer_kit",
     "neoorigins:class_explorer_clock",
     "neoorigins:class_explorer_maps",
-    "neoorigins:class_explorer_stamina"
+    "neoorigins:class_explorer_stamina",
+    "neoorigins:class_explorer_sure_footed",
+    "neoorigins:class_explorer_climbers_step",
+    "neoorigins:class_explorer_campfire_rest"
   ],
   "upgrades": []
 }

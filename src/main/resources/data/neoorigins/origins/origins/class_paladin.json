@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.class_paladin.name",
+  "description": "origins.neoorigins.class_paladin.description",
+  "icon": "minecraft:diamond_sword",
+  "impact": "medium",
+  "order": 20,
+  "powers": [
+    "neoorigins:class_paladin_turn_undead",
+    "neoorigins:class_paladin_holy_armor",
+    "neoorigins:class_paladin_beacon_regen",
+    "neoorigins:class_paladin_starting_sword",
+    "neoorigins:class_paladin_effect_immunity"
+  ],
+  "upgrades": []
+}

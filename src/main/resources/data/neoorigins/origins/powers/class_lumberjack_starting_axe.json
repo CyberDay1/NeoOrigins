@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_lumberjack_starting_axe",
+  "item": "minecraft:iron_axe",
+  "enchantments": [
+    { "id": "minecraft:unbreaking", "level": 2 }
+  ]
+}
