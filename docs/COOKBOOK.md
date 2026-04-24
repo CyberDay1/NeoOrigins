@@ -489,6 +489,168 @@ tick passes the cloud's location to the action context holder.
 
 ---
 
+### Bare-hand stone mining (Caveborn pattern)
+
+Make the player's empty hand behave as a vanilla tool at any tier,
+enabling proper drops and mining speed without holding an actual item.
+
+```json
+{ "type": "neoorigins:bare_hand_tool", "tool": "minecraft:stone_pickaxe" }
+```
+
+Stack multiple instances to emulate several tool types simultaneously
+(pickaxe + axe + shovel). Config accepts any vanilla tool item ID; the
+runtime reads the item's tool component to determine correct-for-drops
+and break speed. Only fires while the main hand is empty.
+
+---
+
+### Eat stone for food, eat diamonds for Luck (Caveborn consumables)
+
+Chained pattern: an `edible_item` power makes items consumable, and an
+`action_on_event` power listens on `ITEM_USE_FINISH` to apply a bonus
+when a matching item is eaten. Cross-reference using a custom item tag
+in `food_item_in_tag`.
+
+**Edibility side:**
+```json
+{ "type": "neoorigins:edible_item",
+  "tags": ["mypack:eat_diamond"],
+  "nutrition": 6, "saturation": 1.2, "always_edible": true }
+```
+
+**Bonus side:**
+```json
+{ "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": { "type": "neoorigins:food_item_in_tag",
+                   "tag": "mypack:eat_diamond" },
+    "if_action": { "type": "neoorigins:apply_effect",
+                   "effect": "minecraft:luck", "duration": 6000, "amplifier": 1 }
+  }
+}
+```
+
+Ship the item tag at `data/mypack/tags/item/eat_diamond.json`.
+
+---
+
+### Fortune-from-effect (Mining Fortune gated by a buff)
+
+Combine with the recipe above: while the player has `minecraft:luck`
+(granted by the consumable), ore blocks drop as if mined with a real
+Fortune pickaxe. Vanilla `ApplyBonusCount.ORE_DROPS` math, so the
+distribution matches a Fortune enchantment exactly.
+
+```json
+{ "type": "neoorigins:fortune_when_effect",
+  "effect": "minecraft:luck", "level": 2, "target": "#c:ores" }
+```
+
+Ancient debris is hardcoded-excluded (vanilla parity — Fortune doesn't
+affect netherite drops). Pack authors can narrow `target` to e.g.
+`#minecraft:diamond_ores` for a diamond-only bonus.
+
+---
+
+### Moon-blessed armor (condition-gated attribute)
+
+Attribute modifiers accept a `condition` that edge-triggers at ~5-tick
+intervals. Pair with the new `neoorigins:night` condition for
+"stronger after dark" flavor.
+
+```json
+{ "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:armor",
+  "amount": 4.0, "operation": "add_value",
+  "condition": { "type": "neoorigins:night" } }
+```
+
+The modifier is applied/removed automatically as daytime flips. Any
+condition works here — `neoorigins:thundering` for storm-blessed
+equipment, `neoorigins:climbing` for scaling-specific buffs, etc.
+
+---
+
+### Sleepless origin with bed-anchored respawn
+
+`prevent_action SLEEP` blocks sleep transitions. The
+`SleepPreventionEvents` handler automatically sets the player's
+respawn point at the bed before cancelling, so players still get the
+anchor benefit — great for vampires, phantoms, wardens.
+
+```json
+{ "type": "neoorigins:prevent_action", "action": "SLEEP" }
+```
+
+Feedback message *"You don't need sleep — but you remember this place."*
+fires on bed interaction.
+
+---
+
+### Elytra-style flight without an elytra (Phantom/Elytrian)
+
+Grant gliding behavior — press jump while falling, spread wings like
+a vanilla elytra user. No chest-slot requirement.
+
+```json
+{ "type": "neoorigins:natural_glide" }
+```
+
+Pair with `neoorigins:elytra_boost` for launch-speed amplification.
+Contrast: `neoorigins:flight` is creative-mode-style hover (hold space
+to ascend). `natural_glide` is pitch-based gliding, the real-elytra
+feel.
+
+---
+
+### Forward dash in look direction
+
+The `neoorigins:dash` action projects a strength magnitude along the
+player's look vector. Canonical V2 replacement for `active_dash`.
+
+```json
+{ "type": "neoorigins:active_ability",
+  "cooldown_ticks": 60, "hunger_cost": 2,
+  "entity_action": { "type": "neoorigins:dash",
+                     "strength": 2.2,
+                     "allow_vertical": true } }
+```
+
+Set `allow_vertical: false` for ground-lock dashes that ignore look
+pitch. Sets `hurtMarked = true` internally so client prediction
+doesn't discard the impulse.
+
+---
+
+### Warm near a campfire (near_block condition)
+
+`neoorigins:near_block` scans a cubic radius for matching blocks and
+fires when any are found. Accepts any combination of `block`/`blocks`/
+`tag`/`tags` fields with logical OR.
+
+```json
+{ "type": "neoorigins:condition_passive",
+  "condition": {
+    "type": "neoorigins:near_block",
+    "tags": ["minecraft:campfires", "#c:fire"],
+    "radius": 5
+  },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:fire_resistance",
+    "duration": 100, "amplifier": 0
+  },
+  "interval": 20
+}
+```
+
+Radius is capped at 8 to keep the per-tick scan cheap.
+
+---
+
 ## Testing & debugging
 
 ### Hot-reload
