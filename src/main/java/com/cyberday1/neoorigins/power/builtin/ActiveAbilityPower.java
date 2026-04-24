@@ -44,10 +44,14 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
 
     public record Config(
         int cooldownTicks,
+        int hungerCost,
         EntityAction action,
         EntityCondition condition,
         String type
     ) implements AbstractActivePower.Config {
+
+        @Override public int cooldownTicks() { return cooldownTicks; }
+        @Override public int hungerCost() { return hungerCost; }
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -63,6 +67,7 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 }
                 JsonObject obj = json.getAsJsonObject();
                 int cooldown = obj.has("cooldown_ticks") ? obj.get("cooldown_ticks").getAsInt() : 60;
+                int hunger = obj.has("hunger_cost") ? obj.get("hunger_cost").getAsInt() : 0;
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:active_ability";
                 EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
                     ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
@@ -70,7 +75,7 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 EntityCondition condition = obj.has("condition") && obj.get("condition").isJsonObject()
                     ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
                     : EntityCondition.alwaysTrue();
-                return DataResult.success(Pair.of(new Config(cooldown, action, condition, t), ops.empty()));
+                return DataResult.success(Pair.of(new Config(cooldown, hunger, action, condition, t), ops.empty()));
             }
 
             @Override

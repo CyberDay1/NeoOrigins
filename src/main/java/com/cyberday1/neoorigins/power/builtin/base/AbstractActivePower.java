@@ -20,9 +20,23 @@ import net.minecraft.server.level.ServerPlayer;
 public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         extends PowerType<C> {
 
-    /** Minimum config interface required by all active powers. */
+    /**
+     * Minimum config interface required by all active powers.
+     *
+     * <p>Subclasses whose JSON exposes a {@code hunger_cost} field should
+     * override {@link Config#hungerCost()} in their Config record and wire it
+     * through the codec. Powers that return &gt; 0 from {@code hungerCost()}
+     * will be gated and debited by {@link #onActivated} before {@link #execute}
+     * runs — no per-class bookkeeping needed.
+     *
+     * <p>Powers that manage hunger internally (e.g. SummonMinion, TameMob)
+     * must keep {@code hungerCost()} at the default of 0 so the base class
+     * doesn't double-charge.
+     */
     public interface Config extends PowerConfiguration {
         int cooldownTicks();
+        /** Food points debited on activation (not hunger bars). Default 0 = no cost. */
+        default int hungerCost() { return 0; }
     }
 
     /** Called once on class load — used as stable session cooldown key. */
@@ -36,7 +50,17 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         String key = getCooldownKey(config);
         if (data.isOnCooldown(key, player.tickCount)) return;
+
+        int hungerCost = config.hungerCost();
+        if (hungerCost > 0 && player.getFoodData().getFoodLevel() < hungerCost) {
+            return;  // not enough hunger — silent abort, no cooldown consumed
+        }
+
         if (execute(player, config)) {
+            if (hungerCost > 0) {
+                player.getFoodData().setFoodLevel(
+                    player.getFoodData().getFoodLevel() - hungerCost);
+            }
             data.setCooldown(key, player.tickCount, config.cooldownTicks());
         }
     }
