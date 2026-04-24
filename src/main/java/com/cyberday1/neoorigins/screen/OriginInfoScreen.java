@@ -159,6 +159,10 @@ public class OriginInfoScreen extends Screen {
 
     private int computeContentHeight(OriginDetailViewModel vm) {
         int h = 8 + descLines.size() * LINE_H + 8;
+        if (vm.origin() != null && vm.origin().spawnLocation().isPresent()
+            && !vm.origin().spawnLocation().get().formatSummary().isEmpty()) {
+            h += LINE_H;
+        }
         if (!vm.powerNames().isEmpty()) {
             h += 9 + 4;
             for (int i = 0; i < vm.powerNames().size(); i++) {
@@ -217,6 +221,14 @@ public class OriginInfoScreen extends Screen {
         for (FormattedCharSequence line : descLines) {
             g.drawString(font, line, panelX + DETAIL_PAD, sy, 0xFF9999BB, false);
             sy += LINE_H;
+        }
+        if (origin.spawnLocation().isPresent()) {
+            String spawnSummary = origin.spawnLocation().get().formatSummary();
+            if (!spawnSummary.isEmpty()) {
+                g.drawString(font, Component.literal(spawnSummary),
+                    panelX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                sy += LINE_H;
+            }
         }
         sy += 8;
         List<String> pNames = vm.powerNames();
