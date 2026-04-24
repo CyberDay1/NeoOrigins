@@ -10,7 +10,8 @@
     "neoorigins:golem_size",
     "neoorigins:golem_effect_immunity",
     "neoorigins:golem_slow_movement",
-    "neoorigins:golem_fire_weakness"
+    "neoorigins:golem_fire_weakness",
+    "neoorigins:golem_ground_slam"
   ],
   "upgrades": []
 }

@@ -12,7 +12,7 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
     public enum Action {
         FALL_DAMAGE, FIRE, DROWN, FREEZE, SPRINT_FOOD, CHESTPLATE_EQUIP,
-        EYE_DAMAGE, WATER_DAMAGE, SWIM, NONE;
+        EYE_DAMAGE, WATER_DAMAGE, SWIM, SLEEP, NONE;
 
         public static final Codec<Action> CODEC = Codec.STRING.xmap(
             s -> {

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "kill",
+  "entity_action": {
+    "type": "neoorigins:heal",
+    "amount": 2.0
+  }
+}

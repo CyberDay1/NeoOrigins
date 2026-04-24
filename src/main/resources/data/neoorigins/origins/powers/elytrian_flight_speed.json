@@ -1,0 +1,1 @@
+{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:flying_speed", "amount": 0.3, "operation": "add_multiplied_base" }

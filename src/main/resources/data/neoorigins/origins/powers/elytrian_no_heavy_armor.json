@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:restrict_armor",
+  "restrictions": [
+    { "slot": "head", "tag": "neoorigins:heavy_armor" },
+    { "slot": "chest", "tag": "neoorigins:heavy_armor" },
+    { "slot": "legs", "tag": "neoorigins:heavy_armor" },
+    { "slot": "feet", "tag": "neoorigins:heavy_armor" }
+  ]
+}
