@@ -1,0 +1,18 @@
+{
+  "type": "neoorigins:condition_passive",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:exposed_to_sun" },
+      { "type": "neoorigins:not", "condition": { "type": "neoorigins:in_water" } }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:damage", "amount": 1.5, "source": { "name": "in_fire" } },
+      { "type": "neoorigins:set_on_fire", "ticks": 40 }
+    ]
+  },
+  "interval": 20
+}

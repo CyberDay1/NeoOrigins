@@ -167,6 +167,8 @@ Prevents a specific harmful action or event from affecting the player.
 | `chestplate_equip` | Prevents wearing chestplate armor |
 | `eye_damage` | Prevents projectile hits to the eye |
 | `water_damage` | Prevents water/rain contact damage |
+| `swim` | Prevents swimming (velocity-sinks the player in water) |
+| `sleep` | Prevents sleeping (bed use returns a "no sleep" message). Sleepless origins should pair this with `modify_player_spawn` if they still want bed interactions to set respawn. |
 
 **Example — fire immunity:**
 ```json

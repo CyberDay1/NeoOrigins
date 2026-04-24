@@ -10,5 +10,14 @@
     "neoorigins:enderian_water_damage",
     "neoorigins:enderian_teleport"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:the_end",
+    "biomes": [
+      "minecraft:end_highlands",
+      "minecraft:end_midlands",
+      "minecraft:end_barrens",
+      "minecraft:small_end_islands"
+    ]
+  }
 }
