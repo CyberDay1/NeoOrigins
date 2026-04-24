@@ -618,6 +618,23 @@ True when the player is currently on a climbable block (vanilla ladder, vine, or
 |---|---|---|---|---|
 | (no fields) | — | — | — | Marker condition. |
 
+## `neoorigins:out_of_combat`
+
+True when at least `ticks` ticks have elapsed since the player last took damage. Backed by `CombatTracker` which timestamps damage hits in `CombatPowerEvents.onLivingDamage` (including cancelled damage — getting hit by invulnerable armor still counts as being attacked). Forgotten on logout.
+
+Useful for gating rest / regen / out-of-combat-only buffs.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `ticks` | int | no | `100` | Ticks since last damage hit. 100 = 5 seconds. |
+
+**Example — regen only while out of combat:**
+```json
+{ "type": "neoorigins:out_of_combat", "ticks": 100 }
+```
+
+Typically combined with `near_block` or `biome` in an `origins:and` so the buff only applies when both safe *and* in the right spot (campfire, village, bed area, etc.).
+
 ## `neoorigins:near_block`
 
 True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists — a block matches if it appears in ANY of the provided blocks/tags (logical OR).

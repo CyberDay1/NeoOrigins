@@ -150,6 +150,7 @@ public class PlayerLifecycleEvents {
         MinionTracker.clearAll(uuid);
         ActiveOriginService.invalidate(uuid);
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
+        com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);
     }
 
     /**

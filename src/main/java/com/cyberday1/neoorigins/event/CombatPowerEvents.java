@@ -76,6 +76,13 @@ public class CombatPowerEvents {
 
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
+        // Record "last damaged" tick for the out_of_combat condition gate
+        // (explorer campfire rest, future vampire peaceful-feed, etc.).
+        // Runs before any damage-cancel checks so even cancelled damage
+        // counts as being attacked — players in a fight shouldn't get
+        // out-of-combat buffs just because invulnerability consumed the hit.
+        com.cyberday1.neoorigins.service.CombatTracker.markDamaged(sp);
+
         // First-pick invulnerability — the player is still choosing their
         // origin/class on first login. Cancel damage so they can't die or get
         // shoved around while the picker is open. Orb-of-Origin re-picks

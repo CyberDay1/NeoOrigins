@@ -672,7 +672,7 @@
   "power.neoorigins.class_explorer_climbers_step.name": "Climber's Step",
   "power.neoorigins.class_explorer_climbers_step.description": "Steps up full blocks without jumping.",
   "power.neoorigins.class_explorer_campfire_rest.name": "Campfire Rest",
-  "power.neoorigins.class_explorer_campfire_rest.description": "Slowly regenerates while within 5 blocks of any campfire.",
+  "power.neoorigins.class_explorer_campfire_rest.description": "Slowly regenerates while within 5 blocks of any campfire — only while out of combat (5 seconds since last hit).",
 
   "origins.neoorigins.class_sentinel.name": "Sentinel",
   "origins.neoorigins.class_sentinel.description": "A defensive specialist with natural armor, thorns, and unshakeable footing.",
@@ -778,7 +778,7 @@
   "power.neoorigins.class_blacksmith_forge_hands.name": "Forge Hands",
   "power.neoorigins.class_blacksmith_forge_hands.description": "Bare hands break stone like a stone pickaxe.",
   "power.neoorigins.class_blacksmith_forge_tempered.name": "Forge-tempered",
-  "power.neoorigins.class_blacksmith_forge_tempered.description": "Immune to fire and lava — forge-born flesh does not burn.",
+  "power.neoorigins.class_blacksmith_forge_tempered.description": "Takes half damage from fire, lava, magma, and burning — forge-hardened skin.",
   "power.neoorigins.class_blacksmith_starting_iron.name": "Starting Iron",
   "power.neoorigins.class_blacksmith_starting_iron.description": "Spawn with 4 iron ingots to get the forge started.",
 
@@ -847,8 +847,8 @@
   "power.neoorigins.class_mason_stone_speed.description": "Breaks blocks 25% faster.",
   "power.neoorigins.class_mason_starting_pickaxe.name": "Starting Pickaxe",
   "power.neoorigins.class_mason_starting_pickaxe.description": "Spawn with an Efficiency I stone pickaxe.",
-  "power.neoorigins.class_mason_starting_stone.name": "Starting Stone",
-  "power.neoorigins.class_mason_starting_stone.description": "Spawn with a piece of cobblestone to begin the work.",
+  "power.neoorigins.class_mason_block_reach.name": "Mason's Reach",
+  "power.neoorigins.class_mason_block_reach.description": "+1 block placement reach — a mason's arm knows where the wall ends.",
 
   "origins.neoorigins.class_paladin.name": "Paladin",
   "origins.neoorigins.class_paladin.description": "A holy warrior — undead falter at a touch, wither cannot take hold, and the light of a beacon heals wounds.",

@@ -183,6 +183,7 @@ public final class ConditionParser {
                 case "neoorigins:has_effect"                    -> parseHasEffect(json);
                 case "neoorigins:climbing"                      -> p -> p.onClimbable();
                 case "neoorigins:near_block"                    -> parseNearBlock(json, contextId);
+                case "neoorigins:out_of_combat"                 -> parseOutOfCombat(json);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -1069,6 +1070,23 @@ public final class ConditionParser {
     private static TagKey<Block> parseBlockTag(String raw) {
         if (raw.startsWith("#")) raw = raw.substring(1);
         return TagKey.create(Registries.BLOCK, Identifier.parse(raw));
+    }
+
+    /**
+     * out_of_combat: true when {@code ticks} or more have elapsed since the
+     * player last took damage. Default threshold 100 ticks (5 s).
+     * <pre>{ "type": "neoorigins:out_of_combat" }</pre>
+     * <pre>{ "type": "neoorigins:out_of_combat", "ticks": 200 }</pre>
+     * Backed by {@link com.cyberday1.neoorigins.service.CombatTracker} which
+     * timestamps damage hits via {@code CombatPowerEvents.onLivingDamage}
+     * and is forgotten on logout.
+     */
+    private static EntityCondition parseOutOfCombat(JsonObject json) {
+        int threshold = json.has("ticks") ? Math.max(0, json.get("ticks").getAsInt()) : 100;
+        return p -> {
+            if (!(p instanceof net.minecraft.server.level.ServerPlayer sp)) return true;
+            return com.cyberday1.neoorigins.service.CombatTracker.ticksSinceLastDamage(sp) >= threshold;
+        };
     }
 
     private static EntityCondition failClosed(String type, String contextId, String detail) {
