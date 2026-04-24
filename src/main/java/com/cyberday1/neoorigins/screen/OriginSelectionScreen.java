@@ -139,7 +139,13 @@ public class OriginSelectionScreen extends Screen {
     }
 
     private int computeContentHeight() {
-        int h = 8 + descLines.size() * LINE_H + 8; // separator + desc + gap
+        int h = 8 + descLines.size() * LINE_H + 4;
+        if (detailViewModel.origin() != null
+            && detailViewModel.origin().spawnLocation().isPresent()
+            && !detailViewModel.origin().spawnLocation().get().formatSummary().isEmpty()) {
+            h += LINE_H;
+        }
+        h += 8; // gap before Powers header
         List<String> pNames = detailViewModel.powerNames();
         if (!pNames.isEmpty()) {
             h += 9 + 4; // "Powers" header
@@ -279,6 +285,16 @@ public class OriginSelectionScreen extends Screen {
         for (FormattedCharSequence line : descLines) {
             g.text(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
             sy += LINE_H;
+        }
+        sy += 4;
+        if (detailViewModel.origin() != null
+            && detailViewModel.origin().spawnLocation().isPresent()) {
+            String spawnSummary = detailViewModel.origin().spawnLocation().get().formatSummary();
+            if (!spawnSummary.isEmpty()) {
+                g.text(font, Component.literal(spawnSummary),
+                    rightX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                sy += LINE_H;
+            }
         }
         sy += 8;
         List<String> pNames = detailViewModel.powerNames();
