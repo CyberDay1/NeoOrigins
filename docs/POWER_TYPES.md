@@ -2279,6 +2279,62 @@ Endermen do not aggro when the player looks at them. Emits the `ender_gaze_immun
 
 ---
 
+## `neoorigins:bare_hand_tool`
+
+Makes the player's empty hand behave like a specific vanilla tool for block-break purposes — tool-tier drop eligibility **and** break speed both match the configured tool item. Point at any tool item ID and the runtime looks up its tool component to determine which blocks qualify and at what speed.
+
+Emits a capability tag of the form `bare_hand_tool:<tool_id>` (e.g. `bare_hand_tool:minecraft:stone_pickaxe`) — the tool ID is encoded in the tag so the client-side break-speed predictor and the server-side harvest check can both reach the answer without extra sync state. Wired via `BareHandToolEvents` on the NeoForge event bus (`PlayerEvent.HarvestCheck` + `PlayerEvent.BreakSpeed`). No mixins required.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `tool` | Identifier | no | `minecraft:stone_pickaxe` | Any vanilla tool item ID. Determines both break-speed and drop-eligibility. |
+
+**Example — Caveborn mines like a stone pickaxe with bare hands:**
+```json
+{
+  "type": "neoorigins:bare_hand_tool",
+  "tool": "minecraft:stone_pickaxe",
+  "name": "Stone Fists",
+  "description": "Bare hands mine like a stone pickaxe — break ores and stone without tools."
+}
+```
+
+An origin can stack multiple instances to emulate several tool types simultaneously (e.g. a miner + lumberjack hybrid with both a pickaxe and an axe instance). When the player's hand is empty the event handler iterates all active `bare_hand_tool` capabilities and picks the first that can correctly harvest the target — different tool types don't conflict.
+
+Only fires when the main hand is empty. Holding any item delegates to vanilla behaviour normally.
+
+---
+
+## `neoorigins:fortune_when_effect`
+
+Applies a virtual Fortune-level drop multiplier whenever a configured `MobEffect` is active on the player. The vanilla `ApplyBonusCount.ORE_DROPS` formula is used, giving the same rolling distribution as a real Fortune N pickaxe (`count × (max(0, random(level + 2) - 1) + 1)`).
+
+Deliberately generic — any origin can emulate an enchantment-like buff by pairing this with any MobEffect (e.g. Caveborn's Mining Fortune is gated by `minecraft:luck` granted via eating diamond). Wired via `FortuneEffectEvents` subscribing to `BlockDropsEvent` server-side.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `effect` | Identifier | no | `minecraft:luck` | The gating MobEffect ID. Bonus only applies while this effect is active on the player. |
+| `level` | int | no | `2` | Virtual Fortune level to roll. Higher = more extra drops. |
+| `target` | string | no | `#c:ores` | Block tag the bonus applies to. Use `#tagname` syntax. Defaults to the NeoForge common ores tag; pack authors can narrow to a vanilla sub-tag like `#minecraft:diamond_ores` or a custom tag. |
+
+**Vanilla parity:** `minecraft:ancient_debris` is hardcoded-excluded because netherite is the single vanilla ore that ignores Fortune. Every other vanilla ore (iron, gold, copper, coal, diamond, emerald, lapis, redstone, nether_gold, nether_quartz) is covered by `#c:ores` and will roll the bonus normally.
+
+**Example — Caveborn Mining Fortune (gated by Luck from eating diamond):**
+```json
+{
+  "type": "neoorigins:fortune_when_effect",
+  "effect": "minecraft:luck",
+  "level": 2,
+  "target": "#c:ores",
+  "name": "Mining Fortune",
+  "description": "While Luck is active, ore blocks drop as if mined with Fortune II."
+}
+```
+
+Stacking isn't additive — only the first matching power fires per break. Author variants as separate powers with different effect gates rather than expecting them to compound.
+
+---
+
 ## Composing power sets
 
 Individual 2.0 power types are intentionally narrow so they can be combined. For a "rat"-style origin that marks small mobs it kills and gets a heal buff when attacking anything on the list:

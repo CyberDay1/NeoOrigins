@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:edible_item",
+  "tags": ["neoorigins:caveborn_eat_gold"],
+  "nutrition": 5,
+  "saturation": 1.0,
+  "always_edible": true
+}

@@ -1,0 +1,18 @@
+{
+  "type": "neoorigins:edible_item",
+  "items": [
+    "minecraft:cobblestone",
+    "minecraft:stone",
+    "minecraft:granite",
+    "minecraft:diorite",
+    "minecraft:andesite",
+    "minecraft:tuff",
+    "minecraft:deepslate",
+    "minecraft:cobbled_deepslate",
+    "minecraft:basalt",
+    "minecraft:blackstone"
+  ],
+  "nutrition": 2,
+  "saturation": 0.4,
+  "always_edible": true
+}

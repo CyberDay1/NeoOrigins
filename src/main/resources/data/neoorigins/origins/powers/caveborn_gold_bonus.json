@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:food_item_in_tag",
+      "tag": "neoorigins:caveborn_eat_gold"
+    },
+    "if_action": {
+      "type": "neoorigins:apply_effect",
+      "effect": "minecraft:speed",
+      "duration": 2400,
+      "amplifier": 0
+    }
+  }
+}

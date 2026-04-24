@@ -1,9 +1,10 @@
 {
   "type": "neoorigins:active_ability",
-  "cooldown_ticks": 100,
+  "cooldown_ticks": 80,
+  "hunger_cost": 2,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
-    "entity_type": "minecraft:wind_charge",
-    "speed": 2.0
+    "entity_type": "minecraft:small_fireball",
+    "speed": 1.5
   }
 }

@@ -3,6 +3,6 @@
   "cooldown_ticks": 60,
   "entity_action": {
     "type": "neoorigins:add_velocity",
-    "y": 1.8
+    "y": 0.6
   }
 }

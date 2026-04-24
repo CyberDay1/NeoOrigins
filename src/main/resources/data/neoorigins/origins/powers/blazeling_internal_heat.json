@@ -1,8 +1,8 @@
 {
   "type": "neoorigins:action_on_event",
-  "event": "mod_natural_regen",
+  "event": "mod_exhaustion",
   "modifier": {
     "operation": "multiplication",
-    "value": 0.25
+    "value": 1.25
   }
 }
