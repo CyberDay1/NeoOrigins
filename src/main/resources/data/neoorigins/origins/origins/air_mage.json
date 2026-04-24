@@ -6,6 +6,7 @@
   "order": 43,
   "powers": [
     "neoorigins:air_mage_wind_charge",
+    "neoorigins:air_mage_whirlwind",
     "neoorigins:air_mage_updraft",
     "neoorigins:air_mage_no_fall_damage",
     "neoorigins:air_mage_zephyr",

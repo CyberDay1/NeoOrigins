@@ -638,13 +638,13 @@ Items on the ground within a radius are pulled toward the player automatically.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `radius` | float | no | `6.0` | Pull radius in blocks |
+| `radius` | float | no | `4.0` | Pull radius in blocks |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:item_magnetism",
-  "radius": 6.0,
+  "radius": 4.0,
   "name": "Item Attraction",
   "description": "Items on the ground are drawn toward you."
 }
@@ -1046,16 +1046,16 @@ Active ability that launches the player in their look direction.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `power` | float | no | `1.8` | Launch velocity |
-| `cooldown_ticks` | int | no | `60` | Cooldown in ticks |
+| `power` | float | no | `1.5` | Launch velocity |
+| `cooldown_ticks` | int | no | `40` | Cooldown in ticks |
 | `allow_vertical` | bool | no | `false` | Whether to include vertical component from look direction |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:active_dash",
-  "power": 1.8,
-  "cooldown_ticks": 60,
+  "power": 1.5,
+  "cooldown_ticks": 40,
   "allow_vertical": true,
   "name": "Pounce",
   "description": "Dashes in the direction you're looking."
@@ -1333,8 +1333,8 @@ Active ability that places a persistent shadow orb at the player's position. Eac
 |---|---|---|---|---|
 | `max_orbs` | int | no | `4` | Maximum number of simultaneous orbs |
 | `radius` | float | no | `28.0` | Effect radius per orb in blocks |
-| `cooldown_ticks` | int | no | `60` | Cooldown between placements |
-| `tick_interval` | int | no | `40` | Ticks between Darkness pulses per orb |
+| `cooldown_ticks` | int | no | `100` | Cooldown between placements |
+| `tick_interval` | int | no | `20` | Ticks between Darkness pulses per orb |
 
 **Example:**
 ```json
@@ -1342,8 +1342,8 @@ Active ability that places a persistent shadow orb at the player's position. Eac
   "type": "neoorigins:shadow_orb",
   "max_orbs": 4,
   "radius": 28.0,
-  "cooldown_ticks": 60,
-  "tick_interval": 40,
+  "cooldown_ticks": 100,
+  "tick_interval": 20,
   "name": "Shadow Anchor",
   "description": "Places orbs that shroud the area in darkness."
 }
@@ -1377,7 +1377,7 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 {
   "type": "neoorigins:persistent_effect",
   "toggleable": false,
-  "condition": { "type": "origins:in_water" },
+  "condition": { "type": "neoorigins:in_water" },
   "effects": [
     { "effect": "minecraft:strength", "amplifier": 0 },
     { "effect": "minecraft:haste",    "amplifier": 1 }
@@ -1410,11 +1410,11 @@ See [EVENTS.md](EVENTS.md) / the Apoli compat docs for the full condition and ac
   "type": "neoorigins:condition_passive",
   "interval": 40,
   "condition": {
-    "type": "origins:in_tag",
+    "type": "neoorigins:in_tag",
     "tag": "minecraft:is_nether"
   },
   "entity_action": {
-    "type": "origins:damage",
+    "type": "neoorigins:damage",
     "amount": 1.0,
     "source": "fire"
   },
@@ -1453,12 +1453,12 @@ For action-style events set `entity_action`; for modifier-style events set `modi
   "type": "neoorigins:action_on_event",
   "event": "kill",
   "condition": {
-    "type": "origins:equipped_item",
+    "type": "neoorigins:equipped_item",
     "slot": "mainhand",
     "item": "minecraft:wooden_sword"
   },
   "entity_action": {
-    "type": "origins:heal",
+    "type": "neoorigins:heal",
     "amount": 2.0
   },
   "name": "Wooden Vampire",
@@ -1734,7 +1734,7 @@ Actions and conditions are compiled once at power-load time via `ActionParser` /
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 80,
   "entity_action": {
-    "type": "origins:add_velocity",
+    "type": "neoorigins:add_velocity",
     "y": 2.0,
     "client": true,
     "server": true
@@ -1795,35 +1795,6 @@ Cone-shaped water blast in the player's look direction. Knocks back and damages 
   "cooldown_ticks": 100,
   "name": "Tidal Wave",
   "description": "Blasts enemies with a cone of water."
-}
-```
-
----
-
-## `neoorigins:gravity_well`
-
-Fires a slow-moving black orb. On impact it creates a persistent vortex that pulls nearby entities toward its center and deals damage. Two phases: traveling (visible dark orb) then active (pull vortex). The caster is immune to their own gravity well.
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `projectile_speed` | float | no | `1.2` | Traveling orb speed (blocks/tick) |
-| `max_range` | double | no | `64.0` | Max range for the target raycast |
-| `pull_radius` | double | no | `16.0` | Pull radius of the active vortex |
-| `pull_strength` | float | no | `0.35` | Base per-tick pull velocity toward center |
-| `damage_per_tick` | float | no | `0.5` | Magic damage applied every 10 ticks |
-| `duration_ticks` | int | no | `80` | Lifetime of the vortex after impact |
-| `cooldown_ticks` | int | no | `200` | Cooldown after each use |
-
-**Example:**
-```json
-{
-  "type": "neoorigins:gravity_well",
-  "max_range": 64.0,
-  "pull_radius": 16.0,
-  "duration_ticks": 80,
-  "cooldown_ticks": 200,
-  "name": "Event Horizon",
-  "description": "Summons a collapsing singularity that crushes nearby creatures."
 }
 ```
 
@@ -2224,10 +2195,10 @@ NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_O
 **Periodic hunger restoration** (e.g. for an origin that doesn't eat conventionally):
 ```json
 {
-  "type": "origins:action_over_time",
+  "type": "neoorigins:action_over_time",
   "interval": 40,
   "entity_action": {
-    "type": "origins:feed",
+    "type": "neoorigins:feed",
     "food": 1,
     "saturation": 0.2
   }
@@ -2237,16 +2208,76 @@ NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_O
 **Periodic healing** (independent of food / `natural_regen_modifier`):
 ```json
 {
-  "type": "origins:action_over_time",
+  "type": "neoorigins:action_over_time",
   "interval": 60,
   "entity_action": {
-    "type": "origins:heal",
+    "type": "neoorigins:heal",
     "amount": 0.5
   }
 }
 ```
 
 `interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. Any verb supported by `ActionParser` works (`origins:apply_effect`, `origins:damage`, `origins:execute_command`, `origins:if_else` for conditional wrapping, etc.).
+
+## `neoorigins:cobweb_affinity`
+
+Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag — `EntityMakeStuckInBlockMixin` reads it to suppress the usual slowdown inside cobwebs, and `MovementPowerEvents.onBreakSpeed` reads it to multiply cobweb break speed by 10×.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:cobweb_affinity",
+  "name": "Spider Affinity",
+  "description": "Move and break cobwebs easily."
+}
+```
+
+---
+
+## `neoorigins:hide_hud_bar`
+
+Hides a HUD bar while the power is active. Emits `hide_hunger_bar` or `hide_air_bar` capability tags — `GuiHudBarsMixin` reads them to cancel the matching render call. Governed server-side by the `hide_hud_bars` common config (default true); if disabled, the power registers but the HUD still renders.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `bar` | string | no | `"hunger"` | Which bar to hide. `"hunger"` / `"food"` hide the hunger bar; `"air"` / `"oxygen"` / `"breath"` hide the air bar. Any other value is a no-op. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:hide_hud_bar",
+  "bar": "air",
+  "name": "No Need to Breathe",
+  "hidden": true
+}
+```
+
+Typically paired with `neoorigins:water_breathing` or the Automaton pattern so the hidden bar is also being suppressed mechanically — hiding a bar that still ticks is disorienting.
+
+---
+
+## `neoorigins:ender_gaze_immunity`
+
+Endermen do not aggro when the player looks at them. Emits the `ender_gaze_immunity` capability tag — an Enderman targeting mixin reads it to skip the usual line-of-sight check.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:ender_gaze_immunity",
+  "name": "Void Gaze",
+  "description": "Endermen ignore your gaze."
+}
+```
+
+---
 
 ## Composing power sets
 

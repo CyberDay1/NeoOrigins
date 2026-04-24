@@ -29,6 +29,10 @@ logs/
 # Reference sources (local only)
 reference/
 
+# Scratch / local-only artifacts at repo root
+/*.zip
+/stuff.txt
+
 # Claude
 CLAUDE.md
 .claude/

@@ -82,6 +82,9 @@ public class NeoOrigins {
         // Register mod items (Orb of Origin, etc.)
         ModItems.register(modEventBus);
 
+        // Register custom entities (cobweb projectile, etc.)
+        com.cyberday1.neoorigins.content.ModEntities.register(modEventBus);
+
         // Register attachment types (origin data + Route B compat state + entity minion-owner)
         OriginAttachments.register(modEventBus);
         CompatAttachments.register(modEventBus);
@@ -90,9 +93,10 @@ public class NeoOrigins {
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
 
-        // Register client-only keybindings
+        // Register client-only keybindings and entity renderers
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
+            modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onRegisterRenderers);
         }
 
         // Auto-register items from originpacks/ before the registry freezes

@@ -44,11 +44,21 @@ public class ProjectileImmunityPower extends PowerType<ProjectileImmunityPower.C
         ).apply(inst, Config::new));
 
         public boolean blocks(Projectile projectile) {
+            // Cache the projectile's entity-type ID once for the namespaced branch.
+            String entityId = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                .getKey(projectile.getType()).toString();
             for (String t : projectileTypes) {
                 if ("all".equalsIgnoreCase(t)) return true;
+                // Category aliases — keep backwards compat with pre-2.0 JSON.
                 if ("arrow".equalsIgnoreCase(t) && projectile instanceof AbstractArrow) return true;
                 if ("fireball".equalsIgnoreCase(t) && projectile instanceof AbstractHurtingProjectile) return true;
                 if ("trident".equalsIgnoreCase(t) && projectile instanceof ThrownTrident) return true;
+                // Exact entity-id match — sculkborn_projectile_immunity ships
+                // with "minecraft:arrow"/"minecraft:spectral_arrow" which the
+                // simple aliases above wouldn't catch on their own.
+                if (t.equalsIgnoreCase(entityId)) return true;
+                // Bare-path fallback ("spectral_arrow" → minecraft:spectral_arrow).
+                if (!t.contains(":") && entityId.endsWith(":" + t.toLowerCase())) return true;
             }
             return false;
         }

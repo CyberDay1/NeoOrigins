@@ -14,7 +14,13 @@
     "neoorigins:kraken_summon_guardian",
     "neoorigins:kraken_beached",
     "neoorigins:kraken_daylight_damage",
-    "neoorigins:kraken_massive"
+    "neoorigins:kraken_massive",
+    "neoorigins:kraken_dries_out"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
 }

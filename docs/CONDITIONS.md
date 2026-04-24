@@ -2,7 +2,7 @@
 
 Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions.
 
-**Namespace tolerance:** every condition accepts `origins:` and `apace:` prefixes interchangeably. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `origins:`. A small set of context-aware conditions is only exposed under `neoorigins:`.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `origins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
@@ -22,7 +22,7 @@ Logical AND of nested conditions.
 
 **Example:**
 ```json
-{ "type": "origins:and", "conditions": [ {"type": "origins:sneaking"}, {"type": "origins:on_ground"} ] }
+{ "type": "neoorigins:and", "conditions": [ {"type": "neoorigins:sneaking"}, {"type": "neoorigins:on_ground"} ] }
 ```
 
 ## `origins:or`
@@ -47,7 +47,7 @@ Always-true or always-false literal.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `value` | boolean | yes | `false` | Literal result |
+| `value` | boolean | no | `false` | Literal result. Missing field treated as `false`. |
 
 ---
 
@@ -334,14 +334,14 @@ Block check at the entity's current position — accepts either a nested `block_
 
 ## `origins:in_block` (alias `origins:in_block_anywhere`)
 
-Block check at the entity's current position via a required wrapper.
+Block check at the entity's current position via an optional wrapper.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | yes | — | Wrapper |
+| `block_condition` | object | no | — | Wrapper |
 | `block_condition.block` / `block_condition.id` | resource location | no | — | Block ID |
 
-Always-true when the wrapper is absent or no ID is present.
+Always-true when the wrapper is absent or no ID is present (fail-open — use `origins:not` + a specific block condition if you need strict gating).
 
 ## `origins:entity_type`
 
@@ -366,7 +366,7 @@ Inspects an item in a given equipment slot.
 **Unusual:** `item_condition` has its own internal shape. Accepts any of:
 - `{ "id": "minecraft:stick" }` — exact item ID
 - `{ "tag": "c:tools/pickaxe" }` — item tag
-- `{ "type": "origins:empty" }` — slot is empty (also `apace:empty`)
+- `{ "type": "neoorigins:empty" }` — slot is empty (also `apace:empty`)
 - `{ "ingredient": { "item": "..." } }` or `{ "ingredient": { "tag": "..." } }` — ingredient-style wrapper
 
 Always-true when `item_condition` is absent.
@@ -532,6 +532,17 @@ Checks whether the target's entity type is in a vanilla mob-category tag under t
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `set` | string | yes | — | Entity-set key (e.g. `"mypack:kill_streak"`) |
+
+## `neoorigins:no_minions_alive`
+
+True when the player has zero living tracked minions of the given key.
+Used for "loner" gates — e.g., the Monster Tamer's Lone Weakness applies
+only when no tamed mobs are alive. Evaluates to true if the player has
+never summoned a minion as well (count of 0).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `key` | string | no | `"tamer:tamed"` | MinionTracker key to count. Defaults to the `TameMobPower` key. Summoned-mob keys are the entity type string, e.g. `"minecraft:skeleton"` for `SummonMinionPower`. |
 
 ---
 

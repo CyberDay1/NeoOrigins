@@ -1,14 +1,17 @@
 package com.cyberday1.neoorigins.client;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.content.ModEntities;
 import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -48,5 +51,18 @@ public class NeoOriginsClientEvents {
                 && !player.isFallFlying() && !player.isPassenger()) {
             ClientPacketDistributor.sendToServer(new AirJumpPayload());
         }
+    }
+
+    public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(ModEntities.COBWEB_PROJECTILE.get(), ThrownItemRenderer::new);
+        event.registerEntityRenderer(ModEntities.HOMING_PROJECTILE.get(), ThrownItemRenderer::new);
+        event.registerEntityRenderer(ModEntities.MAGIC_ORB.get(),
+            com.cyberday1.neoorigins.client.renderer.MagicOrbRenderer::new);
+        event.registerEntityRenderer(ModEntities.LINGERING_AREA.get(),
+            com.cyberday1.neoorigins.client.renderer.LingeringAreaRenderer::new);
+        event.registerEntityRenderer(ModEntities.BLACK_HOLE.get(),
+            com.cyberday1.neoorigins.client.renderer.BlackHoleRenderer::new);
+        event.registerEntityRenderer(ModEntities.TORNADO.get(),
+            com.cyberday1.neoorigins.client.renderer.TornadoRenderer::new);
     }
 }

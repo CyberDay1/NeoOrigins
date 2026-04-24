@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/power.schema.json",
+  "title": "NeoOrigins Power",
+  "description": "A power grants one mechanical effect to a player via the origins system. File path: data/<namespace>/origins/powers/<power>.json. The `type` field discriminates which fields are valid.",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Fully-qualified power type ID. See docs/API.md for the full catalogue.",
+      "enum": [
+        "neoorigins:action_on_event", "neoorigins:action_on_hit", "neoorigins:active_ability",
+        "neoorigins:active_bolt", "neoorigins:active_dash", "neoorigins:active_fireball",
+        "neoorigins:active_phase", "neoorigins:active_place_block", "neoorigins:active_recall",
+        "neoorigins:active_swap", "neoorigins:active_teleport", "neoorigins:attribute_modifier",
+        "neoorigins:break_speed_modifier", "neoorigins:breath_in_fluid", "neoorigins:cobweb_affinity",
+        "neoorigins:command_pack", "neoorigins:condition_passive", "neoorigins:conditional",
+        "neoorigins:craft_amount_bonus", "neoorigins:crop_growth_accelerator", "neoorigins:crop_harvest_bonus",
+        "neoorigins:edible_item", "neoorigins:effect_immunity", "neoorigins:elytra_boost",
+        "neoorigins:ender_gaze_immunity", "neoorigins:enhanced_vision", "neoorigins:entity_group",
+        "neoorigins:entity_set", "neoorigins:exhaustion_filter", "neoorigins:flight",
+        "neoorigins:ground_slam", "neoorigins:hide_hud_bar",
+        "neoorigins:horde_regen", "neoorigins:invulnerability", "neoorigins:item_magnetism",
+        "neoorigins:keep_inventory", "neoorigins:less_item_use_slowdown", "neoorigins:mobs_ignore_player",
+        "neoorigins:modify_damage", "neoorigins:modify_player_spawn", "neoorigins:more_smoker_xp",
+        "neoorigins:no_mob_spawns_nearby", "neoorigins:no_natural_regen", "neoorigins:no_projectile_divergence",
+        "neoorigins:no_slowdown", "neoorigins:persistent_effect", "neoorigins:phantom_form",
+        "neoorigins:prevent_action", "neoorigins:projectile_immunity", "neoorigins:quality_equipment",
+        "neoorigins:rare_wandering_loot", "neoorigins:restrict_armor", "neoorigins:scare_entities",
+        "neoorigins:shadow_orb", "neoorigins:size_scaling", "neoorigins:sneaky",
+        "neoorigins:starting_equipment", "neoorigins:stealth", "neoorigins:summon_minion",
+        "neoorigins:tame_mob", "neoorigins:tamed_animal_boost", "neoorigins:tamed_potion_diffusal",
+        "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle",
+        "neoorigins:trade_availability", "neoorigins:tree_felling", "neoorigins:twin_breeding",
+        "neoorigins:underwater_mining_speed", "neoorigins:wall_climbing", "neoorigins:water_breathing",
+        "origins:status_effect", "origins:night_vision", "origins:glow", "origins:water_breathing",
+        "origins:biome_buff", "origins:damage_in_biome", "origins:damage_in_daylight",
+        "origins:damage_in_water", "origins:burn_at_health_threshold", "origins:regen_in_fluid",
+        "origins:food_restriction", "origins:action_on_kill", "origins:action_on_hit_taken",
+        "origins:hunger_drain_modifier", "origins:natural_regen_modifier", "origins:knockback_modifier",
+        "origins:longer_potions", "origins:teleport_range_modifier", "origins:more_animal_loot",
+        "origins:efficient_repairs", "origins:better_enchanting", "origins:better_crafted_food",
+        "origins:better_bone_meal", "origins:thorns_aura", "origins:less_item_use_slowdown",
+        "apace:status_effect", "apace:night_vision", "apace:water_breathing",
+        "apoli:edible_item", "apugli:edible_item", "apugli:action_on_jump", "apugli:action_on_target_death"
+      ]
+    },
+    "name": { "description": "Display name. Plain string = translation key.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
+    "description": { "description": "Display description.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
+    "hidden": { "description": "If true, don't show in the origin picker info panel.", "type": "boolean" }
+  },
+  "oneOf": [
+    {
+      "$comment": "neoorigins:attribute_modifier",
+      "properties": {
+        "type": { "const": "neoorigins:attribute_modifier" },
+        "attribute": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "amount": { "type": "number" },
+        "operation": { "type": "string", "enum": ["add_value", "add_multiplied_base", "add_multiplied_total"] },
+        "condition": { "oneOf": [{ "type": "string" }, { "$ref": "condition.schema.json" }] },
+        "equipment_condition": { "type": "object" },
+        "location_condition": { "type": "object" }
+      },
+      "required": ["type", "attribute", "amount"]
+    },
+    {
+      "$comment": "neoorigins:condition_passive",
+      "properties": {
+        "type": { "const": "neoorigins:condition_passive" },
+        "condition": { "$ref": "condition.schema.json" },
+        "entity_action": { "$ref": "action.schema.json" },
+        "interval": { "type": "integer", "minimum": 1 },
+        "interval_ticks": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type", "entity_action"]
+    },
+    {
+      "$comment": "neoorigins:action_on_event",
+      "properties": {
+        "type": { "const": "neoorigins:action_on_event" },
+        "event": {
+          "type": "string",
+          "description": "Case-insensitive event key. See docs/EVENTS.md for the full list.",
+          "enum": [
+            "attack", "hit_taken", "kill", "death", "block_break", "block_place",
+            "item_use", "respawn", "tick", "dimension_change", "jump", "projectile_hit",
+            "food_eaten", "gained", "lost", "chosen", "wake_up", "land",
+            "block_use", "entity_use", "item_pickup", "item_use_finish",
+            "mod_exhaustion", "mod_natural_regen", "mod_enchant_level", "mod_harvest_drops",
+            "mod_teleport_range", "mod_knockback", "mod_potion_duration", "mod_anvil_cost",
+            "mod_crafted_food_saturation", "mod_bonemeal_extra",
+            "ATTACK", "HIT_TAKEN", "KILL", "DEATH", "BLOCK_BREAK", "BLOCK_PLACE",
+            "ITEM_USE", "RESPAWN", "TICK", "DIMENSION_CHANGE", "JUMP", "PROJECTILE_HIT",
+            "FOOD_EATEN", "GAINED", "LOST", "CHOSEN", "WAKE_UP", "LAND",
+            "BLOCK_USE", "ENTITY_USE", "ITEM_PICKUP", "ITEM_USE_FINISH",
+            "MOD_EXHAUSTION", "MOD_NATURAL_REGEN", "MOD_ENCHANT_LEVEL", "MOD_HARVEST_DROPS",
+            "MOD_TELEPORT_RANGE", "MOD_KNOCKBACK", "MOD_POTION_DURATION", "MOD_ANVIL_COST",
+            "MOD_CRAFTED_FOOD_SATURATION", "MOD_BONEMEAL_EXTRA"
+          ]
+        },
+        "condition": { "$ref": "condition.schema.json" },
+        "entity_action": { "$ref": "action.schema.json" },
+        "modifier": { "oneOf": [{ "type": "object" }, { "type": "array" }] }
+      },
+      "required": ["type", "event"]
+    },
+    {
+      "$comment": "neoorigins:persistent_effect",
+      "properties": {
+        "type": { "const": "neoorigins:persistent_effect" },
+        "effect": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "effects": { "type": "array", "items": { "type": "object" } },
+        "amplifier": { "type": "integer", "minimum": 0 },
+        "duration": { "type": "integer", "minimum": 1 },
+        "show_icon": { "type": "boolean" },
+        "show_particles": { "type": "boolean" },
+        "ambient": { "type": "boolean" },
+        "condition": { "$ref": "condition.schema.json" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:active_ability",
+      "properties": {
+        "type": { "const": "neoorigins:active_ability" },
+        "entity_action": { "$ref": "action.schema.json" },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "key": { "type": "string", "enum": ["primary", "secondary"] }
+      },
+      "required": ["type", "entity_action"]
+    },
+    {
+      "$comment": "neoorigins:prevent_action",
+      "properties": {
+        "type": { "const": "neoorigins:prevent_action" },
+        "action": {
+          "type": "string",
+          "enum": ["FIRE", "FALL_DAMAGE", "DROWN", "SWIM", "FREEZE", "SPRINT_FOOD"]
+        },
+        "active_when": {
+          "type": "string",
+          "enum": ["ALWAYS", "NOT_SNEAKING", "SNEAKING", "ON_GROUND", "NOT_ON_GROUND"]
+        }
+      },
+      "required": ["type", "action"]
+    },
+    {
+      "$comment": "neoorigins:modify_damage",
+      "properties": {
+        "type": { "const": "neoorigins:modify_damage" },
+        "direction": { "type": "string", "enum": ["in", "out"] },
+        "damage_type": { "type": "string", "description": "Either a vanilla msg ID (e.g. 'onFire') or a tag prefixed with #." },
+        "multiplier": { "type": "number" },
+        "target_group": { "type": "string" },
+        "condition": { "$ref": "condition.schema.json" }
+      },
+      "required": ["type", "multiplier"]
+    },
+    {
+      "$comment": "neoorigins:size_scaling",
+      "properties": {
+        "type": { "const": "neoorigins:size_scaling" },
+        "scale": { "type": "number", "exclusiveMinimum": 0 },
+        "modify_reach": { "type": "boolean" }
+      },
+      "required": ["type", "scale"]
+    },
+    {
+      "$comment": "neoorigins:summon_minion",
+      "properties": {
+        "type": { "const": "neoorigins:summon_minion" },
+        "mob_type": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "max_count": { "type": "integer", "minimum": 1 },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "despawn_ticks": { "type": "integer", "minimum": 1 },
+        "death_damage": { "type": "number", "minimum": 0 },
+        "head": { "type": "string" },
+        "chest": { "type": "string" },
+        "legs": { "type": "string" },
+        "feet": { "type": "string" },
+        "mainhand": { "type": "string" },
+        "offhand": { "type": "string" }
+      },
+      "required": ["type", "mob_type"]
+    },
+    {
+      "$comment": "neoorigins:tame_mob",
+      "properties": {
+        "type": { "const": "neoorigins:tame_mob" },
+        "range": { "type": "number", "exclusiveMinimum": 0 },
+        "max_tamed": { "type": "integer", "minimum": 1 },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "despawn_ticks": { "type": "integer", "minimum": 1 },
+        "death_damage": { "type": "number", "minimum": 0 }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:edible_item",
+      "properties": {
+        "type": { "const": "neoorigins:edible_item" },
+        "items": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "item_condition": { "type": "object" },
+        "nutrition": { "type": "integer", "minimum": 0 },
+        "saturation": { "type": "number" },
+        "always_edible": { "type": "boolean" },
+        "fast": { "type": "boolean" },
+        "meat": { "type": "boolean" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:enhanced_vision",
+      "properties": {
+        "type": { "const": "neoorigins:enhanced_vision" },
+        "exposure": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:toggle",
+      "properties": {
+        "type": { "const": "neoorigins:toggle" },
+        "default_value": { "type": "boolean" },
+        "key": { "type": "string", "enum": ["primary", "secondary"] }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:entity_set",
+      "properties": {
+        "type": { "const": "neoorigins:entity_set" },
+        "name": { "type": "string" }
+      },
+      "required": ["type", "name"]
+    },
+    {
+      "$comment": "neoorigins:modify_player_spawn",
+      "properties": {
+        "type": { "const": "neoorigins:modify_player_spawn" },
+        "dimension": { "type": "string" },
+        "biome": { "type": "string" },
+        "spawn_strategy": { "type": "string" },
+        "bed_override": { "type": "boolean" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:restrict_armor",
+      "properties": {
+        "type": { "const": "neoorigins:restrict_armor" },
+        "head": { "type": "object" },
+        "chest": { "type": "object" },
+        "legs": { "type": "object" },
+        "feet": { "type": "object" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:keep_inventory",
+      "properties": {
+        "type": { "const": "neoorigins:keep_inventory" },
+        "slots": { "type": "array", "items": { "type": "string" } },
+        "items": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "neoorigins:attribute_modifier", "neoorigins:condition_passive", "neoorigins:action_on_event",
+              "neoorigins:persistent_effect", "neoorigins:active_ability", "neoorigins:prevent_action",
+              "neoorigins:modify_damage", "neoorigins:size_scaling", "neoorigins:summon_minion",
+              "neoorigins:tame_mob", "neoorigins:edible_item", "neoorigins:enhanced_vision",
+              "neoorigins:toggle", "neoorigins:entity_set", "neoorigins:modify_player_spawn",
+              "neoorigins:restrict_armor", "neoorigins:keep_inventory"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

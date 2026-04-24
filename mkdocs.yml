@@ -1,0 +1,78 @@
+site_name: NeoOrigins
+site_description: Origins for NeoForge — pack-author DSL and Java API reference.
+site_url: https://cyberday1.github.io/NeoOrigins/
+repo_url: https://github.com/CyberDay1/NeoOrigins
+repo_name: CyberDay1/NeoOrigins
+edit_uri: edit/master/docs/
+copyright: Copyright &copy; CyberDay1
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+# Exclude internal / handoff docs and schema JSON from the nav.
+# `compat-cleanup-handoff.md` stays in the repo but isn't surfaced here.
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Overview: API.md
+    - Cookbook: COOKBOOK.md
+    - Pack Format: PACK_FORMAT.md
+  - Reference:
+    - Power Types: POWER_TYPES.md
+    - Actions: ACTIONS.md
+    - Conditions: CONDITIONS.md
+    - Events: EVENTS.md
+  - Java API:
+    - Java API: JAVA_API.md
+    - Custom Projectiles & VFX: CUSTOM_PROJECTILES.md
+    - Architecture: ARCHITECTURE.md
+  - "2.0 Upgrade":
+    - What's New: 2_0_CHANGES.md
+    - Migration from 1.x: MIGRATION.md

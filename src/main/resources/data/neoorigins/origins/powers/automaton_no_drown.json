@@ -1,4 +1,1 @@
-{
-  "type": "neoorigins:prevent_action",
-  "action": "drown"
-}
+{ "type": "neoorigins:water_breathing" }

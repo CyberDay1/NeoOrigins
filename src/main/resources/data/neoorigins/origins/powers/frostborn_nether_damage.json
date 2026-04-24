@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:damage_in_biome",
   "biome_tag": "minecraft:is_nether",
-  "damage_per_second": 2.0
+  "damage_per_second": 2.0,
+  "damage_type": "on_fire"
 }

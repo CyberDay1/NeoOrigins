@@ -6,18 +6,20 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Locale;
+
 public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
     public enum Action {
         FALL_DAMAGE, FIRE, DROWN, FREEZE, SPRINT_FOOD, CHESTPLATE_EQUIP,
-        EYE_DAMAGE, WATER_DAMAGE, NONE;
+        EYE_DAMAGE, WATER_DAMAGE, SWIM, NONE;
 
         public static final Codec<Action> CODEC = Codec.STRING.xmap(
             s -> {
-                try { return Action.valueOf(s.toUpperCase()); }
+                try { return Action.valueOf(s.toUpperCase(Locale.ROOT)); }
                 catch (IllegalArgumentException e) { return NONE; }
             },
-            a -> a.name().toLowerCase()
+            a -> a.name().toLowerCase(Locale.ROOT)
         );
     }
 
@@ -32,10 +34,10 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
         public static final Codec<ActiveWhen> CODEC = Codec.STRING.xmap(
             s -> {
-                try { return ActiveWhen.valueOf(s.toUpperCase()); }
+                try { return ActiveWhen.valueOf(s.toUpperCase(Locale.ROOT)); }
                 catch (IllegalArgumentException e) { return ALWAYS; }
             },
-            a -> a.name().toLowerCase()
+            a -> a.name().toLowerCase(Locale.ROOT)
         );
     }
 
@@ -75,6 +77,18 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
         if (config.action() == Action.FIRE && isGateOpen(player, config)
                 && player.getRemainingFireTicks() > 0) {
             player.setRemainingFireTicks(0);
+        }
+        // Earth Mage can't swim — zero out any upward velocity in water so the
+        // player sinks instead of being able to kick up to the surface. Runs on
+        // every tick while in water; the sink is purely velocity-based so
+        // other powers (e.g. jump_boost on surface) still apply on air ticks.
+        if (config.action() == Action.SWIM && isGateOpen(player, config)
+                && player.isInWater()) {
+            var v = player.getDeltaMovement();
+            if (v.y > 0) {
+                player.setDeltaMovement(v.x, 0.0, v.z);
+                player.hurtMarked = true;
+            }
         }
     }
 }

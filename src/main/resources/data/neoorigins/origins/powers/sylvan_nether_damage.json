@@ -1,1 +1,14 @@
-{ "type": "neoorigins:damage_in_biome", "biome_tag": "minecraft:is_nether", "damage_per_second": 1.0 }
+{
+  "type": "neoorigins:condition_passive",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
+      { "type": "neoorigins:not", "condition": {
+        "type": "neoorigins:enchantment", "enchantment": "minecraft:frost_walker", "compare_to": 1
+      }}
+    ]
+  },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1.0, "source": { "name": "generic" } },
+  "interval": 20
+}

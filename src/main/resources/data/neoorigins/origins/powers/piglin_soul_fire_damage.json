@@ -1,5 +1,5 @@
 {
   "type": "neoorigins:damage_in_biome",
-  "biome_tag": "minecraft:has_structure/bastion_remnant",
-  "damage_per_second": 1.0
+  "biome_tag": "minecraft:soul_sand_valley",
+  "damage_per_second": 0.5
 }

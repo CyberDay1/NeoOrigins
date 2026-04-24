@@ -2,7 +2,7 @@
 
 Entity actions run against an entity target (usually the player who owns the power, or a bientity target depending on the call site). They're the side-effect half of the DSL — conditions filter, actions mutate.
 
-**Namespace tolerance:** every action accepts `origins:`, `apace:`, and often `neoorigins:` prefixes. Bare type names like `"type": "heal"` are auto-prefixed to `origins:heal` at parse time, so pre-namespace Origins JSON and loose community packs load without edits.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoorigins:heal`. Section headers below still show the traditional `origins:*` names for familiarity with upstream docs; JSON examples use `neoorigins:*`.
 
 **Call sites that dispatch actions:**
 - `action_on_event.entity_action` — runs against the event's actor (player)
@@ -32,7 +32,7 @@ Applies a mob effect to the target. Accepts either a single inline effect spec o
 
 **Example:**
 ```json
-{ "type": "origins:apply_effect", "effect": "minecraft:regeneration", "duration": 100, "amplifier": 1 }
+{ "type": "neoorigins:apply_effect", "effect": "minecraft:regeneration", "duration": 100, "amplifier": 1 }
 ```
 
 Unknown effect ids are resolved at parse time; a missing registry entry logs a warning and no-ops.
@@ -49,7 +49,7 @@ Removes a specific mob effect, or every effect if none is specified.
 
 **Example:**
 ```json
-{ "type": "origins:clear_effect", "effect": "minecraft:poison" }
+{ "type": "neoorigins:clear_effect", "effect": "minecraft:poison" }
 ```
 
 ---
@@ -64,7 +64,7 @@ Heals the target by the given amount (half-hearts).
 
 **Example:**
 ```json
-{ "type": "origins:heal", "amount": 4.0 }
+{ "type": "neoorigins:heal", "amount": 4.0 }
 ```
 
 ---
@@ -80,7 +80,7 @@ Damages the target with a vanilla damage source.
 
 **Example:**
 ```json
-{ "type": "origins:damage", "amount": 2.0, "source": { "name": "magic" } }
+{ "type": "neoorigins:damage", "amount": 2.0, "source": { "name": "magic" } }
 ```
 
 ---
@@ -96,7 +96,7 @@ Adds food and saturation to the target's food data (same call as eating).
 
 **Example:**
 ```json
-{ "type": "origins:feed", "food": 6, "saturation": 0.6 }
+{ "type": "neoorigins:feed", "food": 6, "saturation": 0.6 }
 ```
 
 ---
@@ -111,7 +111,7 @@ Adds an exhaustion value to the target's food data (depletes saturation, eventua
 
 **Example:**
 ```json
-{ "type": "origins:exhaust", "amount": 3.0 }
+{ "type": "neoorigins:exhaust", "amount": 3.0 }
 ```
 
 ---
@@ -126,7 +126,7 @@ Sets the target on fire for a fixed duration.
 
 **Example:**
 ```json
-{ "type": "origins:set_on_fire", "ticks": 100 }
+{ "type": "neoorigins:set_on_fire", "ticks": 100 }
 ```
 
 ---
@@ -137,7 +137,7 @@ Clears all fire ticks on the target. Takes no fields.
 
 **Example:**
 ```json
-{ "type": "origins:extinguish" }
+{ "type": "neoorigins:extinguish" }
 ```
 
 ---
@@ -155,7 +155,7 @@ Adds (or overwrites) velocity to the target. Distinguishes push vs. set via the 
 
 **Example:**
 ```json
-{ "type": "origins:add_velocity", "y": 1.2, "set": false }
+{ "type": "neoorigins:add_velocity", "y": 1.2, "set": false }
 ```
 
 ---
@@ -170,7 +170,7 @@ Shortcut for "launch straight up." Pushes the target vertically and sets `hurtMa
 
 **Example:**
 ```json
-{ "type": "origins:launch", "speed": 1.5 }
+{ "type": "neoorigins:launch", "speed": 1.5 }
 ```
 
 ---
@@ -181,7 +181,7 @@ Forces the target to stop riding its current vehicle. Takes no fields.
 
 **Example:**
 ```json
-{ "type": "origins:dismount" }
+{ "type": "neoorigins:dismount" }
 ```
 
 ---
@@ -196,7 +196,7 @@ Writes directly to the target's `fallDistance` field — useful to cancel immine
 
 **Example:**
 ```json
-{ "type": "origins:set_fall_distance", "fall_distance": 0.0 }
+{ "type": "neoorigins:set_fall_distance", "fall_distance": 0.0 }
 ```
 
 ---
@@ -213,7 +213,7 @@ Plays a sound from the target's position.
 
 **Example:**
 ```json
-{ "type": "origins:play_sound", "sound": "minecraft:entity.player.levelup", "volume": 1.0, "pitch": 1.0 }
+{ "type": "neoorigins:play_sound", "sound": "minecraft:entity.player.levelup", "volume": 1.0, "pitch": 1.0 }
 ```
 
 ---
@@ -228,7 +228,7 @@ Emits a vanilla game event at the target's position (for sculk sensors, warden d
 
 **Example:**
 ```json
-{ "type": "origins:emit_game_event", "event": "minecraft:step" }
+{ "type": "neoorigins:emit_game_event", "event": "minecraft:step" }
 ```
 
 ---
@@ -239,7 +239,7 @@ Swings the target's main hand. Takes no fields — off-hand is not supported at 
 
 **Example:**
 ```json
-{ "type": "origins:swing_hand" }
+{ "type": "neoorigins:swing_hand" }
 ```
 
 ---
@@ -257,7 +257,7 @@ Gives an item to the target. If the inventory is full, the stack drops at their 
 
 **Example:**
 ```json
-{ "type": "origins:give", "stack": { "item": "minecraft:apple", "count": 3 } }
+{ "type": "neoorigins:give", "stack": { "item": "minecraft:apple", "count": 3 } }
 ```
 
 ---
@@ -272,7 +272,7 @@ Spawns an entity at the target's feet. No orientation control — the entity fac
 
 **Example:**
 ```json
-{ "type": "origins:spawn_entity", "entity_type": "minecraft:zombie" }
+{ "type": "neoorigins:spawn_entity", "entity_type": "minecraft:zombie" }
 ```
 
 Server-side only; on client worlds the action silently no-ops.
@@ -289,10 +289,104 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 | `speed` | float | no | `1.5` | Launch speed |
 | `inaccuracy` | float | no | `0.0` | Random spread |
 | `vertical_offset` | float | no | `0.0` | Added to the spawn Y (relative to eye height) |
+| `effect_type` | string | no | `""` | Colour key from `VfxEffectTypes` (applied to `neoorigins:magic_orb` and custom VFX projectiles) |
+| `on_hit_action` | object | no | — | Action fired when the projectile impacts. `area_of_effect` inside this auto-rebases to the impact point. |
+
+**Example — magic-orb with impact-AoE:**
+```json
+{ "type": "neoorigins:spawn_projectile",
+  "entity_type": "neoorigins:magic_orb",
+  "speed": 1.8,
+  "effect_type": "poison",
+  "on_hit_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 4.0,
+    "entity_action": { "type": "neoorigins:apply_effect",
+      "effect": "minecraft:poison", "duration": 100, "amplifier": 1 }
+  } }
+```
+
+---
+
+## `neoorigins:spawn_lingering_area`
+
+Spawns a stationary AoE entity that emits particles and, every N ticks, runs a stored action against the caster. Great for ground-marker auras, poison clouds, lingering rune effects.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | float | no | `3.0` | Horizontal radius (synched to client) |
+| `duration_ticks` | int | no | `100` | Lifetime |
+| `interval_ticks` | int | no | `20` | How often `entity_action` runs |
+| `effect_type` | string | no | `""` | Colour key for future renderer hooks |
+| `particle_type` | string | no | `minecraft:witch` | Particle emitted every 2 ticks |
+| `entity_action` | object | no | — | Action fired against caster each interval; pair with `area_of_effect` inside to hit entities in radius |
+
+Position: impact point when invoked from `on_hit_action`, else caster's feet.
+
+**Example — poison cloud at projectile impact:**
+```json
+{ "type": "neoorigins:spawn_lingering_area",
+  "radius": 4.0,
+  "duration_ticks": 120,
+  "interval_ticks": 20,
+  "particle_type": "minecraft:witch",
+  "entity_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 4.0,
+    "entity_action": { "type": "neoorigins:apply_effect",
+      "effect": "minecraft:poison", "duration": 60, "amplifier": 1 }
+  } }
+```
+
+---
+
+## `neoorigins:spawn_black_hole`
+
+Spawns a gravity-well entity that pulls nearby entities toward its center and damages anything in the inner radius every 10 ticks.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | float | no | `6.0` | Outer pull radius. Inner damage radius is 30% of this. |
+| `duration_ticks` | int | no | `100` | Lifetime |
+| `pull_strength` | float | no | `1.5` | Inward force multiplier |
+| `damage_per_tick` | float | no | `2.0` | Damage per 10-tick interval in inner radius |
+| `effect_type` | string | no | `""` | Colour key for renderer |
 
 **Example:**
 ```json
-{ "type": "origins:spawn_projectile", "entity_type": "minecraft:arrow", "speed": 2.0 }
+{ "type": "neoorigins:spawn_black_hole",
+  "radius": 8.0,
+  "duration_ticks": 100,
+  "pull_strength": 2.0,
+  "damage_per_tick": 3.0 }
+```
+
+---
+
+## `neoorigins:spawn_tornado`
+
+Spawns a tornado that pulls entities inward, lifts them upward, and spins them tangentially.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | float | no | `5.0` | Horizontal influence radius |
+| `duration_ticks` | int | no | `100` | Lifetime |
+| `pull_strength` | float | no | `1.0` | Inward force |
+| `lift_strength` | float | no | `0.5` | Upward force |
+| `spin_strength` | float | no | `0.5` | Tangential spin force |
+| `damage_per_interval` | float | no | `2.0` | Damage every `damage_interval_ticks` (set to 0 to disable) |
+| `damage_interval_ticks` | int | no | `10` | How often damage fires |
+| `effect_type` | string | no | `""` | Colour key |
+
+**Example:**
+```json
+{ "type": "neoorigins:spawn_tornado",
+  "radius": 6.0,
+  "duration_ticks": 80,
+  "pull_strength": 1.5,
+  "lift_strength": 0.8,
+  "spin_strength": 0.8,
+  "damage_per_interval": 1.5 }
 ```
 
 ---
@@ -307,7 +401,7 @@ Runs a server command at permission level 2 (vanilla's function-permission-level
 
 **Example:**
 ```json
-{ "type": "origins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
+{ "type": "neoorigins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
 ```
 
 Runs only if the target is on a server (`player.level().getServer() != null`).
@@ -324,7 +418,7 @@ Replaces the block at the target's feet (their `blockPosition`) with the given b
 
 **Example:**
 ```json
-{ "type": "origins:set_block", "block": "minecraft:cobweb" }
+{ "type": "neoorigins:set_block", "block": "minecraft:cobweb" }
 ```
 
 ---
@@ -340,7 +434,7 @@ Mutates the target's food/saturation levels. **Gotcha:** upstream Apoli's `modif
 
 **Example:**
 ```json
-{ "type": "origins:modify_food", "food": 4, "saturation": 0.4 }
+{ "type": "neoorigins:modify_food", "food": 4, "saturation": 0.4 }
 ```
 
 ---
@@ -355,7 +449,7 @@ Dynamically grants a power to the target. Tracks dynamic grants separately from 
 
 **Example:**
 ```json
-{ "type": "origins:grant_power", "power": "examplepack:super_jump" }
+{ "type": "neoorigins:grant_power", "power": "examplepack:super_jump" }
 ```
 
 ---
@@ -370,7 +464,7 @@ Removes a previously `grant_power`ed power. No-op if the power was granted by an
 
 **Example:**
 ```json
-{ "type": "origins:revoke_power", "power": "examplepack:super_jump" }
+{ "type": "neoorigins:revoke_power", "power": "examplepack:super_jump" }
 ```
 
 ---
@@ -387,7 +481,7 @@ Creates an explosion centred on the target.
 
 **Example:**
 ```json
-{ "type": "origins:explode", "power": 4.0, "destruction_type": "break", "create_fire": false }
+{ "type": "neoorigins:explode", "power": 4.0, "destruction_type": "break", "create_fire": false }
 ```
 
 Server-side only.
@@ -404,7 +498,7 @@ Restores air supply (bubbles), clamped to `getMaxAirSupply()`.
 
 **Example:**
 ```json
-{ "type": "origins:gain_air", "amount": 40 }
+{ "type": "neoorigins:gain_air", "amount": 40 }
 ```
 
 ---
@@ -421,7 +515,7 @@ Mutates a `resource` power's stored integer. The resource state lives on a playe
 
 **Example:**
 ```json
-{ "type": "origins:change_resource", "resource": "examplepack:mana", "operation": "add", "change": -5 }
+{ "type": "neoorigins:change_resource", "resource": "examplepack:mana", "operation": "add", "change": -5 }
 ```
 
 Clamped to `[Integer.MIN_VALUE, Integer.MAX_VALUE]` on add.
@@ -439,7 +533,7 @@ Manually places a power on cooldown. Used when an ability's fire path is custom 
 
 **Example:**
 ```json
-{ "type": "origins:trigger_cooldown", "power": "examplepack:fireball", "cooldown": 40 }
+{ "type": "neoorigins:trigger_cooldown", "power": "examplepack:fireball", "cooldown": 40 }
 ```
 
 ---
@@ -452,7 +546,7 @@ Explicit no-op. Useful as the default branch of `if_else` or for placeholder aut
 
 **Example:**
 ```json
-{ "type": "origins:nothing" }
+{ "type": "neoorigins:nothing" }
 ```
 
 ---
@@ -467,9 +561,9 @@ Runs a sequence of actions in order against the same target.
 
 **Example:**
 ```json
-{ "type": "origins:and", "actions": [
-  { "type": "origins:heal", "amount": 2.0 },
-  { "type": "origins:play_sound", "sound": "minecraft:entity.player.levelup" }
+{ "type": "neoorigins:and", "actions": [
+  { "type": "neoorigins:heal", "amount": 2.0 },
+  { "type": "neoorigins:play_sound", "sound": "minecraft:entity.player.levelup" }
 ] }
 ```
 
@@ -487,10 +581,10 @@ Conditional dispatch. If `condition` is absent or not an object, it's treated as
 
 **Example:**
 ```json
-{ "type": "origins:if_else",
-  "condition": { "type": "origins:submerged_in", "fluid": "minecraft:water" },
-  "if_action": { "type": "origins:gain_air", "amount": 40 },
-  "else_action": { "type": "origins:nothing" } }
+{ "type": "neoorigins:if_else",
+  "condition": { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
+  "if_action": { "type": "neoorigins:gain_air", "amount": 40 },
+  "else_action": { "type": "neoorigins:nothing" } }
 ```
 
 ---
@@ -505,9 +599,9 @@ First-match-wins chain of `(condition, action)` pairs. Stops after the first mat
 
 **Example:**
 ```json
-{ "type": "origins:if_else_list", "actions": [
-  { "condition": { "type": "origins:in_rain" }, "action": { "type": "origins:heal", "amount": 2 } },
-  { "condition": { "type": "origins:daytime" }, "action": { "type": "origins:set_on_fire", "ticks": 40 } }
+{ "type": "neoorigins:if_else_list", "actions": [
+  { "condition": { "type": "neoorigins:in_rain" }, "action": { "type": "neoorigins:heal", "amount": 2 } },
+  { "condition": { "type": "neoorigins:daytime" }, "action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
 ] }
 ```
 
@@ -524,7 +618,7 @@ Probabilistic dispatch. Uses the target's RNG source.
 
 **Example:**
 ```json
-{ "type": "origins:chance", "chance": 0.2, "action": { "type": "origins:play_sound", "sound": "minecraft:entity.cat.ambient" } }
+{ "type": "neoorigins:chance", "chance": 0.2, "action": { "type": "neoorigins:play_sound", "sound": "minecraft:entity.cat.ambient" } }
 ```
 
 ---
@@ -540,7 +634,7 @@ Schedules the inner action to run N ticks in the future via `CompatTickScheduler
 
 **Example:**
 ```json
-{ "type": "origins:delay", "ticks": 40, "action": { "type": "origins:extinguish" } }
+{ "type": "neoorigins:delay", "ticks": 40, "action": { "type": "neoorigins:extinguish" } }
 ```
 
 Server-side only.
@@ -561,11 +655,11 @@ Iterates every `ServerPlayer` within the radius and runs `entity_action` against
 
 **Example:**
 ```json
-{ "type": "origins:area_of_effect",
+{ "type": "neoorigins:area_of_effect",
   "radius": 8.0,
   "shape": "sphere",
   "include_source": false,
-  "entity_action": { "type": "origins:set_on_fire", "ticks": 40 } }
+  "entity_action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
 ```
 
 ---

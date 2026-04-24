@@ -117,6 +117,34 @@ public class NeoOriginsNetwork {
             EditorTogglePowerPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleEditorTogglePower
         );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.CancelOrbPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.CancelOrbPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleCancelOrb
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handlePickerAbandoned
+        );
+    }
+
+    private static void handleCancelOrb(com.cyberday1.neoorigins.network.payload.CancelOrbPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            data.setPendingOrbCommit(false);
+        });
+    }
+
+    private static void handlePickerAbandoned(com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            data.setPickerAbandoned(true);
+        });
     }
 
     // ---------- Client-side handlers ----------
@@ -161,6 +189,9 @@ public class NeoOriginsNetwork {
     }
 
     private static void handleOpenEditorScreen(OpenEditorScreenPayload payload, IPayloadContext ctx) {
+        // Defensive: payload is registered playToClient, but a malformed routing
+        // shouldn't crash a dedicated server by classloading Minecraft.
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() != net.neoforged.api.distmarker.Dist.CLIENT) return;
         ctx.enqueueWork(() -> {
             var mc = net.minecraft.client.Minecraft.getInstance();
             mc.setScreen(new com.cyberday1.neoorigins.screen.OriginEditorScreen(null));
@@ -193,6 +224,21 @@ public class NeoOriginsNetwork {
             }
 
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
+
+            // First commit after an orb-of-origin use: perform the deferred
+            // destructive work now (revoke prior powers, reset flags, deduct
+            // XP, consume one orb from inventory, bump orb-use counter).
+            // Deferring to first-pick means closing the picker without picking
+            // anything is a free cancel — the player keeps their orb and
+            // origins.
+            if (data.isPendingOrbCommit()) {
+                commitOrbUse(sp, data);
+            }
+
+            // Any pick re-engages the player — a previous picker-abandon no
+            // longer applies.
+            data.setPickerAbandoned(false);
+
             Identifier oldOrigin = data.getOrigin(layerId);
 
             // Allow re-selection only via /origin gui (forceReselect).
@@ -422,5 +468,44 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP,
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_DISPLAY_MAP
         ));
+    }
+
+    /**
+     * Perform the deferred orb-of-origin commit: revoke all existing origins,
+     * clear the equipment-grant ledger, deduct XP, shrink one orb from the
+     * player's inventory, and bump the orb-use counter. Called from the first
+     * ChooseOrigin after an orb is used — the orb's use() only stages the
+     * intent, so closing the picker without picking is a free cancel.
+     */
+    private static void commitOrbUse(ServerPlayer sp, PlayerOriginData data) {
+        int cost = data.getOrbUseCount() * com.cyberday1.neoorigins.content.OrbOfOriginItem.LEVELS_PER_USE;
+
+        ActiveOriginService.revokeAllPowers(sp);
+        for (var layer : LayerDataManager.INSTANCE.getLayers().values()) {
+            data.removeOrigin(layer.id());
+        }
+        data.setHadAllOrigins(false);
+        data.clearGrantedEquipment();
+
+        if (!sp.isCreative() && cost > 0) {
+            sp.giveExperienceLevels(-cost);
+        }
+        if (!sp.isCreative()) {
+            shrinkOrbFromInventory(sp);
+        }
+        data.incrementOrbUseCount();
+        data.setPendingOrbCommit(false);
+    }
+
+    private static void shrinkOrbFromInventory(ServerPlayer sp) {
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            var s = inv.getItem(i);
+            if (!s.isEmpty()
+                && s.getItem() instanceof com.cyberday1.neoorigins.content.OrbOfOriginItem) {
+                s.shrink(1);
+                return;
+            }
+        }
     }
 }

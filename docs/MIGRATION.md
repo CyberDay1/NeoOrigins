@@ -775,7 +775,6 @@ These legacy types kept their standalone classes because the DSL can't express t
 - `neoorigins:shadow_orb` — stateful orb with tick loop
 - `neoorigins:ground_slam` — AoE on mobs; `area_of_effect` is players-only
 - `neoorigins:tidal_wave` — cone shape not modelled in `area_of_effect`
-- `neoorigins:gravity_well` — stateful projectile + vortex
 - `neoorigins:active_phase` — movement state toggle, not an active ability
 
 **Non-tick-based condition interceptors:**
@@ -793,6 +792,126 @@ These legacy types kept their standalone classes because the DSL can't express t
 - `neoorigins:effect_immunity` — migrates under a different generic in a later phase
 
 See the carve-out comments in `LegacyPowerTypeAliases.registerActiveAbilityAliases`, `registerConditionPassiveAliases`, `registerAttributeModifierAliases`, and `registerPersistentEffectAliases` for the authoritative list. Phase 7+ may add raycast / cone / mob-AoE verbs and shrink this list further.
+
+---
+
+# Verb namespace migration — `origins:` / `apace:` → `neoorigins:`
+
+In 2.0.0 the canonical DSL verb namespace is `neoorigins:`. The legacy
+`origins:` and `apace:` prefixes still parse — every verb your pack uses
+today will keep working — but they emit a one-shot `[2.0-legacy]` warning
+at first use:
+
+```
+[2.0-legacy] DSL verb 'origins:damage' is deprecated — use 'neoorigins:damage'
+```
+
+Grep your logs for `[2.0-legacy]` to get the migration punch list. **Verbs
+under the legacy prefixes will be removed no earlier than NeoOrigins 3.0**
+— you have the full 2.x lifecycle to migrate.
+
+## Why
+
+Pre-2.0, the parser was an Apoli-compat layer. Verb names lived under
+`origins:` because that's what upstream Apoli used. When 2.0 introduced
+its own power types (`neoorigins:condition_passive`, `neoorigins:modify_damage`,
+...) the DSL verbs they *composed with* stayed on `origins:*`, producing
+the awkward mix of namespaces inside a single power JSON:
+
+```jsonc
+// Pre-2.0 style — mixed namespaces
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "origins:biome", "tag": "minecraft:is_nether" },
+  "entity_action": { "type": "origins:damage", "amount": 1.0 },
+  "interval": 20
+}
+```
+
+The canonicalization fixes this. Power types, condition verbs, and action
+verbs all live under the same namespace:
+
+```jsonc
+// 2.0.0 canonical
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1.0 },
+  "interval": 20
+}
+```
+
+## How to migrate
+
+For a quick pass, run a find-replace over your pack's JSON:
+
+```bash
+# On every power JSON:
+sed -i 's/"type": *"origins:/"type": "neoorigins:/g' path/to/powers/*.json
+sed -i 's/"type": *"apace:/"type": "neoorigins:/g' path/to/powers/*.json
+```
+
+The verb names are identical — only the namespace changes. No field
+shapes were changed as part of this canonicalization.
+
+Bare verb names (`"type": "and"`) still work and are auto-prefixed; the
+autoprefix target moved from `origins:` → `neoorigins:` for the 2.0
+release. If your pack relies on bare names and needed them resolved as
+`origins:*` for some reason, write them out explicitly.
+
+## Verbs that were already `neoorigins:*`
+
+A dozen or so verbs introduced fresh in 2.0 were already namespaced
+correctly: `neoorigins:in_set`, `neoorigins:no_minions_alive`,
+`neoorigins:hit_taken_amount`, `neoorigins:food_item_in_tag`,
+`neoorigins:toggle`, `neoorigins:add_to_set`, `neoorigins:remove_from_set`,
+`neoorigins:chain_to_nearest`, `neoorigins:pull_entities`,
+`neoorigins:swap_with_entity`, `neoorigins:teleport_to_marker`,
+`neoorigins:damage_attacker`, `neoorigins:ignite_attacker`,
+`neoorigins:effect_on_attacker`, `neoorigins:random_teleport`,
+`neoorigins:cancel_event`, `neoorigins:spawn_projectile`.
+
+These were unchanged.
+
+---
+
+# Lossy translations — aliases that drop fields
+
+A handful of aliases simplify the legacy behaviour because no 2.0 DSL verb
+matches the legacy 1:1. They still work, but a pack that actually relied on
+the dropped field will behave differently after the alias kicks in. Keep the
+legacy type declaration (i.e. let the legacy class stay registered) if any
+of these matter for your pack.
+
+| Legacy type | What's dropped | Workaround / roadmap |
+|---|---|---|
+| `active_dash` | Look-direction projection — the alias lands a horizontal impulse; the legacy class computed the dash vector from the player's look axis. | Needs a `look_direction` vector DSL verb. Targeted for Phase 7. Until then, keep the legacy class or expect roughly horizontal dashes. |
+| `active_fireball` | Multi-shot spread — legacy fired 3–4 small fireballs with a random spread cone. The alias shoots one. | No multi-shot DSL verb yet. Legacy class still registered; keep it for shotgun behaviour. |
+| `less_item_use_slowdown` | Item-type filter (`item_type: bow` / `shield` / `any`). Alias applies to any item-use. | No item-type condition verb yet. Packs filtering by tool keep the legacy class. |
+
+Aliases that inject a `_migration_note` field into the rewritten JSON will
+also have this flagged in the runtime log the first time they fire.
+
+---
+
+# DSL gaps worth knowing about
+
+Runtime hooks and verb shapes that don't exist in 2.0 yet — flagged in
+`LegacyPowerTypeAliases.java` as carve-outs. Each one blocks one or more
+alias collapses until it lands.
+
+| Missing verb / hook | Blocks | Notes |
+|---|---|---|
+| Look-direction vector | `active_dash` full port, any future `look_impulse` | Needs a `direction_source: look` field on `add_velocity`. |
+| Multi-shot projectile | `active_fireball` shotgun, future `spray` powers | Either loop `spawn_projectile` × N with a spread seed, or a dedicated `spawn_projectile_spread` verb. |
+| Raycast-and-place block | `active_place_block` | Needs a block-placement action with a raycast source. |
+| Cone-shape AoE | `tidal_wave` | Existing `area_of_effect` is radial only; needs an angled/cone variant. |
+| AoE on mobs (not players) | `ground_slam` | `area_of_effect` targets players only by default; needs a mob-target mode. |
+| Item-type condition | `less_item_use_slowdown` filter | Predicate on the item stack the player is currently using. |
+| Slowdown-source condition | `no_slowdown` | Need to tell movement-slowdown from tick-slowdown vs item-use slowdown. |
+| Air-supply modifier action | `breath_in_fluid` | Either a tick-driven attribute or a dedicated air-drain action. |
+| Item-entity pull action | `item_magnetism` | Needs an entity-attraction action with item-entity filter. |
+| Server-authoritative `PlayerEvent.BreakSpeed` | `break_speed_modifier`, `underwater_mining_speed` collapses | BreakSpeed fires client-only in current NeoForge; packs use the attribute fallback in the concrete class. |
 
 ---
 

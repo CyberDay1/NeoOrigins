@@ -3,13 +3,13 @@ package com.cyberday1.neoorigins.service;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
 /**
@@ -30,7 +30,11 @@ public final class EventPowerIndex {
 
     private EventPowerIndex() {}
 
-    /** Event keys used by generic event-triggered powers. */
+    /** Event keys used by generic event-triggered powers. Only wired keys are
+     *  listed here — promising an event in JSON that no runtime dispatches is
+     *  worse than not offering it, so unwired keys were pruned rather than
+     *  left as silent no-ops. Add a key back the same day its dispatch site
+     *  lands. */
     public enum Event {
         // ----- core lifecycle / combat -----
         ATTACK,                 // player attacked something
@@ -43,22 +47,11 @@ public final class EventPowerIndex {
         RESPAWN,
         TICK,
         DIMENSION_CHANGE,
-        CLIMB,
         JUMP,
         PROJECTILE_HIT,         // projectile owned by the player hit something
 
         // ----- Origins-Classes hooks: actions -----
-        CRAFT_ITEM,             // item crafted in a crafting table / inventory
-        SMELT_ITEM,             // item removed from furnace / smoker output
-        ENCHANT_ITEM,           // enchantment applied at enchanting table
-        ANVIL_REPAIR,           // anvil repair / combine
-        BONEMEAL,               // bonemeal applied
-        BREED,                  // breeding produced a baby
-        TAME,                   // entity was tamed
         FOOD_EATEN,             // player finished eating an edible
-        ADVANCEMENT_EARNED,
-        TRADE_COMPLETED,        // villager trade finished
-        VILLAGER_INTERACT,      // right-click villager
 
         // ----- Origin / power lifecycle -----
         GAINED,                 // power was just granted to the player
@@ -75,15 +68,10 @@ public final class EventPowerIndex {
 
         // ----- Origins-Classes hooks: modifiers (return a float) -----
         MOD_EXHAUSTION,         // hunger drain multiplier
-        MOD_BREAK_SPEED,        // block break speed multiplier
         MOD_NATURAL_REGEN,      // natural heal amount multiplier
-        MOD_XP_GAIN,            // xp orb value multiplier
-        MOD_TRADE_PRICE,        // villager trade cost multiplier
-        MOD_CRAFT_AMOUNT,       // crafting output count multiplier
         MOD_ENCHANT_LEVEL,      // enchanting table level multiplier / bonus
         MOD_HARVEST_DROPS,      // extra drops multiplier on break/drops
         MOD_TELEPORT_RANGE,     // ender pearl / teleport distance
-        MOD_FALL_DAMAGE,        // fall damage multiplier
         MOD_KNOCKBACK,          // incoming knockback strength multiplier
         MOD_POTION_DURATION,    // added-effect duration multiplier
         MOD_ANVIL_COST,         // anvil repair / combine XP cost multiplier
@@ -125,7 +113,7 @@ public final class EventPowerIndex {
     public static Token register(ServerPlayer player, Event event, Handler handler) {
         UUID uuid = player.getUUID();
         INDEX.computeIfAbsent(uuid, k -> new EnumMap<>(Event.class))
-             .computeIfAbsent(event, k -> new ArrayList<>())
+             .computeIfAbsent(event, k -> new CopyOnWriteArrayList<>())
              .add(handler);
         return new Token(uuid, event, handler, null);
     }
@@ -134,7 +122,7 @@ public final class EventPowerIndex {
     public static Token registerModifier(ServerPlayer player, Event event, ModifierHandler modifier) {
         UUID uuid = player.getUUID();
         MOD_INDEX.computeIfAbsent(uuid, k -> new EnumMap<>(Event.class))
-             .computeIfAbsent(event, k -> new ArrayList<>())
+             .computeIfAbsent(event, k -> new CopyOnWriteArrayList<>())
              .add(modifier);
         return new Token(uuid, event, null, modifier);
     }
@@ -169,8 +157,9 @@ public final class EventPowerIndex {
         // we restore the previous value after the loop.
         Object prev = ActionContextHolder.set(context);
         try {
-            // Iterate a snapshot — a handler may remove itself (e.g. one-shot).
-            for (Handler h : new ArrayList<>(list)) {
+            // CopyOnWriteArrayList iterator is snapshot-safe; a handler may
+            // remove itself (e.g. one-shot) without ConcurrentModification.
+            for (Handler h : list) {
                 h.accept(player, context);
             }
         } finally {
@@ -195,7 +184,7 @@ public final class EventPowerIndex {
         Object prev = ActionContextHolder.set(context);
         try {
             float value = base;
-            for (ModifierHandler m : new ArrayList<>(list)) {
+            for (ModifierHandler m : list) {
                 value = m.apply(player, context, value);
             }
             return value;

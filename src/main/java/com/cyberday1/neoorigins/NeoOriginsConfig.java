@@ -24,6 +24,13 @@ public final class NeoOriginsConfig {
                      "Useful for addon and datapack authors debugging load issues.")
             .define("debug_power_loading", false);
 
+    public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS =
+        BUILDER
+            .comment("Hide hunger / air HUD bars for origins that don't consume them",
+                     "(e.g. Automaton hunger, Merling / Kraken / Automaton air).",
+                     "Turn off to keep vanilla bars visible regardless of origin.")
+            .define("hide_hud_bars", true);
+
     // ── Disabled Origins ────────────────────────────────────────────────
     // Each built-in origin can be disabled here. Disabled origins are
     // removed after data loading and will not appear in the origin selection screen.
@@ -436,6 +443,49 @@ public final class NeoOriginsConfig {
         BUILDER.pop();
     }
 
+    // ── Ocean Origins ────────────────────────────────────────────────────
+    // Per-feature toggles for the built-in ocean origins (abyssal, kraken,
+    // merling, siren). Both default on.
+
+    public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_SPAWN_IN_OCEAN;
+    public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_DRIES_OUT;
+
+    private static final Set<String> OCEAN_ORIGIN_PATHS =
+        Set.of("abyssal", "kraken", "merling", "siren");
+
+    static {
+        BUILDER.comment(
+            "Per-feature toggles for built-in ocean origins (abyssal, kraken, merling, siren)."
+        ).push("ocean_origins");
+
+        OCEAN_ORIGINS_SPAWN_IN_OCEAN = BUILDER
+            .comment("Teleport ocean origins to a random ocean biome on first origin pick.",
+                     "Turn off to let them spawn at the world's normal spawn point.")
+            .define("spawn_in_ocean", true);
+
+        OCEAN_ORIGINS_DRIES_OUT = BUILDER
+            .comment("Ocean origins slowly lose air while out of water (Minecraft-fish style).",
+                     "Turn off to disable the on-land suffocation entirely.")
+            .define("dries_out", true);
+
+        BUILDER.pop();
+    }
+
+    /**
+     * True if the spawn_location teleport should apply to this origin. Always
+     * true for non-ocean origins; for the four built-in ocean origins,
+     * controlled by {@link #OCEAN_ORIGINS_SPAWN_IN_OCEAN}.
+     */
+    public static boolean shouldApplySpawnLocation(Identifier originId) {
+        if (!NeoOrigins.MOD_ID.equals(originId.getNamespace())) return true;
+        if (!OCEAN_ORIGIN_PATHS.contains(originId.getPath())) return true;
+        return OCEAN_ORIGINS_SPAWN_IN_OCEAN.get();
+    }
+
+    public static boolean isOceanOriginsDriesOutEnabled() {
+        return OCEAN_ORIGINS_DRIES_OUT.get();
+    }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static RandomMode getRandomMode() {
@@ -451,6 +501,10 @@ public final class NeoOriginsConfig {
     /**
      * Returns true if the given power ID is restricted in the player's current dimension.
      */
+    public static boolean isHideHudBarsEnabled() {
+        return HIDE_HUD_BARS.get();
+    }
+
     public static boolean isPowerRestrictedInDimension(Identifier powerId, ResourceKey<Level> dimension) {
         Map<String, Set<ResourceKey<Level>>> map = getParsedRestrictions();
         Set<ResourceKey<Level>> denied = map.get(powerId.toString());

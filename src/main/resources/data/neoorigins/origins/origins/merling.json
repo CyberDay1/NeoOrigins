@@ -8,7 +8,12 @@
     "neoorigins:merling_water_breathing",
     "neoorigins:merling_aquatic_speed",
     "neoorigins:merling_land_slowdown",
-    "neoorigins:merling_no_drowning"
+    "neoorigins:merling_dries_out"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
 }

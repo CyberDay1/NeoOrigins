@@ -38,6 +38,8 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, EntityGroupPower>         ENTITY_GROUP         = reg("entity_group",         new EntityGroupPower());
     public static final DeferredHolder<PowerType<?>, EntitySetPower>           ENTITY_SET           = reg("entity_set",           new EntitySetPower());
     public static final DeferredHolder<PowerType<?>, EnhancedVisionPower>      ENHANCED_VISION      = reg("enhanced_vision",      new EnhancedVisionPower());
+    public static final DeferredHolder<PowerType<?>, HideHudBarPower>          HIDE_HUD_BAR         = reg("hide_hud_bar",         new HideHudBarPower());
+    public static final DeferredHolder<PowerType<?>, CobwebAffinityPower>      COBWEB_AFFINITY      = reg("cobweb_affinity",      new CobwebAffinityPower());
     public static final DeferredHolder<PowerType<?>, EnderGazeImmunityPower>   ENDER_GAZE_IMMUNITY  = reg("ender_gaze_immunity",  new EnderGazeImmunityPower());
 
     // --- Passive: movement & environment ---
@@ -54,6 +56,7 @@ public class PowerTypes {
     // biome_buff, damage_in_biome/daylight/water, burn_at_health_threshold,
     // regen_in_fluid retired in 2.0; aliased to condition_passive.
     public static final DeferredHolder<PowerType<?>, BreathInFluidPower>       BREATH_IN_FLUID      = reg("breath_in_fluid",      new BreathInFluidPower());
+    public static final DeferredHolder<PowerType<?>, BreathOutOfFluidPower>    BREATH_OUT_OF_FLUID  = reg("breath_out_of_fluid",  new BreathOutOfFluidPower());
     public static final DeferredHolder<PowerType<?>, MobsIgnorePlayerPower>    MOBS_IGNORE_PLAYER   = reg("mobs_ignore_player",   new MobsIgnorePlayerPower());
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
 
@@ -138,7 +141,8 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ActiveGroundSlamPower>   GROUND_SLAM   = reg("ground_slam",    new ActiveGroundSlamPower());
     public static final DeferredHolder<PowerType<?>, ActiveTidalWavePower>   TIDAL_WAVE    = reg("tidal_wave",     new ActiveTidalWavePower());
     // healing_mist retired in 2.0; aliased to active_ability.
-    public static final DeferredHolder<PowerType<?>, ActiveGravityWellPower> GRAVITY_WELL  = reg("gravity_well",   new ActiveGravityWellPower());
+    // gravity_well retired in 2.0; the in-tree gravity_mage_well power now uses
+    // spawn_projectile + on_hit_action: spawn_black_hole via the VFX pipeline.
     // repulse retired in 2.0; aliased to active_ability.
 
     public static void register(IEventBus modEventBus) {

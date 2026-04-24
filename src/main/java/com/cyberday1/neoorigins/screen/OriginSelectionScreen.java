@@ -366,6 +366,20 @@ public class OriginSelectionScreen extends Screen {
         if (hasAnyOrigin && !hasClass) {
             ClientPacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
         }
+        // Tell the server to cancel any pending orb-of-origin commit. If the
+        // player already picked at least once during this picker session, the
+        // commit already fired and the server's flag is already cleared, so
+        // this is a no-op. If they never picked, the orb stays in the
+        // inventory and no XP is charged.
+        if (isOrb) {
+            ClientPacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.CancelOrbPayload());
+        }
+        // Non-orb picker closed with zero origins committed: tell the server
+        // to drop first-pick invulnerability. Without this the player could
+        // escape the picker and stay immortal forever.
+        if (!hasAnyOrigin && !isOrb) {
+            ClientPacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
+        }
         Minecraft.getInstance().setScreen(null);
     }
 }

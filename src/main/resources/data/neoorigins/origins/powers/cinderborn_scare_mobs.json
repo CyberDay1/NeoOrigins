@@ -1,3 +1,27 @@
 {
-  "type": "neoorigins:scare_entities"
+  "type": "neoorigins:scare_entities",
+  "entity_types": [
+    "minecraft:cow",
+    "minecraft:sheep",
+    "minecraft:pig",
+    "minecraft:chicken",
+    "minecraft:rabbit",
+    "minecraft:mooshroom",
+    "minecraft:goat",
+    "minecraft:fox",
+    "minecraft:wolf",
+    "minecraft:horse",
+    "minecraft:donkey",
+    "minecraft:mule",
+    "minecraft:llama",
+    "minecraft:ocelot",
+    "minecraft:cat",
+    "minecraft:parrot",
+    "minecraft:bat",
+    "minecraft:bee",
+    "minecraft:frog",
+    "minecraft:villager",
+    "minecraft:snow_golem",
+    "minecraft:axolotl"
+  ]
 }

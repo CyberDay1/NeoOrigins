@@ -42,40 +42,48 @@ public final class ConditionParser {
             return failClosed("root", contextId, "missing condition object");
         }
         String type = json.has("type") ? json.get("type").getAsString() : "";
+        // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:
+        // prefixes get a one-shot [2.0-legacy] warning then are rewritten to
+        // neoorigins: for dispatch. The canonical switch arms below only need
+        // to list neoorigins:* forms.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
-            type = "origins:" + type;
+            type = "neoorigins:" + type;
+        } else if (type.startsWith("origins:") || type.startsWith("apace:")) {
+            String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
+            com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
+            type = canonical;
         }
         try {
             return switch (type) {
-                case "origins:and", "apace:and"                         -> parseAnd(json, contextId);
-                case "origins:or", "apace:or"                           -> parseOr(json, contextId);
-                case "origins:not", "apace:not"                         -> parseNot(json, contextId);
-                case "origins:constant", "apace:constant"               ->
+                case "neoorigins:and"                           -> parseAnd(json, contextId);
+                case "neoorigins:or"                            -> parseOr(json, contextId);
+                case "neoorigins:not"                           -> parseNot(json, contextId);
+                case "neoorigins:constant"                      ->
                     json.has("value") && json.get("value").getAsBoolean()
                         ? EntityCondition.alwaysTrue() : EntityCondition.alwaysFalse();
-                case "origins:sneaking", "apace:sneaking"               -> p -> p.isShiftKeyDown();
-                case "origins:sprinting", "apace:sprinting"             -> p -> p.isSprinting();
-                case "origins:on_ground", "apace:on_ground"             -> p -> p.onGround();
-                case "origins:in_water", "apace:in_water"               -> p -> p.isInWater();
-                case "origins:swimming", "apace:swimming"               -> p -> p.isSwimming();
-                case "origins:submerged_in_water", "apace:submerged_in_water" -> p -> p.isUnderWater();
-                case "origins:fall_flying", "apace:fall_flying"         -> p -> p.isFallFlying();
-                case "origins:invisible", "apace:invisible"             -> p -> p.isInvisible();
-                case "origins:moving", "apace:moving"                   -> p -> {
+                case "neoorigins:sneaking"                      -> p -> p.isShiftKeyDown();
+                case "neoorigins:sprinting"                     -> p -> p.isSprinting();
+                case "neoorigins:on_ground"                     -> p -> p.onGround();
+                case "neoorigins:in_water"                      -> p -> p.isInWater();
+                case "neoorigins:swimming"                      -> p -> p.isSwimming();
+                case "neoorigins:submerged_in_water"            -> p -> p.isUnderWater();
+                case "neoorigins:fall_flying"                   -> p -> p.isFallFlying();
+                case "neoorigins:invisible"                     -> p -> p.isInvisible();
+                case "neoorigins:moving"                        -> p -> {
                     var dm = p.getDeltaMovement();
                     return dm.x != 0 || dm.z != 0;
                 };
-                case "origins:in_rain", "apace:in_rain"                 -> p -> {
+                case "neoorigins:in_rain"                       -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     return sl.isRainingAt(p.blockPosition());
                 };
-                case "origins:daytime", "apace:daytime"                 ->
+                case "neoorigins:daytime"                       ->
                     p -> p.level().getDefaultClockTime() % 24000L < 13000L;
-                case "origins:exposed_to_sky", "apace:exposed_to_sky"   -> p -> {
+                case "neoorigins:exposed_to_sky"                -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     return sl.canSeeSky(p.blockPosition());
                 };
-                case "origins:exposed_to_sun", "apace:exposed_to_sun"   -> p -> {
+                case "neoorigins:exposed_to_sun"                -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     // Vanilla daytime is 0–12000 (sunrise to sunset). The prior
                     // impl gated on 6000–12000, which skipped morning hours and
@@ -86,77 +94,82 @@ public final class ConditionParser {
                     return time < 12000L
                         && sl.canSeeSky(p.blockPosition()) && !sl.isRaining();
                 };
-                case "origins:health", "apace:health"                   -> parseHealth(json);
-                case "origins:resource", "apace:resource"               -> parseResource(json, contextId);
-                case "origins:power_active", "apace:power_active"       -> parsePowerActive(json, contextId);
-                case "origins:on_block", "apace:on_block"               -> parseOnBlock(json, contextId);
+                case "neoorigins:health"                        -> parseHealth(json);
+                case "neoorigins:resource"                      -> parseResource(json, contextId);
+                case "neoorigins:power_active"                  -> parsePowerActive(json, contextId);
+                case "neoorigins:on_block"                      -> parseOnBlock(json, contextId);
 
                 // ---- Phase 1: New conditions ----
-                case "origins:dimension", "apace:dimension"             -> parseDimension(json);
-                case "origins:biome", "apace:biome"                     -> parseBiome(json);
-                case "origins:in_tag", "apace:in_tag"                   -> parseInTag(json);
-                case "origins:food_level", "origins:food", "apace:food_level", "apace:food"
-                                                                        -> parseFoodLevel(json);
-                case "origins:submerged_in", "apace:submerged_in"       -> parseSubmergedIn(json);
-                case "origins:on_fire", "origins:fire", "apace:on_fire", "apace:fire"
-                                                                        -> p -> p.isOnFire();
-                case "origins:equipped_item", "apace:equipped_item"     -> parseEquippedItem(json, contextId);
-                case "origins:relative_health", "apace:relative_health" -> parseRelativeHealth(json);
-                case "origins:fall_distance", "apace:fall_distance"     -> parseFallDistance(json);
-                case "origins:enchantment", "apace:enchantment"         -> parseEnchantment(json);
-                case "origins:block", "apace:block"                     -> parseBlockCondition(json, contextId);
-                case "origins:light_level", "apace:light_level"         -> parseLightLevel(json);
-                case "origins:nbt", "apace:nbt"                         -> parseNbt(json);
-                case "origins:scoreboard", "apace:scoreboard"           -> parseScoreboard(json);
-                case "origins:command", "apace:command"                 -> parseCommand(json);
-                case "origins:passenger", "origins:riding", "apace:passenger", "apace:riding"
-                                                                        -> p -> p.isPassenger();
-                case "origins:entity_type", "apace:entity_type"         -> parseEntityType(json);
-                case "origins:fluid_height", "apace:fluid_height"       -> parseFluidHeight(json);
-                case "origins:in_block", "origins:in_block_anywhere",
-                     "apace:in_block", "apace:in_block_anywhere"       -> parseInBlock(json, contextId);
-                case "origins:brightness", "apace:brightness"           -> parseLightLevel(json);
-                case "origins:height", "apace:height"                   -> parseHeight(json);
-                case "origins:block_collision", "apace:block_collision" -> EntityCondition.alwaysTrue();
-                case "origins:temperature", "apace:temperature"         -> parseTemperature(json);
-                case "origins:armor_value", "apace:armor_value"         -> parseArmorValue(json);
-                case "origins:amount", "apace:amount"                   -> parseAmount(json);
-                case "origins:using_item", "apace:using_item"           -> p -> p.isUsingItem();
-                case "origins:ticking", "apace:ticking"                 -> p -> !p.isRemoved();
-                case "origins:exists", "apace:exists"                   -> p -> p != null && !p.isRemoved();
-                case "origins:living", "apace:living"                   -> p -> p.isAlive();
-                case "origins:creative_flying", "apace:creative_flying" -> p -> p.getAbilities().flying;
-                case "origins:power_type", "apace:power_type"           -> parsePowerType(json, contextId);
-                case "origins:predicate", "apace:predicate"             -> parsePredicate(json, contextId);
+                case "neoorigins:dimension"                     -> parseDimension(json);
+                case "neoorigins:biome"                         -> parseBiome(json);
+                case "neoorigins:in_tag"                        -> parseInTag(json);
+                case "neoorigins:food_level", "neoorigins:food" -> parseFoodLevel(json);
+                case "neoorigins:submerged_in"                  -> parseSubmergedIn(json);
+                case "neoorigins:on_fire", "neoorigins:fire"    -> p -> p.isOnFire();
+                case "neoorigins:equipped_item"                 -> parseEquippedItem(json, contextId);
+                case "neoorigins:relative_health"               -> parseRelativeHealth(json);
+                case "neoorigins:fall_distance"                 -> parseFallDistance(json);
+                case "neoorigins:enchantment"                   -> parseEnchantment(json);
+                case "neoorigins:block"                         -> parseBlockCondition(json, contextId);
+                case "neoorigins:light_level"                   -> parseLightLevel(json);
+                case "neoorigins:nbt"                           -> parseNbt(json);
+                case "neoorigins:scoreboard"                    -> parseScoreboard(json);
+                case "neoorigins:command"                       -> parseCommand(json);
+                case "neoorigins:passenger",
+                     "neoorigins:riding"                        -> p -> p.isPassenger();
+                case "neoorigins:entity_type"                   -> parseEntityType(json);
+                case "neoorigins:fluid_height"                  -> parseFluidHeight(json);
+                case "neoorigins:in_block",
+                     "neoorigins:in_block_anywhere"             -> parseInBlock(json, contextId);
+                case "neoorigins:brightness"                    -> parseLightLevel(json);
+                case "neoorigins:height"                        -> parseHeight(json);
+                case "neoorigins:block_collision"               -> EntityCondition.alwaysTrue();
+                case "neoorigins:temperature"                   -> parseTemperature(json);
+                case "neoorigins:armor_value"                   -> parseArmorValue(json);
+                case "neoorigins:amount"                        -> parseAmount(json);
+                case "neoorigins:using_item"                    -> p -> p.isUsingItem();
+                case "neoorigins:ticking"                       -> p -> !p.isRemoved();
+                case "neoorigins:exists"                        -> p -> p != null && !p.isRemoved();
+                case "neoorigins:living"                        -> p -> p.isAlive();
+                case "neoorigins:creative_flying"               -> p -> p.getAbilities().flying;
+                case "neoorigins:power_type"                    -> parsePowerType(json, contextId);
+                case "neoorigins:predicate"                     -> parsePredicate(json, contextId);
 
                 // ---- Phase 0 consolidation: new verbs ----
-                case "origins:time_of_day", "apace:time_of_day"         -> parseTimeOfDay(json);
-                case "origins:weather", "apace:weather"                 -> parseWeather(json);
-                case "origins:xp_level", "apace:xp_level"               -> parseXpLevel(json);
-                case "origins:xp_points", "apace:xp_points"             -> parseXpPoints(json);
-                case "origins:moon_phase", "apace:moon_phase"           -> parseMoonPhase(json);
+                case "neoorigins:time_of_day"                   -> parseTimeOfDay(json);
+                case "neoorigins:weather"                       -> parseWeather(json);
+                case "neoorigins:xp_level"                      -> parseXpLevel(json);
+                case "neoorigins:xp_points"                     -> parseXpPoints(json);
+                case "neoorigins:moon_phase"                    -> parseMoonPhase(json);
 
                 // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
-                case "neoorigins:hit_taken_amount"                      -> parseHitTakenAmount(json);
-                case "neoorigins:food_item_in_tag"                      -> parseFoodItemInTag(json);
+                case "neoorigins:hit_taken_amount"              -> parseHitTakenAmount(json);
+                case "neoorigins:food_item_in_tag"              -> parseFoodItemInTag(json);
+                case "neoorigins:no_minions_alive"              -> {
+                    // True when the player has no tracked minions of the
+                    // given {@code key} (e.g. "tamer:tamed"). Used by Monster
+                    // Tamer's Lone Weakness to only penalise the player when
+                    // they're fighting without their pack.
+                    final String minionKey = json.has("key") ? json.get("key").getAsString() : "tamer:tamed";
+                    yield p -> com.cyberday1.neoorigins.service.MinionTracker.countAlive(p.getUUID(), minionKey) == 0;
+                }
 
                 // ---- Bientity conditions (read target from current dispatch context) ----
-                case "origins:distance", "apace:distance"               -> parseDistance(json);
-                case "origins:can_see", "apace:can_see"                 -> parseCanSee();
-                case "origins:equal", "apace:equal"                     -> parseEqual();
-                case "origins:target_type", "apace:target_type"         -> parseTargetType(json);
-                case "origins:target_group", "apace:target_group"       -> parseTargetGroup(json);
-                case "origins:in_set", "apace:in_set",
-                     "neoorigins:in_set"                                -> parseInSet(json, contextId);
+                case "neoorigins:distance"                      -> parseDistance(json);
+                case "neoorigins:can_see"                       -> parseCanSee();
+                case "neoorigins:equal"                         -> parseEqual();
+                case "neoorigins:target_type"                   -> parseTargetType(json);
+                case "neoorigins:target_group"                  -> parseTargetGroup(json);
+                case "neoorigins:in_set"                        -> parseInSet(json, contextId);
 
                 // ---- Damage conditions (read DamageSource from HitTakenContext) ----
-                case "origins:from_fire", "apace:from_fire"             -> parseFromFire();
-                case "origins:from_projectile", "apace:from_projectile" -> parseFromProjectile();
-                case "origins:from_explosion", "apace:from_explosion"   -> parseFromExplosion();
-                case "origins:damage_type", "apace:damage_type"         -> parseDamageType(json);
-                case "origins:damage_tag", "apace:damage_tag"           -> parseDamageTag(json);
-                case "origins:damage_name", "apace:damage_name",
-                     "origins:name", "apace:name"                       -> parseDamageName(json);
+                case "neoorigins:from_fire"                     -> parseFromFire();
+                case "neoorigins:from_projectile"               -> parseFromProjectile();
+                case "neoorigins:from_explosion"                -> parseFromExplosion();
+                case "neoorigins:damage_type"                   -> parseDamageType(json);
+                case "neoorigins:damage_tag"                    -> parseDamageTag(json);
+                case "neoorigins:damage_name",
+                     "neoorigins:name"                          -> parseDamageName(json);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -291,8 +304,11 @@ public final class ConditionParser {
         String fluid = json.has("fluid") ? json.get("fluid").getAsString() : "";
         return switch (fluid) {
             case "minecraft:water" -> p -> p.isUnderWater();
-            case "minecraft:lava"  -> p -> p.isInLava();
-            default -> p -> p.isUnderWater() || p.isInLava();
+            // "Submerged in lava" means eyes-in-lava, not just feet touching it.
+            // isInLava() returns true on any overlap; isEyeInFluid(LAVA) is the
+            // actual "submerged" predicate and matches the water branch above.
+            case "minecraft:lava"  -> p -> p.isEyeInFluid(net.minecraft.tags.FluidTags.LAVA);
+            default -> p -> p.isUnderWater() || p.isEyeInFluid(net.minecraft.tags.FluidTags.LAVA);
         };
     }
 

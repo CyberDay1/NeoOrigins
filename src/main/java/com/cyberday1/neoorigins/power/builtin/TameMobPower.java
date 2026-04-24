@@ -133,9 +133,11 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // Clear all targeting goals (removes NearestAttackableTargetGoal<Player>, etc.)
         mob.targetSelector.getAvailableGoals().clear();
 
-        // Re-add HurtByTargetGoal so it fights back when hit (requires PathfinderMob)
+        // Re-add HurtByTargetGoal so it fights back when hit (requires PathfinderMob).
+        // Owner-aware subclass: accidental owner hits (collision, AoE, thorns
+        // reflection) don't flip the mob hostile against the owner.
         if (mob instanceof PathfinderMob pathfinder) {
-            mob.targetSelector.addGoal(1, new HurtByTargetGoal(pathfinder));
+            mob.targetSelector.addGoal(1, new OwnerAwareHurtByTargetGoal(pathfinder, owner));
         }
 
         // Add a goal to defend the owner — target anything that recently hurt them
@@ -145,8 +147,10 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         mob.goalSelector.getAvailableGoals().removeIf(
             g -> g.getGoal() instanceof AvoidEntityGoal);
 
-        // Follow the owner at medium priority
-        mob.goalSelector.addGoal(2, new FollowOwnerGoal(mob, owner, 10.0, 3.0, 1.0));
+        // Follow the owner at medium priority. Leash is intentionally loose
+        // (24-block teleport, 8-block follow-start) so the pet has room to
+        // engage enemies without snapping back to the owner every few steps.
+        mob.goalSelector.addGoal(2, new FollowOwnerGoal(mob, owner, 24.0, 8.0, 1.0));
     }
 
     private static Entity getTargetEntity(ServerPlayer player, double range) {
@@ -216,7 +220,12 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             mob.getLookControl().setLookAt(owner, 10.0f, (float) mob.getMaxHeadXRot());
 
             if (mob.distanceToSqr(owner) > teleportDist * teleportDist) {
-                // Teleport near owner
+                // Defuse primed creepers before the leash-teleport — otherwise
+                // a tamed creeper that started its swell at a far-away target
+                // detonates on top of the owner the moment it arrives.
+                if (mob instanceof net.minecraft.world.entity.monster.Creeper creeper) {
+                    creeper.setSwellDir(-1);
+                }
                 mob.teleportTo(owner.getX() + (mob.getRandom().nextDouble() - 0.5) * 2,
                     owner.getY(), owner.getZ() + (mob.getRandom().nextDouble() - 0.5) * 2);
             } else {
@@ -231,14 +240,39 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
     }
 
     /**
+     * HurtByTargetGoal variant that forgives the owner. When the owner's hit
+     * is what flipped {@code lastHurtByMob}, clear it and decline to target —
+     * otherwise accidental collision/AoE/thorns damage turns the pet against
+     * its summoner.
+     */
+    public static class OwnerAwareHurtByTargetGoal extends HurtByTargetGoal {
+        private final ServerPlayer owner;
+
+        public OwnerAwareHurtByTargetGoal(PathfinderMob mob, ServerPlayer owner) {
+            super(mob);
+            this.owner = owner;
+        }
+
+        @Override
+        public boolean canUse() {
+            LivingEntity lastHurt = this.mob.getLastHurtByMob();
+            if (lastHurt != null && lastHurt.getUUID().equals(owner.getUUID())) {
+                this.mob.setLastHurtByMob(null);
+                return false;
+            }
+            return super.canUse();
+        }
+    }
+
+    /**
      * Custom targeting goal: the tamed mob targets whatever recently hurt its owner.
      * Avoids NearestAttackableTargetGoal constructor compatibility issues across MC versions.
      */
-    private static class DefendOwnerGoal extends Goal {
+    public static class DefendOwnerGoal extends Goal {
         private final Mob mob;
         private final ServerPlayer owner;
 
-        DefendOwnerGoal(Mob mob, ServerPlayer owner) {
+        public DefendOwnerGoal(Mob mob, ServerPlayer owner) {
             this.mob = mob;
             this.owner = owner;
         }
