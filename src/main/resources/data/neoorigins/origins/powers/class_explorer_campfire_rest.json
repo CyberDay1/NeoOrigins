@@ -1,6 +1,12 @@
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoorigins:near_block", "tag": "#minecraft:campfires", "radius": 5 },
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:near_block", "tag": "#minecraft:campfires", "radius": 5 },
+      { "type": "neoorigins:out_of_combat", "ticks": 100 }
+    ]
+  },
   "entity_action": {
     "type": "neoorigins:apply_effect",
     "effect": "minecraft:regeneration",
