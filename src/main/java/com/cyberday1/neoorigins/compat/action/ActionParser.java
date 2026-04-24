@@ -20,6 +20,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,7 @@ public final class ActionParser {
                 case "neoorigins:heal"                          -> parseHeal(json);
                 case "neoorigins:play_sound"                    -> parsePlaySound(json);
                 case "neoorigins:add_velocity"                  -> parseAddVelocity(json);
+                case "neoorigins:dash"                          -> parseDash(json);
                 case "neoorigins:set_on_fire"                   -> parseSetOnFire(json);
                 case "neoorigins:exhaust"                       -> parseExhaust(json);
                 case "neoorigins:change_resource"               -> parseChangeResource(json);
@@ -320,6 +322,33 @@ public final class ActionParser {
     private static EntityAction parseSetOnFire(JsonObject json) {
         int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 20;
         return player -> player.setRemainingFireTicks(ticks);
+    }
+
+    /**
+     * dash: applies a forward impulse in the direction the player is facing.
+     * Variable strength. Optional {@code allow_vertical} (default true) — when
+     * false, pins the dash to horizontal so looking up/down doesn't boost
+     * vertical movement.
+     *
+     * <pre>{ "type": "neoorigins:dash", "strength": 2.0 }</pre>
+     * <pre>{ "type": "neoorigins:dash", "strength": 1.5, "allow_vertical": false }</pre>
+     *
+     * Unlike {@code add_velocity} (which uses fixed x/y/z), dash reads
+     * the player's current look vector and projects strength along it.
+     * Sets {@code hurtMarked = true} so the client doesn't discard the
+     * server-authoritative velocity change on the next movement packet.
+     */
+    private static EntityAction parseDash(JsonObject json) {
+        float strength = json.has("strength") ? json.get("strength").getAsFloat() : 1.5f;
+        boolean allowVertical = !json.has("allow_vertical") || json.get("allow_vertical").getAsBoolean();
+        return player -> {
+            Vec3 look = player.getLookAngle();
+            double dx = look.x * strength;
+            double dy = allowVertical ? look.y * strength : 0.0;
+            double dz = look.z * strength;
+            player.push(dx, dy, dz);
+            player.hurtMarked = true;
+        };
     }
 
     private static EntityAction parseExhaust(JsonObject json) {

@@ -2,5 +2,5 @@
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 60,
   "hunger_cost": 2,
-  "entity_action": { "type": "neoorigins:pull_entities", "radius": 0, "strength": -2.0 }
+  "entity_action": { "type": "neoorigins:dash", "strength": 2.0, "allow_vertical": true }
 }

@@ -1,1 +1,1 @@
-{ "type": "neoorigins:active_place_block", "block_id": "minecraft:glowstone", "max_distance": 5.0, "cooldown_ticks": 100 }
+{ "type": "neoorigins:active_place_block", "block_id": "minecraft:glowstone", "max_distance": 5.0, "cooldown_ticks": 100, "hunger_cost": 1 }

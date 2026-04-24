@@ -3,6 +3,6 @@
   "event": "mod_anvil_cost",
   "modifier": {
     "operation": "multiplication",
-    "value": 1.0
+    "value": 0.5
   }
 }

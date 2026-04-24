@@ -834,6 +834,31 @@ Pulls nearby living entities toward the actor — inverse of `chain_to_nearest`.
 
 ---
 
+## `neoorigins:dash`
+
+Applies a forward impulse in the direction the player is currently facing. Unlike `add_velocity` (which uses fixed x/y/z), `dash` reads the player's look vector and projects `strength` along it — so looking up-forward causes a diagonal upward dash, horizontal look causes a flat dash, etc.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `strength` | float | no | `1.5` | Velocity magnitude along the look vector |
+| `allow_vertical` | bool | no | `true` | When `false`, pins the dash to horizontal (ignores look Y component) |
+
+Sets `hurtMarked = true` internally so the client doesn't discard the server-authoritative velocity change on the next movement packet — same guarantee as `add_velocity`.
+
+**Example — cat pounce (2.2 strength, vertical allowed):**
+```json
+{ "type": "neoorigins:dash", "strength": 2.2, "allow_vertical": true }
+```
+
+**Example — shadow dash (ground-level only):**
+```json
+{ "type": "neoorigins:dash", "strength": 2.0, "allow_vertical": false }
+```
+
+Preferred canonical replacement for the legacy `active_dash` type when paired with `active_ability`.
+
+---
+
 ## `neoorigins:swap_with_entity`
 
 Swaps positions and facing with the nearest matching living entity within `radius`.

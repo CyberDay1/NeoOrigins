@@ -22,12 +22,17 @@ public class ActivePlaceBlockPower extends AbstractActivePower<ActivePlaceBlockP
         String blockId,
         double maxDistance,
         int cooldownTicks,
+        int hungerCost,
         String type
     ) implements AbstractActivePower.Config {
+        @Override public int cooldownTicks() { return cooldownTicks; }
+        @Override public int hungerCost() { return hungerCost; }
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("block_id", "minecraft:glowstone").forGetter(Config::blockId),
             Codec.DOUBLE.optionalFieldOf("max_distance", 5.0).forGetter(Config::maxDistance),
             Codec.INT.optionalFieldOf("cooldown_ticks", 100).forGetter(Config::cooldownTicks),
+            Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
