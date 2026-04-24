@@ -7,6 +7,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Locale;
+
 public class ConditionalPower extends PowerType<ConditionalPower.Config> {
 
     public enum Condition {
@@ -14,10 +16,10 @@ public class ConditionalPower extends PowerType<ConditionalPower.Config> {
 
         public static final Codec<Condition> CODEC = Codec.STRING.xmap(
             s -> {
-                try { return Condition.valueOf(s.toUpperCase()); }
+                try { return Condition.valueOf(s.toUpperCase(Locale.ROOT)); }
                 catch (IllegalArgumentException e) { return ALWAYS; }
             },
-            c -> c.name().toLowerCase()
+            c -> c.name().toLowerCase(Locale.ROOT)
         );
     }
 

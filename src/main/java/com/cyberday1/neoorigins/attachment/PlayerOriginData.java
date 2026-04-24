@@ -43,6 +43,15 @@ public class PlayerOriginData {
     /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
      *  used by ActiveOriginService's per-player power cache for invalidation. */
     private transient int version = 0;
+    /** Session-only — true while an orb-of-origin picker is open and the reset hasn't
+     *  been committed yet. The first successful ChooseOrigin after this flag is set
+     *  performs the actual revoke/XP/stack-shrink; picker-close clears it. */
+    private transient boolean pendingOrbCommit = false;
+    /** Session-only — set when the player closes the origin picker without
+     *  committing any origin. Disables first-pick invulnerability so they
+     *  can't stay immortal forever by dismissing the picker. Cleared on the
+     *  next successful ChooseOrigin. */
+    private transient boolean pickerAbandoned = false;
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
@@ -160,6 +169,12 @@ public class PlayerOriginData {
 
     public int getOrbUseCount() { return orbUseCount; }
     public void incrementOrbUseCount() { orbUseCount++; }
+
+    public boolean isPendingOrbCommit() { return pendingOrbCommit; }
+    public void setPendingOrbCommit(boolean pending) { this.pendingOrbCommit = pending; }
+
+    public boolean isPickerAbandoned() { return pickerAbandoned; }
+    public void setPickerAbandoned(boolean abandoned) { this.pickerAbandoned = abandoned; }
 
     public boolean isPowerToggledOff(String toggleKey) {
         return toggledOffPowers.contains(toggleKey);

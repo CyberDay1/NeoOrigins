@@ -6,7 +6,10 @@
   "order": 7,
   "powers": [
     "neoorigins:arachnid_wall_climbing",
-    "neoorigins:arachnid_no_fall_damage_climbing"
+    "neoorigins:arachnid_no_fall_damage_climbing",
+    "neoorigins:arachnid_cobweb_affinity",
+    "neoorigins:arachnid_entity_group",
+    "neoorigins:arachnid_cobweb_projectile"
   ],
   "upgrades": []
 }

@@ -142,7 +142,7 @@ public final class LegacyPowerTypeAliases {
 
                     json.add("condition", biomeTagCondition(biomeTag));
                     com.google.gson.JsonObject action = new com.google.gson.JsonObject();
-                    action.addProperty("type", "origins:apply_effect");
+                    action.addProperty("type", "neoorigins:apply_effect");
                     action.addProperty("effect", effect);
                     action.addProperty("duration", 300);
                     action.addProperty("amplifier", amplifier);
@@ -153,17 +153,43 @@ public final class LegacyPowerTypeAliases {
                     json.remove("amplifier");
                 });
 
-        // damage_in_biome: damage while in a biome tag.
+        // damage_in_biome: damage while in a biome tag OR any of a biome list.
+        // Accepts either {biome_tag: "#..."} or {biomes: ["id1", "id2"]} —
+        // Water Mage's Dehydration wants multiple specific biomes (desert,
+        // badlands variants) that don't share a single vanilla tag.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "damage_in_biome"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
                     String biomeTag = json.has("biome_tag") ? json.get("biome_tag").getAsString() : "";
                     float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
                     String damageType = json.has("damage_type") ? json.get("damage_type").getAsString() : "generic";
 
-                    json.add("condition", biomeTagCondition(biomeTag));
+                    com.google.gson.JsonObject condition;
+                    if (json.has("biomes") && json.get("biomes").isJsonArray()) {
+                        com.google.gson.JsonArray biomes = json.getAsJsonArray("biomes");
+                        com.google.gson.JsonArray subConditions = new com.google.gson.JsonArray();
+                        for (com.google.gson.JsonElement el : biomes) {
+                            if (!el.isJsonPrimitive()) continue;
+                            com.google.gson.JsonObject bc = new com.google.gson.JsonObject();
+                            bc.addProperty("type", "neoorigins:biome");
+                            bc.addProperty("biome", el.getAsString());
+                            subConditions.add(bc);
+                        }
+                        if (subConditions.size() == 1) {
+                            condition = subConditions.get(0).getAsJsonObject();
+                        } else {
+                            condition = new com.google.gson.JsonObject();
+                            condition.addProperty("type", "neoorigins:or");
+                            condition.add("conditions", subConditions);
+                        }
+                    } else {
+                        condition = biomeTagCondition(biomeTag);
+                    }
+
+                    json.add("condition", condition);
                     json.add("entity_action", damageAction(damageType, dps));
                     json.addProperty("interval", 20);
                     json.remove("biome_tag");
+                    json.remove("biomes");
                     json.remove("damage_per_second");
                     json.remove("damage_type");
                 });
@@ -188,8 +214,8 @@ public final class LegacyPowerTypeAliases {
                     int fireTicks = json.has("fire_ticks") ? json.get("fire_ticks").getAsInt() : 40;
 
                     com.google.gson.JsonObject inSun = new com.google.gson.JsonObject();
-                    inSun.addProperty("type", "origins:exposed_to_sun");
-                    com.google.gson.JsonObject notWet = notCondition(simpleCondition("origins:in_water"));
+                    inSun.addProperty("type", "neoorigins:exposed_to_sun");
+                    com.google.gson.JsonObject notWet = notCondition(simpleCondition("neoorigins:in_water"));
                     json.add("condition", andConditions(inSun, notWet));
 
                     com.google.gson.JsonArray actions = new com.google.gson.JsonArray();
@@ -198,7 +224,7 @@ public final class LegacyPowerTypeAliases {
                     }
                     if (ignite) {
                         com.google.gson.JsonObject fire = new com.google.gson.JsonObject();
-                        fire.addProperty("type", "origins:set_on_fire");
+                        fire.addProperty("type", "neoorigins:set_on_fire");
                         fire.addProperty("ticks", fireTicks);
                         actions.add(fire);
                     }
@@ -207,13 +233,13 @@ public final class LegacyPowerTypeAliases {
                         json.add("entity_action", actions.get(0).getAsJsonObject());
                     } else if (actions.size() > 1) {
                         com.google.gson.JsonObject and = new com.google.gson.JsonObject();
-                        and.addProperty("type", "origins:and");
+                        and.addProperty("type", "neoorigins:and");
                         and.add("actions", actions);
                         json.add("entity_action", and);
                     } else {
                         // Both disabled — harmless no-op so the power still loads.
                         com.google.gson.JsonObject nothing = new com.google.gson.JsonObject();
-                        nothing.addProperty("type", "origins:nothing");
+                        nothing.addProperty("type", "neoorigins:nothing");
                         json.add("entity_action", nothing);
                     }
 
@@ -230,9 +256,9 @@ public final class LegacyPowerTypeAliases {
                     float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
                     boolean includeRain = !json.has("include_rain") || json.get("include_rain").getAsBoolean();
 
-                    com.google.gson.JsonObject inWater = simpleCondition("origins:in_water");
+                    com.google.gson.JsonObject inWater = simpleCondition("neoorigins:in_water");
                     if (includeRain) {
-                        com.google.gson.JsonObject inRain = simpleCondition("origins:in_rain");
+                        com.google.gson.JsonObject inRain = simpleCondition("neoorigins:in_rain");
                         json.add("condition", orConditions(inWater, inRain));
                     } else {
                         json.add("condition", inWater);
@@ -250,13 +276,13 @@ public final class LegacyPowerTypeAliases {
                     int fireTicks = json.has("fire_ticks") ? json.get("fire_ticks").getAsInt() : 60;
 
                     com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
-                    cond.addProperty("type", "origins:relative_health");
+                    cond.addProperty("type", "neoorigins:relative_health");
                     cond.addProperty("comparison", "<=");
                     cond.addProperty("compare_to", threshold);
                     json.add("condition", cond);
 
                     com.google.gson.JsonObject action = new com.google.gson.JsonObject();
-                    action.addProperty("type", "origins:set_on_fire");
+                    action.addProperty("type", "neoorigins:set_on_fire");
                     action.addProperty("ticks", fireTicks);
                     json.add("entity_action", action);
                     json.addProperty("interval", 20);
@@ -274,15 +300,15 @@ public final class LegacyPowerTypeAliases {
                     com.google.gson.JsonObject cond;
                     if ("lava".equalsIgnoreCase(fluid)) {
                         cond = new com.google.gson.JsonObject();
-                        cond.addProperty("type", "origins:submerged_in");
+                        cond.addProperty("type", "neoorigins:submerged_in");
                         cond.addProperty("fluid", "minecraft:lava");
                     } else {
-                        cond = simpleCondition("origins:in_water");
+                        cond = simpleCondition("neoorigins:in_water");
                     }
                     json.add("condition", cond);
 
                     com.google.gson.JsonObject action = new com.google.gson.JsonObject();
-                    action.addProperty("type", "origins:heal");
+                    action.addProperty("type", "neoorigins:heal");
                     action.addProperty("amount", amount);
                     json.add("entity_action", action);
                     json.addProperty("interval", 20);
@@ -299,21 +325,21 @@ public final class LegacyPowerTypeAliases {
 
     private static com.google.gson.JsonObject biomeTagCondition(String tag) {
         com.google.gson.JsonObject c = new com.google.gson.JsonObject();
-        c.addProperty("type", "origins:biome");
+        c.addProperty("type", "neoorigins:biome");
         c.addProperty("tag", tag);
         return c;
     }
 
     private static com.google.gson.JsonObject notCondition(com.google.gson.JsonObject inner) {
         com.google.gson.JsonObject c = new com.google.gson.JsonObject();
-        c.addProperty("type", "origins:not");
+        c.addProperty("type", "neoorigins:not");
         c.add("condition", inner);
         return c;
     }
 
     private static com.google.gson.JsonObject andConditions(com.google.gson.JsonObject... conds) {
         com.google.gson.JsonObject c = new com.google.gson.JsonObject();
-        c.addProperty("type", "origins:and");
+        c.addProperty("type", "neoorigins:and");
         com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
         for (var cond : conds) arr.add(cond);
         c.add("conditions", arr);
@@ -322,7 +348,7 @@ public final class LegacyPowerTypeAliases {
 
     private static com.google.gson.JsonObject orConditions(com.google.gson.JsonObject... conds) {
         com.google.gson.JsonObject c = new com.google.gson.JsonObject();
-        c.addProperty("type", "origins:or");
+        c.addProperty("type", "neoorigins:or");
         com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
         for (var cond : conds) arr.add(cond);
         c.add("conditions", arr);
@@ -331,7 +357,7 @@ public final class LegacyPowerTypeAliases {
 
     private static com.google.gson.JsonObject damageAction(String sourceName, float amount) {
         com.google.gson.JsonObject c = new com.google.gson.JsonObject();
-        c.addProperty("type", "origins:damage");
+        c.addProperty("type", "neoorigins:damage");
         c.addProperty("amount", amount);
         com.google.gson.JsonObject src = new com.google.gson.JsonObject();
         src.addProperty("name", sourceName);
@@ -374,7 +400,7 @@ public final class LegacyPowerTypeAliases {
                     json.addProperty("operation", "add_multiplied_base");
 
                     com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
-                    cond.addProperty("type", "origins:using_item");
+                    cond.addProperty("type", "neoorigins:using_item");
                     json.add("condition", cond);
 
                     if (filteringByItem) {
@@ -435,7 +461,7 @@ public final class LegacyPowerTypeAliases {
                     writeSingleEffect(json, "minecraft:water_breathing", false);
                     json.addProperty("toggleable", false);
                     com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
-                    cond.addProperty("type", "origins:in_water");
+                    cond.addProperty("type", "neoorigins:in_water");
                     json.add("condition", cond);
                 });
     }
@@ -621,7 +647,7 @@ public final class LegacyPowerTypeAliases {
                     com.google.gson.JsonObject root;
                     if (chance < 1.0f) {
                         root = new com.google.gson.JsonObject();
-                        root.addProperty("type", "origins:chance");
+                        root.addProperty("type", "neoorigins:chance");
                         root.addProperty("chance", chance);
                         root.add("action", inner);
                     } else {
@@ -629,7 +655,7 @@ public final class LegacyPowerTypeAliases {
                     }
                     if (minDamage > 0f) {
                         com.google.gson.JsonObject gate = new com.google.gson.JsonObject();
-                        gate.addProperty("type", "origins:if_else");
+                        gate.addProperty("type", "neoorigins:if_else");
                         com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
                         cond.addProperty("type", "neoorigins:hit_taken_amount");
                         cond.addProperty("comparison", ">=");
@@ -685,7 +711,7 @@ public final class LegacyPowerTypeAliases {
                     if (whitelist) {
                         // cancel when item NOT in tag → wrap in origins:not
                         matchCond = new com.google.gson.JsonObject();
-                        matchCond.addProperty("type", "origins:not");
+                        matchCond.addProperty("type", "neoorigins:not");
                         matchCond.add("condition", itemInTag);
                     } else {
                         matchCond = itemInTag;
@@ -694,7 +720,7 @@ public final class LegacyPowerTypeAliases {
                     com.google.gson.JsonObject cancel = new com.google.gson.JsonObject();
                     cancel.addProperty("type", "neoorigins:cancel_event");
                     com.google.gson.JsonObject gate = new com.google.gson.JsonObject();
-                    gate.addProperty("type", "origins:if_else");
+                    gate.addProperty("type", "neoorigins:if_else");
                     gate.add("condition", matchCond);
                     gate.add("if_action", cancel);
 
@@ -714,11 +740,11 @@ public final class LegacyPowerTypeAliases {
                     com.google.gson.JsonObject entityAction = new com.google.gson.JsonObject();
                     switch (act) {
                         case "restore_hunger" -> {
-                            entityAction.addProperty("type", "origins:feed");
+                            entityAction.addProperty("type", "neoorigins:feed");
                             entityAction.addProperty("food", (int) amount);
                         }
                         case "grant_effect" -> {
-                            entityAction.addProperty("type", "origins:apply_effect");
+                            entityAction.addProperty("type", "neoorigins:apply_effect");
                             if (json.has("effect"))
                                 entityAction.addProperty("effect", json.get("effect").getAsString());
                             entityAction.addProperty("duration",
@@ -727,7 +753,7 @@ public final class LegacyPowerTypeAliases {
                                 json.has("amplifier") ? json.get("amplifier").getAsInt() : 0);
                         }
                         default -> {          // "restore_health" + any unknown → heal
-                            entityAction.addProperty("type", "origins:heal");
+                            entityAction.addProperty("type", "neoorigins:heal");
                             entityAction.addProperty("amount", amount);
                         }
                     }
@@ -766,7 +792,7 @@ public final class LegacyPowerTypeAliases {
                  ID_ACTIVE_ABILITY, (json, powerId) -> {
                     float y = json.has("power") ? json.get("power").getAsFloat() : 1.5f;
                     com.google.gson.JsonObject action = new com.google.gson.JsonObject();
-                    action.addProperty("type", "origins:add_velocity");
+                    action.addProperty("type", "neoorigins:add_velocity");
                     action.addProperty("y", y);
                     json.add("entity_action", action);
                     json.remove("power");
@@ -805,29 +831,42 @@ public final class LegacyPowerTypeAliases {
                 });
 
         // active_aoe_effect: applies a status effect to nearby entities in a sphere.
+        // The caster is excluded by default — an "offensive" AoE that also harms
+        // self is almost never what pack authors want (fire_mage Inferno Burst
+        // killed the caster with Instant Damage before this change). Pack
+        // authors who explicitly want self-application can set
+        // "include_source": true.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "active_aoe_effect"),
                  ID_ACTIVE_ABILITY, (json, powerId) -> {
                     float radius = json.has("radius") ? json.get("radius").getAsFloat() : 8f;
                     String effect = json.has("effect") ? json.get("effect").getAsString() : "minecraft:weakness";
-                    int duration = json.has("duration") ? json.get("duration").getAsInt() : 200;
+                    // Accept both "duration" and "duration_ticks" for pack-author
+                    // convenience — packs in the repo mix the two.
+                    int duration = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt()
+                                 : json.has("duration")       ? json.get("duration").getAsInt()
+                                 : 200;
                     int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+                    boolean includeSource = json.has("include_source") && json.get("include_source").getAsBoolean();
 
                     com.google.gson.JsonObject effectAction = new com.google.gson.JsonObject();
-                    effectAction.addProperty("type", "origins:apply_effect");
+                    effectAction.addProperty("type", "neoorigins:apply_effect");
                     effectAction.addProperty("effect", effect);
                     effectAction.addProperty("duration", duration);
                     effectAction.addProperty("amplifier", amplifier);
 
                     com.google.gson.JsonObject aoeAction = new com.google.gson.JsonObject();
-                    aoeAction.addProperty("type", "origins:area_of_effect");
+                    aoeAction.addProperty("type", "neoorigins:area_of_effect");
                     aoeAction.addProperty("radius", radius);
+                    aoeAction.addProperty("include_source", includeSource);
                     aoeAction.add("entity_action", effectAction);
 
                     json.add("entity_action", aoeAction);
                     json.remove("radius");
                     json.remove("effect");
                     json.remove("duration");
+                    json.remove("duration_ticks");
                     json.remove("amplifier");
+                    json.remove("include_source");
                 });
 
         // active_swap: swap positions with a targeted entity. Legacy picks the
@@ -853,7 +892,7 @@ public final class LegacyPowerTypeAliases {
                  ID_ACTIVE_ABILITY, (json, powerId) -> {
                     float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
                     com.google.gson.JsonObject action = new com.google.gson.JsonObject();
-                    action.addProperty("type", "origins:spawn_projectile");
+                    action.addProperty("type", "neoorigins:spawn_projectile");
                     action.addProperty("entity_type", "minecraft:small_fireball");
                     action.addProperty("speed", speed);
                     json.add("entity_action", action);
@@ -867,7 +906,7 @@ public final class LegacyPowerTypeAliases {
                  ID_ACTIVE_ABILITY, (json, powerId) -> {
                     float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.2f;
                     com.google.gson.JsonObject action = new com.google.gson.JsonObject();
-                    action.addProperty("type", "origins:spawn_projectile");
+                    action.addProperty("type", "neoorigins:spawn_projectile");
                     action.addProperty("entity_type", "minecraft:wind_charge");
                     action.addProperty("speed", speed);
                     json.add("entity_action", action);
@@ -883,11 +922,11 @@ public final class LegacyPowerTypeAliases {
                     boolean healSelf = !json.has("heal_self") || json.get("heal_self").getAsBoolean();
 
                     com.google.gson.JsonObject healAction = new com.google.gson.JsonObject();
-                    healAction.addProperty("type", "origins:heal");
+                    healAction.addProperty("type", "neoorigins:heal");
                     healAction.addProperty("amount", amount);
 
                     com.google.gson.JsonObject aoeAction = new com.google.gson.JsonObject();
-                    aoeAction.addProperty("type", "origins:area_of_effect");
+                    aoeAction.addProperty("type", "neoorigins:area_of_effect");
                     aoeAction.addProperty("radius", radius);
                     aoeAction.addProperty("include_source", healSelf);
                     aoeAction.add("entity_action", healAction);

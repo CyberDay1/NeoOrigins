@@ -3,13 +3,13 @@ package com.cyberday1.neoorigins.service;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
 /**
@@ -125,7 +125,7 @@ public final class EventPowerIndex {
     public static Token register(ServerPlayer player, Event event, Handler handler) {
         UUID uuid = player.getUUID();
         INDEX.computeIfAbsent(uuid, k -> new EnumMap<>(Event.class))
-             .computeIfAbsent(event, k -> new ArrayList<>())
+             .computeIfAbsent(event, k -> new CopyOnWriteArrayList<>())
              .add(handler);
         return new Token(uuid, event, handler, null);
     }
@@ -134,7 +134,7 @@ public final class EventPowerIndex {
     public static Token registerModifier(ServerPlayer player, Event event, ModifierHandler modifier) {
         UUID uuid = player.getUUID();
         MOD_INDEX.computeIfAbsent(uuid, k -> new EnumMap<>(Event.class))
-             .computeIfAbsent(event, k -> new ArrayList<>())
+             .computeIfAbsent(event, k -> new CopyOnWriteArrayList<>())
              .add(modifier);
         return new Token(uuid, event, null, modifier);
     }
@@ -169,8 +169,9 @@ public final class EventPowerIndex {
         // we restore the previous value after the loop.
         Object prev = ActionContextHolder.set(context);
         try {
-            // Iterate a snapshot — a handler may remove itself (e.g. one-shot).
-            for (Handler h : new ArrayList<>(list)) {
+            // CopyOnWriteArrayList iterator is snapshot-safe; a handler may
+            // remove itself (e.g. one-shot) without ConcurrentModification.
+            for (Handler h : list) {
                 h.accept(player, context);
             }
         } finally {
@@ -195,7 +196,7 @@ public final class EventPowerIndex {
         Object prev = ActionContextHolder.set(context);
         try {
             float value = base;
-            for (ModifierHandler m : new ArrayList<>(list)) {
+            for (ModifierHandler m : list) {
                 value = m.apply(player, context, value);
             }
             return value;

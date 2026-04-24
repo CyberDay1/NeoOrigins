@@ -38,19 +38,67 @@ public class CombatPowerEvents {
     /** Re-entry guard: prevents LongerPotionsPower from recursing into MobEffectEvent.Added. */
     private static final ThreadLocal<Boolean> LENGTHENING_EFFECT = ThreadLocal.withInitial(() -> false);
 
+    // Filter-string caches for the hot matcher helpers below. Filter strings
+    // come from pack JSON (ModifyDamagePower damage_type, ActionOnHit target_type,
+    // ScareEntities entity_types, etc.) and have low cardinality — a few tens
+    // of distinct strings per loaded pack. Pre-cached so damage events don't
+    // re-parse identifiers and allocate TagKeys on every hit.
+    private static final java.util.concurrent.ConcurrentHashMap<String, TagKey<net.minecraft.world.damagesource.DamageType>> DAMAGE_TAG_CACHE =
+        new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.ConcurrentHashMap<String, TagKey<EntityType<?>>> ENTITY_TAG_CACHE =
+        new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.ConcurrentHashMap<String, ResourceLocation> IDENTIFIER_CACHE =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
     // Run at HIGH so our ModifyDamagePower multipliers apply before other mods' handlers,
     // and so VitalsGuards (at LOWEST) stays the final sanitizer regardless of mod order.
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingDamage(LivingIncomingDamageEvent event) {
+        // Player-as-attacker OUT-direction modifiers must fire regardless of
+        // whether the victim is a player — ModifyDamagePower{direction:out}
+        // powers like Gravity Mage Frail, Water Mage Fragile, and Monster
+        // Tamer Lone Weakness exist to reduce damage the player deals, which
+        // is almost always dealt to mobs, not other players. Running this
+        // before the ServerPlayer-victim early-return catches the mob-victim
+        // case that the PvP-only block below would miss.
+        if (event.getSource().getEntity() instanceof ServerPlayer outAttacker
+            && outAttacker != event.getEntity()) {
+            LivingEntity outTarget = event.getEntity();
+            ActiveOriginService.forEachOfType(outAttacker, ModifyDamagePower.class, config -> {
+                if (config.direction() != ModifyDamagePower.Direction.OUT) return;
+                if (config.condition().isPresent() && !config.condition().get().test(outAttacker)) return;
+                if (config.damageType().isPresent()
+                        && !matchesDamageType(event.getSource(), config.damageType().get())) return;
+                if (config.targetGroup().isPresent() && !matchesEntityGroup(outTarget, config.targetGroup().get())) return;
+                float scaled = event.getAmount() * config.multiplier();
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setAmount(scaled);
+            });
+        }
+
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
         // First-pick invulnerability — the player is still choosing their
         // origin/class on first login. Cancel damage so they can't die or get
         // shoved around while the picker is open. Orb-of-Origin re-picks
         // (orbUseCount > 0) don't qualify — they chose to re-enter the flow.
+        // If the player dismissed the picker without committing any origin,
+        // `pickerAbandoned` is set by the client and invulnerability drops so
+        // they can't stay immortal forever by escaping.
         com.cyberday1.neoorigins.attachment.PlayerOriginData pod =
             sp.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-        if (!pod.isHadAllOrigins() && pod.getOrbUseCount() == 0) {
+        if (!pod.isHadAllOrigins() && pod.getOrbUseCount() == 0 && !pod.isPickerAbandoned()) {
+            event.setCanceled(true);
+            return;
+        }
+
+        // Immunity to the player's own minions: guardians / skeletons / wolves
+        // that the player summoned shouldn't be able to damage them, including
+        // via THORNS (Guardian's "aura of thorns" reflect). Covers direct
+        // attacks and any indirect owner damage like thorn/AoE reflects.
+        var directEntity = event.getSource().getDirectEntity();
+        if (directEntity != null
+            && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(directEntity, sp.getUUID())) {
             event.setCanceled(true);
             return;
         }
@@ -64,7 +112,7 @@ public class CombatPowerEvents {
         }
 
         if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
-                || event.getSource().is(DamageTypes.LAVA)) {
+                || event.getSource().is(DamageTypes.LAVA) || event.getSource().is(DamageTypes.HOT_FLOOR)) {
             if (ActiveOriginService.has(sp, PreventActionPower.class,
                     config -> config.action() == PreventActionPower.Action.FIRE
                            && PreventActionPower.isGateOpen(sp, config))) {
@@ -80,6 +128,14 @@ public class CombatPowerEvents {
                 return;
             }
         }
+        if (event.getSource().is(DamageTypes.FREEZE)) {
+            if (ActiveOriginService.has(sp, PreventActionPower.class,
+                    config -> config.action() == PreventActionPower.Action.FREEZE
+                           && PreventActionPower.isGateOpen(sp, config))) {
+                event.setCanceled(true);
+                return;
+            }
+        }
 
         // Route B conditioned_modify_damage — compiled lambdas that can gate on
         // arbitrary conditions, so they run before the un-conditioned native pass.
@@ -88,10 +144,44 @@ public class CombatPowerEvents {
         });
         if (event.isCanceled()) return;
 
+        // EntityGroupPower damage integration: a player tagged as an entity
+        // group should take the corresponding enchantment bonus from the
+        // attacker's weapon (Bane of Arthropods vs. arthropod, Impaling vs.
+        // water, Smite vs. undead). Vanilla only consults EntityType tags so
+        // the player never qualifies without this hook.
+        if (event.getSource().getEntity() instanceof LivingEntity groupAttacker) {
+            var weapon = groupAttacker.getMainHandItem();
+            if (!weapon.isEmpty()) {
+                var enchLookup = sp.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+                int baneLvl = ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isArthropod)
+                    ? enchLookup.get(net.minecraft.world.item.enchantment.Enchantments.BANE_OF_ARTHROPODS)
+                        .map(h -> net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(h, weapon))
+                        .orElse(0) : 0;
+                int smiteLvl = ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)
+                    ? enchLookup.get(net.minecraft.world.item.enchantment.Enchantments.SMITE)
+                        .map(h -> net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(h, weapon))
+                        .orElse(0) : 0;
+                int impaleLvl = ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isWater)
+                    ? enchLookup.get(net.minecraft.world.item.enchantment.Enchantments.IMPALING)
+                        .map(h -> net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(h, weapon))
+                        .orElse(0) : 0;
+                int totalLvl = baneLvl + smiteLvl + impaleLvl;
+                if (totalLvl > 0) {
+                    event.setAmount(event.getAmount() + totalLvl * 2.5f);
+                }
+                if (baneLvl > 0) {
+                    // Vanilla Bane applies slowness IV for 1–1.5s at level 1+.
+                    sp.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                        net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 20 + 10 * baneLvl, 3));
+                }
+            }
+        }
+
         ActiveOriginService.forEachOfType(sp, ModifyDamagePower.class, config -> {
             if (config.direction() == ModifyDamagePower.Direction.IN) {
+                if (config.condition().isPresent() && !config.condition().get().test(sp)) return;
                 if (config.damageType().isEmpty() ||
-                        event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) {
+                        matchesDamageType(event.getSource(), config.damageType().get())) {
                     // Clamp the result to Float.MAX_VALUE. If we let the
                     // multiplication overflow to +Infinity (which happens
                     // when /kill deals Float.MAX_VALUE damage to a player
@@ -108,27 +198,20 @@ public class CombatPowerEvents {
             }
         });
 
-        // Outgoing damage (direction=OUT): when the player is the attacker,
-        // apply their ModifyDamagePower multipliers to the damage they deal.
+        // ActionOnHitPower still runs here — it fires only in the player-victim
+        // PvP path (the attacker's hit-reaction powers should trigger on any
+        // target, mob or player, but for now the pattern is unchanged to avoid
+        // scope creep). The OUT ModifyDamagePower block has moved to the top of
+        // this method so mob victims get the attacker's OUT multipliers too.
         var attackerEntity = event.getSource().getEntity();
         if (attackerEntity instanceof ServerPlayer attackerSp && attackerSp != sp) {
             LivingEntity target = event.getEntity();
-            ActiveOriginService.forEachOfType(attackerSp, ModifyDamagePower.class, config -> {
-                if (config.direction() != ModifyDamagePower.Direction.OUT) return;
-                if (config.damageType().isPresent()
-                        && !event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) return;
-                if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
-                float scaled = event.getAmount() * config.multiplier();
-                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
-                event.setAmount(scaled);
-            });
-
             // ActionOnHitPower — fire self/target actions when the attacker's filters match.
             final float hitAmount = event.getAmount();
             ActiveOriginService.forEachOfType(attackerSp, ActionOnHitPower.class, config -> {
                 if (hitAmount < config.minDamage()) return;
                 if (config.damageType().isPresent()
-                        && !event.getSource().getMsgId().equalsIgnoreCase(config.damageType().get())) return;
+                        && !matchesDamageType(event.getSource(), config.damageType().get())) return;
                 if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
                 if (config.targetType().isPresent()
                         && !matchesEntityIdOrTag(target, config.targetType().get())) return;
@@ -157,10 +240,27 @@ public class CombatPowerEvents {
      * Origins groups translate directly.
      */
     private static boolean matchesEntityGroup(LivingEntity target, String group) {
-        TagKey<EntityType<?>> tag = TagKey.create(
-            Registries.ENTITY_TYPE,
-            ResourceLocation.fromNamespaceAndPath("minecraft", group));
+        TagKey<EntityType<?>> tag = ENTITY_TAG_CACHE.computeIfAbsent("minecraft:" + group, k -> TagKey.create(
+            Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("minecraft", group)));
         return target.getType().is(tag);
+    }
+
+    /**
+     * Matches a DamageSource against a damage-type filter string. Supports both
+     * the vanilla msgId string ({@code "onFire"}, {@code "lava"}) for backwards
+     * compatibility and damage-type-tag references ({@code "#minecraft:is_fire"},
+     * {@code "#minecraft:is_projectile"}) — tags are the right tool for
+     * "immune/vulnerable to fire" powers because they aggregate IN_FIRE +
+     * ON_FIRE + LAVA + HOT_FLOOR + FIREBALL + CAMPFIRE in one filter.
+     */
+    public static boolean matchesDamageType(net.minecraft.world.damagesource.DamageSource source, String filter) {
+        if (filter == null || filter.isEmpty()) return true;
+        if (filter.startsWith("#")) {
+            var tag = DAMAGE_TAG_CACHE.computeIfAbsent(filter, f -> TagKey.create(
+                Registries.DAMAGE_TYPE, ResourceLocation.parse(f.substring(1))));
+            return source.is(tag);
+        }
+        return source.getMsgId().equalsIgnoreCase(filter);
     }
 
     /**
@@ -169,11 +269,12 @@ public class CombatPowerEvents {
      */
     public static boolean matchesEntityIdOrTag(LivingEntity target, String idOrTag) {
         if (idOrTag.startsWith("#")) {
-            TagKey<EntityType<?>> tag = TagKey.create(
-                Registries.ENTITY_TYPE, ResourceLocation.parse(idOrTag.substring(1)));
+            TagKey<EntityType<?>> tag = ENTITY_TAG_CACHE.computeIfAbsent(idOrTag, f -> TagKey.create(
+                Registries.ENTITY_TYPE, ResourceLocation.parse(f.substring(1))));
             return target.getType().is(tag);
         }
-        return ResourceLocation.parse(idOrTag).equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()));
+        ResourceLocation id = IDENTIFIER_CACHE.computeIfAbsent(idOrTag, ResourceLocation::parse);
+        return id.equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()));
     }
 
     @SubscribeEvent
@@ -218,11 +319,28 @@ public class CombatPowerEvents {
 
         // Dispatch PROJECTILE_HIT to the projectile's owning player (if any).
         if (proj.getOwner() instanceof ServerPlayer ownerSp) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext ctx =
+                new com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext(
+                    proj, event.getRayTraceResult());
+
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 ownerSp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.PROJECTILE_HIT,
-                new com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext(
-                    proj, event.getRayTraceResult()));
+                ctx);
+
+            // Drain any on_hit_action registered by spawn_projectile when this
+            // projectile was fired. Invoked with the ProjectileHitContext installed
+            // on ActionContextHolder so area_of_effect can center on the impact
+            // point rather than the (now-stale) player position.
+            var onHit = com.cyberday1.neoorigins.service.ProjectileActionRegistry.drain(proj.getUUID());
+            if (onHit != null) {
+                Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(ctx);
+                try {
+                    onHit.execute(ownerSp);
+                } finally {
+                    com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
+                }
+            }
         }
 
         if (!(event.getRayTraceResult() instanceof EntityHitResult ehr)) return;
@@ -341,11 +459,14 @@ public class CombatPowerEvents {
         if (inst.getEffect().value().getCategory() == MobEffectCategory.BENEFICIAL) {
             ActiveOriginService.forEachOfType(sp, TamedPotionDiffusalPower.class, cfg -> {
                 AABB area = sp.getBoundingBox().inflate(cfg.radius());
-                var animals = sp.level().getEntitiesOfClass(Animal.class, area);
-                for (Animal animal : animals) {
-                    if (!(animal instanceof OwnableEntity ownable)) continue;
+                // Push the owner-match filter into the query predicate so the
+                // spatial index skips non-matching entities before they reach us.
+                var animals = sp.level().getEntitiesOfClass(Animal.class, area, a -> {
+                    if (!(a instanceof OwnableEntity ownable)) return false;
                     var owner = ownable.getOwner();
-                    if (owner == null || !sp.getUUID().equals(owner.getUUID())) continue;
+                    return owner != null && sp.getUUID().equals(owner.getUUID());
+                });
+                for (Animal animal : animals) {
                     animal.addEffect(new MobEffectInstance(inst.getEffect(),
                         inst.getDuration(), inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
                 }
@@ -367,9 +488,29 @@ public class CombatPowerEvents {
             event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
             return;
         }
-        if (effectId.equals("minecraft:poison") &&
-                ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
-            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+        // Undead entity group — classic Origins undead: immune to Poison + not
+        // helped by Regeneration or Instant Health. (Instant Damage → damage
+        // is the vanilla default, so we don't need to add it.) Beacon / splash
+        // potion / command-driven LivingHealEvent healing is also blocked in
+        // onLivingHealUndead below, which covers heal sources that bypass the
+        // MobEffect.Applicable gate.
+        if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
+            if (effectId.equals("minecraft:poison")
+                || effectId.equals("minecraft:regeneration")
+                || effectId.equals("minecraft:instant_health")) {
+                event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingHealUndead(net.neoforged.neoforge.event.entity.living.LivingHealEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // Beacon / splash potion / command / mod heal on an undead player:
+        // cancel — they shouldn't benefit from normal heal sources. Natural
+        // regen exhaustion is handled separately by FoodDataTickMixin.
+        if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
+            event.setCanceled(true);
         }
     }
 }

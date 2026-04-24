@@ -1,0 +1,659 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/action.schema.json",
+  "title": "NeoOrigins Action",
+  "description": "A side-effect action used in `entity_action` fields. The `type` field discriminates.",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Fully-qualified action verb. `apace:` aliases are accepted.",
+      "enum": [
+        "origins:and",
+        "origins:chance",
+        "origins:delay",
+        "origins:if_else",
+        "origins:if_else_list",
+        "origins:nothing",
+        "origins:damage",
+        "origins:heal",
+        "origins:feed",
+        "origins:exhaust",
+        "origins:change_resource",
+        "origins:apply_effect",
+        "origins:clear_effect",
+        "origins:add_velocity",
+        "origins:launch",
+        "origins:set_fall_distance",
+        "origins:dismount",
+        "origins:give",
+        "origins:modify_food",
+        "origins:spawn_entity",
+        "origins:spawn_projectile",
+        "origins:set_block",
+        "origins:set_on_fire",
+        "origins:extinguish",
+        "origins:explode",
+        "origins:gain_air",
+        "origins:area_of_effect",
+        "origins:grant_power",
+        "origins:revoke_power",
+        "origins:trigger_cooldown",
+        "origins:execute_command",
+        "origins:play_sound",
+        "origins:swing_hand",
+        "origins:emit_game_event",
+        "neoorigins:toggle",
+        "neoorigins:add_to_set",
+        "neoorigins:remove_from_set",
+        "neoorigins:chain_to_nearest",
+        "neoorigins:pull_entities",
+        "neoorigins:swap_with_entity",
+        "neoorigins:teleport_to_marker",
+        "neoorigins:damage_attacker",
+        "neoorigins:ignite_attacker",
+        "neoorigins:effect_on_attacker",
+        "neoorigins:random_teleport",
+        "neoorigins:cancel_event",
+        "apace:damage",
+        "apace:heal",
+        "apace:feed",
+        "apace:apply_effect",
+        "apace:and",
+        "apace:chance",
+        "apace:give",
+        "apace:execute_command",
+        "apace:set_block",
+        "apace:spawn_entity",
+        "apace:spawn_projectile",
+        "apace:area_of_effect",
+        "neoorigins:and",
+        "neoorigins:chance",
+        "neoorigins:delay",
+        "neoorigins:if_else",
+        "neoorigins:if_else_list",
+        "neoorigins:nothing",
+        "neoorigins:damage",
+        "neoorigins:heal",
+        "neoorigins:feed",
+        "neoorigins:exhaust",
+        "neoorigins:change_resource",
+        "neoorigins:apply_effect",
+        "neoorigins:clear_effect",
+        "neoorigins:add_velocity",
+        "neoorigins:launch",
+        "neoorigins:set_fall_distance",
+        "neoorigins:dismount",
+        "neoorigins:give",
+        "neoorigins:modify_food",
+        "neoorigins:spawn_entity",
+        "neoorigins:spawn_projectile",
+        "neoorigins:set_block",
+        "neoorigins:set_on_fire",
+        "neoorigins:extinguish",
+        "neoorigins:explode",
+        "neoorigins:gain_air",
+        "neoorigins:area_of_effect",
+        "neoorigins:grant_power",
+        "neoorigins:revoke_power",
+        "neoorigins:trigger_cooldown",
+        "neoorigins:execute_command",
+        "neoorigins:play_sound",
+        "neoorigins:swing_hand",
+        "neoorigins:emit_game_event"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$comment": "origins:and / origins:if_else / origins:if_else_list \u00e2\u20ac\u201d combinators",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:and",
+            "apace:and",
+            "neoorigins:and"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "actions"
+      ]
+    },
+    {
+      "$comment": "origins:chance",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:chance",
+            "apace:chance",
+            "neoorigins:chance"
+          ]
+        },
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "success_action": {
+          "$ref": "#"
+        },
+        "fail_action": {
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type",
+        "chance"
+      ]
+    },
+    {
+      "$comment": "origins:delay",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:delay",
+            "neoorigins:delay"
+          ]
+        },
+        "ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type",
+        "action"
+      ]
+    },
+    {
+      "$comment": "origins:if_else",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:if_else",
+            "neoorigins:if_else"
+          ]
+        },
+        "condition": {
+          "$ref": "condition.schema.json"
+        },
+        "if_action": {
+          "$ref": "#"
+        },
+        "else_action": {
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type",
+        "condition"
+      ]
+    },
+    {
+      "$comment": "origins:damage",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:damage",
+            "apace:damage",
+            "neoorigins:damage"
+          ]
+        },
+        "amount": {
+          "type": "number"
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:heal / origins:feed / origins:exhaust / origins:gain_air",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:heal",
+            "origins:feed",
+            "origins:exhaust",
+            "origins:gain_air",
+            "apace:heal",
+            "apace:feed",
+            "neoorigins:heal",
+            "neoorigins:feed",
+            "neoorigins:exhaust",
+            "neoorigins:gain_air"
+          ]
+        },
+        "amount": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "amount"
+      ]
+    },
+    {
+      "$comment": "origins:apply_effect",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:apply_effect",
+            "apace:apply_effect",
+            "neoorigins:apply_effect"
+          ]
+        },
+        "effect": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "amplifier": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_ambient": {
+          "type": "boolean"
+        },
+        "show_particles": {
+          "type": "boolean"
+        },
+        "show_icon": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "effect"
+      ]
+    },
+    {
+      "$comment": "origins:clear_effect",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:clear_effect",
+            "neoorigins:clear_effect"
+          ]
+        },
+        "effect": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:add_velocity",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:add_velocity",
+            "neoorigins:add_velocity"
+          ]
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        },
+        "set": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:launch",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:launch",
+            "neoorigins:launch"
+          ]
+        },
+        "speed": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:give",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:give",
+            "apace:give",
+            "neoorigins:give"
+          ]
+        },
+        "stack": {
+          "type": "object",
+          "properties": {
+            "item": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "item"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "stack"
+      ]
+    },
+    {
+      "$comment": "origins:execute_command",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:execute_command",
+            "apace:execute_command",
+            "neoorigins:execute_command"
+          ]
+        },
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "command"
+      ]
+    },
+    {
+      "$comment": "origins:play_sound",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:play_sound",
+            "neoorigins:play_sound"
+          ]
+        },
+        "sound": {
+          "type": "string"
+        },
+        "volume": {
+          "type": "number"
+        },
+        "pitch": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "sound"
+      ]
+    },
+    {
+      "$comment": "origins:spawn_entity",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:spawn_entity",
+            "apace:spawn_entity",
+            "neoorigins:spawn_entity"
+          ]
+        },
+        "entity_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "entity_type"
+      ]
+    },
+    {
+      "$comment": "origins:spawn_projectile",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:spawn_projectile",
+            "apace:spawn_projectile",
+            "neoorigins:spawn_projectile"
+          ]
+        },
+        "entity_type": {
+          "type": "string"
+        },
+        "speed": {
+          "type": "number"
+        },
+        "divergence": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "entity_type"
+      ]
+    },
+    {
+      "$comment": "origins:area_of_effect",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:area_of_effect",
+            "apace:area_of_effect",
+            "neoorigins:area_of_effect"
+          ]
+        },
+        "radius": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "entity_action": {
+          "$ref": "#"
+        },
+        "include_source": {
+          "type": "boolean"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "duration_ticks": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "radius"
+      ]
+    },
+    {
+      "$comment": "origins:grant_power / origins:revoke_power",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:grant_power",
+            "origins:revoke_power",
+            "neoorigins:grant_power",
+            "neoorigins:revoke_power"
+          ]
+        },
+        "power": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:toggle",
+      "properties": {
+        "type": {
+          "const": "neoorigins:toggle"
+        },
+        "power": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:add_to_set / neoorigins:remove_from_set",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:add_to_set",
+            "origins:add_to_set",
+            "neoorigins:remove_from_set",
+            "origins:remove_from_set"
+          ]
+        },
+        "set": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "set"
+      ]
+    },
+    {
+      "$comment": "origins:nothing",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:nothing",
+            "neoorigins:nothing"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Fallback \u00e2\u20ac\u201d permissive for verbs not yet schema'd.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "origins:and",
+              "apace:and",
+              "origins:chance",
+              "apace:chance",
+              "origins:delay",
+              "origins:if_else",
+              "origins:damage",
+              "apace:damage",
+              "origins:heal",
+              "origins:feed",
+              "origins:exhaust",
+              "origins:gain_air",
+              "apace:heal",
+              "apace:feed",
+              "origins:apply_effect",
+              "apace:apply_effect",
+              "origins:clear_effect",
+              "origins:add_velocity",
+              "origins:launch",
+              "origins:give",
+              "apace:give",
+              "origins:execute_command",
+              "apace:execute_command",
+              "origins:play_sound",
+              "origins:spawn_entity",
+              "apace:spawn_entity",
+              "origins:spawn_projectile",
+              "apace:spawn_projectile",
+              "origins:area_of_effect",
+              "apace:area_of_effect",
+              "origins:grant_power",
+              "origins:revoke_power",
+              "neoorigins:toggle",
+              "neoorigins:add_to_set",
+              "origins:add_to_set",
+              "neoorigins:remove_from_set",
+              "origins:remove_from_set",
+              "origins:nothing",
+              "neoorigins:and",
+              "neoorigins:chance",
+              "neoorigins:delay",
+              "neoorigins:if_else",
+              "neoorigins:damage",
+              "neoorigins:heal",
+              "neoorigins:feed",
+              "neoorigins:exhaust",
+              "neoorigins:gain_air",
+              "neoorigins:apply_effect",
+              "neoorigins:clear_effect",
+              "neoorigins:add_velocity",
+              "neoorigins:launch",
+              "neoorigins:give",
+              "neoorigins:execute_command",
+              "neoorigins:play_sound",
+              "neoorigins:spawn_entity",
+              "neoorigins:spawn_projectile",
+              "neoorigins:area_of_effect",
+              "neoorigins:grant_power",
+              "neoorigins:revoke_power",
+              "neoorigins:nothing"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

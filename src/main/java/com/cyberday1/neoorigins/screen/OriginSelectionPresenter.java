@@ -84,7 +84,15 @@ public class OriginSelectionPresenter {
         for (String ns : namespaces) {
             allRows.add(OriginListEntry.header(ns, getModName(ns)));
             List<ResourceLocation> nsIds = byNamespace.get(ns);
-            nsIds.sort(Comparator.comparing(id -> getOriginDisplayName(id).toLowerCase(Locale.ROOT)));
+            // Pin neutral defaults (Human for primary layer, Nitwit for class) to
+            // the top of their namespace so new players see the "no extra power"
+            // option first — otherwise alphabetical ordering buries it.
+            nsIds.sort((a, b) -> {
+                int pa = defaultPinRank(a);
+                int pb = defaultPinRank(b);
+                if (pa != pb) return Integer.compare(pa, pb);
+                return getOriginDisplayName(a).compareToIgnoreCase(getOriginDisplayName(b));
+            });
             for (ResourceLocation id : nsIds) {
                 allRows.add(OriginListEntry.origin(id, getOriginDisplayName(id), ns));
                 allOriginIds.add(id);
@@ -201,5 +209,12 @@ public class OriginSelectionPresenter {
     private static String getOriginDisplayName(ResourceLocation id) {
         var o = OriginDataManager.INSTANCE.getOrigin(id);
         return o != null ? o.name().getString() : id.getPath();
+    }
+
+    /** 0 = pinned to top (Human / Nitwit), 1 = normal alphabetical. */
+    private static int defaultPinRank(ResourceLocation id) {
+        if (!"neoorigins".equals(id.getNamespace())) return 1;
+        String path = id.getPath();
+        return ("human".equals(path) || "class_nitwit".equals(path)) ? 0 : 1;
     }
 }

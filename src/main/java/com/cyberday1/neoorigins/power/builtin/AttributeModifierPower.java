@@ -254,44 +254,30 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         }
     }
 
-    private static final java.util.Set<String> OPERATION_PREFIXES;
-    static {
-        java.util.Set<String> s = new java.util.HashSet<>();
-        for (AttributeModifier.Operation op : AttributeModifier.Operation.values()) {
-            s.add(op.name().toLowerCase(java.util.Locale.ROOT));
-        }
-        OPERATION_PREFIXES = java.util.Set.copyOf(s);
-    }
-
     /**
      * Removes legacy-format modifiers for this attribute whose IDs predate the
-     * JVM-stable hash fix. The old {@code modIdFor} hashed the operation enum,
-     * whose {@code hashCode()} varies per-process, so every login generated a
-     * fresh ID like {@code neoorigins:power_max_health_<unstable-hex>} while
-     * NBT kept the previous session's modifier around — max_health stacked
-     * indefinitely across relogs.
+     * powerKey-prefixed format. Two earlier formats existed:
+     * <ul>
+     *   <li>{@code power_<attrpath>_<hex>} — pre-3279c03, hashed the enum (JVM-unstable),
+     *       so every login orphaned the previous session's modifier in NBT and stacked.</li>
+     *   <li>{@code power_<attrpath>_<opname>_<hex>} — 3279c03, JVM-stable but keyed only
+     *       on (attr, op, amount), so two powers with the same triple silently de-duped.</li>
+     * </ul>
      *
-     * <p>The new format is {@code power_<attrpath>_<opname>_<hex>}. Any
-     * {@code power_<attrpath>_<hex>} (no opname between) is an old orphan and
-     * gets removed. Other powers targeting the same attribute with different
-     * amounts use their own {@code keep}-equivalent IDs and are left alone.
+     * <p>The current format is {@code power_<powerKey>_<attrpath>_<opname>_<hex>} where
+     * {@code powerKey} starts with a namespace (typically {@code neoorigins}). All legacy
+     * IDs match the {@code power_<attrpath>_*} prefix and are safe to purge — no current
+     * power produces an ID starting with {@code power_<attrpath>_} (the powerKey segment
+     * always intervenes).
      */
     private static void purgeStaleModifiers(AttributeInstance instance, ResourceLocation attrId, ResourceLocation keep) {
-        String prefix = "power_" + attrId.getPath() + "_";
+        String legacyPrefix = "power_" + attrId.getPath() + "_";
         java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
         for (AttributeModifier m : instance.getModifiers()) {
             ResourceLocation id = m.id();
             if (!"neoorigins".equals(id.getNamespace())) continue;
-            String path = id.getPath();
-            if (!path.startsWith(prefix)) continue;
             if (id.equals(keep)) continue;
-
-            String suffix = path.substring(prefix.length());
-            int underscore = suffix.indexOf('_');
-            if (underscore > 0 && OPERATION_PREFIXES.contains(suffix.substring(0, underscore))) {
-                continue; // new-format modifier belonging to a different power
-            }
-            stale.add(id);
+            if (id.getPath().startsWith(legacyPrefix)) stale.add(id);
         }
         for (ResourceLocation id : stale) instance.removeModifier(id);
     }
@@ -333,16 +319,20 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     private record ResolvedAttribute(ResourceLocation id, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> holder) {}
 
     private ResourceLocation modIdFor(ResourceLocation attrId, Config config) {
-        // Only hash values with stable hashCode() across JVM restarts. Enum
-        // hashCode() is identity-based and varied per-process, which made
-        // every login generate a fresh modifier ID — the persisted NBT
-        // modifier from the last session stuck around, the new one got
-        // added alongside it, and max_health powers stacked indefinitely
-        // across relogs (#tester).
+        // Hash must be JVM-stable: enum hashCode() varies per-process, so we
+        // serialize the operation by its name and hash only the amount. The
+        // power's own ID is folded in so two different powers with the same
+        // (attribute, operation, amount) — e.g. Kraken Pressure Armor and
+        // Golem Natural Armor both granting +6 armor ADD_VALUE — produce
+        // distinct modifier IDs and stack instead of de-duping.
+        ResourceLocation powerId = com.cyberday1.neoorigins.api.power.PowerHolder.currentDispatchId();
+        String powerKey = powerId == null
+            ? "anon"
+            : (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_').replace(':', '_');
         int h = Double.hashCode(config.amount());
         return ResourceLocation.fromNamespaceAndPath(
             "neoorigins",
-            "power_" + attrId.getPath() + "_"
+            "power_" + powerKey + "_" + attrId.getPath() + "_"
                 + config.operation().name().toLowerCase(java.util.Locale.ROOT) + "_"
                 + Integer.toHexString(h));
     }

@@ -32,68 +32,75 @@ public final class ActionParser {
             return failNoop("root", contextId, "missing action object");
         }
         String type = json.has("type") ? json.get("type").getAsString() : "";
-        // Normalize bare type names (pre-namespace Origins JSON and loose community packs).
-        // `"type": "heal"` → `"type": "origins:heal"`.
+        // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:
+        // prefixes get a one-shot [2.0-legacy] warning then are rewritten to
+        // neoorigins: for dispatch. Canonical switch arms below are neoorigins:*.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
-            type = "origins:" + type;
+            type = "neoorigins:" + type;
+        } else if (type.startsWith("origins:") || type.startsWith("apace:")) {
+            String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
+            com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
+            type = canonical;
         }
         try {
             return switch (type) {
-                case "origins:and", "apace:and"                             -> parseAnd(json, contextId);
-                case "origins:if_else", "apace:if_else"                     -> parseIfElse(json, contextId);
-                case "origins:if_else_list", "apace:if_else_list"           -> parseIfElseList(json, contextId);
-                case "origins:chance", "apace:chance"                       -> parseChance(json, contextId);
-                case "origins:delay", "apace:delay"                         -> parseDelay(json, contextId);
-                case "origins:execute_command", "apace:execute_command"     -> parseExecuteCommand(json);
-                case "origins:apply_effect", "apace:apply_effect"           -> parseApplyEffect(json);
-                case "origins:clear_effect", "apace:clear_effect"           -> parseClearEffect(json);
-                case "origins:heal", "apace:heal"                           -> parseHeal(json);
-                case "origins:play_sound", "apace:play_sound"               -> parsePlaySound(json);
-                case "origins:add_velocity", "apace:add_velocity"           -> parseAddVelocity(json);
-                case "origins:set_on_fire", "apace:set_on_fire"             -> parseSetOnFire(json);
-                case "origins:exhaust", "apace:exhaust"                     -> parseExhaust(json);
-                case "origins:change_resource", "apace:change_resource"     -> parseChangeResource(json);
-                case "origins:nothing", "apace:nothing"                     -> EntityAction.noop();
+                case "neoorigins:and"                           -> parseAnd(json, contextId);
+                case "neoorigins:if_else"                       -> parseIfElse(json, contextId);
+                case "neoorigins:if_else_list"                  -> parseIfElseList(json, contextId);
+                case "neoorigins:chance"                        -> parseChance(json, contextId);
+                case "neoorigins:delay"                         -> parseDelay(json, contextId);
+                case "neoorigins:execute_command"               -> parseExecuteCommand(json);
+                case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
+                case "neoorigins:clear_effect"                  -> parseClearEffect(json);
+                case "neoorigins:heal"                          -> parseHeal(json);
+                case "neoorigins:play_sound"                    -> parsePlaySound(json);
+                case "neoorigins:add_velocity"                  -> parseAddVelocity(json);
+                case "neoorigins:set_on_fire"                   -> parseSetOnFire(json);
+                case "neoorigins:exhaust"                       -> parseExhaust(json);
+                case "neoorigins:change_resource"               -> parseChangeResource(json);
+                case "neoorigins:nothing"                       -> EntityAction.noop();
 
                 // ---- Phase 2: New actions ----
-                case "origins:damage", "apace:damage"                       -> parseDamage(json);
-                case "origins:feed", "apace:feed"                           -> parseFeed(json);
-                case "origins:trigger_cooldown", "apace:trigger_cooldown"   -> parseTriggerCooldown(json);
-                case "origins:gain_air", "apace:gain_air"                   -> parseGainAir(json);
-                case "origins:spawn_entity", "apace:spawn_entity"           -> parseSpawnEntity(json);
-                case "origins:set_fall_distance", "apace:set_fall_distance" -> parseSetFallDistance(json);
-                case "origins:extinguish", "apace:extinguish"               -> player -> player.clearFire();
-                case "origins:dismount", "apace:dismount"                   -> player -> player.stopRiding();
-                case "origins:give", "apace:give"                           -> parseGive(json);
-                case "origins:explode", "apace:explode"                     -> parseExplode(json);
-                case "origins:launch", "apace:launch"                       -> parseLaunch(json);
-                case "origins:set_block", "apace:set_block"                 -> parseSetBlock(json);
-                case "origins:area_of_effect", "apace:area_of_effect"       -> parseAreaOfEffect(json, contextId);
-                case "origins:modify_food", "apace:modify_food"             -> parseModifyFood(json);
-                case "origins:grant_power", "apace:grant_power"             -> parseGrantPower(json);
-                case "origins:revoke_power", "apace:revoke_power"           -> parseRevokePower(json);
-                case "origins:emit_game_event", "apace:emit_game_event"     -> parseEmitGameEvent(json);
-                case "origins:swing_hand", "apace:swing_hand"               -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                case "neoorigins:damage"                        -> parseDamage(json);
+                case "neoorigins:feed"                          -> parseFeed(json);
+                case "neoorigins:trigger_cooldown"              -> parseTriggerCooldown(json);
+                case "neoorigins:gain_air"                      -> parseGainAir(json);
+                case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
+                case "neoorigins:set_fall_distance"             -> parseSetFallDistance(json);
+                case "neoorigins:extinguish"                    -> player -> player.clearFire();
+                case "neoorigins:dismount"                      -> player -> player.stopRiding();
+                case "neoorigins:give"                          -> parseGive(json);
+                case "neoorigins:explode"                       -> parseExplode(json);
+                case "neoorigins:launch"                        -> parseLaunch(json);
+                case "neoorigins:set_block"                     -> parseSetBlock(json);
+                case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
+                case "neoorigins:modify_food"                   -> parseModifyFood(json);
+                case "neoorigins:grant_power"                   -> parseGrantPower(json);
+                case "neoorigins:revoke_power"                  -> parseRevokePower(json);
+                case "neoorigins:emit_game_event"               -> parseEmitGameEvent(json);
+                case "neoorigins:swing_hand"                    -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 
                 // ---- Phase 0/1: new actions for consolidation (active_ability) ----
-                case "origins:spawn_projectile", "apace:spawn_projectile",
-                     "neoorigins:spawn_projectile"                          -> parseSpawnProjectile(json);
-                case "neoorigins:chain_to_nearest"                          -> parseChainToNearest(json, contextId);
-                case "neoorigins:pull_entities"                             -> parsePullEntities(json, contextId);
-                case "neoorigins:swap_with_entity"                          -> parseSwapWithEntity(json, contextId);
-                case "neoorigins:teleport_to_marker"                        -> parseTeleportToMarker(json);
+                case "neoorigins:spawn_projectile"              -> parseSpawnProjectile(json, contextId);
+                case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
+                case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
+                case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
+                case "neoorigins:chain_to_nearest"              -> parseChainToNearest(json, contextId);
+                case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
+                case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
+                case "neoorigins:teleport_to_marker"            -> parseTeleportToMarker(json);
 
                 // ---- Phase 6.5: context-aware verbs (read from ActionContextHolder) ----
-                case "neoorigins:damage_attacker"                           -> parseDamageAttacker(json);
-                case "neoorigins:ignite_attacker"                           -> parseIgniteAttacker(json);
-                case "neoorigins:effect_on_attacker"                        -> parseEffectOnAttacker(json);
-                case "neoorigins:random_teleport"                           -> parseRandomTeleport(json);
-                case "neoorigins:cancel_event"                              -> parseCancelEvent();
-                case "neoorigins:toggle"                                    -> parseToggle(json);
+                case "neoorigins:damage_attacker"               -> parseDamageAttacker(json);
+                case "neoorigins:ignite_attacker"               -> parseIgniteAttacker(json);
+                case "neoorigins:effect_on_attacker"            -> parseEffectOnAttacker(json);
+                case "neoorigins:random_teleport"               -> parseRandomTeleport(json);
+                case "neoorigins:cancel_event"                  -> parseCancelEvent();
+                case "neoorigins:toggle"                        -> parseToggle(json);
 
                 // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
-                case "neoorigins:add_to_set", "origins:add_to_set"          -> parseAddToSet(json, contextId);
-                case "neoorigins:remove_from_set", "origins:remove_from_set" -> parseRemoveFromSet(json, contextId);
+                case "neoorigins:add_to_set"                    -> parseAddToSet(json, contextId);
+                case "neoorigins:remove_from_set"               -> parseRemoveFromSet(json, contextId);
 
                 default -> failNoop(type, contextId, "unsupported action type");
             };
@@ -288,6 +295,11 @@ public final class ActionParser {
         return player -> {
             if (set) player.setDeltaMovement(x, y, z);
             else player.push(x, y, z);
+            // Without hurtMarked=true the client keeps simulating its own
+            // physics locally and the server's velocity change is lost at the
+            // next movement packet. Active launch / dash / wind_charge all
+            // depend on this flag to actually move the player.
+            player.hurtMarked = true;
         };
     }
 
@@ -452,20 +464,84 @@ public final class ActionParser {
         };
     }
 
+    private record FanoutEffect(net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> holder,
+                                int duration, int amplifier) {}
+    private record FanoutDamage(float amount, String sourceName) {}
+
+    /**
+     * Walk an AoE inner-action JSON tree and collect every {@code apply_effect} /
+     * {@code damage} leaf as a fan-out task. Recurses through {@code and}/{@code or}
+     * so wrappers like
+     * <pre>{ "type": "neoorigins:and", "actions": [apply_effect, damage] }</pre>
+     * still fan out to mobs. Accepts the {@code neoorigins:}, {@code origins:},
+     * and {@code apace:} namespaces — without {@code neoorigins:} the four
+     * rewritten projectile actives (Kraken Ink Shot, Revenant Void Bolt,
+     * Sculkborn Sonic Bolt, Warden Sonic Boom) silently no-op against mobs
+     * because their player-side EntityAction has no living-entity targets.
+     */
+    private static void collectFanoutTasks(JsonObject inner,
+                                           java.util.List<FanoutEffect> effects,
+                                           java.util.List<FanoutDamage> damages) {
+        if (inner == null || !inner.has("type")) return;
+        String t = inner.get("type").getAsString();
+        switch (t) {
+            case "neoorigins:and", "origins:and", "apace:and",
+                 "neoorigins:or",  "origins:or",  "apace:or" -> {
+                if (inner.has("actions") && inner.get("actions").isJsonArray()) {
+                    for (var el : inner.getAsJsonArray("actions")) {
+                        if (el.isJsonObject()) collectFanoutTasks(el.getAsJsonObject(), effects, damages);
+                    }
+                }
+            }
+            case "neoorigins:apply_effect", "origins:apply_effect", "apace:apply_effect" -> {
+                String eid = inner.has("effect") ? inner.get("effect").getAsString()
+                           : inner.has("effect_id") ? inner.get("effect_id").getAsString() : null;
+                if (eid == null) return;
+                var holderOpt = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
+                    .getOptional(net.minecraft.resources.ResourceLocation.parse(eid))
+                    .map(net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT::wrapAsHolder);
+                if (holderOpt.isEmpty()) return;
+                int dur = inner.has("duration") ? inner.get("duration").getAsInt() : 200;
+                int amp = inner.has("amplifier") ? inner.get("amplifier").getAsInt() : 0;
+                effects.add(new FanoutEffect(holderOpt.get(), dur, amp));
+            }
+            case "neoorigins:damage", "origins:damage", "apace:damage" -> {
+                float amt = inner.has("amount") ? inner.get("amount").getAsFloat() : 1.0f;
+                String src = inner.has("source") && inner.get("source").isJsonObject()
+                    && inner.getAsJsonObject("source").has("name")
+                    ? inner.getAsJsonObject("source").get("name").getAsString()
+                    : "generic";
+                damages.add(new FanoutDamage(amt, src));
+            }
+            default -> { /* not a fan-out leaf */ }
+        }
+    }
+
     private static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
-        // AoE: run entity_action against every ServerPlayer within the radius.
-        // [LOSSY] Non-player living entities are skipped because EntityAction is
-        // keyed on ServerPlayer — supporting arbitrary LivingEntity targets would
-        // require broadening the action type across the compat layer.
+        // AoE: run entity_action against every ServerPlayer within the radius,
+        // and for any apply_effect / damage leaves found in the inner action tree
+        // (recursing through and/or), ALSO apply the leaf to non-player mobs in
+        // radius — otherwise powers like Inferno Burst, Kraken Ink Shot, etc.
+        // have no combat impact because mobs are never EntityAction targets.
+        //
+        // [LOSSY] Other action verbs (launch, set_block, ...) still only affect
+        // ServerPlayer targets — broadening EntityAction to LivingEntity is a
+        // bigger refactor.
         float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16.0f;
         String shape = json.has("shape") ? json.get("shape").getAsString() : "sphere";
         boolean includeSelf = !json.has("include_source") || json.get("include_source").getAsBoolean();
 
-        EntityAction action = json.has("entity_action")
-            ? parse(json.getAsJsonObject("entity_action"), contextId) : EntityAction.noop();
+        JsonObject innerJson = json.has("entity_action") ? json.getAsJsonObject("entity_action") : null;
+        EntityAction action = innerJson != null ? parse(innerJson, contextId) : EntityAction.noop();
         EntityCondition targetCondition = json.has("entity_condition")
             ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), contextId)
             : EntityCondition.alwaysTrue();
+
+        java.util.List<FanoutEffect> fanoutEffects = new java.util.ArrayList<>();
+        java.util.List<FanoutDamage> fanoutDamages = new java.util.ArrayList<>();
+        collectFanoutTasks(innerJson, fanoutEffects, fanoutDamages);
+        final java.util.List<FanoutEffect> finalEffects = java.util.List.copyOf(fanoutEffects);
+        final java.util.List<FanoutDamage> finalDamages = java.util.List.copyOf(fanoutDamages);
 
         final float  finalRadius       = radius;
         final boolean finalIncludeSelf = includeSelf;
@@ -476,16 +552,68 @@ public final class ActionParser {
         return source -> {
             var level = source.level();
             double r = finalRadius;
-            var aabb = source.getBoundingBox().inflate(r);
-            var candidates = level.getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class, aabb);
+            // Center at impact point when invoked from a spawn_projectile on_hit_action —
+            // the projectile-impact dispatcher installs a ProjectileHitContext on the
+            // ActionContextHolder whose result.getLocation() is the real impact point.
+            // Otherwise center on the source (player) as before.
+            net.minecraft.world.phys.Vec3 srcPos;
+            net.minecraft.world.phys.AABB aabb;
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+                srcPos = phc.result().getLocation();
+                aabb = new net.minecraft.world.phys.AABB(srcPos.subtract(r, r, r), srcPos.add(r, r, r));
+            } else {
+                srcPos = source.position();
+                aabb = source.getBoundingBox().inflate(r);
+            }
             double r2 = r * r;
-            var srcPos = source.position();
-            for (var target : candidates) {
+
+            var playerCandidates = level.getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class, aabb);
+            for (var target : playerCandidates) {
                 if (target == source && !finalIncludeSelf) continue;
                 if ("sphere".equalsIgnoreCase(finalShape)
                         && target.position().distanceToSqr(srcPos) > r2) continue;
                 if (!finalCond.test(target)) continue;
                 finalAction.execute(target);
+            }
+
+            if (!finalEffects.isEmpty() || !finalDamages.isEmpty()) {
+                java.util.UUID casterUuid = source.getUUID();
+                var mobCandidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb);
+                for (var mob : mobCandidates) {
+                    if (mob instanceof net.minecraft.server.level.ServerPlayer) continue;
+                    if (mob == source) continue;
+                    if ("sphere".equalsIgnoreCase(finalShape)
+                            && mob.position().distanceToSqr(srcPos) > r2) continue;
+                    // Foe-only filter: skip player-allied mobs so combat AoEs don't
+                    // wipe pets, livestock, villagers, or summoned minions.
+                    if (mob instanceof net.minecraft.world.entity.TamableAnimal tame
+                            && tame.getOwnerUUID() != null
+                            && tame.getOwnerUUID().equals(casterUuid)) continue;
+                    if (com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(mob, casterUuid)) continue;
+                    if (mob instanceof net.minecraft.world.entity.animal.Animal) continue;
+                    if (mob instanceof net.minecraft.world.entity.npc.AbstractVillager) continue;
+                    if (mob instanceof net.minecraft.world.entity.animal.IronGolem) continue;
+                    for (var fx : finalEffects) {
+                        mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                            fx.holder(), fx.duration(), fx.amplifier()));
+                    }
+                    for (var dmg : finalDamages) {
+                        if (dmg.amount() <= 0f) continue;
+                        var dmgSrc = switch (dmg.sourceName()) {
+                            case "fire", "on_fire", "in_fire" -> mob.level().damageSources().onFire();
+                            case "lava"   -> mob.level().damageSources().lava();
+                            case "magic"  -> mob.level().damageSources().magic();
+                            case "drown"  -> mob.level().damageSources().drown();
+                            case "freeze" -> mob.level().damageSources().freeze();
+                            case "wither" -> mob.level().damageSources().wither();
+                            default       -> source instanceof net.minecraft.server.level.ServerPlayer sp
+                                ? mob.level().damageSources().playerAttack(sp)
+                                : mob.level().damageSources().generic();
+                        };
+                        mob.hurt(dmgSrc, dmg.amount());
+                    }
+                }
             }
         };
     }
@@ -597,7 +725,7 @@ public final class ActionParser {
 
     // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
 
-    private static EntityAction parseSpawnProjectile(JsonObject json) {
+    private static EntityAction parseSpawnProjectile(JsonObject json, String contextId) {
         String entityId = json.has("entity_type") ? json.get("entity_type").getAsString()
                         : json.has("projectile") ? json.get("projectile").getAsString() : null;
         if (entityId == null) {
@@ -614,11 +742,25 @@ public final class ActionParser {
         final float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
         final float inaccuracy = json.has("inaccuracy") ? json.get("inaccuracy").getAsFloat() : 0f;
         final float verticalOffset = json.has("vertical_offset") ? json.get("vertical_offset").getAsFloat() : 0f;
+        // Optional on_hit_action: stored on ProjectileActionRegistry keyed by the
+        // spawned projectile's UUID. Fires from CombatPowerEvents.onProjectileImpact
+        // with the ProjectileHitContext installed so area_of_effect can center on
+        // the impact point rather than the (by-then-stale) player position.
+        final EntityAction onHitAction = json.has("on_hit_action") && json.get("on_hit_action").isJsonObject()
+            ? parse(json.getAsJsonObject("on_hit_action"), contextId)
+            : null;
+        // Optional effect_type: when spawning a MagicOrbProjectile, set the
+        // synched data so the client-side renderer picks the right palette.
+        final String effectType = json.has("effect_type")
+            ? json.get("effect_type").getAsString() : null;
         return player -> {
             if (!(player.level() instanceof ServerLevel sl)) return;
             var entity = entityType.create(sl);
             if (entity == null) return;
             entity.setPos(player.getX(), player.getEyeY() + verticalOffset, player.getZ());
+            if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb && effectType != null) {
+                orb.setEffectType(effectType);
+            }
             if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
                 proj.setOwner(player);
                 proj.shootFromRotation(player, player.getXRot(), player.getYRot(), 0f, speed, inaccuracy);
@@ -626,6 +768,115 @@ public final class ActionParser {
                 var look = player.getLookAngle();
                 entity.setDeltaMovement(look.x * speed, look.y * speed, look.z * speed);
             }
+            sl.addFreshEntity(entity);
+            if (onHitAction != null) {
+                com.cyberday1.neoorigins.service.ProjectileActionRegistry.register(
+                    entity.getUUID(), onHitAction, player.tickCount);
+            }
+        };
+    }
+
+    /** Parse {@code neoorigins:spawn_lingering_area}. See the 26.1 variant for field docs. */
+    private static EntityAction parseSpawnLingeringArea(JsonObject json, String contextId) {
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
+        final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
+        final int intervalTicks = json.has("interval_ticks") ? json.get("interval_ticks").getAsInt() : 20;
+        final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
+        final EntityAction intervalAction = json.has("entity_action") && json.get("entity_action").isJsonObject()
+            ? parse(json.getAsJsonObject("entity_action"), contextId)
+            : null;
+        final String particleId = json.has("particle_type")
+            ? json.get("particle_type").getAsString() : "minecraft:witch";
+        final ResourceLocation pid = ResourceLocation.parse(particleId);
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var particleTypeOpt = BuiltInRegistries.PARTICLE_TYPE.getOptional(pid);
+            var particle = particleTypeOpt.isPresent()
+                && particleTypeOpt.get() instanceof net.minecraft.core.particles.SimpleParticleType simple
+                    ? simple
+                    : net.minecraft.core.particles.ParticleTypes.WITCH;
+            var entity = com.cyberday1.neoorigins.content.ModEntities.LINGERING_AREA.get().create(sl);
+            if (entity == null) return;
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+                var pos = phc.result().getLocation();
+                entity.setPos(pos.x, pos.y, pos.z);
+            } else {
+                entity.setPos(player.getX(), player.getY(), player.getZ());
+            }
+            entity.setRange(radius);
+            entity.setEffectType(effectType);
+            entity.setMaxLifetime(durationTicks);
+            entity.setIntervalTicks(intervalTicks);
+            entity.setIntervalAction(intervalAction);
+            entity.setParticleType(particle);
+            entity.setCaster(player.getUUID());
+            sl.addFreshEntity(entity);
+        };
+    }
+
+    /**
+     * Parse {@code neoorigins:spawn_black_hole}. See 26.1 twin for field docs.
+     */
+    private static EntityAction parseSpawnBlackHole(JsonObject json, String contextId) {
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 6.0f;
+        final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
+        final float pullStrength = json.has("pull_strength") ? json.get("pull_strength").getAsFloat() : 1.5f;
+        final float damagePerTick = json.has("damage_per_tick") ? json.get("damage_per_tick").getAsFloat() : 2.0f;
+        final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var entity = com.cyberday1.neoorigins.content.ModEntities.BLACK_HOLE.get().create(sl);
+            if (entity == null) return;
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+                var pos = phc.result().getLocation();
+                entity.setPos(pos.x, pos.y, pos.z);
+            } else {
+                entity.setPos(player.getX(), player.getY(), player.getZ());
+            }
+            entity.setRange(radius);
+            entity.setEffectType(effectType);
+            entity.setMaxLifetime(durationTicks);
+            entity.setPullStrength(pullStrength);
+            entity.setDamagePerTick(damagePerTick);
+            entity.setCaster(player.getUUID());
+            sl.addFreshEntity(entity);
+        };
+    }
+
+    /**
+     * Parse {@code neoorigins:spawn_tornado}. See 26.1 twin for field docs.
+     */
+    private static EntityAction parseSpawnTornado(JsonObject json, String contextId) {
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 5.0f;
+        final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
+        final float pullStrength = json.has("pull_strength") ? json.get("pull_strength").getAsFloat() : 1.0f;
+        final float liftStrength = json.has("lift_strength") ? json.get("lift_strength").getAsFloat() : 0.5f;
+        final float spinStrength = json.has("spin_strength") ? json.get("spin_strength").getAsFloat() : 0.5f;
+        final float damagePerInterval = json.has("damage_per_interval") ? json.get("damage_per_interval").getAsFloat() : 2.0f;
+        final int damageIntervalTicks = json.has("damage_interval_ticks") ? json.get("damage_interval_ticks").getAsInt() : 10;
+        final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var entity = com.cyberday1.neoorigins.content.ModEntities.TORNADO.get().create(sl);
+            if (entity == null) return;
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+                var pos = phc.result().getLocation();
+                entity.setPos(pos.x, pos.y, pos.z);
+            } else {
+                entity.setPos(player.getX(), player.getY(), player.getZ());
+            }
+            entity.setRange(radius);
+            entity.setEffectType(effectType);
+            entity.setMaxLifetime(durationTicks);
+            entity.setPullStrength(pullStrength);
+            entity.setLiftStrength(liftStrength);
+            entity.setSpinStrength(spinStrength);
+            entity.setDamagePerInterval(damagePerInterval);
+            entity.setDamageIntervalTicks(damageIntervalTicks);
+            entity.setCaster(player.getUUID());
             sl.addFreshEntity(entity);
         };
     }

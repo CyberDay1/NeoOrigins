@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "examplepack:hearth_keeper_seed_pouch",
+  "item": "minecraft:wheat_seeds",
+  "count": 16,
+  "name": "power.examplepack.hearth_keeper_seed_pouch.name",
+  "description": "power.examplepack.hearth_keeper_seed_pouch.description"
+}

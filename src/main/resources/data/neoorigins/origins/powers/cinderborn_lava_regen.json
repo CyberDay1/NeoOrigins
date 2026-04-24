@@ -1,5 +1,5 @@
 {
   "type": "neoorigins:regen_in_fluid",
   "fluid": "lava",
-  "amount_per_second": 3.0
+  "amount_per_second": 1.0
 }

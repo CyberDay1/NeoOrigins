@@ -150,7 +150,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(type, config, name, desc)));
+            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc)));
     }
 
     /** Merges config-file overrides into the power JSON before CODEC parsing. */

@@ -25,6 +25,19 @@ public class FoodDataMixin {
     private float neoorigins$modifyExhaustion(float amount) {
         Player self = (Player) (Object) this;
         if (!(self instanceof ServerPlayer sp)) return amount;
+        // SPRINT_FOOD immunity — pack authors use this for "sprinting costs no
+        // extra hunger" powers (Voidwalker Weightless, Verdant Tireless,
+        // Umbral Shadowrun). We can't distinguish sprint-movement exhaustion
+        // from other sources at this call site, so zero all exhaustion while
+        // sprinting. Non-sprint exhaustion (combat, block break, etc.) still
+        // ticks normally as soon as the player stops sprinting.
+        if (sp.isSprinting()
+            && com.cyberday1.neoorigins.service.ActiveOriginService.has(
+                sp, com.cyberday1.neoorigins.power.builtin.PreventActionPower.class,
+                cfg -> cfg.action() == com.cyberday1.neoorigins.power.builtin.PreventActionPower.Action.SPRINT_FOOD
+                    && com.cyberday1.neoorigins.power.builtin.PreventActionPower.isGateOpen(sp, cfg))) {
+            return 0F;
+        }
         float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_EXHAUSTION, null, amount);
         return Float.isFinite(scaled) ? scaled : amount;

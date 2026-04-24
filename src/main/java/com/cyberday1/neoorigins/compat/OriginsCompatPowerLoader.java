@@ -146,7 +146,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
                 Component powerName = extractComponent(json, "name");
                 Component powerDesc = extractComponent(json, "description");
-                injected.put(id, new PowerHolder<>(CompatPower.INSTANCE, config, powerName, powerDesc));
+                injected.put(id, new PowerHolder<>(id, CompatPower.INSTANCE, config, powerName, powerDesc));
                 CompatTranslationLog.pass(id, type + " -> Route B compiled");
                 NeoOrigins.LOGGER.debug("[CompatB] loaded {} ({})", id, type);
 

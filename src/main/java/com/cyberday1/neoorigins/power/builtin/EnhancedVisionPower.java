@@ -1,36 +1,36 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
+import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Set;
 
 /**
- * Toggleable low-light vision: emits the {@code "enhanced_vision"} capability tag while
- * granted and not toggled off.
+ * Always-on low-light vision: emits the {@code "enhanced_vision"} capability tag
+ * for every player who has the power granted.
  *
- * <p>Unlike the full {@code minecraft:night_vision} status effect (screen tint, HUD icon,
- * max-level ramp at end of duration), this power scales the player's brightness curve
- * directly via a client-side {@code LightTexture} mixin. Origins can use it for exposure-
- * style darkness compensation — cat eyes, salamander, oculus drone, etc. — without the
- * visual baggage of a potion effect.
+ * <p>Unlike {@code minecraft:night_vision} (screen tint, HUD icon, max-level ramp
+ * at end of duration), this scales the brightness curve directly via a client-side
+ * {@code LightTexture} mixin. Origins use it for exposure-style darkness
+ * compensation — cat eyes, salamander, oculus drone, etc. — without the visual
+ * baggage of a potion effect.
  *
- * <p>The basic {@code neoorigins:night_vision} power (persistent_effect alias) is
- * deliberately always-on with no toggle. This power takes the toggle role: pack authors
- * hand the player a keybind so they can flip the exposure boost on and off. The toggle
- * state is synced to the client via {@code SyncActivePowersPayload}; when toggled off
- * the capability tag disappears from {@code ClientActivePowers} and the LightTexture
- * mixin stops brightening automatically.
+ * <p>Previously extended {@code AbstractTogglePower} so pack authors could assign
+ * a keybind to flip it on and off. In practice that meant the power occupied a
+ * skill slot and got toggled off by accidental keypress during normal gameplay,
+ * and tester reports said "night vision doesn't work" on every origin that had
+ * it — the first skill-key press after picking the origin turned it off and the
+ * capability-sync gate silenced the mixin. Making it plain always-on is the
+ * pragmatic fix; a dedicated toggle power can be layered on top if a pack
+ * genuinely needs on/off control.
  *
- * <p>All exposure work happens on the logical client; the server never evaluates this
- * power beyond publishing the capability tag. The {@code exposure} field is currently
- * advisory — the v1 client mixin hardcodes 0.7. If runtime playtest shows it needs
- * per-origin variance, wire it through a client-synced power-config payload.
+ * <p>The {@code exposure} field is retained in the schema for forward-compat but
+ * is currently advisory — the client mixin hardcodes 0.7. Wire through a synced
+ * payload if runtime playtest shows per-origin variance is needed.
  */
-public class EnhancedVisionPower extends AbstractTogglePower<EnhancedVisionPower.Config> {
+public class EnhancedVisionPower extends PowerType<EnhancedVisionPower.Config> {
 
     private static final Set<String> CAPS = Set.of("enhanced_vision");
 
@@ -46,10 +46,4 @@ public class EnhancedVisionPower extends AbstractTogglePower<EnhancedVisionPower
 
     @Override
     public Set<String> capabilities(Config config) { return CAPS; }
-
-    // No server-side effect to apply/remove — the capability tag alone drives the
-    // client mixin. AbstractTogglePower's isToggledOff is what we gate on, and
-    // ActiveOriginService.hasCapability already respects that gate.
-    @Override protected void tickEffect(ServerPlayer player, Config config) {}
-    @Override protected void removeEffect(ServerPlayer player, Config config) {}
 }

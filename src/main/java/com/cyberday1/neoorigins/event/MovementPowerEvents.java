@@ -58,6 +58,28 @@ public class MovementPowerEvents {
         }
     }
 
+    /**
+     * Cobweb mining speed boost for Arachnid-like origins. Fires on both logical
+     * sides — the cobweb_affinity capability is checked via whichever mirror is
+     * available on the side handling the event.
+     */
+    @SubscribeEvent
+    public static void onBreakSpeed(net.neoforged.neoforge.event.entity.player.PlayerEvent.BreakSpeed event) {
+        if (!event.getState().is(net.minecraft.world.level.block.Blocks.COBWEB)) return;
+        var player = event.getEntity();
+        boolean hasAffinity;
+        if (player.level().isClientSide()) {
+            hasAffinity = com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability("cobweb_affinity");
+        } else if (player instanceof ServerPlayer sp) {
+            hasAffinity = ActiveOriginService.hasCapability(sp, "cobweb_affinity");
+        } else {
+            return;
+        }
+        if (hasAffinity) {
+            event.setNewSpeed(event.getNewSpeed() * 10f);
+        }
+    }
+
     @SubscribeEvent
     public static void onItemUseStart(LivingEntityUseItemEvent.Start event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -72,6 +94,17 @@ public class MovementPowerEvents {
                 sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.FOOD_EATEN,
                 new com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext(item, event));
+            // If a food_restriction power cancelled the eat, surface it to the
+            // player — otherwise clicking to eat appears to do nothing (tester
+            // report: "can be mistaken for lag" on Vampire Blood Diet). The
+            // actionbar is less intrusive than chat and disappears on its own.
+            if (event.isCanceled()) {
+                sp.sendSystemMessage(
+                    net.minecraft.network.chat.Component.translatable(
+                        "message.neoorigins.food_restriction.cannot_eat")
+                        .withStyle(net.minecraft.ChatFormatting.RED),
+                    true);
+            }
         }
     }
 }

@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:breath_out_of_fluid",
+  "fluid": "water",
+  "drain_rate": 40
+}

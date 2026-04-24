@@ -43,8 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * }
  * }</pre>
  *
- * <p>For action-style events (CRAFT_ITEM, FOOD_EATEN, etc.) set {@code entity_action}.
- * For modifier-style events (MOD_EXHAUSTION, MOD_BREAK_SPEED, etc.) set {@code modifier}.
+ * <p>For action-style events (FOOD_EATEN, BLOCK_BREAK, etc.) set {@code entity_action}.
+ * For modifier-style events (MOD_EXHAUSTION, MOD_NATURAL_REGEN, etc.) set {@code modifier}.
  * A single power may specify both — the action runs on dispatch sites that call
  * {@link EventPowerIndex#dispatch}, the modifier chains on sites that call
  * {@link EventPowerIndex#dispatchModifier}.
@@ -111,6 +111,22 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
+        // Idempotent-grant: PowerType.onLogin() + onRespawn() default to calling
+        // onGranted, so without this cleanup each login/respawn/origin-swap
+        // would stack another handler on top of the prior one. For modifier
+        // events that compound on chain dispatch (MOD_EXHAUSTION multiplication
+        // etc.), leaked handlers make the power N× stronger where N is the
+        // number of life cycles — the "Internal Furnace drains 10× too fast"
+        // report was 1.5^5 ≈ 7.6× after five respawns.
+        var perConfig = tokens.get(player.getUUID());
+        if (perConfig != null) {
+            Tokens existing = perConfig.remove(config);
+            if (existing != null) {
+                EventPowerIndex.unregister(existing.action());
+                EventPowerIndex.unregister(existing.modifier());
+            }
+        }
+
         EventPowerIndex.Token actionTok = null;
         EventPowerIndex.Token modTok = null;
 

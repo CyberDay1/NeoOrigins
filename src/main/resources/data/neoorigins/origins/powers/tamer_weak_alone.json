@@ -1,5 +1,9 @@
 {
   "type": "neoorigins:modify_damage",
   "direction": "out",
-  "multiplier": 0.75
+  "multiplier": 0.75,
+  "condition": {
+    "type": "neoorigins:no_minions_alive",
+    "key": "tamer:tamed"
+  }
 }

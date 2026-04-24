@@ -1,0 +1,675 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/condition.schema.json",
+  "title": "NeoOrigins Condition",
+  "description": "A condition (predicate) used in power fields like `condition` and `entity_action.condition`. The `type` field discriminates.",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Fully-qualified condition verb. `apace:` aliases are accepted.",
+      "enum": [
+        "origins:and",
+        "origins:or",
+        "origins:not",
+        "origins:constant",
+        "origins:biome",
+        "origins:dimension",
+        "origins:in_tag",
+        "origins:submerged_in",
+        "origins:submerged_in_water",
+        "origins:in_water",
+        "origins:in_block",
+        "origins:in_block_anywhere",
+        "origins:on_block",
+        "origins:block",
+        "origins:block_collision",
+        "origins:on_ground",
+        "origins:on_fire",
+        "origins:fire",
+        "origins:in_rain",
+        "origins:temperature",
+        "origins:weather",
+        "origins:brightness",
+        "origins:light_level",
+        "origins:exposed_to_sky",
+        "origins:exposed_to_sun",
+        "origins:daytime",
+        "origins:time_of_day",
+        "origins:moon_phase",
+        "origins:height",
+        "origins:fluid_height",
+        "origins:distance",
+        "origins:health",
+        "origins:relative_health",
+        "origins:food_level",
+        "origins:food",
+        "origins:armor_value",
+        "origins:xp_level",
+        "origins:xp_points",
+        "origins:fall_distance",
+        "origins:fall_flying",
+        "origins:sneaking",
+        "origins:sprinting",
+        "origins:swimming",
+        "origins:invisible",
+        "origins:creative_flying",
+        "origins:moving",
+        "origins:passenger",
+        "origins:riding",
+        "origins:using_item",
+        "origins:equipped_item",
+        "origins:enchantment",
+        "origins:resource",
+        "origins:living",
+        "origins:exists",
+        "origins:ticking",
+        "origins:entity_type",
+        "origins:target_type",
+        "origins:target_group",
+        "origins:can_see",
+        "origins:damage_type",
+        "origins:damage_tag",
+        "origins:damage_name",
+        "origins:name",
+        "origins:from_fire",
+        "origins:from_projectile",
+        "origins:from_explosion",
+        "origins:power_active",
+        "origins:power_type",
+        "origins:in_set",
+        "origins:nbt",
+        "origins:scoreboard",
+        "origins:command",
+        "origins:predicate",
+        "origins:amount",
+        "origins:equal",
+        "neoorigins:in_set",
+        "neoorigins:no_minions_alive",
+        "neoorigins:hit_taken_amount",
+        "neoorigins:food_item_in_tag",
+        "apace:and",
+        "apace:or",
+        "apace:not",
+        "apace:constant",
+        "apace:biome",
+        "apace:enchantment",
+        "apace:equipped_item",
+        "apace:nbt",
+        "apace:submerged_in",
+        "neoorigins:and",
+        "neoorigins:or",
+        "neoorigins:not",
+        "neoorigins:constant",
+        "neoorigins:biome",
+        "neoorigins:dimension",
+        "neoorigins:in_tag",
+        "neoorigins:submerged_in",
+        "neoorigins:submerged_in_water",
+        "neoorigins:in_water",
+        "neoorigins:in_block",
+        "neoorigins:in_block_anywhere",
+        "neoorigins:on_block",
+        "neoorigins:block",
+        "neoorigins:block_collision",
+        "neoorigins:on_ground",
+        "neoorigins:on_fire",
+        "neoorigins:fire",
+        "neoorigins:in_rain",
+        "neoorigins:temperature",
+        "neoorigins:weather",
+        "neoorigins:brightness",
+        "neoorigins:light_level",
+        "neoorigins:exposed_to_sky",
+        "neoorigins:exposed_to_sun",
+        "neoorigins:daytime",
+        "neoorigins:time_of_day",
+        "neoorigins:moon_phase",
+        "neoorigins:height",
+        "neoorigins:fluid_height",
+        "neoorigins:distance",
+        "neoorigins:health",
+        "neoorigins:relative_health",
+        "neoorigins:food_level",
+        "neoorigins:food",
+        "neoorigins:armor_value",
+        "neoorigins:xp_level",
+        "neoorigins:xp_points",
+        "neoorigins:fall_distance",
+        "neoorigins:fall_flying",
+        "neoorigins:sneaking",
+        "neoorigins:sprinting",
+        "neoorigins:swimming",
+        "neoorigins:invisible",
+        "neoorigins:creative_flying",
+        "neoorigins:moving",
+        "neoorigins:passenger",
+        "neoorigins:riding",
+        "neoorigins:using_item",
+        "neoorigins:equipped_item",
+        "neoorigins:enchantment",
+        "neoorigins:resource",
+        "neoorigins:living",
+        "neoorigins:exists",
+        "neoorigins:ticking",
+        "neoorigins:entity_type",
+        "neoorigins:target_type",
+        "neoorigins:target_group",
+        "neoorigins:can_see",
+        "neoorigins:damage_type",
+        "neoorigins:damage_tag",
+        "neoorigins:damage_name",
+        "neoorigins:name",
+        "neoorigins:from_fire",
+        "neoorigins:from_projectile",
+        "neoorigins:from_explosion",
+        "neoorigins:power_active",
+        "neoorigins:power_type",
+        "neoorigins:nbt",
+        "neoorigins:scoreboard",
+        "neoorigins:command",
+        "neoorigins:predicate",
+        "neoorigins:amount",
+        "neoorigins:equal"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$comment": "origins:and / origins:or",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:and",
+            "origins:or",
+            "apace:and",
+            "apace:or",
+            "neoorigins:and",
+            "neoorigins:or"
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "conditions"
+      ]
+    },
+    {
+      "$comment": "origins:not",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:not",
+            "apace:not",
+            "neoorigins:not"
+          ]
+        },
+        "condition": {
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type",
+        "condition"
+      ]
+    },
+    {
+      "$comment": "origins:constant",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:constant",
+            "apace:constant",
+            "neoorigins:constant"
+          ]
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:biome",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:biome",
+            "apace:biome",
+            "neoorigins:biome"
+          ]
+        },
+        "biome": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:dimension",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:dimension",
+            "apace:dimension",
+            "neoorigins:dimension"
+          ]
+        },
+        "dimension": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "dimension"
+      ]
+    },
+    {
+      "$comment": "origins:enchantment",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:enchantment",
+            "apace:enchantment",
+            "neoorigins:enchantment"
+          ]
+        },
+        "enchantment": {
+          "type": "string"
+        },
+        "comparison": {
+          "type": "string",
+          "enum": [
+            ">=",
+            "<=",
+            "==",
+            "!=",
+            ">",
+            "<"
+          ]
+        },
+        "compare_to": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "enchantment"
+      ]
+    },
+    {
+      "$comment": "origins:submerged_in",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:submerged_in",
+            "apace:submerged_in",
+            "neoorigins:submerged_in"
+          ]
+        },
+        "fluid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:health / origins:relative_health / origins:food_level / origins:xp_level / origins:xp_points / origins:armor_value / origins:fall_distance / origins:height / origins:distance / origins:fluid_height / origins:temperature / origins:light_level / origins:brightness / origins:time_of_day / origins:amount / origins:fall_distance / neoorigins:hit_taken_amount \u00e2\u20ac\u201d numeric comparison.",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:health",
+            "origins:relative_health",
+            "origins:food_level",
+            "origins:food",
+            "origins:xp_level",
+            "origins:xp_points",
+            "origins:armor_value",
+            "origins:fall_distance",
+            "origins:height",
+            "origins:distance",
+            "origins:fluid_height",
+            "origins:temperature",
+            "origins:light_level",
+            "origins:brightness",
+            "origins:time_of_day",
+            "origins:amount",
+            "neoorigins:hit_taken_amount",
+            "neoorigins:health",
+            "neoorigins:relative_health",
+            "neoorigins:food_level",
+            "neoorigins:food",
+            "neoorigins:xp_level",
+            "neoorigins:xp_points",
+            "neoorigins:armor_value",
+            "neoorigins:fall_distance",
+            "neoorigins:height",
+            "neoorigins:distance",
+            "neoorigins:fluid_height",
+            "neoorigins:temperature",
+            "neoorigins:light_level",
+            "neoorigins:brightness",
+            "neoorigins:time_of_day",
+            "neoorigins:amount"
+          ]
+        },
+        "comparison": {
+          "type": "string",
+          "enum": [
+            ">=",
+            "<=",
+            "==",
+            "!=",
+            ">",
+            "<"
+          ]
+        },
+        "compare_to": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:entity_type / origins:target_type",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:entity_type",
+            "apace:entity_type",
+            "origins:target_type",
+            "neoorigins:entity_type",
+            "neoorigins:target_type"
+          ]
+        },
+        "entity_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "entity_type"
+      ]
+    },
+    {
+      "$comment": "origins:target_group",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:target_group",
+            "neoorigins:target_group"
+          ]
+        },
+        "group": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "group"
+      ]
+    },
+    {
+      "$comment": "origins:in_set / neoorigins:in_set",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:in_set",
+            "neoorigins:in_set"
+          ]
+        },
+        "set": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "set"
+      ]
+    },
+    {
+      "$comment": "neoorigins:no_minions_alive",
+      "properties": {
+        "type": {
+          "const": "neoorigins:no_minions_alive"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:equipped_item",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:equipped_item",
+            "apace:equipped_item",
+            "neoorigins:equipped_item"
+          ]
+        },
+        "equipment_slot": {
+          "type": "string",
+          "enum": [
+            "mainhand",
+            "offhand",
+            "head",
+            "chest",
+            "legs",
+            "feet"
+          ]
+        },
+        "item_condition": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Boolean no-field conditions \u00e2\u20ac\u201d sneaking / sprinting / swimming / in_water / on_ground / etc.",
+      "properties": {
+        "type": {
+          "enum": [
+            "origins:sneaking",
+            "origins:sprinting",
+            "origins:swimming",
+            "origins:invisible",
+            "origins:in_water",
+            "origins:submerged_in_water",
+            "origins:on_ground",
+            "origins:on_fire",
+            "origins:fire",
+            "origins:fall_flying",
+            "origins:creative_flying",
+            "origins:moving",
+            "origins:in_rain",
+            "origins:exposed_to_sky",
+            "origins:exposed_to_sun",
+            "origins:daytime",
+            "origins:passenger",
+            "origins:riding",
+            "origins:using_item",
+            "origins:living",
+            "origins:exists",
+            "origins:ticking",
+            "neoorigins:sneaking",
+            "neoorigins:sprinting",
+            "neoorigins:swimming",
+            "neoorigins:invisible",
+            "neoorigins:in_water",
+            "neoorigins:submerged_in_water",
+            "neoorigins:on_ground",
+            "neoorigins:on_fire",
+            "neoorigins:fire",
+            "neoorigins:fall_flying",
+            "neoorigins:creative_flying",
+            "neoorigins:moving",
+            "neoorigins:in_rain",
+            "neoorigins:exposed_to_sky",
+            "neoorigins:exposed_to_sun",
+            "neoorigins:daytime",
+            "neoorigins:passenger",
+            "neoorigins:riding",
+            "neoorigins:using_item",
+            "neoorigins:living",
+            "neoorigins:exists",
+            "neoorigins:ticking"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Fallback \u00e2\u20ac\u201d permissive for unlisted verbs.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "origins:and",
+              "origins:or",
+              "origins:not",
+              "origins:constant",
+              "origins:biome",
+              "origins:dimension",
+              "origins:enchantment",
+              "origins:submerged_in",
+              "origins:health",
+              "origins:relative_health",
+              "origins:food_level",
+              "origins:food",
+              "origins:xp_level",
+              "origins:xp_points",
+              "origins:armor_value",
+              "origins:fall_distance",
+              "origins:height",
+              "origins:distance",
+              "origins:fluid_height",
+              "origins:temperature",
+              "origins:light_level",
+              "origins:brightness",
+              "origins:time_of_day",
+              "origins:amount",
+              "neoorigins:hit_taken_amount",
+              "origins:entity_type",
+              "apace:entity_type",
+              "origins:target_type",
+              "origins:target_group",
+              "origins:in_set",
+              "neoorigins:in_set",
+              "neoorigins:no_minions_alive",
+              "origins:equipped_item",
+              "apace:equipped_item",
+              "origins:sneaking",
+              "origins:sprinting",
+              "origins:swimming",
+              "origins:invisible",
+              "origins:in_water",
+              "origins:submerged_in_water",
+              "origins:on_ground",
+              "origins:on_fire",
+              "origins:fire",
+              "origins:fall_flying",
+              "origins:creative_flying",
+              "origins:moving",
+              "origins:in_rain",
+              "origins:exposed_to_sky",
+              "origins:exposed_to_sun",
+              "origins:daytime",
+              "origins:passenger",
+              "origins:riding",
+              "origins:using_item",
+              "origins:living",
+              "origins:exists",
+              "origins:ticking",
+              "apace:and",
+              "apace:or",
+              "apace:not",
+              "apace:constant",
+              "apace:biome",
+              "apace:enchantment",
+              "apace:submerged_in",
+              "neoorigins:and",
+              "neoorigins:or",
+              "neoorigins:not",
+              "neoorigins:constant",
+              "neoorigins:biome",
+              "neoorigins:dimension",
+              "neoorigins:enchantment",
+              "neoorigins:submerged_in",
+              "neoorigins:health",
+              "neoorigins:relative_health",
+              "neoorigins:food_level",
+              "neoorigins:food",
+              "neoorigins:xp_level",
+              "neoorigins:xp_points",
+              "neoorigins:armor_value",
+              "neoorigins:fall_distance",
+              "neoorigins:height",
+              "neoorigins:distance",
+              "neoorigins:fluid_height",
+              "neoorigins:temperature",
+              "neoorigins:light_level",
+              "neoorigins:brightness",
+              "neoorigins:time_of_day",
+              "neoorigins:amount",
+              "neoorigins:entity_type",
+              "neoorigins:target_type",
+              "neoorigins:target_group",
+              "neoorigins:equipped_item",
+              "neoorigins:sneaking",
+              "neoorigins:sprinting",
+              "neoorigins:swimming",
+              "neoorigins:invisible",
+              "neoorigins:in_water",
+              "neoorigins:submerged_in_water",
+              "neoorigins:on_ground",
+              "neoorigins:on_fire",
+              "neoorigins:fire",
+              "neoorigins:fall_flying",
+              "neoorigins:creative_flying",
+              "neoorigins:moving",
+              "neoorigins:in_rain",
+              "neoorigins:exposed_to_sky",
+              "neoorigins:exposed_to_sun",
+              "neoorigins:daytime",
+              "neoorigins:passenger",
+              "neoorigins:riding",
+              "neoorigins:using_item",
+              "neoorigins:living",
+              "neoorigins:exists",
+              "neoorigins:ticking"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

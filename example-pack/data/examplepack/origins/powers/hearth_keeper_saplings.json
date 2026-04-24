@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "examplepack:hearth_keeper_saplings",
+  "item": "minecraft:oak_sapling",
+  "count": 4,
+  "name": "power.examplepack.hearth_keeper_saplings.name",
+  "description": "power.examplepack.hearth_keeper_saplings.description"
+}

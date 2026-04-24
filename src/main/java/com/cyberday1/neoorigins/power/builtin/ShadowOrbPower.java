@@ -47,29 +47,62 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         List<BlockPos> orbs = new ArrayList<>(data.getShadowOrbs());
         if (orbs.size() >= config.maxOrbs()) orbs.remove(0);
-        orbs.add(player.blockPosition());
+        BlockPos pos = player.blockPosition();
+        orbs.add(pos);
         data.setShadowOrbs(orbs);
+        // Placement feedback — Darkness is subtle, give the player something
+        // tangible on activation. Particles at eye level; a short low-pitched
+        // soul-sand cue so the keybind clearly fires.
+        ServerLevel level = (ServerLevel) player.level();
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.SCULK_SOUL,
+            pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5, 20, 0.5, 0.5, 0.5, 0.02);
+        level.playSound(null, pos,
+            net.minecraft.sounds.SoundEvents.SOUL_ESCAPE.value(),
+            net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 0.6F);
         return true;
     }
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
-        if (player.tickCount % config.tickInterval() != 0) return;
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         List<BlockPos> orbs = data.getShadowOrbs();
         if (orbs.isEmpty()) return;
 
         ServerLevel level = (ServerLevel) player.level();
-        var darknessOpt = BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse("minecraft:darkness"));
-        if (darknessOpt.isEmpty()) return;
-        var darkness = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(darknessOpt.get());
 
+        // Orb visual — spawn a sculk soul particle at each orb every 3 ticks
+        // so the anchor is visible. Previously the orb was invisible after
+        // placement and testers couldn't tell where it was.
+        if (player.tickCount % 3 == 0) {
+            for (BlockPos orbPos : orbs) {
+                level.sendParticles(net.minecraft.core.particles.ParticleTypes.SCULK_SOUL,
+                    orbPos.getX() + 0.5, orbPos.getY() + 1.0, orbPos.getZ() + 0.5,
+                    2, 0.15, 0.15, 0.15, 0.005);
+            }
+        }
+
+        if (player.tickCount % config.tickInterval() != 0) return;
+
+        var reg = BuiltInRegistries.MOB_EFFECT;
+        var darkness = reg.getOptional(ResourceLocation.parse("minecraft:darkness"))
+            .map(reg::wrapAsHolder).orElse(null);
+        var blindness = reg.getOptional(ResourceLocation.parse("minecraft:blindness"))
+            .map(reg::wrapAsHolder).orElse(null);
+        if (darkness == null) return;
+
+        int duration = config.tickInterval() * 2;
         for (BlockPos orbPos : orbs) {
             AABB box = new AABB(orbPos).inflate(config.radius());
             var playerTeam = player.getTeam();
             for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player)) {
                 if (playerTeam != null && entity.isAlliedTo(playerTeam)) continue;
-                entity.addEffect(new MobEffectInstance(darkness, 40, 0, true, false));
+                // Darkness for the screen pulse, Blindness for the actual gameplay
+                // impact (vision limited to 1 block). Without Blindness the
+                // Darkness effect alone is too subtle for pack authors to notice.
+                entity.addEffect(new MobEffectInstance(darkness, duration, 0, true, false));
+                if (blindness != null) {
+                    entity.addEffect(new MobEffectInstance(blindness, duration, 0, true, false));
+                }
             }
         }
     }

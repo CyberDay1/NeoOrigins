@@ -43,6 +43,21 @@ public class WorldPowerEvents {
             return;
         }
 
+        // ScareEntitiesPower — mobs that the player is scaring shouldn't be
+        // able to target them in the first place. This runs BEFORE the
+        // MobsIgnorePlayer check so scare-matched mobs are locked out even if
+        // the MobsIgnore retaliation window has already expired. Retaliation
+        // still works: if the mob is the last hurt-by source for the player
+        // within vanilla's timer, we allow the target change so combat
+        // feedback loops work.
+        if (ActiveOriginService.has(sp, com.cyberday1.neoorigins.power.builtin.ScareEntitiesPower.class,
+                cfg -> cfg.entityTypes().stream().anyMatch(id ->
+                    com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
+            if (event.getEntity().getLastHurtByMob() == sp) return;
+            event.setCanceled(true);
+            return;
+        }
+
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
                 cfg -> cfg.entityTypes().isEmpty()
                     || cfg.entityTypes().stream().anyMatch(id ->

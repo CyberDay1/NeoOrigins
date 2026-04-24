@@ -14,7 +14,6 @@ import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.api.origin.OriginUpgrade;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
-import com.cyberday1.neoorigins.power.builtin.ActiveGravityWellPower;
 import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -69,7 +68,6 @@ public class PlayerLifecycleEvents {
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
-        ActiveGravityWellPower.tickWells();
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
@@ -329,6 +327,11 @@ public class PlayerLifecycleEvents {
             }
         }
         if (!kept.isEmpty()) KEPT_STASH.put(sp.getUUID(), kept);
+
+        // Kill all tracked minions belonging to the dying summoner — they
+        // shouldn't outlive their owner. clearAll() discards them cleanly and
+        // evicts them from MinionTracker + DIM_HINTS.
+        MinionTracker.clearAll(sp.getUUID());
     }
 
     @SubscribeEvent

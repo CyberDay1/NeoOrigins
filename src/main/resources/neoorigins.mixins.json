@@ -9,10 +9,12 @@
     "FoodDataMixin",
     "FoodDataTickMixin",
     "FoodDataNoRegenMixin",
-    "EnderManLookMixin"
+    "EnderManLookMixin",
+    "EntityMakeStuckInBlockMixin"
   ],
   "client": [
-    "client.LightTextureMixin"
+    "client.LightTextureMixin",
+    "client.GuiHudBarsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

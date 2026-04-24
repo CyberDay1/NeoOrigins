@@ -6,7 +6,10 @@
     "examplepack:golem",
     "examplepack:specter",
     "examplepack:paladin",
-    "examplepack:void_knight"
+    "examplepack:void_knight",
+    "examplepack:netherborn",
+    "examplepack:tidecaller",
+    "examplepack:hearth_keeper"
   ],
   "allow_random": true,
   "auto_choose": false,

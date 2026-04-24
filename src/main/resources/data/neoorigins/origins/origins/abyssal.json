@@ -14,7 +14,13 @@
     "neoorigins:abyssal_scare_ocean",
     "neoorigins:abyssal_summon_guardian",
     "neoorigins:abyssal_daylight_damage",
-    "neoorigins:abyssal_land_speed_penalty"
+    "neoorigins:abyssal_land_speed_penalty",
+    "neoorigins:abyssal_dries_out"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
 }

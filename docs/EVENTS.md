@@ -507,36 +507,25 @@ and mod teleports are not routed through this event.
 
 ---
 
-# Not yet wired
+# Previously unwired — now removed
 
-The following enum values are declared in `EventPowerIndex.Event` but have
-**no** `EventPowerIndex.dispatch(...)` or `dispatchModifier(...)` call site
-anywhere in the tree as of this writing. A pack can register an
-`action_on_event` power against any of these keys — the registration will
-succeed, but the handler will never fire until the dispatch site is added.
+The earlier draft enum included 15 keys that were parseable in JSON but had
+**no runtime dispatch site**. Exposing a handler that never fires is worse
+for pack authors than not offering it, so they were removed from the enum
+rather than left as silent no-ops: `CLIMB`, `CRAFT_ITEM`, `SMELT_ITEM`,
+`ENCHANT_ITEM`, `ANVIL_REPAIR`, `BREED`, `TAME`, `ADVANCEMENT_EARNED`,
+`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`, `MOD_XP_GAIN`,
+`MOD_TRADE_PRICE`, `MOD_CRAFT_AMOUNT`, `MOD_FALL_DAMAGE`. Several of these
+remain useful and will be added back the same day their dispatch site
+lands. If you need one for a pack you're building, file an issue and the
+wiring is usually a few lines on the matching NeoForge event.
 
-| Key | Expected context | Notes |
-|---|---|---|
-| `CLIMB` | TBD | No climbing-tick hook yet; consider a `PlayerTickEvent` branch that checks `onClimbable()` edge-triggered. |
-| `CRAFT_ITEM` | `CraftContext(result)` | `PlayerEvent.ItemCraftedEvent` handler exists (see `CraftingPowerEvents.onItemCrafted`) but only calls `boostFoodIfCook` → `MOD_CRAFTED_FOOD_SATURATION`; no `CRAFT_ITEM` dispatch. |
-| `SMELT_ITEM` | `CraftContext(result)` | Same as above — `onItemSmelted` is wired for saturation bonus only. |
-| `ENCHANT_ITEM` | TBD | Distinct from the table-level modifier `MOD_ENCHANT_LEVEL`; no post-enchant dispatch. |
-| `ANVIL_REPAIR` | TBD | Distinct from the cost modifier `MOD_ANVIL_COST`. |
-| `BREED` | `EntityInteractContext(target)` | `BabyEntitySpawnEvent` is handled by `WorldPowerEvents.onBabyEntitySpawn` for `TwinBreedingPower` but does not dispatch `BREED`. |
-| `TAME` | `EntityInteractContext(target)` | No taming hook. |
-| `ADVANCEMENT_EARNED` | `AdvancementContext(advancementId)` | `PlayerLifecycleEvents.onAdvancementEarned` handles origin upgrades but doesn't call `EventPowerIndex.dispatch`. |
-| `TRADE_COMPLETED` | `TradeContext(offer)` | No trade completion hook. |
-| `VILLAGER_INTERACT` | `EntityInteractContext(villager)` | Distinct from generic `ENTITY_USE`; no villager-specific filter is wired. |
-| `MOD_BREAK_SPEED` | TBD | Replaced by vanilla `player.block_break_speed` attribute at the `BreakSpeedModifierPower` level — see `MovementPowerEvents` note. No dispatch exists. |
-| `MOD_XP_GAIN` | TBD | No XP-orb pickup multiplier hook. |
-| `MOD_TRADE_PRICE` | TBD | Needs a `MerchantEvent` / trade-offer hook. |
-| `MOD_CRAFT_AMOUNT` | TBD | No craft-output multiplier hook. |
-| `MOD_FALL_DAMAGE` | TBD | `LAND` fires on `LivingFallEvent`, but no modifier-style dispatch for fall-damage multiplier (cancelling fall-damage goes via `prevent_action: FALL_DAMAGE`). |
+Partial substitutes that already work today:
 
-When wiring any of these, add the dispatch call site, pick the appropriate
-context record from the bottom of `EventPowerIndex.java` (create a new one
-if none fit), and move the row out of this table into the relevant section
-above.
+- `MOD_BREAK_SPEED` → use the `break_speed_modifier` power (attribute-backed).
+- `MOD_FALL_DAMAGE` cancellation → `prevent_action: FALL_DAMAGE`.
+- `BREED` → a dedicated `twin_breeding` power already covers the common case.
+- `TAME` → inspect `tame_mob`'s own `MinionTracker` integration.
 
 ---
 

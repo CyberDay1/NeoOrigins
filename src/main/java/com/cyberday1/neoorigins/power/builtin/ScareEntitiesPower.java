@@ -23,7 +23,7 @@ import java.util.List;
 public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
 
     private static final double RANGE = 8.0;
-    private static final int TICK_INTERVAL = 10;
+    private static final int TICK_INTERVAL = 5;
     private static final double FLEE_SPEED = 1.3;
 
     public record Config(List<String> entityTypes, String type) implements PowerConfiguration {
@@ -53,6 +53,17 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
                 }
             }
             if (!matches) continue;
+            // Drop aggro: NearestAttackableTargetGoal (or Endermite's attack goal)
+            // will re-path toward the player on the next tick if we only set a
+            // flee destination. Clearing the current target + last-hurt-by lets
+            // our flee navigation stick. Hostile AI may re-acquire the target
+            // on line of sight, but that's OK — we re-clear on the next tick.
+            if (mob.getTarget() == player) {
+                mob.setTarget(null);
+            }
+            if (mob.getLastHurtByMob() == player) {
+                mob.setLastHurtByMob(null);
+            }
             if (!mob.getNavigation().isDone()
                 && mob.getNavigation().getTargetPos() != null
                 && mob.getNavigation().getTargetPos().distSqr(player.blockPosition()) > RANGE * RANGE) {

@@ -1,8 +1,23 @@
 {
-  "type": "neoorigins:active_aoe_effect",
-  "effect": "minecraft:instant_damage",
-  "amplifier": 0,
-  "duration_ticks": 1,
-  "radius": 5.0,
-  "cooldown_ticks": 160
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 160,
+  "hunger_cost": 3,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "fire",
+    "speed": 1.6,
+    "inaccuracy": 0.1,
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 5.0,
+      "include_source": false,
+      "entity_action": {
+        "type": "neoorigins:apply_effect",
+        "effect": "minecraft:instant_damage",
+        "duration": 1,
+        "amplifier": 0
+      }
+    }
+  }
 }

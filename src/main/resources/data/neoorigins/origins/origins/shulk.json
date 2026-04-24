@@ -6,7 +6,10 @@
   "order": 8,
   "powers": [
     "neoorigins:shulk_natural_armor",
-    "neoorigins:shulk_slow_movement"
+    "neoorigins:shulk_slow_movement",
+    "neoorigins:shulk_levitation_burst",
+    "neoorigins:shulk_shell_retreat",
+    "neoorigins:shulk_levitation_immunity"
   ],
   "upgrades": []
 }
