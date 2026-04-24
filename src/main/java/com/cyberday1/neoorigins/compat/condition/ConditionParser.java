@@ -25,8 +25,10 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,6 +172,17 @@ public final class ConditionParser {
                 case "neoorigins:damage_tag"                    -> parseDamageTag(json);
                 case "neoorigins:damage_name",
                      "neoorigins:name"                          -> parseDamageName(json);
+
+                // ---- Phase 8: condition expansion (2026-04-24) ----
+                case "neoorigins:night"                         ->
+                    p -> p.level().getDefaultClockTime() % 24000L >= 13000L;
+                case "neoorigins:thundering"                    -> p -> {
+                    if (!(p.level() instanceof ServerLevel sl)) return false;
+                    return sl.isThundering() && sl.isRainingAt(p.blockPosition());
+                };
+                case "neoorigins:has_effect"                    -> parseHasEffect(json);
+                case "neoorigins:climbing"                      -> p -> p.onClimbable();
+                case "neoorigins:near_block"                    -> parseNearBlock(json, contextId);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -965,6 +978,97 @@ public final class ConditionParser {
             var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             return src != null && expected.equalsIgnoreCase(src.getMsgId());
         };
+    }
+
+    /**
+     * has_effect: true when the player has the specified MobEffect active.
+     * <pre>{ "type": "neoorigins:has_effect", "effect": "minecraft:luck" }</pre>
+     * Useful for gating passives on consumable-applied buffs (mirrors the
+     * FortuneWhenEffectPower gate pattern for DSL authors).
+     */
+    private static EntityCondition parseHasEffect(JsonObject json) {
+        if (!json.has("effect")) return CompatPolicy.FALSE_CONDITION;
+        Identifier id = Identifier.parse(json.get("effect").getAsString());
+        return p -> {
+            var effect = BuiltInRegistries.MOB_EFFECT.getOptional(id);
+            if (effect.isEmpty()) return false;
+            Holder<MobEffect> holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect.get());
+            return p.hasEffect(holder);
+        };
+    }
+
+    /**
+     * near_block: true when any matching block is within {@code radius} blocks
+     * (default 4, capped at 8) of the player. Accepts any combination of:
+     * <ul>
+     *   <li>{@code block} — single block ID</li>
+     *   <li>{@code blocks} — list of block IDs</li>
+     *   <li>{@code tag} — single block tag (with or without leading {@code #})</li>
+     *   <li>{@code tags} — list of block tags</li>
+     * </ul>
+     * A block matches if it's in ANY of the provided blocks/tags (logical OR).
+     *
+     * <pre>{ "type": "neoorigins:near_block", "block": "minecraft:lava", "radius": 3 }</pre>
+     * <pre>{ "type": "neoorigins:near_block", "tags": ["minecraft:campfires", "#c:fire"], "radius": 5 }</pre>
+     *
+     * Scans a cubic AABB; intended for ambient proximity buffs (campfire
+     * warmth, lava-side speed, etc.). Capped at radius 8 to avoid overly
+     * expensive per-tick scans.
+     */
+    private static EntityCondition parseNearBlock(JsonObject json, String contextId) {
+        int radius = Math.min(8, Math.max(1,
+            json.has("radius") ? json.get("radius").getAsInt() : 4));
+        List<Identifier> blockIds = new ArrayList<>();
+        List<TagKey<Block>> tags = new ArrayList<>();
+
+        if (json.has("block")) {
+            blockIds.add(Identifier.parse(json.get("block").getAsString()));
+        }
+        if (json.has("blocks") && json.get("blocks").isJsonArray()) {
+            for (JsonElement el : json.getAsJsonArray("blocks")) {
+                if (el.isJsonPrimitive()) blockIds.add(Identifier.parse(el.getAsString()));
+            }
+        }
+        if (json.has("tag")) {
+            tags.add(parseBlockTag(json.get("tag").getAsString()));
+        }
+        if (json.has("tags") && json.get("tags").isJsonArray()) {
+            for (JsonElement el : json.getAsJsonArray("tags")) {
+                if (el.isJsonPrimitive()) tags.add(parseBlockTag(el.getAsString()));
+            }
+        }
+
+        if (blockIds.isEmpty() && tags.isEmpty()) return failClosed("neoorigins:near_block",
+            contextId, "requires 'block'/'blocks' or 'tag'/'tags'");
+
+        final int r = radius;
+        final List<Identifier> finalBlockIds = List.copyOf(blockIds);
+        final List<TagKey<Block>> finalTags = List.copyOf(tags);
+        return p -> {
+            BlockPos origin = p.blockPosition();
+            Level level = p.level();
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dy = -r; dy <= r; dy++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        BlockPos pos = origin.offset(dx, dy, dz);
+                        BlockState state = level.getBlockState(pos);
+                        for (Identifier id : finalBlockIds) {
+                            var block = BuiltInRegistries.BLOCK.getOptional(id);
+                            if (block.isPresent() && state.is(block.get())) return true;
+                        }
+                        for (TagKey<Block> tag : finalTags) {
+                            if (state.is(tag)) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+    }
+
+    private static TagKey<Block> parseBlockTag(String raw) {
+        if (raw.startsWith("#")) raw = raw.substring(1);
+        return TagKey.create(Registries.BLOCK, Identifier.parse(raw));
     }
 
     private static EntityCondition failClosed(String type, String contextId, String detail) {

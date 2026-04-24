@@ -21,12 +21,17 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         double range,
         int cooldownTicks,
         String mode,
+        int hungerCost,
         String type
     ) implements AbstractActivePower.Config {
+        @Override public int cooldownTicks() { return cooldownTicks; }
+        @Override public int hungerCost() { return hungerCost; }
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("range", 32.0).forGetter(Config::range),
             Codec.INT.optionalFieldOf("cooldown_ticks", 60).forGetter(Config::cooldownTicks),
             Codec.STRING.optionalFieldOf("mode", "target").forGetter(Config::mode),
+            Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }

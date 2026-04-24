@@ -585,3 +585,58 @@ Case-insensitive match against the damage source's message ID (e.g. `"lava"`, `"
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `name` | string | yes | — | Damage message ID; always-false when blank |
+
+## `neoorigins:night`
+
+True while the level's in-game time is past 13000 ticks (nightfall) and before the day reset. Logical inverse of `neoorigins:daytime`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker condition. |
+
+## `neoorigins:thundering`
+
+True when there's an active thunderstorm **and** rain is falling at the player's position (biome supports rain). Stricter than vanilla's global `isThundering()` — won't fire in dry biomes even during a global thunderstorm.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker condition. |
+
+## `neoorigins:has_effect`
+
+True when the player has the specified MobEffect active. Useful for gating passives on consumable-applied buffs (mirrors the `FortuneWhenEffectPower` gate pattern for DSL authors).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `effect` | resource location | yes | — | MobEffect ID (e.g. `minecraft:luck`, `minecraft:haste`) |
+
+## `neoorigins:climbing`
+
+True when the player is currently on a climbable block (vanilla ladder, vine, or any block with the wall-climb capability from origins like Arachnid).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker condition. |
+
+## `neoorigins:near_block`
+
+True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists — a block matches if it appears in ANY of the provided blocks/tags (logical OR).
+
+Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 8 to avoid expensive per-tick scans.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `block` | resource location | no | — | Single block ID to match |
+| `blocks` | list of resource location | no | `[]` | Additional block IDs to match |
+| `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
+| `tags` | list of block tag | no | `[]` | Additional block tags |
+| `radius` | int (1–8) | no | `4` | Cubic radius to scan around the player |
+
+At least one of `block`/`blocks`/`tag`/`tags` must be non-empty.
+
+**Example — warm near any fire source:**
+```json
+{ "type": "neoorigins:near_block",
+  "tags": ["minecraft:campfires", "#c:fire"],
+  "radius": 5 }
+```

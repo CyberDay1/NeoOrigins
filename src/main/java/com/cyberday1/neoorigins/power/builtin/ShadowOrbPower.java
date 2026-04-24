@@ -29,13 +29,18 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         double radius,
         int cooldownTicks,
         int tickInterval,
+        int hungerCost,
         String type
     ) implements AbstractActivePower.Config {
+        @Override public int cooldownTicks() { return cooldownTicks; }
+        @Override public int hungerCost() { return hungerCost; }
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("max_orbs", 4).forGetter(Config::maxOrbs),
             Codec.DOUBLE.optionalFieldOf("radius", 28.0).forGetter(Config::radius),
             Codec.INT.optionalFieldOf("cooldown_ticks", 100).forGetter(Config::cooldownTicks),
             Codec.INT.optionalFieldOf("tick_interval", 20).forGetter(Config::tickInterval),
+            Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
