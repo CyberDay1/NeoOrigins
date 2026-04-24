@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:food_item_in_tag",
+      "tag": "neoorigins:caveborn_eat_iron"
+    },
+    "if_action": {
+      "type": "neoorigins:apply_effect",
+      "effect": "minecraft:haste",
+      "duration": 1200,
+      "amplifier": 0
+    }
+  }
+}

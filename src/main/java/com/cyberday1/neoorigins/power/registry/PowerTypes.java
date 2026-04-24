@@ -53,6 +53,8 @@ public class PowerTypes {
     // food_restriction retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, BreakSpeedModifierPower>  BREAK_SPEED_MODIFIER = reg("break_speed_modifier", new BreakSpeedModifierPower());
     public static final DeferredHolder<PowerType<?>, UnderwaterMiningSpeedPower> UNDERWATER_MINING_SPEED = reg("underwater_mining_speed", new UnderwaterMiningSpeedPower());
+    public static final DeferredHolder<PowerType<?>, BareHandToolPower>        BARE_HAND_TOOL       = reg("bare_hand_tool",       new BareHandToolPower());
+    public static final DeferredHolder<PowerType<?>, FortuneWhenEffectPower>   FORTUNE_WHEN_EFFECT  = reg("fortune_when_effect",  new FortuneWhenEffectPower());
     // biome_buff, damage_in_biome/daylight/water, burn_at_health_threshold,
     // regen_in_fluid retired in 2.0; aliased to condition_passive.
     public static final DeferredHolder<PowerType<?>, BreathInFluidPower>       BREATH_IN_FLUID      = reg("breath_in_fluid",      new BreathInFluidPower());

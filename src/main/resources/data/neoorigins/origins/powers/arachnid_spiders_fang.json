@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:action_on_hit",
+  "action": "target_effect",
+  "effect": "minecraft:poison",
+  "duration": 60,
+  "amplifier": 0
+}

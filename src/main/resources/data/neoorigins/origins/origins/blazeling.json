@@ -6,8 +6,15 @@
   "order": 4,
   "powers": [
     "neoorigins:blazeling_fire_immunity",
+    "neoorigins:blazeling_blaze_scales",
+    "neoorigins:blazeling_nether_born",
+    "neoorigins:blazeling_internal_heat",
     "neoorigins:blazeling_water_damage",
-    "neoorigins:blazeling_night_vision"
+    "neoorigins:blazeling_night_vision",
+    "neoorigins:blazeling_firebolt"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:the_nether"
+  }
 }

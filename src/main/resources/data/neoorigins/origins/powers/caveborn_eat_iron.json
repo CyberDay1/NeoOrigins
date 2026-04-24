@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:edible_item",
+  "tags": ["neoorigins:caveborn_eat_iron"],
+  "nutrition": 4,
+  "saturation": 0.8,
+  "always_edible": true
+}

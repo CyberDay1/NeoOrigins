@@ -1,8 +1,18 @@
 {
-  "type": "neoorigins:modify_damage",
-  "direction": "in",
-  "multiplier": 2.5,
-  "damage_type": "drown",
+  "type": "neoorigins:condition_passive",
+  "condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      { "type": "neoorigins:in_water" },
+      { "type": "neoorigins:in_rain" }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:damage",
+    "amount": 1.5,
+    "source": { "name": "magic" }
+  },
+  "interval": 20,
   "name": "power.neoorigins.blazeling_water_damage.name",
   "description": "power.neoorigins.blazeling_water_damage.description"
 }
