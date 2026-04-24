@@ -1028,6 +1028,7 @@ Active ability that teleports the player to the block they are looking at, up to
 |---|---|---|---|---|
 | `max_distance` | float | no | `32.0` | Maximum teleport range in blocks |
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks after each use |
+| `hunger_cost` | int | no | `0` | Food points removed per use |
 
 **Example:**
 ```json
@@ -1035,6 +1036,7 @@ Active ability that teleports the player to the block they are looking at, up to
   "type": "neoorigins:active_teleport",
   "max_distance": 32.0,
   "cooldown_ticks": 60,
+  "hunger_cost": 2,
   "name": "Blink",
   "description": "Teleports to where you're looking."
 }
@@ -1292,6 +1294,7 @@ Active ability that places a specific block at the surface the player is looking
 | `block_id` | Identifier | no | `minecraft:glowstone` | Block to place |
 | `max_distance` | float | no | `5.0` | Maximum targeting range in blocks |
 | `cooldown_ticks` | int | no | `100` | Cooldown in ticks |
+| `hunger_cost` | int | no | `0` | Food points removed per use |
 
 **Example:**
 ```json
@@ -1337,6 +1340,7 @@ Active ability that places a persistent shadow orb at the player's position. Eac
 | `radius` | float | no | `28.0` | Effect radius per orb in blocks |
 | `cooldown_ticks` | int | no | `100` | Cooldown between placements |
 | `tick_interval` | int | no | `20` | Ticks between Darkness pulses per orb |
+| `hunger_cost` | int | no | `0` | Food points removed per placement |
 
 **Example:**
 ```json
@@ -1725,10 +1729,13 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `cooldown_ticks` | int | no | `60` | Cooldown after each use |
+| `hunger_cost` | int | no | `0` | Food points removed per use (1 shank = 2 points). Silently aborts if player has less food (cooldown not consumed). |
 | `entity_action` | EntityAction | yes | noop | Action tree fired on use (typically `origins:and { actions: [...] }`) |
 | `condition` | EntityCondition | no | always-true | DSL gate — skips firing (and the cooldown) if false |
 
 Actions and conditions are compiled once at power-load time via `ActionParser` / `ConditionParser`; runtime only dispatches through the compiled closures.
+
+Hunger gating is handled at the `AbstractActivePower` base class level — when `hunger_cost > 0`, the base checks and debits food before calling `execute`. Any power that extends `AbstractActivePower` and wires `hungerCost()` through its Codec inherits the behavior automatically.
 
 **Example — launch the player upward:**
 ```json
@@ -1786,6 +1793,7 @@ Cone-shaped water blast in the player's look direction. Knocks back and damages 
 | `range` | double | no | `8.0` | Maximum wave distance |
 | `cone_angle` | double | no | `60.0` | Total cone angle in degrees (30° to each side of look axis) |
 | `cooldown_ticks` | int | no | `100` | Cooldown after each use |
+| `hunger_cost` | int | no | `0` | Food points removed per use |
 
 **Example:**
 ```json
