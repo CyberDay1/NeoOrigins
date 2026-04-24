@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_blacksmith_starting_iron",
+  "item": "minecraft:iron_ingot",
+  "count": 4
+}

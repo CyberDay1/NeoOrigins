@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_herbalist_starting_bone_meal",
+  "item": "minecraft:bone_meal"
+}

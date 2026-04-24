@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:luck",
+  "amount": 1.0,
+  "operation": "add_value",
+  "condition": "in_water"
+}

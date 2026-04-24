@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_mason_starting_stone",
+  "item": "minecraft:cobblestone"
+}

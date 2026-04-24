@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_herbalist_starting_seeds",
+  "item": "minecraft:wheat_seeds"
+}

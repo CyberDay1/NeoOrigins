@@ -6,7 +6,10 @@
   "order": 15,
   "powers": [
     "neoorigins:class_cook_food",
-    "neoorigins:class_cook_smoker_xp"
+    "neoorigins:class_cook_smoker_xp",
+    "neoorigins:class_cook_iron_stomach",
+    "neoorigins:class_cook_seasoned_palate",
+    "neoorigins:class_cook_knife"
   ],
   "upgrades": []
 }

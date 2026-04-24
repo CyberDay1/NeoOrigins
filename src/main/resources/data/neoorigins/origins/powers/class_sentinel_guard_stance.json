@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:knockback_resistance",
+  "amount": 0.2,
+  "operation": "add_value",
+  "condition": { "type": "neoorigins:sneaking" }
+}

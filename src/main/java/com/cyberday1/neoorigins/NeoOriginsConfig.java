@@ -74,7 +74,7 @@ public final class NeoOriginsConfig {
         "class_explorer", "class_sentinel", "class_herbalist", "class_scout",
         "class_berserker", "class_titan", "class_rogue", "class_lumberjack",
         "class_blacksmith", "class_cook", "class_merchant", "class_cleric",
-        "class_nitwit"
+        "class_nitwit", "class_fisher", "class_mason", "class_paladin"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> CLASS_TOGGLES;

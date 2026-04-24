@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_fisher_starting_rod",
+  "item": "minecraft:fishing_rod",
+  "enchantments": [
+    { "id": "minecraft:luck_of_the_sea", "level": 1 },
+    { "id": "minecraft:lure", "level": 1 }
+  ]
+}

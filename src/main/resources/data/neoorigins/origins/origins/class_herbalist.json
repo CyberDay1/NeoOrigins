@@ -7,7 +7,10 @@
   "powers": [
     "neoorigins:class_herbalist_growth",
     "neoorigins:class_herbalist_poison_immunity",
-    "neoorigins:class_herbalist_harvest_bonus"
+    "neoorigins:class_herbalist_harvest_bonus",
+    "neoorigins:class_herbalist_green_thumb",
+    "neoorigins:class_herbalist_starting_seeds",
+    "neoorigins:class_herbalist_starting_bone_meal"
   ],
   "upgrades": []
 }
