@@ -2,5 +2,6 @@
   "type": "neoorigins:repulse",
   "knockback_strength": 2.5,
   "radius": 8.0,
-  "cooldown_ticks": 80
+  "cooldown_ticks": 80,
+  "hunger_cost": 3
 }

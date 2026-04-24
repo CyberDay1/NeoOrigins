@@ -1,6 +1,6 @@
 {
-  "type": "neoorigins:biome_buff",
-  "biome_tag": "minecraft:is_overworld",
-  "effect": "minecraft:slowness",
-  "amplifier": 0
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_overworld" },
+  "entity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:slowness", "duration": 300, "amplifier": 0 },
+  "interval": 20
 }

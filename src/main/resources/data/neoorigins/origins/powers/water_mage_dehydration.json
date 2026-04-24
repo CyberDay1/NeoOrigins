@@ -1,5 +1,11 @@
 {
-  "type": "neoorigins:damage_in_biome",
-  "biomes": ["minecraft:desert", "minecraft:badlands", "minecraft:eroded_badlands", "minecraft:wooded_badlands"],
-  "damage_per_second": 1.0
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:or", "conditions": [
+    { "type": "neoorigins:biome", "biome": "minecraft:desert" },
+    { "type": "neoorigins:biome", "biome": "minecraft:badlands" },
+    { "type": "neoorigins:biome", "biome": "minecraft:eroded_badlands" },
+    { "type": "neoorigins:biome", "biome": "minecraft:wooded_badlands" }
+  ] },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1.0, "source": { "name": "magic" } },
+  "interval": 20
 }

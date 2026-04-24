@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_teleport",
   "range": 32,
-  "cooldown_ticks": 60
+  "cooldown_ticks": 60,
+  "hunger_cost": 2
 }

@@ -1,3 +1,8 @@
 {
-  "type": "neoorigins:better_enchanting"
+  "type": "neoorigins:action_on_event",
+  "event": "mod_enchant_level",
+  "modifier": {
+    "operation": "add_base",
+    "value": 5
+  }
 }

@@ -3,6 +3,7 @@
   "range": 50.0,
   "cooldown_ticks": 60,
   "mode": "target",
+  "hunger_cost": 2,
   "name": "power.neoorigins.enderian_teleport.name",
   "description": "power.neoorigins.enderian_teleport.description"
 }

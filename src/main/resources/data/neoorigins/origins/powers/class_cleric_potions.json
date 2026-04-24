@@ -1,4 +1,8 @@
 {
-  "type": "neoorigins:longer_potions",
-  "multiplier": 2.0
+  "type": "neoorigins:action_on_event",
+  "event": "mod_potion_duration",
+  "modifier": {
+    "operation": "multiplication",
+    "value": 2.0
+  }
 }

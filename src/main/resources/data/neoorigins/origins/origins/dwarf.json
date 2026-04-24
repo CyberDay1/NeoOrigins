@@ -11,7 +11,8 @@
     "neoorigins:dwarf_sturdy_legs",
     "neoorigins:dwarf_stonecunning",
     "neoorigins:dwarf_short_reach",
-    "neoorigins:dwarf_mining_hunger"
+    "neoorigins:dwarf_mining_hunger",
+    "neoorigins:dwarf_starting_pickaxe"
   ],
   "upgrades": []
 }

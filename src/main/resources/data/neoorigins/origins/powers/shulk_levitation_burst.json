@@ -1,6 +1,7 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 160,
+  "hunger_cost": 2,
   "entity_action": {
     "type": "neoorigins:area_of_effect",
     "radius": 5,

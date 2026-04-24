@@ -1,1 +1,1 @@
-{ "type": "neoorigins:natural_regen_modifier", "multiplier": 0.4 }
+{ "type": "neoorigins:action_on_event", "event": "mod_natural_regen", "modifier": { "operation": "multiplication", "value": 0.4 } }

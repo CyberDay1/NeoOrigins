@@ -1,4 +1,5 @@
 {
   "type": "neoorigins:active_phase",
-  "cooldown_ticks": 200
+  "cooldown_ticks": 200,
+  "hunger_cost": 3
 }
