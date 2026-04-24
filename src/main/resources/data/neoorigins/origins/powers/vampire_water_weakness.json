@@ -1,1 +1,6 @@
-{ "type": "neoorigins:modify_damage", "damage_type": "drown", "multiplier": 2.0 }
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:or", "conditions": [ { "type": "neoorigins:in_water" }, { "type": "neoorigins:in_rain" } ] },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1.0, "source": { "name": "magic" } },
+  "interval": 20
+}

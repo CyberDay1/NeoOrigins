@@ -1,1 +1,1 @@
-{ "type": "neoorigins:active_teleport", "range": 24.0, "cooldown_ticks": 80, "mode": "target" }
+{ "type": "neoorigins:active_teleport", "range": 24.0, "cooldown_ticks": 80, "mode": "target", "hunger_cost": 2 }

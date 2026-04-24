@@ -1,1 +1,7 @@
-{ "type": "neoorigins:status_effect", "effect": "minecraft:slow_falling", "amplifier": 0, "duration": 400 }
+{
+  "type": "neoorigins:persistent_effect",
+  "toggleable": false,
+  "effects": [
+    { "effect": "minecraft:slow_falling", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+  ]
+}

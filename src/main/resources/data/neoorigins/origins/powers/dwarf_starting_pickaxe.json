@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "dwarf_iron_pickaxe",
+  "item": "minecraft:iron_pickaxe",
+  "enchantments": [
+    { "id": "minecraft:unbreaking", "level": 2 },
+    { "id": "minecraft:efficiency", "level": 1 }
+  ]
+}
