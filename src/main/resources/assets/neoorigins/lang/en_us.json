@@ -136,8 +136,8 @@
   "power.neoorigins.golem_ground_slam.name": "Ground Slam",
   "power.neoorigins.golem_ground_slam.description": "Slam the earth with iron fists — 4 damage and Slowness II for 4 seconds to all nearby enemies in a 5-block radius. Costs 3 hunger. 7-second cooldown.",
 
-  "power.neoorigins.enderian_no_eye_damage.name": "Ender Eyes",
-  "power.neoorigins.enderian_no_eye_damage.description": "Endermen ignore your gaze — look at them without provoking an attack.",
+  "power.neoorigins.enderian_ender_eyes.name": "Ender Eyes",
+  "power.neoorigins.enderian_ender_eyes.description": "Endermen ignore your gaze — look at them without provoking an attack.",
   "power.neoorigins.enderian_projectile_dodge.name": "Void Step",
   "power.neoorigins.enderian_projectile_dodge.description": "50% chance to teleport away and avoid damage when struck by a projectile.",
   "power.neoorigins.enderian_water_damage.name": "Hydrophobia",
