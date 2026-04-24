@@ -46,6 +46,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, NoSlowdownPower>          NO_SLOWDOWN          = reg("no_slowdown",          new NoSlowdownPower());
     public static final DeferredHolder<PowerType<?>, WallClimbingPower>        WALL_CLIMBING        = reg("wall_climbing",        new WallClimbingPower());
     public static final DeferredHolder<PowerType<?>, ElytraBoostPower>         ELYTRA_BOOST         = reg("elytra_boost",         new ElytraBoostPower());
+    public static final DeferredHolder<PowerType<?>, NaturalGlidePower>        NATURAL_GLIDE        = reg("natural_glide",        new NaturalGlidePower());
     public static final DeferredHolder<PowerType<?>, SizeScalingPower>         SIZE_SCALING         = reg("size_scaling",         new SizeScalingPower());
     public static final DeferredHolder<PowerType<?>, ItemMagnetismPower>       ITEM_MAGNETISM       = reg("item_magnetism",       new ItemMagnetismPower());
     // food_restriction retired in 2.0; aliased to action_on_event.

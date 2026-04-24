@@ -10,7 +10,8 @@
     "FoodDataTickMixin",
     "FoodDataNoRegenMixin",
     "EnderManLookMixin",
-    "EntityMakeStuckInBlockMixin"
+    "EntityMakeStuckInBlockMixin",
+    "PlayerStartFallFlyingMixin"
   ],
   "client": [
     "client.LightTextureMixin",

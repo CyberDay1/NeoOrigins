@@ -2281,6 +2281,31 @@ Endermen do not aggro when the player looks at them. Emits the `ender_gaze_immun
 
 ---
 
+## `neoorigins:natural_glide`
+
+Grants elytra-style gliding without needing to equip an elytra. Press jump while falling to start fall-flying, exactly as if the player were wearing one.
+
+Emits the `natural_glide` capability tag. The `PlayerStartFallFlyingMixin` reads it at the head of `Player.tryToStartFallFlying` and bypasses the standard chest-slot elytra check, calling `startFallFlying()` directly.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+**Example — Phantom spectral wings:**
+```json
+{
+  "type": "neoorigins:natural_glide",
+  "name": "Spectral Wings",
+  "description": "Glide like an elytra user — no item required. Press jump while falling to spread your wings."
+}
+```
+
+Preconditions match vanilla: not on ground, not already fall-flying, not in water, not levitating. Pair with `neoorigins:elytra_boost` for a full glide + launch-boost kit.
+
+Contrast with `neoorigins:flight` — flight is creative-mode-style (hold space to ascend, fly freely). `natural_glide` is pitch-based gliding like a real elytra user.
+
+---
+
 ## `neoorigins:bare_hand_tool`
 
 Makes the player's empty hand behave like a specific vanilla tool for block-break purposes — tool-tier drop eligibility **and** break speed both match the configured tool item. Point at any tool item ID and the runtime looks up its tool component to determine which blocks qualify and at what speed.
