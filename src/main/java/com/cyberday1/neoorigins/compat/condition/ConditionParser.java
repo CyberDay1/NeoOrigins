@@ -108,7 +108,8 @@ public final class ConditionParser {
                     // exposed-to-sun state — duplicates this whole check.
                     ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
                     if (!head.isEmpty() && head.isDamageableItem()) {
-                        if (p.getRandom().nextFloat() < 0.07f) {
+                        float chance = com.cyberday1.neoorigins.NeoOriginsConfig.sunHelmetDuraDamageChance();
+                        if (chance > 0f && p.getRandom().nextFloat() < chance) {
                             head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
                         }
                         return false;

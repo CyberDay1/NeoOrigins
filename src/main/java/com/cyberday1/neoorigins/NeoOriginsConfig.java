@@ -547,6 +547,40 @@ public final class NeoOriginsConfig {
     public static boolean ffProtectVillagers()   { return FF_PROTECT_VILLAGERS.get(); }
     public static boolean ffProtectIronGolems()  { return FF_PROTECT_IRON_GOLEMS.get(); }
 
+    // ── Sun damage helmet protection ────────────────────────────────────
+    // Tuning knob for the vanilla-zombie-style helmet absorption added to
+    // every exposed_to_sun-gated power. Per-evaluation chance that a
+    // damageable helmet takes 1 durability instead of the player burning;
+    // hurtAndBreak's internal Unbreaking roll stacks on top of this.
+
+    public static final ModConfigSpec.DoubleValue SUN_HELMET_DURA_DAMAGE_CHANCE;
+
+    static {
+        BUILDER.comment(
+            "Tuning for the helmet absorption rule on sun-damage origins",
+            "(Abyssal, Caveborn, Vampire, Phantom, Warden, etc.). When the",
+            "player is in direct sun and wearing a damageable helmet, the",
+            "helmet absorbs the burn at the cost of its own durability."
+        ).push("sun_damage");
+
+        SUN_HELMET_DURA_DAMAGE_CHANCE = BUILDER
+            .comment("Per-evaluation chance (0.0 – 1.0) that a damageable helmet takes",
+                     "1 durability while the player is in direct sun. The condition is",
+                     "evaluated once per condition_passive interval (~1 second), so a",
+                     "value of 0.07 averages 1 durability per ~14 seconds — about 40",
+                     "minutes of continuous sun for a 165-durability iron helmet.",
+                     "Unbreaking still stacks via vanilla hurtAndBreak. Set to 0 to",
+                     "disable helmet protection (player always burns); set to 1 to",
+                     "match vanilla zombie/skeleton wear rate (very fast).")
+            .defineInRange("helmet_dura_damage_chance", 0.07, 0.0, 1.0);
+
+        BUILDER.pop();
+    }
+
+    public static float sunHelmetDuraDamageChance() {
+        return SUN_HELMET_DURA_DAMAGE_CHANCE.get().floatValue();
+    }
+
     /**
      * True if the spawn_location teleport should apply to this origin. Always
      * true for non-ocean origins; for the four built-in ocean origins,
