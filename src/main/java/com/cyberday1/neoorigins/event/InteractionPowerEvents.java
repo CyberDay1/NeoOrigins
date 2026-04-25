@@ -66,22 +66,62 @@ public class InteractionPowerEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack stack = event.getItemStack();
         if (stack.isEmpty()) return;
-        final boolean[] consumed = {false};
+        // Walk the player's edible_item powers — first match starts the use
+        // animation. Actual nutrition is applied in onEdibleUseFinish below
+        // when the eat animation completes; this matches vanilla food UX
+        // (animation, hunger gating, releasable mid-bite).
+        final boolean[] starting = {false};
         ActiveOriginService.forEachOfType(sp, EdibleItemPower.class, cfg -> {
-            if (consumed[0]) return;
+            if (starting[0]) return;
             if (!EdibleItemPower.matches(stack, cfg)) return;
             if (!cfg.alwaysEdible() && sp.getFoodData().getFoodLevel() >= 20) return;
-            sp.getFoodData().eat(cfg.nutrition(), cfg.saturation());
-            stack.shrink(1);
-            cfg.consumeSound().ifPresent(soundId -> {
-                var snd = BuiltInRegistries.SOUND_EVENT.getOptional(soundId);
-                snd.ifPresent(s -> sp.level().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                    s, SoundSource.PLAYERS, 1.0f, 1.0f));
-            });
-            EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, stack);
-            consumed[0] = true;
+            starting[0] = true;
         });
-        if (consumed[0]) event.setCanceled(true);
+        if (starting[0]) {
+            // The companion ItemStackEdibleDurationMixin returns 32 ticks for
+            // any matching stack so startUsingItem actually plays the eating
+            // animation instead of completing on the same tick.
+            sp.startUsingItem(event.getHand());
+            event.setCanceled(true);
+        }
+    }
+
+    /**
+     * Companion to {@link #onRightClickItem}: when the eat animation completes,
+     * find the matching {@link EdibleItemPower} config and apply the actual
+     * nutrition / saturation / shrink. Sound + ITEM_USE_FINISH dispatch fire
+     * here so they line up with the bite landing rather than the click.
+     *
+     * <p>Important to gate on the matching power again — Finish events fire for
+     * vanilla food too, and we'd double-eat if we applied unconditionally.
+     */
+    @SubscribeEvent
+    public static void onEdibleUseFinish(LivingEntityUseItemEvent.Finish event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack stack = event.getItem();
+        if (stack.isEmpty()) return;
+        // Skip vanilla-food items: vanilla's finishUsingItem already applies
+        // their FoodProperties. We only handle the EdibleItemPower-promoted
+        // ones (which by definition lack a FOOD component, otherwise we
+        // wouldn't have needed to promote them).
+        if (stack.has(net.minecraft.core.component.DataComponents.FOOD)) return;
+        final EdibleItemPower.Config[] matched = {null};
+        ActiveOriginService.forEachOfType(sp, EdibleItemPower.class, cfg -> {
+            if (matched[0] != null) return;
+            if (!EdibleItemPower.matches(stack, cfg)) return;
+            if (!cfg.alwaysEdible() && sp.getFoodData().getFoodLevel() >= 20) return;
+            matched[0] = cfg;
+        });
+        if (matched[0] == null) return;
+        EdibleItemPower.Config cfg = matched[0];
+        sp.getFoodData().eat(cfg.nutrition(), cfg.saturation());
+        stack.shrink(1);
+        cfg.consumeSound().ifPresent(soundId -> {
+            var snd = BuiltInRegistries.SOUND_EVENT.getOptional(soundId);
+            snd.ifPresent(s -> sp.level().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                s, SoundSource.PLAYERS, 1.0f, 1.0f));
+        });
+        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, stack);
     }
 
     @SubscribeEvent
