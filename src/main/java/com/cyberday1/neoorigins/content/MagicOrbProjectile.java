@@ -59,4 +59,41 @@ public class MagicOrbProjectile extends AbstractNeoProjectile {
         // damage/effects. ProjectileActionRegistry drains the action in
         // CombatPowerEvents.onProjectileImpact independently of this hook.
     }
+
+    @Override
+    public void tick() {
+        super.tick();
+        // Emit a particle trail keyed to the synched effect_type so pack
+        // authors get a visible flight trail without writing Java. Server-side
+        // sendParticles broadcasts to all viewers.
+        if (this.level() instanceof ServerLevel sl && this.tickCount > 0) {
+            net.minecraft.core.particles.ParticleOptions particle = trailParticle(getEffectType());
+            if (particle != null) {
+                sl.sendParticles(particle,
+                    this.getX(), this.getY(), this.getZ(),
+                    2,
+                    0.05, 0.05, 0.05,
+                    0.0);
+            }
+        }
+    }
+
+    /**
+     * Map the synched effect_type to a vanilla particle for the flight trail.
+     * Picked to read as the matching status effect at a glance: poison →
+     * lingering green wisp, fire → flame, magic → witch sparkle, etc.
+     * Returns null to suppress particles for unknown types.
+     */
+    private static net.minecraft.core.particles.ParticleOptions trailParticle(String effectType) {
+        if (effectType == null) return null;
+        return switch (effectType) {
+            case "poison" -> net.minecraft.core.particles.ParticleTypes.EFFECT;
+            case "fire", "flame" -> net.minecraft.core.particles.ParticleTypes.FLAME;
+            case "soul", "soul_fire" -> net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME;
+            case "ice", "snow" -> net.minecraft.core.particles.ParticleTypes.SNOWFLAKE;
+            case "void", "ender" -> net.minecraft.core.particles.ParticleTypes.PORTAL;
+            case "magic" -> net.minecraft.core.particles.ParticleTypes.WITCH;
+            default -> net.minecraft.core.particles.ParticleTypes.WITCH;
+        };
+    }
 }
