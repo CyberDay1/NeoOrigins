@@ -3,9 +3,7 @@ package com.cyberday1.neoorigins.mixin.client;
 import com.cyberday1.neoorigins.client.ClientActivePowers;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -18,45 +16,31 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * elytra check inside {@code Player.tryToStartFallFlying} so the server accepts
  * the {@code START_FALL_FLYING} command. But the client is the gatekeeper that
  * <em>sends</em> that command: {@code LocalPlayer.aiStep} only fires the packet
- * when {@code itemstack.canElytraFly(this) && this.tryToStartFallFlying()} is
- * true. Without an elytra equipped, both calls return false and no packet is
- * ever sent — the server-side mixin never has anything to react to.
+ * when {@code this.tryToStartFallFlying()} returns true (26.1 dropped the
+ * separate {@code canElytraFly} short-circuit; the elytra check is now folded
+ * into {@code Player.canGlide}, which {@code tryToStartFallFlying} consults).
+ * Without an elytra equipped, the call returns false and no packet is ever
+ * sent — the server-side mixin never has anything to react to.
  *
- * <p>We redirect both calls at that single aiStep call site:
- * <ul>
- *   <li>{@link #neoorigins$canElytraFlyOrCapability} — substitutes vanilla's
- *       elytra check with one that also accepts the {@code natural_glide}
- *       capability.</li>
- *   <li>{@link #neoorigins$tryStartGlideWithCapability} — runs vanilla
- *       {@code tryToStartFallFlying} first (still gated on elytra inside);
- *       if that fails but we have the capability, replicate vanilla's
- *       preconditions and call {@code startFallFlying()} directly.</li>
- * </ul>
+ * <p>We redirect the {@code tryToStartFallFlying} call at the aiStep call site:
+ * run vanilla first (still gated on {@code canGlide} inside); if vanilla
+ * returns false but we have the {@code natural_glide} capability, replicate
+ * vanilla's preconditions and call {@code startFallFlying()} directly so
+ * the packet is then sent.
  *
- * <p>The recursive-looking calls inside our redirect handlers are fine — Mixin's
+ * <p>The recursive-looking call inside the redirect is fine — Mixin's
  * {@code @Redirect} only rewrites the call site we matched in {@code aiStep};
- * calls from other methods (including these handlers' own bodies) reach the
- * vanilla implementations unchanged.
+ * the call from this handler's body reaches vanilla's implementation
+ * unchanged.
  *
  * <p>Client-side only — listed under the {@code client} array in
  * {@code neoorigins.mixins.json} so it never loads on a dedicated server.
  *
  * <p>{@code require = 0} so the mixin silently no-ops if a future MC version
- * refactors the aiStep elytra check.
+ * refactors the aiStep call.
  */
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerNaturalGlideMixin {
-
-    @Redirect(
-        method = "aiStep",
-        at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/item/ItemStack;canElytraFly(Lnet/minecraft/world/entity/LivingEntity;)Z"),
-        require = 0
-    )
-    private boolean neoorigins$canElytraFlyOrCapability(ItemStack stack, LivingEntity entity) {
-        if (stack.canElytraFly(entity)) return true;
-        return ClientActivePowers.hasCapability("natural_glide");
-    }
 
     @Redirect(
         method = "aiStep",

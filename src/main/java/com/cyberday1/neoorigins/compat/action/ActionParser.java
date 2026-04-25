@@ -619,16 +619,16 @@ public final class ActionParser {
                     // can actually hit livestock.
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectOwnedPets()
                             && mob instanceof net.minecraft.world.entity.TamableAnimal tame
-                            && tame.getOwnerUUID() != null
-                            && tame.getOwnerUUID().equals(casterUuid)) continue;
+                            && tame.getOwnerReference() != null
+                            && tame.getOwnerReference().getUUID().equals(casterUuid)) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectMinions()
                             && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(mob, casterUuid)) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectAnimals()
                             && mob instanceof net.minecraft.world.entity.animal.Animal) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectVillagers()
-                            && mob instanceof net.minecraft.world.entity.npc.AbstractVillager) continue;
+                            && mob instanceof net.minecraft.world.entity.npc.villager.AbstractVillager) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectIronGolems()
-                            && mob instanceof net.minecraft.world.entity.animal.IronGolem) continue;
+                            && mob instanceof net.minecraft.world.entity.animal.golem.IronGolem) continue;
                     if (applyEffectHolder != null) {
                         mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                             applyEffectHolder, applyEffectDuration, applyEffectAmplifier));
