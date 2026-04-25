@@ -5,6 +5,8 @@
 
 A ground-up V2 rewrite focused on data-driven authoring, cleaner internals, and a big content pass across every built-in origin and class. Pack authors get 130+ composable power types, a DSL for conditions and actions, new powers for ambient buffs / crafting / combat, and a cookbook's worth of copy-paste recipes. Players get reworked kits, three new classes, and dozens of long-standing bugs fixed.
 
+Pack-author docs are now hosted on GitHub Pages: <https://cyberday1.github.io/NeoOrigins/>.
+
 ---
 
 ## Headline changes
@@ -186,6 +188,8 @@ Every power extending `AbstractActivePower` inherits a `hungerCost()` method —
 
 ## Credits
 
-Built by CyberDay1 and contributors. Credits to the Origins / Apoli / Apugli teams whose pack format this mod is compatible with. Playtested by a group of dedicated testers over the compat-smoke + tester-marathon window (Apr 21–24, 2026) — see GitHub contributor graph for individual commits.
+Built by CyberDay1 and contributors. Credits to the Origins / Apoli / Apugli teams whose pack format this mod is compatible with.
+
+Huge thanks to our testers — **NyxBorne**, **Soul**, and **Jams** — who burned through V1 and V2 alphas catching every weird interaction, broken hitbox, missing bubble, and silently-disabled power. And near-uncountable small and large bugs that came up during playtesting both V1 and V2.
 
 Report bugs: <https://github.com/CyberDay1/NeoOrigins/issues>
