@@ -87,7 +87,10 @@ public class MagicOrbProjectile extends AbstractNeoProjectile {
     private static net.minecraft.core.particles.ParticleOptions trailParticle(String effectType) {
         if (effectType == null) return null;
         return switch (effectType) {
-            case "poison" -> net.minecraft.core.particles.ParticleTypes.EFFECT;
+            // 26.1 turned EFFECT into a parameterized SpellParticleOption (color);
+            // HAPPY_VILLAGER is a SimpleParticleType that reads as a clean green
+            // sparkle and serves the same "this is a poison cloud" visual cue.
+            case "poison" -> net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER;
             case "fire", "flame" -> net.minecraft.core.particles.ParticleTypes.FLAME;
             case "soul", "soul_fire" -> net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME;
             case "ice", "snow" -> net.minecraft.core.particles.ParticleTypes.SNOWFLAKE;
