@@ -489,6 +489,64 @@ public final class NeoOriginsConfig {
         BUILDER.pop();
     }
 
+    // ── Friendly-fire filter ────────────────────────────────────────────
+    // Controls which entity types are excluded from origin AOE attacks
+    // (poison stings, fire bursts, ink shots, etc.). The AOE action only
+    // affects mobs that are NOT excluded. Owned tames + tracked minions
+    // are always protected when their toggles are on; the broader Animal /
+    // Villager / IronGolem toggles let pack authors decide whether passive
+    // mob types are valid combat targets.
+
+    public static final ModConfigSpec.BooleanValue FF_PROTECT_OWNED_PETS;
+    public static final ModConfigSpec.BooleanValue FF_PROTECT_MINIONS;
+    public static final ModConfigSpec.BooleanValue FF_PROTECT_ANIMALS;
+    public static final ModConfigSpec.BooleanValue FF_PROTECT_VILLAGERS;
+    public static final ModConfigSpec.BooleanValue FF_PROTECT_IRON_GOLEMS;
+
+    static {
+        BUILDER.comment(
+            "Friendly-fire filter for origin area-of-effect actions (poison sting,",
+            "fire burst, ink shot, etc.). When a toggle is true, that category of",
+            "mob is excluded from the AOE target list and will not take effects",
+            "or damage from the player's own abilities."
+        ).push("friendly_fire");
+
+        FF_PROTECT_OWNED_PETS = BUILDER
+            .comment("Protect TamableAnimals owned by the casting player (wolves, cats, etc.).")
+            .define("protect_owned_pets", true);
+
+        FF_PROTECT_MINIONS = BUILDER
+            .comment("Protect mobs tracked as minions of the casting player",
+                     "(necromancer skeletons, beastmaster summons, etc.).")
+            .define("protect_minions", true);
+
+        FF_PROTECT_ANIMALS = BUILDER
+            .comment("Protect ALL passive animals (sheep, cow, pig, horse, fox, ...).",
+                     "Default false: an active combat AOE should hit livestock; otherwise",
+                     "abilities like Hiveling Sting silently no-op against passive mobs.",
+                     "Turn on if your pack treats farm animals as untouchable allies.")
+            .define("protect_animals", false);
+
+        FF_PROTECT_VILLAGERS = BUILDER
+            .comment("Protect villagers and wandering traders from origin AOEs.",
+                     "Default true: avoids accidentally aggroing or killing your trade hub.")
+            .define("protect_villagers", true);
+
+        FF_PROTECT_IRON_GOLEMS = BUILDER
+            .comment("Protect iron golems from origin AOEs.",
+                     "Default true: village-built golems represent player investment and",
+                     "their protection is consistent with vanilla golem AI rules.")
+            .define("protect_iron_golems", true);
+
+        BUILDER.pop();
+    }
+
+    public static boolean ffProtectOwnedPets()   { return FF_PROTECT_OWNED_PETS.get(); }
+    public static boolean ffProtectMinions()     { return FF_PROTECT_MINIONS.get(); }
+    public static boolean ffProtectAnimals()     { return FF_PROTECT_ANIMALS.get(); }
+    public static boolean ffProtectVillagers()   { return FF_PROTECT_VILLAGERS.get(); }
+    public static boolean ffProtectIronGolems()  { return FF_PROTECT_IRON_GOLEMS.get(); }
+
     /**
      * True if the spawn_location teleport should apply to this origin. Always
      * true for non-ocean origins; for the four built-in ocean origins,

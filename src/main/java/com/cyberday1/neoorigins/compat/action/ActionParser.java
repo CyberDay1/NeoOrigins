@@ -615,15 +615,24 @@ public final class ActionParser {
                     if (mob == source) continue;
                     if ("sphere".equalsIgnoreCase(finalShape)
                             && mob.position().distanceToSqr(srcPos) > r2) continue;
-                    // Foe-only filter: skip player-allied mobs so combat AoEs don't
-                    // wipe pets, livestock, villagers, or summoned minions.
-                    if (mob instanceof net.minecraft.world.entity.TamableAnimal tame
+                    // Friendly-fire filter — each category is independently
+                    // configurable via [friendly_fire] in neoorigins-common.toml.
+                    // Defaults: pets/minions/villagers/iron golems protected;
+                    // passive animals (sheep, cow, pig, ...) NOT protected so
+                    // active combat AOEs (Hiveling Sting, Inferno Burst, ...)
+                    // can actually hit livestock.
+                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectOwnedPets()
+                            && mob instanceof net.minecraft.world.entity.TamableAnimal tame
                             && tame.getOwnerUUID() != null
                             && tame.getOwnerUUID().equals(casterUuid)) continue;
-                    if (com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(mob, casterUuid)) continue;
-                    if (mob instanceof net.minecraft.world.entity.animal.Animal) continue;
-                    if (mob instanceof net.minecraft.world.entity.npc.AbstractVillager) continue;
-                    if (mob instanceof net.minecraft.world.entity.animal.IronGolem) continue;
+                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectMinions()
+                            && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(mob, casterUuid)) continue;
+                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectAnimals()
+                            && mob instanceof net.minecraft.world.entity.animal.Animal) continue;
+                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectVillagers()
+                            && mob instanceof net.minecraft.world.entity.npc.AbstractVillager) continue;
+                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectIronGolems()
+                            && mob instanceof net.minecraft.world.entity.animal.IronGolem) continue;
                     for (var fx : finalEffects) {
                         mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                             fx.holder(), fx.duration(), fx.amplifier()));

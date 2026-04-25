@@ -1,7 +1,8 @@
 {
   "type": "neoorigins:persistent_effect",
-  "toggleable": false,
+  "toggleable": true,
+  "default_off": true,
   "effects": [
-    { "effect": "minecraft:slow_falling", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+    { "effect": "minecraft:levitation", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": true }
   ]
 }

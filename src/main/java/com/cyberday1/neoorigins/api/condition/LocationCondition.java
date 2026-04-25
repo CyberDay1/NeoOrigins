@@ -285,6 +285,14 @@ public record LocationCondition(
         BlockState feet  = level.getBlockState(new BlockPos(x, y,     z));
         BlockState head  = level.getBlockState(new BlockPos(x, y + 1, z));
         if (!(floor.isSolid() && feet.isAir() && head.isAir())) return false;
+        // Ceiling dimensions (Nether) have no sky below the bedrock roof —
+        // canSeeSky is always false for any playable column, so the sky
+        // check would reject every candidate (reported case: Blazeling
+        // spawn_location: minecraft:the_nether silently failed). The
+        // top-down scan from logicalHeight - 1 already gives us the
+        // highest solid+air+air, which is the surface of the natural
+        // netherrack terrain below the ceiling.
+        if (level.dimensionType().hasCeiling()) return true;
         // Require the head block to see sky so we don't pick a cave air-pocket
         // as "land". In an ocean biome the top-down scan would otherwise find
         // the first solid+air+air somewhere deep underground (reported case:
