@@ -13,7 +13,8 @@
     "EnderManLookMixin",
     "EntityMakeStuckInBlockMixin",
     "PlayerStartFallFlyingMixin",
-    "ItemStackEdibleDurationMixin"
+    "ItemStackEdibleDurationMixin",
+    "ItemStackEdibleAnimationMixin"
   ],
   "client": [
     "client.LightTextureMixin",
