@@ -33,9 +33,15 @@ public abstract class EntityMakeStuckInBlockMixin {
             }
             return;
         }
+        // Client-side prediction is delegated to ClientStuckInBlockHelper. The
+        // direct `instanceof LocalPlayer` here would crash the dedicated server
+        // at mixin-transform time (ClassMetadataNotFoundException for LocalPlayer).
+        // The helper hides the client-only type behind a lazily-verified method
+        // body. Reached only when self.level().isClientSide() — server never
+        // loads it.
         if (self.level().isClientSide()
-            && self instanceof net.minecraft.client.player.LocalPlayer
-            && com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability("cobweb_affinity")) {
+            && com.cyberday1.neoorigins.client.ClientStuckInBlockHelper
+                .shouldSkipCobwebStuckOnClient(self)) {
             ci.cancel();
         }
     }
