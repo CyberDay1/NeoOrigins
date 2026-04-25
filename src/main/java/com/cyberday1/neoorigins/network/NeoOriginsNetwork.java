@@ -273,6 +273,12 @@ public class NeoOriginsNetwork {
                 if (!hasAnyOrigin) continue;
                 if (!data.hasOriginForLayer(l.id())) { allFilled = false; break; }
             }
+            // First-pick teleport gate: only fire spawn_location teleport on the
+            // pick that *first* completes every layer. Re-picks (via /origin gui)
+            // and back-button replays must not trigger another teleport — the
+            // player asked to change origin, not respawn at the new origin's
+            // spawn_location. Capture before setHadAllOrigins flips the flag.
+            boolean firstTimeAllFilled = allFilled && !data.isHadAllOrigins();
             if (allFilled) {
                 data.setHadAllOrigins(true);
                 // Fire any StartingEquipmentPower grants that were deferred during
@@ -284,10 +290,11 @@ public class NeoOriginsNetwork {
             syncToPlayer(sp);
 
             // Teleport to the origin's spawn_location, if any — but only once
-            // the player has finished picking on every layer. Firing after the
-            // first layer's selection would yank them out of the picker
-            // mid-flow (before they've chosen a class, etc.).
-            if (allFilled) {
+            // the player has finished picking on every layer for the first time.
+            // Firing after the first layer's selection would yank them out of
+            // the picker mid-flow (before they've chosen a class, etc.); firing
+            // on re-picks would relocate the player against their wishes.
+            if (firstTimeAllFilled) {
                 com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
             }
         });
