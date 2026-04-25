@@ -288,17 +288,40 @@ public record LocationCondition(
     }
 
     private static boolean isLandColumn(ServerLevel level, int x, int y, int z) {
-        // Center column: solid floor + 2-block air clearance, no fluids.
-        if (!isSafeStandingCell(level, x, y, z)) return false;
-        // Require a 3x3 safe area (8 surrounding columns also pass the
-        // standing-cell check) so the player doesn't spawn on a 1-block
-        // pillar over lava, in a 1-wide crevice, or with their head
-        // clipping into an overhang. Each cell needs solid floor + 2
-        // clear blocks above, with no lava anywhere in the 3x3x3 box.
+        // Center column: solid floor at y-1, air at feet and head, no
+        // lava in the column triple. This is the load-bearing safety check.
+        BlockPos floorPos = new BlockPos(x, y - 1, z);
+        BlockPos feetPos  = new BlockPos(x, y,     z);
+        BlockPos headPos  = new BlockPos(x, y + 1, z);
+        BlockState floor = level.getBlockState(floorPos);
+        BlockState feet  = level.getBlockState(feetPos);
+        BlockState head  = level.getBlockState(headPos);
+        if (!floor.isSolid()) return false;
+        if (!feet.isAir() || !head.isAir()) return false;
+        if (level.getFluidState(floorPos).is(FluidTags.LAVA)) return false;
+        if (level.getFluidState(feetPos).is(FluidTags.LAVA))  return false;
+        if (level.getFluidState(headPos).is(FluidTags.LAVA))  return false;
+        // 3x3 air clearance — player needs elbow room so they don't spawn
+        // wedged in a 1-wide crevice or under a low overhang. Floor only
+        // required at center: rough terrain (Nether netherrack, mountain
+        // tops) rarely has flat 3x3 surfaces and we'd otherwise reject
+        // every valid spawn (reported case: Blazeling failing to spawn).
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 if (dx == 0 && dz == 0) continue;
-                if (!isSafeStandingCell(level, x + dx, y, z + dz)) return false;
+                BlockPos f = new BlockPos(x + dx, y,     z + dz);
+                BlockPos h = new BlockPos(x + dx, y + 1, z + dz);
+                if (!level.getBlockState(f).isAir() || !level.getBlockState(h).isAir()) return false;
+                if (level.getFluidState(f).is(FluidTags.LAVA)) return false;
+                if (level.getFluidState(h).is(FluidTags.LAVA)) return false;
+            }
+        }
+        // Reject any lava in the 3x3 floor ring — keeps us off a lava bowl
+        // bridged by a 1-block stone island.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (level.getFluidState(new BlockPos(x + dx, y - 1, z + dz)).is(FluidTags.LAVA)) return false;
             }
         }
         // Ceiling dimensions (Nether) have no sky below the bedrock roof —
@@ -316,31 +339,6 @@ public record LocationCondition(
         // heightmap check — true only when the position is above the
         // MOTION_BLOCKING heightmap for that XZ, which water contributes to.
         return level.canSeeSky(new BlockPos(x, y + 1, z));
-    }
-
-    /**
-     * One cell of the 3x3 land-spawn check: solid (non-fluid, non-lava)
-     * floor at y-1, air at feet (y) and head (y+1), and no lava anywhere
-     * in the floor/feet/head triple. Used to reject spawn columns that
-     * sit on lava, in a 1-block-wide crevice, or under an overhang.
-     */
-    private static boolean isSafeStandingCell(ServerLevel level, int x, int y, int z) {
-        BlockPos floorPos = new BlockPos(x, y - 1, z);
-        BlockPos feetPos  = new BlockPos(x, y,     z);
-        BlockPos headPos  = new BlockPos(x, y + 1, z);
-        BlockState floor = level.getBlockState(floorPos);
-        BlockState feet  = level.getBlockState(feetPos);
-        BlockState head  = level.getBlockState(headPos);
-        if (!floor.isSolid()) return false;
-        if (!feet.isAir() || !head.isAir()) return false;
-        // Reject any lava in the column triple — fluid blocks aren't
-        // isSolid (so floor lava already fails above) but we also want
-        // to reject "stand here, lava is your floor's neighbour" where
-        // a lava source occupies floor/feet/head via the FluidState.
-        if (level.getFluidState(floorPos).is(FluidTags.LAVA)) return false;
-        if (level.getFluidState(feetPos).is(FluidTags.LAVA))  return false;
-        if (level.getFluidState(headPos).is(FluidTags.LAVA))  return false;
-        return true;
     }
 
     private static boolean isOceanFloorColumn(ServerLevel level, int x, int y, int z) {

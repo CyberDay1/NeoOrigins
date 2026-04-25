@@ -59,7 +59,11 @@ public abstract class LocalPlayerNaturalGlideMixin {
     @Redirect(
         method = "aiStep",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/player/Player;tryToStartFallFlying()Z"),
+            // Owner must match javac's bytecode resolution: `this.tryToStartFallFlying()`
+            // inside LocalPlayer.aiStep compiles to INVOKEVIRTUAL LocalPlayer.tryToStartFallFlying,
+            // not Player.tryToStartFallFlying — receiver static type wins. Targeting Player
+            // here is a silent no-op even with require=0. (See feedback_mixin_owner_match.)
+            target = "Lnet/minecraft/client/player/LocalPlayer;tryToStartFallFlying()Z"),
         require = 0
     )
     private boolean neoorigins$tryStartGlideWithCapability(Player self) {
