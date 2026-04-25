@@ -27,6 +27,16 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     private static final ResourceLocation ORIGINS_ORIGIN = ResourceLocation.fromNamespaceAndPath("origins", "origin");
     private static final ResourceLocation NEO_ORIGIN = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "origin");
+    private static final ResourceLocation NEO_CLASS  = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "class");
+
+    /**
+     * Built-in layer paths NeoOrigins recognises. Any foreign layer whose
+     * path matches one of these auto-merges into the canonical destination
+     * (see {@link #mergeForeignSamePathLayers}). Pack authors who genuinely
+     * want a separate picker screen with one of these names can opt out by
+     * setting {@code "standalone": true} on the layer JSON.
+     */
+    private static final Set<String> AUTO_MERGE_PATHS = Set.of("origin", "class");
 
     private Map<ResourceLocation, OriginLayer> layers = new HashMap<>();
     private List<OriginLayer> sortedLayers = new ArrayList<>();
@@ -40,6 +50,12 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Resourc
         scanConverterStacks(COMPAT_CONVERTER, resourceManager, map, true);
         // Fold neoorigins:origin into origins:origin so all origins appear in one layer
         mergeNeoOriginsIntoCompat(map);
+        // Fold any other <ns>:origin / <ns>:class layer into the canonical
+        // destination, so a datapack that ships its own e.g. erin:origin layer
+        // shows up in the main origin picker rather than as a third screen.
+        // Authors who actually want a separate picker tab opt out via
+        // "standalone": true on their layer JSON.
+        mergeForeignSamePathLayers(map);
         return map;
     }
 
@@ -109,6 +125,56 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Resourc
         if (el.isJsonObject() && el.getAsJsonObject().has("origin"))
             return el.getAsJsonObject().get("origin").getAsString();
         return el.toString();
+    }
+
+    /**
+     * Auto-merge pass for foreign layers sharing a built-in path. Any layer
+     * whose path is in {@link #AUTO_MERGE_PATHS} but whose namespace is not
+     * the canonical one folds into the canonical destination's origins list.
+     * The source layer is dropped from the map so the picker doesn't show
+     * a second screen for it. Pack authors set {@code "standalone": true}
+     * on their layer JSON to opt out of this fold.
+     *
+     * <p>Runs after {@link #mergeNeoOriginsIntoCompat}, so by this point
+     * {@code neoorigins:origin} has already been renamed to
+     * {@code origins:origin} (the canonical destination for "origin").
+     * The class layer stays at {@code neoorigins:class}.
+     */
+    private static void mergeForeignSamePathLayers(Map<ResourceLocation, JsonObject> map) {
+        java.util.List<ResourceLocation> toRemove = new java.util.ArrayList<>();
+        for (var entry : map.entrySet()) {
+            ResourceLocation id = entry.getKey();
+            // Don't try to fold a canonical destination into itself
+            if (id.equals(ORIGINS_ORIGIN) || id.equals(NEO_CLASS)) continue;
+            if (!AUTO_MERGE_PATHS.contains(id.getPath())) continue;
+
+            JsonObject sourceObj = entry.getValue();
+            if (sourceObj.has("standalone") && sourceObj.get("standalone").getAsBoolean()) {
+                NeoOrigins.LOGGER.debug("Layer {} opted out of auto-merge (standalone=true)", id);
+                continue;
+            }
+
+            ResourceLocation dest = "origin".equals(id.getPath()) ? ORIGINS_ORIGIN : NEO_CLASS;
+            JsonObject destObj = map.get(dest);
+            if (destObj == null) {
+                // No canonical destination — leave the foreign layer as-is so
+                // its origins still show somewhere rather than vanishing.
+                NeoOrigins.LOGGER.debug("No canonical {} layer; leaving foreign layer {} standalone", dest, id);
+                continue;
+            }
+
+            int added = countOriginEntries(sourceObj);
+            mergeOrigins(destObj, sourceObj);
+            NeoOrigins.LOGGER.info("Folded foreign layer {} ({} origins) into {}", id, added, dest);
+            toRemove.add(id);
+        }
+        for (ResourceLocation id : toRemove) map.remove(id);
+    }
+
+    private static int countOriginEntries(JsonObject obj) {
+        return obj.has("origins") && obj.get("origins").isJsonArray()
+            ? obj.getAsJsonArray("origins").size()
+            : 0;
     }
 
     /**
