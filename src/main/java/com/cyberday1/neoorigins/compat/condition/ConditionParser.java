@@ -99,12 +99,18 @@ public final class ConditionParser {
                     // Helmet protection — mirrors vanilla zombie/skeleton sun-burn
                     // logic. A damageable helmet absorbs the burn at the cost of
                     // its own durability; once the helmet breaks the player burns
-                    // again. Side-effect inside a predicate is unusual but the
-                    // alternative (a parallel ticking handler that re-derives
-                    // exposed-to-sun state) duplicates this whole check.
+                    // again. The 10% per-tick gate keeps a typical iron helmet
+                    // alive for ~25 minutes of continuous sun, and Unbreaking
+                    // multiplies that further (hurtAndBreak's internal Unbreaking
+                    // roll stacks on top of our gate). Side-effect inside a
+                    // predicate is unusual but the alternative — a parallel
+                    // ticking handler that re-derives exposed-to-sun state —
+                    // duplicates this whole check.
                     ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
                     if (!head.isEmpty() && head.isDamageableItem()) {
-                        head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                        if (p.getRandom().nextFloat() < 0.10f) {
+                            head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                        }
                         return false;
                     }
                     return true;
