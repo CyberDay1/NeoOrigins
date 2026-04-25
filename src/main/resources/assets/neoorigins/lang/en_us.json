@@ -232,6 +232,8 @@
   "power.neoorigins.caveborn_mining_fortune.description": "While Luck is active (granted by eating diamond), ore blocks drop as if mined with Fortune II.",
   "power.neoorigins.caveborn_eat_stone.name": "Stone Eater",
   "power.neoorigins.caveborn_eat_stone.description": "Can eat cobblestone, stone, granite, diorite, andesite, tuff, deepslate, basalt, and blackstone for modest nutrition.",
+  "power.neoorigins.nether_fungus_diet.name": "Fungal Diet",
+  "power.neoorigins.nether_fungus_diet.description": "Warped and crimson fungi are a proper meal in the Nether — restores 5 hunger and 0.6 saturation, always edible.",
   "power.neoorigins.caveborn_eat_iron.name": "Iron Palate",
   "power.neoorigins.caveborn_eat_iron.description": "Can eat iron ingots, raw iron, and iron nuggets — a proper meal for a miner.",
   "power.neoorigins.caveborn_eat_gold.name": "Gilded Palate",

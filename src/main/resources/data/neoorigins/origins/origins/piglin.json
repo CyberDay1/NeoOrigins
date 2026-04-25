@@ -11,7 +11,8 @@
     "neoorigins:piglin_attack_bonus",
     "neoorigins:piglin_overworld_weakness",
     "neoorigins:piglin_night_vision",
-    "neoorigins:piglin_soul_fire_damage"
+    "neoorigins:piglin_soul_fire_damage",
+    "neoorigins:nether_fungus_diet"
   ],
   "upgrades": []
 }
