@@ -5,7 +5,7 @@ import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -16,11 +16,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Returns {@link UseAnim#EAT} from {@link ItemStack#getUseAnimation()} for any
- * stack registered as an edible item by some {@link EdibleItemPower}. Without
- * this, vanilla returns {@link UseAnim#NONE} for non-food items, so the chew
- * animation never plays even when the player is using the item — only the
- * use-related slowdown shows.
+ * Returns {@link ItemUseAnimation#EAT} from {@link ItemStack#getUseAnimation()}
+ * for any stack registered as an edible item by some {@link EdibleItemPower}.
+ * Without this, vanilla returns {@link ItemUseAnimation#NONE} for non-food
+ * items, so the chew animation never plays even when the player is using the
+ * item — only the use-related slowdown shows.
  *
  * <p>Vanilla's {@code getUseAnimation()} has no entity context, so we can't
  * gate this per-player. Instead we always return EAT for items that any
@@ -31,6 +31,10 @@ import java.util.Set;
  *
  * <p>Cache invalidates when the powers map identity changes (datapack reload)
  * so the iteration cost is paid once per reload rather than per render frame.
+ *
+ * <p>26.1 differs from 1.21.1: the enum is {@code ItemUseAnimation} (renamed
+ * from {@code UseAnim}) and {@code BuiltInRegistries.ITEM.get} returns
+ * {@code Optional<Holder<Item>>} instead of the bare Item.
  *
  * <p>{@code require = 0} so the mixin no-ops if a future MC version refactors
  * the method.
@@ -50,8 +54,7 @@ public abstract class ItemStackEdibleAnimationMixin {
         for (var holder : PowerDataManager.INSTANCE.getAllPowers().values()) {
             if (holder.config() instanceof EdibleItemPower.Config cfg) {
                 for (var id : cfg.items()) {
-                    Item item = BuiltInRegistries.ITEM.get(id);
-                    if (item != null) items.add(item);
+                    BuiltInRegistries.ITEM.get(id).ifPresent(h -> items.add(h.value()));
                 }
             }
         }
@@ -66,11 +69,11 @@ public abstract class ItemStackEdibleAnimationMixin {
         cancellable = true,
         require = 0
     )
-    private void neoorigins$edibleItemAnimation(CallbackInfoReturnable<UseAnim> cir) {
+    private void neoorigins$edibleItemAnimation(CallbackInfoReturnable<ItemUseAnimation> cir) {
         ItemStack self = (ItemStack) (Object) this;
         if (self.isEmpty()) return;
         if (neoorigins$ediblesItems().contains(self.getItem())) {
-            cir.setReturnValue(UseAnim.EAT);
+            cir.setReturnValue(ItemUseAnimation.EAT);
         }
     }
 }
