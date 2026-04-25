@@ -1,3 +1,8 @@
+---
+title: What's New in 2.0
+nav_order: 13
+---
+
 # NeoOrigins 2.0 — Change Document
 
 **Status:** ready for 2.0.0 release. All phases landed; alpha.12 → alpha.37 polish + dedicated-server boot port complete on both branches.

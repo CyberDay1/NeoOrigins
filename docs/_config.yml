@@ -1,6 +1,14 @@
 title: NeoOrigins
 description: A modern, ground-up reimplementation of the Origins experience for NeoForge.
-theme: jekyll-theme-cayman
+
+# Theme — just-the-docs via remote_theme (GitHub Pages safe-list supports
+# jekyll-remote-theme). Dark color scheme to take the edge off bright white.
+remote_theme: just-the-docs/just-the-docs
+color_scheme: dark
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
 
 # GitHub Pages metadata
 github:
@@ -17,8 +25,43 @@ kramdown:
 # Permalinks: keep file paths stable so deep-links from the API.md index resolve
 permalink: /:basename
 
+# just-the-docs configuration
+search_enabled: true
+search:
+  heading_level: 3
+  previews: 2
+  preview_words_before: 3
+  preview_words_after: 3
+  tokenizer_separator: /[\s\-/]+/
+  rel_url: true
+  button: false
+
+heading_anchors: true
+
+# Aux links (top-right of every page)
+aux_links:
+  "View on GitHub":
+    - "https://github.com/CyberDay1/NeoOrigins"
+  "Releases":
+    - "https://github.com/CyberDay1/NeoOrigins/releases"
+  "Issues":
+    - "https://github.com/CyberDay1/NeoOrigins/issues"
+aux_links_new_tab: true
+
+# Footer
+footer_content: 'NeoOrigins is open source on <a href="https://github.com/CyberDay1/NeoOrigins">GitHub</a>. Built by CyberDay1 and contributors.'
+
+# Show "Edit this page on GitHub" link
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/CyberDay1/NeoOrigins"
+gh_edit_branch: "master"
+gh_edit_source: docs
+gh_edit_view_mode: "tree"
+
 # Files Jekyll should ignore when building the site
 exclude:
   - schema/
   - README.md
   - "*.bak"
+  - compat-cleanup-handoff.md

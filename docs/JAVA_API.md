@@ -1,3 +1,8 @@
+---
+title: Java API
+nav_order: 10
+---
+
 # NeoOrigins Java API
 
 For mods that want to integrate with NeoOrigins — check if a player has a

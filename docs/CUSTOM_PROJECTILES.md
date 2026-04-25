@@ -1,3 +1,8 @@
+---
+title: Custom Projectiles & VFX
+nav_order: 11
+---
+
 # Custom Projectiles & VFX Entities
 
 Guide for pack authors and mod developers who want to extend NeoOrigins's

@@ -1,3 +1,8 @@
+---
+title: Conditions
+nav_order: 7
+---
+
 # NeoOrigins 2.0 Condition Reference
 
 Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions.

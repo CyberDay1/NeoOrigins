@@ -1,3 +1,8 @@
+---
+title: Power Types
+nav_order: 6
+---
+
 # NeoOrigins Power Types Reference
 
 All powers share two optional display fields:

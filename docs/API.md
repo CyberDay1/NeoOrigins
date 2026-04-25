@@ -1,3 +1,8 @@
+---
+title: API Overview
+nav_order: 5
+---
+
 # NeoOrigins 2.0 API Reference
 
 Single landing page for the NeoOrigins datapack API. Every power type,

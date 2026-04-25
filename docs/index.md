@@ -1,11 +1,20 @@
 ---
-title: NeoOrigins
+title: Home
+layout: home
+nav_order: 1
 permalink: /
 ---
 
 # NeoOrigins
+{: .fs-9 }
 
 NeoForge port of Origins with a JSON-first power framework, an event dispatcher, projectile + VFX pipeline, and an extensive pack-author and Java API surface.
+{: .fs-5 .fw-300 }
+
+[Get Started](COOKBOOK){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[View on GitHub](https://github.com/CyberDay1/NeoOrigins){: .btn .fs-5 .mb-4 .mb-md-0 }
+
+---
 
 ## Start here
 

@@ -1,3 +1,8 @@
+---
+title: Events
+nav_order: 9
+---
+
 # NeoOrigins 2.0 `action_on_event` Event Reference
 
 `neoorigins:action_on_event` listens for one of the event keys below. When the
