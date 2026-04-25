@@ -11,7 +11,8 @@
     "neoorigins:blazeling_internal_heat",
     "neoorigins:blazeling_water_damage",
     "neoorigins:blazeling_night_vision",
-    "neoorigins:blazeling_firebolt"
+    "neoorigins:blazeling_firebolt",
+    "neoorigins:nether_fungus_diet"
   ],
   "upgrades": [],
   "spawn_location": {

@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:edible_item",
+  "items": [
+    "minecraft:warped_fungus",
+    "minecraft:crimson_fungus"
+  ],
+  "nutrition": 5,
+  "saturation": 0.6,
+  "always_edible": true
+}
