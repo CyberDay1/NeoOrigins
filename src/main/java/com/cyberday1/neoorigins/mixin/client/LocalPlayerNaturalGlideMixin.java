@@ -4,7 +4,6 @@ import com.cyberday1.neoorigins.client.ClientActivePowers;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -66,7 +65,11 @@ public abstract class LocalPlayerNaturalGlideMixin {
             target = "Lnet/minecraft/client/player/LocalPlayer;tryToStartFallFlying()Z"),
         require = 0
     )
-    private boolean neoorigins$tryStartGlideWithCapability(Player self) {
+    private boolean neoorigins$tryStartGlideWithCapability(LocalPlayer self) {
+        // First-arg type must match the @Redirect target owner (LocalPlayer
+        // here, not Player) — Mixin validates this and crashes on mismatch.
+        // LocalPlayer extends Player, so all the inherited Player methods
+        // we call below still resolve.
         if (self.tryToStartFallFlying()) return true;
         if (!ClientActivePowers.hasCapability("natural_glide")) return false;
         if (self.onGround() || self.isFallFlying() || self.isInWater()
