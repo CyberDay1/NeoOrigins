@@ -1,6 +1,11 @@
 {
-  "type": "neoorigins:biome_buff",
-  "biome_tag": "minecraft:is_nether",
-  "effect": "minecraft:strength",
-  "amplifier": 1
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "condition": { "type": "neoorigins:biome", "biome_tag": "minecraft:is_nether" },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:strength",
+    "duration": 300,
+    "amplifier": 1
+  }
 }

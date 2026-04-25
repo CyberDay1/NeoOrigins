@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.class_fisher.name",
+  "description": "origins.neoorigins.class_fisher.description",
+  "icon": "minecraft:fishing_rod",
+  "impact": "medium",
+  "order": 18,
+  "powers": [
+    "neoorigins:class_fisher_waters_luck",
+    "neoorigins:class_fisher_swim_speed",
+    "neoorigins:class_fisher_sea_legs",
+    "neoorigins:class_fisher_starting_rod",
+    "neoorigins:class_fisher_night_sight_water"
+  ],
+  "upgrades": []
+}

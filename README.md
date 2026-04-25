@@ -4,13 +4,31 @@ A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
 Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
+📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) — full reference for all 74 power types, 74 conditions, 45 actions, and 33 events.
+
+---
+
+## What's new in 2.0
+
+NeoOrigins 2.0 collapses 88 bespoke Java power-type classes into ~25 generic types driven by a JSON action / condition / event DSL. Pack authors now get a stable, schema-validated authoring surface; existing Origins-mod packs keep loading verbatim via transparent legacy aliases.
+
+Highlights this release:
+
+- **Aquatic overhaul** — Abyssal / Merling / Kraken / Siren rebuilt around a real dry-out mechanic with master configs for drain rate and drown damage. New "Pescivore + Raw Adapted" diet (raw cod and salmon nourish like cooked). Spawn placement now prefers ocean floor / water surface for aquatic origins.
+- **Mod compat** — `LightTexture` and water-vision mixins now apply at higher priority so they survive other mods (Alex's Caves, etc.) that touch the same vanilla pipelines.
+- **Dedicated-server stable** on both 1.21.1 and 26.1 (singleplayer-tested through alpha.27 hid six classes of dist crash; all fixed).
+- **New `throw_target` action** — raycast the entity under your crosshair and hurl them away + upward.
+- **74 power types, 74 conditions, 45 actions, 33 events** — `food_item_id` condition and `FOOD_FINISHED` event are new this release.
+
+See `docs/2_0_CHANGES.md` for the full Phase 1–8 architecture write-up.
+
 ---
 
 ## Features
 
 - **46 built-in origins** across two layers — choose an origin *and* a class
-- **17 built-in classes** — Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit
-- **125 power types** — attribute modifiers (with optional environment or equipment-slot gating), status effects, flight, wall climbing, damage modification, on-hit/on-kill actions, active abilities, biome effects, summon minions, tame hostile mobs, gravity wells, elemental magic, toggle powers, and more
+- **20 built-in classes** — Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**
+- **130+ power types** — attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
 - **Random origin mode** — server config to randomly assign origins on first join or every death
 - **Cooldown HUD overlay** — shows active ability cooldown bars above the hotbar
 - **Origin info screen** — press O to view your current origin and class details
@@ -80,27 +98,32 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
 ## Built-in Classes
 
-Classes are a second selection layer — every player picks both an origin and a class.
+Classes are a second selection layer — every player picks both an origin and a class. All class powers are passive or condition-gated — **zero keybind slots consumed** by any class.
 
 | Class | Description |
 |---|---|
-| **Warrior** | +1 attack damage, 30% knockback resistance |
-| **Archer** | Perfect projectile accuracy, +15% speed |
-| **Miner** | +50% break speed, −30% hunger drain |
+| **Warrior** | +1 attack, 30% KB resist, +2 armor, +2 HP, immune weakness |
+| **Archer** | Perfect projectile accuracy, +15% speed, enhanced vision, poison-on-hit vs arthropods, starting bow + 16 arrows |
+| **Miner** | +50% break speed, −30% hunger drain, bare-hand stone pickaxe, enhanced vision, +2 HP |
 | **Beastmaster** | Potion effects shared with tamed animals, +50% potion duration |
-| **Explorer** | Starts with compass, clock, maps; −40% hunger drain |
-| **Sentinel** | +4 armor, 25% thorns, 20% knockback resistance |
-| **Herbalist** | Accelerates nearby crop growth, +50% crop harvest, poison immunity |
-| **Scout** | Night vision, +20% speed, no fall damage |
-| **Berserker** | +3 attack damage, +50% hunger drain |
-| **Titan** | 1.25× size, +2 hearts, extended reach |
-| **Rogue** | Hidden nameplate, invisibility after 10s sneaking, backstab 2× damage |
-| **Lumberjack** | One-hit tree felling, +2 extra planks per craft |
-| **Blacksmith** | Crafted equipment has bonus attributes, efficient anvil repairs |
-| **Cook** | Crafted food is more nourishing, bonus XP from smokers |
-| **Merchant** | Better villager trades, rare wandering trader loot |
-| **Cleric** | Longer potion durations, bonus healing |
+| **Explorer** | Starts with compass, clock, maps; −40% hunger drain; no fall damage; +0.5 step height; campfire regen (out of combat) |
+| **Sentinel** | +4 armor, 25% thorns, 20% KB resist, immune weakness/slowness, +2 HP, +20% KB resist when sneaking |
+| **Herbalist** | Accelerates nearby crop growth, +50% crop harvest, poison immunity, +1 bonemeal application, starting seeds + bone meal |
+| **Scout** | Night vision, +20% speed, no fall damage, +0.5 step height, starting bread |
+| **Berserker** | +3 attack, +50% hunger drain, +2 damage when HP≤50%, −2 armor, +0.2 KB resist |
+| **Titan** | 1.25× size, +2 hearts, extended reach, +1 attack, +0.2 KB resist, −10% speed |
+| **Rogue** | Hidden nameplate, invisibility while sneaking, backstab 2× damage, 0.5× fall damage, +0.5 step height |
+| **Lumberjack** | One-hit tree felling, +2 extra planks per craft, bare-hand iron axe, starting iron axe (Unbreaking II) |
+| **Blacksmith** | 0.5× anvil cost, Unbreaking I auto-applied to tools/armor, bare-hand stone pickaxe, 0.5× fire damage, starting 4 iron ingots |
+| **Cook** | Crafted food is more nourishing, bonus XP from smokers, immune hunger/nausea, 1.25× potion duration, starting iron sword (cook's knife) |
+| **Merchant** | Better villager trades, rare wandering trader loot, starting 8 emeralds, 1.15× potion duration, +1 luck |
+| **Cleric** | +5 enchant levels, 2× potion duration, weakness-on-hit vs undead, enhanced vision, starting writable book |
 | **Nitwit** | No special abilities — for the purist |
+| **Fisher** ⭐ | +1 luck in water, +15% swim speed, 0.5× drown damage, starting rod (Luck of the Sea I + Lure I), night vision underwater |
+| **Mason** ⭐ | Bare-hand stone pickaxe, +1 armor, 1.25× break speed, starting stone pickaxe (Efficiency I), +1 block placement reach |
+| **Paladin** ⭐ | Weakness-on-hit vs undead, +2 armor, regen near beacons, starting iron sword (Smite I), wither immunity |
+
+⭐ = new
 
 ---
 

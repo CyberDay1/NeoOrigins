@@ -3,5 +3,6 @@
   "max_orbs": 3,
   "radius": 5.0,
   "cooldown_ticks": 100,
-  "tick_interval": 20
+  "tick_interval": 20,
+  "hunger_cost": 3
 }

@@ -2,5 +2,7 @@
   "type": "neoorigins:modify_damage",
   "direction": "in",
   "multiplier": 1.5,
-  "damage_type": "onFire"
+  "condition": { "type": "neoorigins:exposed_to_sun" },
+  "name": "power.neoorigins.enderite_daylight_weakness.name",
+  "description": "power.neoorigins.enderite_daylight_weakness.description"
 }

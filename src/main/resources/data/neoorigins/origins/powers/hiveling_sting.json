@@ -1,5 +1,23 @@
 {
-  "type": "neoorigins:active_bolt",
-  "speed": 1.0,
-  "cooldown_ticks": 100
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 120,
+  "hunger_cost": 1,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "poison",
+    "speed": 1.8,
+    "inaccuracy": 0.05,
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 3.0,
+      "include_source": false,
+      "entity_action": {
+        "type": "neoorigins:apply_effect",
+        "effect": "minecraft:poison",
+        "duration": 60,
+        "amplifier": 0
+      }
+    }
+  }
 }

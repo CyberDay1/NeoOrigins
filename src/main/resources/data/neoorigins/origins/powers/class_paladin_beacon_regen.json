@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:near_block", "block": "minecraft:beacon", "radius": 8 },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:regeneration",
+    "duration": 100,
+    "amplifier": 0
+  },
+  "interval": 40
+}

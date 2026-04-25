@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:attack_damage",
+  "amount": 2.0,
+  "operation": "add_value",
+  "condition": { "type": "neoorigins:sneaking" }
+}

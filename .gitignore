@@ -24,28 +24,15 @@ bin/
 # NeoForge / Minecraft dev
 run/
 runs/
+logs/
 
 # Reference sources (local only)
 reference/
 
+# Scratch / local-only artifacts at repo root
+/*.zip
+/stuff.txt
+
 # Claude
 CLAUDE.md
 .claude/
-
-# Decompile / extract artifacts at repo root
-/forge.exc
-/forge.sas
-/forge.srg
-/pack.mcmeta
-/neoforge.mixins.json
-/package-lock.json
-/mcplogo.png
-/neoforged_logo.png
-/url.png
-/META-INF/
-/assets/
-/data/
-/com/
-/net/
-/mcp/
-/reports/

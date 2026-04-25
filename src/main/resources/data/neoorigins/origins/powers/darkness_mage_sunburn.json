@@ -1,1 +1,16 @@
-{ "type": "neoorigins:damage_in_daylight", "damage_per_second": 1.0 }
+{
+  "type": "neoorigins:condition_passive",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:exposed_to_sun" },
+      { "type": "neoorigins:not", "condition": { "type": "neoorigins:in_water" } }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:damage",
+    "amount": 1.0,
+    "source": { "name": "in_fire" }
+  },
+  "interval": 20
+}

@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "examplepack:tidecaller_starting_trident",
+  "item": "minecraft:trident",
+  "count": 1,
+  "enchantments": [
+    { "enchantment": "minecraft:loyalty", "level": 1 }
+  ],
+  "name": "power.examplepack.tidecaller_starting_trident.name",
+  "description": "power.examplepack.tidecaller_starting_trident.description"
+}

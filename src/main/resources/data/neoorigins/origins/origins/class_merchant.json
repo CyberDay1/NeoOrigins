@@ -6,7 +6,10 @@
   "order": 16,
   "powers": [
     "neoorigins:class_merchant_trades",
-    "neoorigins:class_merchant_rare_loot"
+    "neoorigins:class_merchant_rare_loot",
+    "neoorigins:class_merchant_starting_emeralds",
+    "neoorigins:class_merchant_silver_tongue",
+    "neoorigins:class_merchant_lucky_trader"
   ],
   "upgrades": []
 }

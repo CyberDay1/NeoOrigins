@@ -1,6 +1,8 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.attachment.EntityAttachments;
+import com.cyberday1.neoorigins.attachment.EntityAttachments.MinionOwner;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,16 +31,33 @@ public final class MinionTracker {
 
     public record TrackedMinion(UUID minionUuid, String mobType, int spawnTick, int despawnTick, float deathDamage) {
         /**
-         * Resolves this minion's current entity by scanning all loaded server
-         * dimensions for its UUID. Returns null if the minion is unloaded,
-         * despawned, or dead.
+         * Resolves this minion's current entity. Checks the last known dimension
+         * first (stamped at track-time or on previous successful resolve); falls
+         * back to scanning all loaded dimensions only if the hint misses, which
+         * happens on dimension-change or server restart. The hint is updated
+         * when the scan locates the minion in a different dimension so
+         * subsequent calls stay fast.
          */
         public LivingEntity entity() {
             MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
             if (server == null) return null;
+
+            var hintKey = DIM_HINTS.get(minionUuid);
+            if (hintKey != null) {
+                ServerLevel hintLevel = server.getLevel(hintKey);
+                if (hintLevel != null) {
+                    Entity e = hintLevel.getEntity(minionUuid);
+                    if (e instanceof LivingEntity le && !le.isRemoved()) return le;
+                }
+            }
+
             for (ServerLevel level : server.getAllLevels()) {
+                if (level.dimension().equals(hintKey)) continue;
                 Entity e = level.getEntity(minionUuid);
-                if (e instanceof LivingEntity le && !le.isRemoved()) return le;
+                if (e instanceof LivingEntity le && !le.isRemoved()) {
+                    DIM_HINTS.put(minionUuid, level.dimension());
+                    return le;
+                }
             }
             return null;
         }
@@ -47,11 +66,23 @@ public final class MinionTracker {
     /** Player UUID → list of tracked minions. */
     private static final Map<UUID, List<TrackedMinion>> MINIONS = new ConcurrentHashMap<>();
 
-    /** Register a newly summoned minion. */
+    /** Minion UUID → last-known dimension. Used by {@link TrackedMinion#entity()}
+     *  to skip the N-dimension scan. Stamped on {@link #track(ServerPlayer, LivingEntity, String, int, int, float)}
+     *  and refreshed whenever a scan finds the minion in a different dimension. */
+    private static final Map<UUID, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>> DIM_HINTS =
+        new ConcurrentHashMap<>();
+
+    /** Register a newly summoned minion. Also stamps the mob with a persistent
+     * {@code minion_owner} attachment so ownership survives dimension changes
+     * and server restarts (the in-memory {@link #MINIONS} map is session-scoped). */
     public static void track(ServerPlayer summoner, LivingEntity minion, String mobType,
                              int currentTick, int despawnTicks, float deathDamage) {
         MINIONS.computeIfAbsent(summoner.getUUID(), k -> new ArrayList<>())
             .add(new TrackedMinion(minion.getUUID(), mobType, currentTick, currentTick + despawnTicks, deathDamage));
+        minion.setData(EntityAttachments.minionOwner(), MinionOwner.of(summoner.getUUID()));
+        if (minion.level() instanceof ServerLevel sl) {
+            DIM_HINTS.put(minion.getUUID(), sl.dimension());
+        }
     }
 
     /** Count living minions of a given mob type for a player. */
@@ -85,17 +116,22 @@ public final class MinionTracker {
             // Keep the entry until despawn time so we don't evict minions that
             // are just temporarily unloaded.
             if (entity == null) {
-                if (currentTick >= m.despawnTick()) it.remove();
+                if (currentTick >= m.despawnTick()) {
+                    it.remove();
+                    DIM_HINTS.remove(m.minionUuid());
+                }
                 continue;
             }
 
             if (!entity.isAlive()) {
                 it.remove();
+                DIM_HINTS.remove(m.minionUuid());
                 continue;
             }
             if (currentTick >= m.despawnTick()) {
                 entity.discard();
                 it.remove();
+                DIM_HINTS.remove(m.minionUuid());
             }
         }
     }
@@ -112,6 +148,7 @@ public final class MinionTracker {
                 TrackedMinion m = it.next();
                 if (m.minionUuid().equals(entityUuid)) {
                     it.remove();
+                    DIM_HINTS.remove(entityUuid);
                     // Damage the summoner — the entity died in combat, not from discard
                     ServerPlayer summoner = entity.level().getServer() != null
                         ? entity.level().getServer().getPlayerList().getPlayer(entry.getKey())
@@ -128,24 +165,76 @@ public final class MinionTracker {
     }
 
     /**
-     * Reverse lookup: given an entity, return the ServerPlayer that summoned it
-     * if it is a currently-tracked minion. Iterates the full tracker map;
-     * acceptable because tracked-minion counts stay small (per-player caps
-     * enforced by the power configs).
+     * True if {@code entity} is currently tracked as a minion summoned by the
+     * player identified by {@code summonerUuid}. Used by the targeting
+     * interceptor to stop summoned mobs from attacking their own summoner.
+     *
+     * <p>Checks the persistent {@code minion_owner} attachment first (survives
+     * dimension changes + server restarts), then falls back to the in-memory
+     * map so entries from older saves without the attachment still resolve
+     * during the current session.
+     */
+    public static boolean isTrackedMinionOf(Entity entity, UUID summonerUuid) {
+        if (entity == null) return false;
+        MinionOwner owner = entity.getData(EntityAttachments.minionOwner());
+        if (owner.isOwnedBy(summonerUuid)) return true;
+        List<TrackedMinion> list = MINIONS.get(summonerUuid);
+        if (list == null) return false;
+        UUID entityUuid = entity.getUUID();
+        for (TrackedMinion m : list) {
+            if (m.minionUuid().equals(entityUuid)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Reverse lookup: return the ServerPlayer who summoned {@code entity}
+     * if it is a currently-tracked minion. Checks the persistent
+     * {@code minion_owner} attachment first (O(1) per-entity), then falls
+     * back to scanning the in-memory map for session-only entries.
+     *
+     * @return the online summoner, or empty if the entity is unsummoned
+     *         or the summoner is offline.
      */
     public static Optional<ServerPlayer> summonerOf(LivingEntity entity) {
         if (entity == null) return Optional.empty();
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return Optional.empty();
+
+        MinionOwner owner = entity.getData(EntityAttachments.minionOwner());
+        if (owner.ownerUuid().isPresent()) {
+            ServerPlayer sp = server.getPlayerList().getPlayer(owner.ownerUuid().get());
+            if (sp != null) return Optional.of(sp);
+        }
+
         UUID entityUuid = entity.getUUID();
         for (var entry : MINIONS.entrySet()) {
             for (TrackedMinion m : entry.getValue()) {
                 if (m.minionUuid().equals(entityUuid)) {
-                    return Optional.ofNullable(server.getPlayerList().getPlayer(entry.getKey()));
+                    ServerPlayer sp = server.getPlayerList().getPlayer(entry.getKey());
+                    return Optional.ofNullable(sp);
                 }
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * True if {@code entity} is a summoned minion for any player. Used by the
+     * loot-drop interceptor — summoned mobs should never leave gear/items behind
+     * because the summoner effectively conjured them (and their equipment) for
+     * free. Checks the persistent attachment first, then the in-memory map.
+     */
+    public static boolean isAnyTrackedMinion(Entity entity) {
+        if (entity == null) return false;
+        if (entity.getData(EntityAttachments.minionOwner()).isOwned()) return true;
+        UUID entityUuid = entity.getUUID();
+        for (List<TrackedMinion> list : MINIONS.values()) {
+            for (TrackedMinion m : list) {
+                if (m.minionUuid().equals(entityUuid)) return true;
+            }
+        }
+        return false;
     }
 
     /** Get all living tracked minions of a given mob type for a player. */
@@ -168,6 +257,7 @@ public final class MinionTracker {
             for (TrackedMinion m : list) {
                 LivingEntity entity = m.entity();
                 if (entity != null && entity.isAlive()) entity.discard();
+                DIM_HINTS.remove(m.minionUuid());
             }
         }
     }

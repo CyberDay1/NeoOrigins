@@ -13,13 +13,22 @@ import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
+import com.cyberday1.neoorigins.network.payload.EditorTogglePowerPayload;
+import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
+import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
@@ -67,6 +76,18 @@ public class NeoOriginsNetwork {
             NeoOriginsNetwork::handleSyncCooldown
         );
 
+        registrar.playToClient(
+            SyncActivePowersPayload.TYPE,
+            SyncActivePowersPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncActivePowers
+        );
+
+        registrar.playToClient(
+            OpenEditorScreenPayload.TYPE,
+            OpenEditorScreenPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleOpenEditorScreen
+        );
+
         registrar.playToServer(
             ChooseOriginPayload.TYPE,
             ChooseOriginPayload.STREAM_CODEC,
@@ -90,6 +111,40 @@ public class NeoOriginsNetwork {
             ActivateClassPowerPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleActivateClassPower
         );
+
+        registrar.playToServer(
+            EditorTogglePowerPayload.TYPE,
+            EditorTogglePowerPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleEditorTogglePower
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.CancelOrbPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.CancelOrbPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleCancelOrb
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handlePickerAbandoned
+        );
+    }
+
+    private static void handleCancelOrb(com.cyberday1.neoorigins.network.payload.CancelOrbPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            data.setPendingOrbCommit(false);
+        });
+    }
+
+    private static void handlePickerAbandoned(com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            data.setPickerAbandoned(true);
+        });
     }
 
     // ---------- Client-side handlers ----------
@@ -127,6 +182,26 @@ public class NeoOriginsNetwork {
         );
     }
 
+    private static void handleSyncActivePowers(SyncActivePowersPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers(), payload.capabilities())
+        );
+    }
+
+    private static void handleOpenEditorScreen(OpenEditorScreenPayload payload, IPayloadContext ctx) {
+        // Defensive: payload is registered playToClient, but a malformed routing
+        // shouldn't crash a dedicated server by classloading Minecraft. The
+        // actual `new OriginEditorScreen(...)` lives in ClientOriginState so
+        // its constant-pool reference to a Screen subclass stays out of this
+        // common-side class — RuntimeDistCleaner walks NEW opcodes during
+        // dedicated-server verification and rejects Screen if it's referenced
+        // here directly.
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientOriginState.openEditorScreen()
+        );
+    }
+
     // ---------- Server-side handlers ----------
 
     private static void handleChooseOrigin(ChooseOriginPayload payload, IPayloadContext ctx) {
@@ -153,6 +228,23 @@ public class NeoOriginsNetwork {
             }
 
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
+
+            // First commit after an orb-of-origin use: perform the deferred
+            // destructive work now (revoke prior powers, reset flags, deduct
+            // XP, consume one orb from inventory, bump orb-use counter).
+            // Deferring to first-pick means closing the picker without picking
+            // anything is a free cancel — the player keeps their orb and
+            // origins.
+            if (data.isPendingOrbCommit()) {
+                commitOrbUse(sp, data);
+            }
+
+            // Any pick re-engages the player — a previous picker-abandon no
+            // longer applies. Clearing here restores the first-pick
+            // invulnerability window if they reopen + abandon + reopen, which
+            // is fine because the player clearly committed this time.
+            data.setPickerAbandoned(false);
+
             ResourceLocation oldOrigin = data.getOrigin(layerId);
 
             // Allow re-selection only via /origin gui (forceReselect).
@@ -163,10 +255,22 @@ public class NeoOriginsNetwork {
 
             data.setOrigin(layerId, event.getNewOrigin());
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
 
-            // Mark complete once all enabled layers have a selection
+            // Mark complete once every layer the picker would actually show
+            // has a selection. Must match OriginSelectionPresenter.init /
+            // skipEmptyLayers: skip hidden layers, and skip layers where no
+            // registered origin is available to pick (e.g. all classes
+            // disabled). Otherwise the client closes the picker but the
+            // server waits forever — stranding the player in first-pick
+            // invulnerability and blocking the spawn_location teleport.
             boolean allFilled = true;
             for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
+                if (l.hidden()) continue;
+                boolean hasAnyOrigin = l.origins().stream()
+                    .anyMatch(co -> OriginDataManager.INSTANCE.hasOrigin(co.origin()));
+                if (!hasAnyOrigin) continue;
                 if (!data.hasOriginForLayer(l.id())) { allFilled = false; break; }
             }
             if (allFilled) {
@@ -209,6 +313,9 @@ public class NeoOriginsNetwork {
             PowerHolder<?> holder = actives.get(slot);
             holder.onActivated(sp);
             syncCooldownIfStarted(sp, holder, slot);
+            if (holder.type() instanceof AbstractTogglePower<?>) {
+                syncActivePowersToPlayer(sp);
+            }
         });
     }
 
@@ -223,6 +330,37 @@ public class NeoOriginsNetwork {
             PowerHolder<?> holder = classActives.get(0);
             holder.onActivated(sp);
             syncCooldownIfStarted(sp, holder, -1);
+            if (holder.type() instanceof AbstractTogglePower<?>) {
+                syncActivePowersToPlayer(sp);
+            }
+        });
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void handleEditorTogglePower(EditorTogglePowerPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            ResourceLocation powerId = payload.powerId();
+
+            // The player must actually have this power granted (via their current origins).
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            boolean granted = false;
+            for (var entry : data.getOrigins().entrySet()) {
+                Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                if (origin != null && origin.powers().contains(powerId)) { granted = true; break; }
+            }
+            if (!granted) {
+                NeoOrigins.LOGGER.warn("Player {} tried to editor-toggle power {} they don't have",
+                    sp.getName().getString(), powerId);
+                return;
+            }
+
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder == null) return;
+            if (!(holder.type() instanceof AbstractTogglePower<?>)) return;
+
+            holder.onActivated(sp);
+            syncActivePowersToPlayer(sp);
         });
     }
 
@@ -255,11 +393,69 @@ public class NeoOriginsNetwork {
         LAST_ACTIVATE_TICK.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
-    /** Send the player's full origin data to themselves. */
+    /**
+     * Send the player's full origin state to themselves: chosen origins + the
+     * resolved active-powers map (granted powers + toggle state).
+     *
+     * Callers that only want one or the other can use {@link #syncOriginsOnlyToPlayer}
+     * or {@link #syncActivePowersToPlayer} directly.
+     */
     public static void syncToPlayer(ServerPlayer player) {
+        syncOriginsOnlyToPlayer(player);
+        syncActivePowersToPlayer(player);
+    }
+
+    /** Origins-map sync only; does not push active-powers. */
+    public static void syncOriginsOnlyToPlayer(ServerPlayer player) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         PacketDistributor.sendToPlayer(player,
             new SyncOriginsPayload(data.getOrigins(), data.isHadAllOrigins()));
+    }
+
+    /**
+     * Push the player's current set of granted powers + toggle state + active
+     * capability tags to their client. Call after any change that affects the
+     * active-powers map: origin change, toggle flip, dimension transition
+     * (dimension restrictions filter the map).
+     */
+    public static void syncActivePowersToPlayer(ServerPlayer player) {
+        Map<ResourceLocation, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(player, powerMap, capabilities);
+        PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
+    }
+
+    /**
+     * Populates {@code powerMapOut} with {@code powerId → toggleOn} for every power
+     * currently granted to the player (dimension restrictions applied) and
+     * {@code capabilitiesOut} with the union of capability tags from powers that
+     * are currently active (granted AND, if toggleable, toggled on).
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void collectActivePowers(ServerPlayer player,
+                                            Map<ResourceLocation, Boolean> powerMapOut,
+                                            Set<String> capabilitiesOut) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        var dim = player.level().dimension();
+        for (var entry : data.getOrigins().entrySet()) {
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin == null) continue;
+            for (ResourceLocation powerId : origin.powers()) {
+                if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+                PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+                if (holder == null) continue;
+                boolean toggledOn = true;
+                if (holder.type() instanceof AbstractTogglePower<?>) {
+                    @SuppressWarnings({"unchecked", "rawtypes"})
+                    AbstractTogglePower tp = (AbstractTogglePower) holder.type();
+                    toggledOn = !tp.isToggledOff(player, holder.config());
+                }
+                powerMapOut.put(powerId, toggledOn);
+                if (toggledOn) {
+                    capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(holder.config()));
+                }
+            }
+        }
     }
 
     /** Open the origin selection screen on the client. */
@@ -293,5 +489,44 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP,
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_DISPLAY_MAP
         ));
+    }
+
+    /**
+     * Perform the deferred orb-of-origin commit: revoke all existing origins,
+     * clear the equipment-grant ledger, deduct XP, shrink one orb from the
+     * player's inventory, and bump the orb-use counter. Called from the first
+     * ChooseOrigin after an orb is used — the orb's use() only stages the
+     * intent, so closing the picker without picking is a free cancel.
+     */
+    private static void commitOrbUse(ServerPlayer sp, PlayerOriginData data) {
+        int cost = data.getOrbUseCount() * com.cyberday1.neoorigins.content.OrbOfOriginItem.LEVELS_PER_USE;
+
+        ActiveOriginService.revokeAllPowers(sp);
+        for (var layer : LayerDataManager.INSTANCE.getLayers().values()) {
+            data.removeOrigin(layer.id());
+        }
+        data.setHadAllOrigins(false);
+        data.clearGrantedEquipment();
+
+        if (!sp.isCreative() && cost > 0) {
+            sp.giveExperienceLevels(-cost);
+        }
+        if (!sp.isCreative()) {
+            shrinkOrbFromInventory(sp);
+        }
+        data.incrementOrbUseCount();
+        data.setPendingOrbCommit(false);
+    }
+
+    private static void shrinkOrbFromInventory(ServerPlayer sp) {
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            var s = inv.getItem(i);
+            if (!s.isEmpty()
+                && s.getItem() instanceof com.cyberday1.neoorigins.content.OrbOfOriginItem) {
+                s.shrink(1);
+                return;
+            }
+        }
     }
 }

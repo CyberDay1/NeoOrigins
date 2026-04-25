@@ -1,8 +1,1 @@
-{
-  "type": "neoorigins:tidal_wave",
-  "damage": 4.0,
-  "knockback_strength": 2.0,
-  "range": 8.0,
-  "cone_angle": 60.0,
-  "cooldown_ticks": 100
-}
+{ "type": "neoorigins:tidal_wave", "damage": 4.0, "knockback_strength": 2.0, "range": 8.0, "cone_angle": 60.0, "cooldown_ticks": 100, "hunger_cost": 3 }

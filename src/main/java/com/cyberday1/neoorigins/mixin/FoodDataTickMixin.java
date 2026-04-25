@@ -1,7 +1,5 @@
 package com.cyberday1.neoorigins.mixin;
 
-import com.cyberday1.neoorigins.power.builtin.HungerDrainModifierPower;
-import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -13,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 /**
  * Scales regen-source exhaustion in FoodData.tick(Player) — those call sites
  * invoke this.addExhaustion(...) directly, bypassing Player.causeFoodExhaustion.
- * Without this hook, Avian's Athlete's Diet (0.25x) leaves healing exhaustion
- * unchanged, so hunger drops at full rate while the player is regenerating.
+ * Routed through action_on_event (MOD_EXHAUSTION) in 2.0 so the hunger_drain_modifier
+ * alias applies to regen ticks as well as movement/damage exhaustion.
  */
 @Mixin(FoodData.class)
 public class FoodDataTickMixin {
@@ -25,11 +23,8 @@ public class FoodDataTickMixin {
     )
     private float neoorigins$scaleRegenExhaustion(float amount, @Local(argsOnly = true) Player player) {
         if (!(player instanceof ServerPlayer sp)) return amount;
-        final float[] mult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, HungerDrainModifierPower.class,
-            cfg -> mult[0] *= cfg.multiplier());
-        if (mult[0] == 1.0f) return amount;
-        float scaled = amount * mult[0];
+        float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_EXHAUSTION, null, amount);
         return Float.isFinite(scaled) ? scaled : amount;
     }
 }

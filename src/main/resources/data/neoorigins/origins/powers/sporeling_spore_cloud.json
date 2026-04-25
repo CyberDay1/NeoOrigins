@@ -1,8 +1,30 @@
 {
-  "type": "neoorigins:active_aoe_effect",
-  "effect": "minecraft:poison",
-  "amplifier": 1,
-  "duration_ticks": 100,
-  "radius": 5.0,
-  "cooldown_ticks": 240
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 240,
+  "hunger_cost": 3,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "spore",
+    "speed": 1.4,
+    "inaccuracy": 0.1,
+    "on_hit_action": {
+      "type": "neoorigins:spawn_lingering_area",
+      "radius": 5.0,
+      "duration_ticks": 100,
+      "interval_ticks": 20,
+      "effect_type": "spore",
+      "entity_action": {
+        "type": "neoorigins:area_of_effect",
+        "radius": 5.0,
+        "include_source": false,
+        "entity_action": {
+          "type": "neoorigins:apply_effect",
+          "effect": "minecraft:poison",
+          "duration": 100,
+          "amplifier": 1
+        }
+      }
+    }
+  }
 }

@@ -7,7 +7,10 @@
   "powers": [
     "neoorigins:class_sentinel_armor",
     "neoorigins:class_sentinel_thorns",
-    "neoorigins:class_sentinel_knockback_resist"
+    "neoorigins:class_sentinel_knockback_resist",
+    "neoorigins:class_sentinel_iron_will",
+    "neoorigins:class_sentinel_guard_endurance",
+    "neoorigins:class_sentinel_guard_stance"
   ],
   "upgrades": []
 }

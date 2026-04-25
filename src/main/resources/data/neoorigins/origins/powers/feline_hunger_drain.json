@@ -1,1 +1,1 @@
-{ "type": "neoorigins:hunger_drain_modifier", "multiplier": 1.3 }
+{ "type": "neoorigins:action_on_event", "event": "mod_exhaustion", "modifier": { "operation": "multiplication", "value": 1.3 } }

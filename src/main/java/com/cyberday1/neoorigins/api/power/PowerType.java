@@ -4,6 +4,8 @@ import com.mojang.serialization.Codec;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
+import java.util.Set;
+
 /**
  * Abstract base class for all power types.
  * Each subclass is registered once in the PowerType registry and knows how to:
@@ -68,5 +70,16 @@ public abstract class PowerType<C extends PowerConfiguration> {
      * Default delegates to {@link #isActivePower()}.
      */
     public boolean isActivePower(C config) { return isActivePower(); }
+
+    /**
+     * Capability tags this power grants while granted and (if toggleable) toggled on.
+     * Client-observable — used by client-predicted mixins to decide whether to alter
+     * vanilla behavior (e.g. {@code "wall_climb"} causes the player's {@code onClimbable()}
+     * to return true while pressed against a wall).
+     *
+     * <p>Tags are short lowercase strings, conventionally matching a vanilla feature
+     * or a cross-cutting mechanic. Default: no capabilities.
+     */
+    public Set<String> capabilities(C config) { return Set.of(); }
 
 }

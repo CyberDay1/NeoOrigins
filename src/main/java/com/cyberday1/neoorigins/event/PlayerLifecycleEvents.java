@@ -14,7 +14,6 @@ import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.api.origin.OriginUpgrade;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
-import com.cyberday1.neoorigins.power.builtin.ActiveGravityWellPower;
 import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -23,6 +22,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.ArrayList;
@@ -68,8 +68,9 @@ public class PlayerLifecycleEvents {
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
-        ActiveGravityWellPower.tickWells();
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
     }
 
     @SubscribeEvent
@@ -148,6 +149,20 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
         ActiveOriginService.invalidate(uuid);
+        com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
+        com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);
+    }
+
+    /**
+     * Dimension restrictions filter the active-powers map, so any dimension
+     * transition invalidates the client's mirror. Push a fresh sync.
+     */
+    @SubscribeEvent
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        NeoOriginsNetwork.syncActivePowersToPlayer(sp);
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DIMENSION_CHANGE);
     }
 
     @SubscribeEvent
@@ -167,12 +182,32 @@ public class PlayerLifecycleEvents {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
         }
-        // If the player had no bed/respawn anchor (event.isEndConquered() is the
-        // "returned from End" path which keeps their normal spawn — skip that),
-        // route them to their origin's spawn_location instead of world spawn.
-        if (!event.isEndConquered() && sp.getRespawnPosition() == null) {
-            com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+        // modify_player_spawn — per-power respawn override. Runs before the
+        // bed-less fallback and may also override the bed if override_bed=true.
+        if (!event.isEndConquered()) {
+            final boolean[] teleported = {false};
+            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.ModifyPlayerSpawnPower.class, cfg -> {
+                if (teleported[0]) return;
+                if (!cfg.overrideBed() && sp.getRespawnPosition() != null) return;
+                var target = cfg.location().locateSpawn(sp);
+                if (target.isEmpty()) return;
+                var pos = target.get().pos();
+                if (target.get().level() == sp.level()) {
+                    sp.teleportTo(pos.x, pos.y, pos.z);
+                } else {
+                    sp.changeDimension(new net.minecraft.world.level.portal.DimensionTransition(
+                        target.get().level(), pos, net.minecraft.world.phys.Vec3.ZERO,
+                        sp.getYRot(), sp.getXRot(),
+                        net.minecraft.world.level.portal.DimensionTransition.DO_NOTHING));
+                }
+                teleported[0] = true;
+            });
+            if (!teleported[0] && sp.getRespawnPosition() == null) {
+                com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+            }
         }
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
         pendingResync.put(sp.getUUID(), 2);
@@ -256,5 +291,58 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
             sp.getName().getString(), String.join(", ", assigned));
+    }
+
+    @SubscribeEvent
+    public static void onPlayerWakeUp(PlayerWakeUpEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.WAKE_UP);
+    }
+
+    /** Per-player stash for items kept across death via KeepInventoryPower. */
+    private static final java.util.Map<java.util.UUID, java.util.List<net.minecraft.world.item.ItemStack>> KEPT_STASH
+        = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGH)
+    public static void onLivingDeath(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var inv = sp.getInventory();
+        var kept = new java.util.ArrayList<net.minecraft.world.item.ItemStack>();
+        int total = inv.getContainerSize();
+        for (int i = 0; i < total; i++) {
+            var stack = inv.getItem(i);
+            if (stack.isEmpty()) continue;
+            final int slotIdx = i;
+            final var stackRef = stack;
+            final boolean[] match = {false};
+            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.class, cfg -> {
+                var cat = com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.SlotCategory.forInventoryIndex(slotIdx);
+                if (!com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.matchesSlot(cfg, cat)) return;
+                if (!com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.matchesItem(cfg, stackRef)) return;
+                match[0] = true;
+            });
+            if (match[0]) {
+                kept.add(stack.copy());
+                inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+            }
+        }
+        if (!kept.isEmpty()) KEPT_STASH.put(sp.getUUID(), kept);
+
+        // Kill all tracked minions belonging to the dying summoner — they
+        // shouldn't outlive their owner. clearAll() discards them cleanly and
+        // evicts them from MinionTracker + DIM_HINTS.
+        MinionTracker.clearAll(sp.getUUID());
+    }
+
+    @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        if (!event.isWasDeath()) return;
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var stash = KEPT_STASH.remove(sp.getUUID());
+        if (stash == null) return;
+        for (var stack : stash) {
+            if (!sp.getInventory().add(stack)) sp.drop(stack, false);
+        }
     }
 }

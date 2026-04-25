@@ -1,5 +1,13 @@
 {
-  "type": "neoorigins:damage_in_biome",
-  "biome_tag": "minecraft:is_nether",
-  "damage_per_second": 2.0
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "condition": {
+    "type": "neoorigins:biome",
+    "biome_tag": "minecraft:is_nether"
+  },
+  "entity_action": {
+    "type": "neoorigins:damage",
+    "source": { "name": "on_fire" },
+    "amount": 2.0
+  }
 }

@@ -2,7 +2,9 @@ package com.cyberday1.neoorigins.screen;
 
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.client.ClientOriginState;
 import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
 import net.minecraft.client.Minecraft;
@@ -14,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -137,6 +140,10 @@ public class OriginSelectionScreen extends Screen {
 
     private int computeContentHeight() {
         int h = 8 + descLines.size() * LINE_H + 8; // separator + desc + gap
+        if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()
+            && !detailViewModel.origin().spawnLocation().get().formatSummary().isEmpty()) {
+            h += LINE_H;
+        }
         List<String> pNames = detailViewModel.powerNames();
         if (!pNames.isEmpty()) {
             h += 9 + 4; // "Powers" header
@@ -235,8 +242,13 @@ public class OriginSelectionScreen extends Screen {
             g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, 0xFF334488);
             g.drawString(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
         }
-        if (getMaxListScroll() > 0)
-            g.drawString(font, Component.translatable("gui.neoorigins.hint.scroll"), panelX, panelBottom + 3, 0xFF334466, false);
+        // Scroll hint sits above the list panel so it doesn't collide with the
+        // Random / Back / Confirm button row at the bottom.
+        if (getMaxListScroll() > 0) {
+            var hint = Component.translatable("gui.neoorigins.hint.scroll");
+            int hintY = PANEL_TOP - 10;
+            g.drawString(font, hint, panelX, hintY, 0xFF334466, false);
+        }
 
         super.render(g, mouseX, mouseY, partial);
         renderDetailPanel(g);
@@ -277,6 +289,14 @@ public class OriginSelectionScreen extends Screen {
         for (FormattedCharSequence line : descLines) {
             g.drawString(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
             sy += LINE_H;
+        }
+        if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()) {
+            String spawnSummary = detailViewModel.origin().spawnLocation().get().formatSummary();
+            if (!spawnSummary.isEmpty()) {
+                g.drawString(font, Component.literal(spawnSummary),
+                    rightX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                sy += LINE_H;
+            }
         }
         sy += 8;
         List<String> pNames = detailViewModel.powerNames();
@@ -345,5 +365,39 @@ public class OriginSelectionScreen extends Screen {
     }
 
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void onClose() { Minecraft.getInstance().setScreen(null); }
+
+    private static final ResourceLocation CLASS_LAYER_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
+    private static final ResourceLocation NITWIT_ORIGIN_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "class_nitwit");
+
+    @Override
+    public void onClose() {
+        // If the player escaped out with their primary origin picked but no
+        // class, auto-assign the nitwit class (no-effect default) so the
+        // server sees `hadAllOrigins` flip true and runs grantAllPending.
+        // Otherwise the player would sit in a half-selected state with no
+        // starting_equipment items granted. See tester feedback 2026-04-22.
+        var origins = ClientOriginState.getOrigins();
+        boolean hasClass = origins.keySet().stream().anyMatch(CLASS_LAYER_ID::equals);
+        boolean hasAnyOrigin = !origins.isEmpty();
+        if (hasAnyOrigin && !hasClass) {
+            PacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
+        }
+        // Tell the server to cancel any pending orb-of-origin commit. If the
+        // player already picked at least once during this picker session, the
+        // commit already fired and the server's flag is already cleared, so
+        // this is a no-op. If they never picked, the orb stays in the
+        // inventory and no XP is charged.
+        if (isOrb) {
+            PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.CancelOrbPayload());
+        }
+        // Non-orb picker closed with zero origins committed: tell the server
+        // to drop first-pick invulnerability. Without this the player could
+        // escape the picker and stay immortal forever.
+        if (!hasAnyOrigin && !isOrb) {
+            PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
+        }
+        Minecraft.getInstance().setScreen(null);
+    }
 }

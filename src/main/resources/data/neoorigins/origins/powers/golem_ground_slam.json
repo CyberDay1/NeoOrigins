@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 140,
+  "hunger_cost": 3,
+  "entity_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 5.0,
+    "include_source": false,
+    "entity_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        { "type": "neoorigins:damage", "amount": 4.0, "source": { "name": "generic" } },
+        { "type": "neoorigins:apply_effect", "effect": "minecraft:slowness", "duration": 80, "amplifier": 1 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "origins.examplepack.tidecaller.name",
+  "description": "origins.examplepack.tidecaller.description",
+  "icon": "minecraft:heart_of_the_sea",
+  "impact": "medium",
+  "order": 31,
+  "powers": [
+    "examplepack:tidecaller_water_breathing",
+    "examplepack:tidecaller_ocean_speed",
+    "examplepack:tidecaller_starting_trident",
+    "examplepack:tidecaller_drowning_bolt"
+  ],
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
+}

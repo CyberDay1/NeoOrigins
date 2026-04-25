@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:food_item_in_tag",
+      "tag": "neoorigins:caveborn_eat_diamond"
+    },
+    "if_action": {
+      "type": "neoorigins:apply_effect",
+      "effect": "minecraft:luck",
+      "duration": 6000,
+      "amplifier": 1
+    }
+  }
+}

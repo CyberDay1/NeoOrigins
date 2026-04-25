@@ -1,5 +1,6 @@
 {
-  "type": "neoorigins:regen_in_fluid",
-  "fluid": "water",
-  "amount_per_second": 2.0
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "condition": { "type": "neoorigins:in_water" },
+  "entity_action": { "type": "neoorigins:heal", "amount": 2.0 }
 }

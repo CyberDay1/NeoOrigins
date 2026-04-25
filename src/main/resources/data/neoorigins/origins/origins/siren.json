@@ -8,10 +8,17 @@
     "neoorigins:siren_charm",
     "neoorigins:siren_water_breathing",
     "neoorigins:siren_aquatic_speed",
+    "neoorigins:aquatic_fish_diet",
+    "neoorigins:aquatic_fish_diet_bonus",
     "neoorigins:siren_night_vision",
     "neoorigins:siren_land_slowdown",
     "neoorigins:siren_reduced_health",
-    "neoorigins:siren_regen_in_water"
+    "neoorigins:siren_dries_out"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
 }

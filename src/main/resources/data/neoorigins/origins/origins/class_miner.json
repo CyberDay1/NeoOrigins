@@ -6,7 +6,10 @@
   "order": 3,
   "powers": [
     "neoorigins:class_miner_speed",
-    "neoorigins:class_miner_efficiency"
+    "neoorigins:class_miner_efficiency",
+    "neoorigins:class_miner_stone_fists",
+    "neoorigins:class_miner_deep_sense",
+    "neoorigins:class_miner_tough_back"
   ],
   "upgrades": []
 }

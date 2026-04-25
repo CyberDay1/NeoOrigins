@@ -24,14 +24,19 @@ public class ActiveTidalWavePower extends AbstractActivePower<ActiveTidalWavePow
         double range,
         double coneAngle,
         int cooldownTicks,
+        int hungerCost,
         String type
     ) implements AbstractActivePower.Config {
+        @Override public int cooldownTicks() { return cooldownTicks; }
+        @Override public int hungerCost() { return hungerCost; }
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("damage", 4.0f).forGetter(Config::damage),
             Codec.FLOAT.optionalFieldOf("knockback_strength", 2.0f).forGetter(Config::knockbackStrength),
             Codec.DOUBLE.optionalFieldOf("range", 8.0).forGetter(Config::range),
             Codec.DOUBLE.optionalFieldOf("cone_angle", 60.0).forGetter(Config::coneAngle),
             Codec.INT.optionalFieldOf("cooldown_ticks", 100).forGetter(Config::cooldownTicks),
+            Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }

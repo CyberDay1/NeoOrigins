@@ -1,6 +1,10 @@
 {
-  "type": "neoorigins:hunger_drain_modifier",
-  "multiplier": 0.25,
+  "type": "neoorigins:action_on_event",
+  "event": "mod_exhaustion",
+  "modifier": {
+    "operation": "multiplication",
+    "value": 0.25
+  },
   "name": "power.neoorigins.avian_no_hunger_sprint.name",
   "description": "power.neoorigins.avian_no_hunger_sprint.description"
 }

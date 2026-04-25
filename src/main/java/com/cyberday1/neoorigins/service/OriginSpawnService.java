@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.condition.LocationCondition;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
@@ -39,6 +40,7 @@ public final class OriginSpawnService {
     public static void teleportToOriginSpawn(ServerPlayer player, ResourceLocation originId) {
         Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
         if (origin == null || origin.spawnLocation().isEmpty()) return;
+        if (!NeoOriginsConfig.shouldApplySpawnLocation(originId)) return;
         teleportTo(player, origin.spawnLocation().get(), originId);
     }
 
@@ -54,6 +56,7 @@ public final class OriginSpawnService {
             if (originId == null) continue;
             Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
             if (origin == null || origin.spawnLocation().isEmpty()) continue;
+            if (!NeoOriginsConfig.shouldApplySpawnLocation(originId)) continue;
             teleportTo(player, origin.spawnLocation().get(), originId);
             return true;
         }
@@ -68,12 +71,13 @@ public final class OriginSpawnService {
                 originId, player.getName().getString());
             return;
         }
-        Vec3 pos = target.get().pos();
-        if (target.get().level() == player.serverLevel()) {
+        LocationCondition.SpawnTarget t = target.get();
+        Vec3 pos = t.pos();
+        if (t.level() == player.serverLevel()) {
             player.teleportTo(pos.x, pos.y, pos.z);
         } else {
             player.changeDimension(new DimensionTransition(
-                target.get().level(), pos, Vec3.ZERO,
+                t.level(), pos, Vec3.ZERO,
                 player.getYRot(), player.getXRot(),
                 DimensionTransition.DO_NOTHING));
         }

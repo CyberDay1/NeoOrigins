@@ -24,6 +24,13 @@ public final class NeoOriginsConfig {
                      "Useful for addon and datapack authors debugging load issues.")
             .define("debug_power_loading", false);
 
+    public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS =
+        BUILDER
+            .comment("Hide hunger / air HUD bars for origins that don't consume them",
+                     "(e.g. Automaton hunger, Merling / Kraken / Automaton air).",
+                     "Turn off to keep vanilla bars visible regardless of origin.")
+            .define("hide_hud_bars", true);
+
     // ── Disabled Origins ────────────────────────────────────────────────
     // Each built-in origin can be disabled here. Disabled origins are
     // removed after data loading and will not appear in the origin selection screen.
@@ -67,7 +74,7 @@ public final class NeoOriginsConfig {
         "class_explorer", "class_sentinel", "class_herbalist", "class_scout",
         "class_berserker", "class_titan", "class_rogue", "class_lumberjack",
         "class_blacksmith", "class_cook", "class_merchant", "class_cleric",
-        "class_nitwit"
+        "class_nitwit", "class_fisher", "class_mason", "class_paladin"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> CLASS_TOGGLES;
@@ -130,8 +137,7 @@ public final class NeoOriginsConfig {
 
         // ── Abyssal ──
         p("abyssal_thorns_aura");       f("return_ratio", 0.3, 0, 10); ep();
-        p("abyssal_regen_in_water");    f("amount_per_second", 2.0, 0, 100); ep();
-        p("abyssal_daylight_damage");   f("damage_per_second", 1.5, 0, 100); fb("ignite", false); ep();
+        p("abyssal_aquatic_speed");     f("amount", 0.8, -1, 10); ep();
         p("abyssal_land_speed_penalty");f("amount", -0.1, -1, 1); ep();
         p("abyssal_summon_guardian");   fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 5, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
 
@@ -143,7 +149,6 @@ public final class NeoOriginsConfig {
         p("automaton_rigid_joints");    f("multiplier", 0.25, 0, 10); ep();
 
         // ── Avian ──
-        p("avian_slow_fall");           f("amount", -0.9, -1, 0); ep();
         p("avian_no_hunger_sprint");    f("multiplier", 0.25, 0, 10); ep();
 
         // ── Blazeling ──
@@ -151,7 +156,7 @@ public final class NeoOriginsConfig {
 
         // ── Breeze ──
         p("breeze_wind_charge");        f("speed", 2.0, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
-        p("breeze_wind_dash");          f("strength", 2.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
+        p("breeze_wind_dash");          f("power", 2.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("breeze_light_frame");        f("scale", 0.9, 0.1, 10); ep();
         p("breeze_reduced_health");     f("amount", -8.0, -100, 100); ep();
         p("breeze_speed_boost");        f("amount", 0.15, -1, 10); ep();
@@ -163,7 +168,8 @@ public final class NeoOriginsConfig {
 
         // ── Cinderborn ──
         p("cinderborn_fireball");       f("speed", 1.2, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
-        p("cinderborn_lava_regen");     f("amount_per_second", 3.0, 0, 100); ep();
+        // (cinderborn_lava_regen heal amount is nested in entity_action;
+        // shallow power_overrides can't reach it. Edit JSON directly to retune.)
         p("cinderborn_natural_armor");  f("amount", 6.0, -100, 100); ep();
         p("cinderborn_water_weakness"); f("multiplier", 3.0, 0, 100); ep();
 
@@ -244,7 +250,6 @@ public final class NeoOriginsConfig {
         p("kraken_massive");            f("scale", 1.3, 0.1, 10); ep();
         p("kraken_pressure_armor");     f("amount", 6.0, -100, 100); ep();
         p("kraken_deep_current");       f("amount", 0.8, -1, 10); ep();
-        p("kraken_regen_in_water");     f("amount_per_second", 2.0, 0, 100); ep();
         p("kraken_summon_guardian");    fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 5, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
         p("kraken_beached");            f("amount", -0.3, -1, 1); ep();
         p("kraken_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
@@ -252,6 +257,10 @@ public final class NeoOriginsConfig {
         // ── Merling ──
         p("merling_aquatic_speed");     f("amount", 0.6, -1, 10); ep();
         p("merling_land_slowdown");     f("amount", -0.1, -1, 1); ep();
+        // (aquatic_fish_diet_bonus values are nested inside if_else_list
+        // actions; the shallow power_overrides system can't reach them.
+        // Pack authors who want different cooked-equivalent values should
+        // copy aquatic_fish_diet_bonus.json into their pack and edit directly.)
 
         // ── Necromancer ──
         p("necromancer_summon_skeleton");fi("max_count", 3, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
@@ -288,7 +297,6 @@ public final class NeoOriginsConfig {
 
         // ── Siren ──
         p("siren_aquatic_speed");       f("amount", 0.8, -1, 10); ep();
-        p("siren_regen_in_water");      f("amount_per_second", 1.0, 0, 100); ep();
         p("siren_land_slowdown");       f("amount", -0.15, -1, 1); ep();
         p("siren_reduced_health");      f("amount", -4.0, -100, 100); ep();
 
@@ -308,7 +316,8 @@ public final class NeoOriginsConfig {
         p("stoneguard_no_mob_spawns");  fi("radius", 24, 1, 256); ep();
 
         // ── Strider ──
-        p("strider_lava_regen");        f("amount_per_second", 2.0, 0, 100); ep();
+        // (strider_lava_regen heal amount is nested in entity_action;
+        // shallow power_overrides can't reach it. Edit JSON directly to retune.)
         p("strider_natural_armor");     f("amount", 6.0, -100, 100); ep();
         p("strider_water_weakness");    f("multiplier", 3.0, 0, 100); ep();
 
@@ -327,7 +336,9 @@ public final class NeoOriginsConfig {
 
         // ── Umbral ──
         p("umbral_shadow_orb");         fi("max_orbs", 4, 1, 100); f("radius", 28.0, 1, 128); fi("cooldown_ticks", 60, 0, 72000); fi("tick_interval", 20, 1, 72000); ep();
-        p("umbral_active_dash");        f("power", 2.0, 0, 10); fi("cooldown_ticks", 60, 0, 72000); ep();
+        // umbral_active_dash strength is nested in entity_action.dash; cooldown
+        // is at the top level on this active_ability JSON so it CAN be overridden.
+        p("umbral_active_dash");        fi("cooldown_ticks", 60, 0, 72000); ep();
         p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
 
         // ── Vampire ──
@@ -434,6 +445,75 @@ public final class NeoOriginsConfig {
         BUILDER.pop();
     }
 
+    // ── Ocean Origins ────────────────────────────────────────────────────
+    // Per-feature toggles for the built-in ocean origins (abyssal, kraken,
+    // merling, siren). Both default on.
+
+    public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_SPAWN_IN_OCEAN;
+    public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_DRIES_OUT;
+    public static final ModConfigSpec.IntValue OCEAN_ORIGINS_DRAIN_RATE_TICKS;
+    public static final ModConfigSpec.DoubleValue OCEAN_ORIGINS_DROWN_DAMAGE;
+
+    private static final Set<String> OCEAN_ORIGIN_PATHS =
+        Set.of("abyssal", "kraken", "merling", "siren");
+
+    static {
+        BUILDER.comment(
+            "Per-feature toggles for built-in ocean origins (abyssal, kraken, merling, siren)."
+        ).push("ocean_origins");
+
+        OCEAN_ORIGINS_SPAWN_IN_OCEAN = BUILDER
+            .comment("Teleport ocean origins to a random ocean biome on first origin pick.",
+                     "Turn off to let them spawn at the world's normal spawn point.")
+            .define("spawn_in_ocean", true);
+
+        OCEAN_ORIGINS_DRIES_OUT = BUILDER
+            .comment("Ocean origins slowly lose air while out of water (Minecraft-fish style).",
+                     "Turn off to disable the on-land suffocation entirely.")
+            .define("dries_out", true);
+
+        OCEAN_ORIGINS_DRAIN_RATE_TICKS = BUILDER
+            .comment("Ticks per single air point lost while out of water.",
+                     "Default 10 = 1 air per 0.5s, 300 air → ~2.5 minutes to deplete.",
+                     "Larger values mean a slower drain. Vanilla cod uses ~1 tick per air;",
+                     "for a fish-comparable feel set this near 16 (≈4 minutes).",
+                     "Replaces the per-power drain_rate field in built-in dries_out JSONs.")
+            .defineInRange("drain_rate_ticks", 10, 1, 1200);
+
+        OCEAN_ORIGINS_DROWN_DAMAGE = BUILDER
+            .comment("Damage applied per second once a dried-out aquatic player's virtual air",
+                     "is exhausted. Mirrors WaterAnimal.handleAirSupply cadence (vanilla cod / salmon).",
+                     "Default 2.0 (= 1 heart per second). Set to 0 to make dry-out non-lethal.")
+            .defineInRange("drown_damage_per_second", 2.0, 0.0, 100.0);
+
+        BUILDER.pop();
+    }
+
+    /**
+     * True if the spawn_location teleport should apply to this origin. Always
+     * true for non-ocean origins; for the four built-in ocean origins,
+     * controlled by {@link #OCEAN_ORIGINS_SPAWN_IN_OCEAN}.
+     */
+    public static boolean shouldApplySpawnLocation(ResourceLocation originId) {
+        if (!NeoOrigins.MOD_ID.equals(originId.getNamespace())) return true;
+        if (!OCEAN_ORIGIN_PATHS.contains(originId.getPath())) return true;
+        return OCEAN_ORIGINS_SPAWN_IN_OCEAN.get();
+    }
+
+    public static boolean isOceanOriginsDriesOutEnabled() {
+        return OCEAN_ORIGINS_DRIES_OUT.get();
+    }
+
+    /** Master drain rate in ticks per air point lost while an aquatic player is out of water. */
+    public static int oceanOriginsDrainRateTicks() {
+        return OCEAN_ORIGINS_DRAIN_RATE_TICKS.get();
+    }
+
+    /** Drown damage applied per second once virtual air is exhausted. Capped at 0 by config range. */
+    public static float oceanOriginsDrownDamage() {
+        return OCEAN_ORIGINS_DROWN_DAMAGE.get().floatValue();
+    }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static RandomMode getRandomMode() {
@@ -449,6 +529,10 @@ public final class NeoOriginsConfig {
     /**
      * Returns true if the given power ID is restricted in the player's current dimension.
      */
+    public static boolean isHideHudBarsEnabled() {
+        return HIDE_HUD_BARS.get();
+    }
+
     public static boolean isPowerRestrictedInDimension(ResourceLocation powerId, ResourceKey<Level> dimension) {
         Map<String, Set<ResourceKey<Level>>> map = getParsedRestrictions();
         Set<ResourceKey<Level>> denied = map.get(powerId.toString());

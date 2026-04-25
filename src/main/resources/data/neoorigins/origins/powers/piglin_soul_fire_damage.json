@@ -1,5 +1,10 @@
 {
-  "type": "neoorigins:damage_in_biome",
-  "biome_tag": "minecraft:has_structure/bastion_remnant",
-  "damage_per_second": 1.0
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "condition": { "type": "neoorigins:biome", "biome_tag": "minecraft:soul_sand_valley" },
+  "entity_action": {
+    "type": "neoorigins:damage",
+    "amount": 0.5,
+    "source": { "name": "magic" }
+  }
 }

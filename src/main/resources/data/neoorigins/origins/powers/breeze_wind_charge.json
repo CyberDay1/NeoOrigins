@@ -1,1 +1,9 @@
-{ "type": "neoorigins:active_bolt", "speed": 2.0, "cooldown_ticks": 100 }
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 100,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "minecraft:wind_charge",
+    "speed": 2.0
+  }
+}

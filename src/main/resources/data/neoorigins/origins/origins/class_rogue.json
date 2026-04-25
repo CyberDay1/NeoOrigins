@@ -6,7 +6,10 @@
   "order": 12,
   "powers": [
     "neoorigins:class_rogue_sneaky",
-    "neoorigins:class_rogue_stealth"
+    "neoorigins:class_rogue_stealth",
+    "neoorigins:class_rogue_soft_landing",
+    "neoorigins:class_rogue_parkour",
+    "neoorigins:class_rogue_backstab"
   ],
   "upgrades": []
 }

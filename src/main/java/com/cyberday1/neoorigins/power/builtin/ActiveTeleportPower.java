@@ -21,12 +21,17 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         double range,
         int cooldownTicks,
         String mode,
+        int hungerCost,
         String type
     ) implements AbstractActivePower.Config {
+        @Override public int cooldownTicks() { return cooldownTicks; }
+        @Override public int hungerCost() { return hungerCost; }
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("range", 32.0).forGetter(Config::range),
             Codec.INT.optionalFieldOf("cooldown_ticks", 60).forGetter(Config::cooldownTicks),
             Codec.STRING.optionalFieldOf("mode", "target").forGetter(Config::mode),
+            Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -35,11 +40,10 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
-        double range = config.range();
-        final double[] mult = {1.0};
-        ActiveOriginService.forEachOfType(player, TeleportRangeModifierPower.class,
-            cfg -> mult[0] *= cfg.multiplier());
-        range *= mult[0];
+        // teleport_range_modifier moved to action_on_event (MOD_TELEPORT_RANGE).
+        double range = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_TELEPORT_RANGE,
+            null, (float) config.range());
         return "random".equalsIgnoreCase(config.mode())
             ? randomTeleport(player, range)
             : targetTeleport(player, range);

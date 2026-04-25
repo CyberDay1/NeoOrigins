@@ -5,10 +5,19 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LivingEntityMixin",
+    "LivingEntityAirRefillMixin",
     "LivingEntityClimbMixin",
     "FoodDataMixin",
     "FoodDataTickMixin",
-    "FoodDataNoRegenMixin"
+    "FoodDataNoRegenMixin",
+    "EnderManLookMixin",
+    "EntityMakeStuckInBlockMixin",
+    "PlayerStartFallFlyingMixin"
+  ],
+  "client": [
+    "client.LightTextureMixin",
+    "client.GuiHudBarsMixin",
+    "client.PlayerWaterVisionMixin"
   ],
   "injectors": {
     "defaultRequire": 1

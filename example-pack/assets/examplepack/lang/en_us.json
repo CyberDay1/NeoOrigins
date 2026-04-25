@@ -87,5 +87,50 @@
   "power.examplepack.paladin_holy_mark.description": "Undead you hit briefly glow with holy light.",
 
   "power.examplepack.void_knight_end_ward.name": "End Ward",
-  "power.examplepack.void_knight_end_ward.description": "Grants +2 armor while in The End."
+  "power.examplepack.void_knight_end_ward.description": "Grants +2 armor while in The End.",
+
+  "origins.examplepack.netherborn.name": "Netherborn",
+  "origins.examplepack.netherborn.description": "Forged in infernal fire. Spawns at a Nether Fortress with a fire-aspect blade and cooked rations.",
+
+  "power.examplepack.netherborn_fire_immunity.name": "Hellsblood",
+  "power.examplepack.netherborn_fire_immunity.description": "Immune to fire, lava, and magma damage.",
+
+  "power.examplepack.netherborn_nether_speed.name": "Infernal Gait",
+  "power.examplepack.netherborn_nether_speed.description": "Moves faster while in any Nether biome.",
+
+  "power.examplepack.netherborn_starting_sword.name": "Infernal Blade",
+  "power.examplepack.netherborn_starting_sword.description": "Starts with a Fire Aspect I stone sword.",
+
+  "power.examplepack.netherborn_starting_food.name": "Hellborn Rations",
+  "power.examplepack.netherborn_starting_food.description": "Starts with 8 cooked porkchops.",
+
+  "origins.examplepack.tidecaller.name": "Tidecaller",
+  "origins.examplepack.tidecaller.description": "A child of the ocean. Spawns beneath the waves with a Loyalty trident and the gift of deep breath.",
+
+  "power.examplepack.tidecaller_water_breathing.name": "Deep Lungs",
+  "power.examplepack.tidecaller_water_breathing.description": "Never loses breath underwater.",
+
+  "power.examplepack.tidecaller_ocean_speed.name": "Tidal Grace",
+  "power.examplepack.tidecaller_ocean_speed.description": "Swims with Dolphin's Grace whenever in water.",
+
+  "power.examplepack.tidecaller_starting_trident.name": "Tidebound Trident",
+  "power.examplepack.tidecaller_starting_trident.description": "Starts with a Loyalty I trident.",
+
+  "power.examplepack.tidecaller_drowning_bolt.name": "Drowning Bolt",
+  "power.examplepack.tidecaller_drowning_bolt.description": "Active: fire a bolt that drowns hostile mobs in a 5-block radius where it lands. 10s cooldown.",
+
+  "origins.examplepack.hearth_keeper.name": "Hearth Keeper",
+  "origins.examplepack.hearth_keeper.description": "A traveler from a homestead — spawns with rations, seeds, and saplings, and coaxes crops to grow faster.",
+
+  "power.examplepack.hearth_keeper_traveler_rations.name": "Traveler's Rations",
+  "power.examplepack.hearth_keeper_traveler_rations.description": "Starts with 8 bread.",
+
+  "power.examplepack.hearth_keeper_seed_pouch.name": "Seed Pouch",
+  "power.examplepack.hearth_keeper_seed_pouch.description": "Starts with 16 wheat seeds.",
+
+  "power.examplepack.hearth_keeper_saplings.name": "Seedling Bundle",
+  "power.examplepack.hearth_keeper_saplings.description": "Starts with 4 oak saplings.",
+
+  "power.examplepack.hearth_keeper_crop_growth.name": "Green Thumb",
+  "power.examplepack.hearth_keeper_crop_growth.description": "Crops within 4 blocks grow faster."
 }

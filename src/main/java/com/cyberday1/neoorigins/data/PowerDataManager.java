@@ -10,6 +10,7 @@ import com.cyberday1.neoorigins.compat.CompatTranslationLog;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
+import com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases;
 import com.cyberday1.neoorigins.power.registry.PowerTypes;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -105,6 +106,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 }
 
                 ResourceLocation typeId = ResourceLocation.parse(json.get("type").getAsString());
+                // 2.0 legacy alias remap — transparently rewrites old type IDs.
+                typeId = LegacyPowerTypeAliases.apply(typeId, json, id);
                 PowerType<?> type = PowerTypes.get(typeId);
                 if (type == null) {
                     NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}", typeId, id);
@@ -147,7 +150,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(type, config, name, desc)));
+            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc)));
     }
 
     /** Merges config-file overrides into the power JSON before CODEC parsing. */

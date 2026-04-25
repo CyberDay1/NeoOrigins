@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_mason_starting_pickaxe",
+  "item": "minecraft:stone_pickaxe",
+  "enchantments": [
+    { "id": "minecraft:efficiency", "level": 1 }
+  ]
+}

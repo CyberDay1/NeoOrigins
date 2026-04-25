@@ -3,6 +3,7 @@
   "attribute": "minecraft:movement_speed",
   "amount": -0.1,
   "operation": "add_multiplied_base",
+  "condition": "on_land",
   "name": "power.neoorigins.merling_land_slowdown.name",
   "description": "power.neoorigins.merling_land_slowdown.description"
 }

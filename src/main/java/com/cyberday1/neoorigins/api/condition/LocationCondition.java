@@ -19,12 +19,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * A reusable predicate over a player's current location. All fields are
- * optional and combine with AND — a condition is satisfied only when every
- * present field matches.
+ * A reusable predicate over a player's current location. {@code dimension} /
+ * {@code structure} / {@code structure_tag} combine with AND; biome fields
+ * ({@code biome}, {@code biome_tag}, {@code biomes}) combine with OR — any
+ * biome match satisfies the biome requirement.
  *
  * <p>Evaluated server-side: structure lookups rely on
  * {@code ServerLevel.structureManager()} which is not populated on the client.
@@ -33,6 +36,7 @@ public record LocationCondition(
     Optional<ResourceLocation> dimension,
     Optional<ResourceLocation> biome,
     Optional<ResourceLocation> biomeTag,
+    List<ResourceLocation> biomes,
     Optional<ResourceLocation> structure,
     Optional<ResourceLocation> structureTag,
     boolean allowWaterSurface,
@@ -42,6 +46,7 @@ public record LocationCondition(
         ResourceLocation.CODEC.optionalFieldOf("dimension").forGetter(LocationCondition::dimension),
         ResourceLocation.CODEC.optionalFieldOf("biome").forGetter(LocationCondition::biome),
         ResourceLocation.CODEC.optionalFieldOf("biome_tag").forGetter(LocationCondition::biomeTag),
+        ResourceLocation.CODEC.listOf().optionalFieldOf("biomes", List.of()).forGetter(LocationCondition::biomes),
         ResourceLocation.CODEC.optionalFieldOf("structure").forGetter(LocationCondition::structure),
         ResourceLocation.CODEC.optionalFieldOf("structure_tag").forGetter(LocationCondition::structureTag),
         Codec.BOOL.optionalFieldOf("allow_water_surface", false).forGetter(LocationCondition::allowWaterSurface),
@@ -49,8 +54,12 @@ public record LocationCondition(
     ).apply(inst, LocationCondition::new));
 
     public boolean isEmpty() {
-        return dimension.isEmpty() && biome.isEmpty() && biomeTag.isEmpty()
+        return dimension.isEmpty() && biome.isEmpty() && biomeTag.isEmpty() && biomes.isEmpty()
             && structure.isEmpty() && structureTag.isEmpty();
+    }
+
+    private boolean hasBiomeFilter() {
+        return biome.isPresent() || biomeTag.isPresent() || !biomes.isEmpty();
     }
 
     /** Tests the player's current server-side location against this condition. */
@@ -60,16 +69,27 @@ public record LocationCondition(
 
         if (dimension.isPresent() && !level.dimension().location().equals(dimension.get())) return false;
 
-        if (biome.isPresent() || biomeTag.isPresent()) {
+        if (hasBiomeFilter()) {
             Holder<Biome> biomeHolder = level.getBiome(pos);
+            boolean matched = false;
             if (biome.isPresent()) {
                 var key = biomeHolder.unwrapKey();
-                if (key.isEmpty() || !key.get().location().equals(biome.get())) return false;
+                if (key.isPresent() && key.get().location().equals(biome.get())) matched = true;
             }
-            if (biomeTag.isPresent()) {
+            if (!matched && biomeTag.isPresent()) {
                 TagKey<Biome> tag = TagKey.create(Registries.BIOME, biomeTag.get());
-                if (!biomeHolder.is(tag)) return false;
+                if (biomeHolder.is(tag)) matched = true;
             }
+            if (!matched && !biomes.isEmpty()) {
+                var key = biomeHolder.unwrapKey();
+                if (key.isPresent()) {
+                    ResourceLocation current = key.get().location();
+                    for (ResourceLocation allowed : biomes) {
+                        if (allowed.equals(current)) { matched = true; break; }
+                    }
+                }
+            }
+            if (!matched) return false;
         }
 
         if (structure.isPresent()) {
@@ -83,6 +103,52 @@ public record LocationCondition(
         }
 
         return true;
+    }
+
+    /**
+     * Human-readable one-liner for origin info screens. Returns empty
+     * string when the condition carries no location filters.
+     */
+    public String formatSummary() {
+        if (isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("Spawns in: ");
+        boolean hasDim = dimension.isPresent();
+        if (hasDim) sb.append(humanizeDimension(dimension.get()));
+
+        List<String> detail = new ArrayList<>();
+        if (biome.isPresent()) detail.add(humanize(biome.get()));
+        if (biomeTag.isPresent()) detail.add(humanize(biomeTag.get()) + " biomes");
+        for (ResourceLocation b : biomes) detail.add(humanize(b));
+        if (structure.isPresent()) detail.add(humanize(structure.get()));
+        if (structureTag.isPresent()) detail.add(humanize(structureTag.get()) + " structures");
+
+        if (!detail.isEmpty()) {
+            if (hasDim) sb.append(" — ");
+            sb.append(String.join(", ", detail));
+        }
+        return sb.toString();
+    }
+
+    private static String humanizeDimension(ResourceLocation id) {
+        return switch (id.getPath()) {
+            case "overworld" -> "Overworld";
+            case "the_nether" -> "The Nether";
+            case "the_end" -> "The End";
+            default -> humanize(id);
+        };
+    }
+
+    private static String humanize(ResourceLocation id) {
+        String path = id.getPath();
+        if (path.startsWith("is_")) path = path.substring(3);
+        StringBuilder out = new StringBuilder();
+        for (String w : path.split("_")) {
+            if (w.isEmpty()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(Character.toUpperCase(w.charAt(0)));
+            out.append(w.substring(1));
+        }
+        return out.toString();
     }
 
     /** Resolved (level, position) pair returned by {@link #locateSpawn}. */
@@ -125,17 +191,26 @@ public record LocationCondition(
                 if (pair != null) found = pair.getFirst();
             }
             if (found == null) return Optional.empty();
-        } else if (biome.isPresent() || biomeTag.isPresent()) {
+        } else if (hasBiomeFilter()) {
             var pair = target.findClosestBiome3d(holder -> {
                 if (biome.isPresent()) {
                     var key = holder.unwrapKey();
-                    if (key.isEmpty() || !key.get().location().equals(biome.get())) return false;
+                    if (key.isPresent() && key.get().location().equals(biome.get())) return true;
                 }
                 if (biomeTag.isPresent()) {
                     TagKey<Biome> tag = TagKey.create(Registries.BIOME, biomeTag.get());
-                    if (!holder.is(tag)) return false;
+                    if (holder.is(tag)) return true;
                 }
-                return true;
+                if (!biomes.isEmpty()) {
+                    var key = holder.unwrapKey();
+                    if (key.isPresent()) {
+                        ResourceLocation current = key.get().location();
+                        for (ResourceLocation allowed : biomes) {
+                            if (allowed.equals(current)) return true;
+                        }
+                    }
+                }
+                return false;
             }, searchOrigin, 6400, 32, 64);
             if (pair == null) return Optional.empty();
             found = pair.getFirst();
@@ -154,23 +229,26 @@ public record LocationCondition(
         final int minY = target.dimensionType().minY();
         final int topY = minY + target.dimensionType().logicalHeight() - 1;
 
-        // Pass 1: strict land column — solid floor, two air blocks above.
-        Optional<Vec3> land = findColumn(target, found, minY, topY, LocationCondition::isLandColumn);
-        if (land.isPresent()) return Optional.of(new SpawnTarget(target, land.get()));
-
-        // Pass 2: submerged spawn on the ocean/lake floor (water-breathing
-        // origins). Same column shape as land, but feet+head are water.
+        // For aquatic origins (allow_ocean_floor / allow_water_surface), try
+        // the water passes FIRST. If the 5x5 search around the biome-locate
+        // center happens to include a tiny island column, Pass 1 (land) would
+        // otherwise grab it and spawn the player on dry land — where any
+        // sun-damage power on the same origin (e.g. abyssal_daylight_damage)
+        // immediately starts ticking. Aquatic origins should land in water.
         if (allowOceanFloor) {
             Optional<Vec3> floor = findColumn(target, found, minY, topY, LocationCondition::isOceanFloorColumn);
             if (floor.isPresent()) return Optional.of(new SpawnTarget(target, floor.get()));
         }
-
-        // Pass 3: water surface — feet submerged in the topmost water block,
-        // head in open air. Doesn't require any solid floor beneath.
         if (allowWaterSurface) {
             Optional<Vec3> surface = findColumn(target, found, minY, topY, LocationCondition::isWaterSurfaceColumn);
             if (surface.isPresent()) return Optional.of(new SpawnTarget(target, surface.get()));
         }
+
+        // Land column fallback — default for land-based origins, and the
+        // last-resort for aquatic origins if no water column was found
+        // (shouldn't happen for ocean biomes, but covers misconfigured packs).
+        Optional<Vec3> land = findColumn(target, found, minY, topY, LocationCondition::isLandColumn);
+        if (land.isPresent()) return Optional.of(new SpawnTarget(target, land.get()));
 
         return Optional.empty();
     }
@@ -206,7 +284,15 @@ public record LocationCondition(
         BlockState floor = level.getBlockState(new BlockPos(x, y - 1, z));
         BlockState feet  = level.getBlockState(new BlockPos(x, y,     z));
         BlockState head  = level.getBlockState(new BlockPos(x, y + 1, z));
-        return floor.isSolid() && feet.isAir() && head.isAir();
+        if (!(floor.isSolid() && feet.isAir() && head.isAir())) return false;
+        // Require the head block to see sky so we don't pick a cave air-pocket
+        // as "land". In an ocean biome the top-down scan would otherwise find
+        // the first solid+air+air somewhere deep underground (reported case:
+        // cold_ocean spawn landed at y=-53 in a cave) because no real land
+        // column exists in the water column above. canSeeSky is a cheap
+        // heightmap check — true only when the position is above the
+        // MOTION_BLOCKING heightmap for that XZ, which water contributes to.
+        return level.canSeeSky(new BlockPos(x, y + 1, z));
     }
 
     private static boolean isOceanFloorColumn(ServerLevel level, int x, int y, int z) {

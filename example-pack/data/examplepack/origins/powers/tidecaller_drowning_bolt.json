@@ -1,0 +1,31 @@
+{
+  "type": "neoorigins:active_ability",
+  "name": "power.examplepack.tidecaller_drowning_bolt.name",
+  "description": "power.examplepack.tidecaller_drowning_bolt.description",
+  "cooldown_ticks": 200,
+  "hunger_cost": 3,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "minecraft:snowball",
+    "speed": 1.8,
+    "inaccuracy": 0.2,
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 5.0,
+      "include_source": false,
+      "entity_action": {
+        "type": "neoorigins:if_else",
+        "condition": { "type": "neoorigins:target_group", "group": "monster" },
+        "if_action": {
+          "type": "neoorigins:and",
+          "actions": [
+            { "type": "neoorigins:apply_effect", "effect": "minecraft:slowness",
+              "duration": 120, "amplifier": 2, "show_icon": true },
+            { "type": "neoorigins:damage", "amount": 1.0,
+              "source": { "name": "drown" } }
+          ]
+        }
+      }
+    }
+  }
+}

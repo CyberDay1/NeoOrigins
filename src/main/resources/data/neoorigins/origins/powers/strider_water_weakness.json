@@ -1,1 +1,6 @@
-{ "type": "neoorigins:damage_in_water", "damage_per_second": 2.0, "include_rain": true }
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:or", "conditions": [ { "type": "neoorigins:in_water" }, { "type": "neoorigins:in_rain" } ] },
+  "entity_action": { "type": "neoorigins:damage", "amount": 2.0, "source": { "name": "magic" } },
+  "interval": 20
+}

@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins;
 
 import com.cyberday1.neoorigins.content.ModItems;
+import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader;
@@ -33,35 +34,69 @@ public class NeoOrigins {
     public static final String MOD_ID = "neoorigins";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    /**
+     * Canonical location for origin-packs as of NeoOrigins 2.0: {@code config/originpacks/}.
+     * Legacy installs put the folder at {@code originpacks/} in the game root;
+     * {@link #resolveOriginpacksDir()} falls back to the legacy path when the new one
+     * is absent so existing setups keep loading without manual intervention.
+     */
+    public static java.nio.file.Path resolveOriginpacksDir() {
+        java.nio.file.Path configDir = FMLPaths.CONFIGDIR.get().resolve("originpacks");
+        if (java.nio.file.Files.exists(configDir)) return configDir;
+        java.nio.file.Path legacy = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        if (java.nio.file.Files.exists(legacy)) {
+            if (LEGACY_WARNED.compareAndSet(false, true)) {
+                LOGGER.warn("[originpacks] Legacy 'originpacks/' folder found at game root. "
+                    + "Please move it to 'config/originpacks/' — the game-root location is deprecated "
+                    + "and will be removed in a future release.");
+            }
+            return legacy;
+        }
+        return configDir;
+    }
+
+    private static final java.util.concurrent.atomic.AtomicBoolean LEGACY_WARNED =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
+
     public NeoOrigins(IEventBus modEventBus, ModContainer modContainer) {
         LOGGER.info("NeoOrigins initializing...");
 
         // Register TOML config (config/neoorigins-common.toml)
         modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
 
-        // Create originpacks/ folder in game directory on first launch
+        // Create config/originpacks/ folder on first launch. If a legacy
+        // originpacks/ folder exists at the game root it will still be picked
+        // up by resolveOriginpacksDir() for back-compat.
         try {
-            java.nio.file.Files.createDirectories(FMLPaths.GAMEDIR.get().resolve("originpacks"));
+            java.nio.file.Files.createDirectories(FMLPaths.CONFIGDIR.get().resolve("originpacks"));
         } catch (java.io.IOException e) {
-            LOGGER.error("Failed to create originpacks/ folder", e);
+            LOGGER.error("Failed to create config/originpacks/ folder", e);
         }
 
         // Register custom power type registry
         PowerTypes.register(modEventBus);
 
+        // 2.0 — bootstrap legacy power-type aliases so old JSON still loads.
+        com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.bootstrap();
+
         // Register mod items (Orb of Origin, etc.)
         ModItems.register(modEventBus);
 
-        // Register attachment types (origin data + Route B compat state)
+        // Register custom entities (cobweb projectile, etc.)
+        com.cyberday1.neoorigins.content.ModEntities.register(modEventBus);
+
+        // Register attachment types (origin data + Route B compat state + entity minion-owner)
         OriginAttachments.register(modEventBus);
         CompatAttachments.register(modEventBus);
+        EntityAttachments.register(modEventBus);
 
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
 
-        // Register client-only keybindings
+        // Register client-only keybindings and entity renderers
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
+            modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onRegisterRenderers);
         }
 
         // Auto-register items from originpacks/ before the registry freezes
@@ -77,7 +112,7 @@ public class NeoOrigins {
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {
-        var folder = FMLPaths.GAMEDIR.get().resolve("originpacks");
+        var folder = resolveOriginpacksDir();
         if (event.getPackType() == PackType.SERVER_DATA || event.getPackType() == PackType.CLIENT_RESOURCES) {
             event.addRepositorySource(new OriginsPackFinder(folder));
             LOGGER.info("Registered originpacks/ for {} at {}", event.getPackType(), folder);
