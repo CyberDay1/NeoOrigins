@@ -93,8 +93,21 @@ public final class ConditionParser {
                     // Enderian, Cinderborn daylight variants) fail to damage
                     // until around noon.
                     long time = sl.getDayTime() % 24000L;
-                    return time < 12000L
-                        && sl.canSeeSky(p.blockPosition()) && !sl.isRaining();
+                    if (time >= 12000L
+                        || !sl.canSeeSky(p.blockPosition())
+                        || sl.isRaining()) return false;
+                    // Helmet protection — mirrors vanilla zombie/skeleton sun-burn
+                    // logic. A damageable helmet absorbs the burn at the cost of
+                    // its own durability; once the helmet breaks the player burns
+                    // again. Side-effect inside a predicate is unusual but the
+                    // alternative (a parallel ticking handler that re-derives
+                    // exposed-to-sun state) duplicates this whole check.
+                    ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
+                    if (!head.isEmpty() && head.isDamageableItem()) {
+                        head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                        return false;
+                    }
+                    return true;
                 };
                 case "neoorigins:health"                        -> parseHealth(json);
                 case "neoorigins:resource"                      -> parseResource(json, contextId);
