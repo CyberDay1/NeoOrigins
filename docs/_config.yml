@@ -1,0 +1,24 @@
+title: NeoOrigins
+description: A modern, ground-up reimplementation of the Origins experience for NeoForge.
+theme: jekyll-theme-cayman
+
+# GitHub Pages metadata
+github:
+  is_project_page: true
+  repository_url: https://github.com/CyberDay1/NeoOrigins
+
+# Markdown rendering
+markdown: kramdown
+kramdown:
+  input: GFM
+  auto_ids: true
+  syntax_highlighter: rouge
+
+# Permalinks: keep file paths stable so deep-links from the API.md index resolve
+permalink: /:basename
+
+# Files Jekyll should ignore when building the site
+exclude:
+  - schema/
+  - README.md
+  - "*.bak"

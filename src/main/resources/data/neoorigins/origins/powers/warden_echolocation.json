@@ -1,1 +1,15 @@
-{ "type": "neoorigins:glow" }
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "entity_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 16,
+    "include_source": false,
+    "entity_action": {
+      "type": "neoorigins:apply_effect",
+      "effect": "minecraft:glowing",
+      "duration": 40,
+      "amplifier": 0
+    }
+  }
+}

@@ -1,3 +1,8 @@
 {
-  "type": "neoorigins:better_crafted_food"
+  "type": "neoorigins:action_on_event",
+  "event": "mod_crafted_food_saturation",
+  "modifier": {
+    "operation": "add_base",
+    "value": 0.5
+  }
 }

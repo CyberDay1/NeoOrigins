@@ -1,0 +1,16 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 160,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 5,
+    "include_source": false,
+    "entity_action": {
+      "type": "neoorigins:apply_effect",
+      "effect": "minecraft:levitation",
+      "duration": 60,
+      "amplifier": 2
+    }
+  }
+}

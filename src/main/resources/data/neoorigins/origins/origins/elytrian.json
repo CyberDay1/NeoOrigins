@@ -5,8 +5,13 @@
   "impact": "medium",
   "order": 5,
   "powers": [
+    "neoorigins:elytrian_flight",
     "neoorigins:elytrian_elytra_boost",
-    "neoorigins:elytrian_flight"
+    "neoorigins:elytrian_flight_speed",
+    "neoorigins:elytrian_no_fall",
+    "neoorigins:elytrian_no_kinetic",
+    "neoorigins:elytrian_fragile",
+    "neoorigins:elytrian_no_heavy_armor"
   ],
   "upgrades": []
 }

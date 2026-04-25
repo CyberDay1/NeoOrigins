@@ -70,9 +70,6 @@ public record SyncOriginRegistryPayload(
             writeComponent(buf, entry.getValue().description());
             buf.writeBoolean(entry.getValue().active());
             buf.writeBoolean(entry.getValue().toggle());
-            Identifier typeId = entry.getValue().typeId();
-            buf.writeBoolean(typeId != null);
-            if (typeId != null) buf.writeIdentifier(typeId);
         }
 
         // Multiple expansion map
@@ -126,8 +123,7 @@ public record SyncOriginRegistryPayload(
             Component desc = readComponent(buf);
             boolean active = buf.readBoolean();
             boolean toggle = buf.readBoolean();
-            Identifier typeId = buf.readBoolean() ? buf.readIdentifier() : null;
-            powers.put(id, new ClientPowerCache.Entry(name, desc, active, toggle, typeId));
+            powers.put(id, new ClientPowerCache.Entry(name, desc, active, toggle));
         }
 
         // Multiple expansion map

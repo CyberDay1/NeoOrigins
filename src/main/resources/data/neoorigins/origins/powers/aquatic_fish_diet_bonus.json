@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "food_finished",
+  "entity_action": {
+    "type": "neoorigins:if_else_list",
+    "actions": [
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:cod" },
+        "action": { "type": "neoorigins:modify_food", "food": 3, "saturation": 5.6 }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:salmon" },
+        "action": { "type": "neoorigins:modify_food", "food": 4, "saturation": 9.2 }
+      }
+    ]
+  }
+}

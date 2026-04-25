@@ -6,7 +6,11 @@
   "order": 2,
   "powers": [
     "neoorigins:class_archer_accuracy",
-    "neoorigins:class_archer_agility"
+    "neoorigins:class_archer_agility",
+    "neoorigins:class_archer_hawk_eye",
+    "neoorigins:class_archer_arthropod_bane",
+    "neoorigins:class_archer_starting_bow",
+    "neoorigins:class_archer_starting_arrows"
   ],
   "upgrades": []
 }

@@ -1,1 +1,1 @@
-{ "type": "neoorigins:active_dash", "strength": 2.5, "cooldown_ticks": 80 }
+{ "type": "neoorigins:active_dash", "power": 2.5, "cooldown_ticks": 80, "allow_vertical": true }

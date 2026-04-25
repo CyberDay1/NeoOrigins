@@ -22,9 +22,15 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(FoodData.class)
 public class FoodDataNoRegenMixin {
 
+    // 26.1 FoodData.tick now takes ServerPlayer (was Player on 1.21.1) — javac
+    // emits the INVOKE on the receiver's static type, so we must match
+    // ServerPlayer.isHurt() not Player.isHurt(). See reference_mixin_owner_match
+    // memory note. require=0 silences the apply-failure if a future MC version
+    // refactors FoodData.tick further; the regen-skip just won't apply.
     @ModifyExpressionValue(
         method = "tick",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;isHurt()Z")
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;isHurt()Z"),
+        require = 0
     )
     private boolean neoorigins$skipRegenIfBlocked(boolean original, @Local(argsOnly = true) ServerPlayer sp) {
         if (!original) return false;

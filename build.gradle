@@ -81,3 +81,94 @@ tasks.withType(ProcessResources).configureEach {
         expand replaceProperties
     }
 }
+
+// ── 2.0 power-type consolidation: migration scaffold ───────────────────────
+//
+// Scans built-in power JSONs for legacy types that are slated to be collapsed
+// into the 2.0 generics (active_ability / persistent_effect / condition_passive /
+// action_on_event). Currently read-only: reports hits only. Field-remap writes
+// will be enabled once the remappers in LegacyPowerTypeAliases are confirmed
+// lossless for every internal JSON. Task is removed in Phase 7.
+//
+// Run: ./gradlew migrateLegacyPowers
+tasks.register('migrateLegacyPowers') {
+    group = 'neoorigins'
+    description = '[2.0] Report which built-in power JSONs reference legacy types scheduled for consolidation.'
+    doLast {
+        def powersRoot = file('src/main/resources/data')
+        if (!powersRoot.exists()) {
+            logger.lifecycle("[migrate] no data/ folder found — nothing to do")
+            return
+        }
+        def legacy = [
+            'neoorigins:active_launch'          : 'neoorigins:active_ability',
+            'neoorigins:active_dash'            : 'neoorigins:active_ability',
+            'neoorigins:repulse'                : 'neoorigins:active_ability',
+            'neoorigins:active_aoe_effect'      : 'neoorigins:active_ability',
+            'neoorigins:active_swap'            : 'neoorigins:active_ability',
+            'neoorigins:active_fireball'        : 'neoorigins:active_ability',
+            'neoorigins:active_bolt'            : 'neoorigins:active_ability',
+            'neoorigins:healing_mist'           : 'neoorigins:active_ability',
+            'neoorigins:status_effect'          : 'neoorigins:persistent_effect',
+            'neoorigins:stacking_status_effects': 'neoorigins:persistent_effect',
+            'neoorigins:night_vision'           : 'neoorigins:persistent_effect',
+            'neoorigins:glow'                   : 'neoorigins:persistent_effect',
+            'neoorigins:water_breathing'        : 'neoorigins:persistent_effect',
+            // breath_in_fluid / regen_in_fluid move under condition_passive in Phase 4 —
+            // they're tick-driven fluid checks, not MobEffect applications.
+            'neoorigins:breath_in_fluid'        : 'neoorigins:condition_passive',
+            'neoorigins:regen_in_fluid'         : 'neoorigins:condition_passive',
+            // effect_immunity is a MobEffectEvent canceler — lands in Phase 6 under
+            // action_on_event with a cancel_event entity_action.
+            'neoorigins:effect_immunity'        : 'neoorigins:action_on_event',
+            'neoorigins:biome_buff'             : 'neoorigins:condition_passive',
+            'neoorigins:damage_in_biome'        : 'neoorigins:condition_passive',
+            'neoorigins:damage_in_daylight'     : 'neoorigins:condition_passive',
+            'neoorigins:damage_in_water'        : 'neoorigins:condition_passive',
+            'neoorigins:burn_at_health_threshold': 'neoorigins:condition_passive',
+            'neoorigins:tick_action'            : 'neoorigins:condition_passive',
+            // item_magnetism (needs pull_items verb), mobs_ignore_player + no_mob_spawns_nearby
+            // (event interceptors, not tick passives) stay on their own classes.
+            'neoorigins:action_on_kill'         : 'neoorigins:action_on_event',
+            'neoorigins:action_on_hit_taken'    : 'neoorigins:action_on_event',
+            'neoorigins:less_item_use_slowdown' : 'neoorigins:attribute_modifier',
+        ]
+        def counts = [:].withDefault { 0 }
+        int scanned = 0
+        fileTree(dir: powersRoot, include: '**/powers/**/*.json').each { f ->
+            scanned++
+            def text = f.text
+            legacy.each { oldType, newType ->
+                if (text.contains('"' + oldType + '"')) {
+                    counts[oldType] = counts[oldType] + 1
+                    logger.info("[migrate] ${f.name.replace('.json', '')}  ${oldType} → ${newType}")
+                }
+            }
+        }
+        logger.lifecycle("[migrate] scanned ${scanned} power files")
+        if (counts.isEmpty()) {
+            logger.lifecycle("[migrate] no legacy type references found.")
+        } else {
+            counts.each { k, v -> logger.lifecycle("[migrate]   ${v}  × ${k} → ${legacy[k]}") }
+            logger.lifecycle("[migrate] NOTE: scaffold mode (read-only). Writes enabled once field remappers in LegacyPowerTypeAliases are proven lossless.")
+        }
+    }
+}
+
+// ── 2.0 alias smoke test ────────────────────────────────────────────────────
+//
+// Runs PowerAliasSmokeTest against src/main/resources/data to validate every
+// legacy-typed internal power JSON flows cleanly through LegacyPowerTypeAliases
+// and has the right structural fields for its target generic. Catches remap-
+// lambda bugs (missing field writes, wrong field names) without needing a
+// runtime environment.
+//
+// Run: ./gradlew smokeTestAliases
+tasks.register('smokeTestAliases', JavaExec) {
+    group = 'neoorigins'
+    description = '[2.0] Validate LegacyPowerTypeAliases remaps against internal pack JSON.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.PowerAliasSmokeTest'
+    args 'src/main/resources/data'
+}

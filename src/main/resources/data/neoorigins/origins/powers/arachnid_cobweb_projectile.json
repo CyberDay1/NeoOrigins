@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 40,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:cobweb_projectile",
+    "speed": 1.5
+  },
+  "name": "power.neoorigins.arachnid_cobweb_projectile.name",
+  "description": "power.neoorigins.arachnid_cobweb_projectile.description"
+}

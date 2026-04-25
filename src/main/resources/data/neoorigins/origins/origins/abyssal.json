@@ -6,15 +6,22 @@
   "order": 17,
   "powers": [
     "neoorigins:abyssal_water_breathing",
+    "neoorigins:abyssal_aquatic_speed",
     "neoorigins:abyssal_night_vision",
     "neoorigins:abyssal_thorns_aura",
+    "neoorigins:abyssal_natural_armor",
     "neoorigins:abyssal_underwater_mining",
-    "neoorigins:abyssal_regen_in_water",
     "neoorigins:abyssal_starting_trident",
-    "neoorigins:abyssal_scare_ocean",
     "neoorigins:abyssal_summon_guardian",
-    "neoorigins:abyssal_daylight_damage",
-    "neoorigins:abyssal_land_speed_penalty"
+    "neoorigins:aquatic_fish_diet",
+    "neoorigins:aquatic_fish_diet_bonus",
+    "neoorigins:abyssal_land_speed_penalty",
+    "neoorigins:abyssal_dries_out"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
 }

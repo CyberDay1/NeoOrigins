@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_archer_starting_arrows",
+  "item": "minecraft:arrow",
+  "count": 16
+}

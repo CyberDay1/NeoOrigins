@@ -53,13 +53,17 @@ public class OriginInfoScreen extends Screen {
     @Override
     protected void init() {
         tabs.clear();
+        // Iterate layers in their declared order (origin layer first, then class),
+        // not the raw client-state map which is alphabetical and would put Class
+        // before Origin.
         Map<Identifier, Identifier> origins = ClientOriginState.getOrigins();
-        for (var entry : origins.entrySet()) {
-            if (entry.getValue() == null) continue;
-            Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+        for (var layer : com.cyberday1.neoorigins.data.LayerDataManager.INSTANCE.getSortedLayers()) {
+            Identifier originId = origins.get(layer.id());
+            if (originId == null) continue;
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
             if (origin == null) continue;
-            String layerName = getLayerDisplayName(entry.getKey());
-            tabs.add(new TabEntry(entry.getKey(), layerName, OriginDetailViewModel.compute(entry.getValue())));
+            String layerName = getLayerDisplayName(layer.id());
+            tabs.add(new TabEntry(layer.id(), layerName, OriginDetailViewModel.compute(originId)));
         }
 
         panelW = Math.min(width - 40, 400);
@@ -117,6 +121,20 @@ public class OriginInfoScreen extends Screen {
         // Close button
         addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.close"), b -> onClose())
             .bounds(width / 2 - 40, height - 24, 80, 20).build());
+
+        // Debug + Edit are dev-GUI tools — hidden unless the player is in
+        // Creative. Survival players don't need the power tester or the
+        // origin editor, and exposing them clutters the info screen.
+        var lp = Minecraft.getInstance().player;
+        boolean showDevGui = lp != null && lp.isCreative();
+        if (showDevGui) {
+            addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
+                    b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
+                .bounds(width / 2 + 48, height - 24, 60, 20).build());
+            addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
+                    b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
+                .bounds(width / 2 - 108, height - 24, 60, 20).build());
+        }
     }
 
     private void updateDetail() {
@@ -145,7 +163,13 @@ public class OriginInfoScreen extends Screen {
     }
 
     private int computeContentHeight(OriginDetailViewModel vm) {
-        int h = 8 + descLines.size() * LINE_H + 8;
+        int h = 8 + descLines.size() * LINE_H + 4;
+        // Spawn row adds one line + small gap when present.
+        if (vm.origin() != null && vm.origin().spawnLocation().isPresent()
+            && !vm.origin().spawnLocation().get().formatSummary().isEmpty()) {
+            h += LINE_H;
+        }
+        h += 8;
         if (!vm.powerNames().isEmpty()) {
             h += 9 + 4;
             for (int i = 0; i < vm.powerNames().size(); i++) {
@@ -207,6 +231,17 @@ public class OriginInfoScreen extends Screen {
         for (FormattedCharSequence line : descLines) {
             g.text(font, line, panelX + DETAIL_PAD, sy, 0xFF9999BB, false);
             sy += LINE_H;
+        }
+        sy += 4;
+        // Spawn-location row — shown only when the origin declares a spawn_location.
+        // Highlighted in amber so it reads as a mechanic, not flavor text.
+        if (origin.spawnLocation().isPresent()) {
+            String spawnSummary = origin.spawnLocation().get().formatSummary();
+            if (!spawnSummary.isEmpty()) {
+                g.text(font, Component.literal(spawnSummary),
+                    panelX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                sy += LINE_H;
+            }
         }
         sy += 8;
         List<String> pNames = vm.powerNames();

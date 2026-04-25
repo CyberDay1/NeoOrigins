@@ -1,1 +1,1 @@
-{ "type": "neoorigins:active_dash", "power": 2.2, "cooldown_ticks": 80, "allow_vertical": true }
+{ "type": "neoorigins:active_dash", "power": 2.2, "cooldown_ticks": 80, "allow_vertical": true, "hunger_cost": 2 }

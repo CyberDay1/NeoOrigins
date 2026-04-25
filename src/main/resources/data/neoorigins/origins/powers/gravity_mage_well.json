@@ -1,10 +1,20 @@
 {
-  "type": "neoorigins:gravity_well",
-  "projectile_speed": 0.6,
-  "max_range": 32.0,
-  "pull_radius": 8.0,
-  "pull_strength": 0.35,
-  "damage_per_tick": 0.5,
-  "duration_ticks": 80,
-  "cooldown_ticks": 200
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 400,
+  "hunger_cost": 4,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "void",
+    "speed": 1.4,
+    "inaccuracy": 0.05,
+    "on_hit_action": {
+      "type": "neoorigins:spawn_black_hole",
+      "radius": 7.0,
+      "duration_ticks": 80,
+      "pull_strength": 2.0,
+      "damage_per_tick": 2.0,
+      "effect_type": "void"
+    }
+  }
 }

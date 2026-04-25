@@ -187,31 +187,6 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
     }
 
     /**
-     * HurtByTargetGoal variant that forgives the owner. When the owner's hit
-     * is what flipped {@code lastHurtByMob}, clear it and decline to target —
-     * otherwise accidental collision/AoE/thorns damage turns the pet against
-     * its summoner.
-     */
-    public static class OwnerAwareHurtByTargetGoal extends HurtByTargetGoal {
-        private final ServerPlayer owner;
-
-        public OwnerAwareHurtByTargetGoal(PathfinderMob mob, ServerPlayer owner) {
-            super(mob);
-            this.owner = owner;
-        }
-
-        @Override
-        public boolean canUse() {
-            LivingEntity lastHurt = this.mob.getLastHurtByMob();
-            if (lastHurt != null && lastHurt.getUUID().equals(owner.getUUID())) {
-                this.mob.setLastHurtByMob(null);
-                return false;
-            }
-            return super.canUse();
-        }
-    }
-
-    /**
      * Simple follow-owner goal for tamed hostile mobs.
      * The mob walks toward the owner when farther than startDist and teleports if too far.
      */
@@ -261,6 +236,31 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         @Override
         public void stop() {
             mob.getNavigation().stop();
+        }
+    }
+
+    /**
+     * HurtByTargetGoal variant that forgives the owner. When the owner's hit
+     * is what flipped {@code lastHurtByMob}, clear it and decline to target —
+     * otherwise accidental collision/AoE/thorns damage turns the pet against
+     * its summoner.
+     */
+    public static class OwnerAwareHurtByTargetGoal extends HurtByTargetGoal {
+        private final ServerPlayer owner;
+
+        public OwnerAwareHurtByTargetGoal(PathfinderMob mob, ServerPlayer owner) {
+            super(mob);
+            this.owner = owner;
+        }
+
+        @Override
+        public boolean canUse() {
+            LivingEntity lastHurt = this.mob.getLastHurtByMob();
+            if (lastHurt != null && lastHurt.getUUID().equals(owner.getUUID())) {
+                this.mob.setLastHurtByMob(null);
+                return false;
+            }
+            return super.canUse();
         }
     }
 

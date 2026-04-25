@@ -219,6 +219,8 @@ public final class OriginsPowerTranslator {
             // Phase 4: New Route A translations
             case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
             case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
+            case "origins:food_restriction",       "apace:food_restriction"       -> translateFoodRestriction(src);
+            case "origins:edible_item",            "apace:edible_item"            -> translateEdibleItem(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -231,6 +233,46 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> translateSimple(String neoType) {
         JsonObject out = new JsonObject();
         out.addProperty("type", neoType);
+        return Optional.of(out);
+    }
+
+    // Rewrites to neoorigins:food_restriction; LegacyPowerTypeAliases then
+    // remaps it to action_on_event (food_eaten event). Packs commonly declare
+    // the origins:/apace: prefix — without this case the power silently drops.
+    private static Optional<JsonObject> translateFoodRestriction(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:food_restriction");
+        if (src.has("item_tag")) out.add("item_tag", src.get("item_tag"));
+        if (src.has("mode"))     out.add("mode", src.get("mode"));
+        return Optional.of(out);
+    }
+
+    // Apoli/Apace edible_item uses a nested food_component + singular item/tag
+    // fields. Flatten to our schema: items/tags lists + top-level nutrition /
+    // saturation / always_edible. food_component.effect / action / return_stack
+    // are dropped (documented non-goals — pack authors chain effects via
+    // action_on_event.ITEM_USE_FINISH instead).
+    private static Optional<JsonObject> translateEdibleItem(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:edible_item");
+        if (src.has("item")) {
+            JsonArray items = new JsonArray();
+            items.add(src.get("item").getAsString());
+            out.add("items", items);
+        }
+        if (src.has("items")) out.add("items", src.get("items"));
+        if (src.has("tag")) {
+            JsonArray tags = new JsonArray();
+            tags.add(src.get("tag").getAsString());
+            out.add("tags", tags);
+        }
+        if (src.has("tags")) out.add("tags", src.get("tags"));
+        JsonObject fc = src.has("food_component") && src.get("food_component").isJsonObject()
+            ? src.getAsJsonObject("food_component") : src;
+        if (fc.has("nutrition"))             out.addProperty("nutrition", fc.get("nutrition").getAsInt());
+        if (fc.has("saturation_modifier"))   out.addProperty("saturation", fc.get("saturation_modifier").getAsFloat());
+        else if (fc.has("saturation"))       out.addProperty("saturation", fc.get("saturation").getAsFloat());
+        if (fc.has("always_edible"))         out.addProperty("always_edible", fc.get("always_edible").getAsBoolean());
         return Optional.of(out);
     }
 
@@ -324,45 +366,51 @@ public final class OriginsPowerTranslator {
     }
 
     private static Optional<JsonObject> translateStackingStatusEffect(JsonObject src) {
-        // [LOSSY] stacking_status_effect: only the first effect is applied; the amplifier ramp is lost.
+        // Maps to the native neoorigins:stacking_status_effects, which keeps ALL
+        // effects from the source — previously only the first was retained.
         // Three field variants seen in the wild:
         //   "effects": [{...}, ...]  — array of effect objects
         //   "effects": {...}         — single effect object
         //   "effect":  {...}         — singular effect object (some packs omit the 's')
-        JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:status_effect");
-
-        JsonObject effectObj = null;
+        JsonArray entries = new JsonArray();
 
         if (src.has("effects")) {
             JsonElement effectsEl = src.get("effects");
             if (effectsEl.isJsonArray()) {
-                JsonArray arr = effectsEl.getAsJsonArray();
-                if (arr.isEmpty()) throw new IllegalArgumentException("'effects' array is empty");
-                effectObj = arr.get(0).getAsJsonObject();
+                for (JsonElement el : effectsEl.getAsJsonArray()) {
+                    if (el.isJsonObject()) entries.add(buildEffectEntry(el.getAsJsonObject()));
+                }
             } else if (effectsEl.isJsonObject()) {
-                effectObj = effectsEl.getAsJsonObject();
+                entries.add(buildEffectEntry(effectsEl.getAsJsonObject()));
             }
         } else if (src.has("effect")) {
             JsonElement effectEl = src.get("effect");
             if (effectEl.isJsonObject()) {
-                effectObj = effectEl.getAsJsonObject();
+                entries.add(buildEffectEntry(effectEl.getAsJsonObject()));
             } else if (effectEl.isJsonPrimitive()) {
-                // Bare string effect ID — treat directly
-                out.addProperty("effect", effectEl.getAsString());
-                return Optional.of(out);
+                JsonObject entry = new JsonObject();
+                entry.addProperty("effect", effectEl.getAsString());
+                entries.add(entry);
             }
         }
 
-        if (effectObj == null) throw new IllegalArgumentException("no 'effects'/'effect' field found");
-        if (!effectObj.has("effect")) throw new IllegalArgumentException("effect object missing 'effect' id field");
+        if (entries.isEmpty()) throw new IllegalArgumentException("no 'effects'/'effect' field found");
 
-        out.addProperty("effect", effectObj.get("effect").getAsString());
-        if (effectObj.has("amplifier"))      out.addProperty("amplifier", effectObj.get("amplifier").getAsInt());
-        if (effectObj.has("ambient"))        out.addProperty("ambient", effectObj.get("ambient").getAsBoolean());
-        if (effectObj.has("show_particles")) out.addProperty("show_particles", effectObj.get("show_particles").getAsBoolean());
-
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:stacking_status_effects");
+        out.add("effects", entries);
         return Optional.of(out);
+    }
+
+    /** Normalises a single Origins effect object into a persistent_effect effects-array entry JSON. */
+    private static JsonObject buildEffectEntry(JsonObject src) {
+        if (!src.has("effect")) throw new IllegalArgumentException("effect object missing 'effect' id field");
+        JsonObject entry = new JsonObject();
+        entry.addProperty("effect", src.get("effect").getAsString());
+        if (src.has("amplifier"))      entry.addProperty("amplifier", src.get("amplifier").getAsInt());
+        if (src.has("ambient"))        entry.addProperty("ambient", src.get("ambient").getAsBoolean());
+        if (src.has("show_particles")) entry.addProperty("show_particles", src.get("show_particles").getAsBoolean());
+        return entry;
     }
 
     private static Optional<JsonObject> translateEffectImmunity(JsonObject src) {
@@ -392,9 +440,10 @@ public final class OriginsPowerTranslator {
     }
 
     private static Optional<JsonObject> translateModifyDamage(JsonObject src, String direction) {
-        // Conditional damage modifiers cannot be safely translated to Route A because
-        // native modify_damage has no condition support.  Skip to avoid creating
-        // unconditional damage immunity from what should be a gated ability.
+        // Conditional damage modifiers cannot be expressed by native ModifyDamagePower,
+        // so we leave them for Route B (OriginsCompatPowerLoader.parseConditionedModifyDamageTaken)
+        // to compile. Returning empty here ensures Route A doesn't create an
+        // unconditional damage modifier from a gated ability.
         if (src.has("condition")) return Optional.empty();
 
         JsonObject out = new JsonObject();
@@ -415,30 +464,47 @@ public final class OriginsPowerTranslator {
 
         if (!out.has("multiplier")) out.addProperty("multiplier", 1.0f);
 
-        // Translate target_condition when it's an entity_group check — the most common
-        // pattern (e.g. "undead" damage bonuses). Other target_condition shapes skip
-        // translation entirely to avoid applying an unconditional buff.
-        if (src.has("target_condition")) {
-            JsonObject tc = src.getAsJsonObject("target_condition");
-            String tcType = tc.has("type") ? tc.get("type").getAsString() : "";
-            if (("origins:entity_group".equals(tcType) || "apace:entity_group".equals(tcType))
-                && tc.has("group")) {
-                out.addProperty("target_group", tc.get("group").getAsString());
-            } else {
-                // Unsupported target_condition shape → skip to avoid silent mis-apply.
-                return Optional.empty();
-            }
-        }
-
         return Optional.of(out);
     }
 
     private static Optional<JsonObject> translateInvulnerability(JsonObject src) {
-        // [LOSSY] invulnerability blocks all damage, but Route A can only prevent one damage type;
-        // approximated as FIRE immunity only.
+        // Native neoorigins:invulnerability supports damage_types / damage_tags / msg_ids filters.
+        // If the Origins power has a damage_condition sub-object, try to project it into those fields;
+        // otherwise emit an unconditional invulnerability (blocks all damage).
         JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:prevent_action");
-        out.addProperty("action", "FIRE");
+        out.addProperty("type", "neoorigins:invulnerability");
+
+        if (src.has("damage_condition") && src.get("damage_condition").isJsonObject()) {
+            JsonObject dc = src.getAsJsonObject("damage_condition");
+            String type = dc.has("type") ? dc.get("type").getAsString() : "";
+
+            JsonArray msgIds   = new JsonArray();
+            JsonArray dmgTypes = new JsonArray();
+            JsonArray dmgTags  = new JsonArray();
+
+            switch (type) {
+                case "origins:name", "apace:name" -> {
+                    if (dc.has("name")) msgIds.add(dc.get("name").getAsString());
+                }
+                case "origins:in_tag", "apace:in_tag", "origins:tag", "apace:tag" -> {
+                    if (dc.has("tag")) dmgTags.add(dc.get("tag").getAsString());
+                }
+                case "origins:attacker", "apace:attacker" -> {
+                    // [LOSSY] attacker sub-conditions can't be projected into damage-source filters.
+                    // Fall back to blocking nothing — let the power act as all-damage-block if
+                    // the author intended that, or be pruned if they didn't.
+                }
+                default -> {
+                    // Unknown sub-condition — fall back to no filter (block-all), matching
+                    // Origins' behaviour when damage_condition is absent.
+                }
+            }
+
+            if (!msgIds.isEmpty())   out.add("msg_ids", msgIds);
+            if (!dmgTypes.isEmpty()) out.add("damage_types", dmgTypes);
+            if (!dmgTags.isEmpty())  out.add("damage_tags", dmgTags);
+        }
+
         return Optional.of(out);
     }
 

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "examplepack:hearth_keeper_traveler_rations",
+  "item": "minecraft:bread",
+  "count": 8,
+  "name": "power.examplepack.hearth_keeper_traveler_rations.name",
+  "description": "power.examplepack.hearth_keeper_traveler_rations.description"
+}

@@ -15,22 +15,50 @@ import java.util.List;
 /**
  * Blocks specific projectile types from dealing damage to this player.
  * projectile_types values: "arrow", "fireball", "trident", "all"
- * Handled via ProjectileImpactEvent in OriginEventHandler.
+ *
+ * <p>Optional {@code chance} field (0.0–1.0, default 1.0) rolls an RNG gate
+ * per impact — at 0.5 it behaves like vanilla Endermen's projectile dodge
+ * (about half of incoming projectiles are no-ops).
+ *
+ * <p>Optional {@code teleport} flag (default false) triggers a short random
+ * teleport on successful dodge, matching Enderman flavour. Teleport distance
+ * capped by {@code teleport_range} (default 16 blocks).
+ *
+ * <p>Handled via ProjectileImpactEvent in CombatPowerEvents.
  */
 public class ProjectileImmunityPower extends PowerType<ProjectileImmunityPower.Config> {
 
-    public record Config(List<String> projectileTypes, String type) implements PowerConfiguration {
+    public record Config(
+        List<String> projectileTypes,
+        float chance,
+        boolean teleport,
+        int teleportRange,
+        String type
+    ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("projectile_types", List.of("arrow")).forGetter(Config::projectileTypes),
+            Codec.floatRange(0.0F, 1.0F).optionalFieldOf("chance", 1.0F).forGetter(Config::chance),
+            Codec.BOOL.optionalFieldOf("teleport", false).forGetter(Config::teleport),
+            Codec.INT.optionalFieldOf("teleport_range", 16).forGetter(Config::teleportRange),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
 
         public boolean blocks(Projectile projectile) {
+            // Cache the projectile's entity-type ID once for the namespaced branch.
+            String entityId = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                .getKey(projectile.getType()).toString();
             for (String t : projectileTypes) {
                 if ("all".equalsIgnoreCase(t)) return true;
+                // Category aliases — keep backwards compat with pre-2.0 JSON.
                 if ("arrow".equalsIgnoreCase(t) && projectile instanceof AbstractArrow) return true;
                 if ("fireball".equalsIgnoreCase(t) && projectile instanceof AbstractHurtingProjectile) return true;
                 if ("trident".equalsIgnoreCase(t) && projectile instanceof ThrownTrident) return true;
+                // Exact entity-id match — sculkborn_projectile_immunity ships
+                // with "minecraft:arrow"/"minecraft:spectral_arrow" which the
+                // simple aliases above wouldn't catch on their own.
+                if (t.equalsIgnoreCase(entityId)) return true;
+                // Bare-path fallback ("spectral_arrow" → minecraft:spectral_arrow).
+                if (!t.contains(":") && entityId.endsWith(":" + t.toLowerCase())) return true;
             }
             return false;
         }

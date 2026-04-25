@@ -1,0 +1,23 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 400,
+  "hunger_cost": 4,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "air",
+    "speed": 1.6,
+    "inaccuracy": 0.1,
+    "on_hit_action": {
+      "type": "neoorigins:spawn_tornado",
+      "radius": 5.0,
+      "duration_ticks": 80,
+      "pull_strength": 1.0,
+      "lift_strength": 0.6,
+      "spin_strength": 0.6,
+      "damage_per_interval": 1.5,
+      "damage_interval_ticks": 10,
+      "effect_type": "air"
+    }
+  }
+}

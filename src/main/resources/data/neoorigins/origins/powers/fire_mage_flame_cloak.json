@@ -1,1 +1,9 @@
-{ "type": "neoorigins:thorns_aura", "return_ratio": 0.3 }
+{
+  "type": "neoorigins:action_on_event",
+  "event": "hit_taken",
+  "entity_action": {
+    "type": "neoorigins:damage_attacker",
+    "amount_ratio": 0.3,
+    "source": { "name": "magic" }
+  }
+}

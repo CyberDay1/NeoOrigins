@@ -51,6 +51,11 @@ public record OriginDetailViewModel(
         }
 
         for (Identifier powerId : origin.powers()) {
+            // Skip internal/capability-only power types from the info panel —
+            // pack authors add these to drive client behaviour (HUD bars, etc.)
+            // and don't want them cluttering the "Powers" section.
+            if (isHiddenPowerType(powerId)) continue;
+
             Component powerName = resolvePowerName(powerId);
             Component powerDesc = resolvePowerDesc(powerId);
             String holderName = powerName != null ? powerName.getString() : "";
@@ -103,6 +108,12 @@ public record OriginDetailViewModel(
         if (holder != null) return holder.isActive();
         ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
         return entry != null && entry.active();
+    }
+
+    private static boolean isHiddenPowerType(Identifier powerId) {
+        PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+        return holder != null
+            && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.HideHudBarPower;
     }
 
     /** Returns true if the power is a toggle power. Checks PowerDataManager first, then client cache. */

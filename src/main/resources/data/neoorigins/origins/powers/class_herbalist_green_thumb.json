@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "mod_bonemeal_extra",
+  "modifier": {
+    "operation": "add_base",
+    "value": 1
+  }
+}

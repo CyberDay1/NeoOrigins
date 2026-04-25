@@ -2,6 +2,10 @@
 
 Technical reference for working with the NeoOrigins codebase.
 
+> **Working on 2.0?** See [`docs/2_0_CHANGES.md`](docs/2_0_CHANGES.md) — the running change
+> document tracking power-type consolidation, `EventPowerIndex`, alias dormancy pattern,
+> and per-phase migration status.
+
 ## Build Commands
 
 ```bash

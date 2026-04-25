@@ -1,0 +1,58 @@
+name: Deploy Docs to GitHub Pages
+
+# Build the docs/ folder with Jekyll and deploy to GitHub Pages on every
+# push to master that touches docs. Also runs on tag push so a tagged
+# release publishes the matching docs snapshot.
+#
+# One-time setup at the repo level: Settings → Pages → Source must be set
+# to "GitHub Actions" (not "Deploy from a branch"). After that this
+# workflow handles everything; no further manual steps.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, but don't cancel in-progress runs —
+# we want the most recent push to land cleanly even if it queues briefly.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

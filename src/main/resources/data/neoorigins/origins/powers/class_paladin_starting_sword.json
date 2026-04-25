@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "class_paladin_starting_sword",
+  "item": "minecraft:iron_sword",
+  "enchantments": [
+    { "id": "minecraft:smite", "level": 1 }
+  ]
+}

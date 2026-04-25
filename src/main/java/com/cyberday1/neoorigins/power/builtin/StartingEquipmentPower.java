@@ -90,7 +90,12 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
         if (data.hasGrantedEquipment(config.grantId())) return;
 
         var itemOpt = BuiltInRegistries.ITEM.get(Identifier.parse(config.item()));
-        if (itemOpt.isEmpty()) return;
+        if (itemOpt.isEmpty()) {
+            com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                "[starting_equipment] item '{}' not in registry for grantId '{}' — cannot grant",
+                config.item(), config.grantId());
+            return;
+        }
 
         ItemStack stack = new ItemStack(itemOpt.get().value(), config.count());
 

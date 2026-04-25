@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 60,
+  "entity_action": {
+    "type": "neoorigins:add_velocity",
+    "y": 0.6
+  }
+}

@@ -1,1 +1,9 @@
-{ "type": "neoorigins:status_effect", "effect": "minecraft:jump_boost", "amplifier": 1, "duration": 400 }
+{
+  "type": "neoorigins:persistent_effect",
+  "toggleable": true,
+  "effects": [
+    { "effect": "minecraft:jump_boost", "amplifier": 1, "ambient": true, "show_particles": false, "show_icon": false }
+  ],
+  "name": "power.neoorigins.breeze_jump_boost.name",
+  "description": "power.neoorigins.breeze_jump_boost.description"
+}

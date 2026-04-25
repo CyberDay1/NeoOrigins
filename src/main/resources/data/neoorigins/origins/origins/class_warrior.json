@@ -6,7 +6,10 @@
   "order": 1,
   "powers": [
     "neoorigins:class_warrior_damage",
-    "neoorigins:class_warrior_knockback_resist"
+    "neoorigins:class_warrior_knockback_resist",
+    "neoorigins:class_warrior_battle_stance",
+    "neoorigins:class_warrior_endurance",
+    "neoorigins:class_warrior_iron_will"
   ],
   "upgrades": []
 }

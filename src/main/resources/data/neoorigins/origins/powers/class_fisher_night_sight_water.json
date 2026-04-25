@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:in_water" },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:night_vision",
+    "duration": 220,
+    "amplifier": 0
+  },
+  "interval": 40
+}

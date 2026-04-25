@@ -6,7 +6,10 @@
   "order": 14,
   "powers": [
     "neoorigins:class_blacksmith_quality",
-    "neoorigins:class_blacksmith_repairs"
+    "neoorigins:class_blacksmith_repairs",
+    "neoorigins:class_blacksmith_forge_hands",
+    "neoorigins:class_blacksmith_forge_tempered",
+    "neoorigins:class_blacksmith_starting_iron"
   ],
   "upgrades": []
 }

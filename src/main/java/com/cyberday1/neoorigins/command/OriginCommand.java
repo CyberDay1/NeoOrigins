@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
+import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
@@ -58,6 +59,8 @@ public class OriginCommand {
                     .then(Commands.argument("player", EntityArgument.player())
                         .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                         .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                .then(Commands.literal("editor")
+                    .executes(ctx -> executeEditor(ctx)))
                 .then(Commands.literal("reload")
                     .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                     .executes(ctx -> executeReload(ctx)))
@@ -196,6 +199,15 @@ public class OriginCommand {
             ctx.getSource().sendSuccess(() -> Component.literal(
                 "Opened origin selection for " + target.getName().getString()), true);
         }
+        return 1;
+    }
+
+    private static int executeEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer target = ctx.getSource().getPlayerOrException();
+        // Client will open the editor screen; it reads already-synced state.
+        NeoOriginsNetwork.syncRegistryToPlayer(target);
+        NeoOriginsNetwork.syncToPlayer(target);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(target, new OpenEditorScreenPayload());
         return 1;
     }
 

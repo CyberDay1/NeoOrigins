@@ -2,5 +2,6 @@
   "type": "neoorigins:attribute_modifier",
   "attribute": "minecraft:movement_speed",
   "amount": -0.3,
-  "operation": "add_multiplied_base"
+  "operation": "add_multiplied_base",
+  "condition": "on_land"
 }

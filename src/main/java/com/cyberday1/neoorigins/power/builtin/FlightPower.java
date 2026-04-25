@@ -7,14 +7,17 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.Set;
+
 public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
     private static final FlightPower INSTANCE = new FlightPower();
+    private static final Set<String> CAPS = Set.of("flight");
 
     /** Returns true if the player has the flight power granted AND toggled on. */
     public static boolean isActive(ServerPlayer player) {
-        return ActiveOriginService.has(player, FlightPower.class,
-            config -> !INSTANCE.isToggledOff(player, config));
+        return ActiveOriginService.has(player, FlightPower.class, c -> true)
+                && !INSTANCE.isToggledOff(player);
     }
 
     public record Config(String type) implements PowerConfiguration {
@@ -25,6 +28,9 @@ public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
+
+    @Override
+    public Set<String> capabilities(Config config) { return CAPS; }
 
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {

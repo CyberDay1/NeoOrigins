@@ -30,7 +30,10 @@ public class CompatEventPowers {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (shouldPreventItemUse(sp, event.getItem())) {
             event.setCanceled(true);
+            return;
         }
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.ITEM_USE, event.getItem());
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)

@@ -1,0 +1,14 @@
+{
+  "name": "origins.examplepack.hearth_keeper.name",
+  "description": "origins.examplepack.hearth_keeper.description",
+  "icon": "minecraft:bread",
+  "impact": "low",
+  "order": 32,
+  "powers": [
+    "examplepack:hearth_keeper_traveler_rations",
+    "examplepack:hearth_keeper_seed_pouch",
+    "examplepack:hearth_keeper_saplings",
+    "examplepack:hearth_keeper_crop_growth"
+  ],
+  "upgrades": []
+}

@@ -6,7 +6,10 @@
   "order": 9,
   "powers": [
     "neoorigins:class_berserker_damage",
-    "neoorigins:class_berserker_hunger"
+    "neoorigins:class_berserker_hunger",
+    "neoorigins:class_berserker_rage_within",
+    "neoorigins:class_berserker_reckless",
+    "neoorigins:class_berserker_thick_skin"
   ],
   "upgrades": []
 }

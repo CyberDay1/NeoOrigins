@@ -1,1 +1,1 @@
-{ "type": "neoorigins:knockback_modifier", "multiplier": 0.5 }
+{ "type": "neoorigins:action_on_event", "event": "mod_knockback", "modifier": { "operation": "multiplication", "value": 0.5 } }

@@ -31,7 +31,13 @@ public final class CompatTickScheduler {
         long currentTick = player.level().getServer() == null ? 0 : player.level().getServer().getTickCount();
         queue.removeIf(sa -> {
             if (sa.tickTarget() <= currentTick) {
-                try { sa.action().accept(player); } catch (Exception ignored) {}
+                try {
+                    sa.action().accept(player);
+                } catch (Exception e) {
+                    com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                        "[scheduler] scheduled action failed for {}: {}",
+                        player.getName().getString(), e.toString());
+                }
                 return true;
             }
             return false;

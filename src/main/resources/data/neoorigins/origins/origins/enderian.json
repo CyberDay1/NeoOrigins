@@ -2,12 +2,22 @@
   "name": "origins.neoorigins.enderian.name",
   "description": "origins.neoorigins.enderian.description",
   "icon": "minecraft:ender_pearl",
-  "impact": "high",
+  "impact": "low",
   "order": 6,
   "powers": [
-    "neoorigins:enderian_no_eye_damage",
+    "neoorigins:enderian_ender_eyes",
+    "neoorigins:enderian_projectile_dodge",
     "neoorigins:enderian_water_damage",
     "neoorigins:enderian_teleport"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:the_end",
+    "biomes": [
+      "minecraft:end_highlands",
+      "minecraft:end_midlands",
+      "minecraft:end_barrens",
+      "minecraft:small_end_islands"
+    ]
+  }
 }

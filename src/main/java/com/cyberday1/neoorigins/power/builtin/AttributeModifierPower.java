@@ -4,8 +4,15 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.condition.LocationCondition;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.compat.condition.ConditionParser;
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -19,59 +26,134 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Optional;
 
+/**
+ * Scales an attribute while the player satisfies all configured gates.
+ *
+ * <p>Three optional gates, AND'd at tick time:
+ * <ul>
+ *   <li>{@code condition} — either a legacy shorthand string
+ *       ({@code "in_water"}, {@code "on_land"}, {@code "in_lava"}) or a
+ *       full origins/apoli condition DSL JSON object
+ *       (e.g. {@code { "type": "origins:biome", ... }}).</li>
+ *   <li>{@code equipment_condition} — matches a worn item by ID or tag
+ *       in a given slot.</li>
+ *   <li>{@code location_condition} — matches dimension / biome / biome tag /
+ *       structure / structure tag.</li>
+ * </ul>
+ *
+ * <p>Unconditional powers apply at {@code onGranted} and stay on for the
+ * power's lifetime. Gated powers are edge-triggered every 5 ticks — the
+ * modifier is added/removed only on state change.
+ */
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
 
-    /**
-     * Equipment-slot predicate: active when the stack worn in {@code slot} matches
-     * either the given {@code item} ID or the given {@code tag}. At least one of
-     * {@code item}/{@code tag} must be present; if both are supplied, either match
-     * satisfies the condition.
-     */
     public record EquipmentCondition(
         String slot,
         Optional<Identifier> item,
         Optional<Identifier> tag
-    ) {
-        public static final Codec<EquipmentCondition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.fieldOf("slot").forGetter(EquipmentCondition::slot),
-            Identifier.CODEC.optionalFieldOf("item").forGetter(EquipmentCondition::item),
-            Identifier.CODEC.optionalFieldOf("tag").forGetter(EquipmentCondition::tag)
-        ).apply(inst, EquipmentCondition::new));
-    }
+    ) {}
 
     public record Config(
         Identifier attribute,
         double amount,
         AttributeModifier.Operation operation,
-        Optional<String> condition,
+        Optional<EntityCondition> condition,
         Optional<EquipmentCondition> equipmentCondition,
         Optional<LocationCondition> locationCondition,
         String type
     ) implements PowerConfiguration {
 
-        private static final Codec<AttributeModifier.Operation> OPERATION_CODEC = Codec.STRING.xmap(
-            s -> switch (s) {
+        private static AttributeModifier.Operation parseOp(String s) {
+            return switch (s) {
                 case "add_value" -> AttributeModifier.Operation.ADD_VALUE;
                 case "add_multiplied_base" -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
                 case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
                 default -> AttributeModifier.Operation.ADD_VALUE;
-            },
-            op -> switch (op) {
-                case ADD_VALUE -> "add_value";
-                case ADD_MULTIPLIED_BASE -> "add_multiplied_base";
-                case ADD_MULTIPLIED_TOTAL -> "add_multiplied_total";
-            }
-        );
+            };
+        }
 
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Identifier.CODEC.fieldOf("attribute").forGetter(Config::attribute),
-            Codec.DOUBLE.fieldOf("amount").forGetter(Config::amount),
-            OPERATION_CODEC.optionalFieldOf("operation", AttributeModifier.Operation.ADD_VALUE).forGetter(Config::operation),
-            Codec.STRING.optionalFieldOf("condition").forGetter(Config::condition),
-            EquipmentCondition.CODEC.optionalFieldOf("equipment_condition").forGetter(Config::equipmentCondition),
-            LocationCondition.CODEC.optionalFieldOf("location_condition").forGetter(Config::locationCondition),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
-        ).apply(inst, Config::new));
+        private static Optional<EntityCondition> parseCondition(JsonElement el, String contextId) {
+            if (el == null || el.isJsonNull()) return Optional.empty();
+            if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
+                String s = el.getAsString();
+                EntityCondition c = switch (s) {
+                    case "in_water" -> p -> p.isInWater();
+                    case "on_land"  -> p -> !p.isInWater();
+                    case "in_lava"  -> p -> p.isInLava();
+                    default -> {
+                        NeoOrigins.LOGGER.warn(
+                            "attribute_modifier condition string '{}' is unknown — expected one of in_water, on_land, in_lava, or use a DSL condition object. Treating as always-on.",
+                            s);
+                        yield p -> true;
+                    }
+                };
+                return Optional.of(c);
+            }
+            if (el.isJsonObject()) {
+                return Optional.of(ConditionParser.parse(el.getAsJsonObject(), contextId));
+            }
+            return Optional.empty();
+        }
+
+        private static Optional<EquipmentCondition> parseEquipment(JsonObject obj) {
+            if (!obj.has("equipment_condition") || !obj.get("equipment_condition").isJsonObject()) {
+                return Optional.empty();
+            }
+            JsonObject ec = obj.getAsJsonObject("equipment_condition");
+            String slot = ec.has("slot") ? ec.get("slot").getAsString() : "mainhand";
+            Optional<Identifier> item = ec.has("item")
+                ? Optional.of(Identifier.parse(ec.get("item").getAsString()))
+                : Optional.empty();
+            Optional<Identifier> tag = ec.has("tag")
+                ? Optional.of(Identifier.parse(ec.get("tag").getAsString()))
+                : Optional.empty();
+            return Optional.of(new EquipmentCondition(slot, item, tag));
+        }
+
+        private static Optional<LocationCondition> parseLocation(JsonObject obj) {
+            if (!obj.has("location_condition") || !obj.get("location_condition").isJsonObject()) {
+                return Optional.empty();
+            }
+            DataResult<LocationCondition> parsed = LocationCondition.CODEC.parse(
+                JsonOps.INSTANCE, obj.get("location_condition"));
+            return parsed.result();
+        }
+
+        public static final Codec<Config> CODEC = new Codec<>() {
+            @Override
+            public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
+                JsonElement json;
+                try {
+                    json = ops.convertTo(JsonOps.INSTANCE, input);
+                } catch (Exception e) {
+                    return DataResult.error(() -> "attribute_modifier: could not convert to JSON: " + e.getMessage());
+                }
+                if (!json.isJsonObject()) {
+                    return DataResult.error(() -> "attribute_modifier: expected JSON object");
+                }
+                JsonObject obj = json.getAsJsonObject();
+                if (!obj.has("attribute") || !obj.has("amount")) {
+                    return DataResult.error(() -> "attribute_modifier: missing required fields (attribute, amount)");
+                }
+                Identifier attr = Identifier.parse(obj.get("attribute").getAsString());
+                double amount = obj.get("amount").getAsDouble();
+                AttributeModifier.Operation op = obj.has("operation")
+                    ? parseOp(obj.get("operation").getAsString())
+                    : AttributeModifier.Operation.ADD_VALUE;
+                String t = obj.has("type") ? obj.get("type").getAsString() : "";
+                Optional<EntityCondition> cond = parseCondition(obj.get("condition"), t);
+                Optional<EquipmentCondition> eq = parseEquipment(obj);
+                Optional<LocationCondition> loc = parseLocation(obj);
+                return DataResult.success(Pair.of(
+                    new Config(attr, amount, op, cond, eq, loc, t),
+                    ops.empty()));
+            }
+
+            @Override
+            public <T> DataResult<T> encode(Config input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(prefix);
+            }
+        };
     }
 
     @Override
@@ -79,7 +161,6 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        // Unconditional powers apply immediately; conditional ones are driven by onTick.
         if (isUnconditional(config)) {
             applyModifier(player, config, true);
         }
@@ -94,17 +175,10 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     public void onTick(ServerPlayer player, Config config) {
         if (isUnconditional(config)) return;
         if (player.tickCount % 5 != 0) return;
-        boolean shouldApply = true;
-        if (config.condition().isPresent()) {
-            shouldApply = evaluate(config.condition().get(), player);
-        }
-        if (shouldApply && config.equipmentCondition().isPresent()) {
-            shouldApply = evaluateEquipment(config.equipmentCondition().get(), player);
-        }
-        if (shouldApply && config.locationCondition().isPresent()) {
-            shouldApply = config.locationCondition().get().test(player);
-        }
-        applyModifier(player, config, shouldApply);
+        boolean shouldBeActive = evaluateAll(player, config);
+        boolean isActive = hasActiveModifier(player, config);
+        if (shouldBeActive && !isActive) applyModifier(player, config, true);
+        else if (!shouldBeActive && isActive) applyModifier(player, config, false);
     }
 
     private static boolean isUnconditional(Config config) {
@@ -113,16 +187,11 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             && config.locationCondition().isEmpty();
     }
 
-    private static boolean evaluate(String condition, ServerPlayer player) {
-        return switch (condition) {
-            case "in_water" -> player.isInWater();
-            case "on_land"  -> !player.isInWater();
-            case "in_lava"  -> player.isInLava();
-            default -> {
-                NeoOrigins.LOGGER.warn("attribute_modifier condition '{}' is unknown — expected one of in_water, on_land, in_lava. Treating as always-on.", condition);
-                yield true;
-            }
-        };
+    private static boolean evaluateAll(ServerPlayer player, Config config) {
+        if (config.condition().isPresent() && !config.condition().get().test(player)) return false;
+        if (config.equipmentCondition().isPresent() && !evaluateEquipment(config.equipmentCondition().get(), player)) return false;
+        if (config.locationCondition().isPresent() && !config.locationCondition().get().test(player)) return false;
+        return true;
     }
 
     private static boolean evaluateEquipment(EquipmentCondition cond, ServerPlayer player) {
@@ -144,62 +213,131 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             TagKey<Item> tagKey = TagKey.create(Registries.ITEM, cond.tag().get());
             if (stack.is(tagKey)) return true;
         }
-        // If neither item nor tag is supplied, treat as "any non-empty stack in this slot".
         return cond.item().isEmpty() && cond.tag().isEmpty();
     }
 
+    private boolean hasActiveModifier(ServerPlayer player, Config config) {
+        ResolvedAttribute resolved = resolveAttribute(config);
+        if (resolved == null) return false;
+        AttributeInstance instance = player.getAttribute(resolved.holder);
+        if (instance == null) return false;
+        return instance.getModifier(modIdFor(resolved.id, config)) != null;
+    }
+
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
-        // Resolve the attribute ID. 1.21.1 uses prefixed names like
-        // "generic.armor" / "player.block_interaction_range"; 26.1 dropped
-        // the prefix entirely — attributes register as bare "armor",
-        // "max_health", etc. Origin authors may JSON-write either form, so
-        // probe both directions: strip the prefix if present, add one if
-        // absent.
-        final Identifier original = config.attribute();
-        Identifier attrId = original;
-        var attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        if (attrOpt.isEmpty() && original.getPath().startsWith("generic.")) {
-            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), original.getPath().substring("generic.".length()));
-            attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        }
-        if (attrOpt.isEmpty() && original.getPath().startsWith("player.")) {
-            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), original.getPath().substring("player.".length()));
-            attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        }
-        if (attrOpt.isEmpty()) {
-            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), "generic." + original.getPath());
-            attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        }
-        if (attrOpt.isEmpty()) {
-            attrId = Identifier.fromNamespaceAndPath(original.getNamespace(), "player." + original.getPath());
-            attrOpt = BuiltInRegistries.ATTRIBUTE.get(attrId);
-        }
-        if (attrOpt.isEmpty()) {
+        ResolvedAttribute resolved = resolveAttribute(config);
+        if (resolved == null) {
             if (add) {
                 NeoOrigins.LOGGER.warn(
-                    "attribute_modifier power references unknown attribute '{}' — tried the ID as-is, with and without 'generic.' / 'player.' prefixes. Check the JSON.",
-                    original);
+                    "attribute_modifier power references unknown attribute '{}' — tried with no prefix, 'generic.', and 'player.' variants. Check the JSON.",
+                    config.attribute());
             }
             return;
         }
-        var attrHolder = attrOpt.get();
-        AttributeInstance instance = player.getAttribute(attrHolder);
+        AttributeInstance instance = player.getAttribute(resolved.holder);
         if (instance == null) {
             if (add) {
                 NeoOrigins.LOGGER.warn(
                     "attribute_modifier power references attribute '{}' which exists in the registry but is not attached to the player — no-op.",
-                    attrId);
+                    resolved.id);
             }
             return;
         }
-
-        Identifier modId = Identifier.fromNamespaceAndPath("neoorigins", "power_" + attrId.getPath());
+        Identifier modId = modIdFor(resolved.id, config);
         if (add) {
+            purgeStaleModifiers(instance, resolved.id, modId);
             if (instance.getModifier(modId) == null) {
                 instance.addPermanentModifier(new AttributeModifier(modId, config.amount(), config.operation()));
             }
         } else {
             instance.removeModifier(modId);
         }
+    }
+
+    private static final java.util.Set<String> OPERATION_PREFIXES;
+    static {
+        java.util.Set<String> s = new java.util.HashSet<>();
+        for (AttributeModifier.Operation op : AttributeModifier.Operation.values()) {
+            s.add(op.name().toLowerCase(java.util.Locale.ROOT));
+        }
+        OPERATION_PREFIXES = java.util.Set.copyOf(s);
+    }
+
+    /**
+     * Removes legacy-format modifiers for this attribute whose IDs predate the
+     * JVM-stable hash fix. The old {@code modIdFor} hashed the operation enum,
+     * whose {@code hashCode()} varies per-process, so every login generated a
+     * fresh ID like {@code neoorigins:power_max_health_<unstable-hex>} while
+     * NBT kept the previous session's modifier around — max_health stacked
+     * indefinitely across relogs.
+     *
+     * <p>The new format is {@code power_<attrpath>_<opname>_<hex>}. Any
+     * {@code power_<attrpath>_<hex>} (no opname between) is an old orphan and
+     * gets removed. Other powers targeting the same attribute with different
+     * amounts use their own {@code keep}-equivalent IDs and are left alone.
+     */
+    private static void purgeStaleModifiers(AttributeInstance instance, Identifier attrId, Identifier keep) {
+        String prefix = "power_" + attrId.getPath() + "_";
+        java.util.List<Identifier> stale = new java.util.ArrayList<>();
+        for (AttributeModifier m : instance.getModifiers()) {
+            Identifier id = m.id();
+            if (!"neoorigins".equals(id.getNamespace())) continue;
+            String path = id.getPath();
+            if (!path.startsWith(prefix)) continue;
+            if (id.equals(keep)) continue;
+
+            String suffix = path.substring(prefix.length());
+            int underscore = suffix.indexOf('_');
+            if (underscore > 0 && OPERATION_PREFIXES.contains(suffix.substring(0, underscore))) {
+                continue; // new-format modifier belonging to a different power
+            }
+            stale.add(id);
+        }
+        for (Identifier id : stale) instance.removeModifier(id);
+    }
+
+    /** Resolves the attribute with prefix tolerance. 26.1 registers attributes
+     *  without the generic./player. prefix; 1.21.1 registers them with. Try
+     *  both directions so pack JSON is portable. */
+    private ResolvedAttribute resolveAttribute(Config config) {
+        Identifier raw = config.attribute();
+        var holder = BuiltInRegistries.ATTRIBUTE.get(raw);
+        if (holder.isPresent()) return new ResolvedAttribute(raw, holder.get());
+
+        // Try with prefixes added (for packs authored against 1.21.1)
+        Identifier withGeneric = Identifier.fromNamespaceAndPath(raw.getNamespace(), "generic." + raw.getPath());
+        holder = BuiltInRegistries.ATTRIBUTE.get(withGeneric);
+        if (holder.isPresent()) return new ResolvedAttribute(withGeneric, holder.get());
+
+        Identifier withPlayer = Identifier.fromNamespaceAndPath(raw.getNamespace(), "player." + raw.getPath());
+        holder = BuiltInRegistries.ATTRIBUTE.get(withPlayer);
+        if (holder.isPresent()) return new ResolvedAttribute(withPlayer, holder.get());
+
+        // Try with prefixes stripped (for packs authored against 26.1 running on 1.21.1)
+        String path = raw.getPath();
+        if (path.startsWith("generic.") || path.startsWith("player.")) {
+            Identifier stripped = Identifier.fromNamespaceAndPath(raw.getNamespace(),
+                path.substring(path.indexOf('.') + 1));
+            holder = BuiltInRegistries.ATTRIBUTE.get(stripped);
+            if (holder.isPresent()) return new ResolvedAttribute(stripped, holder.get());
+        }
+        return null;
+    }
+
+    private record ResolvedAttribute(Identifier id, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> holder) {}
+
+    private Identifier modIdFor(Identifier attrId, Config config) {
+        // Only hash values with stable hashCode() across JVM restarts. Enum
+        // hashCode() is identity-based and varied per-process, which made
+        // every login generate a fresh modifier ID — the persisted NBT
+        // modifier from the last session stuck around, the new one got
+        // added alongside it, and max_health powers stacked indefinitely
+        // across relogs (#tester).
+        int h = Double.hashCode(config.amount());
+        return Identifier.fromNamespaceAndPath(
+            "neoorigins",
+            "power_" + attrId.getPath() + "_"
+                + config.operation().name().toLowerCase(java.util.Locale.ROOT) + "_"
+                + Integer.toHexString(h));
     }
 }

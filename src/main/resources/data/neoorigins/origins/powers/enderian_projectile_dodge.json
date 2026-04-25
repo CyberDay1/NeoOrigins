@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:projectile_immunity",
+  "projectile_types": ["all"],
+  "chance": 0.5,
+  "teleport": true,
+  "teleport_range": 16,
+  "name": "power.neoorigins.enderian_projectile_dodge.name",
+  "description": "power.neoorigins.enderian_projectile_dodge.description"
+}

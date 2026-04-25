@@ -1,5 +1,24 @@
 {
-  "type": "neoorigins:active_bolt",
-  "speed": 1.2,
-  "cooldown_ticks": 120
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 120,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "shadow",
+    "speed": 1.4,
+    "inaccuracy": 0.15,
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 6.0,
+      "include_source": false,
+      "entity_action": {
+        "type": "neoorigins:and",
+        "actions": [
+          { "type": "neoorigins:apply_effect", "effect": "minecraft:blindness", "duration": 100, "amplifier": 0 },
+          { "type": "neoorigins:apply_effect", "effect": "minecraft:slowness", "duration": 100, "amplifier": 1 }
+        ]
+      }
+    }
+  }
 }

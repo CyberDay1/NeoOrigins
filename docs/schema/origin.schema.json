@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/origin.schema.json",
+  "title": "NeoOrigins Origin",
+  "description": "An origin the player can pick. File path: data/<namespace>/origins/origins/<origin>.json.",
+  "type": "object",
+  "required": ["powers"],
+  "properties": {
+    "name": {
+      "description": "Display name (translation key or literal). Defaults to origins.<namespace>.<origin>.name.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object" }
+      ]
+    },
+    "description": {
+      "description": "Display description (translation key or literal). Defaults to origins.<namespace>.<origin>.description.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object" }
+      ]
+    },
+    "icon": {
+      "description": "Item ID shown in the picker card. String form is shorthand for {item: ...}.",
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        { "type": "object", "properties": {
+          "item": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" }
+        }, "required": ["item"], "additionalProperties": false }
+      ]
+    },
+    "impact": {
+      "description": "Gameplay impact tier shown in the picker.",
+      "oneOf": [
+        { "type": "string", "enum": ["none", "low", "medium", "high"] },
+        { "type": "integer", "minimum": 0, "maximum": 3 }
+      ]
+    },
+    "order": {
+      "description": "Sort order within the layer — lower = earlier.",
+      "type": "integer"
+    },
+    "powers": {
+      "description": "Power IDs granted when this origin is chosen. All must resolve to power JSONs under data/<namespace>/origins/powers/.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" }
+    },
+    "upgrades": {
+      "description": "Advancement-triggered migrations to other origins.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["advancement", "origin"],
+        "properties": {
+          "advancement": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+          "origin": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+          "announcement": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "unchoosable": {
+      "description": "If true, not shown in the picker (granted only programmatically).",
+      "type": "boolean"
+    },
+    "hidden": {
+      "description": "If true, origin is hidden from the picker but still valid if granted.",
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

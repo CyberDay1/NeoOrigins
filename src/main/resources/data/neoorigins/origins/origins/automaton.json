@@ -8,6 +8,8 @@
     "neoorigins:automaton_iron_frame",
     "neoorigins:automaton_no_drown",
     "neoorigins:automaton_no_hunger",
+    "neoorigins:automaton_hide_hunger_bar",
+    "neoorigins:automaton_hide_air_bar",
     "neoorigins:automaton_potion_resistance",
     "neoorigins:automaton_night_optics",
     "neoorigins:automaton_heavy_chassis",

@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "FIRE",
+  "name": "power.examplepack.netherborn_fire_immunity.name",
+  "description": "power.examplepack.netherborn_fire_immunity.description"
+}

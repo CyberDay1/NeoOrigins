@@ -3,7 +3,6 @@ package com.cyberday1.neoorigins.event;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
-import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -26,6 +25,7 @@ import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 
 import java.util.*;
 
@@ -36,20 +36,33 @@ public class WorldPowerEvents {
     public static void onLivingChangeTarget(LivingChangeTargetEvent event) {
         if (!(event.getNewAboutToBeSetTarget() instanceof ServerPlayer sp)) return;
 
-        // A tracked minion can never target its own summoner. Covers every
-        // minion source that routes through MinionTracker (summon_minion,
-        // tame_mob, and any future additions).
-        if (MinionTracker.summonerOf(event.getEntity())
-                .filter(summoner -> summoner.getUUID().equals(sp.getUUID()))
-                .isPresent()) {
+        // Summoned minions must never target their own summoner. Overrides the
+        // retaliation window below — even if the player hits their own minion
+        // by accident, the minion should not turn on them.
+        if (com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(event.getEntity(), sp.getUUID())) {
             event.setCanceled(true);
             return;
         }
 
-        Identifier mobTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntity().getType());
-        if (mobTypeId == null) return;
+        // ScareEntitiesPower — mobs that the player is scaring shouldn't be
+        // able to target them in the first place. This runs BEFORE the
+        // MobsIgnorePlayer check so scare-matched mobs are locked out even if
+        // the MobsIgnore retaliation window has already expired. Retaliation
+        // still works: if the mob is the last hurt-by source for the player
+        // within vanilla's timer, we allow the target change so combat
+        // feedback loops work.
+        if (ActiveOriginService.has(sp, com.cyberday1.neoorigins.power.builtin.ScareEntitiesPower.class,
+                cfg -> cfg.entityTypes().stream().anyMatch(id ->
+                    com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
+            if (event.getEntity().getLastHurtByMob() == sp) return;
+            event.setCanceled(true);
+            return;
+        }
+
         if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
-                cfg -> cfg.entityTypes().isEmpty() || cfg.entityTypes().contains(mobTypeId))) {
+                cfg -> cfg.entityTypes().isEmpty()
+                    || cfg.entityTypes().stream().anyMatch(id ->
+                        com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
             // Retaliation window: if the player recently hit this mob, allow
             // targeting so the mob can fight back. Vanilla clears
             // getLastHurtByMob() on its own timer; we just defer to it.
@@ -110,24 +123,31 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onLivingHeal(LivingHealEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        final float[] mult = {1.0f};
-        ActiveOriginService.forEachOfType(sp, NaturalRegenModifierPower.class,
-            cfg -> mult[0] *= cfg.multiplier());
-        if (mult[0] != 1.0f) {
+        float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_NATURAL_REGEN, null, event.getAmount());
+        if (scaled != event.getAmount()) {
             // Defence-in-depth clamp against non-finite results — see
             // CombatPowerEvents.onLivingDamage for the full story of
             // how an unclamped multiply can brick a save via NaN health.
-            float scaled = event.getAmount() * mult[0];
             if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
             event.setAmount(scaled);
         }
     }
 
+    // NeoForge 26.1.2.29+ moved BlockEvent.BreakEvent out to a top-level
+    // BreakBlockEvent in the new event/level/block/ subpackage. Same API
+    // (getPlayer / getLevel / getPos / getState) since it still extends
+    // BlockEvent — only the type reference needed updating. NeoForge 26.1.2.0
+    // through ~.28 still had the inner-class form; this build targets the
+    // current beta line.
     @SubscribeEvent
-    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+    public static void onBlockBreak(BreakBlockEvent event) {
         if (event.isCanceled()) return;
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
+
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.BLOCK_BREAK, event);
 
         var state = event.getState();
         BlockPos pos = event.getPos().immutable();
@@ -190,6 +210,13 @@ public class WorldPowerEvents {
             queue.add(bp.east());
             queue.add(bp.west());
         }
+    }
+
+    @SubscribeEvent
+    public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.BLOCK_PLACE, event);
     }
 
     @SubscribeEvent

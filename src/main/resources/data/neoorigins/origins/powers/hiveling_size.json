@@ -1,4 +1,5 @@
 {
   "type": "neoorigins:size_scaling",
-  "scale": 0.5
+  "scale": 0.6,
+  "modify_reach": false
 }

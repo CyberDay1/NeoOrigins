@@ -1,8 +1,30 @@
 {
-  "type": "neoorigins:active_aoe_effect",
-  "effect": "minecraft:slowness",
-  "amplifier": 3,
-  "duration_ticks": 100,
-  "radius": 6.0,
-  "cooldown_ticks": 200
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 200,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "effect_type": "frost",
+    "speed": 1.4,
+    "inaccuracy": 0.1,
+    "on_hit_action": {
+      "type": "neoorigins:spawn_lingering_area",
+      "radius": 6.0,
+      "duration_ticks": 100,
+      "interval_ticks": 20,
+      "effect_type": "frost",
+      "entity_action": {
+        "type": "neoorigins:area_of_effect",
+        "radius": 6.0,
+        "include_source": false,
+        "entity_action": {
+          "type": "neoorigins:apply_effect",
+          "effect": "minecraft:slowness",
+          "duration": 100,
+          "amplifier": 3
+        }
+      }
+    }
+  }
 }
