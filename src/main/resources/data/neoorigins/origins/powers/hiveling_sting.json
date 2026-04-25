@@ -13,10 +13,11 @@
       "radius": 3.0,
       "include_source": false,
       "entity_action": {
-        "type": "neoorigins:apply_effect",
-        "effect": "minecraft:poison",
-        "duration": 60,
-        "amplifier": 0
+        "type": "neoorigins:and",
+        "actions": [
+          { "type": "neoorigins:damage",      "amount": 4.0, "source": { "name": "magic" } },
+          { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 200, "amplifier": 1 }
+        ]
       }
     }
   }

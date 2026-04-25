@@ -244,7 +244,14 @@ public record LocationCondition(
         // Use logicalHeight so ceiling dimensions (Nether) don't scan the
         // dead-air layer above the bedrock roof.
         final int minY = target.dimensionType().minY();
-        final int topY = minY + target.dimensionType().logicalHeight() - 1;
+        int topYTmp = minY + target.dimensionType().logicalHeight() - 1;
+        // For ceiling dimensions (Nether): start the scan well below the
+        // bedrock roof. Bedrock generates with noise, so 1-block air pockets
+        // exist within the top ~5 blocks; without this margin the player
+        // can spawn sandwiched in a roof-bedrock pocket (reported case).
+        // 16-block margin is safely below the bedrock zone in vanilla Nether.
+        if (target.dimensionType().hasCeiling()) topYTmp -= 16;
+        final int topY = topYTmp;
 
         // For aquatic origins (allow_ocean_floor / allow_water_surface), try
         // the water passes FIRST. If the 5x5 search around the biome-locate
@@ -298,17 +305,24 @@ public record LocationCondition(
     }
 
     private static boolean isLandColumn(ServerLevel level, int x, int y, int z) {
-        BlockState floor = level.getBlockState(new BlockPos(x, y - 1, z));
-        BlockState feet  = level.getBlockState(new BlockPos(x, y,     z));
-        BlockState head  = level.getBlockState(new BlockPos(x, y + 1, z));
-        if (!(floor.isSolid() && feet.isAir() && head.isAir())) return false;
+        // Center column: solid floor + 2-block air clearance, no fluids.
+        if (!isSafeStandingCell(level, x, y, z)) return false;
+        // Require a 3x3 safe area (8 surrounding columns also pass the
+        // standing-cell check) so the player doesn't spawn on a 1-block
+        // pillar over lava, in a 1-wide crevice, or with their head
+        // clipping into an overhang.
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (!isSafeStandingCell(level, x + dx, y, z + dz)) return false;
+            }
+        }
         // Ceiling dimensions (Nether) have no sky below the bedrock roof —
         // canSeeSky is always false for any playable column, so the sky
         // check would reject every candidate (reported case: Blazeling
         // spawn_location: minecraft:the_nether silently failed). The
-        // top-down scan from logicalHeight - 1 already gives us the
-        // highest solid+air+air, which is the surface of the natural
-        // netherrack terrain below the ceiling.
+        // top-down scan already gives us the highest solid+air+air, which
+        // is the surface of the natural netherrack terrain below the ceiling.
         if (level.dimensionType().hasCeiling()) return true;
         // Require the head block to see sky so we don't pick a cave air-pocket
         // as "land". In an ocean biome the top-down scan would otherwise find
@@ -318,6 +332,27 @@ public record LocationCondition(
         // heightmap check — true only when the position is above the
         // MOTION_BLOCKING heightmap for that XZ, which water contributes to.
         return level.canSeeSky(new BlockPos(x, y + 1, z));
+    }
+
+    /**
+     * One cell of the 3x3 land-spawn check: solid (non-fluid, non-lava)
+     * floor at y-1, air at feet (y) and head (y+1), and no lava anywhere
+     * in the floor/feet/head triple. Used to reject spawn columns that
+     * sit on lava, in a 1-block-wide crevice, or under an overhang.
+     */
+    private static boolean isSafeStandingCell(ServerLevel level, int x, int y, int z) {
+        BlockPos floorPos = new BlockPos(x, y - 1, z);
+        BlockPos feetPos  = new BlockPos(x, y,     z);
+        BlockPos headPos  = new BlockPos(x, y + 1, z);
+        BlockState floor = level.getBlockState(floorPos);
+        BlockState feet  = level.getBlockState(feetPos);
+        BlockState head  = level.getBlockState(headPos);
+        if (!floor.isSolid()) return false;
+        if (!feet.isAir() || !head.isAir()) return false;
+        if (level.getFluidState(floorPos).is(FluidTags.LAVA)) return false;
+        if (level.getFluidState(feetPos).is(FluidTags.LAVA))  return false;
+        if (level.getFluidState(headPos).is(FluidTags.LAVA))  return false;
+        return true;
     }
 
     private static boolean isOceanFloorColumn(ServerLevel level, int x, int y, int z) {
