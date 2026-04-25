@@ -1,11 +1,8 @@
 {
-  "type": "neoorigins:condition_passive",
+  "type": "neoorigins:persistent_effect",
+  "toggleable": false,
   "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
-  "entity_action": {
-    "type": "neoorigins:apply_effect",
-    "effect": "minecraft:regeneration",
-    "duration": 300,
-    "amplifier": 0
-  },
-  "interval": 20
+  "effects": [
+    { "effect": "minecraft:speed", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+  ]
 }
