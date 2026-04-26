@@ -78,7 +78,14 @@ public final class ConditionParser {
                 };
                 case "neoorigins:in_rain"                       -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
-                    return sl.isRainingAt(p.blockPosition());
+                    // isRainingAt only considers world weather + biome — it does
+                    // not check whether overhead blocks shield the player. A
+                    // glass roof would still report "raining at this position",
+                    // hurting fire-vulnerable origins through the glass (#32).
+                    // Pair with canSeeSky so any solid OR transparent overhead
+                    // block blocks the rain check, matching player intuition.
+                    BlockPos pos = p.blockPosition();
+                    return sl.isRainingAt(pos) && sl.canSeeSky(pos);
                 };
                 case "neoorigins:daytime"                       ->
                     p -> p.level().getDefaultClockTime() % 24000L < 13000L;
@@ -347,8 +354,14 @@ public final class ConditionParser {
                 return biomeHolder.is(biomeKey);
             };
         }
-        // Check for tag-based biome condition
-        String tag = json.has("tag") ? json.get("tag").getAsString() : null;
+        // Tag-based check. Accept both "tag" (the original field) and "biome_tag"
+        // (the more descriptive field used by several built-in JSONs — frostborn,
+        // piglin, strider). Without the alias, "biome_tag"-using powers fell
+        // through to alwaysTrue() and fired regardless of biome (issue #36:
+        // Frostborn burned everywhere; piglin/strider buffs were always-on).
+        String tag = json.has("tag") ? json.get("tag").getAsString()
+                   : json.has("biome_tag") ? json.get("biome_tag").getAsString()
+                   : null;
         if (tag != null) {
             TagKey<Biome> biomeTag = TagKey.create(Registries.BIOME, Identifier.parse(tag));
             return player -> player.level().getBiome(player.blockPosition()).is(biomeTag);
