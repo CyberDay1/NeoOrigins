@@ -1,8 +1,3 @@
----
-title: Migration
-nav_order: 4
----
-
 # NeoOrigins 2.0 Migration Guide
 
 Reference for pack authors updating JSON from pre-2.0 types to the 2.0 generic / composable types.
@@ -119,7 +114,12 @@ After:
 
 ### `neoorigins:food_restriction`
 
-Before (blacklist):
+Both modes now use the same outer shape — an `action_on_event` listening
+on `food_eaten`, dispatching an `if_else` whose condition checks the food
+being eaten. Cancelling the event blocks the bite.
+
+**Blacklist** — *"these foods are forbidden":*
+
 ```json
 {
   "type": "neoorigins:food_restriction",
@@ -127,22 +127,83 @@ Before (blacklist):
   "item_tag": "minecraft:fishes"
 }
 ```
-After:
+
+becomes
+
 ```json
 {
   "type": "neoorigins:action_on_event",
   "event": "food_eaten",
   "entity_action": {
-    "type": "origins:if_else",
+    "type": "neoorigins:if_else",
     "condition": {
       "type": "neoorigins:food_item_in_tag",
       "tag": "minecraft:fishes"
     },
-    "if_action": { "type": "neoorigins:cancel_event" }
+    "if_action":   { "type": "neoorigins:cancel_event" },
+    "else_action": { "type": "neoorigins:nothing" }
   }
 }
 ```
-For `"mode": "whitelist"`, the `condition` is wrapped in `origins:not`.
+
+Reads: *"if the food is in `minecraft:fishes`, cancel; otherwise allow."*
+
+**Whitelist** — *"only these foods are allowed":*
+
+```json
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "whitelist",
+  "item_tag": "yourpack:edible_for_me"
+}
+```
+
+becomes
+
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "food_eaten",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:food_item_in_tag",
+      "tag": "yourpack:edible_for_me"
+    },
+    "if_action":   { "type": "neoorigins:nothing" },
+    "else_action": { "type": "neoorigins:cancel_event" }
+  }
+}
+```
+
+Reads: *"if the food is in `yourpack:edible_for_me`, allow; otherwise cancel."*
+
+Notice the only thing that changed between blacklist and whitelist is the
+**branch placement** — `cancel_event` moved from `if_action` to
+`else_action`. You can also keep the same branch placement and instead
+**wrap the condition in `neoorigins:not`** — same outcome, different
+phrasing:
+
+```json
+"entity_action": {
+  "type": "neoorigins:if_else",
+  "condition": {
+    "type": "neoorigins:not",
+    "condition": {
+      "type": "neoorigins:food_item_in_tag",
+      "tag": "yourpack:edible_for_me"
+    }
+  },
+  "if_action":   { "type": "neoorigins:cancel_event" },
+  "else_action": { "type": "neoorigins:nothing" }
+}
+```
+
+> ⚠️ **Common mistake:** `neoorigins:not` is a *condition* type, not an
+> *action* type. It wraps a condition; it does not replace `if_else`. If
+> your power's `entity_action.type` is `neoorigins:not`, the parser
+> doesn't know what to do with it and the whole power silently no-ops.
+> Always keep `if_else` (or another action type) at the outer level.
 
 ### `neoorigins:hunger_drain_modifier`
 
