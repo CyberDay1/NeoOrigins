@@ -452,6 +452,7 @@ public final class NeoOriginsConfig {
     public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_DRIES_OUT;
     public static final ModConfigSpec.IntValue OCEAN_ORIGINS_DRAIN_RATE_TICKS;
     public static final ModConfigSpec.DoubleValue OCEAN_ORIGINS_DROWN_DAMAGE;
+    public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_FISH_DIET_REQUIRED;
 
     private static final Set<String> OCEAN_ORIGIN_PATHS =
         Set.of("abyssal", "kraken", "merling", "siren");
@@ -484,6 +485,14 @@ public final class NeoOriginsConfig {
                      "is exhausted. Mirrors WaterAnimal.handleAirSupply cadence (vanilla cod / salmon).",
                      "Default 2.0 (= 1 heart per second). Set to 0 to make dry-out non-lethal.")
             .defineInRange("drown_damage_per_second", 2.0, 0.0, 100.0);
+
+        OCEAN_ORIGINS_FISH_DIET_REQUIRED = BUILDER
+            .comment("Pescivore restriction — when true, ocean origins (Abyssal, Kraken, Merling,",
+                     "Siren) can only eat items in the neoorigins:fish_foods tag; non-fish food",
+                     "is silently cancelled. Set to false to let them eat anything (powered by",
+                     "the aquatic_fish_diet power's runtime check on this flag).",
+                     "Default true: matches the long-standing pescivore design.")
+            .define("fish_diet_required", true);
 
         BUILDER.pop();
     }
@@ -593,6 +602,11 @@ public final class NeoOriginsConfig {
 
     public static boolean isOceanOriginsDriesOutEnabled() {
         return OCEAN_ORIGINS_DRIES_OUT.get();
+    }
+
+    /** True if ocean origins are restricted to the {@code neoorigins:fish_foods} tag. */
+    public static boolean isOceanOriginsFishDietRequired() {
+        return OCEAN_ORIGINS_FISH_DIET_REQUIRED.get();
     }
 
     /** Master drain rate in ticks per air point lost while an aquatic player is out of water. */

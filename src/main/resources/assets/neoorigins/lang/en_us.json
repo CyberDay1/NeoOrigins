@@ -201,7 +201,7 @@
   "power.neoorigins.feline_mobs_ignore.name": "Predator's Calm",
   "power.neoorigins.feline_mobs_ignore.description": "Passive mobs do not startle and neutral mobs ignore you unless provoked.",
   "power.neoorigins.feline_water_weakness.name": "Hates Water",
-  "power.neoorigins.feline_water_weakness.description": "Takes 50% more damage from all sources — clumsy when panicked.",
+  "power.neoorigins.feline_water_weakness.description": "Takes 0.5 damage per second while in water or rain — wet fur is misery.",
   "power.neoorigins.feline_hunger_drain.name": "High Metabolism",
   "power.neoorigins.feline_hunger_drain.description": "Gets hungry 30% faster than a human.",
 
@@ -320,7 +320,7 @@
   "power.neoorigins.abyssal_water_breathing.name": "Gill Breath",
   "power.neoorigins.abyssal_water_breathing.description": "Breathes water as naturally as air and sees clearly through it with no fog.",
   "power.neoorigins.aquatic_fish_diet.name": "Pescivore",
-  "power.neoorigins.aquatic_fish_diet.description": "Can only eat fish.",
+  "power.neoorigins.aquatic_fish_diet.description": "Can only eat fish. Server admins can disable this in config (ocean_origins.fish_diet_required).",
   "power.neoorigins.aquatic_fish_diet_bonus.name": "Raw Adapted",
   "power.neoorigins.aquatic_fish_diet_bonus.description": "Raw cod and salmon are as nourishing as the cooked versions.",
   "power.neoorigins.abyssal_aquatic_speed.name": "Deep Current",
