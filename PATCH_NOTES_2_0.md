@@ -9,6 +9,17 @@ Pack-author docs are now hosted on GitHub Pages: <https://cyberday1.github.io/Ne
 
 ---
 
+## ⚠️ Migrating from 1.x — please read
+
+We **forgot to call this out** in the original 2.0 release notes (issue #38) — sorry about that.
+
+- **`originpacks/` has moved** from `<game_dir>/originpacks/` to **`<game_dir>/config/originpacks/`**. Move your packs there to find them in the new location.
+- A **legacy fallback** is in place — if you don't have a `config/originpacks/` folder yet, the mod will keep loading from the old `<game_dir>/originpacks/` location and log a one-time warning telling you to migrate. The fallback will be removed in a future major release, so plan to move them when convenient.
+- **No JSON changes are required** for existing packs. The only thing that moved is where the pack files live; the contents work the same way.
+- Datapack-shipped origin layers (e.g. `<your_pack>:origin`) now **auto-merge into the main origin picker** as of 2.0.3 instead of creating a separate picker screen — pack authors who want a separate tab can opt out with `"standalone": true` on the layer JSON. Pack authors who already used `"replace": false` on `data/neoorigins/origins/origin_layers/origin.json` will see no change in behavior.
+
+---
+
 ## Headline changes
 
 - **Two-layer selection** — every player picks an Origin *and* a Class. 46 origins × 20 classes.
