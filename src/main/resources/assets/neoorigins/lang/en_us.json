@@ -2,7 +2,6 @@
   "neoorigins.toggle.on": "Power enabled",
   "neoorigins.toggle.off": "Power disabled",
   "message.neoorigins.food_restriction.cannot_eat": "Your diet forbids this food.",
-
   "origins.layer.origin": "Origin",
   "origins.layer.class": "Class",
   "screen.neoorigins.choose_origin": "Choose Your Origin",
@@ -10,7 +9,6 @@
   "screen.neoorigins.choose.origins.layer.origin": "Choose Your Origin",
   "screen.neoorigins.choose.origins.layer.class": "Choose Your Class",
   "button.neoorigins.random": "Random",
-
   "gui.neoorigins.search.label": "Search origins",
   "gui.neoorigins.search.hint": "Search...",
   "gui.neoorigins.button.back": "< Back",
@@ -18,7 +16,6 @@
   "gui.neoorigins.hint.scroll": "scroll for more",
   "gui.neoorigins.hint.select": "Select an origin to view details",
   "gui.neoorigins.detail.powers_header": "Powers",
-
   "key.category.neoorigins.neoorigins": "NeoOrigins",
   "key.neoorigins.skill_1": "Skill 1",
   "key.neoorigins.skill_2": "Skill 2",
@@ -26,7 +23,6 @@
   "key.neoorigins.skill_4": "Skill 4",
   "key.neoorigins.class_skill": "Class Skill",
   "key.neoorigins.view_info": "View Origin Info",
-
   "screen.neoorigins.origin_info": "Origin Info",
   "screen.neoorigins.debug_powers": "Active Powers (debug)",
   "gui.neoorigins.info.no_origin": "No origin selected yet.",
@@ -44,40 +40,29 @@
   "gui.neoorigins.debug.capabilities_header": "Active Capabilities",
   "gui.neoorigins.debug.powers_header": "Granted Powers",
   "gui.neoorigins.debug.none": "(none)",
-
   "origins.gui.impact.impact": "Impact",
   "origins.gui.impact.none": "None",
   "origins.gui.impact.low": "Low",
   "origins.gui.impact.medium": "Medium",
   "origins.gui.impact.high": "High",
-
   "origins.neoorigins.human.name": "Human",
   "origins.neoorigins.human.description": "A regular human being, with no special powers but well-rounded abilities.",
-
   "origins.neoorigins.merling.name": "Merling",
   "origins.neoorigins.merling.description": "An aquatic people born in the open ocean — breathes water and swims with ease, but slow and dries out on dry land.",
-
   "origins.neoorigins.avian.name": "Avian",
   "origins.neoorigins.avian.description": "A graceful flier who drifts down slowly, fears no heights, and watches the world from above.",
-
   "origins.neoorigins.blazeling.name": "Blazeling",
   "origins.neoorigins.blazeling.description": "Born of the nether fires — scaled in brimstone, restored in the dark realm, but poisoned by water and rain.",
-
   "origins.neoorigins.elytrian.name": "Elytrian",
   "origins.neoorigins.elytrian.description": "A pure flight specialist — soars through the skies, untouched by kinetic forces, but fragile of frame and incapable of bearing heavy armor.",
-
   "origins.neoorigins.enderian.name": "Enderian",
   "origins.neoorigins.enderian.description": "Born on the outer islands of the End — teleports at will, dodges projectiles into the void, and walks unseen by endermen. Water burns like acid.",
-
   "origins.neoorigins.arachnid.name": "Arachnid",
   "origins.neoorigins.arachnid.description": "Nimble spider-folk who scale any wall, fling webs at foes, and strike with fangs — kin to the eight-legged crawlers of the world.",
-
   "origins.neoorigins.shulk.name": "Shulk",
   "origins.neoorigins.shulk.description": "Armored like a shulker — shrugs off blows, retreats into a shell when cornered, and launches foes skyward with a levitation burst. Slow, but unshakeable.",
-
   "origins.neoorigins.phantom.name": "Phantom",
   "origins.neoorigins.phantom.description": "A spectral being — gliding through the night on elytra wings, drawing strength from kills, but burned by sunlight and unable to rest.",
-
   "power.neoorigins.merling_water_breathing.name": "Gills",
   "power.neoorigins.merling_water_breathing.description": "Breathes underwater indefinitely and sees clearly through the water with no fog.",
   "power.neoorigins.merling_aquatic_speed.name": "Aquatic Speed",
@@ -88,7 +73,6 @@
   "power.neoorigins.merling_no_drowning.description": "Cannot drown.",
   "power.neoorigins.merling_dries_out.name": "Dries Out",
   "power.neoorigins.merling_dries_out.description": "Air ticks down while you're out of water — surface too long and you suffocate.",
-
   "power.neoorigins.avian_no_fall_damage.name": "Featherweight",
   "power.neoorigins.avian_no_fall_damage.description": "Takes no damage from falling — wings catch the wind.",
   "power.neoorigins.avian_slow_fall.name": "Slow Falling",
@@ -101,7 +85,6 @@
   "power.neoorigins.avian_hollow_bones.description": "−1 heart (−2 max HP). Light body, fragile frame.",
   "power.neoorigins.avian_feather_hop.name": "Feather Hop",
   "power.neoorigins.avian_feather_hop.description": "Flutter-jump upward with a quick burst of wing. No hunger cost.",
-
   "power.neoorigins.blazeling_fire_immunity.name": "Heart of Embers",
   "power.neoorigins.blazeling_fire_immunity.description": "Immune to fire, lava, magma, and burning — the fire within answers the fire without.",
   "power.neoorigins.blazeling_blaze_scales.name": "Blaze Scales",
@@ -118,7 +101,6 @@
   "power.neoorigins.blazeling_night_vision.description": "Eyes tuned to infrared — see clearly in the dark.",
   "power.neoorigins.blazeling_firebolt.name": "Firebolt",
   "power.neoorigins.blazeling_firebolt.description": "Hurl a small fireball in the direction you're looking. Costs 2 hunger. 4-second cooldown.",
-
   "power.neoorigins.elytrian_elytra_boost.name": "Elytra Boost",
   "power.neoorigins.elytrian_elytra_boost.description": "Gains a burst of speed when launching with an elytra.",
   "power.neoorigins.elytrian_flight.name": "Natural Flight",
@@ -135,7 +117,6 @@
   "power.neoorigins.strider_stampede.description": "Charge forward on thick legs. Costs 2 hunger. 4-second cooldown.",
   "power.neoorigins.golem_ground_slam.name": "Ground Slam",
   "power.neoorigins.golem_ground_slam.description": "Slam the earth with iron fists — 4 damage and Slowness II for 4 seconds to all nearby enemies in a 5-block radius. Costs 3 hunger. 7-second cooldown.",
-
   "power.neoorigins.enderian_ender_eyes.name": "Ender Eyes",
   "power.neoorigins.enderian_ender_eyes.description": "Endermen ignore your gaze — look at them without provoking an attack.",
   "power.neoorigins.enderian_projectile_dodge.name": "Void Step",
@@ -144,7 +125,6 @@
   "power.neoorigins.enderian_water_damage.description": "Takes 2 damage per second from contact with water or rain.",
   "power.neoorigins.enderian_teleport.name": "Ender Warp",
   "power.neoorigins.enderian_teleport.description": "Teleport to where you're looking — up to 50 blocks. Costs 2 hunger. 3-second cooldown.",
-
   "power.neoorigins.arachnid_wall_climbing.name": "Wall Climbing",
   "power.neoorigins.arachnid_wall_climbing.description": "Cling to any vertical surface — press against a wall to grip, jump to climb, hold sneak to stay in place. Fall damage is avoided while gripping.",
   "power.neoorigins.arachnid_cobweb_affinity.name": "Web Walker",
@@ -155,7 +135,6 @@
   "power.neoorigins.arachnid_spiders_fang.description": "Melee attacks inject venom — targets suffer Poison I for 3 seconds.",
   "power.neoorigins.arachnid_cobweb_projectile.name": "Web Shot",
   "power.neoorigins.arachnid_cobweb_projectile.description": "Throws a cobweb that places itself on impact, tangling anything it lands on. Costs 2 hunger.",
-
   "power.neoorigins.shulk_natural_armor.name": "Shell",
   "power.neoorigins.shulk_natural_armor.description": "Permanent Resistance I — the shell absorbs blows that would crack a softer body.",
   "power.neoorigins.shulk_slow_movement.name": "Shulker Bulk",
@@ -166,7 +145,6 @@
   "power.neoorigins.shulk_shell_retreat.description": "Active: vanish into your shell and reappear up to 12 blocks away. Costs 3 hunger. 10-second cooldown.",
   "power.neoorigins.shulk_levitation_immunity.name": "Grounded",
   "power.neoorigins.shulk_levitation_immunity.description": "Immune to levitation — your shell keeps you rooted when bullets come back.",
-
   "power.neoorigins.phantom_night_vision.name": "Night Eyes",
   "power.neoorigins.phantom_night_vision.description": "Can see clearly in total darkness.",
   "power.neoorigins.phantom_form.name": "Phantom Form",
@@ -187,7 +165,6 @@
   "power.neoorigins.phantom_fragile.description": "−2 hearts (−4 max HP). A body of mist is easy to dispel.",
   "power.neoorigins.phantom_no_sleep.name": "Sleepless Dread",
   "power.neoorigins.phantom_no_sleep.description": "Cannot sleep — the night is your element.",
-
   "origins.neoorigins.feline.name": "Feline",
   "origins.neoorigins.feline.description": "A quick cat-person with keen night vision and a pouncing leap — lands on their feet, slips past wolves and ocelots, but loathes water and hungers quickly.",
   "power.neoorigins.feline_no_fall_damage.name": "Nine Lives",
@@ -202,7 +179,6 @@
   "power.neoorigins.feline_water_weakness.description": "Takes 0.5 damage per second while in water or rain — wet fur is misery.",
   "power.neoorigins.feline_hunger_drain.name": "High Metabolism",
   "power.neoorigins.feline_hunger_drain.description": "Gets hungry 30% faster than a human.",
-
   "origins.neoorigins.golem.name": "Golem",
   "origins.neoorigins.golem.description": "A walking fortress of iron and will — nearly immovable, but slow and vulnerable to heat.",
   "power.neoorigins.golem_natural_armor.name": "Iron Hide",
@@ -217,7 +193,6 @@
   "power.neoorigins.golem_slow_movement.description": "Moves 25% slower than a normal human.",
   "power.neoorigins.golem_fire_weakness.name": "Melting Point",
   "power.neoorigins.golem_fire_weakness.description": "Takes 80% more damage from fire, lava, and magma block contact — iron conducts heat.",
-
   "origins.neoorigins.caveborn.name": "Caveborn",
   "origins.neoorigins.caveborn.description": "Raised in the deep dark — eats raw stone, chews through ore with bare hands, but withers in sunlight.",
   "power.neoorigins.caveborn_night_vision.name": "Dark Adapted",
@@ -254,7 +229,6 @@
   "power.neoorigins.caveborn_daylight_damage.description": "Catches fire and takes 1 damage per second when exposed to direct sunlight.",
   "power.neoorigins.caveborn_small_frame.name": "Compact Build",
   "power.neoorigins.caveborn_small_frame.description": "85% the size of a normal player — tight tunnels are easy.",
-
   "origins.neoorigins.sylvan.name": "Sylvan",
   "origins.neoorigins.sylvan.description": "A spirit of the old forest — swift among the trees, loved by wildlife, and able to entangle foes with a surge of roots. Healed by rain, but scorched by the Nether.",
   "power.neoorigins.sylvan_mobs_ignore.name": "One With Nature",
@@ -265,7 +239,6 @@
   "power.neoorigins.sylvan_forest_speed.description": "Gains a speed boost while in forest biomes.",
   "power.neoorigins.sylvan_nether_damage.name": "Corruption Bane",
   "power.neoorigins.sylvan_nether_damage.description": "Takes 1 damage per second while in Nether biomes. Frost Walker boots fully prevent the damage.",
-
   "origins.neoorigins.draconic.name": "Draconic",
   "origins.neoorigins.draconic.description": "Dragon-blooded and fearsome — immune to fire and terrifying to beasts, but an insatiable appetite comes with the power.",
   "power.neoorigins.draconic_fire_immunity.name": "Dragonblood",
@@ -282,7 +255,6 @@
   "power.neoorigins.draconic_water_weakness.description": "Drowning damage is doubled — fire needs to breathe.",
   "power.neoorigins.draconic_hunger_drain.name": "Draconic Appetite",
   "power.neoorigins.draconic_hunger_drain.description": "Gets hungry 50% faster — the flame burns hot.",
-
   "origins.neoorigins.revenant.name": "Revenant",
   "origins.neoorigins.revenant.description": "An undead wanderer who phases through matter and hurls bolts of withering rot — cannot drown and sees in darkness, but heals slowly and burns in sunlight.",
   "power.neoorigins.revenant_entity_group.name": "Undead Nature",
@@ -295,7 +267,6 @@
   "power.neoorigins.revenant_daylight_damage.description": "Catches fire and takes 2 damage per second when exposed to direct sunlight.",
   "power.neoorigins.revenant_slow_regen.name": "Withered Form",
   "power.neoorigins.revenant_slow_regen.description": "Natural health regeneration is reduced to 40% of normal.",
-
   "origins.neoorigins.tiny.name": "Tiny",
   "origins.neoorigins.tiny.description": "Small in stature but quick and nimble — climbs anything, pulls in items, but hits like a feather.",
   "power.neoorigins.tiny_size.name": "Diminutive",
@@ -312,7 +283,6 @@
   "power.neoorigins.tiny_attack_penalty.description": "Deals 2 less damage per hit.",
   "power.neoorigins.tiny_hunger_drain.name": "Tiny Stomach",
   "power.neoorigins.tiny_hunger_drain.description": "Gets hungry 80% faster — small bodies burn food quickly.",
-
   "origins.neoorigins.abyssal.name": "Abyssal",
   "origins.neoorigins.abyssal.description": "A creature of the deep — armored, swift in water, and able to call guardian allies. Slow and dries out on land.",
   "power.neoorigins.abyssal_water_breathing.name": "Gill Breath",
@@ -339,7 +309,6 @@
   "power.neoorigins.abyssal_land_speed_penalty.description": "Moves 10% slower on land.",
   "power.neoorigins.abyssal_dries_out.name": "Dries Out",
   "power.neoorigins.abyssal_dries_out.description": "Air ticks down while you're out of water — surface too long and you suffocate.",
-
   "origins.neoorigins.voidwalker.name": "Voidwalker",
   "origins.neoorigins.voidwalker.description": "A being touched by the End — phases through blocks, blinks short distances, and walks unseen by most threats. Sprints without tiring, but water is agony.",
   "power.neoorigins.voidwalker_active_teleport.name": "Void Step",
@@ -352,7 +321,6 @@
   "power.neoorigins.voidwalker_water_damage.description": "Takes 1 damage per second while in water or rain — the void fears water.",
   "power.neoorigins.voidwalker_no_hunger_sprint.name": "Weightless",
   "power.neoorigins.voidwalker_no_hunger_sprint.description": "Sprinting costs no extra hunger.",
-
   "origins.neoorigins.stoneguard.name": "Stoneguard",
   "origins.neoorigins.stoneguard.description": "Born of living stone — an unshakeable sentinel who sheds thorns onto attackers, mines rock with bare hands, and sets glowstone torches into the dark. Slow, but unmoving ground never leaves them.",
   "power.neoorigins.stoneguard_natural_armor.name": "Stone Skin",
@@ -367,7 +335,6 @@
   "power.neoorigins.stoneguard_stone_mining.description": "Breaks blocks twice as fast.",
   "power.neoorigins.stoneguard_no_mob_spawns.name": "Warding Presence",
   "power.neoorigins.stoneguard_no_mob_spawns.description": "Monsters do not spawn within 24 blocks.",
-
   "origins.neoorigins.verdant.name": "Verdant",
   "origins.neoorigins.verdant.description": "A living embodiment of the green world — tireless, at peace with the wild, but utterly destroyed by the Nether's corruption.",
   "power.neoorigins.verdant_mobs_ignore.name": "Wild Kin",
@@ -380,7 +347,6 @@
   "power.neoorigins.verdant_forest_regen.description": "Slowly regenerates health while in forest biomes.",
   "power.neoorigins.verdant_nether_damage.name": "Corruption Rot",
   "power.neoorigins.verdant_nether_damage.description": "Takes 2 damage per second while in the Nether. Frost Walker boots fully prevent the damage.",
-
   "origins.neoorigins.umbral.name": "Umbral",
   "origins.neoorigins.umbral.description": "A child of shadow — hurls orbs of dark energy, dashes between positions, and deflects arrows. Swift in the dark, burned by sunlight.",
   "power.neoorigins.umbral_night_vision.name": "Shadow Sight",
@@ -395,46 +361,35 @@
   "power.neoorigins.umbral_no_hunger_sprint.description": "Sprinting costs no extra hunger.",
   "power.neoorigins.umbral_shadow_orb.name": "Shadow Orb",
   "power.neoorigins.umbral_shadow_orb.description": "Place an invisible orb that plunges a 28-block radius into Darkness. Up to 4 orbs active at once; placing a new one removes the oldest. Costs 2 hunger. 60-tick cooldown.",
-
   "power.neoorigins.feline_active_launch.name": "Pounce",
   "power.neoorigins.feline_active_launch.description": "Pounces you powerfully in the direction you're looking. Costs 2 hunger. 4-second cooldown.",
-
   "power.neoorigins.draconic_flight.name": "Dragon Wings",
   "power.neoorigins.draconic_flight.description": "Glides freely through the air using powerful draconic wings.",
   "power.neoorigins.draconic_active_fireball.name": "Flame Breath",
   "power.neoorigins.draconic_active_fireball.description": "Breathes a burst of 4 small fireballs in the direction you're looking. Costs 3 hunger. 4-second cooldown.",
-
   "power.neoorigins.sylvan_crop_growth.name": "Nature's Blessing",
   "power.neoorigins.sylvan_crop_growth.description": "Nearby crops grow faster in your presence, as if blessed by the land.",
   "power.neoorigins.sylvan_active_root.name": "Entangle",
   "power.neoorigins.sylvan_active_root.description": "Roots all nearby creatures in place with powerful Slowness VI for 4 seconds. Costs 2 hunger. 200-tick cooldown.",
-
   "power.neoorigins.revenant_active_phase.name": "Phase Step",
   "power.neoorigins.revenant_active_phase.description": "Phases through a solid wall in the direction you're looking. 3-second cooldown.",
   "power.neoorigins.revenant_active_bolt.name": "Void Bolt",
   "power.neoorigins.revenant_active_bolt.description": "Fires a bolt of withering energy that explodes into an area of harmful mist. Costs 1 hunger. 4-second cooldown.",
-
   "power.neoorigins.abyssal_starting_trident.name": "Abyssal Trident",
   "power.neoorigins.abyssal_starting_trident.description": "Granted a powerful enchanted trident (Mending, Unbreaking III, Riptide III) when you choose this origin.",
   "power.neoorigins.abyssal_scare_ocean.name": "Ocean Terror",
   "power.neoorigins.abyssal_scare_ocean.description": "Passive ocean creatures — squid, fish, dolphins — flee from you on sight.",
-
   "power.neoorigins.voidwalker_active_phase.name": "Phase Walk",
   "power.neoorigins.voidwalker_active_phase.description": "Phase through a solid wall in the direction you're looking. Costs 3 hunger. 80-tick cooldown.",
-
   "power.neoorigins.stoneguard_active_glowstone.name": "Stone Light",
   "power.neoorigins.stoneguard_active_glowstone.description": "Places a glowstone block at the surface you're looking at. 100-tick cooldown.",
-
   "power.neoorigins.verdant_harvest_bonus.name": "Bountiful Harvest",
   "power.neoorigins.verdant_harvest_bonus.description": "Breaking mature crops or logs yields one additional set of drops.",
-
   "power.neoorigins.summon_minion.max_reached": "Maximum minions already summoned!",
   "power.neoorigins.summon_minion.not_enough_hunger": "Not enough hunger to summon!",
-
   "item.neoorigins.orb_of_origin": "Orb of Origin",
   "item.neoorigins.orb_of_origin.not_enough_xp": "You need %s experience levels to use this.",
   "jei.neoorigins.orb_of_origin.info": "Resets all origin selections and reopens the origin chooser. Costs 5 XP levels per previous use (first use is free). Consumed on use.",
-
   "origins.neoorigins.inchling.name": "Inchling",
   "origins.neoorigins.inchling.description": "A quarter-sized humanoid who scales walls with ease and moves with surprising speed — but a fragile body comes with the territory.",
   "power.neoorigins.inchling_size.name": "Diminutive",
@@ -449,7 +404,6 @@
   "power.neoorigins.inchling_speed_boost.description": "Moves 15% faster than normal.",
   "power.neoorigins.inchling_hunger_efficiency.name": "Small Appetite",
   "power.neoorigins.inchling_hunger_efficiency.description": "Gets hungry half as fast as a normal player.",
-
   "origins.neoorigins.sporeling.name": "Sporeling",
   "origins.neoorigins.sporeling.description": "A fungal creature that thrives in darkness and mushroom fields — armed with toxic spores, but withered by sunlight.",
   "power.neoorigins.sporeling_spore_cloud.name": "Spore Cloud",
@@ -468,7 +422,6 @@
   "power.neoorigins.sporeling_daylight_damage.description": "Takes 1 damage per second when exposed to direct sunlight.",
   "power.neoorigins.sporeling_slow_movement.name": "Rooted Gait",
   "power.neoorigins.sporeling_slow_movement.description": "Moves 10% slower than normal.",
-
   "origins.neoorigins.frostborn.name": "Frostborn",
   "origins.neoorigins.frostborn.description": "An elemental of ice and cold — freezes enemies, thrives in taigas, but fire and the Nether are devastating.",
   "power.neoorigins.frostborn_freeze_aura.name": "Frost Nova",
@@ -485,7 +438,6 @@
   "power.neoorigins.frostborn_nether_damage.description": "Takes 2 damage per second while in the Nether.",
   "power.neoorigins.frostborn_freeze_immunity.name": "Cold Immunity",
   "power.neoorigins.frostborn_freeze_immunity.description": "Completely immune to freezing damage.",
-
   "origins.neoorigins.strider.name": "Strider",
   "origins.neoorigins.strider.description": "A Nether-native creature that walks on lava and heals in its warmth — but the cold overworld and water are crippling.",
   "power.neoorigins.strider_fire_immunity.name": "Lavaborn",
@@ -502,7 +454,6 @@
   "power.neoorigins.strider_overworld_slowness.description": "Slowed in the cold overworld.",
   "power.neoorigins.strider_natural_armor.name": "Obsidian Hide",
   "power.neoorigins.strider_natural_armor.description": "Permanent Resistance I — magma-hardened skin shrugs off impact.",
-
   "origins.neoorigins.siren.name": "Siren",
   "origins.neoorigins.siren.description": "An aquatic enchantress born in the open ocean — charms creatures with an alluring presence and heals in the tides, but frail, slow, and dries out on land.",
   "power.neoorigins.siren_charm.name": "Alluring Presence",
@@ -521,7 +472,6 @@
   "power.neoorigins.siren_regen_in_water.description": "Heals 1 HP per second while in water.",
   "power.neoorigins.siren_dries_out.name": "Dries Out",
   "power.neoorigins.siren_dries_out.description": "Air ticks down while you're out of water — surface too long and you suffocate.",
-
   "origins.neoorigins.piglin.name": "Piglin",
   "origins.neoorigins.piglin.description": "A gold-obsessed Nether warrior — powerful at home, feared by kin, but weakened outside the Nether.",
   "power.neoorigins.piglin_nether_buff.name": "Nether Fury",
@@ -538,7 +488,6 @@
   "power.neoorigins.piglin_night_vision.description": "Can see clearly in the dark.",
   "power.neoorigins.piglin_soul_fire_damage.name": "Soul Dread",
   "power.neoorigins.piglin_soul_fire_damage.description": "Soul fire burns deeper — takes 0.5 damage per second while in a Soul Sand Valley.",
-
   "origins.neoorigins.hiveling.name": "Hiveling",
   "origins.neoorigins.hiveling.description": "A bee-like insectoid who flies freely, stings foes with a venomous strike, and coaxes crops to grow. Fragile wings and endless hunger are the price of flight.",
   "power.neoorigins.hiveling_flight.name": "Buzzing Wings",
@@ -555,7 +504,6 @@
   "power.neoorigins.hiveling_reduced_health.description": "−3 hearts (−6 max HP). Fragile wings, fragile frame.",
   "power.neoorigins.hiveling_hunger_drain.name": "Busy Metabolism",
   "power.neoorigins.hiveling_hunger_drain.description": "Gets hungry 50% faster — flying burns energy.",
-
   "origins.neoorigins.cinderborn.name": "Cinderborn",
   "origins.neoorigins.cinderborn.description": "A volcanic fire elemental — immune to flame, terrifying to beasts, and healed by lava — but devastated by water.",
   "power.neoorigins.cinderborn_fire_immunity.name": "Molten Core",
@@ -574,7 +522,6 @@
   "power.neoorigins.cinderborn_night_vision.description": "Inner fire illuminates even the darkest caves.",
   "power.neoorigins.cinderborn_scare_mobs.name": "Infernal Aura",
   "power.neoorigins.cinderborn_scare_mobs.description": "Most passive creatures — livestock, villagers, wildlife — flee your blazing presence.",
-
   "origins.neoorigins.sculkborn.name": "Sculkborn",
   "origins.neoorigins.sculkborn.description": "A being of the deep dark — armored, resistant, and armed with sonic power — but slow, frail in sunlight, and weakened above ground.",
   "power.neoorigins.sculkborn_sonic_bolt.name": "Sonic Shriek",
@@ -597,7 +544,6 @@
   "power.neoorigins.sculkborn_slow_movement.description": "Moves 15% slower than normal.",
   "power.neoorigins.sculkborn_reduced_health.name": "Hollow Form",
   "power.neoorigins.sculkborn_reduced_health.description": "−2 hearts (−4 max HP). A body half-made of sculk is brittle.",
-
   "origins.neoorigins.enderite.name": "Enderite",
   "origins.neoorigins.enderite.description": "A being born of the End — master of teleportation and phasing, graceful in descent, but vulnerable to water and daylight.",
   "power.neoorigins.enderite_teleport.name": "Warp Step",
@@ -616,7 +562,6 @@
   "power.neoorigins.enderite_daylight_weakness.description": "Takes 50% more damage while exposed to sunlight.",
   "power.neoorigins.enderite_attack_bonus.name": "Void Claws",
   "power.neoorigins.enderite_attack_bonus.description": "Deals 3 extra damage per hit.",
-
   "origins.neoorigins.class_warrior.name": "Warrior",
   "origins.neoorigins.class_warrior.description": "A combat specialist who hits harder and stands firm against knockback.",
   "power.neoorigins.class_warrior_damage.name": "Weapon Mastery",
@@ -629,7 +574,6 @@
   "power.neoorigins.class_warrior_endurance.description": "+1 heart (+2 max HP) from hard-won battle scars.",
   "power.neoorigins.class_warrior_iron_will.name": "Iron Will",
   "power.neoorigins.class_warrior_iron_will.description": "Immune to Weakness — no one saps your strength.",
-
   "origins.neoorigins.class_archer.name": "Archer",
   "origins.neoorigins.class_archer.description": "A ranged specialist with perfect aim and nimble footwork.",
   "power.neoorigins.class_archer_accuracy.name": "Sharpshooter",
@@ -644,7 +588,6 @@
   "power.neoorigins.class_archer_starting_bow.description": "Spawn with a Power I bow.",
   "power.neoorigins.class_archer_starting_arrows.name": "Starting Arrows",
   "power.neoorigins.class_archer_starting_arrows.description": "Spawn with a quiver of 16 arrows.",
-
   "origins.neoorigins.class_miner.name": "Miner",
   "origins.neoorigins.class_miner.description": "An expert excavator who breaks blocks faster and mines without tiring.",
   "power.neoorigins.class_miner_speed.name": "Mining Expert",
@@ -657,14 +600,12 @@
   "power.neoorigins.class_miner_deep_sense.description": "Sees more clearly in the dark — years underground sharpen the eyes.",
   "power.neoorigins.class_miner_tough_back.name": "Tough Back",
   "power.neoorigins.class_miner_tough_back.description": "+1 heart (+2 max HP) from a miner's hardened frame.",
-
   "origins.neoorigins.class_beastmaster.name": "Beastmaster",
   "origins.neoorigins.class_beastmaster.description": "An animal tamer whose pets share your potion effects and whose potions last longer.",
   "power.neoorigins.class_beastmaster_diffusal.name": "Empathic Bond",
   "power.neoorigins.class_beastmaster_diffusal.description": "Potion effects you receive are shared with nearby tamed animals.",
   "power.neoorigins.class_beastmaster_potions.name": "Alchemist's Touch",
   "power.neoorigins.class_beastmaster_potions.description": "All potion effects last 50% longer.",
-
   "origins.neoorigins.class_explorer.name": "Explorer",
   "origins.neoorigins.class_explorer.description": "A seasoned traveler who starts equipped for adventure and rarely tires.",
   "power.neoorigins.class_explorer_kit.name": "Starting Compass",
@@ -681,7 +622,6 @@
   "power.neoorigins.class_explorer_climbers_step.description": "Steps up full blocks without jumping.",
   "power.neoorigins.class_explorer_campfire_rest.name": "Campfire Rest",
   "power.neoorigins.class_explorer_campfire_rest.description": "Slowly regenerates while within 5 blocks of any campfire — only while out of combat (5 seconds since last hit).",
-
   "origins.neoorigins.class_sentinel.name": "Sentinel",
   "origins.neoorigins.class_sentinel.description": "A defensive specialist with natural armor, thorns, and unshakeable footing.",
   "power.neoorigins.class_sentinel_armor.name": "Guardian's Plate",
@@ -696,7 +636,6 @@
   "power.neoorigins.class_sentinel_guard_endurance.description": "+1 heart (+2 max HP) from endless watches.",
   "power.neoorigins.class_sentinel_guard_stance.name": "Guard Stance",
   "power.neoorigins.class_sentinel_guard_stance.description": "+35% additional knockback resistance while sneaking (75% total) — brace the line.",
-
   "origins.neoorigins.class_herbalist.name": "Herbalist",
   "origins.neoorigins.class_herbalist.description": "A green thumb who accelerates crop growth, harvests bonus yields, and resists poison.",
   "power.neoorigins.class_herbalist_growth.name": "Green Thumb",
@@ -711,7 +650,6 @@
   "power.neoorigins.class_herbalist_starting_seeds.description": "Spawn with wheat seeds to start your garden.",
   "power.neoorigins.class_herbalist_starting_bone_meal.name": "Starting Bone Meal",
   "power.neoorigins.class_herbalist_starting_bone_meal.description": "Spawn with a pinch of bone meal.",
-
   "origins.neoorigins.class_scout.name": "Scout",
   "origins.neoorigins.class_scout.description": "A keen-eyed pathfinder with night vision, swift movement, and sure footing.",
   "power.neoorigins.class_scout_night_vision.name": "Keen Eyes",
@@ -724,7 +662,6 @@
   "power.neoorigins.class_scout_trackers_stride.description": "Steps up full blocks without jumping.",
   "power.neoorigins.class_scout_trail_rations.name": "Trail Rations",
   "power.neoorigins.class_scout_trail_rations.description": "Spawn with a loaf of bread for the road.",
-
   "origins.neoorigins.class_berserker.name": "Berserker",
   "origins.neoorigins.class_berserker.description": "A frenzied fighter who trades hunger for devastating raw power.",
   "power.neoorigins.class_berserker_damage.name": "Frenzy",
@@ -737,7 +674,6 @@
   "power.neoorigins.class_berserker_reckless.description": "-2 natural armor — the rage forgets to guard.",
   "power.neoorigins.class_berserker_thick_skin.name": "Thick Skin",
   "power.neoorigins.class_berserker_thick_skin.description": "+20% knockback resistance — a berserker rarely budges.",
-
   "origins.neoorigins.class_titan.name": "Titan",
   "origins.neoorigins.class_titan.description": "A towering brute with extra health, extended reach, and imposing stature.",
   "power.neoorigins.class_titan_size.name": "Imposing",
@@ -752,7 +688,6 @@
   "power.neoorigins.class_titan_unmoving.description": "+20% knockback resistance — a titan does not stumble.",
   "power.neoorigins.class_titan_heavy_steps.name": "Heavy Steps",
   "power.neoorigins.class_titan_heavy_steps.description": "Moves 10% slower — such bulk drags on the stride.",
-
   "origins.neoorigins.class_rogue.name": "Rogue",
   "origins.neoorigins.class_rogue.description": "A stealthy assassin who turns invisible while sneaking and deals devastating backstab damage.",
   "power.neoorigins.class_rogue_sneaky.name": "Hidden Presence",
@@ -765,7 +700,6 @@
   "power.neoorigins.class_rogue_parkour.description": "Steps up full blocks without jumping.",
   "power.neoorigins.class_rogue_backstab.name": "Backstab",
   "power.neoorigins.class_rogue_backstab.description": "+2 attack damage while sneaking.",
-
   "origins.neoorigins.class_lumberjack.name": "Lumberjack",
   "origins.neoorigins.class_lumberjack.description": "A master woodsman who fells entire trees with one swing and crafts extra planks from logs.",
   "power.neoorigins.class_lumberjack_tree_felling.name": "Timber!",
@@ -776,7 +710,6 @@
   "power.neoorigins.class_lumberjack_axe_hands.description": "Bare hands chop wood like an iron axe.",
   "power.neoorigins.class_lumberjack_starting_axe.name": "Starting Axe",
   "power.neoorigins.class_lumberjack_starting_axe.description": "Spawn with an Unbreaking II iron axe.",
-
   "origins.neoorigins.class_blacksmith.name": "Blacksmith",
   "origins.neoorigins.class_blacksmith.description": "A master crafter whose equipment is higher quality and whose repairs are more efficient.",
   "power.neoorigins.class_blacksmith_quality.name": "Quality Craftsmanship",
@@ -789,7 +722,6 @@
   "power.neoorigins.class_blacksmith_forge_tempered.description": "Takes half damage from fire, lava, magma, and burning — forge-hardened skin.",
   "power.neoorigins.class_blacksmith_starting_iron.name": "Starting Iron",
   "power.neoorigins.class_blacksmith_starting_iron.description": "Spawn with 4 iron ingots to get the forge started.",
-
   "origins.neoorigins.class_cook.name": "Cook",
   "origins.neoorigins.class_cook.description": "A culinary expert whose crafted food is more nourishing and who gains bonus XP from smoking.",
   "power.neoorigins.class_cook_food.name": "Good Meals",
@@ -802,7 +734,6 @@
   "power.neoorigins.class_cook_seasoned_palate.description": "Potion effects on you last 25% longer.",
   "power.neoorigins.class_cook_knife.name": "Cook's Knife",
   "power.neoorigins.class_cook_knife.description": "Spawn with an iron sword — every cook needs a good blade.",
-
   "origins.neoorigins.class_merchant.name": "Merchant",
   "origins.neoorigins.class_merchant.description": "A shrewd trader whose villager trades never run out and who finds rare goods from wandering traders.",
   "power.neoorigins.class_merchant_trades.name": "Restocking",
@@ -815,7 +746,6 @@
   "power.neoorigins.class_merchant_silver_tongue.description": "Potion effects on you last 15% longer — hospitality lingers.",
   "power.neoorigins.class_merchant_lucky_trader.name": "Lucky Trader",
   "power.neoorigins.class_merchant_lucky_trader.description": "+1 Luck — good fortune finds a good haggler.",
-
   "origins.neoorigins.class_cleric.name": "Cleric",
   "origins.neoorigins.class_cleric.description": "A holy scholar with enhanced enchanting abilities and extended potion durations.",
   "power.neoorigins.class_cleric_enchanting.name": "Enchantment Mastery",
@@ -828,10 +758,8 @@
   "power.neoorigins.class_cleric_divine_sight.description": "Sees more clearly in low light — a gift from above.",
   "power.neoorigins.class_cleric_starting_book.name": "Starting Book",
   "power.neoorigins.class_cleric_starting_book.description": "Spawn with a writable book for prayers and notes.",
-
   "origins.neoorigins.class_nitwit.name": "Nitwit",
   "origins.neoorigins.class_nitwit.description": "Not particularly good at anything. Sometimes the simplest path is the right one.",
-
   "origins.neoorigins.class_fisher.name": "Fisher",
   "origins.neoorigins.class_fisher.description": "Life at the water's edge — draws luck from the tides, swims like a seal, and starts with a blessed rod.",
   "power.neoorigins.class_fisher_waters_luck.name": "Water's Luck",
@@ -844,7 +772,6 @@
   "power.neoorigins.class_fisher_starting_rod.description": "Spawn with a fishing rod enchanted with Luck of the Sea I and Lure I.",
   "power.neoorigins.class_fisher_night_sight_water.name": "Murky Sight",
   "power.neoorigins.class_fisher_night_sight_water.description": "Gains Night Vision while underwater.",
-
   "origins.neoorigins.class_mason.name": "Mason",
   "origins.neoorigins.class_mason.description": "Stone yields to practiced hands — breaks blocks faster, callused palms armor the body, and a pick is always within reach.",
   "power.neoorigins.class_mason_stone_hands.name": "Stone Hands",
@@ -857,7 +784,6 @@
   "power.neoorigins.class_mason_starting_pickaxe.description": "Spawn with an Efficiency I stone pickaxe.",
   "power.neoorigins.class_mason_block_reach.name": "Mason's Reach",
   "power.neoorigins.class_mason_block_reach.description": "+1 block placement reach — a mason's arm knows where the wall ends.",
-
   "origins.neoorigins.class_paladin.name": "Paladin",
   "origins.neoorigins.class_paladin.description": "A holy warrior — undead falter at a touch, wither cannot take hold, and the light of a beacon heals wounds.",
   "power.neoorigins.class_paladin_turn_undead.name": "Turn Undead",
@@ -870,7 +796,6 @@
   "power.neoorigins.class_paladin_starting_sword.description": "Spawn with a Smite I iron sword.",
   "power.neoorigins.class_paladin_effect_immunity.name": "Holy Ward",
   "power.neoorigins.class_paladin_effect_immunity.description": "Immune to Wither — the blight cannot touch you.",
-
   "origins.neoorigins.necromancer.name": "Necromancer",
   "origins.neoorigins.necromancer.description": "A master of death who commands undead minions — wither skeletons and archers fight at your side, but your own life force is bound to theirs.",
   "power.neoorigins.necromancer_summon_wither.name": "Raise Wither Skeleton",
@@ -887,7 +812,6 @@
   "power.neoorigins.necromancer_reduced_health.description": "−3 hearts (−6 max HP). A body wracked by death magic.",
   "power.neoorigins.necromancer_slow_regen.name": "Death's Embrace",
   "power.neoorigins.necromancer_slow_regen.description": "Natural health regeneration is reduced to 40% of normal.",
-
   "origins.neoorigins.gorgon.name": "Gorgon",
   "origins.neoorigins.gorgon.description": "A stone-skinned monstrosity whose gaze petrifies and whose fists shatter — but the weight of stone slows every step.",
   "power.neoorigins.gorgon_petrifying_gaze.name": "Petrifying Gaze",
@@ -904,7 +828,6 @@
   "power.neoorigins.gorgon_size.description": "15% larger than a normal player.",
   "power.neoorigins.gorgon_hunger_drain.name": "Stone Appetite",
   "power.neoorigins.gorgon_hunger_drain.description": "Gets hungry 50% faster — maintaining stone form burns energy.",
-
   "origins.neoorigins.automaton.name": "Automaton",
   "origins.neoorigins.automaton.description": "A mechanical construct that never drowns or starves — but healing potions fizzle, natural recovery is glacial, and every step is heavy.",
   "power.neoorigins.automaton_iron_frame.name": "Iron Frame",
@@ -927,7 +850,6 @@
   "power.neoorigins.automaton_rigid_joints.description": "Natural healing runs at 25% rate — built to endure, not recover.",
   "power.neoorigins.automaton_knockback_resist.name": "Anchored Frame",
   "power.neoorigins.automaton_knockback_resist.description": "40% knockback resistance from sheer weight.",
-
   "origins.neoorigins.kraken.name": "Kraken",
   "origins.neoorigins.kraken.description": "A colossal deep-sea predator born in the open ocean — devastating underwater with tentacle lashes, ink shots, and summoned guardians, but beached, sun-burned, and dried out on the surface.",
   "power.neoorigins.kraken_tentacle_lash.name": "Tentacle Lash",
@@ -952,10 +874,8 @@
   "power.neoorigins.kraken_massive.description": "30% larger than a normal player.",
   "power.neoorigins.kraken_dries_out.name": "Dries Out",
   "power.neoorigins.kraken_dries_out.description": "Air ticks down while you're out of water — surface too long and you suffocate.",
-
   "power.neoorigins.abyssal_summon_guardian.name": "Abyssal Command",
   "power.neoorigins.abyssal_summon_guardian.description": "Summons a guardian to fight for you. Max 2 at once. Costs 5 hunger. 20-second cooldown. You take 1 damage if it dies in combat.",
-
   "origins.neoorigins.warden.name": "Warden",
   "origins.neoorigins.warden.description": "Born from the deep dark — senses the world through vibrations, unleashes a sonic boom at range, and hits like a battering ram. Lumbering and pained by sunlight.",
   "power.neoorigins.warden_sonic_boom.name": "Sonic Boom",
@@ -976,7 +896,6 @@
   "power.neoorigins.warden_daylight_damage.description": "Takes 1 damage per second when exposed to direct sunlight.",
   "power.neoorigins.warden_lumbering.name": "Lumbering",
   "power.neoorigins.warden_lumbering.description": "Moves 30% slower than normal — a devastating but plodding force.",
-
   "origins.neoorigins.dwarf.name": "Dwarf",
   "origins.neoorigins.dwarf.description": "A stout underground craftsman — compact, armored, and tireless at the forge, but short-limbed and slow on the surface.",
   "power.neoorigins.dwarf_compact_frame.name": "Compact Frame",
@@ -995,7 +914,6 @@
   "power.neoorigins.dwarf_mining_hunger.description": "Uses 25% less hunger from all activities — built for endurance.",
   "power.neoorigins.dwarf_starting_pickaxe.name": "Heirloom Pickaxe",
   "power.neoorigins.dwarf_starting_pickaxe.description": "Granted a dwarven iron pickaxe (Unbreaking II, Efficiency I) when you choose this origin.",
-
   "origins.neoorigins.breeze.name": "Breeze",
   "origins.neoorigins.breeze.description": "A creature of wind born in the Trial Chambers — fast, airborne, and armed with gusts, but light and fragile.",
   "power.neoorigins.breeze_wind_charge.name": "Wind Charge",
@@ -1012,7 +930,6 @@
   "power.neoorigins.breeze_reduced_health.description": "−4 hearts (−8 max HP). A body of wind is barely a body at all.",
   "power.neoorigins.breeze_light_frame.name": "Light Frame",
   "power.neoorigins.breeze_light_frame.description": "90% the size of a normal player — light and airy.",
-
   "origins.neoorigins.vampire.name": "Vampire",
   "origins.neoorigins.vampire.description": "An undead predator of the night — swift, strong, and eternally hungry. Sunlight is agony, water burns, and only raw flesh sustains you.",
   "power.neoorigins.vampire_entity_group.name": "Undead Nature",
@@ -1031,7 +948,6 @@
   "power.neoorigins.vampire_food_restriction.description": "Can only eat raw meat, rotten flesh, and spider eyes.",
   "power.neoorigins.vampire_water_weakness.name": "Running Water",
   "power.neoorigins.vampire_water_weakness.description": "Takes 1 damage per second while in water or rain.",
-
   "origins.neoorigins.monster_tamer.name": "Monster Tamer",
   "origins.neoorigins.monster_tamer.description": "A fearless beast handler who bends hostile mobs to their will. Alone they are frail, but with a loyal pack at their side, they are a force to be reckoned with.",
   "power.neoorigins.tamer_tame_mob.name": "Dominate",
@@ -1044,7 +960,6 @@
   "power.neoorigins.tamer_weak_alone.description": "Deal 25% less melee damage — you rely on your pack to fight.",
   "power.neoorigins.tamer_hunger_drain.name": "Feed the Pack",
   "power.neoorigins.tamer_hunger_drain.description": "Hunger drains 50% faster from the strain of maintaining your bond.",
-
   "power.neoorigins.tame_mob.max_reached": "Pack is full!",
   "power.neoorigins.tame_mob.not_enough_hunger": "Not enough hunger to tame!",
   "power.neoorigins.tame_mob.no_target": "No mob in sight.",
@@ -1054,7 +969,6 @@
   "power.neoorigins.command_pack.no_target": "No target in sight.",
   "power.neoorigins.command_pack.no_pack": "You have no tamed mobs!",
   "power.neoorigins.command_pack.success": "Commanded %s mob(s) to attack %s!",
-
   "origins.neoorigins.earth_mage.name": "Earth Mage",
   "origins.neoorigins.earth_mage.description": "A stalwart geomancer who slams the ground to rupture foes and raises stone walls at a gesture. Immovable as a mountain, but the earth holds them close — water and heights are not their friends.",
   "power.neoorigins.earth_mage_ground_slam.name": "Ground Slam",
@@ -1069,7 +983,6 @@
   "power.neoorigins.earth_mage_heavy.description": "Cannot swim — you sink like a stone.",
   "power.neoorigins.earth_mage_earthbound.name": "Earthbound",
   "power.neoorigins.earth_mage_earthbound.description": "Take 50% more fall damage. The ground reclaims its own.",
-
   "origins.neoorigins.water_mage.name": "Water Mage",
   "origins.neoorigins.water_mage.description": "A fluid caster who wields tides and healing currents. At home in the ocean, but withers in arid wastelands.",
   "power.neoorigins.water_mage_tidal_wave.name": "Tidal Wave",
@@ -1086,7 +999,6 @@
   "power.neoorigins.water_mage_dehydration.description": "Take damage in deserts and badlands — the dry air saps your strength.",
   "power.neoorigins.water_mage_fragile.name": "Fragile",
   "power.neoorigins.water_mage_fragile.description": "Deal 25% less melee damage. Your power flows through water, not muscle.",
-
   "origins.neoorigins.fire_mage.name": "Fire Mage",
   "origins.neoorigins.fire_mage.description": "A volatile pyromancer wreathed in flame — hurls fireballs, bursts into an inferno, and burns those who strike you. Fire cannot harm you, but water is your undoing.",
   "power.neoorigins.fire_mage_fireball.name": "Fireball",
@@ -1101,7 +1013,6 @@
   "power.neoorigins.fire_mage_water_weakness.description": "Take 1 damage per second while in water or rain.",
   "power.neoorigins.fire_mage_hunger.name": "Internal Furnace",
   "power.neoorigins.fire_mage_hunger.description": "Hunger drains 50% faster from the heat within.",
-
   "origins.neoorigins.air_mage.name": "Air Mage",
   "origins.neoorigins.air_mage.description": "A swift aeromancer who hurls wind charges, spins a whirlwind of displacement, and rides updrafts into the sky. Light as a breeze, but frail as a leaf.",
   "power.neoorigins.air_mage_wind_charge.name": "Wind Charge",
@@ -1120,7 +1031,6 @@
   "power.neoorigins.air_mage_fragile.description": "−2 hearts (−4 max HP). A body of air is not built to last.",
   "power.neoorigins.air_mage_light.name": "Lightweight",
   "power.neoorigins.air_mage_light.description": "Take 50% more knockback — the wind carries you too easily.",
-
   "origins.neoorigins.gravity_mage.name": "Gravity Mage",
   "origins.neoorigins.gravity_mage.description": "A warper of gravitational fields who bends space itself. Pull enemies into a crushing singularity or blast them away — but your own body is untethered from the earth.",
   "power.neoorigins.gravity_mage_well.name": "Gravity Well",
@@ -1135,7 +1045,6 @@
   "power.neoorigins.gravity_mage_unmoored.description": "Take 75% more knockback — your weakened gravity makes you easy to launch.",
   "power.neoorigins.gravity_mage_frail.name": "Frail",
   "power.neoorigins.gravity_mage_frail.description": "Deal 25% less melee damage. Your power is in the pull, not the punch.",
-
   "origins.neoorigins.darkness_mage.name": "Darkness Mage",
   "origins.neoorigins.darkness_mage.description": "A shadow-weaving sorcerer who summons orbiting shadow orbs and steps between pools of darkness. Cloaked and deadly at night, but sunlight burns away your power.",
   "power.neoorigins.darkness_mage_shadow_orb.name": "Shadow Orb",
@@ -1149,5 +1058,98 @@
   "power.neoorigins.darkness_mage_sunburn.name": "Sunburn",
   "power.neoorigins.darkness_mage_sunburn.description": "Take 1 damage per second in direct sunlight.",
   "power.neoorigins.darkness_mage_light_sensitivity.name": "Light Sensitivity",
-  "power.neoorigins.darkness_mage_light_sensitivity.description": "Mine 30% slower — the light of exposed surfaces stings your eyes."
+  "power.neoorigins.darkness_mage_light_sensitivity.description": "Mine 30% slower — the light of exposed surfaces stings your eyes.",
+  "neoorigins.configuration.title": "NeoOrigins Common Configuration",
+  "neoorigins.configuration.debug_power_loading": "Debug power loading",
+  "neoorigins.configuration.hide_hud_bars": "Hide unused HUD bars",
+  "neoorigins.configuration.origins": "Built-in Origins",
+  "neoorigins.configuration.classes": "Built-in Classes",
+  "neoorigins.configuration.dimension_restrictions": "Dimension restrictions",
+  "neoorigins.configuration.power_overrides": "Power overrides",
+  "neoorigins.configuration.random_assignment": "Random origin assignment",
+  "neoorigins.configuration.compat_filtering": "Compat origin filtering",
+  "neoorigins.configuration.ocean_origins": "Ocean origins",
+  "neoorigins.configuration.friendly_fire": "Friendly-fire filter",
+  "neoorigins.configuration.sun_damage": "Sun damage tuning",
+  "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Per-power dimension deny list",
+  "neoorigins.configuration.random_assignment.mode": "Assignment mode",
+  "neoorigins.configuration.random_assignment.rerolls": "Rerolls allowed",
+  "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Min power-load ratio",
+  "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Spawn in ocean",
+  "neoorigins.configuration.ocean_origins.dries_out": "Dries out on land",
+  "neoorigins.configuration.ocean_origins.drain_rate_ticks": "Air drain rate (ticks)",
+  "neoorigins.configuration.ocean_origins.drown_damage_per_second": "Drown damage per second",
+  "neoorigins.configuration.ocean_origins.fish_diet_required": "Fish-only diet required",
+  "neoorigins.configuration.friendly_fire.protect_owned_pets": "Protect owned pets",
+  "neoorigins.configuration.friendly_fire.protect_minions": "Protect minions",
+  "neoorigins.configuration.friendly_fire.protect_animals": "Protect passive animals",
+  "neoorigins.configuration.friendly_fire.protect_villagers": "Protect villagers",
+  "neoorigins.configuration.friendly_fire.protect_iron_golems": "Protect iron golems",
+  "neoorigins.configuration.sun_damage.helmet_dura_damage_chance": "Helmet dura damage chance",
+  "neoorigins.configuration.origins.human": "Human",
+  "neoorigins.configuration.origins.merling": "Merling",
+  "neoorigins.configuration.origins.avian": "Avian",
+  "neoorigins.configuration.origins.blazeling": "Blazeling",
+  "neoorigins.configuration.origins.elytrian": "Elytrian",
+  "neoorigins.configuration.origins.enderian": "Enderian",
+  "neoorigins.configuration.origins.arachnid": "Arachnid",
+  "neoorigins.configuration.origins.shulk": "Shulk",
+  "neoorigins.configuration.origins.phantom": "Phantom",
+  "neoorigins.configuration.origins.feline": "Feline",
+  "neoorigins.configuration.origins.golem": "Golem",
+  "neoorigins.configuration.origins.caveborn": "Caveborn",
+  "neoorigins.configuration.origins.sylvan": "Sylvan",
+  "neoorigins.configuration.origins.draconic": "Draconic",
+  "neoorigins.configuration.origins.revenant": "Revenant",
+  "neoorigins.configuration.origins.tiny": "Tiny",
+  "neoorigins.configuration.origins.abyssal": "Abyssal",
+  "neoorigins.configuration.origins.voidwalker": "Voidwalker",
+  "neoorigins.configuration.origins.stoneguard": "Stoneguard",
+  "neoorigins.configuration.origins.verdant": "Verdant",
+  "neoorigins.configuration.origins.umbral": "Umbral",
+  "neoorigins.configuration.origins.inchling": "Inchling",
+  "neoorigins.configuration.origins.sporeling": "Sporeling",
+  "neoorigins.configuration.origins.frostborn": "Frostborn",
+  "neoorigins.configuration.origins.strider": "Strider",
+  "neoorigins.configuration.origins.siren": "Siren",
+  "neoorigins.configuration.origins.piglin": "Piglin",
+  "neoorigins.configuration.origins.hiveling": "Hiveling",
+  "neoorigins.configuration.origins.cinderborn": "Cinderborn",
+  "neoorigins.configuration.origins.sculkborn": "Sculkborn",
+  "neoorigins.configuration.origins.enderite": "Enderite",
+  "neoorigins.configuration.origins.necromancer": "Necromancer",
+  "neoorigins.configuration.origins.gorgon": "Gorgon",
+  "neoorigins.configuration.origins.automaton": "Automaton",
+  "neoorigins.configuration.origins.kraken": "Kraken",
+  "neoorigins.configuration.origins.warden": "Warden",
+  "neoorigins.configuration.origins.dwarf": "Dwarf",
+  "neoorigins.configuration.origins.breeze": "Breeze",
+  "neoorigins.configuration.origins.vampire": "Vampire",
+  "neoorigins.configuration.origins.air_mage": "Air Mage",
+  "neoorigins.configuration.origins.darkness_mage": "Darkness Mage",
+  "neoorigins.configuration.origins.earth_mage": "Earth Mage",
+  "neoorigins.configuration.origins.fire_mage": "Fire Mage",
+  "neoorigins.configuration.origins.gravity_mage": "Gravity Mage",
+  "neoorigins.configuration.origins.water_mage": "Water Mage",
+  "neoorigins.configuration.origins.monster_tamer": "Monster Tamer",
+  "neoorigins.configuration.classes.class_warrior": "Warrior",
+  "neoorigins.configuration.classes.class_archer": "Archer",
+  "neoorigins.configuration.classes.class_miner": "Miner",
+  "neoorigins.configuration.classes.class_beastmaster": "Beastmaster",
+  "neoorigins.configuration.classes.class_explorer": "Explorer",
+  "neoorigins.configuration.classes.class_sentinel": "Sentinel",
+  "neoorigins.configuration.classes.class_herbalist": "Herbalist",
+  "neoorigins.configuration.classes.class_scout": "Scout",
+  "neoorigins.configuration.classes.class_berserker": "Berserker",
+  "neoorigins.configuration.classes.class_titan": "Titan",
+  "neoorigins.configuration.classes.class_rogue": "Rogue",
+  "neoorigins.configuration.classes.class_lumberjack": "Lumberjack",
+  "neoorigins.configuration.classes.class_blacksmith": "Blacksmith",
+  "neoorigins.configuration.classes.class_cook": "Cook",
+  "neoorigins.configuration.classes.class_merchant": "Merchant",
+  "neoorigins.configuration.classes.class_cleric": "Cleric",
+  "neoorigins.configuration.classes.class_nitwit": "Nitwit",
+  "neoorigins.configuration.classes.class_fisher": "Fisher",
+  "neoorigins.configuration.classes.class_mason": "Mason",
+  "neoorigins.configuration.classes.class_paladin": "Paladin"
 }
