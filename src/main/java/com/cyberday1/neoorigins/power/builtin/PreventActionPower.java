@@ -78,17 +78,20 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
                 && player.getRemainingFireTicks() > 0) {
             player.setRemainingFireTicks(0);
         }
-        // Earth Mage can't swim — zero out any upward velocity in water so the
-        // player sinks instead of being able to kick up to the surface. Runs on
-        // every tick while in water; the sink is purely velocity-based so
-        // other powers (e.g. jump_boost on surface) still apply on air ticks.
+        // Earth Mage can't swim — force a constant downward sink in water so
+        // the player walks on the bottom instead of bobbing. Previous impl
+        // only zeroed v.y > 0, which fought vanilla water buoyancy (+~0.04
+        // per tick added BEFORE our handler runs) and produced the
+        // "occasional freeze in place" stutter as position advanced one frame
+        // before being zeroed. Forcing a small negative every tick anchors
+        // the player to the floor and gives the intended "you are heavy"
+        // movement profile. Other powers (jump_boost on surface, etc.) still
+        // apply on air ticks because the gate is `isInWater()`.
         if (config.action() == Action.SWIM && isGateOpen(player, config)
                 && player.isInWater()) {
             var v = player.getDeltaMovement();
-            if (v.y > 0) {
-                player.setDeltaMovement(v.x, 0.0, v.z);
-                player.hurtMarked = true;
-            }
+            player.setDeltaMovement(v.x, Math.min(v.y, -0.08), v.z);
+            player.hurtMarked = true;
         }
     }
 }
