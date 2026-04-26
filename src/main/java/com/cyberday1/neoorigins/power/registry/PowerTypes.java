@@ -153,22 +153,30 @@ public class PowerTypes {
         POWER_TYPES.register(modEventBus);
     }
 
+    /**
+     * Live reference to the {@code neoorigins:power_type} registry, captured
+     * from {@link NewRegistryEvent#create(RegistryBuilder)}. We look up types
+     * through this rather than {@link #POWER_TYPES}{@code .getEntries()} so
+     * that addon-mod power types — registered via their own DeferredRegister
+     * keyed on {@link #REGISTRY_KEY} or via the lower-level RegisterEvent —
+     * are visible to {@link #get} and {@link #getId}. Without this, addon
+     * power JSONs silently failed to load (issue #40) and their types were
+     * effectively unreachable from {@code PowerDataManager}.
+     */
+    private static net.minecraft.core.Registry<PowerType<?>> REGISTRY;
+
     private static void onNewRegistry(NewRegistryEvent event) {
-        event.create(new RegistryBuilder<>(REGISTRY_KEY));
+        REGISTRY = event.create(new RegistryBuilder<>(REGISTRY_KEY));
     }
 
     public static PowerType<?> get(Identifier id) {
-        for (var holder : POWER_TYPES.getEntries())
-            if (holder.getId().equals(id)) return holder.get();
-        return null;
+        if (REGISTRY == null) return null;
+        return REGISTRY.get(id).map(net.minecraft.core.Holder.Reference::value).orElse(null);
     }
 
     /** Reverse lookup: given a PowerType instance, return its registered identifier (or null). */
     public static Identifier getId(PowerType<?> type) {
-        if (type == null) return null;
-        for (var holder : POWER_TYPES.getEntries()) {
-            if (holder.get() == type) return holder.getId();
-        }
-        return null;
+        if (type == null || REGISTRY == null) return null;
+        return REGISTRY.getKey(type);
     }
 }

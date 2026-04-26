@@ -13,7 +13,7 @@ this doc is the _how do I actually build a thing_ companion.
 Contents:
 - [Zero to origin in five minutes](#zero-to-origin-in-five-minutes)
 - [Anatomy of a power file](#anatomy-of-a-power-file)
-- [Recipes](#recipes) — 11 common patterns
+- [Recipes](#recipes) — 15 common patterns (incl. toggleable abilities)
 - [Testing & debugging](#testing--debugging)
 - [Common pitfalls](#common-pitfalls)
 - [Where to go next](#where-to-go-next)
@@ -491,6 +491,140 @@ cloud ticks its action on an interval until it expires.
 The nested `area_of_effect` inside the cloud's `entity_action` centers
 on the cloud's position (not the caster's), because the lingering-area
 tick passes the cloud's location to the action context holder.
+
+---
+
+### 15. Toggleable abilities (no keybind slot)
+
+A `neoorigins:toggle` power is a **named boolean** stored per-player. It
+doesn't appear on the skill bar and doesn't consume a keybind slot — its
+only job is to be _read_ by other powers' `condition` field and _written_
+by other powers' `entity_action`. This is the cleanest way to give pack
+authors a stance, a stealth flag, a mark, or any "is this mode on right
+now?" gate without burning a hotbar key.
+
+The pattern is always three pieces:
+
+1. **The flag itself** — a `neoorigins:toggle` power. Optional `default`
+   sets the value reads see before the flag has ever been flipped.
+2. **A way to read it** — `origins:power_active { power: "..." }` inside
+   any other power's `condition`.
+3. **A way to flip it** — `neoorigins:toggle { power: "..." }` inside any
+   `entity_action` (active ability, action_on_hit, action_on_event, etc.).
+
+#### Example A — Toggle-gated wall climbing
+
+A passive that lets the player climb walls, but only while a separate
+"climb mode" flag is on. The active ability flips the flag.
+
+```json
+// data/mypack/origins/powers/climb_mode.json — the flag
+{
+  "type": "neoorigins:toggle",
+  "default": false,
+  "name": "Climb Mode",
+  "description": "While active, you can climb walls."
+}
+```
+
+```json
+// data/mypack/origins/powers/wall_climb.json — gated capability
+{
+  "type": "neoorigins:wall_climbing",
+  "condition": {
+    "type": "origins:power_active",
+    "power": "mypack:climb_mode"
+  },
+  "name": "Spider Grip",
+  "description": "Climb any wall while Climb Mode is on."
+}
+```
+
+```json
+// data/mypack/origins/powers/toggle_climb.json — the keybind
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "entity_action": {
+    "type": "neoorigins:toggle",
+    "power": "mypack:climb_mode"
+  },
+  "name": "Toggle Climb Mode",
+  "description": "Press to toggle wall climbing on/off."
+}
+```
+
+The wall-climb power does the work; the toggle is just a data flag.
+Swap `wall_climbing` for any condition-gated power (attribute,
+persistent_effect, etc.) and the same pattern works.
+
+#### Example B — Stance switch (Hunter's Mark style)
+
+A flag that's flipped on by attacking and back off after the next kill —
+no keybind required. While the flag is on, the player gains
+Strength I against all targets.
+
+```json
+// data/mypack/origins/powers/marked.json — the flag (default off)
+{
+  "type": "neoorigins:toggle",
+  "default": false,
+  "name": "Marked",
+  "description": "You have a target in your sights."
+}
+```
+
+```json
+// data/mypack/origins/powers/mark_on_hit.json — flip on when hitting
+{
+  "type": "neoorigins:action_on_hit",
+  "entity_action": {
+    "type": "neoorigins:toggle",
+    "power": "mypack:marked",
+    "value": true
+  },
+  "name": "Hunter's Mark",
+  "description": "Marks the next target in line."
+}
+```
+
+```json
+// data/mypack/origins/powers/mark_clear_on_kill.json — flip off on kill
+{
+  "type": "neoorigins:action_on_kill",
+  "entity_action": {
+    "type": "neoorigins:toggle",
+    "power": "mypack:marked",
+    "value": false
+  }
+}
+```
+
+```json
+// data/mypack/origins/powers/marked_strength.json — gated buff
+{
+  "type": "neoorigins:persistent_effect",
+  "condition": { "type": "origins:power_active", "power": "mypack:marked" },
+  "effects": [
+    { "effect": "minecraft:strength", "amplifier": 0 }
+  ],
+  "toggleable": false,
+  "hidden": true,
+  "name": "Marked Strength",
+  "description": "Strength I while a target is marked."
+}
+```
+
+Note `value: true` / `value: false` to set explicitly, vs. leaving
+`value` off to flip whatever the current state is. Setting explicitly is
+idempotent — useful for one-shot triggers like the `action_on_hit` above
+that should always force the mark on regardless of prior state.
+
+**Why use this over `AbstractTogglePower` subclasses (e.g. `flight`,
+`item_magnetism`)?** Those occupy a keybind slot and are best for one
+ability per origin. `neoorigins:toggle` is for fan-out: a single flag that
+multiple powers gate on, or a flag flipped by something other than the
+keybind (an event, a hit, a tick condition).
 
 ---
 

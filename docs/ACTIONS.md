@@ -707,17 +707,19 @@ Removes the current bientity target's UUID from a named entity-set. Same context
 
 ## `neoorigins:toggle`
 
-Flips or sets a named toggle state on the target. Used by 2.0's `toggle` alias family. If `value` is given it's set explicitly; otherwise the current state is flipped (default starting value: false).
+Flips or sets a named toggle state on the target. Used by 2.0's `toggle` alias family. If `value` is given it's set explicitly; otherwise the current state is flipped (resolving the registered [`neoorigins:toggle`](POWER_TYPES.md#neooriginstoggle) power's `default` field as the starting value).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `power` | string | yes | — | Toggle key (usually the power id) |
-| `value` | bool | no | — | If present, set to this value; otherwise toggle |
+| `value` | bool | no | — | If present, set to this value; otherwise flip |
 
 **Example:**
 ```json
 { "type": "neoorigins:toggle", "power": "examplepack:flight_toggle" }
 ```
+
+See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
 
 ---
 
