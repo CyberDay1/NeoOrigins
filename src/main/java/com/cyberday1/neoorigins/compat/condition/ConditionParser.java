@@ -63,6 +63,7 @@ public final class ConditionParser {
                 case "neoorigins:constant"                      ->
                     json.has("value") && json.get("value").getAsBoolean()
                         ? EntityCondition.alwaysTrue() : EntityCondition.alwaysFalse();
+                case "neoorigins:config_flag"                   -> parseConfigFlag(json);
                 case "neoorigins:sneaking"                      -> p -> p.isShiftKeyDown();
                 case "neoorigins:sprinting"                     -> p -> p.isSprinting();
                 case "neoorigins:on_ground"                     -> p -> p.onGround();
@@ -243,6 +244,41 @@ public final class ConditionParser {
         }
         EntityCondition inner = parse(json.getAsJsonObject("condition"), ctx);
         return player -> !inner.test(player);
+    }
+
+    /**
+     * Map of supported {@code neoorigins:config_flag} keys to their live config
+     * suppliers. Pack authors reference these by string key in JSON; unknown
+     * keys log a warning and default to {@code true} (assume the flag is on)
+     * so a typo doesn't silently disable a power.
+     */
+    private static final java.util.Map<String, java.util.function.BooleanSupplier> CONFIG_FLAG_LOOKUPS;
+    static {
+        java.util.Map<String, java.util.function.BooleanSupplier> m = new java.util.HashMap<>();
+        m.put("ocean_origins.fish_diet_required",
+            com.cyberday1.neoorigins.NeoOriginsConfig::isOceanOriginsFishDietRequired);
+        m.put("ocean_origins.dries_out",
+            com.cyberday1.neoorigins.NeoOriginsConfig::isOceanOriginsDriesOutEnabled);
+        // Add more keys here as new tunables are exposed to JSON.
+        CONFIG_FLAG_LOOKUPS = java.util.Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * Parses a {@code neoorigins:config_flag} condition. The {@code key} field
+     * names a supported config flag; the condition returns the live boolean
+     * value of that flag at evaluation time. Unknown keys default to true and
+     * log a warning, so a typo doesn't silently turn a power off.
+     */
+    private static EntityCondition parseConfigFlag(JsonObject json) {
+        String key = json.has("key") ? json.get("key").getAsString() : "";
+        var supplier = CONFIG_FLAG_LOOKUPS.get(key);
+        if (supplier == null) {
+            NeoOrigins.LOGGER.warn(
+                "[CompatB] config_flag: unknown key '{}'. Supported keys: {}. Defaulting to true.",
+                key, CONFIG_FLAG_LOOKUPS.keySet());
+            return EntityCondition.alwaysTrue();
+        }
+        return p -> supplier.getAsBoolean();
     }
 
     private static EntityCondition parseHealth(JsonObject json) {
