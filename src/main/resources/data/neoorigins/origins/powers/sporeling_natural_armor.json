@@ -1,6 +1,7 @@
 {
-  "type": "neoorigins:attribute_modifier",
-  "attribute": "minecraft:armor",
-  "amount": 4.0,
-  "operation": "add_value"
+  "type": "neoorigins:persistent_effect",
+  "toggleable": false,
+  "effects": [
+    { "effect": "minecraft:resistance", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": true }
+  ]
 }
