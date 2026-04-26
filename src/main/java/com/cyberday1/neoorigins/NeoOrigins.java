@@ -64,6 +64,15 @@ public class NeoOrigins {
         // Register TOML config (config/neoorigins-common.toml)
         modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
 
+        // Wire the auto-generated NeoForge config screen into the mod menu's
+        // "Config" button. ConfigurationScreen + IConfigScreenFactory are
+        // client-only types — load through a client-package trampoline so the
+        // dedicated server JVM never resolves them. (Same pattern as
+        // feedback_new_clientclass_opcode.)
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            com.cyberday1.neoorigins.client.NeoOriginsConfigScreen.register(modContainer);
+        }
+
         // Create config/originpacks/ folder on first launch. If a legacy
         // originpacks/ folder exists at the game root it will still be picked
         // up by resolveOriginpacksDir() for back-compat.
