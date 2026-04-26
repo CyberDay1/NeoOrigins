@@ -314,7 +314,10 @@ public final class ConditionParser {
         if (powerId == null || powerId.isBlank()) {
             return failClosed("origins:power_active", contextId, "missing required field 'power'");
         }
-        return player -> player.getData(CompatAttachments.toggleState()).isActive(powerId, false);
+        // Toggles facade resolves the registered TogglePower's `default` when the
+        // toggleState map has no entry yet — so `"default": true` JSONs read as
+        // on-until-flipped-off without needing an action_on_event GAINED hook.
+        return player -> com.cyberday1.neoorigins.compat.Toggles.isOn(player, powerId);
     }
 
     private static EntityCondition parseOnBlock(JsonObject json, String contextId) {

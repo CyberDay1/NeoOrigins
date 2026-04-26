@@ -1706,9 +1706,9 @@ A bare, stateless boolean power — purely a data-holder whose state lives in `C
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `default` | bool | no | `false` | Initial value when the power is first granted |
+| `default` | bool | no | `false` | Value reads see before the toggle has ever been flipped on this player. Set `true` for "on until flipped off." |
 
-Read the current value with `origins:power_active { power: "mypack:my_toggle" }`. Flip it with `neoorigins:toggle { power: "mypack:my_toggle" }` (optionally `value: true/false` to set explicitly). To install a non-default initial state, wire up an `action_on_event` on `GAINED` that calls `neoorigins:toggle`.
+Read the current value with `origins:power_active { power: "mypack:my_toggle" }`. Flip it with `neoorigins:toggle { power: "mypack:my_toggle" }` (optionally `value: true/false` to set explicitly).
 
 **Example:**
 ```json
@@ -1719,6 +1719,8 @@ Read the current value with `origins:power_active { power: "mypack:my_toggle" }`
   "description": "Internal flag gated by other powers."
 }
 ```
+
+See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
 
 ---
 

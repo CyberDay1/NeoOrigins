@@ -393,11 +393,13 @@ Numeric comparison against a named resource power's stored value.
 
 ## `origins:power_active`
 
-Whether a named toggle power is currently active on this entity.
+Whether a named toggle power is currently active on this entity. Resolves the registered [`neoorigins:toggle`](POWER_TYPES.md#neooriginstoggle) power's `default` field if the toggle has never been flipped on this player.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `power` | resource location | yes | — | Power ID |
+
+See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
 
 ## `origins:power_type`
 

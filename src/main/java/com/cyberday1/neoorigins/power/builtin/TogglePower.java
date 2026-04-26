@@ -14,9 +14,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * and flip it with {@code neoorigins:toggle { power: "mypack:my_toggle" }}.
  *
  * <p>Unlike {@code active_ability}, TogglePower does not consume a keybind slot.
- * It is purely a named boolean other powers gate on. To install an initial state,
- * wire up an {@code action_on_event} on {@code GAINED} that calls
- * {@code neoorigins:toggle} with an explicit {@code value}.
+ * It is purely a named boolean other powers gate on.
+ *
+ * <p>The {@code default} field sets the value reads see before the toggle has
+ * ever been flipped on this player. Read/write goes through the
+ * {@link com.cyberday1.neoorigins.compat.Toggles} facade, which resolves the
+ * configured default lazily — so {@code "default": true} declares
+ * "on until flipped off" and no {@code action_on_event GAINED} hook is needed.
  */
 public class TogglePower extends PowerType<TogglePower.Config> {
 

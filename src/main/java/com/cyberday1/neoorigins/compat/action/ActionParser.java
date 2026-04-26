@@ -1196,9 +1196,8 @@ public final class ActionParser {
         final Boolean explicit = json.has("value") ? json.get("value").getAsBoolean() : null;
         final String key = powerId;
         return player -> {
-            var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.toggleState());
-            if (explicit != null) state.set(key, explicit);
-            else state.toggle(key, false);
+            if (explicit != null) com.cyberday1.neoorigins.compat.Toggles.setOn(player, key, explicit);
+            else com.cyberday1.neoorigins.compat.Toggles.flip(player, key);
         };
     }
 
