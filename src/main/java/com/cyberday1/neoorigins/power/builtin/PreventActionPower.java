@@ -78,19 +78,26 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
                 && player.getRemainingFireTicks() > 0) {
             player.setRemainingFireTicks(0);
         }
-        // Earth Mage can't swim — force a constant downward sink in water so
-        // the player walks on the bottom instead of bobbing. Previous impl
-        // only zeroed v.y > 0, which fought vanilla water buoyancy (+~0.04
-        // per tick added BEFORE our handler runs) and produced the
-        // "occasional freeze in place" stutter as position advanced one frame
-        // before being zeroed. Forcing a small negative every tick anchors
-        // the player to the floor and gives the intended "you are heavy"
-        // movement profile. Other powers (jump_boost on surface, etc.) still
-        // apply on air ticks because the gate is `isInWater()`.
+        // Earth Mage can't swim — three things to enforce:
+        //   1. Constant strong downward velocity so vanilla buoyancy can't
+        //      push the player up between our resets.
+        //   2. Clear the swimming flag every tick. Vanilla sets it true
+        //      whenever sprint + (underwater or canStartSwimming) holds —
+        //      and once true, vanilla's travel() applies horizontal swim
+        //      physics that overpower a tiny downward delta. Without this
+        //      reset the player keeps "trying to swim" (the tester report).
+        //   3. Hurt-mark so the position update syncs immediately.
+        // Power.onTick runs on PlayerTickEvent.Post (after vanilla physics +
+        // swim-flag update), so our reset is authoritative for the next
+        // tick's render. The client may briefly predict a swim frame on its
+        // own input — that's a single-frame visual glitch, not behaviour;
+        // a client-side mixin would close it but isn't required for the
+        // gameplay fix.
         if (config.action() == Action.SWIM && isGateOpen(player, config)
                 && player.isInWater()) {
             var v = player.getDeltaMovement();
-            player.setDeltaMovement(v.x, Math.min(v.y, -0.08), v.z);
+            player.setDeltaMovement(v.x, Math.min(v.y, -0.16), v.z);
+            if (player.isSwimming()) player.setSwimming(false);
             player.hurtMarked = true;
         }
     }
