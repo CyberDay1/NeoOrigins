@@ -87,6 +87,17 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 boolean toggleable = !obj.has("toggleable") || obj.get("toggleable").getAsBoolean();
                 boolean defaultOff = obj.has("default_off") && obj.get("default_off").getAsBoolean();
 
+                // Top-level "amplifier" is a config-override hook: the
+                // power_overrides system writes fields at the JSON root, so
+                // a top-level amplifier lets server admins re-tune the
+                // first effect's strength (Resistance I → II, etc.) without
+                // touching the nested effects array. When present, it wins
+                // over the spec-level value on the first effect; per-effect
+                // amplifiers on subsequent specs are unchanged.
+                Integer rootAmpOverride = obj.has("amplifier") && obj.get("amplifier").isJsonPrimitive()
+                    ? obj.get("amplifier").getAsInt()
+                    : null;
+
                 List<EffectSpec> specs = new ArrayList<>();
                 if (obj.has("effects") && obj.get("effects").isJsonArray()) {
                     for (var el : obj.getAsJsonArray("effects")) {
@@ -97,6 +108,12 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 } else {
                     EffectSpec spec = parseSpec(obj);
                     if (spec != null) specs.add(spec);
+                }
+                if (rootAmpOverride != null && !specs.isEmpty()) {
+                    EffectSpec first = specs.get(0);
+                    specs.set(0, new EffectSpec(
+                        first.effect(), rootAmpOverride,
+                        first.ambient(), first.showParticles(), first.showIcon()));
                 }
 
                 EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
