@@ -21,7 +21,8 @@ powers that reference them will parse and register but never fire.
 {
   "type": "neoorigins:action_on_event",
   "event": "<KEY>",
-  "condition": { ... },          // optional — gates the dispatch
+  "condition": { ... },          // optional — entity-side gate
+  "block_condition": { ... },    // optional — block-side gate (block events only)
   "entity_action": { ... },      // for action-style events
   "modifier": { ... }            // for MOD_* events; chains with other registered modifiers
 }
@@ -33,6 +34,26 @@ action / modifier runs — use it for `origin:power_active`, item-in-hand,
 fluid-in-eyes, and similar gates. `entity_action` and `modifier` may both be
 set on one power; the dispatcher only calls whichever matches the site's call
 shape.
+
+`block_condition` is an optional gate that only applies when the event is
+block-shaped (`block_break`, `block_place`, `block_use`). The dispatch
+`BlockPos` is extracted from the event context and the predicate is evaluated
+before the action runs. Supports `block` / `id` / `tag` fields, e.g.
+`{ "type": "origins:block", "id": "minecraft:stone" }`. On non-block events
+the field is silently ignored. Use this instead of (or in addition to)
+`condition` when you want to filter by what was broken/placed/used:
+
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "block_break",
+  "block_condition": { "type": "origins:block", "id": "minecraft:stone" },
+  "entity_action": {
+    "type": "neoorigins:drop_items",
+    "items": [{ "item": "minecraft:emerald", "chance": 0.05 }]
+  }
+}
+```
 
 The event's context is published to `ActionContextHolder` for the duration of
 the dispatch so context-aware action verbs (`neoorigins:damage_attacker`,

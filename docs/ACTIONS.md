@@ -411,6 +411,91 @@ Runs a server command at permission level 2 (vanilla's function-permission-level
 
 Runs only if the target is on a server (`player.level().getServer() != null`).
 
+### Position resolution
+
+The command source is positioned at the **player by default**. When the
+dispatch context is a block-shaped event (`block_break`, `block_place`,
+`block_use`), the command source is repositioned at the **block's centre**
+instead — so `~ ~ ~` resolves to the broken/placed/used block. Matches
+Apoli's `block_action` pattern; lets pack authors write the standard
+"drop loot at the block" recipe without manual coord lookup:
+
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "block_break",
+  "block_condition": { "type": "origins:block", "id": "minecraft:stone" },
+  "entity_action": {
+    "type": "neoorigins:execute_command",
+    "command": "loot spawn ~ ~ ~ loot mypack:generic/stone_drops"
+  }
+}
+```
+
+For non-block events (`hit_taken`, `kill`, `tick`, etc.) the source
+stays at the player.
+
+---
+
+## `neoorigins:drop_items`
+
+Drops one or more item stacks at the dispatch position. Inline alternative to authoring a vanilla loot table — pack authors who want "5% chance to drop a diamond when you break stone" don't need a separate `data/.../loot_table/...json` file.
+
+Position resolution mirrors `execute_command`: drops at the dispatch BlockPos for block events, at the player for everything else.
+
+### Top-level fields
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `items` | array | yes | — | List of drop entries |
+| `mode` | string | no | `"each"` | `"each"` (per-entry independent rolls) or `"one_of"` (weighted single pick) |
+| `rolls` | int | no | `1` | Only used in `"one_of"` mode — repeat the pick with replacement |
+
+### Per-entry fields
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `item` | resource id | yes | — | Item registry id |
+| `count` | int OR `[min, max]` | no | `1` | Exact count or inclusive range |
+| `chance` | float (0.0–1.0) | no | `1.0` | Per-entry roll. Only used in `"each"` mode |
+| `weight` | int | no | `1` | Selection weight. Only used in `"one_of"` mode |
+
+### Modes
+
+**`each`** (default) — every entry rolls its own `chance` independently. Multiple drops possible per trigger:
+
+```json
+{
+  "type": "neoorigins:drop_items",
+  "items": [
+    { "item": "minecraft:diamond", "count": 1,      "chance": 0.05 },
+    { "item": "minecraft:emerald", "count": [1, 3], "chance": 0.10 }
+  ]
+}
+```
+
+**`one_of`** — exactly one entry is picked, weighted by each entry's `weight`. The picked entry's `count` range still rolls. Mirrors a single vanilla loot pool with `rolls: 1`:
+
+```json
+{
+  "type": "neoorigins:drop_items",
+  "mode": "one_of",
+  "items": [
+    { "item": "minecraft:diamond",    "weight": 1,  "count": [1, 2] },
+    { "item": "minecraft:emerald",    "weight": 4,  "count": [2, 5] },
+    { "item": "minecraft:gold_ingot", "weight": 10, "count": 1      }
+  ]
+}
+```
+
+Use `rolls: N` to repeat the pick (with replacement) — same item type can win multiple rolls.
+
+### Notes
+
+- Unknown item ids log a one-shot warning at parse time and skip that entry.
+- Dropped items have default pickup delay (no 0.5s wait).
+- For 80% chance to drop a single item, just `{ "item": "...", "chance": 0.8 }`.
+
 ---
 
 ## `origins:set_block`

@@ -56,6 +56,13 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         EntityCondition condition,
         EntityAction action,
         FloatModifier modifier,
+        // Optional block-position gate. Currently consulted for BLOCK_BREAK
+        // and BLOCK_PLACE / BLOCK_USE events whose dispatch context carries
+        // the BlockPos. Tester report 2026-04-27: pack authors author
+        // `block_condition` on action_on_event with event=block_break and
+        // expect filtering — without this field it was silently dropped at
+        // codec time so the action ran on every block break.
+        java.util.Optional<java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>> blockCondition,
         String type
     ) implements PowerConfiguration {
 
@@ -91,8 +98,15 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                 FloatModifier modifier = obj.has("modifier")
                     ? ModifierParser.parseList(obj.get("modifier"), t)
                     : FloatModifier.identity();
+                // Compile the optional block_condition into a BiPredicate so
+                // dispatch only pays a registry lookup, not JSON parsing.
+                java.util.Optional<java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>> blockCond =
+                    (obj.has("block_condition") && obj.get("block_condition").isJsonObject())
+                        ? java.util.Optional.of(com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
+                            .compileBlockPredicate(obj.getAsJsonObject("block_condition")))
+                        : java.util.Optional.empty();
 
-                return DataResult.success(Pair.of(new Config(ev, cond, action, modifier, t), ops.empty()));
+                return DataResult.success(Pair.of(new Config(ev, cond, action, modifier, blockCond, t), ops.empty()));
             }
 
             @Override
@@ -135,6 +149,15 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
             EventPowerIndex.Handler handler = (sp, ctx) -> {
                 try {
                     if (!config.condition().test(sp)) return;
+                    // block_condition gate: extract the BlockPos from a known
+                    // block-event context shape and run the predicate. Skips
+                    // silently if the context doesn't carry block info — same
+                    // behaviour as if the gate evaluated false.
+                    if (config.blockCondition().isPresent()) {
+                        net.minecraft.core.BlockPos pos = extractBlockPos(ctx);
+                        if (pos == null) return;
+                        if (!config.blockCondition().get().test(sp, pos)) return;
+                    }
                     config.action().execute(sp);
                 } catch (Exception e) {
                     NeoOrigins.LOGGER.warn("action_on_event handler error ({}): {}",
@@ -161,6 +184,21 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
 
         tokens.computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())
             .put(config, new Tokens(actionTok, modTok));
+    }
+
+    /**
+     * Best-effort BlockPos extraction from a block-event dispatch context.
+     * Returns null if the context isn't block-shaped, in which case the
+     * block_condition gate fails closed (action skipped).
+     */
+    private static net.minecraft.core.BlockPos extractBlockPos(Object ctx) {
+        if (ctx instanceof net.neoforged.neoforge.event.level.BlockEvent be) {
+            return be.getPos();
+        }
+        if (ctx instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock rcb) {
+            return rcb.getPos();
+        }
+        return null;
     }
 
     @Override
