@@ -43,6 +43,20 @@ public final class ConditionParser {
         if (json == null) {
             return failClosed("root", contextId, "missing condition object");
         }
+        // Apoli/Origins convention: every condition supports a top-level
+        // `inverted: true` flag that flips its result. Wrap the parsed
+        // condition in NOT when the flag is set. Without this, MoR-shape
+        // packs (and many Mido-shape, Origins++-shape, etc.) silently lose
+        // their inverted gates — e.g. `{type: "in_water", inverted: true}`
+        // was always evaluating as plain `in_water`, breaking conditions
+        // like "drain resource WHEN NOT in creative mode".
+        boolean inverted = json.has("inverted") && json.get("inverted").getAsBoolean();
+        EntityCondition inner = parseInner(json, contextId);
+        if (!inverted) return inner;
+        return p -> !inner.test(p);
+    }
+
+    private static EntityCondition parseInner(JsonObject json, String contextId) {
         String type = json.has("type") ? json.get("type").getAsString() : "";
         // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:
         // prefixes get a one-shot [2.0-legacy] warning then are rewritten to
