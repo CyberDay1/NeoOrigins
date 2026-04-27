@@ -60,7 +60,7 @@ public final class OriginsPowerTranslator {
         // Visual/rendering — no server-side equivalent
         "origins:overlay",
         "origins:shader",
-        "origins:particle",
+        // origins:particle is translated in doTranslate() — was previously skipped
         "origins:lava_vision",
         "origins:model_color",
         "origins:shaking",
@@ -221,6 +221,8 @@ public final class OriginsPowerTranslator {
             case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
             case "origins:food_restriction",       "apace:food_restriction"       -> translateFoodRestriction(src);
             case "origins:edible_item",            "apace:edible_item"            -> translateEdibleItem(src);
+            case "origins:particle",               "apace:particle",
+                 "apoli:particle",                 "apugli:particle"              -> translateParticle(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -233,6 +235,23 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> translateSimple(String neoType) {
         JsonObject out = new JsonObject();
         out.addProperty("type", neoType);
+        return Optional.of(out);
+    }
+
+    // Rewrites Origins/Apoli/Apugli :particle to neoorigins:particle. Field
+    // remap is straightforward — they pass `particle` (string or object with a
+    // `type` field), `frequency` (ticks), and optionally `visible_in_first_person`
+    // (which we map to `visible_to_self`, currently informational only). count /
+    // spread / offset have no Origins-side equivalent — leave defaults.
+    private static Optional<JsonObject> translateParticle(JsonObject src) {
+        if (!src.has("particle")) {
+            return Optional.empty();
+        }
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:particle");
+        out.add("particle", src.get("particle"));
+        if (src.has("frequency")) out.add("frequency", src.get("frequency"));
+        if (src.has("visible_in_first_person")) out.add("visible_to_self", src.get("visible_in_first_person"));
         return Optional.of(out);
     }
 
