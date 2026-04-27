@@ -142,15 +142,19 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
         Component name = extractComponentField(json, "name");
         Component desc = extractComponentField(json, "description");
+        boolean hidden = json.has("hidden") && json.get("hidden").isJsonPrimitive()
+            && json.get("hidden").getAsJsonPrimitive().isBoolean()
+            && json.get("hidden").getAsBoolean();
 
         // Strip display fields so they don't confuse the typed codec.
         JsonObject configJson = json.deepCopy();
         configJson.remove("name");
         configJson.remove("description");
+        configJson.remove("hidden");
 
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc)));
+            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc, hidden)));
     }
 
     /** Merges config-file overrides into the power JSON before CODEC parsing. */

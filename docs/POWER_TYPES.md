@@ -1,13 +1,14 @@
 # NeoOrigins Power Types Reference
 
-All powers share two optional display fields:
+All powers share three optional metadata fields:
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | string or `{"text":"..."}` / `{"translate":"..."}` | Display name shown in the origin selection screen. A plain string is treated as a translation key. |
 | `description` | string or `{"text":"..."}` / `{"translate":"..."}` | Description shown below the power name. Same resolution rules as `name`. |
+| `hidden` | bool (default `false`) | When `true`, this power is excluded from the origin info panel. The mechanical effect still applies — only the display row is suppressed. Useful for purely-internal flag/glue powers (e.g. `neoorigins:toggle`, on-hit setters wired under a `multiple`). |
 
-If neither field is present, NeoOrigins falls back to the lang key convention:
+If neither `name` nor `description` is present, NeoOrigins falls back to the lang key convention:
 `power.<namespace>.<path>.name` / `power.<namespace>.<path>.description`
 
 ---
@@ -1715,10 +1716,13 @@ Read the current value with `origins:power_active { power: "mypack:my_toggle" }`
 {
   "type": "neoorigins:toggle",
   "default": false,
+  "hidden": true,
   "name": "Hunter's Mark",
   "description": "Internal flag gated by other powers."
 }
 ```
+
+`hidden: true` keeps the toggle out of the origin info panel — recommended for any purely-internal flag a player doesn't need to see listed.
 
 See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
 

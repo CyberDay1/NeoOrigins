@@ -486,7 +486,7 @@ public class NeoOriginsNetwork {
             boolean isToggle = holder.type() instanceof AbstractTogglePower<?>;
             ResourceLocation typeId = typeRegistry.getKey(holder.type());
             powerEntries.put(entry.getKey(), new com.cyberday1.neoorigins.client.ClientPowerCache.Entry(
-                holder.name(), holder.description(), holder.isActive(), isToggle, typeId));
+                holder.name(), holder.description(), holder.isActive(), isToggle, typeId, holder.hidden()));
         }
 
         PacketDistributor.sendToPlayer(player, new SyncOriginRegistryPayload(

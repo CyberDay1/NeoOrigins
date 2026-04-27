@@ -117,13 +117,19 @@ public record OriginDetailViewModel(
 
     private static boolean isHiddenPowerType(ResourceLocation powerId) {
         PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
-        if (holder != null
-            && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.HideHudBarPower) {
-            return true;
+        if (holder != null) {
+            // Per-power `"hidden": true` opt-out from the info panel.
+            if (holder.hidden()) return true;
+            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.HideHudBarPower) {
+                return true;
+            }
         }
         ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
-        if (entry != null && entry.typeId() != null) {
-            return HIDDEN_POWER_TYPES.contains(entry.typeId().toString());
+        if (entry != null) {
+            if (entry.hidden()) return true;
+            if (entry.typeId() != null) {
+                return HIDDEN_POWER_TYPES.contains(entry.typeId().toString());
+            }
         }
         return false;
     }

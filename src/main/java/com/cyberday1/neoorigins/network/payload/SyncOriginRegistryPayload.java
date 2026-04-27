@@ -73,6 +73,7 @@ public record SyncOriginRegistryPayload(
             ResourceLocation typeId = entry.getValue().typeId();
             buf.writeBoolean(typeId != null);
             if (typeId != null) buf.writeResourceLocation(typeId);
+            buf.writeBoolean(entry.getValue().hidden());
         }
 
         // Multiple expansion map
@@ -127,7 +128,8 @@ public record SyncOriginRegistryPayload(
             boolean active = buf.readBoolean();
             boolean toggle = buf.readBoolean();
             ResourceLocation typeId = buf.readBoolean() ? buf.readResourceLocation() : null;
-            powers.put(id, new ClientPowerCache.Entry(name, desc, active, toggle, typeId));
+            boolean hidden = buf.readBoolean();
+            powers.put(id, new ClientPowerCache.Entry(name, desc, active, toggle, typeId, hidden));
         }
 
         // Multiple expansion map

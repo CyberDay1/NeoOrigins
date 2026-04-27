@@ -15,13 +15,19 @@ public final class PowerHolder<C extends PowerConfiguration> {
     private final C config;
     private final Component name;
     private final Component description;
+    private final boolean hidden;
 
     public PowerHolder(ResourceLocation id, PowerType<C> type, C config, Component name, Component description) {
+        this(id, type, config, name, description, false);
+    }
+
+    public PowerHolder(ResourceLocation id, PowerType<C> type, C config, Component name, Component description, boolean hidden) {
         this.id = id;
         this.type = type;
         this.config = config;
         this.name = name;
         this.description = description;
+        this.hidden = hidden;
     }
 
     public ResourceLocation id()      { return id; }
@@ -29,6 +35,8 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public C config()                 { return config; }
     public Component name()           { return name; }
     public Component description()    { return description; }
+    /** When true, this power is excluded from the origin info panel (purely-internal flags, glue powers under multiple, etc.). */
+    public boolean hidden()           { return hidden; }
 
     /** Returns true if this power occupies a keybind slot (has active behaviour). */
     public boolean isActive()                              { return type.isActivePower(config); }

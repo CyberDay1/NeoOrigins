@@ -501,11 +501,15 @@ now?" gate without burning a hotbar key.
 The pattern is always three pieces:
 
 1. **The flag itself** — a `neoorigins:toggle` power. Optional `default`
-   sets the value reads see before the flag has ever been flipped.
+   sets the value reads see before the flag has ever been flipped. Set
+   `"hidden": true` to keep the flag off the origin info panel — almost
+   always what you want for an internal flag.
 2. **A way to read it** — `origins:power_active { power: "..." }` inside
    any other power's `condition`.
 3. **A way to flip it** — `neoorigins:toggle { power: "..." }` inside any
    `entity_action` (active ability, action_on_hit, action_on_event, etc.).
+   These glue powers also typically want `"hidden": true` since the
+   player only needs to see the user-facing rollup.
 
 #### Example A — Toggle-gated wall climbing
 
@@ -513,7 +517,7 @@ A passive that lets the player climb walls, but only while a separate
 "climb mode" flag is on. The active ability flips the flag.
 
 ```json
-// data/mypack/origins/powers/climb_mode.json — the flag
+// data/mypack/origins/powers/climb_mode.json — the flag (visible so the player sees it cycle)
 {
   "type": "neoorigins:toggle",
   "default": false,
@@ -560,17 +564,16 @@ no keybind required. While the flag is on, the player gains
 Strength I against all targets.
 
 ```json
-// data/mypack/origins/powers/marked.json — the flag (default off)
+// data/mypack/origins/powers/marked.json — the internal flag
 {
   "type": "neoorigins:toggle",
   "default": false,
-  "name": "Marked",
-  "description": "You have a target in your sights."
+  "hidden": true
 }
 ```
 
 ```json
-// data/mypack/origins/powers/mark_on_hit.json — flip on when hitting
+// data/mypack/origins/powers/mark_on_hit.json — flip on when hitting (visible: this is the user-facing description)
 {
   "type": "neoorigins:action_on_hit",
   "entity_action": {
@@ -584,9 +587,10 @@ Strength I against all targets.
 ```
 
 ```json
-// data/mypack/origins/powers/mark_clear_on_kill.json — flip off on kill
+// data/mypack/origins/powers/mark_clear_on_kill.json — internal: flip off on kill
 {
   "type": "neoorigins:action_on_kill",
+  "hidden": true,
   "entity_action": {
     "type": "neoorigins:toggle",
     "power": "mypack:marked",
