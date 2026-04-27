@@ -230,6 +230,16 @@ public final class ActiveOriginService {
             if (holder != null) holder.onRevoked(player);
             data.removeDynamicGrant(powerId);
         }
+
+        // Final sweep: remove any neoorigins:power_* attribute modifiers still
+        // attached to the player. The per-power onRevoked above handles the
+        // happy path, but two cases leak otherwise:
+        //   1. Legacy-format modifier IDs in NBT from older versions.
+        //   2. Modifiers from origins whose JSON is no longer loaded (OriginDataManager
+        //      returned null at line `if (origin == null) continue;` above).
+        // Cheap to run; in the common case, all targeted modifiers were already
+        // removed by the loop above and this is a no-op.
+        com.cyberday1.neoorigins.power.builtin.AttributeModifierPower.purgeAllOriginModifiers(player);
     }
 
     /**
