@@ -282,6 +282,38 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         for (ResourceLocation id : stale) instance.removeModifier(id);
     }
 
+    /**
+     * Wholesale sweep: removes every {@code neoorigins:power_*} modifier from
+     * every attribute attached to the entity. Belt-and-suspenders cleanup for
+     * the {@code /origin reset} path — catches:
+     * <ul>
+     *   <li>Stale legacy-format IDs in NBT that don't match the current
+     *       {@link #modIdFor} format and would otherwise survive a per-power
+     *       {@code removeModifier(currentModId)}.</li>
+     *   <li>Modifiers from origins whose JSON has been removed/edited since
+     *       the grant — the per-power revoke path skips those because
+     *       {@code OriginDataManager.getOrigin(...)} returns null.</li>
+     * </ul>
+     * Safe to call after per-power {@code onRevoked} as a sweeper; current-
+     * format modifiers are already gone by then, so this is a no-op in the
+     * happy path.
+     */
+    public static void purgeAllOriginModifiers(net.minecraft.world.entity.LivingEntity entity) {
+        for (var attribute : BuiltInRegistries.ATTRIBUTE) {
+            var holder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attribute);
+            AttributeInstance instance = entity.getAttribute(holder);
+            if (instance == null) continue;
+            java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
+            for (AttributeModifier m : instance.getModifiers()) {
+                ResourceLocation id = m.id();
+                if (!"neoorigins".equals(id.getNamespace())) continue;
+                if (!id.getPath().startsWith("power_")) continue;
+                stale.add(id);
+            }
+            for (ResourceLocation id : stale) instance.removeModifier(id);
+        }
+    }
+
     /** Resolves the attribute with prefix tolerance. 1.21.1 registers attributes
      *  with generic./player. prefixes; 26.1 registers them without. Try both
      *  directions so pack JSON is portable. */
