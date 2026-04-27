@@ -67,7 +67,8 @@ public final class OriginsPowerTranslator {
         // Movement variants without a direct equivalent
         "origins:swim_speed",            "apace:swim_speed",
         "origins:air_acceleration",      "apace:air_acceleration",
-        "origins:modify_swim_speed",     "apace:modify_swim_speed",
+        // origins:modify_swim_speed translates in doTranslate() to
+        // attribute_modifier on minecraft:water_movement_efficiency.
         // Misc behaviours without a direct equivalent
         "origins:keep_inventory",
         "origins:ignore_water",
@@ -210,6 +211,7 @@ public final class OriginsPowerTranslator {
             case "origins:disable_regen"                                          -> translateSimplePrevent("SPRINT_FOOD");
             case "origins:slow_falling"                                           -> translateSimplePrevent("FALL_DAMAGE");
             case "origins:walk_speed",             "apace:walk_speed"             -> translateWalkSpeed(src);
+            case "origins:modify_swim_speed",      "apace:modify_swim_speed"      -> translateModifySwimSpeed(src);
             case "origins:climbing",               "apace:climbing"               -> translateSimple("neoorigins:wall_climbing");
             case "origins:entity_size",            "apace:entity_size"            -> translateEntitySize(src);
             case "origins:modify_break_speed",     "apace:modify_break_speed"     -> translateModifyBreakSpeed(src);
@@ -338,6 +340,33 @@ public final class OriginsPowerTranslator {
         if (mod.has("operation")) {
             target.addProperty("operation", OriginsOperationMapper.mapOperation(mod.get("operation").getAsString()));
         }
+    }
+
+    /**
+     * Apoli's {@code modify_swim_speed} maps cleanly onto vanilla's 1.21
+     * {@code minecraft:water_movement_efficiency} attribute — the same
+     * registry entry that handles depth-strider and water-mob navigation
+     * speed. Same nested-modifier shape as {@code origins:walk_speed}, just
+     * a different target attribute. Without this, packs ship the swim power
+     * but it silently no-ops because the type is in SKIP_TYPES with no
+     * Route B handler. Reported by the Mido pack tester (2026-04-27).
+     */
+    private static Optional<JsonObject> translateModifySwimSpeed(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:attribute_modifier");
+        out.addProperty("attribute", "minecraft:water_movement_efficiency");
+
+        if (src.has("modifier")) {
+            JsonObject mod = src.getAsJsonObject("modifier");
+            double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
+            String op = mod.has("operation") ? mod.get("operation").getAsString() : "multiply_base";
+            out.addProperty("amount", value);
+            out.addProperty("operation", OriginsOperationMapper.mapOperation(op));
+        } else {
+            throw new IllegalArgumentException("origins:modify_swim_speed missing 'modifier' field");
+        }
+
+        return Optional.of(out);
     }
 
     private static Optional<JsonObject> translateWalkSpeed(JsonObject src) {

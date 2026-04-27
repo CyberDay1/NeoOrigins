@@ -357,9 +357,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         EntityAction action = json.has("entity_action")
             ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
             : EntityAction.noop();
-        EntityCondition condition = json.has("entity_condition")
-            ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        // Apoli/MoR/Mido pack convention is `condition` (player-side gate);
+        // apace and a few origins-classes packs use `entity_condition`.
+        // Accept both — without this, packs like MoR Pixie's flight resource
+        // drain gate and Mido moisture ticks silently dropped their
+        // condition, defaulting to alwaysTrue and firing every interval.
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : json.has("entity_condition")
+                ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), idStr)
+                : EntityCondition.alwaysTrue();
 
         // Stagger by ID hash so not all action_over_time powers run on the same tick.
         int offset = Math.abs(idStr.hashCode()) % interval;
@@ -489,7 +496,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseConditionedAttribute(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        if (!json.has("attribute")) return null;
+        if (!json.has("attribute")) {
+            CompatTranslationLog.skip(id, "origins:conditioned_attribute",
+                "missing 'attribute' field in JSON");
+            return null;
+        }
 
         ResourceLocation rawAttrIdent = ResourceLocation.parse(json.get("attribute").getAsString());
         // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
@@ -503,6 +514,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (attrOpt.isEmpty()) {
             NeoOrigins.LOGGER.warn("[CompatB] {}: unknown attribute '{}' (raw: '{}') — power will no-op",
                 idStr, attrIdent, rawAttrIdent);
+            // Surface the bad attribute id in the compat log too — pack
+            // authors usually only check that file when debugging, not the
+            // main game log. Without the id they only see "no handler
+            // produced a config" which is unactionable.
+            CompatTranslationLog.skip(id, "origins:conditioned_attribute",
+                "unknown attribute '" + rawAttrIdent + "' — pack-side fix: confirm attribute exists in 1.21.1");
             return null;
         }
         var attrHolder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attrOpt.get());
@@ -941,7 +958,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     /** Compile a block condition JSON into a BiPredicate at load time. */
-    private static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicate(
+    public static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicate(
             JsonObject condJson) {
         if (condJson == null) return null;
 
