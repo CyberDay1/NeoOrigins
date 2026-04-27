@@ -1568,6 +1568,13 @@ The colon in `name` is allowed and carries no mechanical meaning — it's a soft
 
 ## `neoorigins:enhanced_vision`
 
+> **Status (2.0.8):** still available for direct authoring, but the 22
+> built-in origins that briefly used `enhanced_vision` in 2.0.4–2.0.7
+> are temporarily back on `neoorigins:night_vision` while we sort out
+> shader and mod-compat issues with the LightTexture path. The cleaner
+> enhanced-vision look is still the long-term direction; this is a
+> rollback for stability, not a deprecation.
+
 Passive low-light vision: emits an `enhanced_vision` capability tag and scales the client brightness curve directly via a `LightTexture` mixin. Unlike the full `minecraft:night_vision` status effect, there's no screen tint, HUD icon, or max-brightness ramp at end of duration — just exposure-style compensation.
 
 | Field | Type | Required | Default | Description |

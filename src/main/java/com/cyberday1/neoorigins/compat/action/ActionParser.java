@@ -81,6 +81,7 @@ public final class ActionParser {
                 case "neoorigins:revoke_power"                  -> parseRevokePower(json);
                 case "neoorigins:emit_game_event"               -> parseEmitGameEvent(json);
                 case "neoorigins:swing_hand"                    -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                case "neoorigins:drop_items"                    -> parseDropItems(json);
 
                 // ---- Phase 0/1: new actions for consolidation (active_ability) ----
                 case "neoorigins:spawn_projectile"              -> parseSpawnProjectile(json, contextId);
@@ -189,13 +190,177 @@ public final class ActionParser {
                 // addon packs can invoke /function, /effect, /give, etc. for non-op
                 // players. Permission level 2 matches vanilla's function-permission-level
                 // default — the same level datapack advancement rewards run at.
-                player.level().getServer().getCommands().performPrefixedCommand(
-                    player.createCommandSourceStack().withSuppressedOutput().withPermission(2), command
-                );
+                var src = player.createCommandSourceStack().withSuppressedOutput().withPermission(2);
+                // If the dispatching event context carries a BlockPos (BLOCK_BREAK,
+                // BLOCK_PLACE, BLOCK_USE), reposition the command source at that
+                // block's centre. Pack authors can then write `~ ~ ~` and have it
+                // mean "this block" — Apoli's standard `block_action`-style
+                // pattern. Without this, `~ ~ ~` is the player's position which
+                // is several blocks off from the broken block. Asked for by
+                // Mollan 2026-04-27 ("/loot spawn ~ ~ ~ on block break").
+                net.minecraft.core.BlockPos blockPos = extractCommandBlockPos(
+                    com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                if (blockPos != null) {
+                    src = src.withPosition(net.minecraft.world.phys.Vec3.atCenterOf(blockPos));
+                }
+                player.level().getServer().getCommands().performPrefixedCommand(src, command);
             } catch (Exception e) {
                 NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());
             }
         };
+    }
+
+    /**
+     * Drop one or more item stacks at the current dispatch position. Inline
+     * alternative to authoring a vanilla loot table — pack authors who want
+     * "5% chance to drop a diamond when you break stone" don't need a
+     * separate {@code data/.../loot_table/...json} file.
+     *
+     * <p>Two modes via the {@code mode} field:
+     * <ul>
+     *   <li>{@code "each"} (default) — every entry rolls independently. Each
+     *       entry's {@code chance} is consulted; multiple items can drop in
+     *       one trigger. Mirrors a multi-pool vanilla loot table where every
+     *       entry has its own random_chance condition.</li>
+     *   <li>{@code "one_of"} — exactly one entry is picked, weighted by each
+     *       entry's {@code weight} field (default 1). Mirrors a single
+     *       vanilla loot pool with {@code rolls: 1}. The optional top-level
+     *       {@code rolls} field repeats the pick with replacement (default 1).
+     *       Per-entry {@code chance} is ignored in this mode — gate the
+     *       whole action with a {@link #parseChance neoorigins:chance}
+     *       wrapper if you need a "drop one OR nothing" pattern.</li>
+     * </ul>
+     *
+     * <pre>{@code
+     * // each-mode (independent rolls):
+     * { "type": "neoorigins:drop_items",
+     *   "items": [
+     *     { "item": "minecraft:diamond", "count": 1,      "chance": 0.05 },
+     *     { "item": "minecraft:emerald", "count": [1, 3], "chance": 0.10 }
+     *   ] }
+     *
+     * // one_of-mode (weighted single pick):
+     * { "type": "neoorigins:drop_items",
+     *   "mode": "one_of",
+     *   "items": [
+     *     { "item": "minecraft:diamond",    "weight": 1 },
+     *     { "item": "minecraft:emerald",    "weight": 4 },
+     *     { "item": "minecraft:gold_ingot", "weight": 10 }
+     *   ] }
+     * }</pre>
+     *
+     * <p>Per-entry fields:
+     * <ul>
+     *   <li>{@code item}: required item id. Unknown ids log a one-shot warning and skip.</li>
+     *   <li>{@code count}: int (exact) or {@code [min, max]} (inclusive range). Default 1.</li>
+     *   <li>{@code chance}: float in [0,1]. Default 1.0. Ignored in {@code one_of} mode.</li>
+     *   <li>{@code weight}: int. Default 1. Used only in {@code one_of} mode.</li>
+     * </ul>
+     *
+     * <p>Drop position uses {@link #extractCommandBlockPos} — block-event
+     * dispatches drop at the broken/placed/used block, other dispatches drop
+     * at the player. Items spawn with default pickup delay so the triggering
+     * player can collect them immediately.
+     */
+    private static EntityAction parseDropItems(JsonObject json) {
+        if (!json.has("items") || !json.get("items").isJsonArray()) return EntityAction.noop();
+        record Drop(net.minecraft.core.Holder<net.minecraft.world.item.Item> item,
+                    int countMin, int countMax, float chance, int weight) {}
+        List<Drop> drops = new ArrayList<>();
+        for (JsonElement el : json.getAsJsonArray("items")) {
+            if (!el.isJsonObject()) continue;
+            JsonObject obj = el.getAsJsonObject();
+            if (!obj.has("item")) continue;
+            ResourceLocation itemId = ResourceLocation.parse(obj.get("item").getAsString());
+            var resolved = BuiltInRegistries.ITEM.getOptional(itemId);
+            if (resolved.isEmpty()) {
+                NeoOrigins.LOGGER.warn("[CompatB] drop_items: unknown item '{}' — skipped", itemId);
+                continue;
+            }
+            int countMin = 1, countMax = 1;
+            if (obj.has("count")) {
+                JsonElement cEl = obj.get("count");
+                if (cEl.isJsonArray() && cEl.getAsJsonArray().size() >= 2) {
+                    countMin = cEl.getAsJsonArray().get(0).getAsInt();
+                    countMax = cEl.getAsJsonArray().get(1).getAsInt();
+                    if (countMax < countMin) { int t = countMin; countMin = countMax; countMax = t; }
+                } else if (cEl.isJsonPrimitive()) {
+                    countMin = countMax = cEl.getAsInt();
+                }
+            }
+            float chance = obj.has("chance") ? obj.get("chance").getAsFloat() : 1.0f;
+            int weight = Math.max(1, obj.has("weight") ? obj.get("weight").getAsInt() : 1);
+            drops.add(new Drop(BuiltInRegistries.ITEM.wrapAsHolder(resolved.get()),
+                countMin, countMax, chance, weight));
+        }
+        if (drops.isEmpty()) return EntityAction.noop();
+
+        String mode = json.has("mode") ? json.get("mode").getAsString().toLowerCase(java.util.Locale.ROOT) : "each";
+        // "rolls" only applies to one_of mode (vanilla loot table pool semantics:
+        // re-pick N times with replacement). For each-mode it's meaningless —
+        // independent rolls already cover repeating draws.
+        int rolls = Math.max(1, json.has("rolls") ? json.get("rolls").getAsInt() : 1);
+        boolean oneOf = "one_of".equals(mode) || "single".equals(mode) || "weighted".equals(mode);
+        // Pre-sum weights once at parse time; the lambda only multiplies/picks.
+        int totalWeight = 0;
+        for (Drop d : drops) totalWeight += d.weight();
+        final int finalTotalWeight = totalWeight;
+        final int finalRolls = rolls;
+        return player -> {
+            BlockPos blockPos = extractCommandBlockPos(
+                com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            Vec3 spawn = blockPos != null
+                ? Vec3.atCenterOf(blockPos)
+                : player.position().add(0, 0.5, 0);
+            var random = player.getRandom();
+
+            if (oneOf) {
+                for (int r = 0; r < finalRolls; r++) {
+                    int roll = random.nextInt(finalTotalWeight);
+                    int cum = 0;
+                    for (Drop d : drops) {
+                        cum += d.weight();
+                        if (roll < cum) {
+                            int count = d.countMin() == d.countMax() ? d.countMin()
+                                : d.countMin() + random.nextInt(d.countMax() - d.countMin() + 1);
+                            if (count > 0) {
+                                ItemEntity entity = new ItemEntity(player.level(),
+                                    spawn.x, spawn.y, spawn.z, new ItemStack(d.item(), count));
+                                entity.setDefaultPickUpDelay();
+                                player.level().addFreshEntity(entity);
+                            }
+                            break;
+                        }
+                    }
+                }
+            } else {
+                for (Drop d : drops) {
+                    if (d.chance() < 1.0f && random.nextFloat() >= d.chance()) continue;
+                    int count = d.countMin() == d.countMax() ? d.countMin()
+                        : d.countMin() + random.nextInt(d.countMax() - d.countMin() + 1);
+                    if (count <= 0) continue;
+                    ItemEntity entity = new ItemEntity(player.level(),
+                        spawn.x, spawn.y, spawn.z, new ItemStack(d.item(), count));
+                    entity.setDefaultPickUpDelay();
+                    player.level().addFreshEntity(entity);
+                }
+            }
+        };
+    }
+
+    /**
+     * Pull a BlockPos out of the current dispatch context if it's a
+     * block-shaped event. Returns null otherwise — the caller falls back
+     * to the player position (entity-shaped events, raw onTick, etc.).
+     */
+    private static net.minecraft.core.BlockPos extractCommandBlockPos(Object ctx) {
+        if (ctx instanceof net.neoforged.neoforge.event.level.BlockEvent be) {
+            return be.getPos();
+        }
+        if (ctx instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock rcb) {
+            return rcb.getPos();
+        }
+        return null;
     }
 
     private static EntityAction parseApplyEffect(JsonObject json) {

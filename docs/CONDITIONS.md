@@ -6,6 +6,21 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
+**Universal `inverted` field:** every condition supports a top-level `"inverted": true` flag that flips its result. Compatible with the Apoli/Origins convention used by upstream packs.
+
+```json
+// "true when the player is NOT swimming"
+{ "type": "neoorigins:swimming", "inverted": true }
+
+// inside an AND, etc.
+{ "type": "neoorigins:and", "conditions": [
+  { "type": "neoorigins:creative_flying" },
+  { "type": "neoorigins:on_fire", "inverted": true }
+]}
+```
+
+The `inverted` flag is also honored on nested conditions inside `and` / `or` / `not` wrappers — every recursive parse pass checks for it.
+
 **Common comparison fields:** most numeric conditions accept `"comparison"` (one of `==`, `!=`, `<`, `<=`, `>`, `>=`) and `"compare_to"` (number). Defaults to `">="` and `0` unless stated otherwise.
 
 ---
