@@ -13,7 +13,13 @@ import java.util.Map;
  */
 public final class ClientPowerCache {
 
-    public record Entry(Component name, Component description, boolean active, boolean toggle) {}
+    public record Entry(Component name, Component description, boolean active, boolean toggle, boolean hidden) {
+
+        /** Back-compat ctor for callers pre-dating the {@code hidden} flag. */
+        public Entry(Component name, Component description, boolean active, boolean toggle) {
+            this(name, description, active, toggle, false);
+        }
+    }
 
     private static Map<Identifier, Entry> cache = Map.of();
 

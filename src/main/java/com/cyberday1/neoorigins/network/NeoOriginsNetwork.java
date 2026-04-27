@@ -479,7 +479,7 @@ public class NeoOriginsNetwork {
             var holder = entry.getValue();
             boolean isToggle = holder.type() instanceof AbstractTogglePower<?>;
             powerEntries.put(entry.getKey(), new com.cyberday1.neoorigins.client.ClientPowerCache.Entry(
-                holder.name(), holder.description(), holder.isActive(), isToggle));
+                holder.name(), holder.description(), holder.isActive(), isToggle, holder.hidden()));
         }
 
         PacketDistributor.sendToPlayer(player, new SyncOriginRegistryPayload(

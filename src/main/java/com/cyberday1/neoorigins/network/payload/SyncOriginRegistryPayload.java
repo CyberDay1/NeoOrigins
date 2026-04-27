@@ -70,6 +70,7 @@ public record SyncOriginRegistryPayload(
             writeComponent(buf, entry.getValue().description());
             buf.writeBoolean(entry.getValue().active());
             buf.writeBoolean(entry.getValue().toggle());
+            buf.writeBoolean(entry.getValue().hidden());
         }
 
         // Multiple expansion map
@@ -123,7 +124,8 @@ public record SyncOriginRegistryPayload(
             Component desc = readComponent(buf);
             boolean active = buf.readBoolean();
             boolean toggle = buf.readBoolean();
-            powers.put(id, new ClientPowerCache.Entry(name, desc, active, toggle));
+            boolean hidden = buf.readBoolean();
+            powers.put(id, new ClientPowerCache.Entry(name, desc, active, toggle, hidden));
         }
 
         // Multiple expansion map

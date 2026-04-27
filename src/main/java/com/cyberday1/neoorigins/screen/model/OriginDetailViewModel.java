@@ -112,8 +112,15 @@ public record OriginDetailViewModel(
 
     private static boolean isHiddenPowerType(Identifier powerId) {
         PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
-        return holder != null
-            && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.HideHudBarPower;
+        if (holder != null) {
+            // Per-power `"hidden": true` opt-out from the info panel.
+            if (holder.hidden()) return true;
+            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.HideHudBarPower) {
+                return true;
+            }
+        }
+        ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
+        return entry != null && entry.hidden();
     }
 
     /** Returns true if the power is a toggle power. Checks PowerDataManager first, then client cache. */

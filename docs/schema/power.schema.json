@@ -48,7 +48,7 @@
     },
     "name": { "description": "Display name. Plain string = translation key.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
     "description": { "description": "Display description.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
-    "hidden": { "description": "If true, don't show in the origin picker info panel.", "type": "boolean" }
+    "hidden": { "description": "When true, this power is excluded from the origin info panel. Useful for purely-internal flag/glue powers (e.g. neoorigins:toggle, action_on_hit setters under a multiple).", "type": "boolean", "default": false }
   },
   "oneOf": [
     {
