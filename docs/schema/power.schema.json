@@ -31,7 +31,7 @@
         "neoorigins:shadow_orb", "neoorigins:size_scaling", "neoorigins:sneaky",
         "neoorigins:starting_equipment", "neoorigins:stealth", "neoorigins:summon_minion",
         "neoorigins:tame_mob", "neoorigins:tamed_animal_boost", "neoorigins:tamed_potion_diffusal",
-        "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle",
+        "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle", "neoorigins:particle",
         "neoorigins:trade_availability", "neoorigins:tree_felling", "neoorigins:twin_breeding",
         "neoorigins:underwater_mining_speed", "neoorigins:wall_climbing", "neoorigins:water_breathing",
         "origins:status_effect", "origins:night_vision", "origins:glow", "origins:water_breathing",
@@ -230,6 +230,25 @@
         "key": { "type": "string", "enum": ["primary", "secondary"] }
       },
       "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:particle",
+      "properties": {
+        "type": { "const": "neoorigins:particle" },
+        "particle": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "object", "properties": { "type": { "type": "string" }, "color": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "scale": { "type": "number" } }, "required": ["type"] }
+          ]
+        },
+        "frequency": { "type": "integer", "minimum": 1 },
+        "count": { "type": "integer", "minimum": 0 },
+        "spread": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "offset": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "speed": { "type": "number" },
+        "condition": { "type": "object" }
+      },
+      "required": ["type", "particle"]
     },
     {
       "$comment": "neoorigins:entity_set",

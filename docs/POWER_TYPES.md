@@ -2281,6 +2281,51 @@ Typically paired with `neoorigins:water_breathing` or the Automaton pattern so t
 
 ---
 
+## `neoorigins:particle`
+
+Spawns vanilla particles on the player at a fixed cadence. Server-side `ServerLevel.sendParticles` packetizes to nearby clients, so this works on dedicated servers without a client-side mixin.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `particle` | string \| object | yes | — | Registry id of any `SimpleParticleType` (e.g. `"minecraft:end_rod"`). For parameterized particles use the object form: `{ "type": "minecraft:dust", "color": [1.0, 0.85, 0.2], "scale": 0.6 }` |
+| `frequency` | int | no | `8` | Emit every N server ticks. Lower = denser. |
+| `count` | int | no | `1` | Particles per emission. |
+| `spread` | `[x, y, z]` floats | no | `[0.25, 0.5, 0.25]` | Random offset spread per particle. |
+| `offset` | `[x, y, z]` floats | no | `[0.0, 1.0, 0.0]` | Origin offset from player feet (defaults to ~chest height). |
+| `speed` | float | no | `0.0` | Vanilla "speed" parameter — passes through to `sendParticles`. Most particle types use this as initial-velocity scale; some ignore it. |
+| `condition` | EntityCondition | no | always-true | Optional gate evaluated each emission tick. |
+
+The Origins/Apoli `:particle` power type is auto-translated to this — packs that already use `origins:particle`, `apoli:particle`, `apace:particle`, or `apugli:particle` work without modification (`frequency` and `particle` fields map 1:1).
+
+**Example — ambient sparkle aura:**
+```json
+{
+  "type": "neoorigins:particle",
+  "particle": "minecraft:end_rod",
+  "frequency": 6,
+  "count": 1,
+  "spread": [0.4, 0.6, 0.4],
+  "name": "Blessed Aura",
+  "description": "Faint sparkles trail you wherever you walk."
+}
+```
+
+**Example — colored gold dust, water-only:**
+```json
+{
+  "type": "neoorigins:particle",
+  "particle": { "type": "minecraft:dust", "color": [1.0, 0.85, 0.2], "scale": 0.6 },
+  "frequency": 10,
+  "count": 2,
+  "condition": { "type": "origins:in_water" },
+  "name": "Gilded Wake"
+}
+```
+
+Sparkle-aesthetic vanilla particle picks: `minecraft:end_rod` (cleanest white twinkle), `minecraft:firework` (bright sparks, heavier), `minecraft:enchant` (swirling glyphs), `minecraft:wax_on` (puff burst), `minecraft:scrape` (copper sparks), `minecraft:totem_of_undying` (green/gold festive), `minecraft:glow` (Allay-style soft dots), `minecraft:nautilus` (subtle blue specs).
+
+---
+
 ## `neoorigins:ender_gaze_immunity`
 
 Endermen do not aggro when the player looks at them. Emits the `ender_gaze_immunity` capability tag — an Enderman targeting mixin reads it to skip the usual line-of-sight check.
