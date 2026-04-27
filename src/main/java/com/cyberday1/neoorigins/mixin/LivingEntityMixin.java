@@ -37,6 +37,15 @@ public abstract class LivingEntityMixin {
                 // Stop flight on ground, in water, or as passenger (same as vanilla canGlide)
                 if (self.onGround() || self.isInWater() || self.isPassenger()) {
                     sp.stopFallFlying();
+                    // Reset the per-glide tick counter so it doesn't accumulate
+                    // across landing → relaunch cycles. Vanilla does this via
+                    // the canGlide-failed branch in updateFallFlying which our
+                    // mixin cancels — without the reset, fallFlyTicks grows
+                    // unboundedly across multiple glide cycles. Speculative
+                    // mitigation for #42 ("flight audio gets louder over time
+                    // for other players") in case some pack/mod ties sound
+                    // emit or volume to fallFlyTicks.
+                    this.fallFlyTicks = 0;
                 } else {
                     // Don't check canGlide() — allow flight without elytra.
                     // Don't damage equipment — there's no elytra to damage.
