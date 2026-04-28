@@ -24,6 +24,17 @@ import java.util.TreeMap;
 public class OriginCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        // Evolve subcommand registered at permission 0 so any player can
+        // click the chat prompt. Separate from the admin-gated tree below.
+        dispatcher.register(
+            Commands.literal("origin")
+                .then(Commands.literal("evolve")
+                    .then(Commands.literal("accept")
+                        .executes(ctx -> executeEvolveAccept(ctx)))
+                    .then(Commands.literal("decline")
+                        .executes(ctx -> executeEvolveDecline(ctx))))
+        );
+
         dispatcher.register(
             Commands.literal("origin")
                 .requires(cs -> cs.hasPermission(2))
@@ -212,6 +223,18 @@ public class OriginCommand {
     private static int executeReload(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(() -> Component.literal(
             "Use /reload to reload datapacks (origins reload automatically)."), false);
+        return 1;
+    }
+
+    private static int executeEvolveAccept(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.acceptEvolution(player);
+        return 1;
+    }
+
+    private static int executeEvolveDecline(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.declineEvolution(player);
         return 1;
     }
 }

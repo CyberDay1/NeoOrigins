@@ -556,6 +556,61 @@ public final class NeoOriginsConfig {
     public static boolean ffProtectVillagers()   { return FF_PROTECT_VILLAGERS.get(); }
     public static boolean ffProtectIronGolems()  { return FF_PROTECT_IRON_GOLEMS.get(); }
 
+    // ── Essence Evolution ───────────────────────────────────────────────
+    // Origins can evolve through 3 tiers by accumulating mob kills.
+
+    public static final ModConfigSpec.BooleanValue EVOLUTION_ENABLED;
+    public static final ModConfigSpec.IntValue EVOLUTION_TIER_1_KILLS;
+    public static final ModConfigSpec.IntValue EVOLUTION_TIER_2_KILLS;
+    public static final ModConfigSpec.IntValue EVOLUTION_TIER_3_KILLS;
+    public static final ModConfigSpec.IntValue EVOLUTION_MESSAGE_INTERVAL;
+
+    static {
+        BUILDER.comment(
+            "Essence Evolution system. Origins evolve through 3 tiers",
+            "(Evolved → Ascended → Apex) by accumulating mob kills.",
+            "An Orb of Origin resets the player to base tier."
+        ).push("evolution");
+
+        EVOLUTION_ENABLED = BUILDER
+            .comment("Enable the evolution system. When false, kills are not tracked",
+                     "and evolution prompts never appear.")
+            .define("enabled", true);
+
+        EVOLUTION_TIER_1_KILLS = BUILDER
+            .comment("Mob kills required to reach Evolved (tier 1).")
+            .defineInRange("tier_1_kills", 1000, 1, 1000000);
+
+        EVOLUTION_TIER_2_KILLS = BUILDER
+            .comment("Mob kills required to reach Ascended (tier 2).")
+            .defineInRange("tier_2_kills", 2500, 1, 1000000);
+
+        EVOLUTION_TIER_3_KILLS = BUILDER
+            .comment("Mob kills required to reach Apex (tier 3).")
+            .defineInRange("tier_3_kills", 5000, 1, 1000000);
+
+        EVOLUTION_MESSAGE_INTERVAL = BUILDER
+            .comment("Chat milestone message interval (every N kills).")
+            .defineInRange("message_interval", 100, 10, 10000);
+
+        BUILDER.pop();
+    }
+
+    public static boolean isEvolutionEnabled() { return EVOLUTION_ENABLED.get(); }
+    public static int evolutionTier1Kills()    { return EVOLUTION_TIER_1_KILLS.get(); }
+    public static int evolutionTier2Kills()    { return EVOLUTION_TIER_2_KILLS.get(); }
+    public static int evolutionTier3Kills()    { return EVOLUTION_TIER_3_KILLS.get(); }
+    public static int evolutionMessageInterval() { return EVOLUTION_MESSAGE_INTERVAL.get(); }
+
+    public static int killsForTier(int tier) {
+        return switch (tier) {
+            case 1 -> evolutionTier1Kills();
+            case 2 -> evolutionTier2Kills();
+            case 3 -> evolutionTier3Kills();
+            default -> Integer.MAX_VALUE;
+        };
+    }
+
     // ── Sun damage helmet protection ────────────────────────────────────
     // Tuning knob for the vanilla-zombie-style helmet absorption added to
     // every exposed_to_sun-gated power. Per-evaluation chance that a
