@@ -104,7 +104,7 @@ public final class EssenceEvolutionManager {
                         .withBold(true)
                         .withClickEvent(new net.minecraft.network.chat.ClickEvent(
                             net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND,
-                            "/origin evolve accept"))
+                            "/neoorigins evolve accept"))
                         .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
                             net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
                             Component.literal("Click to evolve!")))))
@@ -117,7 +117,7 @@ public final class EssenceEvolutionManager {
                         .withColor(ChatFormatting.RED)
                         .withClickEvent(new net.minecraft.network.chat.ClickEvent(
                             net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND,
-                            "/origin evolve decline"))
+                            "/neoorigins evolve decline"))
                         .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
                             net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
                             Component.literal("Decline this evolution")))))

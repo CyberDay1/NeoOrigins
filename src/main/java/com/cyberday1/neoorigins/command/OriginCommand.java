@@ -5,14 +5,19 @@ import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
@@ -21,60 +26,162 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.TreeMap;
 
+/**
+ * All NeoOrigins commands under the {@code /neoorigins} namespace.
+ * {@code /origin} is registered as a legacy alias for backwards compatibility.
+ */
 public class OriginCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // Evolve subcommand registered at permission 0 so any player can
-        // click the chat prompt. Separate from the admin-gated tree below.
-        dispatcher.register(
-            Commands.literal("origin")
-                .then(Commands.literal("evolve")
-                    .then(Commands.literal("accept")
-                        .executes(ctx -> executeEvolveAccept(ctx)))
-                    .then(Commands.literal("decline")
-                        .executes(ctx -> executeEvolveDecline(ctx))))
-        );
+    private static final String[] TIER_NAMES = {"base", "evolved", "ascended", "apex"};
 
-        dispatcher.register(
-            Commands.literal("origin")
-                .requires(cs -> cs.hasPermission(2))
-                .then(Commands.literal("get")
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeGet(ctx, null))
-                        .then(Commands.argument("layer", ResourceLocationArgument.id())
-                            .executes(ctx -> executeGet(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
-                .then(Commands.literal("set")
-                    .requires(cs -> cs.hasPermission(2))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .then(Commands.argument("layer", ResourceLocationArgument.id())
-                            .then(Commands.argument("origin", ResourceLocationArgument.id())
-                                .executes(ctx -> executeSet(ctx))))))
-                .then(Commands.literal("reset")
-                    .requires(cs -> cs.hasPermission(2))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeReset(ctx, null))
-                        .then(Commands.argument("layer", ResourceLocationArgument.id())
-                            .executes(ctx -> executeReset(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
-                .then(Commands.literal("list")
-                    .executes(ctx -> executeList(ctx, null))
-                    .then(Commands.argument("layer", ResourceLocationArgument.id())
-                        .executes(ctx -> executeList(ctx, ResourceLocationArgument.getId(ctx, "layer")))))
-                .then(Commands.literal("has")
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .then(Commands.argument("power", ResourceLocationArgument.id())
-                            .executes(ctx -> executeHas(ctx)))))
-                .then(Commands.literal("gui")
-                    .executes(ctx -> executeGui(ctx, null))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .requires(cs -> cs.hasPermission(2))
-                        .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
-                .then(Commands.literal("editor")
-                    .executes(ctx -> executeEditor(ctx)))
-                .then(Commands.literal("reload")
-                    .requires(cs -> cs.hasPermission(2))
-                    .executes(ctx -> executeReload(ctx)))
-        );
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_TIERS =
+        (ctx, builder) -> SharedSuggestionProvider.suggest(TIER_NAMES, builder);
+
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        // Build the command tree once, register under both namespaces
+        var tree = buildCommandTree();
+        dispatcher.register(Commands.literal("neoorigins").redirect(dispatcher.register(tree)));
+        // Legacy alias
+        dispatcher.register(Commands.literal("origin").redirect(dispatcher.getRoot().getChild("neoorigins")));
     }
+
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildCommandTree() {
+        return Commands.literal("neoorigins")
+            // ── Player-level commands (permission 0) ───────────────────
+            .then(Commands.literal("evolve")
+                // /neoorigins evolve accept — player accepts pending prompt
+                .then(Commands.literal("accept")
+                    .executes(OriginCommand::executeEvolveAccept))
+                // /neoorigins evolve decline — player declines prompt
+                .then(Commands.literal("decline")
+                    .executes(OriginCommand::executeEvolveDecline))
+                // /neoorigins evolve <player> <tier> — OP/datapack force-set
+                .then(Commands.argument("player", EntityArgument.player())
+                    .requires(cs -> cs.hasPermission(2))
+                    .then(Commands.argument("tier", StringArgumentType.word())
+                        .suggests(SUGGEST_TIERS)
+                        .executes(OriginCommand::executeEvolveSet)))
+                // /neoorigins evolve query <player> — OP check kills/tier
+                .then(Commands.literal("query")
+                    .requires(cs -> cs.hasPermission(2))
+                    .then(Commands.argument("player", EntityArgument.player())
+                        .executes(OriginCommand::executeEvolveQuery))))
+            // ── Admin commands (permission 2) ──────────────────────────
+            .then(Commands.literal("get")
+                .requires(cs -> cs.hasPermission(2))
+                .then(Commands.argument("player", EntityArgument.player())
+                    .executes(ctx -> executeGet(ctx, null))
+                    .then(Commands.argument("layer", ResourceLocationArgument.id())
+                        .executes(ctx -> executeGet(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
+            .then(Commands.literal("set")
+                .requires(cs -> cs.hasPermission(2))
+                .then(Commands.argument("player", EntityArgument.player())
+                    .then(Commands.argument("layer", ResourceLocationArgument.id())
+                        .then(Commands.argument("origin", ResourceLocationArgument.id())
+                            .executes(OriginCommand::executeSet)))))
+            .then(Commands.literal("reset")
+                .requires(cs -> cs.hasPermission(2))
+                .then(Commands.argument("player", EntityArgument.player())
+                    .executes(ctx -> executeReset(ctx, null))
+                    .then(Commands.argument("layer", ResourceLocationArgument.id())
+                        .executes(ctx -> executeReset(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
+            .then(Commands.literal("list")
+                .requires(cs -> cs.hasPermission(2))
+                .executes(ctx -> executeList(ctx, null))
+                .then(Commands.argument("layer", ResourceLocationArgument.id())
+                    .executes(ctx -> executeList(ctx, ResourceLocationArgument.getId(ctx, "layer")))))
+            .then(Commands.literal("has")
+                .requires(cs -> cs.hasPermission(2))
+                .then(Commands.argument("player", EntityArgument.player())
+                    .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .executes(OriginCommand::executeHas))))
+            .then(Commands.literal("gui")
+                .executes(ctx -> executeGui(ctx, null))
+                .then(Commands.argument("player", EntityArgument.player())
+                    .requires(cs -> cs.hasPermission(2))
+                    .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
+            .then(Commands.literal("editor")
+                .executes(OriginCommand::executeEditor))
+            .then(Commands.literal("reload")
+                .requires(cs -> cs.hasPermission(2))
+                .executes(OriginCommand::executeReload));
+    }
+
+    // ── Evolution commands ──────────────────────────────────────────────
+
+    private static int executeEvolveAccept(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        EssenceEvolutionManager.acceptEvolution(player);
+        return 1;
+    }
+
+    private static int executeEvolveDecline(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        EssenceEvolutionManager.declineEvolution(player);
+        return 1;
+    }
+
+    /**
+     * /neoorigins evolve &lt;player&gt; &lt;tier&gt;
+     * Datapack/admin command to force-set a player's evolution tier.
+     * Tier can be a name (base/evolved/ascended/apex) or number (0-3).
+     */
+    private static int executeEvolveSet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        String tierArg = StringArgumentType.getString(ctx, "tier");
+
+        int tier = parseTier(tierArg);
+        if (tier < 0) {
+            ctx.getSource().sendFailure(Component.literal(
+                "Invalid tier: " + tierArg + ". Use base/evolved/ascended/apex or 0-3."));
+            return 0;
+        }
+
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        data.setEvolutionTier(tier);
+        NeoOriginsNetwork.syncEvolutionToPlayer(player);
+
+        String tierName = tier > 0 ? EssenceEvolutionManager.TIER_NAMES[tier] : "Base";
+        ctx.getSource().sendSuccess(() -> Component.literal(
+            "Set " + player.getName().getString() + "'s evolution tier to " + tierName + " (" + tier + ")"), true);
+
+        if (tier > 0) {
+            player.sendSystemMessage(Component.literal("You have been elevated to ")
+                .append(Component.literal(tierName)
+                    .withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD))
+                .append(Component.literal(" tier!")));
+        } else {
+            player.sendSystemMessage(Component.literal("Your evolution has been reset to base tier.")
+                .withStyle(net.minecraft.ChatFormatting.YELLOW));
+        }
+
+        return 1;
+    }
+
+    private static int executeEvolveQuery(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+
+        int kills = data.getEssenceKills();
+        int tier = data.getEvolutionTier();
+        String tierName = tier > 0 ? EssenceEvolutionManager.TIER_NAMES[tier] : "Base";
+
+        ctx.getSource().sendSuccess(() -> Component.literal(
+            player.getName().getString() + " — Tier: " + tierName + " (" + tier + "), Kills: " + kills), false);
+        return 1;
+    }
+
+    private static int parseTier(String input) {
+        return switch (input.toLowerCase()) {
+            case "base", "0" -> 0;
+            case "evolved", "1" -> 1;
+            case "ascended", "2" -> 2;
+            case "apex", "3" -> 3;
+            default -> -1;
+        };
+    }
+
+    // ── Origin management commands ──────────────────────────────────────
 
     private static int executeGet(CommandContext<CommandSourceStack> ctx, ResourceLocation layerId) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
@@ -213,7 +320,6 @@ public class OriginCommand {
 
     private static int executeEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer target = ctx.getSource().getPlayerOrException();
-        // Client will open the editor screen; it reads already-synced state.
         NeoOriginsNetwork.syncRegistryToPlayer(target);
         NeoOriginsNetwork.syncToPlayer(target);
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(target, new OpenEditorScreenPayload());
@@ -223,18 +329,6 @@ public class OriginCommand {
     private static int executeReload(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(() -> Component.literal(
             "Use /reload to reload datapacks (origins reload automatically)."), false);
-        return 1;
-    }
-
-    private static int executeEvolveAccept(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerPlayer player = ctx.getSource().getPlayerOrException();
-        com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.acceptEvolution(player);
-        return 1;
-    }
-
-    private static int executeEvolveDecline(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerPlayer player = ctx.getSource().getPlayerOrException();
-        com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.declineEvolution(player);
         return 1;
     }
 }
