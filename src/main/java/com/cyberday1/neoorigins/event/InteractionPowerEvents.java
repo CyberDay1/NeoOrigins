@@ -2,13 +2,16 @@ package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
+import com.cyberday1.neoorigins.power.builtin.RareWanderingLootPower;
 import com.cyberday1.neoorigins.power.builtin.RestrictArmorPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.EventPowerIndex;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
@@ -16,12 +19,42 @@ import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Dispatchers for extended interaction events added in 2.0:
  * BLOCK_USE, ENTITY_USE, ITEM_PICKUP, ITEM_USE_FINISH.
  */
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class InteractionPowerEvents {
+
+    // Tracks (traderEntityId + playerUUID) pairs to avoid double-injecting
+    // charisma trades on repeated interactions with the same trader.
+    // Wandering traders despawn, so this set stays bounded naturally.
+    private static final Set<Long> CHARISMA_INJECTED = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    private static long charismaKey(int traderId, java.util.UUID playerId) {
+        return ((long) traderId << 32) ^ playerId.getLeastSignificantBits();
+    }
+
+    /**
+     * Charisma — inject master-tier trades into wandering traders for players
+     * with the rare_wandering_loot power. Fires at HIGH priority so the
+     * offers are in place before vanilla's mobInteract opens the trade screen.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onCharismaTraderInteract(PlayerInteractEvent.EntityInteract event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (!(event.getTarget() instanceof WanderingTrader trader)) return;
+        if (!ActiveOriginService.has(sp, RareWanderingLootPower.class, cfg -> true)) return;
+
+        long key = charismaKey(trader.getId(), sp.getUUID());
+        if (!CHARISMA_INJECTED.add(key)) return; // already injected for this pair
+
+        RareWanderingLootPower.injectTrades(sp, trader);
+    }
 
     @SubscribeEvent
     public static void onBlockUse(PlayerInteractEvent.RightClickBlock event) {

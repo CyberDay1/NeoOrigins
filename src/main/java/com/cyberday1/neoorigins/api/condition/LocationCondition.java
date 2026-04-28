@@ -41,7 +41,10 @@ public record LocationCondition(
     Optional<Identifier> structure,
     Optional<Identifier> structureTag,
     boolean allowWaterSurface,
-    boolean allowOceanFloor
+    boolean allowOceanFloor,
+    Optional<Integer> minY,
+    Optional<Integer> maxY,
+    Optional<Boolean> canSeeSky
 ) {
     public static final Codec<LocationCondition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Identifier.CODEC.optionalFieldOf("dimension").forGetter(LocationCondition::dimension),
@@ -51,7 +54,10 @@ public record LocationCondition(
         Identifier.CODEC.optionalFieldOf("structure").forGetter(LocationCondition::structure),
         Identifier.CODEC.optionalFieldOf("structure_tag").forGetter(LocationCondition::structureTag),
         Codec.BOOL.optionalFieldOf("allow_water_surface", false).forGetter(LocationCondition::allowWaterSurface),
-        Codec.BOOL.optionalFieldOf("allow_ocean_floor", false).forGetter(LocationCondition::allowOceanFloor)
+        Codec.BOOL.optionalFieldOf("allow_ocean_floor", false).forGetter(LocationCondition::allowOceanFloor),
+        Codec.INT.optionalFieldOf("min_y").forGetter(LocationCondition::minY),
+        Codec.INT.optionalFieldOf("max_y").forGetter(LocationCondition::maxY),
+        Codec.BOOL.optionalFieldOf("can_see_sky").forGetter(LocationCondition::canSeeSky)
     ).apply(inst, LocationCondition::new));
 
     public boolean isEmpty() {
@@ -137,6 +143,20 @@ public record LocationCondition(
         if (!detail.isEmpty()) {
             if (hasDim) sb.append(" — ");
             sb.append(String.join(", ", detail));
+        }
+        if (minY.isPresent() || maxY.isPresent()) {
+            sb.append(" (Y ");
+            if (minY.isPresent() && maxY.isPresent()) {
+                sb.append(minY.get()).append(" to ").append(maxY.get());
+            } else if (minY.isPresent()) {
+                sb.append("above ").append(minY.get());
+            } else {
+                sb.append("below ").append(maxY.get());
+            }
+            sb.append(")");
+        }
+        if (canSeeSky.isPresent() && !canSeeSky.get()) {
+            sb.append(" [underground]");
         }
         return sb.toString();
     }
@@ -243,15 +263,26 @@ public record LocationCondition(
 
         // Use logicalHeight so ceiling dimensions (Nether) don't scan the
         // dead-air layer above the bedrock roof.
-        final int minY = target.dimensionType().minY();
-        int topYTmp = minY + target.dimensionType().logicalHeight() - 1;
+        final int dimMinY = target.dimensionType().minY();
+        int dimTopY = dimMinY + target.dimensionType().logicalHeight() - 1;
         // For ceiling dimensions (Nether): start the scan well below the
         // bedrock roof. Bedrock generates with noise, so 1-block air pockets
         // exist within the top ~5 blocks; without this margin the player
         // can spawn sandwiched in a roof-bedrock pocket (reported case).
         // 16-block margin is safely below the bedrock zone in vanilla Nether.
-        if (target.dimensionType().hasCeiling()) topYTmp -= 16;
-        final int topY = topYTmp;
+        if (target.dimensionType().hasCeiling()) dimTopY -= 16;
+        final int dimTopYFinal = dimTopY;
+
+        // Apply optional Y clamps — pack authors can constrain the vertical
+        // search band with min_y / max_y (e.g. underground-only origins).
+        final int minY = this.minY.map(v -> Math.max(v, dimMinY)).orElse(dimMinY);
+        final int topY = this.maxY.map(v -> Math.min(v, dimTopYFinal)).orElse(dimTopYFinal);
+
+        // Resolve the sky-check policy for land columns:
+        //   - can_see_sky explicitly set → use that value
+        //   - ceiling dimension (Nether) → false (no sky is visible anyway)
+        //   - otherwise → true (legacy default: reject caves)
+        final boolean requireSky = canSeeSky.orElse(!target.dimensionType().hasCeiling());
 
         // For aquatic origins (allow_ocean_floor / allow_water_surface), try
         // the water passes FIRST. If the 5x5 search around the biome-locate
@@ -271,7 +302,8 @@ public record LocationCondition(
         // Land column fallback — default for land-based origins, and the
         // last-resort for aquatic origins if no water column was found
         // (shouldn't happen for ocean biomes, but covers misconfigured packs).
-        Optional<Vec3> land = findColumn(target, found, minY, topY, LocationCondition::isLandColumn);
+        Optional<Vec3> land = findColumn(target, found, minY, topY,
+            (level, x, y, z) -> isLandColumn(level, x, y, z, requireSky));
         if (land.isPresent()) return Optional.of(new SpawnTarget(target, land.get()));
 
         return Optional.empty();
@@ -304,7 +336,7 @@ public record LocationCondition(
         boolean matches(ServerLevel level, int x, int y, int z);
     }
 
-    private static boolean isLandColumn(ServerLevel level, int x, int y, int z) {
+    private static boolean isLandColumn(ServerLevel level, int x, int y, int z, boolean requireSky) {
         // Center column: solid floor at y-1, air at feet and head, no
         // lava in the column triple. This is the load-bearing safety check.
         BlockPos floorPos = new BlockPos(x, y - 1, z);
@@ -341,20 +373,13 @@ public record LocationCondition(
                 if (level.getFluidState(new BlockPos(x + dx, y - 1, z + dz)).is(FluidTags.LAVA)) return false;
             }
         }
-        // Ceiling dimensions (Nether) have no sky below the bedrock roof —
-        // canSeeSky is always false for any playable column, so the sky
-        // check would reject every candidate (reported case: Blazeling
-        // spawn_location: minecraft:the_nether silently failed). The
-        // top-down scan already gives us the highest solid+air+air, which
-        // is the surface of the natural netherrack terrain below the ceiling.
-        if (level.dimensionType().hasCeiling()) return true;
-        // Require the head block to see sky so we don't pick a cave air-pocket
-        // as "land". In an ocean biome the top-down scan would otherwise find
-        // the first solid+air+air somewhere deep underground (reported case:
-        // cold_ocean spawn landed at y=-53 in a cave) because no real land
-        // column exists in the water column above. canSeeSky is a cheap
-        // heightmap check — true only when the position is above the
-        // MOTION_BLOCKING heightmap for that XZ, which water contributes to.
+        // Sky check: when requireSky is false (either explicitly via
+        // can_see_sky: false, or implicitly for ceiling dimensions like
+        // the Nether), skip the sky test so underground / cave columns
+        // are valid spawn positions. When true (the default for non-ceiling
+        // dimensions), reject cave air-pockets so the player spawns on
+        // the surface.
+        if (!requireSky) return true;
         return level.canSeeSky(new BlockPos(x, y + 1, z));
     }
 
