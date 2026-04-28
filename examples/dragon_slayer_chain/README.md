@@ -56,7 +56,7 @@ Voidwalker does not need an override — it is the terminal stage.
 To retest without restarting the world:
 
 ```
-/origin set @s neoneoorigins:origin neoorigins:human
+/neoorigins set @s neoorigins:origin neoorigins:human
 /advancement revoke @s only minecraft:story/enter_the_end
 /advancement revoke @s only minecraft:end/kill_dragon
 ```
@@ -70,7 +70,7 @@ To retest without restarting the world:
 - **No rollback**: once upgraded, a player stays on the new origin. There is
   no "revoke advancement → revert origin" flow. If you want this, write a
   datapack that listens for revocation in its own function and uses
-  `/origin set` to reset the player.
+  `/neoorigins set` to reset the player.
 - **Works across restarts**: the upgrades feature is stateless — once
   upgraded, the player's origin data on disk reflects the new origin
   permanently, so no server-side bookkeeping is needed.

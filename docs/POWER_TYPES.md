@@ -1,8 +1,3 @@
----
-title: Power Types
-nav_order: 6
----
-
 # NeoOrigins Power Types Reference
 
 All powers share three optional metadata fields:
@@ -472,7 +467,7 @@ No additional fields beyond `name` and `description`.
 
 ---
 
-## `neoneoorigins:damage_in_daylight`
+## `neoorigins:damage_in_daylight`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
 
@@ -486,7 +481,7 @@ Deals periodic damage to the player when they are in direct sunlight (sky-expose
 **Example:**
 ```json
 {
-  "type": "neoneoorigins:damage_in_daylight",
+  "type": "neoorigins:damage_in_daylight",
   "damage": 1.0,
   "interval_ticks": 20,
   "name": "Sun Allergy",
@@ -522,7 +517,7 @@ Multiplies knockback dealt or received.
 
 ## `neoorigins:xp_gain_modifier`
 
-Multiplies experience points gained. Currently registered but inert — no NeoForge XP gain event exists in 21.11.38.
+Multiplies experience points gained. Wired to `PlayerXpEvent.XpChange` via the `NumericModifierRegistry`. Uses Apoli modifier math (addition + multiply_base/multiply_total).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -583,7 +578,7 @@ Multiplies the rate at which the player's hunger depletes.
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
 
-Multiplies all healing the player receives via `LivingHealEvent`. **Note:** this is *not* limited to food-tick natural regen — it also scales Regeneration potion ticks, beacon regen, totem of undying, and any data-pack `neoneoorigins:heal` actions. If you want to cancel food-tick regen specifically while leaving other heals intact, use `neoorigins:no_natural_regen` instead.
+Multiplies all healing the player receives via `LivingHealEvent`. **Note:** this is *not* limited to food-tick natural regen — it also scales Regeneration potion ticks, beacon regen, totem of undying, and any data-pack `neoorigins:heal` actions. If you want to cancel food-tick regen specifically while leaving other heals intact, use `neoorigins:no_natural_regen` instead.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -603,7 +598,7 @@ Multiplies all healing the player receives via `LivingHealEvent`. **Note:** this
 
 ## `neoorigins:no_natural_regen`
 
-Cancels vanilla food-based natural regeneration only. Both regen branches (saturation-based fast regen and food-level-≥18 slow regen) are skipped. Other heal sources — Regeneration potion, beacon, totem, `neoneoorigins:heal` — still work normally. Pair with an alternate healing mechanic for "metabolism-less" origins like Automaton variants.
+Cancels vanilla food-based natural regeneration only. Both regen branches (saturation-based fast regen and food-level-≥18 slow regen) are skipped. Other heal sources — Regeneration potion, beacon, totem, `neoorigins:heal` — still work normally. Pair with an alternate healing mechanic for "metabolism-less" origins like Automaton variants.
 
 No fields. Presence of the power is the entire configuration.
 
@@ -622,19 +617,43 @@ No fields. Presence of the power is the entire configuration.
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
 
-Restricts which foods the player can eat to a specific item tag. Attempting to eat an item not in the tag cancels consumption.
+Restricts which foods the player can eat. Supports `blacklist` (cannot eat items matching the tag/item list) and `whitelist` (can only eat items matching). `item_tag` accepts a single string or a JSON array of tags and/or item IDs. Prefix entries with `#` for tags; bare strings match exact item IDs.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `allowed_tag` | Identifier | yes | — | Item tag of foods the player is allowed to eat, e.g. `minecraft:meat` |
+| `mode` | string | no | `"blacklist"` | `"blacklist"` or `"whitelist"` |
+| `item_tag` | string or array | yes | — | Single tag/item or array of tags/items. Use `#` prefix for tags (e.g. `"#minecraft:meat"`), bare strings for item IDs (e.g. `"minecraft:spider_eye"`). |
 
-**Example — meat-only diet:**
+**Example — meat-only diet (whitelist):**
 ```json
 {
   "type": "neoorigins:food_restriction",
-  "allowed_tag": "minecraft:meat",
+  "mode": "whitelist",
+  "item_tag": "#minecraft:meat",
   "name": "Carnivore",
   "description": "Can only eat meat."
+}
+```
+
+**Example — vegetarian with multiple blacklisted tags:**
+```json
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "blacklist",
+  "item_tag": ["#minecraft:meat", "#c:foods/raw_meat"],
+  "name": "Vegetarian",
+  "description": "Cannot eat meat."
+}
+```
+
+**Example — blacklist specific items and a tag:**
+```json
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "blacklist",
+  "item_tag": ["#minecraft:meat", "minecraft:spider_eye", "minecraft:rotten_flesh"],
+  "name": "Clean Eater",
+  "description": "Cannot eat meat or unsanitary foods."
 }
 ```
 
@@ -888,7 +907,7 @@ Drains the player's air supply when submerged in the specified fluid. Useful for
 
 ---
 
-## `neoneoorigins:biome_buff`
+## `neoorigins:biome_buff`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
 
@@ -903,7 +922,7 @@ Applies a status effect while the player is standing in a biome matching the giv
 **Example — Speed I in forests:**
 ```json
 {
-  "type": "neoneoorigins:biome_buff",
+  "type": "neoorigins:biome_buff",
   "biome_tag": "minecraft:is_forest",
   "effect": "minecraft:speed",
   "amplifier": 0,
@@ -914,7 +933,7 @@ Applies a status effect while the player is standing in a biome matching the giv
 
 ---
 
-## `neoneoorigins:damage_in_biome`
+## `neoorigins:damage_in_biome`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
 
@@ -929,7 +948,7 @@ Deals periodic damage to the player while in a biome matching the given tag.
 **Example:**
 ```json
 {
-  "type": "neoneoorigins:damage_in_biome",
+  "type": "neoorigins:damage_in_biome",
   "biome_tag": "minecraft:is_nether",
   "damage": 1.0,
   "interval_ticks": 40,
@@ -1389,7 +1408,7 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 {
   "type": "neoorigins:persistent_effect",
   "toggleable": false,
-  "condition": { "type": "neoneoorigins:in_water" },
+  "condition": { "type": "neoorigins:in_water" },
   "effects": [
     { "effect": "minecraft:strength", "amplifier": 0 },
     { "effect": "minecraft:haste",    "amplifier": 1 }
@@ -1426,7 +1445,7 @@ See [EVENTS.md](EVENTS.md) / the Apoli compat docs for the full condition and ac
     "tag": "minecraft:is_nether"
   },
   "entity_action": {
-    "type": "neoneoorigins:damage",
+    "type": "neoorigins:damage",
     "amount": 1.0,
     "source": "fire"
   },
@@ -1470,7 +1489,7 @@ For action-style events set `entity_action`; for modifier-style events set `modi
     "item": "minecraft:wooden_sword"
   },
   "entity_action": {
-    "type": "neoneoorigins:heal",
+    "type": "neoorigins:heal",
     "amount": 2.0
   },
   "name": "Wooden Vampire",
@@ -1551,7 +1570,7 @@ The scale attribute uses `ADD_VALUE` against a base of `1.0` (so delta = `scale 
 
 ## `neoorigins:entity_set`
 
-Pure data-holder power. Its presence in a player's active power set declares that the player participates in a named UUID set. Actual set storage lives on `PlayerOriginData`; the `neoneoorigins:in_set` / `neoneoorigins:add_to_set` / `neoneoorigins:remove_from_set` verbs read and mutate it.
+Pure data-holder power. Its presence in a player's active power set declares that the player participates in a named UUID set. Actual set storage lives on `PlayerOriginData`; the `neoorigins:in_set` / `neoorigins:add_to_set` / `neoorigins:remove_from_set` verbs read and mutate it.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1579,7 +1598,6 @@ The colon in `name` is allowed and carries no mechanical meaning — it's a soft
 > shader and mod-compat issues with the LightTexture path. The cleaner
 > enhanced-vision look is still the long-term direction; this is a
 > rollback for stability, not a deprecation.
-
 
 Passive low-light vision: emits an `enhanced_vision` capability tag and scales the client brightness curve directly via a `LightTexture` mixin. Unlike the full `minecraft:night_vision` status effect, there's no screen tint, HUD icon, or max-brightness ramp at end of duration — just exposure-style compensation.
 
@@ -1749,7 +1767,7 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 |---|---|---|---|---|
 | `cooldown_ticks` | int | no | `60` | Cooldown after each use |
 | `hunger_cost` | int | no | `0` | Food points removed per use (1 shank = 2 points). Silently aborts if player has less food (cooldown not consumed). |
-| `entity_action` | EntityAction | yes | noop | Action tree fired on use (typically `neoneoorigins:and { actions: [...] }`) |
+| `entity_action` | EntityAction | yes | noop | Action tree fired on use (typically `neoorigins:and { actions: [...] }`) |
 | `condition` | EntityCondition | no | always-true | DSL gate — skips firing (and the cooldown) if false |
 
 Actions and conditions are compiled once at power-load time via `ActionParser` / `ConditionParser`; runtime only dispatches through the compiled closures.
@@ -1762,7 +1780,7 @@ Hunger gating is handled at the `AbstractActivePower` base class level — when 
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 80,
   "entity_action": {
-    "type": "neoneoorigins:add_velocity",
+    "type": "neoorigins:add_velocity",
     "y": 2.0,
     "client": true,
     "server": true
@@ -1935,7 +1953,7 @@ Passively regenerates health on all tamed mobs (via `tame_mob`) on an interval. 
 
 ---
 
-## `neoneoorigins:exhaustion_filter`
+## `neoorigins:exhaustion_filter`
 
 Filters out specific vanilla exhaustion sources so they don't drain the player's hunger. Handled via `PlayerTickEvent.Pre`.
 
@@ -1946,7 +1964,7 @@ Filters out specific vanilla exhaustion sources so they don't drain the player's
 **Example:**
 ```json
 {
-  "type": "neoneoorigins:exhaustion_filter",
+  "type": "neoorigins:exhaustion_filter",
   "sources": ["sprint"],
   "name": "Tireless",
   "description": "Sprinting no longer drains hunger."
@@ -2227,7 +2245,7 @@ NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_O
   "type": "neoorigins:action_over_time",
   "interval": 40,
   "entity_action": {
-    "type": "neoneoorigins:feed",
+    "type": "neoorigins:feed",
     "food": 1,
     "saturation": 0.2
   }
@@ -2240,13 +2258,13 @@ NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_O
   "type": "neoorigins:action_over_time",
   "interval": 60,
   "entity_action": {
-    "type": "neoneoorigins:heal",
+    "type": "neoorigins:heal",
     "amount": 0.5
   }
 }
 ```
 
-`interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. Any verb supported by `ActionParser` works (`neoneoorigins:apply_effect`, `neoneoorigins:damage`, `neoneoorigins:execute_command`, `neoneoorigins:if_else` for conditional wrapping, etc.).
+`interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. Any verb supported by `ActionParser` works (`neoorigins:apply_effect`, `neoorigins:damage`, `neoorigins:execute_command`, `neoorigins:if_else` for conditional wrapping, etc.).
 
 ## `neoorigins:cobweb_affinity`
 
@@ -2325,7 +2343,7 @@ The Origins/Apoli `:particle` power type is auto-translated to this — packs th
   "particle": { "type": "minecraft:dust", "color": [1.0, 0.85, 0.2], "scale": 0.6 },
   "frequency": 10,
   "count": 2,
-  "condition": { "type": "neoneoorigins:in_water" },
+  "condition": { "type": "neoorigins:in_water" },
   "name": "Gilded Wake"
 }
 ```
@@ -2439,7 +2457,7 @@ Stacking isn't additive — only the first matching power fires per break. Autho
 Individual 2.0 power types are intentionally narrow so they can be combined. For a "rat"-style origin that marks small mobs it kills and gets a heal buff when attacking anything on the list:
 
 - `neoorigins:entity_set` — declares the UUID set (e.g. `mypack:kill_list`)
-- `neoorigins:action_on_event` with `event: kill`, `entity_action: { type: neoneoorigins:add_to_set, set: mypack:kill_list }` — appends victims to the set
+- `neoorigins:action_on_event` with `event: kill`, `entity_action: { type: neoorigins:add_to_set, set: mypack:kill_list }` — appends victims to the set
 - `neoorigins:condition_passive` with `condition: { type: origins:target_in_set, set: mypack:kill_list }` and `entity_action: { type: neoorigins:heal, amount: 0.5 }` — heals when attacking a marked target
 
 Each piece is a separate power entry in the origin's `powers` array. The `entity_set` power carries no behaviour on its own — it's the shared name other powers read and write.

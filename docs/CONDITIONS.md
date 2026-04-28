@@ -1,8 +1,3 @@
----
-title: Conditions
-nav_order: 7
----
-
 # NeoOrigins 2.0 Condition Reference
 
 Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions.
@@ -18,7 +13,7 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 { "type": "neoorigins:swimming", "inverted": true }
 
 // inside an AND, etc.
-{ "type": "neoneoorigins:and", "conditions": [
+{ "type": "neoorigins:and", "conditions": [
   { "type": "neoorigins:creative_flying" },
   { "type": "neoorigins:on_fire", "inverted": true }
 ]}
@@ -32,7 +27,7 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 
 # Meta conditions
 
-## `neoneoorigins:and`
+## `neoorigins:and`
 
 Logical AND of nested conditions.
 
@@ -42,10 +37,10 @@ Logical AND of nested conditions.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:and", "conditions": [ {"type": "neoorigins:sneaking"}, {"type": "neoorigins:on_ground"} ] }
+{ "type": "neoorigins:and", "conditions": [ {"type": "neoorigins:sneaking"}, {"type": "neoorigins:on_ground"} ] }
 ```
 
-## `neoneoorigins:or`
+## `neoorigins:or`
 
 Logical OR of nested conditions.
 
@@ -53,7 +48,7 @@ Logical OR of nested conditions.
 |---|---|---|---|---|
 | `conditions` | array of condition objects | yes | `[]` | Inner conditions; at least one must pass |
 
-## `neoneoorigins:not`
+## `neoorigins:not`
 
 Negates a single inner condition.
 
@@ -87,7 +82,7 @@ True while sprinting. No fields.
 
 True while standing on a block. No fields.
 
-## `neoneoorigins:in_water`
+## `neoorigins:in_water`
 
 True while touching water. No fields.
 
@@ -95,7 +90,7 @@ True while touching water. No fields.
 
 True while the swim animation is active. No fields.
 
-## `neoneoorigins:submerged_in_water`
+## `neoorigins:submerged_in_water`
 
 True while the eye position is inside water. No fields.
 
@@ -123,7 +118,7 @@ True for in-game times 0–12999. No fields.
 
 True when the sky is visible from the entity's block position (server-side only).
 
-## `neoneoorigins:exposed_to_sun`
+## `neoorigins:exposed_to_sun`
 
 True between time 6001–11999 with sky access and no rain.
 
@@ -135,7 +130,7 @@ True while the entity is on fire. No fields.
 
 True while the entity is a passenger of something. No fields.
 
-## `neoneoorigins:using_item`
+## `neoorigins:using_item`
 
 True while the entity is actively using an item (eating, drawing bow, etc.). No fields.
 
@@ -143,7 +138,7 @@ True while the entity is actively using an item (eating, drawing bow, etc.). No 
 
 True unless the entity has been removed. No fields.
 
-## `neoneoorigins:exists`
+## `neoorigins:exists`
 
 True when the entity is non-null and not removed. No fields.
 
@@ -155,11 +150,11 @@ True when `isAlive()` returns true. No fields.
 
 True when creative flight is engaged. No fields.
 
-## `neoneoorigins:block_collision`
+## `neoorigins:block_collision`
 
 Always true. Placeholder/stub for parity with Apoli. No fields.
 
-## `neoneoorigins:health`
+## `neoorigins:health`
 
 Numeric comparison against current health.
 
@@ -168,7 +163,7 @@ Numeric comparison against current health.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Health threshold |
 
-## `neoneoorigins:relative_health`
+## `neoorigins:relative_health`
 
 Numeric comparison against `health / maxHealth` (0.0–1.0).
 
@@ -248,7 +243,7 @@ Checks current dimension ID.
 |---|---|---|---|---|
 | `dimension` | resource location | no | — | e.g. `"minecraft:overworld"`; always-true when absent |
 
-## `neoneoorigins:biome`
+## `neoorigins:biome`
 
 Checks biome at the entity's block position.
 
@@ -261,13 +256,13 @@ Always-true when neither field is present.
 
 ## `neoorigins:in_tag`
 
-Biome tag check (equivalent to `neoneoorigins:biome` with `tag`).
+Biome tag check (equivalent to `neoorigins:biome` with `tag`).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `tag` | resource location | no | — | Biome tag ID; always-true when absent |
 
-## `neoneoorigins:submerged_in`
+## `neoorigins:submerged_in`
 
 Fluid-membership check at the entity's eye position.
 
@@ -340,7 +335,7 @@ True when the entity is on ground and the block directly below matches an ID.
 | `block_condition` | object | yes | — | Nested block condition |
 | `block_condition.id` | resource location | yes | — | Block ID to match |
 
-## `neoneoorigins:block`
+## `neoorigins:block`
 
 Block check at the entity's current position — accepts either a nested `block_condition` object or the same fields at the top level.
 
@@ -361,7 +356,7 @@ Block check at the entity's current position via an optional wrapper.
 | `block_condition` | object | no | — | Wrapper |
 | `block_condition.block` / `block_condition.id` | resource location | no | — | Block ID |
 
-Always-true when the wrapper is absent or no ID is present (fail-open — use `neoneoorigins:not` + a specific block condition if you need strict gating).
+Always-true when the wrapper is absent or no ID is present (fail-open — use `neoorigins:not` + a specific block condition if you need strict gating).
 
 ## `neoorigins:entity_type`
 
@@ -493,13 +488,15 @@ Numeric comparison against the hit damage currently being taken. Requires an act
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Damage threshold |
 
-## `neoneoorigins:food_item_in_tag`
+## `neoorigins:food_item_in_tag`
 
-True if the item being eaten in the current `FOOD_EATEN` dispatch matches an item tag. Requires an active `FoodContext`. Used by `food_restriction` aliases.
+True if the item being eaten in the current `FOOD_EATEN` dispatch matches a tag or item ID. Requires an active `FoodContext`. Used by `food_restriction` aliases.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `tag` | resource location | no | — | Item tag; always-false when absent |
+| `tag` | string | no | — | Item tag (prefix with `#`, e.g. `"#minecraft:meat"`) or bare item ID (e.g. `"minecraft:spider_eye"`). Always-false when absent. |
+
+**Tag vs item:** a leading `#` denotes a tag lookup; without `#` the value is matched as an exact item ID.
 
 ---
 
@@ -547,7 +544,7 @@ Checks whether the target's entity type is in a vanilla mob-category tag under t
 |---|---|---|---|---|
 | `group` | string | yes | — | Tag path under `minecraft:` (e.g. `"raiders"`); always-false when blank |
 
-## `neoneoorigins:in_set` (alias `neoneoorigins:in_set`)
+## `neoorigins:in_set` (alias `neoorigins:in_set`)
 
 2.0 entity-set membership: true when the target's UUID is in the actor's named entity-set. Pack authors should namespace `set` keys to avoid collision.
 
@@ -584,7 +581,7 @@ True when the damage source is in the `minecraft:is_projectile` damage-type tag.
 
 True when the damage source is in the `minecraft:is_explosion` damage-type tag. No fields.
 
-## `neoneoorigins:damage_type`
+## `neoorigins:damage_type`
 
 Matches the damage source against a specific damage-type resource key.
 
@@ -592,7 +589,7 @@ Matches the damage source against a specific damage-type resource key.
 |---|---|---|---|---|
 | `damage_type` | resource location | yes | — | Damage-type ID; always-false when blank |
 
-## `neoneoorigins:damage_tag`
+## `neoorigins:damage_tag`
 
 Matches the damage source against a damage-type tag. Leading `#` is stripped if present.
 
@@ -600,7 +597,7 @@ Matches the damage source against a damage-type tag. Leading `#` is stripped if 
 |---|---|---|---|---|
 | `tag` | resource location | yes | — | Damage-type tag (optional `#` prefix); always-false when blank |
 
-## `neoneoorigins:damage_name` (alias `neoorigins:name`)
+## `neoorigins:damage_name` (alias `neoorigins:name`)
 
 Case-insensitive match against the damage source's message ID (e.g. `"lava"`, `"cactus"`).
 
@@ -655,7 +652,7 @@ Useful for gating rest / regen / out-of-combat-only buffs.
 { "type": "neoorigins:out_of_combat", "ticks": 100 }
 ```
 
-Typically combined with `near_block` or `biome` in an `neoneoorigins:and` so the buff only applies when both safe *and* in the right spot (campfire, village, bed area, etc.).
+Typically combined with `near_block` or `biome` in an `neoorigins:and` so the buff only applies when both safe *and* in the right spot (campfire, village, bed area, etc.).
 
 ## `neoorigins:near_block`
 

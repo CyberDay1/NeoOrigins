@@ -1,8 +1,3 @@
----
-title: Custom Projectiles & VFX
-nav_order: 11
----
-
 # Custom Projectiles & VFX Entities
 
 Guide for pack authors and mod developers who want to extend NeoOrigins's
@@ -39,7 +34,7 @@ reference your entity by its registered ID.
 - A companion mod project — these are Java examples, not datapack JSON.
   For a pure-datapack approach, use the pre-registered `neoorigins:magic_orb`
   with one of the built-in `effect_type` keys (see the
-  `neoneoorigins:spawn_projectile` / `spawn_lingering_area` /
+  `neoorigins:spawn_projectile` / `spawn_lingering_area` /
   `spawn_black_hole` / `spawn_tornado` verbs in
   [ACTIONS.md](ACTIONS.md) and recipes 12–14 in [COOKBOOK.md](COOKBOOK.md)).
 
@@ -72,7 +67,7 @@ any pack JSON can reference the key:
 
 ```json
 {
-  "type": "neoneoorigins:spawn_projectile",
+  "type": "neoorigins:spawn_projectile",
   "entity_type": "neoorigins:magic_orb",
   "effect_type": "verdant_glow",
   "speed": 1.6
@@ -216,7 +211,7 @@ event.registerEntityRenderer(ModEntities.CRYSTAL_SHARD.get(), CrystalShardRender
 
 ```json
 {
-  "type": "neoneoorigins:spawn_projectile",
+  "type": "neoorigins:spawn_projectile",
   "entity_type": "yourmod:crystal_shard",
   "speed": 1.8
 }

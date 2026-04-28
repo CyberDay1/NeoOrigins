@@ -51,10 +51,10 @@ After:
 {
   "type": "neoorigins:action_on_event",
   "event": "kill",
-  "entity_action": { "type": "neoneoorigins:heal", "amount": 4.0 }
+  "entity_action": { "type": "neoorigins:heal", "amount": 4.0 }
 }
 ```
-`action` also accepts `"restore_hunger"` (→ `neoneoorigins:feed { food: <amount> }`) and `"grant_effect"` (→ `neoneoorigins:apply_effect { effect, duration, amplifier }`).
+`action` also accepts `"restore_hunger"` (→ `neoorigins:feed { food: <amount> }`) and `"grant_effect"` (→ `neoorigins:apply_effect { effect, duration, amplifier }`).
 
 ### `neoorigins:action_on_hit_taken`
 
@@ -67,20 +67,20 @@ Before:
   "min_damage": 2.0
 }
 ```
-After (chance + min_damage compose `neoneoorigins:chance` + `neoneoorigins:if_else`):
+After (chance + min_damage compose `neoorigins:chance` + `neoorigins:if_else`):
 ```json
 {
   "type": "neoorigins:action_on_event",
   "event": "hit_taken",
   "entity_action": {
-    "type": "neoneoorigins:if_else",
+    "type": "neoorigins:if_else",
     "condition": {
       "type": "neoorigins:hit_taken_amount",
       "comparison": ">=",
       "compare_to": 2.0
     },
     "if_action": {
-      "type": "neoneoorigins:chance",
+      "type": "neoorigins:chance",
       "chance": 0.5,
       "action": {
         "type": "neoorigins:random_teleport",
@@ -105,7 +105,7 @@ After:
   "type": "neoorigins:action_on_event",
   "event": "hit_taken",
   "entity_action": {
-    "type": "neoneoorigins:damage_attacker",
+    "type": "neoorigins:damage_attacker",
     "amount_ratio": 0.25,
     "source": { "name": "magic" }
   }
@@ -135,13 +135,13 @@ becomes
   "type": "neoorigins:action_on_event",
   "event": "food_eaten",
   "entity_action": {
-    "type": "neoneoorigins:if_else",
+    "type": "neoorigins:if_else",
     "condition": {
-      "type": "neoneoorigins:food_item_in_tag",
+      "type": "neoorigins:food_item_in_tag",
       "tag": "minecraft:fishes"
     },
     "if_action":   { "type": "neoorigins:cancel_event" },
-    "else_action": { "type": "neoneoneoorigins:nothing" }
+    "else_action": { "type": "neoorigins:nothing" }
   }
 }
 ```
@@ -165,12 +165,12 @@ becomes
   "type": "neoorigins:action_on_event",
   "event": "food_eaten",
   "entity_action": {
-    "type": "neoneoorigins:if_else",
+    "type": "neoorigins:if_else",
     "condition": {
-      "type": "neoneoorigins:food_item_in_tag",
+      "type": "neoorigins:food_item_in_tag",
       "tag": "yourpack:edible_for_me"
     },
-    "if_action":   { "type": "neoneoneoorigins:nothing" },
+    "if_action":   { "type": "neoorigins:nothing" },
     "else_action": { "type": "neoorigins:cancel_event" }
   }
 }
@@ -181,27 +181,27 @@ Reads: *"if the food is in `yourpack:edible_for_me`, allow; otherwise cancel."*
 Notice the only thing that changed between blacklist and whitelist is the
 **branch placement** — `cancel_event` moved from `if_action` to
 `else_action`. You can also keep the same branch placement and instead
-**wrap the condition in `neoneoorigins:not`** — same outcome, different
+**wrap the condition in `neoorigins:not`** — same outcome, different
 phrasing:
 
 ```json
 "entity_action": {
-  "type": "neoneoorigins:if_else",
+  "type": "neoorigins:if_else",
   "condition": {
-    "type": "neoneoorigins:not",
+    "type": "neoorigins:not",
     "condition": {
-      "type": "neoneoorigins:food_item_in_tag",
+      "type": "neoorigins:food_item_in_tag",
       "tag": "yourpack:edible_for_me"
     }
   },
   "if_action":   { "type": "neoorigins:cancel_event" },
-  "else_action": { "type": "neoneoneoorigins:nothing" }
+  "else_action": { "type": "neoorigins:nothing" }
 }
 ```
 
-> ⚠️ **Common mistake:** `neoneoorigins:not` is a *condition* type, not an
+> ⚠️ **Common mistake:** `neoorigins:not` is a *condition* type, not an
 > *action* type. It wraps a condition; it does not replace `if_else`. If
-> your power's `entity_action.type` is `neoneoorigins:not`, the parser
+> your power's `entity_action.type` is `neoorigins:not`, the parser
 > doesn't know what to do with it and the whole power silently no-ops.
 > Always keep `if_else` (or another action type) at the outer level.
 
@@ -421,12 +421,12 @@ Before:
 ```json
 { "type": "neoorigins:water_breathing" }
 ```
-After (gated by `neoneoorigins:in_water`, not toggleable, icon hidden):
+After (gated by `neoorigins:in_water`, not toggleable, icon hidden):
 ```json
 {
   "type": "neoorigins:persistent_effect",
   "toggleable": false,
-  "condition": { "type": "neoneoorigins:in_water" },
+  "condition": { "type": "neoorigins:in_water" },
   "effects": [
     {
       "effect": "minecraft:water_breathing",
@@ -443,12 +443,12 @@ After (gated by `neoneoorigins:in_water`, not toggleable, icon hidden):
 
 Tick-based condition + action pairs. Default `interval` is 20 ticks.
 
-### `neoneoorigins:biome_buff`
+### `neoorigins:biome_buff`
 
 Before:
 ```json
 {
-  "type": "neoneoorigins:biome_buff",
+  "type": "neoorigins:biome_buff",
   "biome_tag": "minecraft:is_forest",
   "effect": "minecraft:regeneration",
   "amplifier": 0
@@ -458,9 +458,9 @@ After:
 ```json
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoneoorigins:biome", "tag": "minecraft:is_forest" },
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_forest" },
   "entity_action": {
-    "type": "neoneoorigins:apply_effect",
+    "type": "neoorigins:apply_effect",
     "effect": "minecraft:regeneration",
     "duration": 300,
     "amplifier": 0
@@ -469,12 +469,12 @@ After:
 }
 ```
 
-### `neoneoorigins:damage_in_biome`
+### `neoorigins:damage_in_biome`
 
 Before:
 ```json
 {
-  "type": "neoneoorigins:damage_in_biome",
+  "type": "neoorigins:damage_in_biome",
   "biome_tag": "minecraft:is_ocean",
   "damage_per_second": 1.0,
   "damage_type": "generic"
@@ -484,9 +484,9 @@ After:
 ```json
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoneoorigins:biome", "tag": "minecraft:is_ocean" },
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_ocean" },
   "entity_action": {
-    "type": "neoneoorigins:damage",
+    "type": "neoorigins:damage",
     "amount": 1.0,
     "source": { "name": "generic" }
   },
@@ -494,68 +494,68 @@ After:
 }
 ```
 
-### `neoneoorigins:damage_in_daylight`
+### `neoorigins:damage_in_daylight`
 
 Before:
 ```json
 {
-  "type": "neoneoorigins:damage_in_daylight",
+  "type": "neoorigins:damage_in_daylight",
   "damage_per_second": 1.0,
   "ignite": false
 }
 ```
-After (composed with `neoneoorigins:and` + `neoneoorigins:not`):
+After (composed with `neoorigins:and` + `neoorigins:not`):
 ```json
 {
   "type": "neoorigins:condition_passive",
   "condition": {
-    "type": "neoneoorigins:and",
+    "type": "neoorigins:and",
     "conditions": [
-      { "type": "neoneoorigins:exposed_to_sun" },
-      { "type": "neoneoorigins:not", "condition": { "type": "neoneoorigins:in_water" } },
-      { "type": "neoneoorigins:not", "condition": { "type": "neoorigins:on_fire" } }
+      { "type": "neoorigins:exposed_to_sun" },
+      { "type": "neoorigins:not", "condition": { "type": "neoorigins:in_water" } },
+      { "type": "neoorigins:not", "condition": { "type": "neoorigins:on_fire" } }
     ]
   },
   "entity_action": {
-    "type": "neoneoorigins:damage",
+    "type": "neoorigins:damage",
     "amount": 1.0,
     "source": { "name": "in_fire" }
   },
   "interval": 20
 }
 ```
-When `"ignite": true`, `entity_action` becomes `{ "type": "neoneoorigins:set_on_fire", "ticks": 40 }` instead.
+When `"ignite": true`, `entity_action` becomes `{ "type": "neoorigins:set_on_fire", "ticks": 40 }` instead.
 
-### `neoneoorigins:damage_in_water`
+### `neoorigins:damage_in_water`
 
 Before:
 ```json
 {
-  "type": "neoneoorigins:damage_in_water",
+  "type": "neoorigins:damage_in_water",
   "damage_per_second": 1.0,
   "include_rain": true
 }
 ```
-After (rain included via `neoneoorigins:or`):
+After (rain included via `neoorigins:or`):
 ```json
 {
   "type": "neoorigins:condition_passive",
   "condition": {
-    "type": "neoneoorigins:or",
+    "type": "neoorigins:or",
     "conditions": [
-      { "type": "neoneoorigins:in_water" },
+      { "type": "neoorigins:in_water" },
       { "type": "neoorigins:in_rain" }
     ]
   },
   "entity_action": {
-    "type": "neoneoorigins:damage",
+    "type": "neoorigins:damage",
     "amount": 1.0,
     "source": { "name": "magic" }
   },
   "interval": 20
 }
 ```
-With `"include_rain": false`, the `condition` is just `{ "type": "neoneoorigins:in_water" }`.
+With `"include_rain": false`, the `condition` is just `{ "type": "neoorigins:in_water" }`.
 
 ### `neoorigins:burn_at_health_threshold`
 
@@ -572,11 +572,11 @@ After:
 {
   "type": "neoorigins:condition_passive",
   "condition": {
-    "type": "neoneoorigins:relative_health",
+    "type": "neoorigins:relative_health",
     "comparison": "<=",
     "compare_to": 0.25
   },
-  "entity_action": { "type": "neoneoorigins:set_on_fire", "ticks": 60 },
+  "entity_action": { "type": "neoorigins:set_on_fire", "ticks": 60 },
   "interval": 20
 }
 ```
@@ -595,12 +595,12 @@ After:
 ```json
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoneoorigins:in_water" },
-  "entity_action": { "type": "neoneoorigins:heal", "amount": 1.0 },
+  "condition": { "type": "neoorigins:in_water" },
+  "entity_action": { "type": "neoorigins:heal", "amount": 1.0 },
   "interval": 20
 }
 ```
-For `"fluid": "lava"`, `condition` is `{ "type": "neoneoorigins:submerged_in", "fluid": "minecraft:lava" }`.
+For `"fluid": "lava"`, `condition` is `{ "type": "neoorigins:submerged_in", "fluid": "minecraft:lava" }`.
 
 ## → `neoorigins:attribute_modifier`
 
@@ -623,7 +623,7 @@ After:
   "attribute": "minecraft:movement_speed",
   "amount": 0.5,
   "operation": "add_multiplied_base",
-  "condition": { "type": "neoneoorigins:using_item" }
+  "condition": { "type": "neoorigins:using_item" }
 }
 ```
 **Lossy:** the legacy `item_type` filter (`"bow"` / `"shield"`) is dropped — the alias applies to any item-use. A `_migration_note` field is written into the JSON at load time warning the pack author. If you need the filter, stay on the legacy class until a future DSL verb lands.
@@ -642,7 +642,7 @@ After:
 ```json
 {
   "type": "neoorigins:active_ability",
-  "entity_action": { "type": "neoneoorigins:add_velocity", "y": 1.5 }
+  "entity_action": { "type": "neoorigins:add_velocity", "y": 1.5 }
 }
 ```
 
@@ -700,10 +700,10 @@ After:
 {
   "type": "neoorigins:active_ability",
   "entity_action": {
-    "type": "neoneoorigins:area_of_effect",
+    "type": "neoorigins:area_of_effect",
     "radius": 8.0,
     "entity_action": {
-      "type": "neoneoorigins:apply_effect",
+      "type": "neoorigins:apply_effect",
       "effect": "minecraft:weakness",
       "duration": 200,
       "amplifier": 0
@@ -737,7 +737,7 @@ After (lossy — legacy fired 3–4 fireballs with spread; alias fires one):
 {
   "type": "neoorigins:active_ability",
   "entity_action": {
-    "type": "neoneoorigins:spawn_projectile",
+    "type": "neoorigins:spawn_projectile",
     "entity_type": "minecraft:small_fireball",
     "speed": 1.5
   }
@@ -755,19 +755,19 @@ After:
 {
   "type": "neoorigins:active_ability",
   "entity_action": {
-    "type": "neoneoorigins:spawn_projectile",
+    "type": "neoorigins:spawn_projectile",
     "entity_type": "minecraft:wind_charge",
     "speed": 1.2
   }
 }
 ```
 
-### `neoneoorigins:healing_mist`
+### `neoorigins:healing_mist`
 
 Before:
 ```json
 {
-  "type": "neoneoorigins:healing_mist",
+  "type": "neoorigins:healing_mist",
   "heal_amount": 6.0,
   "radius": 8.0,
   "heal_self": true
@@ -778,10 +778,10 @@ After:
 {
   "type": "neoorigins:active_ability",
   "entity_action": {
-    "type": "neoneoorigins:area_of_effect",
+    "type": "neoorigins:area_of_effect",
     "radius": 8.0,
     "include_source": true,
-    "entity_action": { "type": "neoneoorigins:heal", "amount": 6.0 }
+    "entity_action": { "type": "neoorigins:heal", "amount": 6.0 }
   }
 }
 ```
@@ -869,7 +869,7 @@ today will keep working — but they emit a one-shot `[2.0-legacy]` warning
 at first use:
 
 ```
-[2.0-legacy] DSL verb 'neoorigins:damage' is deprecated — use 'neoneoorigins:damage'
+[2.0-legacy] DSL verb 'neoorigins:damage' is deprecated — use 'neoorigins:damage'
 ```
 
 Grep your logs for `[2.0-legacy]` to get the migration punch list. **Verbs
@@ -888,8 +888,8 @@ the awkward mix of namespaces inside a single power JSON:
 // Pre-2.0 style — mixed namespaces
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoneoorigins:biome", "tag": "minecraft:is_nether" },
-  "entity_action": { "type": "neoneoorigins:damage", "amount": 1.0 },
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1.0 },
   "interval": 20
 }
 ```
@@ -901,8 +901,8 @@ verbs all live under the same namespace:
 // 2.0.0 canonical
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoneoorigins:biome", "tag": "minecraft:is_nether" },
-  "entity_action": { "type": "neoneoorigins:damage", "amount": 1.0 },
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1.0 },
   "interval": 20
 }
 ```
@@ -928,14 +928,14 @@ release. If your pack relies on bare names and needed them resolved as
 ## Verbs that were already `neoorigins:*`
 
 A dozen or so verbs introduced fresh in 2.0 were already namespaced
-correctly: `neoneoorigins:in_set`, `neoorigins:no_minions_alive`,
-`neoorigins:hit_taken_amount`, `neoneoorigins:food_item_in_tag`,
-`neoorigins:toggle`, `neoneoorigins:add_to_set`, `neoneoorigins:remove_from_set`,
+correctly: `neoorigins:in_set`, `neoorigins:no_minions_alive`,
+`neoorigins:hit_taken_amount`, `neoorigins:food_item_in_tag`,
+`neoorigins:toggle`, `neoorigins:add_to_set`, `neoorigins:remove_from_set`,
 `neoorigins:chain_to_nearest`, `neoorigins:pull_entities`,
 `neoorigins:swap_with_entity`, `neoorigins:teleport_to_marker`,
-`neoneoorigins:damage_attacker`, `neoorigins:ignite_attacker`,
+`neoorigins:damage_attacker`, `neoorigins:ignite_attacker`,
 `neoorigins:effect_on_attacker`, `neoorigins:random_teleport`,
-`neoorigins:cancel_event`, `neoneoorigins:spawn_projectile`.
+`neoorigins:cancel_event`, `neoorigins:spawn_projectile`.
 
 These were unchanged.
 

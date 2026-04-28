@@ -8,7 +8,7 @@ Explorer class to a Scout class after the player earns Minecraft's
 
 ## Why this matters
 
-Most examples you'll see use the origin layer (`neoneoorigins:origin`). This
+Most examples you'll see use the origin layer (`neoorigins:origin`). This
 one uses the class layer (`neoorigins:class`) — the upgrade handler iterates
 every layer the player has, so nothing changes in your datapack syntax;
 you just point the upgrade at a class rather than an origin, and the swap
@@ -24,7 +24,7 @@ with no interference.
 
 1. Install: `<world>/datapacks/class_tier_up/`
 2. `/reload`
-3. `/origin set @s neoorigins:class neoorigins:class_explorer`
+3. `/neoorigins set @s neoorigins:class neoorigins:class_explorer`
 4. For fast testing: `/advancement grant @s only minecraft:adventure/adventuring_time`
    (normally you'd need to actually visit 40 biomes)
 

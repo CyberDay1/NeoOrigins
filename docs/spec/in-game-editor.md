@@ -236,7 +236,7 @@ Swap by config flag. **No other class touches the lib choice.**
 
 ```java
 public final class DslNode {
-    Identifier typeId;                                 // "neoneoorigins:and", "neoneoorigins:in_water", ...
+    Identifier typeId;                                 // "neoorigins:and", "neoorigins:in_water", ...
     Map<String, Object> fields = new LinkedHashMap<>();// preserves order on round-trip
     List<DslNode> children = new ArrayList<>();        // for and/or/not; empty on leaves
     DslNode parent;

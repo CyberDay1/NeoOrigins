@@ -1,8 +1,3 @@
----
-title: What's New in 2.0
-nav_order: 13
----
-
 # NeoOrigins 2.0 — Change Document
 
 **Status:** ready for 2.0.0 release. All phases landed; alpha.12 → alpha.37 polish + dedicated-server boot port complete on both branches.
@@ -121,11 +116,11 @@ per boot (`WARNED` set).
 
 **Active ability (done):** `active_launch`, `active_dash`, `repulse`, `active_aoe_effect`, `active_swap`, `active_fireball`, `active_bolt`, `healing_mist` → `active_ability` with DSL action trees (8 of 15 eligible legacy types — `active_phase` is deliberately out of scope as a movement-state toggle, not an active ability). The remaining 7 stay standalone because the DSL can't express their runtime model: `active_teleport` / `active_recall` / `active_place_block` / `shadow_orb` / `ground_slam` / `tidal_wave`. Phase 7 may add raycast/cone/mob-AoE verbs and shrink that set. Lossiness: `active_fireball` alias fires a single projectile where legacy fired 3–4 with spread; `active_swap` alias targets the nearest entity in radius where legacy targeted the look-direction pick.
 
-**Persistent effect (done):** `status_effect`, `stacking_status_effects`, `night_vision`, `glow`, `water_breathing` → `persistent_effect`. Field remaps build the effect-spec array from legacy shapes; `stacking_status_effects` forces `toggleable: false`, `water_breathing` adds `condition: neoorigins:in_water` and hides the HUD icon.
+**Persistent effect (done):** `status_effect`, `stacking_status_effects`, `night_vision`, `glow`, `water_breathing` → `persistent_effect`. Field remaps build the effect-spec array from legacy shapes; `stacking_status_effects` forces `toggleable: false`, `water_breathing` adds `condition: origins:in_water` and hides the HUD icon.
 
-**Attribute modifier (done):** `less_item_use_slowdown` → `attribute_modifier` with `condition: neoorigins:using_item`. Phase 3 architectural work (condition + edge-triggered apply/remove) was already complete; six of the originally-scoped ten classes moved to `action_on_event` under Phase 6 (`hunger_drain_modifier`, `natural_regen_modifier`, `knockback_modifier`, `longer_potions`, `teleport_range_modifier`, `food_restriction`); two more (`break_speed_modifier`, `underwater_mining_speed`) are deliberately skipped because NeoForge's `PlayerEvent.BreakSpeed` only fires client-side; `no_slowdown` stays bespoke pending a slowdown-source DSL. `less_item_use_slowdown` alias is lossy for `item_type != "any"` (the item-type filter drops).
+**Attribute modifier (done):** `less_item_use_slowdown` → `attribute_modifier` with `condition: origins:using_item`. Phase 3 architectural work (condition + edge-triggered apply/remove) was already complete; six of the originally-scoped ten classes moved to `action_on_event` under Phase 6 (`hunger_drain_modifier`, `natural_regen_modifier`, `knockback_modifier`, `longer_potions`, `teleport_range_modifier`, `food_restriction`); two more (`break_speed_modifier`, `underwater_mining_speed`) are deliberately skipped because NeoForge's `PlayerEvent.BreakSpeed` only fires client-side; `no_slowdown` stays bespoke pending a slowdown-source DSL. `less_item_use_slowdown` alias is lossy for `item_type != "any"` (the item-type filter drops).
 
-**Condition passive (done):** Six legacy environmental passives aliased to `condition_passive` by composing existing ConditionParser verbs (`neoneoorigins:biome` tag, `neoneoorigins:exposed_to_sun`, `neoneoorigins:relative_health`, `neoneoorigins:submerged_in`, combined via `neoneoorigins:and` / `neoneoorigins:or` / `neoneoorigins:not`) with ActionParser verbs (`neoneoorigins:apply_effect`, `neoneoorigins:damage`, `neoneoorigins:set_on_fire`, `neoneoorigins:heal`):
+**Condition passive (done):** Six legacy environmental passives aliased to `condition_passive` by composing existing ConditionParser verbs (`origins:biome` tag, `origins:exposed_to_sun`, `origins:relative_health`, `origins:submerged_in`, combined via `origins:and` / `origins:or` / `origins:not`) with ActionParser verbs (`origins:apply_effect`, `origins:damage`, `origins:set_on_fire`, `origins:heal`):
 - `biome_buff`, `damage_in_biome`, `damage_in_daylight`, `damage_in_water`, `burn_at_health_threshold`, and `regen_in_fluid` (reassigned from Phase 2).
 Four legacy types stay standalone because they don't fit a tick-condition model: `mobs_ignore_player` + `no_mob_spawns_nearby` are event interceptors; `item_magnetism` needs a `pull_items` DSL verb; `breath_in_fluid` needs a `drain_air` verb.
 
@@ -174,9 +169,9 @@ Collapses 26 modifier/action hook powers into `action_on_event`.
 - `more_smoker_xp` — no furnace XP event in NeoForge 21.11.38
 
 **Known alias lossiness — all three fixed via context-aware DSL extensions:**
-- `thorns_aura`: the `neoneoorigins:damage_attacker` action now accepts an `amount_ratio` field that reads `HitTakenContext.amount` and applies the ratio faithfully (min 0.5). Alias maps `return_ratio` → `amount_ratio`.
-- `action_on_hit_taken`: `min_damage` now wraps the inner action in `neoneoorigins:if_else` gated by a new `neoorigins:hit_taken_amount` context-aware condition.
-- `food_restriction`: item-tag filter is expressed via a new `neoneoorigins:food_item_in_tag` context-aware condition that reads `FoodContext.stack`. Whitelist mode wraps it in `neoneoorigins:not`.
+- `thorns_aura`: the `neoorigins:damage_attacker` action now accepts an `amount_ratio` field that reads `HitTakenContext.amount` and applies the ratio faithfully (min 0.5). Alias maps `return_ratio` → `amount_ratio`.
+- `action_on_hit_taken`: `min_damage` now wraps the inner action in `origins:if_else` gated by a new `neoorigins:hit_taken_amount` context-aware condition.
+- `food_restriction`: item-tag filter is expressed via a new `neoorigins:food_item_in_tag` context-aware condition that reads `FoodContext.stack`. Whitelist mode wraps it in `origins:not`.
 
 ### Phase 7 — Legacy class retirement (in progress)
 

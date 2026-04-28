@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/origin_layer.schema.json",
+  "title": "NeoOrigins Origin Layer",
+  "description": "A picker layer — ordered list of origin IDs the player can select from. File path: data/<namespace>/origins/origin_layers/<layer>.json. Use namespace=neoorigins, layer=origin to merge into the main picker tab.",
+  "type": "object",
+  "required": ["origins"],
+  "properties": {
+    "origins": {
+      "description": "Ordered list of origin IDs (namespace:path). First entry is the default selection.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+      "minItems": 1
+    },
+    "name": {
+      "description": "Optional display name for this layer (translation key or literal).",
+      "type": "string"
+    },
+    "order": {
+      "description": "Lower values render earlier in the picker. Default 0.",
+      "type": "integer"
+    },
+    "replace": {
+      "description": "If true, this file fully replaces earlier definitions of the same layer ID from lower-priority datapacks. Default false (merge).",
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

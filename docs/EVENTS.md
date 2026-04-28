@@ -1,8 +1,3 @@
----
-title: Events
-nav_order: 9
----
-
 # NeoOrigins 2.0 `action_on_event` Event Reference
 
 `neoorigins:action_on_event` listens for one of the event keys below. When the
@@ -39,7 +34,7 @@ shape.
 block-shaped (`block_break`, `block_place`, `block_use`). The dispatch
 `BlockPos` is extracted from the event context and the predicate is evaluated
 before the action runs. Supports `block` / `id` / `tag` fields, e.g.
-`{ "type": "neoneoorigins:block", "id": "minecraft:stone" }`. On non-block events
+`{ "type": "neoorigins:block", "id": "minecraft:stone" }`. On non-block events
 the field is silently ignored. Use this instead of (or in addition to)
 `condition` when you want to filter by what was broken/placed/used:
 
@@ -47,17 +42,17 @@ the field is silently ignored. Use this instead of (or in addition to)
 {
   "type": "neoorigins:action_on_event",
   "event": "block_break",
-  "block_condition": { "type": "neoneoorigins:block", "id": "minecraft:stone" },
+  "block_condition": { "type": "neoorigins:block", "id": "minecraft:stone" },
   "entity_action": {
-    "type": "neoneoorigins:drop_items",
+    "type": "neoorigins:drop_items",
     "items": [{ "item": "minecraft:emerald", "chance": 0.05 }]
   }
 }
 ```
 
 The event's context is published to `ActionContextHolder` for the duration of
-the dispatch so context-aware action verbs (`neoneoorigins:damage_attacker`,
-`neoorigins:cancel_event`, `neoneoorigins:food_item_in_tag`, ...) can read it
+the dispatch so context-aware action verbs (`neoorigins:damage_attacker`,
+`neoorigins:cancel_event`, `neoorigins:food_item_in_tag`, ...) can read it
 without needing to be parameterised at JSON authoring time.
 
 ---
@@ -88,7 +83,7 @@ Fires when the player takes damage (post-cancel, before final apply).
 
 **Context:** `HitTakenContext(amount, source)` — the amount is the vanilla-
 adjusted damage and the `DamageSource` is the original source. Action verbs
-like `neoneoorigins:damage_attacker` read `amount` for amount-ratio thorns-style
+like `neoorigins:damage_attacker` read `amount` for amount-ratio thorns-style
 retaliation.
 
 **Dispatch site:** `CombatPowerEvents.onLivingDamage` (`LivingIncomingDamage`
@@ -245,7 +240,7 @@ component. **Cancellable** via `neoorigins:cancel_event`.
 
 **Context:** `FoodContext(stack, event)` — the food `ItemStack` plus the
 underlying `LivingEntityUseItemEvent.Start` (so `cancel_event` can veto the
-eat). `neoneoorigins:food_item_in_tag` reads the stack.
+eat). `neoorigins:food_item_in_tag` reads the stack.
 
 **Dispatch site:** `MovementPowerEvents.onItemUseStart` (only dispatched
 when the stack has a FOOD component).
@@ -533,6 +528,22 @@ and mod teleports are not routed through this event.
 
 ---
 
+## `mod_xp_gain`
+
+Scales experience points gained from any source (mob kills, ore drops,
+bottles, etc.).
+
+**Context:** `null`. Base value is `event.getAmount()` from
+`PlayerXpEvent.XpChange`.
+
+**Dispatch site:** `CompatEventPowers.onXpChange`.
+
+**Typical use:** scholar class 1.5× XP, cursed class 0.5× XP. Uses
+Apoli modifier math (addition + multiply_base/multiply_total collapse
+via `NumericModifierRegistry`).
+
+---
+
 # Previously unwired — now removed
 
 The earlier draft enum included 15 keys that were parseable in JSON but had
@@ -540,7 +551,7 @@ The earlier draft enum included 15 keys that were parseable in JSON but had
 for pack authors than not offering it, so they were removed from the enum
 rather than left as silent no-ops: `CLIMB`, `CRAFT_ITEM`, `SMELT_ITEM`,
 `ENCHANT_ITEM`, `ANVIL_REPAIR`, `BREED`, `TAME`, `ADVANCEMENT_EARNED`,
-`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`, `MOD_XP_GAIN`,
+`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`,
 `MOD_TRADE_PRICE`, `MOD_CRAFT_AMOUNT`, `MOD_FALL_DAMAGE`. Several of these
 remain useful and will be added back the same day their dispatch site
 lands. If you need one for a pack you're building, file an issue and the
