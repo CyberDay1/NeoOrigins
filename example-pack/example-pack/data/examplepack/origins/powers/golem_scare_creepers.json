@@ -1,6 +1,0 @@
-{
-  "type": "neoorigins:scare_entities",
-  "entity_types": ["minecraft:creeper"],
-  "name": "power.examplepack.golem_scare_creepers.name",
-  "description": "power.examplepack.golem_scare_creepers.description"
-}
