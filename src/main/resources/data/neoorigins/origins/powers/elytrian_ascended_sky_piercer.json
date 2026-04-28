@@ -1,0 +1,1 @@
+{ "type": "neoorigins:modify_damage", "direction": "out", "multiplier": 1.5, "damage_type": "spear,trident" }

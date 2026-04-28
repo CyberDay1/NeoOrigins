@@ -263,6 +263,13 @@ public class CombatPowerEvents {
      */
     public static boolean matchesDamageType(net.minecraft.world.damagesource.DamageSource source, String filter) {
         if (filter == null || filter.isEmpty()) return true;
+        // Support comma-separated damage types: "spear,trident" matches either
+        if (filter.contains(",")) {
+            for (String part : filter.split(",")) {
+                if (matchesDamageType(source, part.trim())) return true;
+            }
+            return false;
+        }
         if (filter.startsWith("#")) {
             var tag = DAMAGE_TAG_CACHE.computeIfAbsent(filter, f -> TagKey.create(
                 Registries.DAMAGE_TYPE, ResourceLocation.parse(f.substring(1))));
