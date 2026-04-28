@@ -556,6 +556,45 @@ public final class NeoOriginsConfig {
     public static boolean ffProtectVillagers()   { return FF_PROTECT_VILLAGERS.get(); }
     public static boolean ffProtectIronGolems()  { return FF_PROTECT_IRON_GOLEMS.get(); }
 
+    // ── Armor Classes ───────────────────────────────────────────────────
+    // Configurable armor categories used by restrict_armor powers.
+    // Items can be specified as item IDs (e.g. "minecraft:diamond_helmet")
+    // or tags (e.g. "#minecraft:trimmable_armor"). These lists supplement
+    // the neoorigins:heavy_armor and neoorigins:light_armor item tags —
+    // items in EITHER the tag or the config list are considered part of
+    // that armor class.
+
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> HEAVY_ARMOR_ITEMS;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> LIGHT_ARMOR_ITEMS;
+
+    static {
+        BUILDER.comment(
+            "Armor class definitions. Items listed here are ADDED to the",
+            "neoorigins:heavy_armor / neoorigins:light_armor item tags.",
+            "Use this to add modded armor to the correct class without a datapack.",
+            "Format: item IDs (e.g. \"modid:my_helmet\") or tags (e.g. \"#modid:my_armor_tag\")."
+        ).push("armor_classes");
+
+        HEAVY_ARMOR_ITEMS = BUILDER
+            .comment("Additional items/tags to treat as heavy armor.",
+                     "Default heavy armor (diamond + netherite) is defined in the",
+                     "neoorigins:heavy_armor item tag and does not need to be listed here.")
+            .defineListAllowEmpty("heavy_armor", List.of(), () -> "", o -> o instanceof String);
+
+        LIGHT_ARMOR_ITEMS = BUILDER
+            .comment("Additional items/tags to treat as light armor.",
+                     "Default light armor (leather + chainmail) is defined in the",
+                     "neoorigins:light_armor item tag and does not need to be listed here.")
+            .defineListAllowEmpty("light_armor", List.of(), () -> "", o -> o instanceof String);
+
+        BUILDER.pop();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> getHeavyArmorItems() { return (List<String>) (List<?>) HEAVY_ARMOR_ITEMS.get(); }
+    @SuppressWarnings("unchecked")
+    public static List<String> getLightArmorItems() { return (List<String>) (List<?>) LIGHT_ARMOR_ITEMS.get(); }
+
     // ── Essence Evolution ───────────────────────────────────────────────
     // Origins can evolve through 3 tiers by accumulating mob kills.
 

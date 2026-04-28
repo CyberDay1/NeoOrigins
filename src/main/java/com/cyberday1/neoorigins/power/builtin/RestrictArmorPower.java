@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
@@ -12,6 +13,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -56,8 +58,39 @@ public class RestrictArmorPower extends PowerType<RestrictArmorPower.Config> {
             if (r.tag().isPresent()) {
                 TagKey<Item> tag = TagKey.create(Registries.ITEM, r.tag().get());
                 if (stack.is(tag)) return true;
+                // Also check config-defined armor class extensions
+                if (matchesConfigArmorClass(stack, r.tag().get())) return true;
             }
             if (r.item().isEmpty() && r.tag().isEmpty()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if the stack matches any item in the config-defined armor class
+     * list that extends the given tag. Only applies to neoorigins:heavy_armor
+     * and neoorigins:light_armor tags.
+     */
+    private static boolean matchesConfigArmorClass(ItemStack stack, ResourceLocation tagId) {
+        List<String> configItems;
+        if (tagId.equals(ResourceLocation.fromNamespaceAndPath("neoorigins", "heavy_armor"))) {
+            configItems = NeoOriginsConfig.getHeavyArmorItems();
+        } else if (tagId.equals(ResourceLocation.fromNamespaceAndPath("neoorigins", "light_armor"))) {
+            configItems = NeoOriginsConfig.getLightArmorItems();
+        } else {
+            return false;
+        }
+
+        ResourceLocation stackId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        for (String entry : configItems) {
+            if (entry.startsWith("#")) {
+                // Tag reference
+                TagKey<Item> extraTag = TagKey.create(Registries.ITEM, ResourceLocation.parse(entry.substring(1)));
+                if (stack.is(extraTag)) return true;
+            } else {
+                // Item ID
+                if (stackId.equals(ResourceLocation.parse(entry))) return true;
+            }
         }
         return false;
     }
