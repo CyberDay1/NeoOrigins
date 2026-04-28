@@ -28,7 +28,7 @@ PowerDataManager  OriginsCompat     OriginDataManager  LayerDataManager
 
 Why this order?
 - `OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP` is populated during `power_data`.
-- `OriginDataManager` reads this map to rewrite `origins:multiple` power references.
+- `OriginDataManager` reads this map to rewrite `neoorigins:multiple` power references.
 - `LayerDataManager` reads origin IDs which must already exist in `OriginDataManager`.
 
 ### Path scanning (each manager checks both formats)
@@ -45,7 +45,7 @@ Native-format files win on ID collision.
 
 ## Compat Translation Layer
 
-When a power JSON has an `origins:` or `apace:` type namespace it is processed before codec
+When a power JSON has an `neoorigins:` or `apace:` type namespace it is processed before codec
 parsing. There are two translation routes:
 
 ### Route A — Static JSON Rewrite (`OriginsPowerTranslator`)

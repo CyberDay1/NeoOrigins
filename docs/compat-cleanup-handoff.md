@@ -11,16 +11,16 @@
 - `parse(null, contextId)` now fails closed instead of returning `alwaysTrue()`.
 - Unknown condition types still fail closed, but now use a shared `failClosed(...)` helper for consistent logging.
 - Parse exceptions now route through `failClosed(...)` for the same logging/policy path.
-- `origins:not` without a valid `condition` object now fails closed instead of negating `alwaysTrue()`.
-- `origins:resource` without a valid `resource` field now fails closed.
-- `origins:power_active` without a valid `power` field now fails closed.
-- `origins:on_block` without a valid `block_condition` object or `block_condition.id` now fails closed.
+- `neoneoorigins:not` without a valid `condition` object now fails closed instead of negating `alwaysTrue()`.
+- `neoorigins:resource` without a valid `resource` field now fails closed.
+- `neoorigins:power_active` without a valid `power` field now fails closed.
+- `neoorigins:on_block` without a valid `block_condition` object or `block_condition.id` now fails closed.
 
 #### ActionParser changes
 - `parse(null, contextId)` now returns a logged no-op through a shared `failNoop(...)` helper.
 - Unknown action types and parse exceptions now use `failNoop(...)` for consistent logging.
-- `origins:if_else` without a valid `condition` object now defaults to `CompatPolicy.FALSE_CONDITION`, which means the `else_action` path runs instead of the `if_action` path.
-- `origins:if_else_list` branches without a valid `condition` object now use `CompatPolicy.FALSE_CONDITION`, so malformed branches are skipped.
+- `neoneoorigins:if_else` without a valid `condition` object now defaults to `CompatPolicy.FALSE_CONDITION`, which means the `else_action` path runs instead of the `if_action` path.
+- `neoneoorigins:if_else_list` branches without a valid `condition` object now use `CompatPolicy.FALSE_CONDITION`, so malformed branches are skipped.
 - Added an explicit comment on `execute_command` clarifying that commands run with the player's own permissions, not elevated server privileges.
 
 #### package-info cleanup

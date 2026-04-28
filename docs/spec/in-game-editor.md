@@ -236,7 +236,7 @@ Swap by config flag. **No other class touches the lib choice.**
 
 ```java
 public final class DslNode {
-    Identifier typeId;                                 // "neoorigins:and", "neoorigins:in_water", ...
+    Identifier typeId;                                 // "neoneoorigins:and", "neoneoorigins:in_water", ...
     Map<String, Object> fields = new LinkedHashMap<>();// preserves order on round-trip
     List<DslNode> children = new ArrayList<>();        // for and/or/not; empty on leaves
     DslNode parent;
@@ -419,7 +419,7 @@ Client-side: new `ClientPreviewState` parallel to `ClientOriginState` / `ClientP
 - `SchemaRegistry` / `JsonSchemaToFormSpec` — `formForPowerType(typeId)` extracting the matching `oneOf` branch and merging top-level common fields
 
 **Risks:**
-- Compat-namespace powers (`origins:*`, `apoli:*`, `apace:*`, `apugli:*`) translate via `OriginsPowerTranslator`; the reverse path doesn't exist. **Decision: only `neoorigins:*` powers are editable in the form. Compat powers display read-only with explanation.**
+- Compat-namespace powers (`neoorigins:*`, `apoli:*`, `apace:*`, `apugli:*`) translate via `OriginsPowerTranslator`; the reverse path doesn't exist. **Decision: only `neoorigins:*` powers are editable in the form. Compat powers display read-only with explanation.**
 
 ### Phase 3 — DSL composition
 
@@ -478,7 +478,7 @@ Either way, this is a Phase-3 prerequisite, **not a free part of Phase 3.**
 | 3 | Existing `OriginEditorScreen` (creative-only relayer/toggle) — retire or keep? | **Keep for one release**, demote to "/origin editor" runtime tool. Don't conflate with the new pack editor. Audit for retirement after the new tool proves out. |
 | 4 | Lang-key handling — auto-write `en_us.json` entries or require user to edit by hand? | **Auto-write.** "Display name" field writes both the JSON `"name"` lang key reference and the matching `en_us.json` entry. |
 | 5 | After save, auto-grant the edited origin to the editing player, or require re-pick? | **Re-pick.** Avoids state surprises; the picker is one click away. |
-| 6 | `origins:multiple` synthetic power expansion — round-trip? | Editor refuses to save `origins:multiple` directly; user edits the contained children. View of "loaded powers" filters out synthetics via `OriginsMultipleExpander.isSynthetic(id)` (method to add). |
+| 6 | `neoorigins:multiple` synthetic power expansion — round-trip? | Editor refuses to save `neoorigins:multiple` directly; user edits the contained children. View of "loaded powers" filters out synthetics via `OriginsMultipleExpander.isSynthetic(id)` (method to add). |
 | 7 | JSON comment preservation on edit-then-save? | **Lost.** Surface in "Open existing pack" warning. Comment preservation requires switching JSON parser (e.g. Jankson) — not worth it for v1. |
 
 ---
