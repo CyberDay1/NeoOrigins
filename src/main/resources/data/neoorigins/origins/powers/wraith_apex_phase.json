@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:wraith_phase",
+  "blocked_blocks": ["minecraft:bedrock"],
+  "exhaustion_per_tick": 0.075
+}

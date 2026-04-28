@@ -150,7 +150,14 @@ public final class EssenceEvolutionManager {
             return;
         }
 
+        // Compute power diff before changing tier
+        var oldPowers = getEffectivePowers(player, data, currentTier);
         data.setEvolutionTier(nextTier);
+        var newPowers = getEffectivePowers(player, data, nextTier);
+
+        // Revoke removed powers, grant added powers
+        applyPowerDiff(player, oldPowers, newPowers);
+
         String tierName = TIER_NAMES[nextTier];
         ChatFormatting color = TIER_COLORS[nextTier];
 
@@ -161,12 +168,9 @@ public final class EssenceEvolutionManager {
             .append(Component.literal("!")
                 .withStyle(ChatFormatting.WHITE)));
 
-        // Sync updated evolution state to client
+        // Sync updated evolution state + powers to client
         com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncEvolutionToPlayer(player);
-
-        // TODO: swap origin to evolved variant + apply name prefix
-        // For now, the tier is persisted and powers can check it via
-        // PlayerOriginData.getEvolutionTier()
+        com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
     }
 
     /**
@@ -185,5 +189,47 @@ public final class EssenceEvolutionManager {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int tier = data.getEvolutionTier();
         return tier > 0 && tier < TIER_NAMES.length ? TIER_NAMES[tier] + " " : "";
+    }
+
+    // ── Power diff helpers ─────────────────────────────────────────────
+
+    /**
+     * Collects the effective power set for a player at a given tier,
+     * across all origin layers (excluding class layer).
+     */
+    private static java.util.Set<net.minecraft.resources.ResourceLocation> getEffectivePowers(
+            ServerPlayer player, PlayerOriginData data, int tier) {
+        java.util.Set<net.minecraft.resources.ResourceLocation> powers = new java.util.LinkedHashSet<>();
+        for (var entry : data.getOrigins().entrySet()) {
+            if (net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("neoorigins", "class")
+                    .equals(entry.getKey())) continue;
+            var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin == null) continue;
+            powers.addAll(origin.powersForTier(tier));
+        }
+        return powers;
+    }
+
+    /**
+     * Revokes powers that are in oldPowers but not newPowers, and grants
+     * powers that are in newPowers but not oldPowers.
+     */
+    private static void applyPowerDiff(ServerPlayer player,
+            java.util.Set<net.minecraft.resources.ResourceLocation> oldPowers,
+            java.util.Set<net.minecraft.resources.ResourceLocation> newPowers) {
+        // Revoke removed
+        for (var powerId : oldPowers) {
+            if (!newPowers.contains(powerId)) {
+                var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(powerId);
+                if (holder != null) holder.onRevoked(player);
+            }
+        }
+        // Grant added
+        for (var powerId : newPowers) {
+            if (!oldPowers.contains(powerId)) {
+                var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(powerId);
+                if (holder != null) holder.onGranted(player);
+            }
+        }
     }
 }
