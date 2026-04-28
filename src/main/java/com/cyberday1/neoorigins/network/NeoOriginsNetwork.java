@@ -18,6 +18,7 @@ import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
+import com.cyberday1.neoorigins.network.payload.SyncMoisturePayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.api.origin.Origin;
@@ -74,6 +75,12 @@ public class NeoOriginsNetwork {
             SyncCooldownPayload.TYPE,
             SyncCooldownPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncCooldown
+        );
+
+        registrar.playToClient(
+            SyncMoisturePayload.TYPE,
+            SyncMoisturePayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncMoisture
         );
 
         registrar.playToClient(
@@ -179,6 +186,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncCooldown(SyncCooldownPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientCooldownState.set(payload.slot(), payload.totalTicks(), payload.remainingTicks())
+        );
+    }
+
+    private static void handleSyncMoisture(SyncMoisturePayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientMoistureState.set(payload.moisture())
         );
     }
 
