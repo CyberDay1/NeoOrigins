@@ -27,7 +27,7 @@
       "tier": 2,
       "add": [
         "neoorigins:piglin_ascended_hp",
-        "neoorigins:piglin_ascended_armor"
+        "neoorigins:piglin_ascended_brute_rage"
       ],
       "remove": [
         "neoorigins:piglin_evolved_hp"

@@ -2012,5 +2012,26 @@
   "power.neoorigins.water_mage_apex_hp.name": "Apex Vitality",
   "power.neoorigins.water_mage_apex_hp.description": "+6 max health.",
   "power.neoorigins.water_mage_apex_conduit_power.name": "Conduit Blessing",
-  "power.neoorigins.water_mage_apex_conduit_power.description": "Permanent Conduit Power."
+  "power.neoorigins.water_mage_apex_conduit_power.description": "Permanent Conduit Power.",
+
+  "power.neoorigins.verdant_ascended_thorns.name": "Thorny Skin",
+  "power.neoorigins.verdant_ascended_thorns.description": "Attackers take 2 damage when they hit you.",
+  "power.neoorigins.cinderborn_ascended_ember_shield.name": "Ember Shield",
+  "power.neoorigins.cinderborn_ascended_ember_shield.description": "Melee attackers take 1 damage and catch fire for 3 seconds.",
+  "power.neoorigins.umbral_ascended_shadow_meld.name": "Shadow Meld",
+  "power.neoorigins.umbral_ascended_shadow_meld.description": "You become invisible in light level 4 or below.",
+  "power.neoorigins.darkness_mage_ascended_shadow_cloak.name": "Shadow Cloak",
+  "power.neoorigins.darkness_mage_ascended_shadow_cloak.description": "You become invisible in light level 4 or below.",
+  "power.neoorigins.automaton_ascended_overclock.name": "Overclock",
+  "power.neoorigins.automaton_ascended_overclock.description": "When below 50% HP, gain Speed I and Haste I.",
+  "power.neoorigins.revenant_ascended_undying_will.name": "Undying Will",
+  "power.neoorigins.revenant_ascended_undying_will.description": "Below 25% HP, gain Strength II and Resistance I.",
+  "power.neoorigins.piglin_ascended_brute_rage.name": "Brute Rage",
+  "power.neoorigins.piglin_ascended_brute_rage.description": "Below 30% HP, gain Strength II.",
+  "power.neoorigins.inchling_apex_dodge.name": "Lilliputian Dodge",
+  "power.neoorigins.inchling_apex_dodge.description": "15% chance to dodge any incoming damage.",
+  "power.neoorigins.tiny_apex_evasion.name": "Evasion",
+  "power.neoorigins.tiny_apex_evasion.description": "20% chance to dodge any incoming damage.",
+  "power.neoorigins.phantom_apex_spectral_dodge.name": "Spectral Dodge",
+  "power.neoorigins.phantom_apex_spectral_dodge.description": "10% chance to phase through incoming damage."
 }

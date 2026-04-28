@@ -26,7 +26,7 @@
       "tier": 2,
       "add": [
         "neoorigins:revenant_ascended_hp",
-        "neoorigins:revenant_ascended_armor"
+        "neoorigins:revenant_ascended_undying_will"
       ],
       "remove": [
         "neoorigins:revenant_evolved_hp"
@@ -41,7 +41,7 @@
       ],
       "remove": [
         "neoorigins:revenant_ascended_hp",
-        "neoorigins:revenant_ascended_armor"
+        "neoorigins:revenant_ascended_undying_will"
       ]
     }
   ]

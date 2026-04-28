@@ -25,7 +25,7 @@
       "tier": 2,
       "add": [
         "neoorigins:darkness_mage_ascended_hp",
-        "neoorigins:darkness_mage_ascended_night_vision"
+        "neoorigins:darkness_mage_ascended_shadow_cloak"
       ],
       "remove": [
         "neoorigins:darkness_mage_evolved_hp"

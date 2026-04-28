@@ -39,7 +39,8 @@
       "tier": 3,
       "add": [
         "neoorigins:phantom_apex_hp",
-        "neoorigins:phantom_apex_daylight"
+        "neoorigins:phantom_apex_daylight",
+        "neoorigins:phantom_apex_spectral_dodge"
       ],
       "remove": [
         "neoorigins:phantom_ascended_hp",

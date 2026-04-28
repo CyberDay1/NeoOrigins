@@ -29,7 +29,7 @@
       "tier": 2,
       "add": [
         "neoorigins:automaton_ascended_hp",
-        "neoorigins:automaton_ascended_armor"
+        "neoorigins:automaton_ascended_overclock"
       ],
       "remove": [
         "neoorigins:automaton_evolved_hp"

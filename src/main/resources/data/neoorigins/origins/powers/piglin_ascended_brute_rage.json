@@ -1,0 +1,1 @@
+{ "type": "neoorigins:low_hp_threshold", "threshold": 0.3, "effects": [ { "effect": "minecraft:strength", "amplifier": 1 } ] }

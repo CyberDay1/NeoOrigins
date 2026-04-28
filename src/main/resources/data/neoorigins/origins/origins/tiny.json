@@ -36,7 +36,7 @@
       "tier": 3,
       "add": [
         "neoorigins:tiny_apex_hp",
-        "neoorigins:tiny_apex_jump_boost"
+        "neoorigins:tiny_apex_evasion"
       ],
       "remove": [
         "neoorigins:tiny_ascended_hp"

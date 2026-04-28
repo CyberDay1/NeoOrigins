@@ -35,7 +35,7 @@
       "tier": 3,
       "add": [
         "neoorigins:inchling_apex_hp",
-        "neoorigins:inchling_apex_slow_falling"
+        "neoorigins:inchling_apex_dodge"
       ],
       "remove": [
         "neoorigins:inchling_ascended_hp"

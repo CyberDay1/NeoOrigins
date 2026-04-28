@@ -25,7 +25,7 @@
       "tier": 2,
       "add": [
         "neoorigins:verdant_ascended_hp",
-        "neoorigins:verdant_ascended_speed"
+        "neoorigins:verdant_ascended_thorns"
       ],
       "remove": [
         "neoorigins:verdant_evolved_hp"

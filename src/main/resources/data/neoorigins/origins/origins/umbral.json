@@ -25,7 +25,7 @@
       "tier": 2,
       "add": [
         "neoorigins:umbral_ascended_hp",
-        "neoorigins:umbral_ascended_night_vision"
+        "neoorigins:umbral_ascended_shadow_meld"
       ],
       "remove": [
         "neoorigins:umbral_evolved_hp"
