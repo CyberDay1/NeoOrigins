@@ -14,5 +14,38 @@
     "neoorigins:vampire_food_restriction",
     "neoorigins:vampire_water_weakness"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:vampire_evolved_attack",
+        "neoorigins:vampire_evolved_speed"
+      ],
+      "remove": [
+        "neoorigins:vampire_attack_bonus",
+        "neoorigins:vampire_speed_boost"
+      ]
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:vampire_ascended_daylight"
+      ],
+      "remove": [
+        "neoorigins:vampire_daylight_damage"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:vampire_apex_attack",
+        "neoorigins:vampire_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:vampire_evolved_attack",
+        "neoorigins:vampire_ascended_daylight"
+      ]
+    }
+  ]
 }

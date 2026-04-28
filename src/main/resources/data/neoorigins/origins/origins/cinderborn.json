@@ -15,5 +15,34 @@
     "neoorigins:cinderborn_scare_mobs",
     "neoorigins:nether_fungus_diet"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:cinderborn_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:cinderborn_ascended_hp",
+        "neoorigins:cinderborn_ascended_armor"
+      ],
+      "remove": [
+        "neoorigins:cinderborn_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:cinderborn_apex_hp",
+        "neoorigins:cinderborn_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:cinderborn_ascended_hp"
+      ]
+    }
+  ]
 }

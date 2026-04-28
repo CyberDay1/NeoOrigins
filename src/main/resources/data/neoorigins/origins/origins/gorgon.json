@@ -13,5 +13,34 @@
     "neoorigins:gorgon_size",
     "neoorigins:gorgon_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:gorgon_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:gorgon_ascended_hp",
+        "neoorigins:gorgon_ascended_armor"
+      ],
+      "remove": [
+        "neoorigins:gorgon_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:gorgon_apex_hp",
+        "neoorigins:gorgon_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:gorgon_ascended_hp"
+      ]
+    }
+  ]
 }

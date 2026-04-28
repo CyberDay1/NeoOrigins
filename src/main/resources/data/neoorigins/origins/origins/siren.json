@@ -16,6 +16,35 @@
     "neoorigins:siren_dries_out"
   ],
   "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:siren_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:siren_ascended_hp",
+        "neoorigins:siren_ascended_swim_speed"
+      ],
+      "remove": [
+        "neoorigins:siren_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:siren_apex_hp",
+        "neoorigins:siren_apex_dolphins_grace"
+      ],
+      "remove": [
+        "neoorigins:siren_ascended_hp"
+      ]
+    }
+  ],
   "spawn_location": {
     "dimension": "minecraft:overworld",
     "biome_tag": "minecraft:is_ocean",

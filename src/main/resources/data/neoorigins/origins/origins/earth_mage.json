@@ -12,5 +12,36 @@
     "neoorigins:earth_mage_heavy",
     "neoorigins:earth_mage_earthbound"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:earth_mage_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:earth_mage_ascended_hp",
+        "neoorigins:earth_mage_ascended_armor",
+        "neoorigins:earth_mage_ascended_knockback_resist"
+      ],
+      "remove": [
+        "neoorigins:earth_mage_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:earth_mage_apex_hp",
+        "neoorigins:earth_mage_apex_armor"
+      ],
+      "remove": [
+        "neoorigins:earth_mage_ascended_hp",
+        "neoorigins:earth_mage_ascended_armor"
+      ]
+    }
+  ]
 }

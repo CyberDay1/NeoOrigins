@@ -14,5 +14,34 @@
     "neoorigins:enderite_daylight_weakness",
     "neoorigins:enderite_attack_bonus"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:enderite_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:enderite_ascended_hp",
+        "neoorigins:enderite_ascended_speed"
+      ],
+      "remove": [
+        "neoorigins:enderite_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:enderite_apex_hp",
+        "neoorigins:enderite_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:enderite_ascended_hp"
+      ]
+    }
+  ]
 }

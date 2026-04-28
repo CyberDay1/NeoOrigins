@@ -12,5 +12,34 @@
     "neoorigins:inchling_speed_boost",
     "neoorigins:inchling_hunger_efficiency"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:inchling_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:inchling_ascended_hp",
+        "neoorigins:inchling_ascended_speed"
+      ],
+      "remove": [
+        "neoorigins:inchling_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:inchling_apex_hp",
+        "neoorigins:inchling_apex_slow_falling"
+      ],
+      "remove": [
+        "neoorigins:inchling_ascended_hp"
+      ]
+    }
+  ]
 }

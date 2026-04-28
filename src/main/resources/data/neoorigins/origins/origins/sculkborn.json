@@ -16,5 +16,34 @@
     "neoorigins:sculkborn_slow_movement",
     "neoorigins:sculkborn_reduced_health"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:sculkborn_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:sculkborn_ascended_hp",
+        "neoorigins:sculkborn_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:sculkborn_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:sculkborn_apex_hp",
+        "neoorigins:sculkborn_apex_armor"
+      ],
+      "remove": [
+        "neoorigins:sculkborn_ascended_hp"
+      ]
+    }
+  ]
 }

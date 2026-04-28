@@ -14,5 +14,34 @@
     "neoorigins:piglin_soul_fire_damage",
     "neoorigins:nether_fungus_diet"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:piglin_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:piglin_ascended_hp",
+        "neoorigins:piglin_ascended_armor"
+      ],
+      "remove": [
+        "neoorigins:piglin_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:piglin_apex_hp",
+        "neoorigins:piglin_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:piglin_ascended_hp"
+      ]
+    }
+  ]
 }

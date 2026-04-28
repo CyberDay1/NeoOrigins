@@ -12,5 +12,34 @@
     "neoorigins:gravity_mage_unmoored",
     "neoorigins:gravity_mage_frail"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:gravity_mage_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:gravity_mage_ascended_hp",
+        "neoorigins:gravity_mage_ascended_slow_falling"
+      ],
+      "remove": [
+        "neoorigins:gravity_mage_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:gravity_mage_apex_hp",
+        "neoorigins:gravity_mage_apex_jump_boost"
+      ],
+      "remove": [
+        "neoorigins:gravity_mage_ascended_hp"
+      ]
+    }
+  ]
 }

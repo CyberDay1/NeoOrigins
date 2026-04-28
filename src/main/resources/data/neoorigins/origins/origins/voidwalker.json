@@ -12,5 +12,35 @@
     "neoorigins:voidwalker_water_damage",
     "neoorigins:voidwalker_no_hunger_sprint"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:voidwalker_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:voidwalker_ascended_hp",
+        "neoorigins:voidwalker_ascended_fall_resist"
+      ],
+      "remove": [
+        "neoorigins:voidwalker_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:voidwalker_apex_hp",
+        "neoorigins:voidwalker_apex_fall_immunity"
+      ],
+      "remove": [
+        "neoorigins:voidwalker_ascended_hp",
+        "neoorigins:voidwalker_ascended_fall_resist"
+      ]
+    }
+  ]
 }

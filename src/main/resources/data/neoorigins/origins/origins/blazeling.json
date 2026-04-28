@@ -16,6 +16,32 @@
     "neoorigins:nether_fungus_diet"
   ],
   "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:blazeling_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:blazeling_ascended_fire_resistance"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:blazeling_apex_hp"
+      ],
+      "remove": [
+        "neoorigins:blazeling_evolved_hp",
+        "neoorigins:blazeling_water_damage"
+      ]
+    }
+  ],
   "spawn_location": {
     "dimension": "minecraft:the_nether"
   }

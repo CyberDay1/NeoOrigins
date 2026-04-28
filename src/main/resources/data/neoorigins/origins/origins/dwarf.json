@@ -14,5 +14,34 @@
     "neoorigins:dwarf_mining_hunger",
     "neoorigins:dwarf_starting_pickaxe"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:dwarf_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:dwarf_ascended_hp",
+        "neoorigins:dwarf_ascended_haste"
+      ],
+      "remove": [
+        "neoorigins:dwarf_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:dwarf_apex_hp",
+        "neoorigins:dwarf_apex_armor"
+      ],
+      "remove": [
+        "neoorigins:dwarf_ascended_hp"
+      ]
+    }
+  ]
 }

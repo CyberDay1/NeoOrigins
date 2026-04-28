@@ -11,5 +11,34 @@
     "neoorigins:tamer_weak_alone",
     "neoorigins:tamer_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:monster_tamer_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:monster_tamer_ascended_hp",
+        "neoorigins:monster_tamer_ascended_armor"
+      ],
+      "remove": [
+        "neoorigins:monster_tamer_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:monster_tamer_apex_hp",
+        "neoorigins:monster_tamer_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:monster_tamer_ascended_hp"
+      ]
+    }
+  ]
 }

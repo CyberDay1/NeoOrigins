@@ -14,5 +14,34 @@
     "neoorigins:sporeling_daylight_damage",
     "neoorigins:sporeling_slow_movement"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:sporeling_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:sporeling_ascended_hp",
+        "neoorigins:sporeling_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:sporeling_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:sporeling_apex_hp",
+        "neoorigins:sporeling_apex_poison_immunity"
+      ],
+      "remove": [
+        "neoorigins:sporeling_ascended_hp"
+      ]
+    }
+  ]
 }

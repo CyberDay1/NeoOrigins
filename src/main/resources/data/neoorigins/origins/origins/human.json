@@ -5,5 +5,34 @@
   "impact": "none",
   "order": 1,
   "powers": [],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:human_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:human_ascended_hp",
+        "neoorigins:human_ascended_speed"
+      ],
+      "remove": [
+        "neoorigins:human_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:human_apex_hp",
+        "neoorigins:human_apex_luck"
+      ],
+      "remove": [
+        "neoorigins:human_ascended_hp"
+      ]
+    }
+  ]
 }

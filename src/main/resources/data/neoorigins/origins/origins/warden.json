@@ -15,5 +15,36 @@
     "neoorigins:warden_daylight_damage",
     "neoorigins:warden_lumbering"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:warden_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:warden_ascended_hp",
+        "neoorigins:warden_ascended_armor"
+      ],
+      "remove": [
+        "neoorigins:warden_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:warden_apex_hp",
+        "neoorigins:warden_apex_armor",
+        "neoorigins:warden_apex_attack_damage"
+      ],
+      "remove": [
+        "neoorigins:warden_ascended_hp",
+        "neoorigins:warden_ascended_armor"
+      ]
+    }
+  ]
 }

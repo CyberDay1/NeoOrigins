@@ -12,5 +12,34 @@
     "neoorigins:darkness_mage_sunburn",
     "neoorigins:darkness_mage_light_sensitivity"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:darkness_mage_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:darkness_mage_ascended_hp",
+        "neoorigins:darkness_mage_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:darkness_mage_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:darkness_mage_apex_hp",
+        "neoorigins:darkness_mage_apex_attack"
+      ],
+      "remove": [
+        "neoorigins:darkness_mage_ascended_hp"
+      ]
+    }
+  ]
 }

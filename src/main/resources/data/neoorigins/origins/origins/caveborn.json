@@ -22,5 +22,34 @@
     "neoorigins:caveborn_daylight_damage",
     "neoorigins:caveborn_small_frame"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:caveborn_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:caveborn_ascended_hp",
+        "neoorigins:caveborn_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:caveborn_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:caveborn_apex_hp",
+        "neoorigins:caveborn_apex_haste"
+      ],
+      "remove": [
+        "neoorigins:caveborn_ascended_hp"
+      ]
+    }
+  ]
 }

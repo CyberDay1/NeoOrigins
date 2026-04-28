@@ -15,5 +15,36 @@
     "neoorigins:draconic_water_weakness",
     "neoorigins:draconic_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:draconic_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:draconic_ascended_hp",
+        "neoorigins:draconic_ascended_attack"
+      ],
+      "remove": [
+        "neoorigins:draconic_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:draconic_apex_hp",
+        "neoorigins:draconic_apex_attack",
+        "neoorigins:draconic_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:draconic_ascended_hp",
+        "neoorigins:draconic_ascended_attack"
+      ]
+    }
+  ]
 }

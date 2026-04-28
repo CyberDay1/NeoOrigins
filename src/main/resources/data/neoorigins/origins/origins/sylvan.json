@@ -12,5 +12,34 @@
     "neoorigins:sylvan_active_root",
     "neoorigins:sylvan_nether_damage"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:sylvan_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:sylvan_ascended_hp",
+        "neoorigins:sylvan_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:sylvan_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:sylvan_apex_hp",
+        "neoorigins:sylvan_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:sylvan_ascended_hp"
+      ]
+    }
+  ]
 }

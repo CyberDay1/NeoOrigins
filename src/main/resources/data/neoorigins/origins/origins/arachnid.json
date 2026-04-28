@@ -11,5 +11,34 @@
     "neoorigins:arachnid_spiders_fang",
     "neoorigins:arachnid_cobweb_projectile"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:arachnid_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:arachnid_ascended_hp",
+        "neoorigins:arachnid_ascended_poison_immunity"
+      ],
+      "remove": [
+        "neoorigins:arachnid_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:arachnid_apex_hp",
+        "neoorigins:arachnid_apex_night_vision"
+      ],
+      "remove": [
+        "neoorigins:arachnid_ascended_hp"
+      ]
+    }
+  ]
 }

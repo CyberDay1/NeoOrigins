@@ -12,5 +12,34 @@
     "neoorigins:umbral_projectile_immunity",
     "neoorigins:umbral_no_hunger_sprint"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:umbral_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:umbral_ascended_hp",
+        "neoorigins:umbral_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:umbral_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:umbral_apex_hp",
+        "neoorigins:umbral_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:umbral_ascended_hp"
+      ]
+    }
+  ]
 }

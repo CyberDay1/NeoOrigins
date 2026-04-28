@@ -13,5 +13,36 @@
     "neoorigins:revenant_daylight_damage",
     "neoorigins:revenant_slow_regen"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:revenant_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:revenant_ascended_hp",
+        "neoorigins:revenant_ascended_armor"
+      ],
+      "remove": [
+        "neoorigins:revenant_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:revenant_apex_hp",
+        "neoorigins:revenant_apex_armor",
+        "neoorigins:revenant_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:revenant_ascended_hp",
+        "neoorigins:revenant_ascended_armor"
+      ]
+    }
+  ]
 }
