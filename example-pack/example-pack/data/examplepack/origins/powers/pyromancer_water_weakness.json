@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "multiplier": 2.5,
+  "damage_type": "drown",
+  "name": "power.examplepack.pyromancer_water_weakness.name",
+  "description": "power.examplepack.pyromancer_water_weakness.description"
+}

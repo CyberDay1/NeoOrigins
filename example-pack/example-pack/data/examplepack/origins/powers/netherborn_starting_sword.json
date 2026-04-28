@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "examplepack:netherborn_starting_sword",
+  "item": "minecraft:stone_sword",
+  "count": 1,
+  "enchantments": [
+    { "enchantment": "minecraft:fire_aspect", "level": 1 }
+  ],
+  "name": "power.examplepack.netherborn_starting_sword.name",
+  "description": "power.examplepack.netherborn_starting_sword.description"
+}

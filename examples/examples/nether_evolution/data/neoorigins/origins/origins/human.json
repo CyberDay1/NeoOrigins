@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.human.name",
+  "description": "origins.neoorigins.human.description",
+  "icon": "minecraft:apple",
+  "impact": "none",
+  "order": 1,
+  "powers": [],
+  "upgrades": [
+    {
+      "advancement": "minecraft:story/enter_the_nether",
+      "origin": "neoorigins:strider",
+      "announcement": "examples.nether_evolution.upgrade.strider"
+    }
+  ]
+}

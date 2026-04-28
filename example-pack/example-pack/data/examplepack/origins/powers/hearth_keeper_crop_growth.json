@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:crop_growth_accelerator",
+  "radius": 4,
+  "tick_interval": 60,
+  "growths_per_interval": 1,
+  "name": "power.examplepack.hearth_keeper_crop_growth.name",
+  "description": "power.examplepack.hearth_keeper_crop_growth.description"
+}

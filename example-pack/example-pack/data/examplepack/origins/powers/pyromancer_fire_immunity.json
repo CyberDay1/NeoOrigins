@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "fire",
+  "name": "power.examplepack.pyromancer_fire_immunity.name",
+  "description": "power.examplepack.pyromancer_fire_immunity.description"
+}

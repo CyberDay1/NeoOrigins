@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:status_effect",
+  "effect": "minecraft:strength",
+  "amplifier": 0,
+  "ambient": true,
+  "show_particles": false,
+  "name": "power.examplepack.pyromancer_strength.name",
+  "description": "power.examplepack.pyromancer_strength.description"
+}

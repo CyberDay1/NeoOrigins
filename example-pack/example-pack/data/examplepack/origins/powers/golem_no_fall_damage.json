@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "fall_damage",
+  "name": "power.examplepack.golem_no_fall_damage.name",
+  "description": "power.examplepack.golem_no_fall_damage.description"
+}

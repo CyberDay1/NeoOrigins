@@ -1,0 +1,23 @@
+{
+  "name": "origins.neoorigins.revenant.name",
+  "description": "origins.neoorigins.revenant.description",
+  "icon": "minecraft:rotten_flesh",
+  "impact": "medium",
+  "order": 15,
+  "powers": [
+    "neoorigins:revenant_entity_group",
+    "neoorigins:revenant_water_breathing",
+    "neoorigins:revenant_night_vision",
+    "neoorigins:revenant_active_phase",
+    "neoorigins:revenant_active_bolt",
+    "neoorigins:revenant_daylight_damage",
+    "neoorigins:revenant_slow_regen"
+  ],
+  "upgrades": [
+    {
+      "advancement": "minecraft:end/kill_dragon",
+      "origin": "neoorigins:voidwalker",
+      "announcement": "examples.dragon_slayer_chain.upgrade.voidwalker"
+    }
+  ]
+}

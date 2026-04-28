@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.movement_speed",
+  "amount": -0.2,
+  "operation": "add_multiplied_base",
+  "name": "power.examplepack.golem_slow_movement.name",
+  "description": "power.examplepack.golem_slow_movement.description"
+}

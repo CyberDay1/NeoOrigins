@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "sprint_food",
+  "name": "power.examplepack.specter_no_sprint_food.name",
+  "description": "power.examplepack.specter_no_sprint_food.description"
+}

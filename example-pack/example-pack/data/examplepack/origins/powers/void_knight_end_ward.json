@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.armor",
+  "amount": 4.0,
+  "operation": "add_value",
+  "location_condition": {
+    "dimension": "minecraft:the_end"
+  },
+  "name": "power.examplepack.void_knight_end_ward.name",
+  "description": "power.examplepack.void_knight_end_ward.description"
+}

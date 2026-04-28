@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:conditional",
+  "condition": "climbing",
+  "inner_power": "examplepack:specter_no_fall_base",
+  "name": "power.examplepack.specter_conditional_fall.name",
+  "description": "power.examplepack.specter_conditional_fall.description"
+}

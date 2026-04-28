@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:condition_passive",
+  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:speed",
+    "duration": 40,
+    "amplifier": 0,
+    "show_icon": false
+  },
+  "interval": 20,
+  "name": "power.examplepack.netherborn_nether_speed.name",
+  "description": "power.examplepack.netherborn_nether_speed.description"
+}

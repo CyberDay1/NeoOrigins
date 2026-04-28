@@ -1,0 +1,15 @@
+{
+  "name": "origins.examplepack.pyromancer.name",
+  "description": "origins.examplepack.pyromancer.description",
+  "icon": "minecraft:blaze_powder",
+  "impact": "high",
+  "order": 10,
+  "powers": [
+    "examplepack:pyromancer_fire_immunity",
+    "examplepack:pyromancer_heat_vision",
+    "examplepack:pyromancer_strength",
+    "examplepack:pyromancer_fire_damage",
+    "examplepack:pyromancer_water_weakness"
+  ],
+  "upgrades": []
+}

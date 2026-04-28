@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "examplepack:netherborn_starting_food",
+  "item": "minecraft:cooked_porkchop",
+  "count": 8,
+  "name": "power.examplepack.netherborn_starting_food.name",
+  "description": "power.examplepack.netherborn_starting_food.description"
+}

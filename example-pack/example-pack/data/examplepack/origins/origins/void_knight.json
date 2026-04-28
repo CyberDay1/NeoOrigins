@@ -1,0 +1,15 @@
+{
+  "name": "origins.examplepack.void_knight.name",
+  "description": "origins.examplepack.void_knight.description",
+  "icon": "minecraft:end_crystal",
+  "impact": "high",
+  "order": 13,
+  "powers": [
+    "examplepack:void_knight_end_ward"
+  ],
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:the_end",
+    "structure": "minecraft:end_city"
+  }
+}
