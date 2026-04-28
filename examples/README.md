@@ -54,7 +54,7 @@ Add an `upgrades` list to any origin JSON at
 - **Existing progress is not revalidated on datapack reload**: if a player
   already earned the advancement before the upgrade rule was loaded, the
   swap does **not** fire retroactively. Players need to earn the advancement
-  again, or a server operator can use `/origin set` manually.
+  again, or a server operator can use `/neoorigins set` manually.
 
 ## Examples in this folder
 

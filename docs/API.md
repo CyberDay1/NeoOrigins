@@ -20,7 +20,7 @@ to the per-topic detail doc.
 A NeoOrigins pack is composed of four layers, each authored in JSON:
 
 1. **Origin layers** (`origins/origin_layers/*.json`) control which origins
-   show in the picker. Override `neoneoorigins:origin` to add your origins to
+   show in the picker. Override `neoorigins:origin` to add your origins to
    the main picker tab.
 2. **Origins** (`origins/origins/*.json`) define each selectable origin:
    name, description, icon, impact, and the list of powers it grants.
@@ -30,12 +30,12 @@ A NeoOrigins pack is composed of four layers, each authored in JSON:
 4. **Composition DSL**: most 2.0 power types accept a `condition` (a
    predicate on the player) and either an `entity_action` (a side-effect)
    or an `event` key. Conditions and actions are themselves JSON objects
-   with their own `type` and fields; they can be nested (`neoneoorigins:and`,
-   `neoneoorigins:not`, `neoneoorigins:or`) to express arbitrary logic.
+   with their own `type` and fields; they can be nested (`neoorigins:and`,
+   `neoorigins:not`, `neoorigins:or`) to express arbitrary logic.
 
 A tick-driven gate like "take damage in the Nether, unless wearing Frost
-Walker boots" is expressed as one power whose condition is an `neoneoorigins:and`
-of `neoneoorigins:biome` and `neoneoorigins:not(origins:enchantment)`. The 2.0 design
+Walker boots" is expressed as one power whose condition is an `neoorigins:and`
+of `neoorigins:biome` and `neoorigins:not(origins:enchantment)`. The 2.0 design
 goal is that virtually any behaviour a pack wants is a composition of
 verbs that already exist, rather than a bespoke power type.
 
@@ -111,7 +111,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`tamed_animal_boost`](POWER_TYPES.md#neooriginstamed_animal_boost) | Buff vanilla tamed animals (HP / speed). |
 | [`tamed_potion_diffusal`](POWER_TYPES.md#neooriginstamed_potion_diffusal) | Potions drunk near tamed animals apply to them too. |
 | [`entity_group`](POWER_TYPES.md#neooriginsentity_group) | Mark the player as part of an entity group (undead, arthropod). Affects effect applicability + enchantment bonuses. |
-| [`entity_set`](POWER_TYPES.md#neooriginsentity_set) | Named UUID set per power id. Pair with `neoneoorigins:in_set` / `add_to_set` / `remove_from_set`. |
+| [`entity_set`](POWER_TYPES.md#neooriginsentity_set) | Named UUID set per power id. Pair with `neoorigins:in_set` / `add_to_set` / `remove_from_set`. |
 | [`mobs_ignore_player`](POWER_TYPES.md#neooriginsmobs_ignore_player) | Mobs don't aggro. Retaliation window preserved. |
 | [`scare_entities`](POWER_TYPES.md#neooriginsscare_entities) | Listed entity types flee from the player. |
 | [`no_mob_spawns_nearby`](POWER_TYPES.md#neooriginsno_mob_spawns_nearby) | Cancel natural spawns in a radius. |
@@ -201,7 +201,7 @@ Retired concrete types that still load via alias. See
 
 | Type | Replaced by |
 |---|---|
-| `less_item_use_slowdown` | `attribute_modifier` + `neoneoorigins:using_item` condition |
+| `less_item_use_slowdown` | `attribute_modifier` + `neoorigins:using_item` condition |
 | `no_projectile_divergence` | `attribute_modifier` on `minecraft:projectile_accuracy` |
 | `sneaky` / `stealth` | `mobs_ignore_player` + sneak gate |
 | `tick_action` | `action_on_event` with `event: tick` |
@@ -215,35 +215,35 @@ namespace is also accepted; they're aliases). Jumps go to
 [CONDITIONS.md](CONDITIONS.md).
 
 ### Boolean combinators
-`neoneoorigins:and` • `neoneoorigins:or` • `neoneoorigins:not` • `neoorigins:constant`
+`neoorigins:and` • `neoorigins:or` • `neoorigins:not` • `neoorigins:constant`
 
 ### Environment
-`neoneoorigins:biome` • `neoorigins:dimension` • `neoorigins:in_tag` • `neoneoorigins:submerged_in` •
-`neoneoorigins:submerged_in_water` • `neoneoorigins:in_water` • `neoorigins:in_block` •
-`neoorigins:on_block` • `neoneoorigins:block` • `neoneoorigins:block_collision` •
+`neoorigins:biome` • `neoorigins:dimension` • `neoorigins:in_tag` • `neoorigins:submerged_in` •
+`neoorigins:submerged_in_water` • `neoorigins:in_water` • `neoorigins:in_block` •
+`neoorigins:on_block` • `neoorigins:block` • `neoorigins:block_collision` •
 `neoorigins:on_ground` • `neoorigins:on_fire` • `neoorigins:in_rain` • `neoorigins:temperature` •
 `neoorigins:weather` • `neoorigins:brightness` • `neoorigins:light_level` •
-`neoorigins:exposed_to_sky` • `neoneoorigins:exposed_to_sun` • `neoorigins:daytime` •
+`neoorigins:exposed_to_sky` • `neoorigins:exposed_to_sun` • `neoorigins:daytime` •
 `neoorigins:time_of_day` • `neoorigins:moon_phase` • `neoorigins:height` •
 `neoorigins:fluid_height` • `neoorigins:distance`
 
 ### Player state
-`neoneoorigins:health` • `neoneoorigins:relative_health` • `neoorigins:food_level` •
+`neoorigins:health` • `neoorigins:relative_health` • `neoorigins:food_level` •
 `neoorigins:armor_value` • `neoorigins:xp_level` • `neoorigins:xp_points` •
 `neoorigins:fall_distance` • `neoorigins:fall_flying` • `neoorigins:sneaking` •
 `neoorigins:sprinting` • `neoorigins:swimming` • `neoorigins:invisible` •
 `neoorigins:creative_flying` • `neoorigins:moving` • `neoorigins:passenger` •
-`neoneoorigins:using_item` • `neoorigins:equipped_item` • `neoorigins:enchantment` •
-`neoorigins:resource` • `neoorigins:living` • `neoneoorigins:exists` • `neoorigins:ticking`
+`neoorigins:using_item` • `neoorigins:equipped_item` • `neoorigins:enchantment` •
+`neoorigins:resource` • `neoorigins:living` • `neoorigins:exists` • `neoorigins:ticking`
 
 ### Entity & damage
 `neoorigins:entity_type` • `neoorigins:target_type` • `neoorigins:target_group` •
-`neoorigins:can_see` • `neoneoorigins:damage_type` • `neoneoorigins:damage_tag` •
-`neoneoorigins:damage_name` • `neoorigins:from_fire` • `neoorigins:from_projectile` •
+`neoorigins:can_see` • `neoorigins:damage_type` • `neoorigins:damage_tag` •
+`neoorigins:damage_name` • `neoorigins:from_fire` • `neoorigins:from_projectile` •
 `neoorigins:from_explosion`
 
 ### Power introspection
-`neoorigins:power_active` • `neoorigins:power_type` • `neoneoorigins:in_set`
+`neoorigins:power_active` • `neoorigins:power_type` • `neoorigins:in_set`
 
 ### Advanced
 `neoorigins:nbt` • `neoorigins:scoreboard` • `neoorigins:command` • `neoorigins:predicate` •
@@ -257,34 +257,34 @@ Used in `entity_action` fields. All use the `neoorigins:` namespace (the
 `apace:` namespace is also accepted). Jumps go to [ACTIONS.md](ACTIONS.md).
 
 ### Combinators & control
-`neoneoorigins:and` • `neoneoorigins:chance` • `neoneoorigins:delay` • `neoneoorigins:if_else` •
-`neoneoorigins:if_else_list` • `neoneoneoorigins:nothing`
+`neoorigins:and` • `neoorigins:chance` • `neoorigins:delay` • `neoorigins:if_else` •
+`neoorigins:if_else_list` • `neoorigins:nothing`
 
 ### Damage & healing
-`neoneoorigins:damage` • `neoneoorigins:heal` • `neoneoorigins:feed` • `neoneoorigins:exhaust` •
-`neoneoorigins:change_resource`
+`neoorigins:damage` • `neoorigins:heal` • `neoorigins:feed` • `neoorigins:exhaust` •
+`neoorigins:change_resource`
 
 ### Effects
-`neoneoorigins:apply_effect` • `neoneoorigins:clear_effect`
+`neoorigins:apply_effect` • `neoorigins:clear_effect`
 
 ### Movement & position
-`neoneoorigins:add_velocity` • `neoneoorigins:launch` • `neoneoorigins:set_fall_distance` •
-`neoneoorigins:dismount` • `neoorigins:throw_target`
+`neoorigins:add_velocity` • `neoorigins:launch` • `neoorigins:set_fall_distance` •
+`neoorigins:dismount` • `neoorigins:throw_target`
 
 ### Items & inventory
-`neoneoorigins:give` • `neoneoorigins:modify_food` • `neoneoorigins:spawn_entity` •
-`neoneoorigins:spawn_projectile`
+`neoorigins:give` • `neoorigins:modify_food` • `neoorigins:spawn_entity` •
+`neoorigins:spawn_projectile`
 
 ### World & environment
-`neoneoorigins:set_block` • `neoneoorigins:set_on_fire` • `neoneoorigins:extinguish` •
-`neoneoorigins:explode` • `neoneoorigins:gain_air` • `neoneoorigins:area_of_effect`
+`neoorigins:set_block` • `neoorigins:set_on_fire` • `neoorigins:extinguish` •
+`neoorigins:explode` • `neoorigins:gain_air` • `neoorigins:area_of_effect`
 
 ### Power control
-`neoneoorigins:grant_power` • `neoneoorigins:revoke_power` • `neoneoorigins:trigger_cooldown`
+`neoorigins:grant_power` • `neoorigins:revoke_power` • `neoorigins:trigger_cooldown`
 
 ### Integration
-`neoneoorigins:execute_command` • `neoneoorigins:play_sound` • `neoneoorigins:swing_hand` •
-`neoneoorigins:emit_game_event`
+`neoorigins:execute_command` • `neoorigins:play_sound` • `neoorigins:swing_hand` •
+`neoorigins:emit_game_event`
 
 ---
 

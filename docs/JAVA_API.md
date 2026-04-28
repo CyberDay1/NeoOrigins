@@ -201,7 +201,7 @@ Read-only data types representing loaded origin JSON.
 Typical read:
 
 ```java
-Origin current = NeoOriginsAPI.currentOrigin(player, "neoneoorigins:origin");
+Origin current = NeoOriginsAPI.currentOrigin(player, "neoorigins:origin");
 if (current != null && current.impact() == Impact.HIGH) { ... }
 ```
 
@@ -286,10 +286,10 @@ Pack authors reference your entity by its registered ID from any
 
 ```json
 {
-  "type": "neoneoorigins:spawn_projectile",
+  "type": "neoorigins:spawn_projectile",
   "entity_type": "yourmod:seeker",
   "speed": 1.2,
-  "on_hit_action": { "type": "neoneoorigins:heal", "amount": 2 }
+  "on_hit_action": { "type": "neoorigins:heal", "amount": 2 }
 }
 ```
 
@@ -393,7 +393,7 @@ VfxEffectTypes.register("yourmod:radiant", 255, 240, 200);
 
 Then in a datapack:
 ```json
-{ "type": "neoneoorigins:spawn_projectile",
+{ "type": "neoorigins:spawn_projectile",
   "entity_type": "neoorigins:magic_orb",
   "effect_type": "yourmod:radiant" }
 ```

@@ -2,7 +2,7 @@
 
 Entity actions run against an entity target (usually the player who owns the power, or a bientity target depending on the call site). They're the side-effect half of the DSL — conditions filter, actions mutate.
 
-**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `neoorigins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoneoorigins:heal`. Section headers below still show the traditional `neoorigins:*` names for familiarity with upstream docs; JSON examples use `neoorigins:*`.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `neoorigins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoorigins:heal`. Section headers below still show the traditional `neoorigins:*` names for familiarity with upstream docs; JSON examples use `neoorigins:*`.
 
 **Call sites that dispatch actions:**
 - `action_on_event.entity_action` — runs against the event's actor (player)
@@ -16,9 +16,9 @@ On any parse error or unknown `type`, the action silently degrades to a no-op an
 
 # Core effect verbs
 
-## `neoneoorigins:apply_effect`
+## `neoorigins:apply_effect`
 
-Applies a mob effect to the target. Accepts either a single inline effect spec or an `effects` array (only the first element is read — Apoli's multi-effect form is simulated by wrapping in `neoneoorigins:and`).
+Applies a mob effect to the target. Accepts either a single inline effect spec or an `effects` array (only the first element is read — Apoli's multi-effect form is simulated by wrapping in `neoorigins:and`).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -32,14 +32,14 @@ Applies a mob effect to the target. Accepts either a single inline effect spec o
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:apply_effect", "effect": "minecraft:regeneration", "duration": 100, "amplifier": 1 }
+{ "type": "neoorigins:apply_effect", "effect": "minecraft:regeneration", "duration": 100, "amplifier": 1 }
 ```
 
 Unknown effect ids are resolved at parse time; a missing registry entry logs a warning and no-ops.
 
 ---
 
-## `neoneoorigins:clear_effect`
+## `neoorigins:clear_effect`
 
 Removes a specific mob effect, or every effect if none is specified.
 
@@ -49,12 +49,12 @@ Removes a specific mob effect, or every effect if none is specified.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:clear_effect", "effect": "minecraft:poison" }
+{ "type": "neoorigins:clear_effect", "effect": "minecraft:poison" }
 ```
 
 ---
 
-## `neoneoorigins:heal`
+## `neoorigins:heal`
 
 Heals the target by the given amount (half-hearts).
 
@@ -64,12 +64,12 @@ Heals the target by the given amount (half-hearts).
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:heal", "amount": 4.0 }
+{ "type": "neoorigins:heal", "amount": 4.0 }
 ```
 
 ---
 
-## `neoneoorigins:damage`
+## `neoorigins:damage`
 
 Damages the target with a vanilla damage source.
 
@@ -80,12 +80,12 @@ Damages the target with a vanilla damage source.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:damage", "amount": 2.0, "source": { "name": "magic" } }
+{ "type": "neoorigins:damage", "amount": 2.0, "source": { "name": "magic" } }
 ```
 
 ---
 
-## `neoneoorigins:feed`
+## `neoorigins:feed`
 
 Adds food and saturation to the target's food data (same call as eating).
 
@@ -96,12 +96,12 @@ Adds food and saturation to the target's food data (same call as eating).
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:feed", "food": 6, "saturation": 0.6 }
+{ "type": "neoorigins:feed", "food": 6, "saturation": 0.6 }
 ```
 
 ---
 
-## `neoneoorigins:exhaust`
+## `neoorigins:exhaust`
 
 Adds an exhaustion value to the target's food data (depletes saturation, eventually food).
 
@@ -111,12 +111,12 @@ Adds an exhaustion value to the target's food data (depletes saturation, eventua
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:exhaust", "amount": 3.0 }
+{ "type": "neoorigins:exhaust", "amount": 3.0 }
 ```
 
 ---
 
-## `neoneoorigins:set_on_fire`
+## `neoorigins:set_on_fire`
 
 Sets the target on fire for a fixed duration.
 
@@ -126,23 +126,23 @@ Sets the target on fire for a fixed duration.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:set_on_fire", "ticks": 100 }
+{ "type": "neoorigins:set_on_fire", "ticks": 100 }
 ```
 
 ---
 
-## `neoneoorigins:extinguish`
+## `neoorigins:extinguish`
 
 Clears all fire ticks on the target. Takes no fields.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:extinguish" }
+{ "type": "neoorigins:extinguish" }
 ```
 
 ---
 
-## `neoneoorigins:add_velocity`
+## `neoorigins:add_velocity`
 
 Adds (or overwrites) velocity to the target. Distinguishes push vs. set via the `set` flag.
 
@@ -155,12 +155,12 @@ Adds (or overwrites) velocity to the target. Distinguishes push vs. set via the 
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:add_velocity", "y": 1.2, "set": false }
+{ "type": "neoorigins:add_velocity", "y": 1.2, "set": false }
 ```
 
 ---
 
-## `neoneoorigins:launch`
+## `neoorigins:launch`
 
 Shortcut for "launch straight up." Pushes the target vertically and sets `hurtMarked` so the client syncs.
 
@@ -170,23 +170,23 @@ Shortcut for "launch straight up." Pushes the target vertically and sets `hurtMa
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:launch", "speed": 1.5 }
+{ "type": "neoorigins:launch", "speed": 1.5 }
 ```
 
 ---
 
-## `neoneoorigins:dismount`
+## `neoorigins:dismount`
 
 Forces the target to stop riding its current vehicle. Takes no fields.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:dismount" }
+{ "type": "neoorigins:dismount" }
 ```
 
 ---
 
-## `neoneoorigins:set_fall_distance`
+## `neoorigins:set_fall_distance`
 
 Writes directly to the target's `fallDistance` field — useful to cancel imminent fall damage.
 
@@ -196,12 +196,12 @@ Writes directly to the target's `fallDistance` field — useful to cancel immine
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:set_fall_distance", "fall_distance": 0.0 }
+{ "type": "neoorigins:set_fall_distance", "fall_distance": 0.0 }
 ```
 
 ---
 
-## `neoneoorigins:play_sound`
+## `neoorigins:play_sound`
 
 Plays a sound from the target's position.
 
@@ -213,12 +213,12 @@ Plays a sound from the target's position.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:play_sound", "sound": "minecraft:entity.player.levelup", "volume": 1.0, "pitch": 1.0 }
+{ "type": "neoorigins:play_sound", "sound": "minecraft:entity.player.levelup", "volume": 1.0, "pitch": 1.0 }
 ```
 
 ---
 
-## `neoneoorigins:emit_game_event`
+## `neoorigins:emit_game_event`
 
 Emits a vanilla game event at the target's position (for sculk sensors, warden detection, etc.).
 
@@ -228,23 +228,23 @@ Emits a vanilla game event at the target's position (for sculk sensors, warden d
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:emit_game_event", "event": "minecraft:step" }
+{ "type": "neoorigins:emit_game_event", "event": "minecraft:step" }
 ```
 
 ---
 
-## `neoneoorigins:swing_hand`
+## `neoorigins:swing_hand`
 
 Swings the target's main hand. Takes no fields — off-hand is not supported at this time.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:swing_hand" }
+{ "type": "neoorigins:swing_hand" }
 ```
 
 ---
 
-## `neoneoorigins:give`
+## `neoorigins:give`
 
 Gives an item to the target. If the inventory is full, the stack drops at their feet.
 
@@ -257,12 +257,12 @@ Gives an item to the target. If the inventory is full, the stack drops at their 
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:give", "stack": { "item": "minecraft:apple", "count": 3 } }
+{ "type": "neoorigins:give", "stack": { "item": "minecraft:apple", "count": 3 } }
 ```
 
 ---
 
-## `neoneoorigins:spawn_entity`
+## `neoorigins:spawn_entity`
 
 Spawns an entity at the target's feet. No orientation control — the entity faces world-default.
 
@@ -272,16 +272,16 @@ Spawns an entity at the target's feet. No orientation control — the entity fac
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:spawn_entity", "entity_type": "minecraft:zombie" }
+{ "type": "neoorigins:spawn_entity", "entity_type": "minecraft:zombie" }
 ```
 
 Server-side only; on client worlds the action silently no-ops.
 
 ---
 
-## `neoneoorigins:spawn_projectile`
+## `neoorigins:spawn_projectile`
 
-Spawns a projectile from the target's eye height, aimed along their look vector. Aliased to `neoneoorigins:spawn_projectile`. Non-projectile entity types fall back to a linear velocity shove along look.
+Spawns a projectile from the target's eye height, aimed along their look vector. Aliased to `neoorigins:spawn_projectile`. Non-projectile entity types fall back to a linear velocity shove along look.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -294,14 +294,14 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 
 **Example — magic-orb with impact-AoE:**
 ```json
-{ "type": "neoneoorigins:spawn_projectile",
+{ "type": "neoorigins:spawn_projectile",
   "entity_type": "neoorigins:magic_orb",
   "speed": 1.8,
   "effect_type": "poison",
   "on_hit_action": {
-    "type": "neoneoorigins:area_of_effect",
+    "type": "neoorigins:area_of_effect",
     "radius": 4.0,
-    "entity_action": { "type": "neoneoorigins:apply_effect",
+    "entity_action": { "type": "neoorigins:apply_effect",
       "effect": "minecraft:poison", "duration": 100, "amplifier": 1 }
   } }
 ```
@@ -331,9 +331,9 @@ Position: impact point when invoked from `on_hit_action`, else caster's feet.
   "interval_ticks": 20,
   "particle_type": "minecraft:witch",
   "entity_action": {
-    "type": "neoneoorigins:area_of_effect",
+    "type": "neoorigins:area_of_effect",
     "radius": 4.0,
-    "entity_action": { "type": "neoneoorigins:apply_effect",
+    "entity_action": { "type": "neoorigins:apply_effect",
       "effect": "minecraft:poison", "duration": 60, "amplifier": 1 }
   } }
 ```
@@ -391,7 +391,7 @@ Spawns a tornado that pulls entities inward, lifts them upward, and spins them t
 
 ---
 
-## `neoneoorigins:execute_command`
+## `neoorigins:execute_command`
 
 Runs a server command at permission level 2 (vanilla's function-permission-level default). Works for non-op players — mirrors upstream Origins behaviour. Output is suppressed.
 
@@ -401,7 +401,7 @@ Runs a server command at permission level 2 (vanilla's function-permission-level
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
+{ "type": "neoorigins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
 ```
 
 Runs only if the target is on a server (`player.level().getServer() != null`).
@@ -419,9 +419,9 @@ Apoli's `block_action` pattern; lets pack authors write the standard
 {
   "type": "neoorigins:action_on_event",
   "event": "block_break",
-  "block_condition": { "type": "neoneoorigins:block", "id": "minecraft:stone" },
+  "block_condition": { "type": "neoorigins:block", "id": "minecraft:stone" },
   "entity_action": {
-    "type": "neoneoorigins:execute_command",
+    "type": "neoorigins:execute_command",
     "command": "loot spawn ~ ~ ~ loot mypack:generic/stone_drops"
   }
 }
@@ -432,7 +432,7 @@ stays at the player.
 
 ---
 
-## `neoneoorigins:drop_items`
+## `neoorigins:drop_items`
 
 Drops one or more item stacks at the dispatch position. Inline alternative to authoring a vanilla loot table — pack authors who want "5% chance to drop a diamond when you break stone" don't need a separate `data/.../loot_table/...json` file.
 
@@ -461,7 +461,7 @@ Position resolution mirrors `execute_command`: drops at the dispatch BlockPos fo
 
 ```json
 {
-  "type": "neoneoorigins:drop_items",
+  "type": "neoorigins:drop_items",
   "items": [
     { "item": "minecraft:diamond", "count": 1,      "chance": 0.05 },
     { "item": "minecraft:emerald", "count": [1, 3], "chance": 0.10 }
@@ -473,7 +473,7 @@ Position resolution mirrors `execute_command`: drops at the dispatch BlockPos fo
 
 ```json
 {
-  "type": "neoneoorigins:drop_items",
+  "type": "neoorigins:drop_items",
   "mode": "one_of",
   "items": [
     { "item": "minecraft:diamond",    "weight": 1,  "count": [1, 2] },
@@ -496,7 +496,7 @@ Use `rolls: N` to repeat the pick (with replacement) — same item type can win 
 
 ---
 
-## `neoneoorigins:set_block`
+## `neoorigins:set_block`
 
 Replaces the block at the target's feet (their `blockPosition`) with the given block's default state.
 
@@ -506,12 +506,12 @@ Replaces the block at the target's feet (their `blockPosition`) with the given b
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:set_block", "block": "minecraft:cobweb" }
+{ "type": "neoorigins:set_block", "block": "minecraft:cobweb" }
 ```
 
 ---
 
-## `neoneoorigins:modify_food`
+## `neoorigins:modify_food`
 
 Mutates the target's food/saturation levels. **Gotcha:** upstream Apoli's `modify_food` is contextual to an item-use hook — this port applies the delta as a one-shot adjustment because our action context has no item-stack reference.
 
@@ -522,12 +522,12 @@ Mutates the target's food/saturation levels. **Gotcha:** upstream Apoli's `modif
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:modify_food", "food": 4, "saturation": 0.4 }
+{ "type": "neoorigins:modify_food", "food": 4, "saturation": 0.4 }
 ```
 
 ---
 
-## `neoneoorigins:grant_power`
+## `neoorigins:grant_power`
 
 Dynamically grants a power to the target. Tracks dynamic grants separately from origin-granted powers so later `revoke_power` calls don't strip origin-granted ones. Fires `PowerGrantedEvent` and syncs to the client.
 
@@ -537,12 +537,12 @@ Dynamically grants a power to the target. Tracks dynamic grants separately from 
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:grant_power", "power": "examplepack:super_jump" }
+{ "type": "neoorigins:grant_power", "power": "examplepack:super_jump" }
 ```
 
 ---
 
-## `neoneoorigins:revoke_power`
+## `neoorigins:revoke_power`
 
 Removes a previously `grant_power`ed power. No-op if the power was granted by an origin (not dynamic).
 
@@ -552,12 +552,12 @@ Removes a previously `grant_power`ed power. No-op if the power was granted by an
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:revoke_power", "power": "examplepack:super_jump" }
+{ "type": "neoorigins:revoke_power", "power": "examplepack:super_jump" }
 ```
 
 ---
 
-## `neoneoorigins:explode`
+## `neoorigins:explode`
 
 Creates an explosion centred on the target.
 
@@ -569,14 +569,14 @@ Creates an explosion centred on the target.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:explode", "power": 4.0, "destruction_type": "break", "create_fire": false }
+{ "type": "neoorigins:explode", "power": 4.0, "destruction_type": "break", "create_fire": false }
 ```
 
 Server-side only.
 
 ---
 
-## `neoneoorigins:gain_air`
+## `neoorigins:gain_air`
 
 Restores air supply (bubbles), clamped to `getMaxAirSupply()`.
 
@@ -586,12 +586,12 @@ Restores air supply (bubbles), clamped to `getMaxAirSupply()`.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:gain_air", "amount": 40 }
+{ "type": "neoorigins:gain_air", "amount": 40 }
 ```
 
 ---
 
-## `neoneoorigins:change_resource`
+## `neoorigins:change_resource`
 
 Mutates a `resource` power's stored integer. The resource state lives on a player attachment, keyed by power id.
 
@@ -603,14 +603,14 @@ Mutates a `resource` power's stored integer. The resource state lives on a playe
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:change_resource", "resource": "examplepack:mana", "operation": "add", "change": -5 }
+{ "type": "neoorigins:change_resource", "resource": "examplepack:mana", "operation": "add", "change": -5 }
 ```
 
 Clamped to `[Integer.MIN_VALUE, Integer.MAX_VALUE]` on add.
 
 ---
 
-## `neoneoorigins:trigger_cooldown`
+## `neoorigins:trigger_cooldown`
 
 Manually places a power on cooldown. Used when an ability's fire path is custom but should still show the HUD cooldown bar.
 
@@ -621,25 +621,25 @@ Manually places a power on cooldown. Used when an ability's fire path is custom 
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:trigger_cooldown", "power": "examplepack:fireball", "cooldown": 40 }
+{ "type": "neoorigins:trigger_cooldown", "power": "examplepack:fireball", "cooldown": 40 }
 ```
 
 ---
 
 # Meta verbs
 
-## `neoneoneoorigins:nothing`
+## `neoorigins:nothing`
 
 Explicit no-op. Useful as the default branch of `if_else` or for placeholder authoring. Takes no fields.
 
 **Example:**
 ```json
-{ "type": "neoneoneoorigins:nothing" }
+{ "type": "neoorigins:nothing" }
 ```
 
 ---
 
-## `neoneoorigins:and`
+## `neoorigins:and`
 
 Runs a sequence of actions in order against the same target.
 
@@ -649,15 +649,15 @@ Runs a sequence of actions in order against the same target.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:and", "actions": [
-  { "type": "neoneoorigins:heal", "amount": 2.0 },
-  { "type": "neoneoorigins:play_sound", "sound": "minecraft:entity.player.levelup" }
+{ "type": "neoorigins:and", "actions": [
+  { "type": "neoorigins:heal", "amount": 2.0 },
+  { "type": "neoorigins:play_sound", "sound": "minecraft:entity.player.levelup" }
 ] }
 ```
 
 ---
 
-## `neoneoorigins:if_else`
+## `neoorigins:if_else`
 
 Conditional dispatch. If `condition` is absent or not an object, it's treated as always-false (`CompatPolicy.FALSE_CONDITION`), so the `else_action` runs.
 
@@ -669,15 +669,15 @@ Conditional dispatch. If `condition` is absent or not an object, it's treated as
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:if_else",
-  "condition": { "type": "neoneoorigins:submerged_in", "fluid": "minecraft:water" },
-  "if_action": { "type": "neoneoorigins:gain_air", "amount": 40 },
-  "else_action": { "type": "neoneoneoorigins:nothing" } }
+{ "type": "neoorigins:if_else",
+  "condition": { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
+  "if_action": { "type": "neoorigins:gain_air", "amount": 40 },
+  "else_action": { "type": "neoorigins:nothing" } }
 ```
 
 ---
 
-## `neoneoorigins:if_else_list`
+## `neoorigins:if_else_list`
 
 First-match-wins chain of `(condition, action)` pairs. Stops after the first matching branch.
 
@@ -687,15 +687,15 @@ First-match-wins chain of `(condition, action)` pairs. Stops after the first mat
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:if_else_list", "actions": [
-  { "condition": { "type": "neoorigins:in_rain" }, "action": { "type": "neoneoorigins:heal", "amount": 2 } },
-  { "condition": { "type": "neoorigins:daytime" }, "action": { "type": "neoneoorigins:set_on_fire", "ticks": 40 } }
+{ "type": "neoorigins:if_else_list", "actions": [
+  { "condition": { "type": "neoorigins:in_rain" }, "action": { "type": "neoorigins:heal", "amount": 2 } },
+  { "condition": { "type": "neoorigins:daytime" }, "action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
 ] }
 ```
 
 ---
 
-## `neoneoorigins:chance`
+## `neoorigins:chance`
 
 Probabilistic dispatch. Uses the target's RNG source.
 
@@ -706,12 +706,12 @@ Probabilistic dispatch. Uses the target's RNG source.
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:chance", "chance": 0.2, "action": { "type": "neoneoorigins:play_sound", "sound": "minecraft:entity.cat.ambient" } }
+{ "type": "neoorigins:chance", "chance": 0.2, "action": { "type": "neoorigins:play_sound", "sound": "minecraft:entity.cat.ambient" } }
 ```
 
 ---
 
-## `neoneoorigins:delay`
+## `neoorigins:delay`
 
 Schedules the inner action to run N ticks in the future via `CompatTickScheduler`.
 
@@ -722,14 +722,14 @@ Schedules the inner action to run N ticks in the future via `CompatTickScheduler
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:delay", "ticks": 40, "action": { "type": "neoneoorigins:extinguish" } }
+{ "type": "neoorigins:delay", "ticks": 40, "action": { "type": "neoorigins:extinguish" } }
 ```
 
 Server-side only.
 
 ---
 
-## `neoneoorigins:area_of_effect`
+## `neoorigins:area_of_effect`
 
 Iterates every `ServerPlayer` within the radius and runs `entity_action` against each. **Gotcha:** non-player living entities are skipped — `EntityAction` is typed on `ServerPlayer`, so AoE cannot target mobs in the current compat layer.
 
@@ -743,11 +743,11 @@ Iterates every `ServerPlayer` within the radius and runs `entity_action` against
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:area_of_effect",
+{ "type": "neoorigins:area_of_effect",
   "radius": 8.0,
   "shape": "sphere",
   "include_source": false,
-  "entity_action": { "type": "neoneoorigins:set_on_fire", "ticks": 40 } }
+  "entity_action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
 ```
 
 ---
@@ -756,9 +756,9 @@ Iterates every `ServerPlayer` within the radius and runs `entity_action` against
 
 These verbs are new in 2.0 and read from `ActionContextHolder` — the service that publishes the current dispatch context while `EventPowerIndex` walks handlers. They no-op outside a compatible context.
 
-## `neoneoorigins:add_to_set`
+## `neoorigins:add_to_set`
 
-Adds the current bientity target's UUID to a named entity-set on the actor player. The backing sets power relationship tracking (who I've tagged, who I'm tracking, etc.). Aliased as `neoneoorigins:add_to_set`.
+Adds the current bientity target's UUID to a named entity-set on the actor player. The backing sets power relationship tracking (who I've tagged, who I'm tracking, etc.). Aliased as `neoorigins:add_to_set`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -768,14 +768,14 @@ Adds the current bientity target's UUID to a named entity-set on the actor playe
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:add_to_set", "set": "tagged_enemies" }
+{ "type": "neoorigins:add_to_set", "set": "tagged_enemies" }
 ```
 
 ---
 
-## `neoneoorigins:remove_from_set`
+## `neoorigins:remove_from_set`
 
-Removes the current bientity target's UUID from a named entity-set. Same context requirements as `add_to_set`. Aliased as `neoneoorigins:remove_from_set`.
+Removes the current bientity target's UUID from a named entity-set. Same context requirements as `add_to_set`. Aliased as `neoorigins:remove_from_set`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -783,7 +783,7 @@ Removes the current bientity target's UUID from a named entity-set. Same context
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:remove_from_set", "set": "tagged_enemies" }
+{ "type": "neoorigins:remove_from_set", "set": "tagged_enemies" }
 ```
 
 ---
@@ -819,7 +819,7 @@ Cancels the currently dispatched event. Used internally by the `food_restriction
 
 ---
 
-## `neoneoorigins:damage_attacker`
+## `neoorigins:damage_attacker`
 
 Hurts the attacker recorded in the current `HitTakenContext`. Used by the `thorns_aura` alias.
 
@@ -833,7 +833,7 @@ Hurts the attacker recorded in the current `HitTakenContext`. Used by the `thorn
 
 **Example:**
 ```json
-{ "type": "neoneoorigins:damage_attacker", "amount_ratio": 0.5, "source": { "name": "magic" } }
+{ "type": "neoorigins:damage_attacker", "amount_ratio": 0.5, "source": { "name": "magic" } }
 ```
 
 ---
@@ -959,7 +959,7 @@ Typically wrapped in `active_ability` for a cooldown + hunger cost.
 
 ---
 
-## `neoneoorigins:dash`
+## `neoorigins:dash`
 
 Applies a forward impulse in the direction the player is currently facing. Unlike `add_velocity` (which uses fixed x/y/z), `dash` reads the player's look vector and projects `strength` along it — so looking up-forward causes a diagonal upward dash, horizontal look causes a flat dash, etc.
 
@@ -972,12 +972,12 @@ Sets `hurtMarked = true` internally so the client doesn't discard the server-aut
 
 **Example — cat pounce (2.2 strength, vertical allowed):**
 ```json
-{ "type": "neoneoorigins:dash", "strength": 2.2, "allow_vertical": true }
+{ "type": "neoorigins:dash", "strength": 2.2, "allow_vertical": true }
 ```
 
 **Example — shadow dash (ground-level only):**
 ```json
-{ "type": "neoneoorigins:dash", "strength": 2.0, "allow_vertical": false }
+{ "type": "neoorigins:dash", "strength": 2.0, "allow_vertical": false }
 ```
 
 Preferred canonical replacement for the legacy `active_dash` type when paired with `active_ability`.
@@ -1029,7 +1029,7 @@ Runs an item action on the stack in a given equipment slot. Delegates per-stack 
 ```json
 { "type": "neoorigins:equipped_item_action",
   "equipment_slot": "mainhand",
-  "item_action": { "type": "neoneoorigins:damage", "amount": 5 } }
+  "item_action": { "type": "neoorigins:damage", "amount": 5 } }
 ```
 
 ---
@@ -1071,7 +1071,7 @@ Performs a block and/or entity raycast from the player's eye position along thei
   "distance": 32.0,
   "entity": false,
   "block_action": {
-    "type": "neoneoorigins:execute_command",
+    "type": "neoorigins:execute_command",
     "command": "particle minecraft:flame ~ ~ ~ 0.5 0.5 0.5 0.1 20"
   } }
 ```
@@ -1094,7 +1094,7 @@ Merges SNBT data into the stack's data components via `LegacyTagToComponents`. P
 
 Removes the stack entirely (sets count to 0). No fields.
 
-## `neoneoorigins:damage`
+## `neoorigins:damage`
 
 Damages the stack's durability.
 
@@ -1110,7 +1110,7 @@ Sets the stack's count.
 |---|---|---|---|---|
 | `count` | int | no | `1` | New stack size |
 
-## `neoneoorigins:and` (item)
+## `neoorigins:and` (item)
 
 Runs multiple item actions in sequence.
 
@@ -1118,7 +1118,7 @@ Runs multiple item actions in sequence.
 |---|---|---|---|---|
 | `actions` | array of item action | yes | — | Actions to run in order |
 
-## `neoneoorigins:if_else` (item)
+## `neoorigins:if_else` (item)
 
 Conditional item action dispatch.
 
@@ -1166,6 +1166,6 @@ True when the stack matches a vanilla ingredient (item ID or tag).
 
 Bare item ID strings (no `type` field) also match via the ingredient fallback path.
 
-## `neoneoorigins:and` / `neoneoorigins:or` / `neoneoorigins:not` (item)
+## `neoorigins:and` / `neoorigins:or` / `neoorigins:not` (item)
 
 Standard boolean combinators, same shape as entity conditions but operating on `ItemStack`.
