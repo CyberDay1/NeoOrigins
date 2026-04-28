@@ -21,7 +21,8 @@
     "client.LightTextureMixin",
     "client.GuiHudBarsMixin",
     "client.PlayerWaterVisionMixin",
-    "client.LocalPlayerNaturalGlideMixin"
+    "client.LocalPlayerNaturalGlideMixin",
+    "client.MerchantScreenTreasureGlowMixin"
   ],
   "injectors": {
     "defaultRequire": 1
