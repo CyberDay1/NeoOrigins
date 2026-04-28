@@ -1,0 +1,14 @@
+{
+  "name": "origins.neoorigins.slime.name",
+  "description": "origins.neoorigins.slime.description",
+  "icon": "minecraft:slime_ball",
+  "impact": "high",
+  "order": 48,
+  "powers": [
+    "neoorigins:slime_moisture",
+    "neoorigins:slime_death_save",
+    "neoorigins:slime_level_hp",
+    "neoorigins:slime_no_fall_damage"
+  ],
+  "upgrades": []
+}

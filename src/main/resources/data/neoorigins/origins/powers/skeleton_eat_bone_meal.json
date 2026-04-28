@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:edible_item",
+  "tags": ["neoorigins:skeleton_bone_meal"],
+  "nutrition": 3,
+  "saturation": 0.4,
+  "always_edible": true
+}

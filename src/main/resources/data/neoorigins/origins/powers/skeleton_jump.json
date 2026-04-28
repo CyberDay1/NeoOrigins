@@ -1,0 +1,1 @@
+{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:jump_strength", "amount": 0.3, "operation": "add_multiplied_base" }

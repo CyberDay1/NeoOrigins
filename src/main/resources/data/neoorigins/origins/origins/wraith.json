@@ -1,0 +1,13 @@
+{
+  "name": "origins.neoorigins.wraith.name",
+  "description": "origins.neoorigins.wraith.description",
+  "icon": "minecraft:soul_lantern",
+  "impact": "high",
+  "order": 46,
+  "powers": [
+    "neoorigins:wraith_phase",
+    "neoorigins:wraith_daylight_damage",
+    "neoorigins:wraith_hunger_drain"
+  ],
+  "upgrades": []
+}
