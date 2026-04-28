@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:slime_moisture",
+  "drain_per_tick": 0.0004,
+  "dry_biome_drain_multiplier": 3.0,
+  "fire_drain_multiplier": 10.0,
+  "water_refill_per_tick": 0.005,
+  "regen_threshold": 0.75,
+  "armor_penalty_threshold": 0.10,
+  "dot_threshold": 0.0,
+  "dot_damage": 1.0,
+  "dot_interval": 40
+}

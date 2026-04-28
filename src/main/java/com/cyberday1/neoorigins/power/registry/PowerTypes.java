@@ -110,6 +110,10 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, MoreSmokerXpPower>          MORE_SMOKER_XP         = reg("more_smoker_xp",         new MoreSmokerXpPower());
     public static final DeferredHolder<PowerType<?>, TradeAvailabilityPower>     TRADE_AVAILABILITY     = reg("trade_availability",     new TradeAvailabilityPower());
     public static final DeferredHolder<PowerType<?>, RareWanderingLootPower>     RARE_WANDERING_LOOT    = reg("rare_wandering_loot",    new RareWanderingLootPower());
+    public static final DeferredHolder<PowerType<?>, WraithPhasePower>          WRAITH_PHASE           = reg("wraith_phase",           new WraithPhasePower());
+    public static final DeferredHolder<PowerType<?>, SlimeMoisturePower>       SLIME_MOISTURE         = reg("slime_moisture",         new SlimeMoisturePower());
+    public static final DeferredHolder<PowerType<?>, SlimeDeathSavePower>      SLIME_DEATH_SAVE       = reg("slime_death_save",       new SlimeDeathSavePower());
+    public static final DeferredHolder<PowerType<?>, SlimeLevelHPPower>        SLIME_LEVEL_HP         = reg("slime_level_hp",         new SlimeLevelHPPower());
     public static final DeferredHolder<PowerType<?>, SneakyPower>                SNEAKY                 = reg("sneaky",                 new SneakyPower());
     public static final DeferredHolder<PowerType<?>, StealthPower>               STEALTH                = reg("stealth",                new StealthPower());
     public static final DeferredHolder<PowerType<?>, TreeFellingPower>           TREE_FELLING           = reg("tree_felling",           new TreeFellingPower());

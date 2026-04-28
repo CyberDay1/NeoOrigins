@@ -1,0 +1,1 @@
+{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:fall_damage_multiplier", "amount": -1.0, "operation": "add_multiplied_total" }

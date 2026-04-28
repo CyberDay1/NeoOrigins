@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:slime_death_save",
+  "moisture_threshold": 0.75,
+  "teleport_distance": 50,
+  "teleport_y_range": 10,
+  "split_max_hp": 4.0,
+  "recovery_ticks": 2400
+}

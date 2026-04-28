@@ -38,6 +38,8 @@ public class PlayerOriginData {
     private final Set<ResourceLocation> dynamicGrantedPowers = new HashSet<>();
     /** Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs). Persisted as Map&lt;String, List&lt;String&gt;&gt;. */
     private final Map<String, Set<UUID>> entitySets = new HashMap<>();
+    /** Generic keyed float storage for power types that need persisted numeric state (e.g. SlimeMoisturePower). */
+    private final Map<String, Float> customFloats = new HashMap<>();
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new HashMap<>();
     /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
@@ -85,8 +87,11 @@ public class PlayerOriginData {
                     out.put(e.getKey(), uuids);
                 }
                 return out;
-            })
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets) -> {
+            }),
+        Codec.unboundedMap(Codec.STRING, Codec.FLOAT)
+            .optionalFieldOf("custom_floats", Map.of())
+            .forGetter(d -> Map.copyOf(d.customFloats))
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
@@ -102,8 +107,20 @@ public class PlayerOriginData {
             }
             if (!parsed.isEmpty()) data.entitySets.put(e.getKey(), parsed);
         }
+        data.customFloats.putAll(floats);
         return data;
     }));
+
+    // ── Custom float storage ───────────────────────────────────────────
+
+    public float getCustomFloat(String key, float defaultValue) {
+        return customFloats.getOrDefault(key, defaultValue);
+    }
+
+    public void setCustomFloat(String key, float value) {
+        customFloats.put(key, value);
+        version++;
+    }
 
     public Map<ResourceLocation, ResourceLocation> getOrigins() {
         return Collections.unmodifiableMap(origins);

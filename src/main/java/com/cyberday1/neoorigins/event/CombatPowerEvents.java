@@ -289,6 +289,23 @@ public class CombatPowerEvents {
         // Check if the dying entity is a tracked minion (notify summoner)
         com.cyberday1.neoorigins.service.MinionTracker.onEntityDeath(event.getEntity());
 
+        // Slime death save — if the player has the power and enough moisture,
+        // cancel the death and trigger the split mechanic instead.
+        if (event.getEntity() instanceof ServerPlayer dyingSp) {
+            final boolean[] saved = {false};
+            ActiveOriginService.forEachOfType(dyingSp,
+                com.cyberday1.neoorigins.power.builtin.SlimeDeathSavePower.class, cfg -> {
+                    if (!saved[0] && com.cyberday1.neoorigins.power.builtin.SlimeDeathSavePower
+                            .shouldPreventDeath(dyingSp, cfg)) {
+                        saved[0] = true;
+                    }
+                });
+            if (saved[0]) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
         // Dispatch DEATH event for the dying player (if applicable)
         if (event.getEntity() instanceof ServerPlayer dyingSp) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(

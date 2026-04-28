@@ -1,0 +1,18 @@
+{
+  "name": "origins.neoorigins.skeleton.name",
+  "description": "origins.neoorigins.skeleton.description",
+  "icon": "minecraft:bone",
+  "impact": "high",
+  "order": 47,
+  "powers": [
+    "neoorigins:skeleton_undead",
+    "neoorigins:skeleton_marksmanship",
+    "neoorigins:skeleton_speed",
+    "neoorigins:skeleton_jump",
+    "neoorigins:skeleton_brittle_frame",
+    "neoorigins:skeleton_daylight_damage",
+    "neoorigins:skeleton_diet",
+    "neoorigins:skeleton_eat_bone_meal"
+  ],
+  "upgrades": []
+}

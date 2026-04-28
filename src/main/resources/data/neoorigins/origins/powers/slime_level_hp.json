@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:slime_level_hp",
+  "levels_per_hp": 10,
+  "max_bonus_hp": 20
+}
