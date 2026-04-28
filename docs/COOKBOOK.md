@@ -32,7 +32,7 @@ data/
 ```
 
 **`origin_layers/origin.json`** — add your origin to the built-in picker layer.
-Overriding `neoorigins:origin` (the main picker layer) merges your origins
+Overriding `neoneoorigins:origin` (the main picker layer) merges your origins
 into the vanilla tab instead of giving them their own. Only list the
 `origin:` IDs you want visible; the built-in origins stay listed by the core
 mod's own `origin_layers/origin.json` — layer JSONs merge by replacement of
@@ -203,8 +203,8 @@ LAVA + HOT_FLOOR + FIREBALL in one rule. Bare `damage_type` strings
   "type": "neoorigins:condition_passive",
   "name": "Aquatic Recovery",
   "description": "Regenerates while submerged in water.",
-  "condition": { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
-  "entity_action": { "type": "neoorigins:feed", "amount": 0.5 },
+  "condition": { "type": "neoneoorigins:submerged_in", "fluid": "minecraft:water" },
+  "entity_action": { "type": "neoneoorigins:feed", "amount": 0.5 },
   "interval_ticks": 40
 }
 ```
@@ -222,7 +222,7 @@ and several others.
   "name": "Blood Diet",
   "description": "Feed on the fallen.",
   "event": "kill",
-  "entity_action": { "type": "neoorigins:feed", "amount": 4 }
+  "entity_action": { "type": "neoneoorigins:feed", "amount": 4 }
 }
 ```
 
@@ -239,7 +239,7 @@ See [EVENTS.md](EVENTS.md) for the full list of event keys. Common ones:
   "cooldown_ticks": 60,
   "hunger_cost": 1,
   "entity_action": {
-    "type": "neoorigins:add_velocity",
+    "type": "neoneoorigins:add_velocity",
     "x": 0,
     "y": 0.2,
     "z": 1.2,
@@ -280,13 +280,13 @@ summoner, and they fight back against whatever the summoner is fighting.
   "type": "neoorigins:condition_passive",
   "name": "Sun Allergy",
   "description": "Takes damage while exposed to daylight.",
-  "condition": { "type": "neoorigins:exposed_to_sun" },
-  "entity_action": { "type": "neoorigins:damage", "amount": 1, "source": "on_fire" },
+  "condition": { "type": "neoneoorigins:exposed_to_sun" },
+  "entity_action": { "type": "neoneoorigins:damage", "amount": 1, "source": "on_fire" },
   "interval_ticks": 40
 }
 ```
 
-`origins:exposed_to_sun` is the canonical day-exposure condition — it
+`neoneoorigins:exposed_to_sun` is the canonical day-exposure condition — it
 checks both time-of-day and that the block column above the player lets
 skylight through.
 
@@ -305,26 +305,26 @@ with an `on_hit_action` attached.
   "cooldown_ticks": 200,
   "hunger_cost": 3,
   "entity_action": {
-    "type": "neoorigins:spawn_projectile",
+    "type": "neoneoorigins:spawn_projectile",
     "entity_type": "minecraft:snowball",
     "speed": 1.8,
     "inaccuracy": 0.2,
     "on_hit_action": {
-      "type": "neoorigins:area_of_effect",
+      "type": "neoneoorigins:area_of_effect",
       "radius": 5.0,
       "include_source": false,
       "entity_action": {
-        "type": "neoorigins:if_else",
+        "type": "neoneoorigins:if_else",
         "condition": { "type": "neoorigins:target_group", "group": "undead" },
         "if_action": {
-          "type": "neoorigins:and",
+          "type": "neoneoorigins:and",
           "actions": [
-            { "type": "neoorigins:apply_effect",
+            { "type": "neoneoorigins:apply_effect",
               "effect": "minecraft:slowness",
               "duration": 120,
               "amplifier": 2,
               "show_icon": true },
-            { "type": "neoorigins:damage",
+            { "type": "neoneoorigins:damage",
               "amount": 1.0,
               "source": { "name": "drown" } }
           ]
@@ -344,7 +344,7 @@ with an `on_hit_action` attached.
   Works because the projectile-impact dispatcher installs a
   `ProjectileHitContext` on the action-context holder before invoking
   your action; `area_of_effect` reads it and rebuilds its AABB.
-- **Undead-only filter** — `origins:if_else` with `target_group: undead`
+- **Undead-only filter** — `neoneoorigins:if_else` with `target_group: undead`
   wraps the damage+effect so normal mobs and players aren't caught.
 - **Drown-tagged damage** — `source: { name: "drown" }` makes the hit read
   as drowning, with the correct sound and hit indicator.
@@ -367,10 +367,10 @@ the pattern; pack authors reference it directly:
 
 ```json
 {
-  "type": "neoorigins:spawn_projectile",
+  "type": "neoneoorigins:spawn_projectile",
   "entity_type": "neoorigins:homing_projectile",
   "speed": 1.2,
-  "on_hit_action": { "type": "neoorigins:heal", "amount": 2 }
+  "on_hit_action": { "type": "neoneoorigins:heal", "amount": 2 }
 }
 ```
 
@@ -408,7 +408,7 @@ target. Pulls for two seconds, then expires.
   black hole wherever the projectile lands instead of the caster's feet —
   swap `entity_action` for:
   ```json
-  { "type": "neoorigins:spawn_projectile",
+  { "type": "neoneoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
     "speed": 2.0,
     "on_hit_action": { "type": "neoorigins:spawn_black_hole", "radius": 6.0, "duration_ticks": 40 } }
@@ -424,7 +424,7 @@ target. Pulls for two seconds, then expires.
   "cooldown_ticks": 300,
   "hunger_cost": 5,
   "entity_action": {
-    "type": "neoorigins:spawn_projectile",
+    "type": "neoneoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
     "speed": 1.5,
     "effect_type": "frost",
@@ -461,7 +461,7 @@ cloud ticks its action on an interval until it expires.
   "cooldown_ticks": 200,
   "hunger_cost": 3,
   "entity_action": {
-    "type": "neoorigins:spawn_projectile",
+    "type": "neoneoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
     "speed": 1.8,
     "effect_type": "spore",
@@ -472,10 +472,10 @@ cloud ticks its action on an interval until it expires.
       "interval_ticks": 20,
       "particle_type": "minecraft:spore_blossom_air",
       "entity_action": {
-        "type": "neoorigins:area_of_effect",
+        "type": "neoneoorigins:area_of_effect",
         "radius": 4.0,
         "include_source": false,
-        "entity_action": { "type": "neoorigins:apply_effect",
+        "entity_action": { "type": "neoneoorigins:apply_effect",
           "effect": "minecraft:poison", "duration": 60, "amplifier": 1 }
       }
     }
@@ -504,7 +504,7 @@ The pattern is always three pieces:
    sets the value reads see before the flag has ever been flipped. Set
    `"hidden": true` to keep the flag off the origin info panel — almost
    always what you want for an internal flag.
-2. **A way to read it** — `origins:power_active { power: "..." }` inside
+2. **A way to read it** — `neoorigins:power_active { power: "..." }` inside
    any other power's `condition`.
 3. **A way to flip it** — `neoorigins:toggle { power: "..." }` inside any
    `entity_action` (active ability, action_on_hit, action_on_event, etc.).
@@ -531,7 +531,7 @@ A passive that lets the player climb walls, but only while a separate
 {
   "type": "neoorigins:wall_climbing",
   "condition": {
-    "type": "origins:power_active",
+    "type": "neoorigins:power_active",
     "power": "mypack:climb_mode"
   },
   "name": "Spider Grip",
@@ -603,7 +603,7 @@ Strength I against all targets.
 // data/mypack/origins/powers/marked_strength.json — gated buff
 {
   "type": "neoorigins:persistent_effect",
-  "condition": { "type": "origins:power_active", "power": "mypack:marked" },
+  "condition": { "type": "neoorigins:power_active", "power": "mypack:marked" },
   "effects": [
     { "effect": "minecraft:strength", "amplifier": 0 }
   ],
@@ -662,10 +662,10 @@ in `food_item_in_tag`.
 { "type": "neoorigins:action_on_event",
   "event": "item_use_finish",
   "entity_action": {
-    "type": "neoorigins:if_else",
-    "condition": { "type": "neoorigins:food_item_in_tag",
+    "type": "neoneoorigins:if_else",
+    "condition": { "type": "neoneoorigins:food_item_in_tag",
                    "tag": "mypack:eat_diamond" },
-    "if_action": { "type": "neoorigins:apply_effect",
+    "if_action": { "type": "neoneoorigins:apply_effect",
                    "effect": "minecraft:luck", "duration": 6000, "amplifier": 1 }
   }
 }
@@ -746,13 +746,13 @@ feel.
 
 ### Forward dash in look direction
 
-The `neoorigins:dash` action projects a strength magnitude along the
+The `neoneoorigins:dash` action projects a strength magnitude along the
 player's look vector. Canonical V2 replacement for `active_dash`.
 
 ```json
 { "type": "neoorigins:active_ability",
   "cooldown_ticks": 60, "hunger_cost": 2,
-  "entity_action": { "type": "neoorigins:dash",
+  "entity_action": { "type": "neoneoorigins:dash",
                      "strength": 2.2,
                      "allow_vertical": true } }
 ```
@@ -777,7 +777,7 @@ fires when any are found. Accepts any combination of `block`/`blocks`/
     "radius": 5
   },
   "entity_action": {
-    "type": "neoorigins:apply_effect",
+    "type": "neoneoorigins:apply_effect",
     "effect": "minecraft:fire_resistance",
     "duration": 100, "amplifier": 0
   },
@@ -814,7 +814,7 @@ Grep your logs for `[2.0-legacy]` to get your migration punch list. See
 Origin-picker state lives in the player data attachment. The fastest
 iteration loop:
 
-1. Give yourself a stack of `neoorigins:orb_of_origin`.
+1. Give yourself a stack of `neoneoorigins:orb_of_origin`.
 2. Use the orb to reroll. Each use opens the picker; the XP cost applies
    only when you commit a choice.
 3. Pick, test, reroll, repeat.
@@ -828,7 +828,7 @@ Chain any shell command out of a power using `execute_command`:
   "type": "neoorigins:action_on_event",
   "event": "kill",
   "entity_action": {
-    "type": "neoorigins:execute_command",
+    "type": "neoneoorigins:execute_command",
     "command": "function mypack:on_kill_callback"
   }
 }
@@ -843,7 +843,7 @@ targeting the player.
 
 **"My power JSON parsed but nothing happens."**
 Most often the `condition` you attached is evaluating false every tick.
-Add a `origins:always_true` placeholder condition to confirm the wiring
+Add a `neoneoorigins:always_true` placeholder condition to confirm the wiring
 works, then narrow it back down.
 
 **"My size-scaling power makes me punch through walls."**

@@ -32,7 +32,7 @@ powers are revoked, Strider powers are granted, and the client is re-synced.
 1. Place this folder at `<world>/datapacks/nether_evolution/`
 2. `/reload`
 3. `/datapack list` — confirm `[file/nether_evolution]` under enabled
-4. Make a new character on the Human origin (or `/origin set @s neoorigins:origin neoorigins:human`)
+4. Make a new character on the Human origin (or `/origin set @s neoneoorigins:origin neoorigins:human`)
 5. If you have already earned the Nether advancement: `/advancement revoke @s only minecraft:story/enter_the_nether`
 6. Walk through a Nether portal
 

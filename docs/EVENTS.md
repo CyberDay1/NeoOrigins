@@ -34,7 +34,7 @@ shape.
 block-shaped (`block_break`, `block_place`, `block_use`). The dispatch
 `BlockPos` is extracted from the event context and the predicate is evaluated
 before the action runs. Supports `block` / `id` / `tag` fields, e.g.
-`{ "type": "origins:block", "id": "minecraft:stone" }`. On non-block events
+`{ "type": "neoneoorigins:block", "id": "minecraft:stone" }`. On non-block events
 the field is silently ignored. Use this instead of (or in addition to)
 `condition` when you want to filter by what was broken/placed/used:
 
@@ -42,17 +42,17 @@ the field is silently ignored. Use this instead of (or in addition to)
 {
   "type": "neoorigins:action_on_event",
   "event": "block_break",
-  "block_condition": { "type": "origins:block", "id": "minecraft:stone" },
+  "block_condition": { "type": "neoneoorigins:block", "id": "minecraft:stone" },
   "entity_action": {
-    "type": "neoorigins:drop_items",
+    "type": "neoneoorigins:drop_items",
     "items": [{ "item": "minecraft:emerald", "chance": 0.05 }]
   }
 }
 ```
 
 The event's context is published to `ActionContextHolder` for the duration of
-the dispatch so context-aware action verbs (`neoorigins:damage_attacker`,
-`neoorigins:cancel_event`, `neoorigins:food_item_in_tag`, ...) can read it
+the dispatch so context-aware action verbs (`neoneoorigins:damage_attacker`,
+`neoorigins:cancel_event`, `neoneoorigins:food_item_in_tag`, ...) can read it
 without needing to be parameterised at JSON authoring time.
 
 ---
@@ -83,7 +83,7 @@ Fires when the player takes damage (post-cancel, before final apply).
 
 **Context:** `HitTakenContext(amount, source)` — the amount is the vanilla-
 adjusted damage and the `DamageSource` is the original source. Action verbs
-like `neoorigins:damage_attacker` read `amount` for amount-ratio thorns-style
+like `neoneoorigins:damage_attacker` read `amount` for amount-ratio thorns-style
 retaliation.
 
 **Dispatch site:** `CombatPowerEvents.onLivingDamage` (`LivingIncomingDamage`
@@ -240,7 +240,7 @@ component. **Cancellable** via `neoorigins:cancel_event`.
 
 **Context:** `FoodContext(stack, event)` — the food `ItemStack` plus the
 underlying `LivingEntityUseItemEvent.Start` (so `cancel_event` can veto the
-eat). `neoorigins:food_item_in_tag` reads the stack.
+eat). `neoneoorigins:food_item_in_tag` reads the stack.
 
 **Dispatch site:** `MovementPowerEvents.onItemUseStart` (only dispatched
 when the stack has a FOOD component).

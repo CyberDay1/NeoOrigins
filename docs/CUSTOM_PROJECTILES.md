@@ -34,7 +34,7 @@ reference your entity by its registered ID.
 - A companion mod project — these are Java examples, not datapack JSON.
   For a pure-datapack approach, use the pre-registered `neoorigins:magic_orb`
   with one of the built-in `effect_type` keys (see the
-  `neoorigins:spawn_projectile` / `spawn_lingering_area` /
+  `neoneoorigins:spawn_projectile` / `spawn_lingering_area` /
   `spawn_black_hole` / `spawn_tornado` verbs in
   [ACTIONS.md](ACTIONS.md) and recipes 12–14 in [COOKBOOK.md](COOKBOOK.md)).
 
@@ -67,7 +67,7 @@ any pack JSON can reference the key:
 
 ```json
 {
-  "type": "neoorigins:spawn_projectile",
+  "type": "neoneoorigins:spawn_projectile",
   "entity_type": "neoorigins:magic_orb",
   "effect_type": "verdant_glow",
   "speed": 1.6
@@ -211,7 +211,7 @@ event.registerEntityRenderer(ModEntities.CRYSTAL_SHARD.get(), CrystalShardRender
 
 ```json
 {
-  "type": "neoorigins:spawn_projectile",
+  "type": "neoneoorigins:spawn_projectile",
   "entity_type": "yourmod:crystal_shard",
   "speed": 1.8
 }

@@ -2,7 +2,7 @@
 
 Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions.
 
-**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `origins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `neoorigins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `neoorigins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
@@ -13,7 +13,7 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 { "type": "neoorigins:swimming", "inverted": true }
 
 // inside an AND, etc.
-{ "type": "neoorigins:and", "conditions": [
+{ "type": "neoneoorigins:and", "conditions": [
   { "type": "neoorigins:creative_flying" },
   { "type": "neoorigins:on_fire", "inverted": true }
 ]}
@@ -27,7 +27,7 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 
 # Meta conditions
 
-## `origins:and`
+## `neoneoorigins:and`
 
 Logical AND of nested conditions.
 
@@ -37,10 +37,10 @@ Logical AND of nested conditions.
 
 **Example:**
 ```json
-{ "type": "neoorigins:and", "conditions": [ {"type": "neoorigins:sneaking"}, {"type": "neoorigins:on_ground"} ] }
+{ "type": "neoneoorigins:and", "conditions": [ {"type": "neoorigins:sneaking"}, {"type": "neoorigins:on_ground"} ] }
 ```
 
-## `origins:or`
+## `neoneoorigins:or`
 
 Logical OR of nested conditions.
 
@@ -48,7 +48,7 @@ Logical OR of nested conditions.
 |---|---|---|---|---|
 | `conditions` | array of condition objects | yes | `[]` | Inner conditions; at least one must pass |
 
-## `origins:not`
+## `neoneoorigins:not`
 
 Negates a single inner condition.
 
@@ -56,7 +56,7 @@ Negates a single inner condition.
 |---|---|---|---|---|
 | `condition` | condition object | yes | — | Condition to negate |
 
-## `origins:constant`
+## `neoorigins:constant`
 
 Always-true or always-false literal.
 
@@ -70,91 +70,91 @@ Always-true or always-false literal.
 
 These evaluate against a single entity — usually the power's owning player.
 
-## `origins:sneaking`
+## `neoorigins:sneaking`
 
 True while shift is held. No fields.
 
-## `origins:sprinting`
+## `neoorigins:sprinting`
 
 True while sprinting. No fields.
 
-## `origins:on_ground`
+## `neoorigins:on_ground`
 
 True while standing on a block. No fields.
 
-## `origins:in_water`
+## `neoneoorigins:in_water`
 
 True while touching water. No fields.
 
-## `origins:swimming`
+## `neoorigins:swimming`
 
 True while the swim animation is active. No fields.
 
-## `origins:submerged_in_water`
+## `neoneoorigins:submerged_in_water`
 
 True while the eye position is inside water. No fields.
 
-## `origins:fall_flying`
+## `neoorigins:fall_flying`
 
 True while elytra-gliding. No fields.
 
-## `origins:invisible`
+## `neoorigins:invisible`
 
 True while the invisible flag is set. No fields.
 
-## `origins:moving`
+## `neoorigins:moving`
 
 True while horizontal delta-movement is nonzero. No fields.
 
-## `origins:in_rain`
+## `neoorigins:in_rain`
 
 True when rain is falling at the entity's block position (server-side only).
 
-## `origins:daytime`
+## `neoorigins:daytime`
 
 True for in-game times 0–12999. No fields.
 
-## `origins:exposed_to_sky`
+## `neoorigins:exposed_to_sky`
 
 True when the sky is visible from the entity's block position (server-side only).
 
-## `origins:exposed_to_sun`
+## `neoneoorigins:exposed_to_sun`
 
 True between time 6001–11999 with sky access and no rain.
 
-## `origins:on_fire` (alias `origins:fire`)
+## `neoorigins:on_fire` (alias `neoorigins:fire`)
 
 True while the entity is on fire. No fields.
 
-## `origins:passenger` (alias `origins:riding`)
+## `neoorigins:passenger` (alias `neoorigins:riding`)
 
 True while the entity is a passenger of something. No fields.
 
-## `origins:using_item`
+## `neoneoorigins:using_item`
 
 True while the entity is actively using an item (eating, drawing bow, etc.). No fields.
 
-## `origins:ticking`
+## `neoorigins:ticking`
 
 True unless the entity has been removed. No fields.
 
-## `origins:exists`
+## `neoneoorigins:exists`
 
 True when the entity is non-null and not removed. No fields.
 
-## `origins:living`
+## `neoorigins:living`
 
 True when `isAlive()` returns true. No fields.
 
-## `origins:creative_flying`
+## `neoorigins:creative_flying`
 
 True when creative flight is engaged. No fields.
 
-## `origins:block_collision`
+## `neoneoorigins:block_collision`
 
 Always true. Placeholder/stub for parity with Apoli. No fields.
 
-## `origins:health`
+## `neoneoorigins:health`
 
 Numeric comparison against current health.
 
@@ -163,7 +163,7 @@ Numeric comparison against current health.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Health threshold |
 
-## `origins:relative_health`
+## `neoneoorigins:relative_health`
 
 Numeric comparison against `health / maxHealth` (0.0–1.0).
 
@@ -172,7 +172,7 @@ Numeric comparison against `health / maxHealth` (0.0–1.0).
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Ratio threshold |
 
-## `origins:food_level` (alias `origins:food`)
+## `neoorigins:food_level` (alias `neoorigins:food`)
 
 Numeric comparison against food level (0–20).
 
@@ -181,7 +181,7 @@ Numeric comparison against food level (0–20).
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Hunger threshold |
 
-## `origins:fall_distance`
+## `neoorigins:fall_distance`
 
 Numeric comparison against the entity's `fallDistance` field.
 
@@ -190,7 +190,7 @@ Numeric comparison against the entity's `fallDistance` field.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Distance in blocks |
 
-## `origins:height`
+## `neoorigins:height`
 
 Numeric comparison against the entity's Y coordinate.
 
@@ -199,7 +199,7 @@ Numeric comparison against the entity's Y coordinate.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | World Y threshold |
 
-## `origins:armor_value`
+## `neoorigins:armor_value`
 
 Numeric comparison against the entity's armor value.
 
@@ -208,7 +208,7 @@ Numeric comparison against the entity's armor value.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Armor points |
 
-## `origins:amount`
+## `neoorigins:amount`
 
 Generic numeric wrapper. **Standalone fallback compares against current health** — context-dependent, retained for pack compatibility.
 
@@ -217,7 +217,7 @@ Generic numeric wrapper. **Standalone fallback compares against current health**
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Threshold |
 
-## `origins:xp_level`
+## `neoorigins:xp_level`
 
 Numeric comparison against `experienceLevel`.
 
@@ -226,7 +226,7 @@ Numeric comparison against `experienceLevel`.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Level threshold |
 
-## `origins:xp_points`
+## `neoorigins:xp_points`
 
 Numeric comparison against `totalExperience`.
 
@@ -235,7 +235,7 @@ Numeric comparison against `totalExperience`.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Points threshold |
 
-## `origins:dimension`
+## `neoorigins:dimension`
 
 Checks current dimension ID.
 
@@ -243,7 +243,7 @@ Checks current dimension ID.
 |---|---|---|---|---|
 | `dimension` | resource location | no | — | e.g. `"minecraft:overworld"`; always-true when absent |
 
-## `origins:biome`
+## `neoneoorigins:biome`
 
 Checks biome at the entity's block position.
 
@@ -254,15 +254,15 @@ Checks biome at the entity's block position.
 
 Always-true when neither field is present.
 
-## `origins:in_tag`
+## `neoorigins:in_tag`
 
-Biome tag check (equivalent to `origins:biome` with `tag`).
+Biome tag check (equivalent to `neoneoorigins:biome` with `tag`).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `tag` | resource location | no | — | Biome tag ID; always-true when absent |
 
-## `origins:submerged_in`
+## `neoneoorigins:submerged_in`
 
 Fluid-membership check at the entity's eye position.
 
@@ -270,7 +270,7 @@ Fluid-membership check at the entity's eye position.
 |---|---|---|---|---|
 | `fluid` | string | no | `""` | `"minecraft:water"`, `"minecraft:lava"`, or anything else (matches either) |
 
-## `origins:fluid_height`
+## `neoorigins:fluid_height`
 
 Numeric comparison against the submersion height for a given fluid tag.
 
@@ -280,7 +280,7 @@ Numeric comparison against the submersion height for a given fluid tag.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Height threshold |
 
-## `origins:temperature`
+## `neoorigins:temperature`
 
 Numeric comparison against the biome's base temperature.
 
@@ -289,7 +289,7 @@ Numeric comparison against the biome's base temperature.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Temperature threshold |
 
-## `origins:light_level` (alias `origins:brightness`)
+## `neoorigins:light_level` (alias `neoorigins:brightness`)
 
 Numeric comparison against ambient light at the entity's block position.
 
@@ -299,7 +299,7 @@ Numeric comparison against ambient light at the entity's block position.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Light threshold |
 
-## `origins:time_of_day`
+## `neoorigins:time_of_day`
 
 Numeric comparison against `level.getDayTime() % 24000`.
 
@@ -308,7 +308,7 @@ Numeric comparison against `level.getDayTime() % 24000`.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | long | no | `0` | Tick within day |
 
-## `origins:weather`
+## `neoorigins:weather`
 
 Checks the current weather state. **Unusual:** accepts either `"state"` or `"value"`.
 
@@ -317,7 +317,7 @@ Checks the current weather state. **Unusual:** accepts either `"state"` or `"val
 | `state` | string | no | — | `"clear"`, `"rain"`/`"raining"`, or `"thunder"`/`"thundering"` |
 | `value` | string | no | `"clear"` | Fallback if `state` absent |
 
-## `origins:moon_phase`
+## `neoorigins:moon_phase`
 
 Numeric comparison against the moon phase index 0–7. **Default comparison is `"=="`**.
 
@@ -326,7 +326,7 @@ Numeric comparison against the moon phase index 0–7. **Default comparison is `
 | `comparison` | string | no | `"=="` | Comparison operator |
 | `compare_to` | int | no | `0` | Phase index |
 
-## `origins:on_block`
+## `neoorigins:on_block`
 
 True when the entity is on ground and the block directly below matches an ID.
 
@@ -335,7 +335,7 @@ True when the entity is on ground and the block directly below matches an ID.
 | `block_condition` | object | yes | — | Nested block condition |
 | `block_condition.id` | resource location | yes | — | Block ID to match |
 
-## `origins:block`
+## `neoneoorigins:block`
 
 Block check at the entity's current position — accepts either a nested `block_condition` object or the same fields at the top level.
 
@@ -347,7 +347,7 @@ Block check at the entity's current position — accepts either a nested `block_
 
 **Unusual:** accepts `block` or `id` for the block ID, and will read fields at top level if `block_condition` is omitted.
 
-## `origins:in_block` (alias `origins:in_block_anywhere`)
+## `neoorigins:in_block` (alias `neoorigins:in_block_anywhere`)
 
 Block check at the entity's current position via an optional wrapper.
 
@@ -356,9 +356,9 @@ Block check at the entity's current position via an optional wrapper.
 | `block_condition` | object | no | — | Wrapper |
 | `block_condition.block` / `block_condition.id` | resource location | no | — | Block ID |
 
-Always-true when the wrapper is absent or no ID is present (fail-open — use `origins:not` + a specific block condition if you need strict gating).
+Always-true when the wrapper is absent or no ID is present (fail-open — use `neoneoorigins:not` + a specific block condition if you need strict gating).
 
-## `origins:entity_type`
+## `neoorigins:entity_type`
 
 Checks entity type against a resource location. For a player entity this is always `minecraft:player`.
 
@@ -369,7 +369,7 @@ Checks entity type against a resource location. For a player entity this is alwa
 
 Always-true when both fields are absent.
 
-## `origins:equipped_item`
+## `neoorigins:equipped_item`
 
 Inspects an item in a given equipment slot.
 
@@ -386,7 +386,7 @@ Inspects an item in a given equipment slot.
 
 Always-true when `item_condition` is absent.
 
-## `origins:enchantment`
+## `neoorigins:enchantment`
 
 Checks the max level of a given enchantment across all equipment slots.
 
@@ -396,7 +396,7 @@ Checks the max level of a given enchantment across all equipment slots.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `1` | Level threshold |
 
-## `origins:resource`
+## `neoorigins:resource`
 
 Numeric comparison against a named resource power's stored value.
 
@@ -406,7 +406,7 @@ Numeric comparison against a named resource power's stored value.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Threshold |
 
-## `origins:power_active`
+## `neoorigins:power_active`
 
 Whether a named toggle power is currently active on this entity. Resolves the registered [`neoorigins:toggle`](POWER_TYPES.md#neooriginstoggle) power's `default` field if the toggle has never been flipped on this player.
 
@@ -416,18 +416,18 @@ Whether a named toggle power is currently active on this entity. Resolves the re
 
 See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
 
-## `origins:power_type`
+## `neoorigins:power_type`
 
 Whether any power granted to this entity has a matching `type` ID.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `power_type` | resource location | yes | — | Power type ID (e.g. `origins:toggle`) |
+| `power_type` | resource location | yes | — | Power type ID (e.g. `neoorigins:toggle`) |
 | `id` | resource location | no | — | Alias for `power_type` |
 
-Bare type names (no `:`) are auto-prefixed with `origins:`.
+Bare type names (no `:`) are auto-prefixed with `neoorigins:`.
 
-## `origins:nbt`
+## `neoorigins:nbt`
 
 Simplified NBT presence check: true when the entity's persistent data contains a given top-level key.
 
@@ -435,7 +435,7 @@ Simplified NBT presence check: true when the entity's persistent data contains a
 |---|---|---|---|---|
 | `nbt` | string | no | — | Compound key name; always-true when absent |
 
-## `origins:scoreboard`
+## `neoorigins:scoreboard`
 
 Numeric comparison against the player's score on a named objective.
 
@@ -445,7 +445,7 @@ Numeric comparison against the player's score on a named objective.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Score threshold |
 
-## `origins:command`
+## `neoorigins:command`
 
 Runs an arbitrary server command with suppressed output and returns true if no exception was thrown.
 
@@ -455,7 +455,7 @@ Runs an arbitrary server command with suppressed output and returns true if no e
 
 **Unusual:** this does *not* test exit code. It returns true unless the command threw — check the feasibility of any JSON-condition written this way carefully.
 
-## `origins:predicate`
+## `neoorigins:predicate`
 
 Meta-wrapper around vanilla Minecraft predicates. **Unusual:** dispatches on `predicate_type`, and the inner `predicate` object is codec-parsed once at load.
 
@@ -488,7 +488,7 @@ Numeric comparison against the hit damage currently being taken. Requires an act
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Damage threshold |
 
-## `neoorigins:food_item_in_tag`
+## `neoneoorigins:food_item_in_tag`
 
 True if the item being eaten in the current `FOOD_EATEN` dispatch matches a tag or item ID. Requires an active `FoodContext`. Used by `food_restriction` aliases.
 
@@ -511,7 +511,7 @@ These evaluate against a pair — the entity under test (actor) plus a target pu
 - `ProjectileHitContext` — target = the entity hit (if any)
 - otherwise — null, condition returns false
 
-## `origins:distance`
+## `neoorigins:distance`
 
 Numeric comparison against 3D distance from actor to target. **Default comparison is `"<="`** (unlike most numeric conditions).
 
@@ -520,15 +520,15 @@ Numeric comparison against 3D distance from actor to target. **Default compariso
 | `comparison` | string | no | `"<="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Distance in blocks |
 
-## `origins:can_see`
+## `neoorigins:can_see`
 
 True when the actor has line-of-sight to the target. No fields.
 
-## `origins:equal`
+## `neoorigins:equal`
 
 True when target UUID == actor UUID. No fields.
 
-## `origins:target_type`
+## `neoorigins:target_type`
 
 Checks target's entity-type ID or tag. **Unusual:** a leading `#` denotes a tag.
 
@@ -536,7 +536,7 @@ Checks target's entity-type ID or tag. **Unusual:** a leading `#` denotes a tag.
 |---|---|---|---|---|
 | `entity_type` | string | yes | — | e.g. `"minecraft:zombie"` or `"#minecraft:undead"`; always-false when blank |
 
-## `origins:target_group`
+## `neoorigins:target_group`
 
 Checks whether the target's entity type is in a vanilla mob-category tag under the `minecraft:` namespace.
 
@@ -544,7 +544,7 @@ Checks whether the target's entity type is in a vanilla mob-category tag under t
 |---|---|---|---|---|
 | `group` | string | yes | — | Tag path under `minecraft:` (e.g. `"raiders"`); always-false when blank |
 
-## `origins:in_set` (alias `neoorigins:in_set`)
+## `neoneoorigins:in_set` (alias `neoneoorigins:in_set`)
 
 2.0 entity-set membership: true when the target's UUID is in the actor's named entity-set. Pack authors should namespace `set` keys to avoid collision.
 
@@ -569,19 +569,19 @@ never summoned a minion as well (count of 0).
 
 Read the `DamageSource` from `HitTakenContext`. Fail closed outside that context.
 
-## `origins:from_fire`
+## `neoorigins:from_fire`
 
 True when the damage source is in the `minecraft:is_fire` damage-type tag. No fields.
 
-## `origins:from_projectile`
+## `neoorigins:from_projectile`
 
 True when the damage source is in the `minecraft:is_projectile` damage-type tag. No fields.
 
-## `origins:from_explosion`
+## `neoorigins:from_explosion`
 
 True when the damage source is in the `minecraft:is_explosion` damage-type tag. No fields.
 
-## `origins:damage_type`
+## `neoneoorigins:damage_type`
 
 Matches the damage source against a specific damage-type resource key.
 
@@ -589,7 +589,7 @@ Matches the damage source against a specific damage-type resource key.
 |---|---|---|---|---|
 | `damage_type` | resource location | yes | — | Damage-type ID; always-false when blank |
 
-## `origins:damage_tag`
+## `neoneoorigins:damage_tag`
 
 Matches the damage source against a damage-type tag. Leading `#` is stripped if present.
 
@@ -597,7 +597,7 @@ Matches the damage source against a damage-type tag. Leading `#` is stripped if 
 |---|---|---|---|---|
 | `tag` | resource location | yes | — | Damage-type tag (optional `#` prefix); always-false when blank |
 
-## `origins:damage_name` (alias `origins:name`)
+## `neoneoorigins:damage_name` (alias `neoorigins:name`)
 
 Case-insensitive match against the damage source's message ID (e.g. `"lava"`, `"cactus"`).
 
@@ -652,7 +652,7 @@ Useful for gating rest / regen / out-of-combat-only buffs.
 { "type": "neoorigins:out_of_combat", "ticks": 100 }
 ```
 
-Typically combined with `near_block` or `biome` in an `origins:and` so the buff only applies when both safe *and* in the right spot (campfire, village, bed area, etc.).
+Typically combined with `near_block` or `biome` in an `neoneoorigins:and` so the buff only applies when both safe *and* in the right spot (campfire, village, bed area, etc.).
 
 ## `neoorigins:near_block`
 

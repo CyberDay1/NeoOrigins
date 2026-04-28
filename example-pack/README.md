@@ -104,7 +104,7 @@ example-pack/
 ## Notes
 
 - All power JSONs in this pack use the 2.0 `neoorigins:*` verb namespace
-  inside conditions and actions. Legacy `origins:*` still works but emits
+  inside conditions and actions. Legacy `neoorigins:*` still works but emits
   a `[2.0-legacy]` deprecation warning — see
   [docs/MIGRATION.md](../docs/MIGRATION.md).
 - Specter bundles `specter_no_fall_base` + `specter_conditional_fall` to

@@ -20,7 +20,7 @@ to the per-topic detail doc.
 A NeoOrigins pack is composed of four layers, each authored in JSON:
 
 1. **Origin layers** (`origins/origin_layers/*.json`) control which origins
-   show in the picker. Override `neoorigins:origin` to add your origins to
+   show in the picker. Override `neoneoorigins:origin` to add your origins to
    the main picker tab.
 2. **Origins** (`origins/origins/*.json`) define each selectable origin:
    name, description, icon, impact, and the list of powers it grants.
@@ -30,17 +30,17 @@ A NeoOrigins pack is composed of four layers, each authored in JSON:
 4. **Composition DSL**: most 2.0 power types accept a `condition` (a
    predicate on the player) and either an `entity_action` (a side-effect)
    or an `event` key. Conditions and actions are themselves JSON objects
-   with their own `type` and fields; they can be nested (`origins:and`,
-   `origins:not`, `origins:or`) to express arbitrary logic.
+   with their own `type` and fields; they can be nested (`neoneoorigins:and`,
+   `neoneoorigins:not`, `neoneoorigins:or`) to express arbitrary logic.
 
 A tick-driven gate like "take damage in the Nether, unless wearing Frost
-Walker boots" is expressed as one power whose condition is an `origins:and`
-of `origins:biome` and `origins:not(origins:enchantment)`. The 2.0 design
+Walker boots" is expressed as one power whose condition is an `neoneoorigins:and`
+of `neoneoorigins:biome` and `neoneoorigins:not(origins:enchantment)`. The 2.0 design
 goal is that virtually any behaviour a pack wants is a composition of
 verbs that already exist, rather than a bespoke power type.
 
 The upstream layer — for cross-mod pack compatibility — is handled by
-`LegacyPowerTypeAliases.java`, which translates `origins:` / `apace:` /
+`LegacyPowerTypeAliases.java`, which translates `neoorigins:` / `apace:` /
 `apoli:` / `apugli:` types into the 2.0 vocabulary at load time. See
 [MIGRATION.md](MIGRATION.md).
 
@@ -87,7 +87,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`modify_damage`](POWER_TYPES.md#neooriginsmodify_damage) | Scale damage the player deals or takes. Direction + type/tag filter. |
 | [`persistent_effect`](POWER_TYPES.md#neooriginspersistent_effect) | Refresh a status effect every tick. Replaces legacy `status_effect`. |
 | [`prevent_action`](POWER_TYPES.md#neooriginsprevent_action) | Cancel a specific player action (FALL_DAMAGE, DROWN, FIRE, SWIM, etc.). |
-| [`toggle`](POWER_TYPES.md#neooriginstoggle) | Boolean state cycled by the skill key, readable via `origins:power_active`. |
+| [`toggle`](POWER_TYPES.md#neooriginstoggle) | Boolean state cycled by the skill key, readable via `neoorigins:power_active`. |
 
 ### Movement & body
 
@@ -111,7 +111,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`tamed_animal_boost`](POWER_TYPES.md#neooriginstamed_animal_boost) | Buff vanilla tamed animals (HP / speed). |
 | [`tamed_potion_diffusal`](POWER_TYPES.md#neooriginstamed_potion_diffusal) | Potions drunk near tamed animals apply to them too. |
 | [`entity_group`](POWER_TYPES.md#neooriginsentity_group) | Mark the player as part of an entity group (undead, arthropod). Affects effect applicability + enchantment bonuses. |
-| [`entity_set`](POWER_TYPES.md#neooriginsentity_set) | Named UUID set per power id. Pair with `origins:in_set` / `add_to_set` / `remove_from_set`. |
+| [`entity_set`](POWER_TYPES.md#neooriginsentity_set) | Named UUID set per power id. Pair with `neoneoorigins:in_set` / `add_to_set` / `remove_from_set`. |
 | [`mobs_ignore_player`](POWER_TYPES.md#neooriginsmobs_ignore_player) | Mobs don't aggro. Retaliation window preserved. |
 | [`scare_entities`](POWER_TYPES.md#neooriginsscare_entities) | Listed entity types flee from the player. |
 | [`no_mob_spawns_nearby`](POWER_TYPES.md#neooriginsno_mob_spawns_nearby) | Cancel natural spawns in a radius. |
@@ -201,7 +201,7 @@ Retired concrete types that still load via alias. See
 
 | Type | Replaced by |
 |---|---|
-| `less_item_use_slowdown` | `attribute_modifier` + `origins:using_item` condition |
+| `less_item_use_slowdown` | `attribute_modifier` + `neoneoorigins:using_item` condition |
 | `no_projectile_divergence` | `attribute_modifier` on `minecraft:projectile_accuracy` |
 | `sneaky` / `stealth` | `mobs_ignore_player` + sneak gate |
 | `tick_action` | `action_on_event` with `event: tick` |
@@ -210,81 +210,81 @@ Retired concrete types that still load via alias. See
 
 ## Condition verbs
 
-Used in `condition` fields. All use the `origins:` namespace (the `apace:`
+Used in `condition` fields. All use the `neoorigins:` namespace (the `apace:`
 namespace is also accepted; they're aliases). Jumps go to
 [CONDITIONS.md](CONDITIONS.md).
 
 ### Boolean combinators
-`origins:and` • `origins:or` • `origins:not` • `origins:constant`
+`neoneoorigins:and` • `neoneoorigins:or` • `neoneoorigins:not` • `neoorigins:constant`
 
 ### Environment
-`origins:biome` • `origins:dimension` • `origins:in_tag` • `origins:submerged_in` •
-`origins:submerged_in_water` • `origins:in_water` • `origins:in_block` •
-`origins:on_block` • `origins:block` • `origins:block_collision` •
-`origins:on_ground` • `origins:on_fire` • `origins:in_rain` • `origins:temperature` •
-`origins:weather` • `origins:brightness` • `origins:light_level` •
-`origins:exposed_to_sky` • `origins:exposed_to_sun` • `origins:daytime` •
-`origins:time_of_day` • `origins:moon_phase` • `origins:height` •
-`origins:fluid_height` • `origins:distance`
+`neoneoorigins:biome` • `neoorigins:dimension` • `neoorigins:in_tag` • `neoneoorigins:submerged_in` •
+`neoneoorigins:submerged_in_water` • `neoneoorigins:in_water` • `neoorigins:in_block` •
+`neoorigins:on_block` • `neoneoorigins:block` • `neoneoorigins:block_collision` •
+`neoorigins:on_ground` • `neoorigins:on_fire` • `neoorigins:in_rain` • `neoorigins:temperature` •
+`neoorigins:weather` • `neoorigins:brightness` • `neoorigins:light_level` •
+`neoorigins:exposed_to_sky` • `neoneoorigins:exposed_to_sun` • `neoorigins:daytime` •
+`neoorigins:time_of_day` • `neoorigins:moon_phase` • `neoorigins:height` •
+`neoorigins:fluid_height` • `neoorigins:distance`
 
 ### Player state
-`origins:health` • `origins:relative_health` • `origins:food_level` •
-`origins:armor_value` • `origins:xp_level` • `origins:xp_points` •
-`origins:fall_distance` • `origins:fall_flying` • `origins:sneaking` •
-`origins:sprinting` • `origins:swimming` • `origins:invisible` •
-`origins:creative_flying` • `origins:moving` • `origins:passenger` •
-`origins:using_item` • `origins:equipped_item` • `origins:enchantment` •
-`origins:resource` • `origins:living` • `origins:exists` • `origins:ticking`
+`neoneoorigins:health` • `neoneoorigins:relative_health` • `neoorigins:food_level` •
+`neoorigins:armor_value` • `neoorigins:xp_level` • `neoorigins:xp_points` •
+`neoorigins:fall_distance` • `neoorigins:fall_flying` • `neoorigins:sneaking` •
+`neoorigins:sprinting` • `neoorigins:swimming` • `neoorigins:invisible` •
+`neoorigins:creative_flying` • `neoorigins:moving` • `neoorigins:passenger` •
+`neoneoorigins:using_item` • `neoorigins:equipped_item` • `neoorigins:enchantment` •
+`neoorigins:resource` • `neoorigins:living` • `neoneoorigins:exists` • `neoorigins:ticking`
 
 ### Entity & damage
-`origins:entity_type` • `origins:target_type` • `origins:target_group` •
-`origins:can_see` • `origins:damage_type` • `origins:damage_tag` •
-`origins:damage_name` • `origins:from_fire` • `origins:from_projectile` •
-`origins:from_explosion`
+`neoorigins:entity_type` • `neoorigins:target_type` • `neoorigins:target_group` •
+`neoorigins:can_see` • `neoneoorigins:damage_type` • `neoneoorigins:damage_tag` •
+`neoneoorigins:damage_name` • `neoorigins:from_fire` • `neoorigins:from_projectile` •
+`neoorigins:from_explosion`
 
 ### Power introspection
-`origins:power_active` • `origins:power_type` • `origins:in_set`
+`neoorigins:power_active` • `neoorigins:power_type` • `neoneoorigins:in_set`
 
 ### Advanced
-`origins:nbt` • `origins:scoreboard` • `origins:command` • `origins:predicate` •
-`origins:amount` • `origins:equal`
+`neoorigins:nbt` • `neoorigins:scoreboard` • `neoorigins:command` • `neoorigins:predicate` •
+`neoorigins:amount` • `neoorigins:equal`
 
 ---
 
 ## Action verbs
 
-Used in `entity_action` fields. All use the `origins:` namespace (the
+Used in `entity_action` fields. All use the `neoorigins:` namespace (the
 `apace:` namespace is also accepted). Jumps go to [ACTIONS.md](ACTIONS.md).
 
 ### Combinators & control
-`origins:and` • `origins:chance` • `origins:delay` • `origins:if_else` •
-`origins:if_else_list` • `origins:nothing`
+`neoneoorigins:and` • `neoneoorigins:chance` • `neoneoorigins:delay` • `neoneoorigins:if_else` •
+`neoneoorigins:if_else_list` • `neoneoneoorigins:nothing`
 
 ### Damage & healing
-`origins:damage` • `origins:heal` • `origins:feed` • `origins:exhaust` •
-`origins:change_resource`
+`neoneoorigins:damage` • `neoneoorigins:heal` • `neoneoorigins:feed` • `neoneoorigins:exhaust` •
+`neoneoorigins:change_resource`
 
 ### Effects
-`origins:apply_effect` • `origins:clear_effect`
+`neoneoorigins:apply_effect` • `neoneoorigins:clear_effect`
 
 ### Movement & position
-`origins:add_velocity` • `origins:launch` • `origins:set_fall_distance` •
-`origins:dismount` • `origins:throw_target`
+`neoneoorigins:add_velocity` • `neoneoorigins:launch` • `neoneoorigins:set_fall_distance` •
+`neoneoorigins:dismount` • `neoorigins:throw_target`
 
 ### Items & inventory
-`origins:give` • `origins:modify_food` • `origins:spawn_entity` •
-`origins:spawn_projectile`
+`neoneoorigins:give` • `neoneoorigins:modify_food` • `neoneoorigins:spawn_entity` •
+`neoneoorigins:spawn_projectile`
 
 ### World & environment
-`origins:set_block` • `origins:set_on_fire` • `origins:extinguish` •
-`origins:explode` • `origins:gain_air` • `origins:area_of_effect`
+`neoneoorigins:set_block` • `neoneoorigins:set_on_fire` • `neoneoorigins:extinguish` •
+`neoneoorigins:explode` • `neoneoorigins:gain_air` • `neoneoorigins:area_of_effect`
 
 ### Power control
-`origins:grant_power` • `origins:revoke_power` • `origins:trigger_cooldown`
+`neoneoorigins:grant_power` • `neoneoorigins:revoke_power` • `neoneoorigins:trigger_cooldown`
 
 ### Integration
-`origins:execute_command` • `origins:play_sound` • `origins:swing_hand` •
-`origins:emit_game_event`
+`neoneoorigins:execute_command` • `neoneoorigins:play_sound` • `neoneoorigins:swing_hand` •
+`neoneoorigins:emit_game_event`
 
 ---
 
@@ -320,8 +320,8 @@ NeoOrigins accepts legacy prefixes for cross-mod pack compat.
 | Prefix | Meaning | How it's resolved |
 |---|---|---|
 | `neoorigins:*` | Canonical 2.0 namespace. Use this for new packs. | Direct registry lookup. |
-| `origins:*` | Upstream Apoli / vanilla Origins. | Translator in `OriginsCompatPowerLoader` maps to `neoorigins:*` or a DSL recipe. |
-| `apace:*` | Apace mod variant. | Same translator as `origins:*`. |
+| `neoorigins:*` | Upstream Apoli / vanilla Origins. | Translator in `OriginsCompatPowerLoader` maps to `neoorigins:*` or a DSL recipe. |
+| `apace:*` | Apace mod variant. | Same translator as `neoorigins:*`. |
 | `apoli:*` | Upstream Apoli mod. | `LegacyPowerTypeAliases` remaps to 2.0 generics. |
 | `apugli:*` | Apugli mod. | `LegacyPowerTypeAliases` remaps; Tier-1 aliases only (edible_item, action_on_jump, action_on_target_death). |
 

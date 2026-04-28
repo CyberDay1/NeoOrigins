@@ -97,7 +97,7 @@ See [POWER_TYPES.md](POWER_TYPES.md) for the full reference.
 Path: `data/<namespace>/origins/origin_layers/<id>.json`
 Loaded as: `<namespace>:<id>`
 
-Layers are the selection groups shown to the player when they first join. Most packs should add their origins to the existing `neoorigins:origin` layer rather than creating a new one.
+Layers are the selection groups shown to the player when they first join. Most packs should add their origins to the existing `neoneoorigins:origin` layer rather than creating a new one.
 
 ```json
 {
@@ -128,7 +128,7 @@ Layers are the selection groups shown to the player when they first join. Most p
 
 ### Adding origins to the built-in layer
 
-To add your origins to the default NeoOrigins origin selector, list them under the `neoorigins:origin` layer ID by creating a layer file at:
+To add your origins to the default NeoOrigins origin selector, list them under the `neoneoorigins:origin` layer ID by creating a layer file at:
 
 ```
 data/neoorigins/origins/origin_layers/origin.json

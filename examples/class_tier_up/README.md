@@ -8,7 +8,7 @@ Explorer class to a Scout class after the player earns Minecraft's
 
 ## Why this matters
 
-Most examples you'll see use the origin layer (`neoorigins:origin`). This
+Most examples you'll see use the origin layer (`neoneoorigins:origin`). This
 one uses the class layer (`neoorigins:class`) — the upgrade handler iterates
 every layer the player has, so nothing changes in your datapack syntax;
 you just point the upgrade at a class rather than an origin, and the swap

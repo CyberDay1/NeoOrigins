@@ -56,7 +56,7 @@ Voidwalker does not need an override — it is the terminal stage.
 To retest without restarting the world:
 
 ```
-/origin set @s neoorigins:origin neoorigins:human
+/origin set @s neoneoorigins:origin neoorigins:human
 /advancement revoke @s only minecraft:story/enter_the_end
 /advancement revoke @s only minecraft:end/kill_dragon
 ```
