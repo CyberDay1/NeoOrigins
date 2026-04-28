@@ -84,6 +84,21 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                     NeoOrigins.LOGGER.warn("OriginsCompat: Failed to expand origins:multiple {}: {}", id, reason);
                     CompatTranslationLog.fail(id, "origins:multiple expansion error: " + reason);
                 }
+            } else if (com.cyberday1.neoorigins.compat.OriginsStartingEquipmentExpander.isStartingEquipment(typeStr)) {
+                // Apoli's starting_equipment is a single power with N stacks;
+                // NeoOrigins' is one stack per power. Expand here so the
+                // downstream loop sees N synthetic neoorigins-shape entries.
+                working.remove(id);
+                try {
+                    Map<ResourceLocation, JsonObject> synthetics =
+                        com.cyberday1.neoorigins.compat.OriginsStartingEquipmentExpander.expand(id, json);
+                    working.putAll(synthetics);
+                    CompatTranslationLog.pass(id, "starting_equipment expanded into " + synthetics.size() + " stacks");
+                } catch (Exception e) {
+                    String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                    NeoOrigins.LOGGER.warn("OriginsCompat: Failed to expand starting_equipment {}: {}", id, reason);
+                    CompatTranslationLog.fail(id, "starting_equipment expansion error: " + reason);
+                }
             }
         }
 

@@ -109,7 +109,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             }
 
             boolean inFluid = "lava".equalsIgnoreCase(chosen.fluid)
-                ? sp.isInLava() : sp.isInWater();
+                ? sp.isInLava() : sp.isUnderWater();
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
                 // Reset on re-entry so stepping back into water visibly

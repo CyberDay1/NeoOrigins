@@ -528,6 +528,22 @@ and mod teleports are not routed through this event.
 
 ---
 
+## `mod_xp_gain`
+
+Scales experience points gained from any source (mob kills, ore drops,
+bottles, etc.).
+
+**Context:** `null`. Base value is `event.getAmount()` from
+`PlayerXpEvent.XpChange`.
+
+**Dispatch site:** `CompatEventPowers.onXpChange`.
+
+**Typical use:** scholar class 1.5× XP, cursed class 0.5× XP. Uses
+Apoli modifier math (addition + multiply_base/multiply_total collapse
+via `NumericModifierRegistry`).
+
+---
+
 # Previously unwired — now removed
 
 The earlier draft enum included 15 keys that were parseable in JSON but had
@@ -535,7 +551,7 @@ The earlier draft enum included 15 keys that were parseable in JSON but had
 for pack authors than not offering it, so they were removed from the enum
 rather than left as silent no-ops: `CLIMB`, `CRAFT_ITEM`, `SMELT_ITEM`,
 `ENCHANT_ITEM`, `ANVIL_REPAIR`, `BREED`, `TAME`, `ADVANCEMENT_EARNED`,
-`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`, `MOD_XP_GAIN`,
+`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`,
 `MOD_TRADE_PRICE`, `MOD_CRAFT_AMOUNT`, `MOD_FALL_DAMAGE`. Several of these
 remain useful and will be added back the same day their dispatch site
 lands. If you need one for a pack you're building, file an issue and the

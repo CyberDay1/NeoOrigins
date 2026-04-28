@@ -79,7 +79,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:prevent_block_use",    "apace:prevent_block_use",
         "origins:prevent_entity_use",   "apace:prevent_entity_use",
         "origins:modify_food",          "apace:modify_food",
-        "origins:modify_jump",          "apace:modify_jump"
+        "origins:modify_jump",          "apace:modify_jump",
+        "origins:prevent_sprinting",    "apace:prevent_sprinting",
+        "origins:modify_crafting",      "apace:modify_crafting",
+        "origins:modify_lava_speed",    "apace:modify_lava_speed",
+        "origins:modify_xp_gain",       "apace:modify_xp_gain"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -116,6 +120,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     protected void apply(Map<ResourceLocation, JsonElement> data, ResourceManager rm, ProfilerFiller profiler) {
         // Clear event power state from the previous reload cycle
         CompatPlayerState.clearAll();
+        ModifyCraftingRegistry.clearAll();
+        NumericModifierRegistry.clearAll();
 
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
         Map<ResourceLocation, JsonObject> expanded = inlineExpand(data);
@@ -271,6 +277,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:prevent_entity_use",         "apace:prevent_entity_use"         -> parsePreventEntityUse(id, json);
             case "origins:modify_food",                "apace:modify_food"                -> parseModifyFood(id, json);
             case "origins:modify_jump",                "apace:modify_jump"                -> parseModifyJump(id, json);
+            case "origins:prevent_sprinting",          "apace:prevent_sprinting"          -> parsePreventSprinting(id, json);
+            case "origins:modify_crafting",            "apace:modify_crafting"            -> parseModifyCrafting(id, json);
+            case "origins:modify_lava_speed",          "apace:modify_lava_speed"          -> parseNumericModifier(id, json, NumericModifierRegistry.Kind.LAVA_SPEED);
+            case "origins:modify_xp_gain",             "apace:modify_xp_gain"             -> parseNumericModifier(id, json, NumericModifierRegistry.Kind.XP_GAIN);
             // Conditioned modify_damage_taken — only dispatched here when a condition is present.
             case "origins:modify_damage_taken",        "apace:modify_damage_taken"        -> parseConditionedModifyDamageTaken(id, json);
             default -> null;
@@ -895,6 +905,105 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
             .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .build();
+    }
+
+    /**
+     * Shared parser for {@code modify_lava_speed} and {@code modify_xp_gain}
+     * — both shape-identical Apoli verbs of the form
+     * {@code { "modifier": { "operation": ..., "value": ... } }}. Registers
+     * the resolved numeric entry against the player's UUID so the consumer
+     * (mixin for lava-speed, event handler for xp-gain) can apply it.
+     */
+    private CompatPower.Config parseNumericModifier(ResourceLocation id, JsonObject json,
+                                                     NumericModifierRegistry.Kind kind) {
+        String idStr = id.toString();
+        if (!json.has("modifier") || !json.get("modifier").isJsonObject()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {} '{}' missing modifier object — skipped", kind, id);
+            return null;
+        }
+        JsonObject mod = json.getAsJsonObject("modifier");
+        String operation = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+        double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
+        return CompatPower.Config.builder()
+            .onGranted(player -> NumericModifierRegistry.register(player, kind, idStr, operation, value))
+            .onRevoked(player -> NumericModifierRegistry.unregister(player, kind, idStr))
+            .build();
+    }
+
+    /**
+     * {@code modify_crafting} — overrides the result of a specific recipe
+     * for players holding this power. Apoli authors use it to swap potion
+     * outputs, give Origins-exclusive equipment, etc.
+     *
+     * <p>Apoli shape:
+     * <pre>{@code
+     * { "type": "origins:modify_crafting",
+     *   "recipe": "ns:my_recipe",
+     *   "result": { "item": "minecraft:potion",
+     *               "tag": "{Potion:\"minecraft:water_breathing\"}" }
+     * }
+     * }</pre>
+     *
+     * <p>Implementation: registers a {@link ModifyCraftingRegistry.Entry}
+     * keyed by player + recipe id. {@code CompatEventPowers.onItemCrafted}
+     * matches the crafted recipe against the registry and swaps the result
+     * stack at craft time.
+     */
+    private CompatPower.Config parseModifyCrafting(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        if (!json.has("recipe") || !json.has("result")) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' missing 'recipe' or 'result' — skipped", id);
+            return null;
+        }
+        ResourceLocation recipeId = ResourceLocation.tryParse(json.get("recipe").getAsString());
+        if (recipeId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' has malformed recipe id — skipped", id);
+            return null;
+        }
+        JsonObject result = json.getAsJsonObject("result");
+        String resultItemStr = result.has("item") ? result.get("item").getAsString() : null;
+        if (resultItemStr == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' result missing 'item' — skipped", id);
+            return null;
+        }
+        ResourceLocation resultItem = ResourceLocation.tryParse(resultItemStr);
+        if (resultItem == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' result item '{}' is malformed — skipped", id, resultItemStr);
+            return null;
+        }
+        int resultCount = result.has("amount") ? result.get("amount").getAsInt()
+                        : result.has("count")  ? result.get("count").getAsInt()
+                        : 1;
+        String resultTag = result.has("tag") ? result.get("tag").getAsString() : "";
+
+        var entry = new ModifyCraftingRegistry.Entry(idStr, recipeId, resultItem, resultCount, resultTag);
+        return CompatPower.Config.builder()
+            .onGranted(player -> ModifyCraftingRegistry.register(player, entry))
+            .onRevoked(player -> ModifyCraftingRegistry.unregister(player, idStr))
+            .build();
+    }
+
+    /**
+     * {@code prevent_sprinting} — clamps {@link net.minecraft.world.entity.Entity#setSprinting(boolean)}
+     * back to false every tick the holder's optional {@code condition} is met.
+     *
+     * <p>Implemented as a per-tick handler rather than via an event because the
+     * sprint flag is set by client input and synced via packet; the cheapest
+     * server-side veto is to re-clear it once per tick. This causes one frame
+     * of visible sprint before the client gets the corrective sync, which is
+     * acceptable parity with Apoli's behaviour on Fabric.
+     */
+    private CompatPower.Config parsePreventSprinting(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                if (!player.isSprinting()) return;
+                if (condition.test(player)) player.setSprinting(false);
+            })
             .build();
     }
 

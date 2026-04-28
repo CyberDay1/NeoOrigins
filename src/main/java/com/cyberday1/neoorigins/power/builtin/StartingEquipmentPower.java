@@ -48,14 +48,19 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
         String item,
         List<EnchantEntry> enchantments,
         int count,
-        String type
+        String type,
+        String legacyTag
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.fieldOf("grant_id").forGetter(Config::grantId),
             Codec.STRING.fieldOf("item").forGetter(Config::item),
             EnchantEntry.CODEC.listOf().optionalFieldOf("enchantments", List.of()).forGetter(Config::enchantments),
             Codec.INT.optionalFieldOf("count", 1).forGetter(Config::count),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            // Apoli pack authors set NBT via a flat SNBT string (Potion type,
+            // Enchantments list, display.Name, etc.). Translated into data
+            // components at grant time via LegacyTagToComponents.
+            Codec.STRING.optionalFieldOf("legacy_tag", "").forGetter(Config::legacyTag)
         ).apply(inst, Config::new));
     }
 
@@ -107,6 +112,13 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
                 enchLookup.get(key).ifPresent(h -> enchMutable.set(h, entry.level()));
             }
             stack.set(DataComponents.ENCHANTMENTS, enchMutable.toImmutable());
+        }
+
+        // Apply translated Apoli SNBT — Potion type, Enchantments list,
+        // display.Name/Lore, etc. — via the shared legacy-tag bridge.
+        if (!config.legacyTag().isEmpty()) {
+            com.cyberday1.neoorigins.compat.LegacyTagToComponents.applySnbt(
+                stack, config.legacyTag(), player.registryAccess());
         }
 
         player.addItem(stack);

@@ -517,7 +517,7 @@ Multiplies knockback dealt or received.
 
 ## `neoorigins:xp_gain_modifier`
 
-Multiplies experience points gained. Currently registered but inert — no NeoForge XP gain event exists in 21.11.38.
+Multiplies experience points gained. Wired to `PlayerXpEvent.XpChange` via the `NumericModifierRegistry`. Uses Apoli modifier math (addition + multiply_base/multiply_total).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -617,19 +617,43 @@ No fields. Presence of the power is the entire configuration.
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
 
-Restricts which foods the player can eat to a specific item tag. Attempting to eat an item not in the tag cancels consumption.
+Restricts which foods the player can eat. Supports `blacklist` (cannot eat items matching the tag/item list) and `whitelist` (can only eat items matching). `item_tag` accepts a single string or a JSON array of tags and/or item IDs. Prefix entries with `#` for tags; bare strings match exact item IDs.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `allowed_tag` | Identifier | yes | — | Item tag of foods the player is allowed to eat, e.g. `minecraft:meat` |
+| `mode` | string | no | `"blacklist"` | `"blacklist"` or `"whitelist"` |
+| `item_tag` | string or array | yes | — | Single tag/item or array of tags/items. Use `#` prefix for tags (e.g. `"#minecraft:meat"`), bare strings for item IDs (e.g. `"minecraft:spider_eye"`). |
 
-**Example — meat-only diet:**
+**Example — meat-only diet (whitelist):**
 ```json
 {
   "type": "neoorigins:food_restriction",
-  "allowed_tag": "minecraft:meat",
+  "mode": "whitelist",
+  "item_tag": "#minecraft:meat",
   "name": "Carnivore",
   "description": "Can only eat meat."
+}
+```
+
+**Example — vegetarian with multiple blacklisted tags:**
+```json
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "blacklist",
+  "item_tag": ["#minecraft:meat", "#c:foods/raw_meat"],
+  "name": "Vegetarian",
+  "description": "Cannot eat meat."
+}
+```
+
+**Example — blacklist specific items and a tag:**
+```json
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "blacklist",
+  "item_tag": ["#minecraft:meat", "minecraft:spider_eye", "minecraft:rotten_flesh"],
+  "name": "Clean Eater",
+  "description": "Cannot eat meat or unsanitary foods."
 }
 ```
 

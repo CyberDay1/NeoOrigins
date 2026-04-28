@@ -490,11 +490,13 @@ Numeric comparison against the hit damage currently being taken. Requires an act
 
 ## `neoorigins:food_item_in_tag`
 
-True if the item being eaten in the current `FOOD_EATEN` dispatch matches an item tag. Requires an active `FoodContext`. Used by `food_restriction` aliases.
+True if the item being eaten in the current `FOOD_EATEN` dispatch matches a tag or item ID. Requires an active `FoodContext`. Used by `food_restriction` aliases.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `tag` | resource location | no | — | Item tag; always-false when absent |
+| `tag` | string | no | — | Item tag (prefix with `#`, e.g. `"#minecraft:meat"`) or bare item ID (e.g. `"minecraft:spider_eye"`). Always-false when absent. |
+
+**Tag vs item:** a leading `#` denotes a tag lookup; without `#` the value is matched as an exact item ID.
 
 ---
 

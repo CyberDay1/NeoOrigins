@@ -695,26 +695,54 @@ public final class LegacyPowerTypeAliases {
         // food_restriction → action_on_event { event: food_eaten, entity_action: if_else(...) }
         // mode=blacklist: cancel if held item is in item_tag.
         // mode=whitelist: cancel if held item is NOT in item_tag.
+        // item_tag accepts a single string or a JSON array of strings (tags and/or item ids).
         // Uses neoorigins:food_item_in_tag — a context-aware condition that
         // reads FoodContext.stack from the ActionContextHolder.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "food_restriction"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> {
-                    String tag = json.has("item_tag") ? json.get("item_tag").getAsString() : "";
+                    // Collect tag/item entries — supports both single string and array
+                    java.util.List<String> tags = new java.util.ArrayList<>();
+                    if (json.has("item_tag")) {
+                        com.google.gson.JsonElement el = json.get("item_tag");
+                        if (el.isJsonArray()) {
+                            for (com.google.gson.JsonElement e : el.getAsJsonArray()) {
+                                tags.add(e.getAsString());
+                            }
+                        } else {
+                            tags.add(el.getAsString());
+                        }
+                    }
+
                     boolean whitelist = json.has("mode")
                         && "whitelist".equalsIgnoreCase(json.get("mode").getAsString());
 
-                    com.google.gson.JsonObject itemInTag = new com.google.gson.JsonObject();
-                    itemInTag.addProperty("type", "neoorigins:food_item_in_tag");
-                    itemInTag.addProperty("tag", tag);
+                    // Build a food_item_in_tag condition per entry, then OR them
+                    com.google.gson.JsonObject combined;
+                    if (tags.size() == 1) {
+                        combined = new com.google.gson.JsonObject();
+                        combined.addProperty("type", "neoorigins:food_item_in_tag");
+                        combined.addProperty("tag", tags.get(0));
+                    } else {
+                        com.google.gson.JsonArray subs = new com.google.gson.JsonArray();
+                        for (String t : tags) {
+                            com.google.gson.JsonObject sub = new com.google.gson.JsonObject();
+                            sub.addProperty("type", "neoorigins:food_item_in_tag");
+                            sub.addProperty("tag", t);
+                            subs.add(sub);
+                        }
+                        combined = new com.google.gson.JsonObject();
+                        combined.addProperty("type", "neoorigins:or");
+                        combined.add("conditions", subs);
+                    }
 
                     com.google.gson.JsonObject matchCond;
                     if (whitelist) {
-                        // cancel when item NOT in tag → wrap in origins:not
+                        // cancel when item NOT in any tag → wrap in not
                         matchCond = new com.google.gson.JsonObject();
                         matchCond.addProperty("type", "neoorigins:not");
-                        matchCond.add("condition", itemInTag);
+                        matchCond.add("condition", combined);
                     } else {
-                        matchCond = itemInTag;
+                        matchCond = combined;
                     }
 
                     com.google.gson.JsonObject cancel = new com.google.gson.JsonObject();

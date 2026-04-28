@@ -57,6 +57,10 @@ public final class OriginsPowerTranslator {
         "origins:prevent_entity_use",    "apace:prevent_entity_use",
         "origins:modify_food",           "apace:modify_food",
         "origins:modify_jump",           "apace:modify_jump",
+        "origins:prevent_sprinting",     "apace:prevent_sprinting",
+        "origins:modify_crafting",       "apace:modify_crafting",
+        "origins:modify_lava_speed",     "apace:modify_lava_speed",
+        "origins:modify_xp_gain",        "apace:modify_xp_gain",
         // Visual/rendering — no server-side equivalent
         "origins:overlay",
         "origins:shader",
@@ -198,7 +202,7 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> doTranslate(ResourceLocation id, String type, JsonObject src) {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);
-            case "origins:elytra_flight",          "apace:elytra_flight"          -> translateSimple("neoorigins:flight");
+            case "origins:elytra_flight",          "apace:elytra_flight"          -> translateSimple("neoorigins:natural_glide");
             case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:flight");
             case "origins:night_vision",           "apace:night_vision"           -> translateSimple("neoorigins:night_vision");
             case "origins:water_breathing",        "apace:water_breathing"        -> translateSimple("neoorigins:water_breathing");

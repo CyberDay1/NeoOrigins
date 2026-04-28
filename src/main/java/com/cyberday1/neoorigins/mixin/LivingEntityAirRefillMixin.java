@@ -42,7 +42,7 @@ public abstract class LivingEntityAirRefillMixin {
         if (!(self instanceof Player player)) return false;
         // Power only drains while out of water — let vanilla refill run normally
         // when the player re-enters water so the bubble row recovers.
-        if (player.isInWater()) return false;
+        if (player.isUnderWater()) return false;
 
         if (self.level().isClientSide) {
             // Dedicated server's world is never client-side, so this branch is

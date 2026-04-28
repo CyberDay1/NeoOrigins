@@ -1013,3 +1013,159 @@ Teleports the target to an absolute position or by a relative offset. The "marke
 ```json
 { "type": "neoorigins:teleport_to_marker", "dx": 0.0, "dy": 16.0, "dz": 0.0 }
 ```
+
+---
+
+## `origins:equipped_item_action`
+
+Runs an item action on the stack in a given equipment slot. Delegates per-stack verbs to `ItemActionParser`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, or `"mainhand"` |
+| `item_action` | object | yes | — | Item action to run (see Item Actions below) |
+
+**Example — damage the held item by 5:**
+```json
+{ "type": "neoorigins:equipped_item_action",
+  "equipment_slot": "mainhand",
+  "item_action": { "type": "neoorigins:damage", "amount": 5 } }
+```
+
+---
+
+## `origins:modify_inventory`
+
+Iterates inventory slots and runs an item action on each matching stack.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `item_action` | object | yes | — | Item action to run per matching stack |
+| `item_condition` | object | no | — | Item condition to filter stacks (see Item Conditions below); all stacks if absent |
+| `slot` | string | no | — | Restrict to a single slot name; iterates all slots if absent |
+
+**Example — consume all rotten flesh in inventory:**
+```json
+{ "type": "neoorigins:modify_inventory",
+  "item_condition": { "type": "neoorigins:ingredient", "item": "minecraft:rotten_flesh" },
+  "item_action": { "type": "neoorigins:consume" } }
+```
+
+---
+
+## `origins:raycast`
+
+Performs a block and/or entity raycast from the player's eye position along their look vector. Runs nested actions at the hit position.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `distance` | double | no | `16.0` | Max raycast distance |
+| `block` | bool | no | `true` | Include block hits |
+| `entity` | bool | no | `true` | Include entity hits |
+| `block_action` | object | no | — | Action to run at the hit block position (dispatched with `RaycastBlockContext` so `~ ~ ~` resolves to the hit block) |
+| `entity_action` | object | no | — | Action to run against the hit entity |
+
+**Example — execute command at the looked-at block:**
+```json
+{ "type": "neoorigins:raycast",
+  "distance": 32.0,
+  "entity": false,
+  "block_action": {
+    "type": "neoorigins:execute_command",
+    "command": "particle minecraft:flame ~ ~ ~ 0.5 0.5 0.5 0.1 20"
+  } }
+```
+
+---
+
+# Item actions
+
+Item actions operate on a single `ItemStack` and are used inside `equipped_item_action`, `modify_inventory`, and other per-stack contexts. They use the `ItemActionParser` verb set.
+
+## `neoorigins:merge_nbt`
+
+Merges SNBT data into the stack's data components via `LegacyTagToComponents`. Pre-1.21 SNBT keys (Potion, Enchantments, Damage, Unbreakable, CustomModelData, display.Name/Lore) are auto-translated to modern data components.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `nbt` | string (SNBT) | yes | — | SNBT to merge |
+
+## `neoorigins:consume`
+
+Removes the stack entirely (sets count to 0). No fields.
+
+## `neoorigins:damage`
+
+Damages the stack's durability.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `amount` | int | no | `1` | Durability to remove |
+
+## `neoorigins:set_count`
+
+Sets the stack's count.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `count` | int | no | `1` | New stack size |
+
+## `neoorigins:and` (item)
+
+Runs multiple item actions in sequence.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `actions` | array of item action | yes | — | Actions to run in order |
+
+## `neoorigins:if_else` (item)
+
+Conditional item action dispatch.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `condition` | item condition | no | FALSE | Guard |
+| `if_action` | item action | no | noop | Runs when condition passes |
+| `else_action` | item action | no | noop | Runs when condition fails |
+
+---
+
+# Item conditions
+
+Item conditions evaluate to true/false against an `ItemStack`. Used inside `equipped_item` entity conditions and `if_else` item actions. They use the `ItemConditionParser` verb set. All item conditions support the universal `"inverted": true` flag.
+
+## `neoorigins:empty`
+
+True when the stack is empty. No fields.
+
+## `neoorigins:nbt`
+
+True when the stack's persistent data contains the given SNBT compound (subset match).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `nbt` | string (SNBT) | yes | — | SNBT to match against |
+
+## `neoorigins:enchantment`
+
+True when the stack has the given enchantment at or above a minimum level.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `enchantment` | resource id | yes | — | Enchantment ID |
+| `min_level` | int | no | `1` | Minimum level |
+
+## `neoorigins:ingredient`
+
+True when the stack matches a vanilla ingredient (item ID or tag).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `item` | resource id | no | — | Exact item ID |
+| `tag` | resource id | no | — | Item tag |
+
+Bare item ID strings (no `type` field) also match via the ingredient fallback path.
+
+## `neoorigins:and` / `neoorigins:or` / `neoorigins:not` (item)
+
+Standard boolean combinators, same shape as entity conditions but operating on `ItemStack`.

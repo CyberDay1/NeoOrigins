@@ -7,6 +7,7 @@
     "LivingEntityMixin",
     "LivingEntityAirRefillMixin",
     "LivingEntityClimbMixin",
+    "LivingEntityLavaSpeedMixin",
     "FoodDataMixin",
     "FoodDataTickMixin",
     "FoodDataNoRegenMixin",

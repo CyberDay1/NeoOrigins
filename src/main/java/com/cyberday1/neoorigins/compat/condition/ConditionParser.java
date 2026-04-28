@@ -417,46 +417,21 @@ public final class ConditionParser {
         String slot = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
         EquipmentSlot eqSlot = mapEquipmentSlot(slot);
 
-        // Check for item_condition sub-object
-        JsonObject itemCond = json.has("item_condition") ? json.getAsJsonObject("item_condition") : null;
-        if (itemCond == null) return EntityCondition.alwaysTrue();
-
-        // Simplified item condition: check item id or tag
-        String itemId = itemCond.has("id") ? itemCond.get("id").getAsString() : null;
-        String itemTag = itemCond.has("tag") ? itemCond.get("tag").getAsString() : null;
-        String itemType = itemCond.has("type") ? itemCond.get("type").getAsString() : "";
-
-        // Handle ingredient-style item condition
-        if (itemCond.has("ingredient") && itemCond.get("ingredient").isJsonObject()) {
-            JsonObject ing = itemCond.getAsJsonObject("ingredient");
-            if (ing.has("item")) itemId = ing.get("item").getAsString();
-            else if (ing.has("tag")) itemTag = ing.get("tag").getAsString();
+        // Delegate the per-stack predicate to the shared ItemConditionParser so
+        // packs get the full item-condition vocabulary (and/or/not, nbt subtree
+        // containment, enchantment levels, ingredient match, empty-slot, etc.)
+        // instead of the previous inline-and-only id/tag/empty path.
+        JsonObject itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
+            ? json.getAsJsonObject("item_condition") : null;
+        if (itemCond == null) {
+            // No item_condition supplied — treat as a slot-presence check (vanilla
+            // Apoli behaviour: equipped_item with just a slot matches when ANY
+            // item is in that slot).
+            return player -> !player.getItemBySlot(eqSlot).isEmpty();
         }
-
-        final String fItemId = itemId;
-        final String fItemTag = itemTag;
-
-        if (fItemId != null) {
-            ResourceLocation targetItem = ResourceLocation.parse(fItemId);
-            return player -> {
-                ItemStack stack = player.getItemBySlot(eqSlot);
-                return BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(targetItem);
-            };
-        }
-        if (fItemTag != null) {
-            var itemTagKey = TagKey.create(Registries.ITEM, ResourceLocation.parse(fItemTag));
-            return player -> {
-                ItemStack stack = player.getItemBySlot(eqSlot);
-                return stack.is(itemTagKey);
-            };
-        }
-
-        // Nested condition type check (e.g., origins:empty for checking empty slot)
-        if ("origins:empty".equals(itemType) || "apace:empty".equals(itemType)) {
-            return player -> player.getItemBySlot(eqSlot).isEmpty();
-        }
-
-        return EntityCondition.alwaysTrue();
+        com.cyberday1.neoorigins.compat.condition.ItemCondition itemPredicate =
+            com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(itemCond);
+        return player -> itemPredicate.test(player.getItemBySlot(eqSlot));
     }
 
     private static EquipmentSlot mapEquipmentSlot(String slot) {
@@ -886,15 +861,30 @@ public final class ConditionParser {
     private static EntityCondition parseFoodItemInTag(JsonObject json) {
         String tag = json.has("tag") ? json.get("tag").getAsString() : null;
         if (tag == null) return CompatPolicy.FALSE_CONDITION;
-        TagKey<net.minecraft.world.item.Item> itemTag =
-            TagKey.create(Registries.ITEM, ResourceLocation.parse(tag));
-        return p -> {
-            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
-            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
-                return false;
-            }
-            return fc.stack().is(itemTag);
-        };
+        // If the entry starts with '#', treat as a tag; otherwise match a specific item id
+        if (tag.startsWith("#")) {
+            TagKey<net.minecraft.world.item.Item> itemTag =
+                TagKey.create(Registries.ITEM, ResourceLocation.parse(tag.substring(1)));
+            return p -> {
+                Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
+                    return false;
+                }
+                return fc.stack().is(itemTag);
+            };
+        } else {
+            ResourceLocation itemId = ResourceLocation.parse(tag);
+            var itemHolder = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(itemId);
+            if (itemHolder.isEmpty()) return CompatPolicy.FALSE_CONDITION;
+            net.minecraft.world.item.Item targetItem = itemHolder.get();
+            return p -> {
+                Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
+                    return false;
+                }
+                return fc.stack().getItem() == targetItem;
+            };
+        }
     }
 
     /**
