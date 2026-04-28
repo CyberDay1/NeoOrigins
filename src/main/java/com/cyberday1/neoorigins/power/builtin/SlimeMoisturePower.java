@@ -88,6 +88,12 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
 
         setMoisture(player, moisture);
 
+        // Sync to client for HUD rendering (every 10 ticks = 0.5s)
+        if (player.tickCount % 10 == 0) {
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+                new com.cyberday1.neoorigins.network.payload.SyncMoisturePayload(moisture));
+        }
+
         // ── Regen at > 75% moisture ────────────────────────────────────
         if (moisture > config.regenThreshold()) {
             var existing = player.getEffect(MobEffects.REGENERATION);
@@ -131,6 +137,9 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
             armorAttr.removeModifier(Identifier.fromNamespaceAndPath("neoorigins", "slime_moisture_armor_penalty"));
         }
         player.removeEffect(MobEffects.REGENERATION);
+        // Clear HUD bar on client
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncMoisturePayload(-1.0F));
     }
 
     // ── Moisture storage ───────────────────────────────────────────────
