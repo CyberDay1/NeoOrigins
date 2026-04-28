@@ -16,5 +16,34 @@
     "neoorigins:automaton_rigid_joints",
     "neoorigins:automaton_knockback_resist"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:automaton_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:automaton_ascended_hp",
+        "neoorigins:automaton_ascended_overclock"
+      ],
+      "remove": [
+        "neoorigins:automaton_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:automaton_apex_hp",
+        "neoorigins:automaton_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:automaton_ascended_hp"
+      ]
+    }
+  ]
 }

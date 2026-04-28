@@ -19,6 +19,35 @@
     "neoorigins:abyssal_dries_out"
   ],
   "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:abyssal_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:abyssal_ascended_hp",
+        "neoorigins:abyssal_ascended_swim_speed"
+      ],
+      "remove": [
+        "neoorigins:abyssal_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:abyssal_apex_hp",
+        "neoorigins:abyssal_apex_conduit_power"
+      ],
+      "remove": [
+        "neoorigins:abyssal_ascended_hp"
+      ]
+    }
+  ],
   "spawn_location": {
     "dimension": "minecraft:overworld",
     "biome_tag": "minecraft:is_ocean",

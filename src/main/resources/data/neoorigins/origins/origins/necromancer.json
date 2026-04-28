@@ -13,5 +13,33 @@
     "neoorigins:necromancer_reduced_health",
     "neoorigins:necromancer_slow_regen"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:necromancer_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:necromancer_ascended_hp"
+      ],
+      "remove": [
+        "neoorigins:necromancer_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:necromancer_apex_hp",
+        "neoorigins:necromancer_apex_night_vision"
+      ],
+      "remove": [
+        "neoorigins:necromancer_ascended_hp"
+      ]
+    }
+  ]
 }

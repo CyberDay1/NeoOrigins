@@ -13,5 +13,35 @@
     "neoorigins:frostborn_nether_damage",
     "neoorigins:frostborn_freeze_immunity"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:frostborn_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:frostborn_ascended_hp",
+        "neoorigins:frostborn_ascended_fire_weakness"
+      ],
+      "remove": [
+        "neoorigins:frostborn_evolved_hp",
+        "neoorigins:frostborn_fire_weakness"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:frostborn_apex_hp"
+      ],
+      "remove": [
+        "neoorigins:frostborn_ascended_hp",
+        "neoorigins:frostborn_ascended_fire_weakness"
+      ]
+    }
+  ]
 }

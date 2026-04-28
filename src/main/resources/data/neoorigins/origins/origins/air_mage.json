@@ -14,5 +14,34 @@
     "neoorigins:air_mage_fragile",
     "neoorigins:air_mage_light"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:air_mage_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:air_mage_ascended_hp",
+        "neoorigins:air_mage_ascended_slow_falling"
+      ],
+      "remove": [
+        "neoorigins:air_mage_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:air_mage_apex_hp",
+        "neoorigins:air_mage_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:air_mage_ascended_hp"
+      ]
+    }
+  ]
 }

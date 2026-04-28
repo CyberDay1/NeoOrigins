@@ -1,0 +1,1 @@
+{ "type": "neoorigins:low_hp_threshold", "threshold": 0.5, "effects": [ { "effect": "minecraft:speed", "amplifier": 0 }, { "effect": "minecraft:haste", "amplifier": 0 } ] }

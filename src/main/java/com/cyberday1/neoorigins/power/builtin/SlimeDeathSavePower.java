@@ -65,14 +65,16 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
 
         double newX = player.getX() + dx;
         double newZ = player.getZ() + dz;
-        double newY = Math.max(player.level().dimensionType().minY() + 1,
-                     Math.min(player.getY() + dy, player.level().dimensionType().minY() + player.level().dimensionType().logicalHeight() - 1));
+        int minBuildY = player.level().dimensionType().minY();
+        int maxBuildY = minBuildY + player.level().dimensionType().height() - 1;
+        double newY = Math.max(minBuildY + 1,
+                     Math.min(player.getY() + dy, maxBuildY - 1));
 
         // Find a safe Y at the target XZ
         BlockPos target = BlockPos.containing(newX, newY, newZ);
         player.level().getChunk(target.getX() >> 4, target.getZ() >> 4);
         // Scan down for solid ground
-        for (int y = target.getY(); y > player.level().dimensionType().minY(); y--) {
+        for (int y = target.getY(); y > minBuildY; y--) {
             BlockPos check = new BlockPos(target.getX(), y, target.getZ());
             if (player.level().getBlockState(check).isSolid()
                 && player.level().getBlockState(check.above()).isAir()

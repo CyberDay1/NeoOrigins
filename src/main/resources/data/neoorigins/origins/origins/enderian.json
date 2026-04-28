@@ -11,6 +11,35 @@
     "neoorigins:enderian_teleport"
   ],
   "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:enderian_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:enderian_ascended_pearl_immune",
+        "neoorigins:enderian_ascended_hp"
+      ],
+      "remove": [
+        "neoorigins:enderian_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:enderian_apex_hp"
+      ],
+      "remove": [
+        "neoorigins:enderian_ascended_hp",
+        "neoorigins:enderian_water_damage"
+      ]
+    }
+  ],
   "spawn_location": {
     "dimension": "minecraft:the_end",
     "biomes": [

@@ -1,0 +1,1 @@
+{ "type": "neoorigins:light_level_effect", "max_light_level": 4, "effect": "minecraft:invisibility", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }

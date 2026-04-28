@@ -13,5 +13,34 @@
     "neoorigins:breeze_reduced_health",
     "neoorigins:breeze_light_frame"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:breeze_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:breeze_ascended_hp",
+        "neoorigins:breeze_ascended_slow_falling"
+      ],
+      "remove": [
+        "neoorigins:breeze_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:breeze_apex_hp",
+        "neoorigins:breeze_apex_jump_boost"
+      ],
+      "remove": [
+        "neoorigins:breeze_ascended_hp"
+      ]
+    }
+  ]
 }

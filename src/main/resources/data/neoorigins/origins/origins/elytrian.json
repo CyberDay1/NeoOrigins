@@ -13,5 +13,35 @@
     "neoorigins:elytrian_fragile",
     "neoorigins:elytrian_no_heavy_armor"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:elytrian_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:elytrian_ascended_hp",
+        "neoorigins:elytrian_ascended_sky_piercer"
+      ],
+      "remove": [
+        "neoorigins:elytrian_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:elytrian_apex_hp",
+        "neoorigins:elytrian_apex_sky_piercer"
+      ],
+      "remove": [
+        "neoorigins:elytrian_ascended_hp",
+        "neoorigins:elytrian_ascended_sky_piercer"
+      ]
+    }
+  ]
 }

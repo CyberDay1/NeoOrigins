@@ -1,1 +1,6 @@
-{ "type": "neoorigins:active_dash", "power": 2.2, "cooldown_ticks": 80, "allow_vertical": true, "hunger_cost": 2 }
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 80,
+  "hunger_cost": 2,
+  "entity_action": { "type": "neoorigins:dash", "strength": 2.2, "allow_vertical": true }
+}

@@ -9,5 +9,38 @@
     "neoorigins:wraith_daylight_damage",
     "neoorigins:wraith_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:wraith_evolved_night_vision",
+        "neoorigins:wraith_evolved_phase"
+      ],
+      "remove": [
+        "neoorigins:wraith_phase"
+      ]
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:wraith_ascended_weakness_aura",
+        "neoorigins:wraith_ascended_daylight_damage"
+      ],
+      "remove": [
+        "neoorigins:wraith_daylight_damage"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:wraith_apex_phase",
+        "neoorigins:wraith_apex_hunger_drain"
+      ],
+      "remove": [
+        "neoorigins:wraith_evolved_phase",
+        "neoorigins:wraith_hunger_drain"
+      ]
+    }
+  ]
 }

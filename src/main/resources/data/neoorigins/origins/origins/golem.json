@@ -10,7 +10,42 @@
     "neoorigins:golem_size",
     "neoorigins:golem_effect_immunity",
     "neoorigins:golem_slow_movement",
-    "neoorigins:golem_fire_weakness"
+    "neoorigins:golem_fire_weakness",
+    "neoorigins:golem_ground_slam"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:golem_evolved_hp",
+        "neoorigins:golem_evolved_armor"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:golem_ascended_hp",
+        "neoorigins:golem_ascended_armor",
+        "neoorigins:golem_ascended_knockback"
+      ],
+      "remove": [
+        "neoorigins:golem_evolved_hp",
+        "neoorigins:golem_evolved_armor"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:golem_apex_hp",
+        "neoorigins:golem_apex_armor",
+        "neoorigins:golem_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:golem_ascended_hp",
+        "neoorigins:golem_ascended_armor"
+      ]
+    }
+  ]
 }

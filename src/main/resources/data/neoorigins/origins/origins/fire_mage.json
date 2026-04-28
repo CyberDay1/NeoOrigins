@@ -12,5 +12,34 @@
     "neoorigins:fire_mage_water_weakness",
     "neoorigins:fire_mage_hunger"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:fire_mage_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:fire_mage_ascended_hp",
+        "neoorigins:fire_mage_ascended_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:fire_mage_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:fire_mage_apex_hp",
+        "neoorigins:fire_mage_apex_attack"
+      ],
+      "remove": [
+        "neoorigins:fire_mage_ascended_hp"
+      ]
+    }
+  ]
 }

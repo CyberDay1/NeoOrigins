@@ -41,6 +41,10 @@ public class PlayerOriginData {
     private final Map<String, Set<UUID>> entitySets = new HashMap<>();
     /** Generic keyed float storage for power types that need persisted numeric state (e.g. SlimeMoisturePower). */
     private final Map<String, Float> customFloats = new HashMap<>();
+    /** Essence evolution: mob kills accumulated toward the next evolution tier. Persisted. */
+    private int essenceKills = 0;
+    /** Essence evolution: current tier (0 = base, 1 = Evolved, 2 = Ascended, 3 = Apex). Persisted. */
+    private int evolutionTier = 0;
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new ConcurrentHashMap<>();
     /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
@@ -91,8 +95,14 @@ public class PlayerOriginData {
             }),
         Codec.unboundedMap(Codec.STRING, Codec.FLOAT)
             .optionalFieldOf("custom_floats", Map.of())
-            .forGetter(d -> Map.copyOf(d.customFloats))
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats) -> {
+            .forGetter(d -> Map.copyOf(d.customFloats)),
+        Codec.INT
+            .optionalFieldOf("essence_kills", 0)
+            .forGetter(d -> d.essenceKills),
+        Codec.INT
+            .optionalFieldOf("evolution_tier", 0)
+            .forGetter(d -> d.evolutionTier)
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats, kills, tier) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
@@ -109,6 +119,8 @@ public class PlayerOriginData {
             if (!parsed.isEmpty()) data.entitySets.put(e.getKey(), parsed);
         }
         data.customFloats.putAll(floats);
+        data.essenceKills = kills;
+        data.evolutionTier = tier;
         return data;
     }));
 
@@ -120,6 +132,34 @@ public class PlayerOriginData {
 
     public void setCustomFloat(String key, float value) {
         customFloats.put(key, value);
+        version++;
+    }
+
+    // ── Essence evolution ──────────────────────────────────────────────
+
+    public int getEssenceKills() { return essenceKills; }
+
+    public void setEssenceKills(int kills) {
+        this.essenceKills = kills;
+        version++;
+    }
+
+    public int incrementEssenceKills() {
+        essenceKills++;
+        version++;
+        return essenceKills;
+    }
+
+    public int getEvolutionTier() { return evolutionTier; }
+
+    public void setEvolutionTier(int tier) {
+        this.evolutionTier = Math.max(0, Math.min(3, tier));
+        version++;
+    }
+
+    public void resetEvolution() {
+        this.essenceKills = 0;
+        this.evolutionTier = 0;
         version++;
     }
 

@@ -12,5 +12,34 @@
     "neoorigins:verdant_forest_regen",
     "neoorigins:verdant_nether_damage"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:verdant_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:verdant_ascended_hp",
+        "neoorigins:verdant_ascended_thorns"
+      ],
+      "remove": [
+        "neoorigins:verdant_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:verdant_apex_hp",
+        "neoorigins:verdant_apex_regeneration"
+      ],
+      "remove": [
+        "neoorigins:verdant_ascended_hp"
+      ]
+    }
+  ]
 }

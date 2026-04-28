@@ -13,5 +13,34 @@
     "neoorigins:hiveling_reduced_health",
     "neoorigins:hiveling_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:hiveling_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:hiveling_ascended_hp",
+        "neoorigins:hiveling_ascended_speed"
+      ],
+      "remove": [
+        "neoorigins:hiveling_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:hiveling_apex_hp",
+        "neoorigins:hiveling_apex_poison_immunity"
+      ],
+      "remove": [
+        "neoorigins:hiveling_ascended_hp"
+      ]
+    }
+  ]
 }

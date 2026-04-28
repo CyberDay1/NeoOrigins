@@ -17,5 +17,35 @@
     "dimension": "minecraft:overworld",
     "biome_tag": "minecraft:is_ocean",
     "allow_ocean_floor": true
-  }
+  },
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:merling_evolved_hp",
+        "neoorigins:merling_evolved_swim_speed"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:merling_ascended_hp",
+        "neoorigins:merling_ascended_conduit"
+      ],
+      "remove": [
+        "neoorigins:merling_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:merling_apex_hp",
+        "neoorigins:merling_apex_dolphins_grace"
+      ],
+      "remove": [
+        "neoorigins:merling_ascended_hp"
+      ]
+    }
+  ]
 }

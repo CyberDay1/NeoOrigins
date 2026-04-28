@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
@@ -12,21 +13,13 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
  * Prevents certain items from being equipped in certain slots. When a matching
  * item is put into a restricted slot, the power ejects it back to the player's
  * inventory (or drops it to the ground if inventory is full).
- *
- * <p>Each slot (head/chest/legs/feet/offhand/mainhand) can have an item-id or
- * tag filter. Matching items are rejected; non-matching pass through.
- *
- * <p>Pack authors typically pair this with a visual message on equip-reject via
- * an {@code action_on_event} on the same slot.
- *
- * <p>Handled via {@code LivingEquipmentChangeEvent} — see
- * {@code InteractionPowerEvents} for the dispatch wiring.
  */
 public class RestrictArmorPower extends PowerType<RestrictArmorPower.Config> {
 
@@ -53,22 +46,51 @@ public class RestrictArmorPower extends PowerType<RestrictArmorPower.Config> {
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
-    /** True if the stack would be rejected by any restriction for the given slot. */
     public static boolean isRestricted(ItemStack stack, EquipmentSlot slot, Config config) {
         if (stack.isEmpty()) return false;
         String slotName = slot.getName();
         for (SlotRestriction r : config.restrictions()) {
             if (!r.slot().equalsIgnoreCase(slotName)) continue;
             if (r.item().isPresent()) {
-                var holder = BuiltInRegistries.ITEM.get(r.item().get());
-                if (holder.isPresent() && stack.is(holder.get())) return true;
+                var itemOpt = BuiltInRegistries.ITEM.get(r.item().get());
+                if (itemOpt.isPresent() && stack.is(itemOpt.get().value())) return true;
             }
             if (r.tag().isPresent()) {
                 TagKey<Item> tag = TagKey.create(Registries.ITEM, r.tag().get());
                 if (stack.is(tag)) return true;
+                // Also check config-defined armor class extensions
+                if (matchesConfigArmorClass(stack, r.tag().get())) return true;
             }
-            // If neither item nor tag is specified, reject all items in that slot.
             if (r.item().isEmpty() && r.tag().isEmpty()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if the stack matches any item in the config-defined armor class
+     * list that extends the given tag. Only applies to neoorigins:heavy_armor
+     * and neoorigins:light_armor tags.
+     */
+    private static boolean matchesConfigArmorClass(ItemStack stack, Identifier tagId) {
+        List<String> configItems;
+        if (tagId.equals(Identifier.fromNamespaceAndPath("neoorigins", "heavy_armor"))) {
+            configItems = NeoOriginsConfig.getHeavyArmorItems();
+        } else if (tagId.equals(Identifier.fromNamespaceAndPath("neoorigins", "light_armor"))) {
+            configItems = NeoOriginsConfig.getLightArmorItems();
+        } else {
+            return false;
+        }
+
+        Identifier stackId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        for (String entry : configItems) {
+            if (entry.startsWith("#")) {
+                // Tag reference
+                TagKey<Item> extraTag = TagKey.create(Registries.ITEM, Identifier.parse(entry.substring(1)));
+                if (stack.is(extraTag)) return true;
+            } else {
+                // Item ID
+                if (stackId.equals(Identifier.parse(entry))) return true;
+            }
         }
         return false;
     }

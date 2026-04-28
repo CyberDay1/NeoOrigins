@@ -116,6 +116,18 @@ public class CombatPowerEvents {
             return;
         }
 
+        // DodgeChancePower — percentage chance to avoid damage entirely
+        final boolean[] dodged = {false};
+        ActiveOriginService.forEachOfType(sp, DodgeChancePower.class, cfg -> {
+            if (!dodged[0] && sp.getRandom().nextFloat() < cfg.chance()) {
+                dodged[0] = true;
+            }
+        });
+        if (dodged[0]) {
+            event.setCanceled(true);
+            return;
+        }
+
         if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
                 || event.getSource().is(DamageTypes.LAVA) || event.getSource().is(DamageTypes.HOT_FLOOR)) {
             if (ActiveOriginService.has(sp, PreventActionPower.class,
@@ -230,6 +242,15 @@ public class CombatPowerEvents {
             // thorns_aura moved to action_on_event with a damage_attacker
             // entity_action (reads HitTakenContext.amount × amount_ratio).
             // The HIT_TAKEN dispatch above runs any such powers.
+
+            // ThornsOnHitPower — reflect damage + optional fire to melee attacker
+            if (event.getSource().getEntity() instanceof LivingEntity attacker
+                    && attacker != sp) {
+                ActiveOriginService.forEachOfType(sp, ThornsOnHitPower.class, cfg -> {
+                    attacker.hurt(sp.damageSources().thorns(sp), cfg.damage());
+                    if (cfg.fireTicks() > 0) attacker.setRemainingFireTicks(cfg.fireTicks());
+                });
+            }
         }
     }
 
@@ -315,6 +336,12 @@ public class CombatPowerEvents {
             sp,
             com.cyberday1.neoorigins.service.EventPowerIndex.Event.KILL,
             new com.cyberday1.neoorigins.service.EventPowerIndex.KillContext(killed));
+
+        // ── Essence Evolution: track mob kills ─────────────────────────
+        if (!(killed instanceof net.minecraft.world.entity.player.Player)
+                && com.cyberday1.neoorigins.NeoOriginsConfig.isEvolutionEnabled()) {
+            com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.onMobKill(sp);
+        }
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)

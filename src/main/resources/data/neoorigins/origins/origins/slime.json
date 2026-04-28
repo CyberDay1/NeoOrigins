@@ -10,5 +10,31 @@
     "neoorigins:slime_level_hp",
     "neoorigins:slime_no_fall_damage"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:slime_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:slime_ascended_sticky"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:slime_apex_hp",
+        "neoorigins:slime_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:slime_evolved_hp"
+      ]
+    }
+  ]
 }

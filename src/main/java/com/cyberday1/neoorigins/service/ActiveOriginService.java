@@ -93,12 +93,17 @@ public final class ActiveOriginService {
         List<PowerHolder<?>> all = new ArrayList<>();
         List<PowerHolder<?>> originActive = new ArrayList<>();
         List<PowerHolder<?>> classActive = new ArrayList<>();
+        int evolutionTier = data.getEvolutionTier();
         java.util.HashSet<Identifier> seen = new java.util.HashSet<>();
         for (var entry : data.getOrigins().entrySet()) {
             boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (Identifier powerId : origin.powers()) {
+            // Apply evolution tier overlays — classes don't evolve, only origins
+            List<Identifier> effectivePowers = isClassLayer
+                ? origin.powers()
+                : origin.powersForTier(evolutionTier);
+            for (Identifier powerId : effectivePowers) {
                 if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;
@@ -210,11 +215,15 @@ public final class ActiveOriginService {
         // Iterate the raw origin map directly; we don't care about the cache here
         // (and the caller will typically mutate `data` right after, invalidating it).
         PlayerOriginData data = player.getData(OriginAttachments.originData());
+        int tier = data.getEvolutionTier();
         java.util.HashSet<Identifier> revoked = new java.util.HashSet<>();
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (Identifier powerId : origin.powers()) {
+            boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+            List<Identifier> effectivePowers = isClassLayer
+                ? origin.powers() : origin.powersForTier(tier);
+            for (Identifier powerId : effectivePowers) {
                 if (!revoked.add(powerId)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) holder.onRevoked(player);

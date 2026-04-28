@@ -12,5 +12,35 @@
     "neoorigins:avian_hollow_bones",
     "neoorigins:avian_feather_hop"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:avian_evolved_hp",
+        "neoorigins:avian_evolved_slow_fall"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:avian_ascended_hp",
+        "neoorigins:avian_ascended_jump_boost"
+      ],
+      "remove": [
+        "neoorigins:avian_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:avian_apex_hp",
+        "neoorigins:avian_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:avian_ascended_hp"
+      ]
+    }
+  ]
 }

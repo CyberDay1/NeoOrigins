@@ -82,6 +82,7 @@ public class PlayerLifecycleEvents {
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.syncEvolutionToPlayer(sp);
 
         if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
             // Data hasn't loaded yet — defer the origin check to tick handler

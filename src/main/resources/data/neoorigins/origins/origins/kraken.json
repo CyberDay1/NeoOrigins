@@ -19,6 +19,35 @@
     "neoorigins:kraken_dries_out"
   ],
   "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:kraken_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:kraken_ascended_hp",
+        "neoorigins:kraken_ascended_swim_speed"
+      ],
+      "remove": [
+        "neoorigins:kraken_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:kraken_apex_hp",
+        "neoorigins:kraken_apex_conduit_power"
+      ],
+      "remove": [
+        "neoorigins:kraken_ascended_hp"
+      ]
+    }
+  ],
   "spawn_location": {
     "dimension": "minecraft:overworld",
     "biome_tag": "minecraft:is_ocean",

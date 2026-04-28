@@ -18,6 +18,7 @@ import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
+import com.cyberday1.neoorigins.network.payload.SyncEvolutionConfigPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMoisturePayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
@@ -81,6 +82,12 @@ public class NeoOriginsNetwork {
             SyncMoisturePayload.TYPE,
             SyncMoisturePayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncMoisture
+        );
+
+        registrar.playToClient(
+            SyncEvolutionConfigPayload.TYPE,
+            SyncEvolutionConfigPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncEvolutionConfig
         );
 
         registrar.playToClient(
@@ -193,6 +200,32 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientMoistureState.set(payload.moisture())
         );
+    }
+
+    private static void handleSyncEvolutionConfig(SyncEvolutionConfigPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientEvolutionConfig.sync(
+                payload.enabled(), payload.tier1Kills(), payload.tier2Kills(),
+                payload.tier3Kills(), payload.messageInterval(),
+                payload.currentKills(), payload.currentTier())
+        );
+    }
+
+    /**
+     * Sends the server's evolution config + player's current progress to the client.
+     * Called on login and whenever evolution state changes.
+     */
+    public static void syncEvolutionToPlayer(ServerPlayer sp) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        PacketDistributor.sendToPlayer(sp, new SyncEvolutionConfigPayload(
+            NeoOriginsConfig.isEvolutionEnabled(),
+            NeoOriginsConfig.evolutionTier1Kills(),
+            NeoOriginsConfig.evolutionTier2Kills(),
+            NeoOriginsConfig.evolutionTier3Kills(),
+            NeoOriginsConfig.evolutionMessageInterval(),
+            data.getEssenceKills(),
+            data.getEvolutionTier()
+        ));
     }
 
     private static void handleSyncActivePowers(SyncActivePowersPayload payload, IPayloadContext ctx) {
@@ -528,6 +561,7 @@ public class NeoOriginsNetwork {
             shrinkOrbFromInventory(sp);
         }
         data.incrementOrbUseCount();
+        data.resetEvolution();
         data.setPendingOrbCommit(false);
     }
 

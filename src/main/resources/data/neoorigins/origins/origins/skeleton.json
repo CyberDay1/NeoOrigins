@@ -14,5 +14,42 @@
     "neoorigins:skeleton_diet",
     "neoorigins:skeleton_eat_bone_meal"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:skeleton_evolved_marksmanship",
+        "neoorigins:skeleton_evolved_hp",
+        "neoorigins:skeleton_evolved_diet"
+      ],
+      "remove": [
+        "neoorigins:skeleton_marksmanship",
+        "neoorigins:skeleton_diet"
+      ]
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:skeleton_ascended_speed",
+        "neoorigins:skeleton_ascended_daylight_damage"
+      ],
+      "remove": [
+        "neoorigins:skeleton_speed",
+        "neoorigins:skeleton_daylight_damage"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:skeleton_apex_brittle_frame",
+        "neoorigins:skeleton_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:skeleton_brittle_frame",
+        "neoorigins:skeleton_ascended_daylight_damage",
+        "neoorigins:skeleton_evolved_diet"
+      ]
+    }
+  ]
 }

@@ -20,7 +20,8 @@ public record Origin(
     Component name,
     Component description,
     List<OriginUpgrade> upgrades,
-    Optional<LocationCondition> spawnLocation
+    Optional<LocationCondition> spawnLocation,
+    List<OriginTierOverlay> tierPowers
 ) {
     public static final Codec<Origin> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Identifier.CODEC.fieldOf("id").forGetter(Origin::id),
@@ -33,6 +34,24 @@ public record Origin(
         ComponentCodecHelper.CODEC.fieldOf("name").forGetter(Origin::name),
         ComponentCodecHelper.CODEC.fieldOf("description").forGetter(Origin::description),
         OriginUpgrade.CODEC.listOf().optionalFieldOf("upgrades", List.of()).forGetter(Origin::upgrades),
-        LocationCondition.CODEC.optionalFieldOf("spawn_location").forGetter(Origin::spawnLocation)
+        LocationCondition.CODEC.optionalFieldOf("spawn_location").forGetter(Origin::spawnLocation),
+        OriginTierOverlay.CODEC.listOf().optionalFieldOf("tier_powers", List.of()).forGetter(Origin::tierPowers)
     ).apply(inst, Origin::new));
+
+    /**
+     * Returns the effective power list for the given evolution tier.
+     * Tier 0 = base powers. Higher tiers cumulatively apply all overlays
+     * up to that tier (add/remove).
+     */
+    public List<Identifier> powersForTier(int tier) {
+        if (tier <= 0 || tierPowers.isEmpty()) return powers;
+        java.util.LinkedHashSet<Identifier> effective = new java.util.LinkedHashSet<>(powers);
+        for (OriginTierOverlay overlay : tierPowers) {
+            if (overlay.tier() <= tier) {
+                overlay.remove().forEach(effective::remove);
+                effective.addAll(overlay.add());
+            }
+        }
+        return List.copyOf(effective);
+    }
 }

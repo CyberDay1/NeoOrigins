@@ -13,5 +13,37 @@
     "neoorigins:feline_water_weakness",
     "neoorigins:feline_hunger_drain"
   ],
-  "upgrades": []
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:feline_evolved_hp",
+        "neoorigins:feline_evolved_fall_resist"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:feline_ascended_hp",
+        "neoorigins:feline_ascended_fall_immunity",
+        "neoorigins:feline_ascended_night_vision"
+      ],
+      "remove": [
+        "neoorigins:feline_evolved_hp",
+        "neoorigins:feline_evolved_fall_resist"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:feline_apex_hp",
+        "neoorigins:feline_apex_speed"
+      ],
+      "remove": [
+        "neoorigins:feline_ascended_hp"
+      ]
+    }
+  ]
 }
