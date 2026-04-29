@@ -231,10 +231,15 @@ public record LocationCondition(
                     }
                 }
                 return false;
-            }, searchOrigin, 6400, 32, 64);
+            }, searchOrigin, 12800, 16, 32);
             if (pair == null) return Optional.empty();
             found = pair.getFirst();
         } else {
+            // Dimension-only spec (no biome/structure filter). Use the
+            // dimension's shared spawn pos as the search center. For ceiling
+            // dimensions (Nether) the spawn pos is often inside solid
+            // netherrack, so the wider column search below will spiral
+            // outward to find habitable terrain.
             found = searchOrigin;
         }
 
@@ -299,14 +304,23 @@ public record LocationCondition(
      * z+0.5) spawn position, or empty if no column matches.
      */
     private static Optional<Vec3> findColumn(ServerLevel target, BlockPos found, int minY, int topY, ColumnTest test) {
-        for (int dx = 0; dx <= 4; dx++) {
-            for (int dz = 0; dz <= 4; dz++) {
-                int tryX = found.getX() + (dx % 2 == 0 ? dx / 2 : -((dx + 1) / 2));
-                int tryZ = found.getZ() + (dz % 2 == 0 ? dz / 2 : -((dz + 1) / 2));
-                target.getChunk(tryX >> 4, tryZ >> 4);
-                for (int y = topY; y > minY; y--) {
-                    if (test.matches(target, tryX, y, tryZ)) {
-                        return Optional.of(new Vec3(tryX + 0.5, y, tryZ + 0.5));
+        // Spiral outward from the biome-locate center. Underground biomes
+        // (lush_caves, dripstone_caves) are located at biome resolution
+        // (4x4x4 sections) so the exact position may be inside solid stone.
+        // A wider search radius (16 blocks) gives enough coverage to find
+        // a cave air pocket near the locate result.
+        int radius = 16;
+        for (int r = 0; r <= radius; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.abs(dx) != r && Math.abs(dz) != r) continue; // shell only
+                    int tryX = found.getX() + dx;
+                    int tryZ = found.getZ() + dz;
+                    target.getChunk(tryX >> 4, tryZ >> 4);
+                    for (int y = topY; y > minY; y--) {
+                        if (test.matches(target, tryX, y, tryZ)) {
+                            return Optional.of(new Vec3(tryX + 0.5, y, tryZ + 0.5));
+                        }
                     }
                 }
             }
