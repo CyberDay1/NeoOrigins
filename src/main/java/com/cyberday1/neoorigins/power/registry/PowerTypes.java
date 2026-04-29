@@ -62,6 +62,12 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, BreathOutOfFluidPower>    BREATH_OUT_OF_FLUID  = reg("breath_out_of_fluid",  new BreathOutOfFluidPower());
     public static final DeferredHolder<PowerType<?>, MobsIgnorePlayerPower>    MOBS_IGNORE_PLAYER   = reg("mobs_ignore_player",   new MobsIgnorePlayerPower());
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
+    public static final DeferredHolder<PowerType<?>, BurnPower>                BURN                 = reg("burn",                new BurnPower());
+    public static final DeferredHolder<PowerType<?>, IgnoreWaterPower>         IGNORE_WATER         = reg("ignore_water",        new IgnoreWaterPower());
+    public static final DeferredHolder<PowerType<?>, LavaVisionPower>          LAVA_VISION          = reg("lava_vision",         new LavaVisionPower());
+    public static final DeferredHolder<PowerType<?>, OverlayPower>             OVERLAY              = reg("overlay",             new OverlayPower());
+    public static final DeferredHolder<PowerType<?>, ModelColorPower>          MODEL_COLOR          = reg("model_color",         new ModelColorPower());
+    public static final DeferredHolder<PowerType<?>, ShaderPower>              SHADER               = reg("shader",              new ShaderPower());
 
     // --- Passive: combat ---
     // 2.0 Phase 6 consolidation target: one power covering ~26 Origins-Classes

@@ -1,5 +1,74 @@
 # NeoOrigins 2.0 — Patch Notes
 
+---
+
+## v2.0.11
+
+### Headline: Essence Evolution System
+
+Kill mobs to evolve your origin through three tiers — **Evolved**, **Ascended**, and **Apex** — each granting new powers on top of your base kit. All 49 non-class origins have unique evolution tracks with 3–5 tier-specific powers (HP boosts, new immunities, upgraded abilities).
+
+**How to evolve:**
+1. Pick any non-class origin and start playing normally.
+2. Kill mobs — every kill accumulates essence. You'll see periodic chat messages tracking your progress (every 100 kills by default).
+3. When you hit a tier threshold, a chat prompt appears with clickable **[EVOLVE]** and **[DECLINE]** buttons.
+4. Click **[EVOLVE]** (or type `/neoorigins evolve accept`) to ascend. Your origin gains new tier-specific powers immediately.
+5. Decline if you want to wait — the prompt will reappear on your next kill.
+
+**Default kill thresholds** (configurable in `neoorigins-common.toml` under `[evolution]`):
+
+| Tier | Name | Kills Required |
+|---|---|---|
+| 1 | Evolved | 1,000 |
+| 2 | Ascended | 2,500 |
+| 3 | Apex | 5,000 |
+
+Server admins can also force-evolve players with `/neoorigins evolve <player> <tier>`.
+
+**What's included:**
+- **Per-origin evolution powers** — ~250 new evolution power JSONs across all origins. Examples: Elytrian gains Sky Piercer (boosted dash at Ascended/Apex), Wraith gets reduced-cost phasing, Phantom unlocks reduced daylight vulnerability.
+- **4 new thematic power types** — `dodge_chance`, `light_level_effect`, `low_hp_threshold`, `thorns_on_hit` for evolution-specific mechanics.
+- **Configurable armor classes** — heavy/light armor tags with restrict_armor integration. Elytrian's flight restriction now uses the `neoorigins:heavy_armor` tag.
+- **Evolution config sync** — server pushes evolution thresholds + tier names to clients on join via `SyncEvolutionConfigPayload`.
+- **Commands moved** to `/neoorigins` namespace (`/neoorigins evolve`, `/neoorigins origin`, etc.).
+
+> **Note:** The evolution system is largely untested and may have rough edges. If you encounter any issues, please report them on [Discord](https://discord.gg/Ukph2budfy) or on the [GitHub issue tracker](https://github.com/CyberDay1/NeoOrigins/issues).
+
+### Bug Fixes
+
+- **Aquatic origins can't eat anything** — `food_item_in_tag` conditions were missing the `#` prefix on tag references, causing the tag lookup to silently fail and cancel all food. Aquatic origins (Merling, Siren, Kraken, Abyssal) can now eat fish again.
+- **Aquatic diet config toggle does nothing** — the `ocean_origins.fish_diet_required` config flag existed but the power JSON never checked it. Diet restriction is now properly gated on the config.
+- **Aquatic origins don't rehydrate from rain or water cauldrons** — the dries-out power only counted full submersion (`isUnderWater`). Now rain, bubble columns, and water cauldrons all count as "in water" for rehydration.
+- **Draconic water weakness description wrong** — said "drowning damage is doubled" but the power actually deals 1.5 DPS on water/rain contact. Description updated.
+- **Draconic size ~40% instead of 20% with Pehkui** — the vanilla `minecraft:scale` attribute AND Pehkui's BASE scale were both set to 1.2x, compounding to ~1.44x. Removed the Pehkui mirror since the vanilla attribute is authoritative on 1.20.5+.
+- **Caveborn mineral-eating bonuses never trigger** — all 4 bonus powers (diamond/gold/iron/netherite) had the same missing `#` prefix bug in their `food_item_in_tag` conditions.
+- **`food_restriction` carnivore/diet powers broken** — the legacy alias only read `item_tag` (not the documented `allowed_tags`), and didn't prepend `#` for tag lookups. Both field names now work and `#` is auto-prepended.
+- **Cookbook carnivore example uses wrong field name** — changed `allowed_tags` to `item_tag` with proper `#` prefix and `mode: whitelist`.
+
+### New Power Types
+
+- **`neoorigins:burn`** — sets the player on fire at a configurable interval/duration. Compat: translates `origins:burn`.
+- **`neoorigins:ignore_water`** — full land-speed movement in water + no current pushing. Compat: translates `origins:ignore_water`.
+- **`neoorigins:overlay`** — full-screen texture overlay with configurable opacity. Compat: translates `origins:overlay`.
+- **`neoorigins:model_color`** — RGBA tint on the player model. Compat: translates `origins:model_color`.
+- **`neoorigins:lava_vision`** — configurable lava fog distance multiplier. Compat: translates `origins:lava_vision`.
+- **`neoorigins:shader`** — applies a post-processing shader to the player's view. Auto-normalises Origins-style full paths. Compat: translates `origins:shader`.
+
+### New Condition
+
+- **`neoorigins:near_entity`** — true when an entity of the given type (or `#tag`) is within `distance` blocks. Supports entity tags, Euclidean distance filtering, and `inverted: true`.
+
+### Compat Improvements
+
+- `origins:keep_inventory` now translates to `neoorigins:keep_inventory` (was silently skipped).
+- `origins:swim_speed` now translates to attribute modifier on `water_movement_efficiency` (was silently skipped).
+- `origins:phasing` now translates to `neoorigins:wraith_phase` (was silently skipped).
+- The "silently skipped" list is now down to just `origins:shaking` — every other Origins power type has an equivalent or translation.
+
+---
+
+## v2.0.0
+
 **Released:** 2026-04-24
 **Supports:** Minecraft 26.1 (Java 25) · Minecraft 1.21.1 (Java 21)
 

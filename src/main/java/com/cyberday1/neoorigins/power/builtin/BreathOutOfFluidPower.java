@@ -108,8 +108,17 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 return;
             }
 
-            boolean inFluid = "lava".equalsIgnoreCase(chosen.fluid)
-                ? sp.isInLava() : sp.isUnderWater();
+            boolean inFluid;
+            if ("lava".equalsIgnoreCase(chosen.fluid)) {
+                inFluid = sp.isInLava();
+            } else {
+                // isInWaterRainOrBubble covers water blocks, rain, and bubble columns.
+                // Also treat standing inside a water cauldron as "in fluid" so aquatic
+                // origins can rehydrate from cauldrons.
+                inFluid = sp.isInWaterRainOrBubble()
+                    || sp.level().getBlockState(sp.blockPosition())
+                           .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON);
+            }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
                 // Reset on re-entry so stepping back into water visibly

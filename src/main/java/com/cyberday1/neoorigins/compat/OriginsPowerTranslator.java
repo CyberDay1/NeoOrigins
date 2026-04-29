@@ -61,24 +61,22 @@ public final class OriginsPowerTranslator {
         "origins:modify_crafting",       "apace:modify_crafting",
         "origins:modify_lava_speed",     "apace:modify_lava_speed",
         "origins:modify_xp_gain",        "apace:modify_xp_gain",
-        // Visual/rendering — no server-side equivalent
-        "origins:overlay",
-        "origins:shader",
+        // origins:overlay — translated in doTranslate()
+        // origins:shader — translated in doTranslate()
         // origins:particle is translated in doTranslate() — was previously skipped
-        "origins:lava_vision",
-        "origins:model_color",
+        // origins:lava_vision — translated in doTranslate()
+        // origins:model_color — translated in doTranslate()
         "origins:shaking",
-        // Movement variants without a direct equivalent
-        "origins:swim_speed",            "apace:swim_speed",
+        // origins:swim_speed — translated in doTranslate()
         "origins:air_acceleration",      "apace:air_acceleration",
         // origins:modify_swim_speed translates in doTranslate() to
         // attribute_modifier on minecraft:water_movement_efficiency.
         // Misc behaviours without a direct equivalent
-        "origins:keep_inventory",
-        "origins:ignore_water",
+        // origins:keep_inventory — translated in doTranslate()
+        // origins:ignore_water — translated in doTranslate()
         // origins:climbing — translated in doTranslate()
-        "origins:phasing",
-        "origins:burn",
+        // origins:phasing — translated in doTranslate()
+        // origins:burn — translated in doTranslate()
         "origins:exhaust",               "apace:exhaust",
         "origins:modify_status_effect_amplifier",
         "origins:modify_player_spawn",
@@ -227,6 +225,15 @@ public final class OriginsPowerTranslator {
             case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
             case "origins:food_restriction",       "apace:food_restriction"       -> translateFoodRestriction(src);
             case "origins:edible_item",            "apace:edible_item"            -> translateEdibleItem(src);
+            case "origins:keep_inventory",         "apace:keep_inventory"         -> translateSimple("neoorigins:keep_inventory");
+            case "origins:ignore_water",           "apace:ignore_water"           -> translateSimple("neoorigins:ignore_water");
+            case "origins:phasing",                "apace:phasing"                -> translatePhasing(src);
+            case "origins:burn",                   "apace:burn"                   -> translateBurn(src);
+            case "origins:swim_speed",             "apace:swim_speed"             -> translateSwimSpeed(src);
+            case "origins:overlay",                "apace:overlay"                -> translateOverlay(src);
+            case "origins:model_color",            "apace:model_color"            -> translateModelColor(src);
+            case "origins:lava_vision",            "apace:lava_vision"            -> translateLavaVision(src);
+            case "origins:shader",                 "apace:shader"                 -> translateShader(src);
             case "origins:particle",               "apace:particle",
                  "apoli:particle",                 "apugli:particle"              -> translateParticle(src);
             default -> {
@@ -647,6 +654,83 @@ public final class OriginsPowerTranslator {
         // [LOSSY] exhaustion modifier is additive in Origins; approximated as (1 + value) multiplier.
         out.addProperty("multiplier", (float)(1.0 + value));
 
+        return Optional.of(out);
+    }
+
+    // origins:swim_speed has value/modifier, same shape as modify_swim_speed
+    private static Optional<JsonObject> translateSwimSpeed(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:attribute_modifier");
+        out.addProperty("attribute", "minecraft:water_movement_efficiency");
+
+        if (src.has("modifier")) {
+            JsonObject mod = src.getAsJsonObject("modifier");
+            double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
+            String op = mod.has("operation") ? mod.get("operation").getAsString() : "multiply_base";
+            out.addProperty("amount", value);
+            out.addProperty("operation", OriginsOperationMapper.mapOperation(op));
+        } else if (src.has("value")) {
+            out.addProperty("amount", src.get("value").getAsDouble());
+            out.addProperty("operation", "add_value");
+        } else {
+            out.addProperty("amount", 0.5);
+            out.addProperty("operation", "add_value");
+        }
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translatePhasing(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:wraith_phase");
+        // Carry over blocklist if present
+        if (src.has("blacklist") && src.get("blacklist").isJsonArray()) {
+            com.google.gson.JsonArray origList = src.getAsJsonArray("blacklist");
+            com.google.gson.JsonArray neoList = new com.google.gson.JsonArray();
+            for (var el : origList) {
+                if (el.isJsonPrimitive()) neoList.add(el.getAsString());
+            }
+            out.add("blocked_blocks", neoList);
+        }
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateBurn(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:burn");
+        if (src.has("interval"))      out.add("interval", src.get("interval"));
+        if (src.has("burn_duration"))  out.add("burn_duration", src.get("burn_duration"));
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateOverlay(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:overlay");
+        if (src.has("texture"))  out.add("texture", src.get("texture"));
+        if (src.has("strength")) out.add("strength", src.get("strength"));
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateModelColor(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:model_color");
+        if (src.has("red"))   out.add("red", src.get("red"));
+        if (src.has("green")) out.add("green", src.get("green"));
+        if (src.has("blue"))  out.add("blue", src.get("blue"));
+        if (src.has("alpha")) out.add("alpha", src.get("alpha"));
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateLavaVision(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:lava_vision");
+        if (src.has("s")) out.addProperty("strength", src.get("s").getAsFloat());
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateShader(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:shader");
+        if (src.has("shader")) out.add("shader", src.get("shader"));
         return Optional.of(out);
     }
 }

@@ -155,12 +155,14 @@ overlay of the vanilla Night Vision effect.
   "type": "neoorigins:food_restriction",
   "name": "Carnivore",
   "description": "Can only eat meat.",
-  "allowed_tags": ["minecraft:meat"]
+  "mode": "whitelist",
+  "item_tag": "#minecraft:meat"
 }
 ```
 
-For finer control, list items explicitly under `allowed_items`. Tags and
-items union — the player can eat anything in either list.
+For finer control, list items explicitly under `item_tag` as an array.
+Tags (prefixed with `#`) and bare item IDs can be mixed — the player
+can eat anything matching any entry.
 
 ### 3b. "Restricted diet + make non-food items edible" (Skeleton pattern)
 
@@ -715,7 +717,7 @@ in `food_item_in_tag`.
   "entity_action": {
     "type": "neoorigins:if_else",
     "condition": { "type": "neoorigins:food_item_in_tag",
-                   "tag": "mypack:eat_diamond" },
+                   "tag": "#mypack:eat_diamond" },
     "if_action": { "type": "neoorigins:apply_effect",
                    "effect": "minecraft:luck", "duration": 6000, "amplifier": 1 }
   }

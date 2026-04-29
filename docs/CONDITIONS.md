@@ -676,3 +676,26 @@ At least one of `block`/`blocks`/`tag`/`tags` must be non-empty.
   "tags": ["minecraft:campfires", "#c:fire"],
   "radius": 5 }
 ```
+
+## `neoorigins:near_entity`
+
+True when at least one entity of the given type (or entity tag) is within `distance` blocks of the player. Uses an AABB broad scan followed by Euclidean (spherical) distance filtering for accuracy. Distance capped at 64 blocks to avoid expensive per-tick scans.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_type` | resource location or `#tag` | yes | — | Entity type id (e.g. `"minecraft:creeper"`) or entity tag with `#` prefix (e.g. `"#minecraft:undead"`). |
+| `distance` | double (1–64) | no | `8.0` | Radius in blocks. |
+
+**Example — buff when near wolves:**
+```json
+{ "type": "neoorigins:near_entity",
+  "entity_type": "minecraft:wolf",
+  "distance": 10 }
+```
+
+**Example — debuff when undead are nearby:**
+```json
+{ "type": "neoorigins:near_entity",
+  "entity_type": "#minecraft:undead",
+  "distance": 16 }
+```

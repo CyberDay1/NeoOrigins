@@ -3,7 +3,6 @@ package com.cyberday1.neoorigins.power.builtin;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
-import com.cyberday1.neoorigins.compat.pehkui.PehkuiBridge;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -47,14 +46,14 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
     @Override
     public void onGranted(ServerPlayer player, Config config) {
         applyModifiers(player, config, true);
-        // Mirror to Pehkui so other mods querying ScaleType.BASE see the origin scale.
-        PehkuiBridge.applyOriginScale(player, config.scale());
+        // On 1.20.5+ the vanilla minecraft:scale attribute is authoritative and
+        // Pehkui reads it directly. Mirroring to Pehkui's BASE on top of the
+        // vanilla attribute caused double-scaling (1.2 * 1.2 = 1.44x).
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         applyModifiers(player, config, false);
-        PehkuiBridge.clearOriginScale(player);
     }
 
     private void applyModifiers(ServerPlayer player, Config config, boolean add) {

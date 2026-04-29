@@ -700,16 +700,19 @@ public final class LegacyPowerTypeAliases {
         // reads FoodContext.stack from the ActionContextHolder.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "food_restriction"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> {
-                    // Collect tag/item entries — supports both single string and array
+                    // Collect tag/item entries — supports both single string and array.
+                    // Also accepts "allowed_tags" as an alias for "item_tag".
                     java.util.List<String> tags = new java.util.ArrayList<>();
-                    if (json.has("item_tag")) {
-                        com.google.gson.JsonElement el = json.get("item_tag");
+                    String fieldName = json.has("item_tag") ? "item_tag"
+                                     : json.has("allowed_tags") ? "allowed_tags" : null;
+                    if (fieldName != null) {
+                        com.google.gson.JsonElement el = json.get(fieldName);
                         if (el.isJsonArray()) {
                             for (com.google.gson.JsonElement e : el.getAsJsonArray()) {
-                                tags.add(e.getAsString());
+                                tags.add(ensureTagPrefix(e.getAsString()));
                             }
                         } else {
-                            tags.add(el.getAsString());
+                            tags.add(ensureTagPrefix(el.getAsString()));
                         }
                     }
 
@@ -755,6 +758,7 @@ public final class LegacyPowerTypeAliases {
                     json.addProperty("event", "food_eaten");
                     json.add("entity_action", gate);
                     json.remove("item_tag");
+                    json.remove("allowed_tags");
                     json.remove("mode");
                 });
 
@@ -1011,5 +1015,15 @@ public final class LegacyPowerTypeAliases {
                  ID_ACTION_ON_EVENT, (json, powerId) -> json.addProperty("event", "jump"));
         register(ResourceLocation.fromNamespaceAndPath("apugli", "action_on_target_death"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> json.addProperty("event", "kill"));
+    }
+
+    /**
+     * Ensures a tag value starts with {@code #} so that
+     * {@code food_item_in_tag} treats it as a tag lookup rather than
+     * a single item ID. Values that already start with {@code #} are
+     * returned unchanged.
+     */
+    private static String ensureTagPrefix(String value) {
+        return value.startsWith("#") ? value : "#" + value;
     }
 }

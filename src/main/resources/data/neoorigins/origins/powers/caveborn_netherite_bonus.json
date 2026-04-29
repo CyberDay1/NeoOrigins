@@ -5,7 +5,7 @@
     "type": "neoorigins:if_else",
     "condition": {
       "type": "neoorigins:food_item_in_tag",
-      "tag": "neoorigins:caveborn_eat_netherite"
+      "tag": "#neoorigins:caveborn_eat_netherite"
     },
     "if_action": {
       "type": "neoorigins:and",

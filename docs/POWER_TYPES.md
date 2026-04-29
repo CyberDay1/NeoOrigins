@@ -2452,6 +2452,241 @@ Stacking isn't additive — only the first matching power fires per break. Autho
 
 ---
 
+## `neoorigins:dodge_chance`
+
+Percentage chance to completely dodge incoming damage. When triggered, the damage event is cancelled entirely. Applied via `CombatPowerEvents`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `chance` | float | no | `0.15` | Dodge probability (0.0–1.0). 0.15 = 15% dodge. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:dodge_chance",
+  "chance": 0.2,
+  "name": "Evasion",
+  "description": "20% chance to dodge incoming attacks."
+}
+```
+
+---
+
+## `neoorigins:thorns_on_hit`
+
+Passive thorns — when the player takes melee damage, the attacker takes damage back. Optionally sets the attacker on fire. Applied via `CombatPowerEvents`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `damage` | float | no | `2.0` | Thorns damage dealt to the attacker. |
+| `fire_ticks` | int | no | `0` | Fire ticks applied to the attacker (0 = no fire). |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:thorns_on_hit",
+  "damage": 3.0,
+  "fire_ticks": 40,
+  "name": "Ember Thorns",
+  "description": "Melee attackers take 3 damage and catch fire."
+}
+```
+
+---
+
+## `neoorigins:light_level_effect`
+
+Applies a status effect when the player is at or below a certain light level. Removes the effect when they move to brighter light.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `max_light_level` | int | no | `4` | Light level threshold (inclusive). |
+| `effect` | resource location | yes | — | Status effect to apply. |
+| `amplifier` | int | no | `0` | Effect amplifier. |
+| `ambient` | boolean | no | `true` | Ambient effect flag. |
+| `show_particles` | boolean | no | `false` | Show effect particles. |
+| `show_icon` | boolean | no | `false` | Show effect icon on HUD. |
+
+**Example — invisibility in darkness:**
+```json
+{
+  "type": "neoorigins:light_level_effect",
+  "max_light_level": 4,
+  "effect": "minecraft:invisibility",
+  "name": "Shadow Meld",
+  "description": "Become invisible in darkness."
+}
+```
+
+---
+
+## `neoorigins:low_hp_threshold`
+
+Applies one or more status effects when the player's HP drops below a percentage threshold. Effects are removed when HP rises above the threshold.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `threshold` | float | no | `0.5` | HP fraction (0.0–1.0). 0.5 = below 50%. |
+| `effects` | list of `{ effect, amplifier }` | yes | — | Effects to apply while below threshold. |
+
+**Example — berserker rage below 25% HP:**
+```json
+{
+  "type": "neoorigins:low_hp_threshold",
+  "threshold": 0.25,
+  "effects": [
+    { "effect": "minecraft:strength", "amplifier": 1 },
+    { "effect": "minecraft:speed", "amplifier": 0 }
+  ],
+  "name": "Death's Embrace",
+  "description": "Gain Strength II and Speed below 25% HP."
+}
+```
+
+---
+
+## `neoorigins:burn`
+
+Sets the player on fire at a configurable interval. Used for origins that are perpetually burning or catch fire under certain conditions (pair with a `condition` on the power JSON to gate on daylight, biome, etc.).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `interval` | int | no | `20` | Ticks between fire applications. |
+| `burn_duration` | int | no | `100` | Fire duration in ticks per application. |
+
+Origins compat: translates `origins:burn`.
+
+**Example — smoulder in sunlight:**
+```json
+{
+  "type": "neoorigins:burn",
+  "interval": 40,
+  "burn_duration": 60,
+  "condition": { "type": "neoorigins:exposed_to_sun" },
+  "name": "Sun Scorch",
+  "description": "Burns when exposed to direct sunlight."
+}
+```
+
+---
+
+## `neoorigins:ignore_water`
+
+Makes the player unaffected by water: full movement speed in water (via `water_movement_efficiency` attribute) and immune to water-current pushing (via `EntityIgnoreWaterMixin`). Emits the `ignore_water` capability tag.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+Origins compat: translates `origins:ignore_water`.
+
+**Example:**
+```json
+{
+  "type": "neoorigins:ignore_water",
+  "name": "Hydrophobic",
+  "description": "Water doesn't slow you down or push you around."
+}
+```
+
+---
+
+## `neoorigins:overlay`
+
+Renders a full-screen texture overlay on the player's HUD. Client-side only — the server emits a capability tag encoding the texture path and strength; `VisualEffectsHandler` on the client reads it and draws the overlay.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `texture` | resource location | yes | — | Overlay texture (e.g. `"minecraft:textures/misc/pumpkinblur.png"`). |
+| `strength` | float | no | `1.0` | Opacity (0.0 = invisible, 1.0 = fully opaque). |
+
+Origins compat: translates `origins:overlay`.
+
+**Example — dim vignette:**
+```json
+{
+  "type": "neoorigins:overlay",
+  "texture": "minecraft:textures/misc/pumpkinblur.png",
+  "strength": 0.3,
+  "name": "Tunnel Vision",
+  "description": "Your peripheral vision is dimmed."
+}
+```
+
+---
+
+## `neoorigins:model_color`
+
+Tints the player model with an RGBA colour. Client-side rendering applies a colour multiply via `RenderSystem.setShaderColor` during the player render pass.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `red` | float | no | `1.0` | Red channel (0.0–1.0). |
+| `green` | float | no | `1.0` | Green channel (0.0–1.0). |
+| `blue` | float | no | `1.0` | Blue channel (0.0–1.0). |
+| `alpha` | float | no | `1.0` | Alpha channel (0.0–1.0). |
+
+Origins compat: translates `origins:model_color`.
+
+**Example — ghostly blue tint:**
+```json
+{
+  "type": "neoorigins:model_color",
+  "red": 0.6,
+  "green": 0.7,
+  "blue": 1.0,
+  "alpha": 0.8,
+  "name": "Spectral Hue",
+  "description": "Your form shimmers with a faint blue glow."
+}
+```
+
+---
+
+## `neoorigins:lava_vision`
+
+Increases the player's vision distance while submerged in lava by pushing back the lava fog far plane. Client-side rendering is handled by `VisualEffectsHandler` via `ViewportEvent.RenderFog`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `strength` | float | no | `3.0` | Fog distance multiplier (higher = further vision in lava). |
+
+Origins compat: translates `origins:lava_vision` (maps the `s` field to `strength`).
+
+**Example:**
+```json
+{
+  "type": "neoorigins:lava_vision",
+  "strength": 5.0,
+  "name": "Magma Sight",
+  "description": "See clearly through molten rock."
+}
+```
+
+---
+
+## `neoorigins:shader`
+
+Applies a post-processing shader to the player's view via `GameRenderer.loadEffect()`. Origins-style full paths (e.g. `minecraft:shaders/post/desaturate.json`) are automatically normalised to the MC resource location format.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `shader` | resource location | yes | — | Shader id (e.g. `"minecraft:desaturate"`, `"minecraft:spider"`). |
+
+Origins compat: translates `origins:shader`.
+
+**Example — desaturated phantom view:**
+```json
+{
+  "type": "neoorigins:shader",
+  "shader": "minecraft:desaturate",
+  "name": "Phantom Eyes",
+  "description": "The world appears washed of colour."
+}
+```
+
+---
+
 ## Composing power sets
 
 Individual 2.0 power types are intentionally narrow so they can be combined. For a "rat"-style origin that marks small mobs it kills and gets a heal buff when attacking anything on the list:
