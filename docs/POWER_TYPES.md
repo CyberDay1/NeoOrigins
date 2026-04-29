@@ -1680,6 +1680,48 @@ If neither `item` nor `tag` is set on a restriction entry, any non-empty stack i
 }
 ```
 
+### Armor classes
+
+NeoOrigins ships two item tags that categorize vanilla armor into **light** and **heavy** classes. Use these with `restrict_armor` to broadly gate what an origin can wear without listing every item individually.
+
+| Tag | Contents |
+|---|---|
+| `neoorigins:light_armor` | Leather, Chainmail (all slots) |
+| `neoorigins:heavy_armor` | Iron, Gold, Diamond, Netherite (all slots) |
+
+**Example — restrict an origin to light armor only:**
+```json
+{
+  "type": "neoorigins:restrict_armor",
+  "restrictions": [
+    { "slot": "head",  "tag": "neoorigins:heavy_armor" },
+    { "slot": "chest", "tag": "neoorigins:heavy_armor" },
+    { "slot": "legs",  "tag": "neoorigins:heavy_armor" },
+    { "slot": "feet",  "tag": "neoorigins:heavy_armor" }
+  ],
+  "name": "Light Armor Only",
+  "description": "Cannot wear heavy armor."
+}
+```
+
+**Adding modded armor to a class:**
+
+Modpack authors can extend the classes in two ways:
+
+1. **Datapack** — add entries to the `neoorigins:heavy_armor` or `neoorigins:light_armor` item tags via a higher-priority datapack.
+
+2. **Config** — add item IDs or `#tags` to the `[armor_classes]` section in `config/neoorigins-common.toml`:
+
+```toml
+[armor_classes]
+    # Items/tags added here supplement the neoorigins:heavy_armor tag
+    heavy_armor = ["modid:steel_chestplate", "#modid:titanium_armor"]
+    # Items/tags added here supplement the neoorigins:light_armor tag
+    light_armor = ["modid:cloth_robe"]
+```
+
+Config entries are checked alongside the tags — items in either source count as that armor class.
+
 ---
 
 ## `neoorigins:keep_inventory`
