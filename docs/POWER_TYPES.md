@@ -1405,7 +1405,19 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 | `show_particles` | bool | no | `false` | Whether to show particles |
 | `show_icon` | bool | no | `true` | Whether to show the HUD icon |
 
-**Example — permanent Strength + Haste while in water:**
+**Example — permanent always-on Weakness II:**
+```json
+{
+  "type": "neoorigins:persistent_effect",
+  "effect": "minecraft:weakness",
+  "amplifier": 1,
+  "toggleable": false,
+  "name": "Frail",
+  "description": "Permanently weakened."
+}
+```
+
+**Example — Strength + Haste while in water (conditional, not toggleable):**
 ```json
 {
   "type": "neoorigins:persistent_effect",
@@ -1420,7 +1432,7 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 }
 ```
 
-Effects are re-applied every tick (bounded to `refresh_interval / 2` before re-grant), so amplifier upgrades or duration refreshes from other sources won't win over this power. When `toggleable` is true and the player toggles it off, the effects are removed and will not be re-applied until toggled on.
+Effects are re-applied every `refresh_interval` ticks (default 300 = 15 seconds), so the effect never expires. When `toggleable` is true (the default), the player can press their skill key to toggle effects on/off — set `toggleable: false` for effects that should always be active. A single effect can be specified inline on the top-level object (`effect`, `amplifier`, etc.) instead of using the `effects` list.
 
 ---
 
