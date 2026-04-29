@@ -49,10 +49,10 @@ Server admins can also force-evolve players with `/neoorigins evolve <player> <t
 
 - **`neoorigins:burn`** — sets the player on fire at a configurable interval/duration. Compat: translates `origins:burn`.
 - **`neoorigins:ignore_water`** — full land-speed movement in water + no current pushing. Compat: translates `origins:ignore_water`.
-- **`neoorigins:overlay`** — full-screen texture overlay with configurable opacity. Compat: translates `origins:overlay`.
-- **`neoorigins:model_color`** — RGBA tint on the player model. Compat: translates `origins:model_color`.
-- **`neoorigins:lava_vision`** — configurable lava fog distance multiplier. Compat: translates `origins:lava_vision`.
-- **`neoorigins:shader`** — applies a post-processing shader to the player's view. Auto-normalises Origins-style full paths. Compat: translates `origins:shader`.
+- **`neoorigins:overlay`** — full-screen texture overlay with configurable opacity. Compat: translates `origins:overlay`. *(26.1: renders without alpha blending — rendering pipeline rework in progress.)*
+- **`neoorigins:model_color`** — RGBA tint on the player model. Compat: translates `origins:model_color`. *(26.1: server-side capability syncs; client-side tint stubbed — needs custom RenderType.)*
+- **`neoorigins:lava_vision`** — configurable lava fog distance multiplier. Compat: translates `origins:lava_vision`. *(26.1: server-side capability syncs; client-side fog stubbed — `ViewportEvent.RenderFog` no longer cancellable.)*
+- **`neoorigins:shader`** — applies a post-processing shader to the player's view. Auto-normalises Origins-style full paths. Compat: translates `origins:shader`. *(26.1: server-side capability syncs; client-side post-processing stubbed — needs PostChain pipeline.)*
 
 ### New Condition
 
