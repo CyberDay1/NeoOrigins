@@ -252,7 +252,7 @@
   "power.neoorigins.draconic_attack_bonus.name": "Draconic Strength",
   "power.neoorigins.draconic_attack_bonus.description": "Deals 2 extra damage per hit.",
   "power.neoorigins.draconic_water_weakness.name": "Quenched Flame",
-  "power.neoorigins.draconic_water_weakness.description": "Drowning damage is doubled — fire needs to breathe.",
+  "power.neoorigins.draconic_water_weakness.description": "Takes 1.5 damage per second in water or rain — fire needs to breathe.",
   "power.neoorigins.draconic_hunger_drain.name": "Draconic Appetite",
   "power.neoorigins.draconic_hunger_drain.description": "Gets hungry 50% faster — the flame burns hot.",
   "origins.neoorigins.revenant.name": "Revenant",

@@ -226,6 +226,7 @@ public final class ConditionParser {
                 case "neoorigins:has_effect"                    -> parseHasEffect(json);
                 case "neoorigins:climbing"                      -> p -> p.onClimbable();
                 case "neoorigins:near_block"                    -> parseNearBlock(json, contextId);
+                case "neoorigins:near_entity"                   -> parseNearEntity(json, contextId);
                 case "neoorigins:out_of_combat"                 -> parseOutOfCombat(json);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
@@ -1181,6 +1182,52 @@ public final class ConditionParser {
     private static TagKey<Block> parseBlockTag(String raw) {
         if (raw.startsWith("#")) raw = raw.substring(1);
         return TagKey.create(Registries.BLOCK, Identifier.parse(raw));
+    }
+
+    /**
+     * near_entity: true when at least one entity of the given type (or tag) is
+     * within {@code distance} blocks of the player. Uses an AABB scan capped at
+     * 64 blocks to avoid expensive per-tick searches.
+     *
+     * <pre>{ "type": "neoorigins:near_entity", "entity_type": "minecraft:creeper", "distance": 8 }</pre>
+     * <pre>{ "type": "neoorigins:near_entity", "entity_type": "#minecraft:undead", "distance": 16 }</pre>
+     */
+    private static EntityCondition parseNearEntity(JsonObject json, String contextId) {
+        String rawType = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
+        if (rawType == null || rawType.isBlank()) {
+            return failClosed("neoorigins:near_entity", contextId, "missing 'entity_type' field");
+        }
+        double distance = Math.min(64.0, Math.max(1.0,
+            json.has("distance") ? json.get("distance").getAsDouble() : 8.0));
+        final double distSq = distance * distance;
+        final double dist = distance;
+
+        if (rawType.startsWith("#")) {
+            TagKey<net.minecraft.world.entity.EntityType<?>> tag = TagKey.create(
+                Registries.ENTITY_TYPE, Identifier.parse(rawType.substring(1)));
+            return p -> {
+                var aabb = p.getBoundingBox().inflate(dist);
+                for (var entity : p.level().getEntities(p, aabb)) {
+                    if (entity.getType().getTags().anyMatch(t -> t.equals(tag)) && entity.distanceToSqr(p) <= distSq) return true;
+                }
+                return false;
+            };
+        } else {
+            Identifier typeId = Identifier.parse(rawType);
+            var typeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(typeId);
+            if (typeOpt.isEmpty()) {
+                return failClosed("neoorigins:near_entity", contextId,
+                    "unknown entity type '" + rawType + "'");
+            }
+            net.minecraft.world.entity.EntityType<?> targetType = typeOpt.get();
+            return p -> {
+                var aabb = p.getBoundingBox().inflate(dist);
+                for (var entity : p.level().getEntities(p, aabb)) {
+                    if (entity.getType() == targetType && entity.distanceToSqr(p) <= distSq) return true;
+                }
+                return false;
+            };
+        }
     }
 
     /**

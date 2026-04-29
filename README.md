@@ -4,7 +4,7 @@ A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
 Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
-📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) — full reference for all 74 power types, 74 conditions, 45 actions, and 33 events.
+📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) — full reference for all 84 power types, 75 conditions, 45 actions, and 33 events.
 
 ---
 
@@ -18,7 +18,7 @@ Highlights this release:
 - **Mod compat** — `LightTexture` and water-vision mixins now apply at higher priority so they survive other mods (Alex's Caves, etc.) that touch the same vanilla pipelines.
 - **Dedicated-server stable** on both 1.21.1 and 26.1 (singleplayer-tested through alpha.27 hid six classes of dist crash; all fixed).
 - **New `throw_target` action** — raycast the entity under your crosshair and hurl them away + upward.
-- **74 power types, 74 conditions, 45 actions, 33 events** — `food_item_id` condition and `FOOD_FINISHED` event are new this release.
+- **80 power types, 75 conditions, 45 actions, 33 events** — `near_entity` condition, 6 new visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), and near-complete Origins compat coverage are new in 2.0.11.
 
 See `docs/2_0_CHANGES.md` for the full Phase 1–8 architecture write-up.
 
@@ -198,6 +198,18 @@ NeoOrigins runs two translation passes over Origins-format JSON at load time.
 | `origins:disable_regen` | `neoorigins:prevent_action` (sprint food) |
 | `origins:slow_falling` | `neoorigins:prevent_action` (fall damage) |
 | `origins:walk_speed` | `neoorigins:attribute_modifier` (movement speed) |
+| `origins:modify_swim_speed` / `origins:swim_speed` | `neoorigins:attribute_modifier` (water movement efficiency) |
+| `origins:climbing` | `neoorigins:wall_climbing` |
+| `origins:keep_inventory` | `neoorigins:keep_inventory` |
+| `origins:ignore_water` | `neoorigins:ignore_water` |
+| `origins:phasing` | `neoorigins:wraith_phase` |
+| `origins:burn` | `neoorigins:burn` |
+| `origins:particle` | `neoorigins:particle` |
+| `origins:overlay` | `neoorigins:overlay` |
+| `origins:model_color` | `neoorigins:model_color` |
+| `origins:lava_vision` | `neoorigins:lava_vision` |
+| `origins:shader` | `neoorigins:shader` |
+| `origins:food_restriction` / `origins:edible_item` | `neoorigins:food_restriction` / `neoorigins:edible_item` |
 | `origins:multiple` | Expanded to individual sub-powers |
 
 **Route B — compat power engine** (compiled into live event-driven behaviour at load time):
@@ -216,10 +228,7 @@ NeoOrigins runs two translation passes over Origins-format JSON at load time.
 
 The following types have no equivalent in NeoOrigins and are **silently skipped** — the rest of the origin still loads:
 
-- `origins:overlay`, `origins:shader`, `origins:particle`, `origins:model_color` — visual/rendering effects
-- `origins:lava_vision`, `origins:swim_speed`, `origins:air_acceleration` — movement/vision variants
-- `origins:keep_inventory`, `origins:ignore_water`, `origins:climbing` — misc behaviours
-- `origins:phasing`, `origins:burn`, `origins:fire_projectile`, `origins:exhaust` — interaction effects
+- `origins:shaking` — visual effect (no equivalent)
 
 A full compat log is written to `logs/neoorigins-compat.log` every time origins load so you can see exactly what translated and what did not.
 

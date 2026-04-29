@@ -1,9 +1,10 @@
 {
   "type": "neoorigins:action_on_event",
   "event": "food_eaten",
+  "condition": { "type": "neoorigins:config_flag", "key": "ocean_origins.fish_diet_required" },
   "entity_action": {
     "type": "neoorigins:if_else",
-    "condition": { "type": "neoorigins:food_item_in_tag", "tag": "neoorigins:fish_foods" },
+    "condition": { "type": "neoorigins:food_item_in_tag", "tag": "#neoorigins:fish_foods" },
     "if_action": { "type": "neoorigins:nothing" },
     "else_action": { "type": "neoorigins:cancel_event" }
   }

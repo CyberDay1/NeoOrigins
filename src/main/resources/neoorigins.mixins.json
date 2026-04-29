@@ -15,7 +15,8 @@
     "EntityMakeStuckInBlockMixin",
     "PlayerStartFallFlyingMixin",
     "ItemStackEdibleDurationMixin",
-    "ItemStackEdibleAnimationMixin"
+    "ItemStackEdibleAnimationMixin",
+    "EntityIgnoreWaterMixin"
   ],
   "client": [
     "client.LightTextureMixin",

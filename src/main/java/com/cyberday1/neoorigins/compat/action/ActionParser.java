@@ -511,11 +511,13 @@ public final class ActionParser {
             return EntityAction.noop();
         }
         Identifier bid = Identifier.parse(blockId);
+        boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
         return player -> {
             var blockOpt = BuiltInRegistries.BLOCK.get(bid);
             if (blockOpt.isEmpty()) return;
             Block block = blockOpt.get().value();
             BlockPos pos = player.blockPosition();
+            if (keep && !player.level().getBlockState(pos).isAir()) return;
             player.level().setBlock(pos, block.defaultBlockState(), 3);
         };
     }

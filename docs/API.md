@@ -6,8 +6,8 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types) — 74 types
-- [Condition verbs](#condition-verbs) — 74 conditions
+- [Power types](#power-types) — 84 types
+- [Condition verbs](#condition-verbs) — 75 conditions
 - [Action verbs](#action-verbs) — 45 actions
 - [Event keys](#event-keys) — 33 events
 - [Namespaces & prefixes](#namespaces--prefixes)
@@ -101,6 +101,12 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`wall_climbing`](POWER_TYPES.md#neooriginswall_climbing) | Scale walls like a spider. |
 | [`water_breathing`](POWER_TYPES.md#neooriginswater_breathing) | Never loses air underwater. |
 | [`cobweb_affinity`](POWER_TYPES.md#neooriginscobweb_affinity) | Web mobility + 10× cobweb break speed. |
+| [`burn`](POWER_TYPES.md#neooriginsburn) | Set the player on fire at a configurable interval. |
+| [`ignore_water`](POWER_TYPES.md#neooriginsignore_water) | Full land speed in water + no current pushing. |
+| [`lava_vision`](POWER_TYPES.md#neooriginslava_vision) | Increase vision distance in lava. |
+| [`overlay`](POWER_TYPES.md#neooriginsoverlay) | Full-screen texture overlay with configurable opacity. |
+| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. |
+| [`shader`](POWER_TYPES.md#neooriginsshader) | Post-processing shader on the player's view. |
 
 ### Minions & entities
 
@@ -124,6 +130,10 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`invulnerability`](POWER_TYPES.md#neooriginsinvulnerability) | Filter damage types the player is immune to. |
 | [`projectile_immunity`](POWER_TYPES.md#neooriginsprojectile_immunity) | Filter projectile types the player is immune to. |
 | [`effect_immunity`](POWER_TYPES.md#neooriginseffect_immunity) | Block specific status effects. |
+| [`dodge_chance`](POWER_TYPES.md#neooriginsdodge_chance) | Percentage chance to dodge incoming damage. |
+| [`thorns_on_hit`](POWER_TYPES.md#neooriginsthorns_on_hit) | Passive thorns — attacker takes damage back. |
+| [`light_level_effect`](POWER_TYPES.md#neooriginslight_level_effect) | Apply effect at/below a light level. |
+| [`low_hp_threshold`](POWER_TYPES.md#neooriginslow_hp_threshold) | Apply effects when HP drops below a threshold. |
 | [`ender_gaze_immunity`](POWER_TYPES.md#neooriginsender_gaze_immunity) | Endermen don't aggro on eye contact. |
 | [`ground_slam`](POWER_TYPES.md#neooriginsground_slam) | Radial AoE damage from falling. |
 | [`tidal_wave`](POWER_TYPES.md#neooriginstidal_wave) | Active cone-shape knockback. |
@@ -225,7 +235,7 @@ namespace is also accepted; they're aliases). Jumps go to
 `neoorigins:weather` • `neoorigins:brightness` • `neoorigins:light_level` •
 `neoorigins:exposed_to_sky` • `neoorigins:exposed_to_sun` • `neoorigins:daytime` •
 `neoorigins:time_of_day` • `neoorigins:moon_phase` • `neoorigins:height` •
-`neoorigins:fluid_height` • `neoorigins:distance`
+`neoorigins:fluid_height` • `neoorigins:distance` • `neoorigins:near_entity`
 
 ### Player state
 `neoorigins:health` • `neoorigins:relative_health` • `neoorigins:food_level` •

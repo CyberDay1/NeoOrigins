@@ -699,22 +699,52 @@ public final class LegacyPowerTypeAliases {
         // reads FoodContext.stack from the ActionContextHolder.
         register(Identifier.fromNamespaceAndPath("neoorigins", "food_restriction"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> {
-                    String tag = json.has("item_tag") ? json.get("item_tag").getAsString() : "";
+                    // Collect tag/item entries — supports both single string and array.
+                    // Also accepts "allowed_tags" as an alias for "item_tag".
+                    java.util.List<String> tags = new java.util.ArrayList<>();
+                    String fieldName = json.has("item_tag") ? "item_tag"
+                                     : json.has("allowed_tags") ? "allowed_tags" : null;
+                    if (fieldName != null) {
+                        com.google.gson.JsonElement el = json.get(fieldName);
+                        if (el.isJsonArray()) {
+                            for (com.google.gson.JsonElement e : el.getAsJsonArray()) {
+                                tags.add(ensureTagPrefix(e.getAsString()));
+                            }
+                        } else {
+                            tags.add(ensureTagPrefix(el.getAsString()));
+                        }
+                    }
+
                     boolean whitelist = json.has("mode")
                         && "whitelist".equalsIgnoreCase(json.get("mode").getAsString());
 
-                    com.google.gson.JsonObject itemInTag = new com.google.gson.JsonObject();
-                    itemInTag.addProperty("type", "neoorigins:food_item_in_tag");
-                    itemInTag.addProperty("tag", tag);
+                    // Build a food_item_in_tag condition per entry, then OR them
+                    com.google.gson.JsonObject combined;
+                    if (tags.size() == 1) {
+                        combined = new com.google.gson.JsonObject();
+                        combined.addProperty("type", "neoorigins:food_item_in_tag");
+                        combined.addProperty("tag", tags.get(0));
+                    } else {
+                        com.google.gson.JsonArray subs = new com.google.gson.JsonArray();
+                        for (String t : tags) {
+                            com.google.gson.JsonObject sub = new com.google.gson.JsonObject();
+                            sub.addProperty("type", "neoorigins:food_item_in_tag");
+                            sub.addProperty("tag", t);
+                            subs.add(sub);
+                        }
+                        combined = new com.google.gson.JsonObject();
+                        combined.addProperty("type", "neoorigins:or");
+                        combined.add("conditions", subs);
+                    }
 
                     com.google.gson.JsonObject matchCond;
                     if (whitelist) {
-                        // cancel when item NOT in tag → wrap in origins:not
+                        // cancel when item NOT in any tag → wrap in not
                         matchCond = new com.google.gson.JsonObject();
                         matchCond.addProperty("type", "neoorigins:not");
-                        matchCond.add("condition", itemInTag);
+                        matchCond.add("condition", combined);
                     } else {
-                        matchCond = itemInTag;
+                        matchCond = combined;
                     }
 
                     com.google.gson.JsonObject cancel = new com.google.gson.JsonObject();
@@ -727,6 +757,7 @@ public final class LegacyPowerTypeAliases {
                     json.addProperty("event", "food_eaten");
                     json.add("entity_action", gate);
                     json.remove("item_tag");
+                    json.remove("allowed_tags");
                     json.remove("mode");
                 });
 
@@ -983,5 +1014,15 @@ public final class LegacyPowerTypeAliases {
                  ID_ACTION_ON_EVENT, (json, powerId) -> json.addProperty("event", "jump"));
         register(Identifier.fromNamespaceAndPath("apugli", "action_on_target_death"),
                  ID_ACTION_ON_EVENT, (json, powerId) -> json.addProperty("event", "kill"));
+    }
+
+    /**
+     * Ensures a tag value starts with {@code #} so that
+     * {@code food_item_in_tag} treats it as a tag lookup rather than
+     * a single item ID. Values that already start with {@code #} are
+     * returned unchanged.
+     */
+    private static String ensureTagPrefix(String value) {
+        return value.startsWith("#") ? value : "#" + value;
     }
 }
