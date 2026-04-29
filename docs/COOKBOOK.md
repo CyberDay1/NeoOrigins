@@ -10,6 +10,7 @@ Contents:
 - [Anatomy of a power file](#anatomy-of-a-power-file)
 - [Recipes](#recipes) — 15 common patterns (incl. toggleable abilities)
 - [Essence Evolution](#essence-evolution-tier-progression) — kill-based tier progression
+- [Built-in mechanics](#built-in-mechanics) — undead potion reversal, aquatic shared powers
 - [Testing & debugging](#testing--debugging)
 - [Common pitfalls](#common-pitfalls)
 - [Where to go next](#where-to-go-next)
@@ -980,6 +981,41 @@ data/neoorigins/origins/powers/<origin>_apex_*.json
 All bundled origins have full three-tier evolution tracks. Pack authors
 can override them with higher-priority datapacks or use them as examples
 for their own origins.
+
+---
+
+## Built-in mechanics
+
+### Undead potion reversal
+
+Origins with `"entity_group": "undead"` (Revenant, Necromancer, Skeleton)
+automatically receive vanilla-style undead potion interactions:
+
+- **Poison** — immune (no effect)
+- **Regeneration** — immune (no effect)
+- **Instant Health** — deals damage instead of healing (vanilla formula: `6 × 2^amplifier`)
+- **Instant Damage** — heals instead of dealing damage (same formula)
+- **Food healing** — works normally (natural regen from saturation is not blocked)
+
+This is built into the engine for any origin that declares
+`"entity_group": "undead"` — no extra power JSON is needed.
+
+### Aquatic origin shared powers
+
+All built-in ocean origins (Merling, Siren, Kraken, Abyssal) share these
+passive powers in addition to their unique abilities:
+
+| Power | Effect |
+|---|---|
+| `neoorigins:aquatic_underwater_mining` | Mines at full speed while submerged (Aqua Affinity) |
+| `neoorigins:aquatic_depth_strider` | +0.15 water movement efficiency (Natural Swimmer) |
+| `neoorigins:aquatic_fish_diet` | Fish-only diet (gated by `ocean_origins.fish_diet_required` config) |
+| `neoorigins:aquatic_fish_diet_bonus` | Raw cod/salmon as nourishing as cooked |
+
+Custom aquatic origins can reference any of these shared powers by ID.
+
+**Moisture system:** ocean origins with `breath_out_of_fluid` replenish
+moisture from water blocks, rain, bubble columns, and water cauldrons.
 
 ---
 
