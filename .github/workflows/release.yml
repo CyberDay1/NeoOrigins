@@ -3,7 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      # Only trigger on the primary version tag (e.g. v2.0.12), NOT on
+      # branch-suffixed tags (e.g. v2.0.12-1.21.1). The workflow already
+      # builds both branches — a second trigger from the 1.21.1 tag would
+      # publish duplicate jars to CurseForge/Modrinth.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
       version:
