@@ -263,7 +263,7 @@ public final class LegacyPowerTypeAliases {
                     } else {
                         json.add("condition", inWater);
                     }
-                    json.add("entity_action", damageAction("magic", dps));
+                    json.add("entity_action", damageAction("drown", dps));
                     json.addProperty("interval", 20);
                     json.remove("damage_per_second");
                     json.remove("include_rain");

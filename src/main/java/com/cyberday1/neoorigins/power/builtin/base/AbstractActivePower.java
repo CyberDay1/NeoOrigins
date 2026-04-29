@@ -39,9 +39,6 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         default int hungerCost() { return 0; }
     }
 
-    /** Called once on class load — used as stable session cooldown key. */
-    private final String cooldownKey = getClass().getName();
-
     @Override
     public final boolean isActivePower() { return true; }
 
@@ -66,13 +63,11 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
     }
 
     /**
-     * Returns the cooldown key for this power instance. By default uses the
-     * class name, meaning all instances of the same power type share a cooldown.
-     * Override to provide config-specific keys when multiple instances of the
-     * same power type should have independent cooldowns.
+     * Returns the cooldown key for this power instance. Uses the config's
+     * identity hash so each distinct power config has its own cooldown.
      */
     public String getCooldownKey(C config) {
-        return cooldownKey;
+        return getClass().getName() + ":" + System.identityHashCode(config);
     }
 
     /**
