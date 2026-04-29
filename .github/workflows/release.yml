@@ -151,10 +151,14 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            RAW="${{ github.event.inputs.version }}"
           else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            RAW="${GITHUB_REF#refs/tags/}"
           fi
+          # Strip any branch suffix (e.g. v2.0.10-1.21.1 → v2.0.10)
+          # so we don't get version strings like "v2.0.10-1.21.1+1.21.1"
+          TAG=$(echo "$RAW" | sed 's/-1\.21\.1$//')
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       # Extract the release changelog in priority order:
       #   1. workflow_dispatch → the `changelog` input verbatim.

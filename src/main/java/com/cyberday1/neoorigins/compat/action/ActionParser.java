@@ -853,8 +853,10 @@ public final class ActionParser {
             return EntityAction.noop();
         }
         Block block = blockOpt.get();
+        boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
         return player -> {
             BlockPos pos = player.blockPosition();
+            if (keep && !player.level().getBlockState(pos).isAir()) return;
             player.level().setBlock(pos, block.defaultBlockState(), 3);
         };
     }
