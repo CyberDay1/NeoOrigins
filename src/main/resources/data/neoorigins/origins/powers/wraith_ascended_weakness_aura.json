@@ -1,6 +1,6 @@
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoorigins:always_true" },
+  "condition": { "type": "neoorigins:constant", "value": true },
   "entity_action": { "type": "neoorigins:area_of_effect", "radius": 3.0, "effect": "minecraft:weakness", "amplifier": 0, "duration": 40, "exclude_self": true },
   "interval": 20
 }
