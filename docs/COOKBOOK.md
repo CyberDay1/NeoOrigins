@@ -243,13 +243,14 @@ LAVA + HOT_FLOOR + FIREBALL in one rule. Bare `damage_type` strings
   "description": "Always falls slowly.",
   "effect": "minecraft:slow_falling",
   "amplifier": 0,
-  "duration": 200,
-  "show_icon": false
+  "show_icon": false,
+  "toggleable": false
 }
 ```
 
-`persistent_effect` keeps the effect refreshed every tick. Set
-`show_icon: false` so the effects HUD doesn't clutter.
+`persistent_effect` keeps the effect refreshed automatically (default
+every 300 ticks). Set `show_icon: false` so the effects HUD doesn't
+clutter. Set `toggleable: false` so the player can't turn it off.
 
 ### 6. "Heal in water"
 
