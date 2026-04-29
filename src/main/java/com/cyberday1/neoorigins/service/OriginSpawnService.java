@@ -67,8 +67,8 @@ public final class OriginSpawnService {
         Optional<LocationCondition.SpawnTarget> target = spec.locateSpawn(player);
         if (target.isEmpty()) {
             NeoOrigins.LOGGER.warn(
-                "Could not locate spawn_location for origin {} on player {} — check dimension/biome/structure filter.",
-                originId, player.getName().getString());
+                "Could not locate spawn_location for origin {} on player {} — spec: {}",
+                originId, player.getName().getString(), spec.formatSummary());
             return;
         }
         LocationCondition.SpawnTarget t = target.get();
