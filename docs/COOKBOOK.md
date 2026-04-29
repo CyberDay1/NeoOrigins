@@ -9,6 +9,7 @@ Contents:
 - [Zero to origin in five minutes](#zero-to-origin-in-five-minutes)
 - [Anatomy of a power file](#anatomy-of-a-power-file)
 - [Recipes](#recipes) — 15 common patterns (incl. toggleable abilities)
+- [Essence Evolution](#essence-evolution-tier-progression) — kill-based tier progression
 - [Testing & debugging](#testing--debugging)
 - [Common pitfalls](#common-pitfalls)
 - [Where to go next](#where-to-go-next)
@@ -842,6 +843,146 @@ Radius is capped at 8 to keep the per-tick scan cheap.
 
 ---
 
+## Essence Evolution (tier progression)
+
+NeoOrigins ships an **Essence Evolution** system — a kill-based tier
+progression that lets origins grow stronger over time. Players kill mobs
+to accumulate essence, receive milestone chat messages, and get prompted
+to evolve when they hit a threshold.
+
+### Tiers
+
+| Tier | Name | Default Kill Threshold | Chat Color |
+|---|---|---|---|
+| 0 | _(base)_ | — | — |
+| 1 | Evolved | 1,000 | Green |
+| 2 | Ascended | 2,500 | Light Purple |
+| 3 | Apex | 5,000 | Gold |
+
+Thresholds are configurable in `config/neoorigins-common.toml`:
+
+```toml
+[evolution]
+    enabled = true
+    tier_1_kills = 1000
+    tier_2_kills = 2500
+    tier_3_kills = 5000
+    message_interval = 100
+```
+
+`message_interval` controls how often the "essence strengthening" flavor
+message appears in chat (default: every 100 kills).
+
+### How it works
+
+1. Player kills a mob (non-player entities only; PvP kills don't count).
+2. Kill counter increments. At every `message_interval` kills the player
+   sees a milestone message.
+3. When the counter reaches a tier threshold, the player gets a chat
+   prompt with clickable **[EVOLVE]** / **[DECLINE]** buttons.
+4. Accepting grants the tier's `add` powers and revokes its `remove`
+   powers (defined in the origin JSON). Declining defers — the player
+   can accept later via command.
+5. Using an **Orb of Origin** resets both kills and tier to zero.
+
+### Commands
+
+**Player commands** (permission level 0):
+- `/neoorigins evolve accept` — accept a pending evolution prompt
+- `/neoorigins evolve decline` — decline (can re-accept later)
+- `/origin evolve accept` / `/origin evolve decline` — legacy aliases
+
+**Admin commands** (permission level 2):
+- `/neoorigins evolve <player> <tier>` — force-set tier
+  (`base`/`0`, `evolved`/`1`, `ascended`/`2`, `apex`/`3`)
+- `/neoorigins evolve query <player>` — show current kills and tier
+
+### Adding evolution tiers to an origin
+
+Add a `tier_powers` array to your origin JSON. Each entry specifies
+which powers to **add** and which to **remove** at that tier. Tiers are
+cumulative — tier 2 includes tier 1 changes plus its own.
+
+```json
+{
+  "name": "origins.mypack.shadow.name",
+  "description": "origins.mypack.shadow.description",
+  "impact": "medium",
+  "powers": [
+    "mypack:shadow_stealth",
+    "mypack:shadow_attack",
+    "mypack:shadow_weakness"
+  ],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": ["mypack:shadow_evolved_attack"],
+      "remove": ["mypack:shadow_attack"]
+    },
+    {
+      "tier": 2,
+      "add": [
+        "mypack:shadow_ascended_attack",
+        "mypack:shadow_ascended_stealth"
+      ],
+      "remove": [
+        "mypack:shadow_evolved_attack",
+        "mypack:shadow_stealth"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "mypack:shadow_apex_attack",
+        "mypack:shadow_apex_immunity"
+      ],
+      "remove": [
+        "mypack:shadow_ascended_attack",
+        "mypack:shadow_weakness"
+      ]
+    }
+  ]
+}
+```
+
+**`tier_powers` fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `tier` | int (1–3) | The tier this overlay applies at |
+| `add` | array of power IDs | Powers granted when evolving to this tier |
+| `remove` | array of power IDs | Powers revoked when evolving to this tier |
+
+**Common patterns:**
+- **Stat growth:** replace a base `attribute_modifier` with a stronger
+  one at each tier (e.g. +2 HP → +4 HP → +8 HP). Put the base in
+  `powers`, the evolved version in tier 1 `add` and the base in tier 1
+  `remove`.
+- **Weakness removal:** list a weakness power in a later tier's `remove`
+  to shed it as a reward (e.g. Apex vampires lose sun damage).
+- **New abilities:** add an `active_ability` or `persistent_effect` at a
+  tier without removing anything — pure upgrade.
+
+The evolution power JSONs themselves are standard power files — no
+special format. Any power type works as a tier reward.
+
+### Built-in evolution powers
+
+NeoOrigins ships ~250 evolution power JSONs covering all bundled
+origins. These live at:
+
+```
+data/neoorigins/origins/powers/<origin>_evolved_*.json
+data/neoorigins/origins/powers/<origin>_ascended_*.json
+data/neoorigins/origins/powers/<origin>_apex_*.json
+```
+
+All bundled origins have full three-tier evolution tracks. Pack authors
+can override them with higher-priority datapacks or use them as examples
+for their own origins.
+
+---
+
 ## Testing & debugging
 
 ### Hot-reload
@@ -932,7 +1073,7 @@ drop the payload on the client side.
 
 - **[POWER_TYPES.md](POWER_TYPES.md)** — every power type with full field
   tables. When a recipe here mentions a type, the details live there.
-- **[CONDITIONS.md](CONDITIONS.md)** — the 60+ condition verbs you can
+- **[CONDITIONS.md](CONDITIONS.md)** — the 80+ condition verbs you can
   use in `condition` fields.
 - **[ACTIONS.md](ACTIONS.md)** — the 40+ action verbs you can use in
   `entity_action` fields.

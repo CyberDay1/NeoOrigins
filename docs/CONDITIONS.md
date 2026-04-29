@@ -473,6 +473,23 @@ Supported `predicate_type` values and the check they perform:
 - `location` — vanilla `LocationPredicate` at the entity's position
 - `damage` — **fails closed** (requires damage-source context; use action-on-hit hooks instead)
 
+## `neoorigins:config_flag`
+
+True when the named server config flag is currently enabled. Pack authors use this to gate powers on server-operator toggleable settings (e.g. letting admins disable diet restrictions or dry-out mechanics globally).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `key` | string | no | `""` | Config flag key. Unknown keys log a warning and default to `true` (fail-open). |
+
+**Supported keys:**
+- `"ocean_origins.fish_diet_required"` — whether ocean origins enforce fish-only diet
+- `"ocean_origins.dries_out"` — whether ocean origins take dry-out damage on land
+
+**Example — only enforce fish diet when the server has it enabled:**
+```json
+{ "type": "neoorigins:config_flag", "key": "ocean_origins.fish_diet_required" }
+```
+
 ---
 
 # Context-aware conditions
@@ -497,6 +514,24 @@ True if the item being eaten in the current `FOOD_EATEN` dispatch matches a tag 
 | `tag` | string | no | — | Item tag (prefix with `#`, e.g. `"#minecraft:meat"`) or bare item ID (e.g. `"minecraft:spider_eye"`). Always-false when absent. |
 
 **Tag vs item:** a leading `#` denotes a tag lookup; without `#` the value is matched as an exact item ID.
+
+## `neoorigins:food_item_id`
+
+True if the item being eaten in the current `FOOD_EATEN` dispatch is an exact item-ID match. Requires an active `FoodContext`; returns `false` outside that context. Sibling of `food_item_in_tag` — use this when you need per-item bonuses (e.g. raw cod gets one bonus, cooked cod gets a different one).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `id` | resource location | yes | — | Exact item ID to match (e.g. `"minecraft:cod"`). Unknown IDs fail closed. |
+
+**Example — bonus saturation when eating raw cod:**
+```json
+{
+  "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:cod" },
+  "action": { "type": "neoorigins:modify_food", "food": 3, "saturation": 5.6 }
+}
+```
+
+**`food_item_id` vs `food_item_in_tag`:** `food_item_id` matches a single exact item. `food_item_in_tag` matches by tag (or bare ID), so it can cover many items in one rule. Use `food_item_id` when you need different behavior per individual food item.
 
 ---
 
