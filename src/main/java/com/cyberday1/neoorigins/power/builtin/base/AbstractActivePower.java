@@ -1,9 +1,11 @@
 package com.cyberday1.neoorigins.power.builtin.base;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -39,9 +41,6 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         default int hungerCost() { return 0; }
     }
 
-    /** Called once on class load — used as stable session cooldown key. */
-    private final String cooldownKey = getClass().getName();
-
     @Override
     public final boolean isActivePower() { return true; }
 
@@ -66,13 +65,12 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
     }
 
     /**
-     * Returns the cooldown key for this power instance. By default uses the
-     * class name, meaning all instances of the same power type share a cooldown.
-     * Override to provide config-specific keys when multiple instances of the
-     * same power type should have independent cooldowns.
+     * Returns the cooldown key for this power instance. Uses the power's
+     * ResourceLocation ID so each power has its own independent cooldown.
      */
     public String getCooldownKey(C config) {
-        return cooldownKey;
+        ResourceLocation id = PowerHolder.currentDispatchId();
+        return id != null ? id.toString() : getClass().getName();
     }
 
     /**

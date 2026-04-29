@@ -3,6 +3,9 @@ package com.cyberday1.neoorigins.mixin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
@@ -52,6 +55,10 @@ public abstract class ItemStackEdibleAnimationMixin {
                 for (var id : cfg.items()) {
                     Item item = BuiltInRegistries.ITEM.get(id);
                     if (item != null) items.add(item);
+                }
+                for (ResourceLocation tagId : cfg.tags()) {
+                    TagKey<Item> tag = TagKey.create(Registries.ITEM, tagId);
+                    BuiltInRegistries.ITEM.getTagOrEmpty(tag).forEach(h -> items.add(h.value()));
                 }
             }
         }

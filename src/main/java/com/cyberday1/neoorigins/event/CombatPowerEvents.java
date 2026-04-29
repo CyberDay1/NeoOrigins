@@ -75,6 +75,19 @@ public class CombatPowerEvents {
                 if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
                 event.setAmount(scaled);
             });
+
+            // ActionOnHitPower — fire when the attacker's filters match any target (mob or player).
+            final float outHitAmount = event.getAmount();
+            ActiveOriginService.forEachOfType(outAttacker, ActionOnHitPower.class, config -> {
+                if (outHitAmount < config.minDamage()) return;
+                if (config.damageType().isPresent()
+                        && !matchesDamageType(event.getSource(), config.damageType().get())) return;
+                if (config.targetGroup().isPresent() && !matchesEntityGroup(outTarget, config.targetGroup().get())) return;
+                if (config.targetType().isPresent()
+                        && !matchesEntityIdOrTag(outTarget, config.targetType().get())) return;
+                if (!ActionOnHitPower.rollChance(config)) return;
+                ActionOnHitPower.execute(outAttacker, config, outTarget);
+            });
         }
 
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -218,28 +231,6 @@ public class CombatPowerEvents {
             }
         });
 
-        // ActionOnHitPower still runs here — it fires only in the player-victim
-        // PvP path (the attacker's hit-reaction powers should trigger on any
-        // target, mob or player, but for now the pattern is unchanged to avoid
-        // scope creep). The OUT ModifyDamagePower block has moved to the top of
-        // this method so mob victims get the attacker's OUT multipliers too.
-        var attackerEntity = event.getSource().getEntity();
-        if (attackerEntity instanceof ServerPlayer attackerSp && attackerSp != sp) {
-            LivingEntity target = event.getEntity();
-            // ActionOnHitPower — fire self/target actions when the attacker's filters match.
-            final float hitAmount = event.getAmount();
-            ActiveOriginService.forEachOfType(attackerSp, ActionOnHitPower.class, config -> {
-                if (hitAmount < config.minDamage()) return;
-                if (config.damageType().isPresent()
-                        && !matchesDamageType(event.getSource(), config.damageType().get())) return;
-                if (config.targetGroup().isPresent() && !matchesEntityGroup(target, config.targetGroup().get())) return;
-                if (config.targetType().isPresent()
-                        && !matchesEntityIdOrTag(target, config.targetType().get())) return;
-                if (!ActionOnHitPower.rollChance(config)) return;
-                ActionOnHitPower.execute(attackerSp, config, target);
-            });
-        }
-
         if (!event.isCanceled()) {
             float amount = event.getAmount();
             ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
@@ -296,7 +287,13 @@ public class CombatPowerEvents {
                 Registries.DAMAGE_TYPE, ResourceLocation.parse(f.substring(1))));
             return source.is(tag);
         }
-        return source.getMsgId().equalsIgnoreCase(filter);
+        // Match against both the msgId (camelCase, e.g. "flyIntoWall") and
+        // the registry key path (snake_case, e.g. "fly_into_wall") so pack
+        // authors can use either convention.
+        if (source.getMsgId().equalsIgnoreCase(filter)) return true;
+        var typeKey = source.typeHolder().unwrapKey();
+        return typeKey.isPresent()
+            && typeKey.get().location().getPath().equalsIgnoreCase(filter);
     }
 
     /**
@@ -547,29 +544,28 @@ public class CombatPowerEvents {
             event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
             return;
         }
-        // Undead entity group — classic Origins undead: immune to Poison + not
-        // helped by Regeneration or Instant Health. (Instant Damage → damage
-        // is the vanilla default, so we don't need to add it.) Beacon / splash
-        // potion / command-driven LivingHealEvent healing is also blocked in
-        // onLivingHealUndead below, which covers heal sources that bypass the
-        // MobEffect.Applicable gate.
+        // Undead entity group — vanilla-undead potion reversal:
+        //   Poison      → immune (already undead-flavoured)
+        //   Regeneration → immune (vanilla undead behaviour)
+        //   Instant Health → block and deal damage instead
+        //   Instant Damage → block and heal instead
+        // Food-based natural regen is allowed (handled by vanilla FoodData).
         if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
-            if (effectId.equals("minecraft:poison")
-                || effectId.equals("minecraft:regeneration")
-                || effectId.equals("minecraft:instant_health")) {
+            if (effectId.equals("minecraft:poison") || effectId.equals("minecraft:regeneration")) {
                 event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            } else if (effectId.equals("minecraft:instant_health")) {
+                // Reverse: instant health → damage
+                event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+                int amplifier = effectInstance.getAmplifier();
+                float damage = (float)(6 << amplifier);  // vanilla formula
+                sp.hurt(sp.damageSources().magic(), damage);
+            } else if (effectId.equals("minecraft:instant_damage")) {
+                // Reverse: instant damage → heal
+                event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+                int amplifier = effectInstance.getAmplifier();
+                float heal = (float)(6 << amplifier);  // vanilla formula
+                sp.heal(heal);
             }
-        }
-    }
-
-    @SubscribeEvent
-    public static void onLivingHealUndead(net.neoforged.neoforge.event.entity.living.LivingHealEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        // Beacon / splash potion / command / mod heal on an undead player:
-        // cancel — they shouldn't benefit from normal heal sources. Natural
-        // regen exhaustion is handled separately by FoodDataTickMixin.
-        if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
-            event.setCanceled(true);
         }
     }
 }

@@ -16,7 +16,9 @@
     "neoorigins:kraken_beached",
     "neoorigins:kraken_daylight_damage",
     "neoorigins:kraken_massive",
-    "neoorigins:kraken_dries_out"
+    "neoorigins:kraken_dries_out",
+    "neoorigins:aquatic_underwater_mining",
+    "neoorigins:aquatic_depth_strider"
   ],
   "upgrades": [],
   "tier_powers": [

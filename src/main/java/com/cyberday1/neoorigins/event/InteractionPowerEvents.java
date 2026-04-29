@@ -155,6 +155,11 @@ public class InteractionPowerEvents {
                 s, SoundSource.PLAYERS, 1.0f, 1.0f));
         });
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, stack);
+        // Also dispatch FOOD_FINISHED with FoodContext so food_item_in_tag /
+        // food_item_id conditions work for edible-item-promoted items (e.g.
+        // Caveborn minerals, Skeleton bone meal).
+        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.FOOD_FINISHED,
+            new EventPowerIndex.FoodContext(stack));
     }
 
     @SubscribeEvent

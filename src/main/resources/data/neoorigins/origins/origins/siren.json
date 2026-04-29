@@ -13,7 +13,9 @@
     "neoorigins:siren_night_vision",
     "neoorigins:siren_land_slowdown",
     "neoorigins:siren_reduced_health",
-    "neoorigins:siren_dries_out"
+    "neoorigins:siren_dries_out",
+    "neoorigins:aquatic_underwater_mining",
+    "neoorigins:aquatic_depth_strider"
   ],
   "upgrades": [],
   "tier_powers": [
