@@ -230,7 +230,9 @@ Multiplies damage dealt or received, optionally filtered to a specific damage ty
 }
 ```
 
-**Common damage types:** `fire`, `in_fire`, `lava`, `drown`, `fall`, `freeze`, `magic`, `wither`, `lightning_bolt`, `generic`
+**Common damage types:** `fire`, `in_fire`, `lava`, `drown`, `fall`, `freeze`, `magic`, `wither`, `lightning_bolt`, `fly_into_wall`, `generic`
+
+**Matching:** damage types are matched against both the vanilla message ID (camelCase, e.g. `flyIntoWall`) and the registry key path (snake_case, e.g. `fly_into_wall`). Either convention works. Tag-based filters like `#minecraft:is_fire` match all damage types in that tag.
 
 ---
 
@@ -800,7 +802,7 @@ Triggers an action each time the player takes damage.
 
 ## `neoorigins:action_on_hit`
 
-Triggers an action each time the player deals damage to a living entity, optionally restricted by target entity group, target entity type, or damage type. The configured `action` may target the player (self) or the victim.
+Triggers an action each time the player deals damage to any living entity — mobs, animals, and other players. Optionally restricted by target entity group, target entity type, or damage type. The configured `action` may target the player (self) or the victim.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1811,6 +1813,8 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 | `hunger_cost` | int | no | `0` | Food points removed per use (1 shank = 2 points). Silently aborts if player has less food (cooldown not consumed). |
 | `entity_action` | EntityAction | yes | noop | Action tree fired on use (typically `neoorigins:and { actions: [...] }`) |
 | `condition` | EntityCondition | no | always-true | DSL gate — skips firing (and the cooldown) if false |
+
+Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter — triggering one ability does not block another.
 
 Actions and conditions are compiled once at power-load time via `ActionParser` / `ConditionParser`; runtime only dispatches through the compiled closures.
 
