@@ -576,7 +576,7 @@ public final class NeoOriginsConfig {
 
         HEAVY_ARMOR_ITEMS = BUILDER
             .comment("Additional items/tags to treat as heavy armor.",
-                     "Default heavy armor (diamond + netherite) is defined in the",
+                     "Default heavy armor (iron, gold, diamond, netherite) is defined in the",
                      "neoorigins:heavy_armor item tag and does not need to be listed here.")
             .defineListAllowEmpty("heavy_armor", List.of(), () -> "", o -> o instanceof String);
 
