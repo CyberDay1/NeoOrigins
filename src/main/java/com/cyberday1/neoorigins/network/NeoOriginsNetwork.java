@@ -427,17 +427,33 @@ public class NeoOriginsNetwork {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void syncCooldownIfStarted(ServerPlayer sp, PowerHolder<?> holder, int slot) {
-        if (!(holder.type() instanceof AbstractActivePower)) return;
-        AbstractActivePower ap = (AbstractActivePower) holder.type();
-        AbstractActivePower.Config cfg = (AbstractActivePower.Config) holder.config();
-        String key = ap.getCooldownKey(cfg);
+        String key;
+        int totalTicks;
+
+        if (holder.type() instanceof AbstractActivePower) {
+            AbstractActivePower ap = (AbstractActivePower) holder.type();
+            AbstractActivePower.Config cfg = (AbstractActivePower.Config) holder.config();
+            key = ap.getCooldownKey(cfg);
+            totalTicks = cfg.cooldownTicks();
+        } else if (holder.type() instanceof com.cyberday1.neoorigins.compat.CompatPower
+                && holder.config() instanceof com.cyberday1.neoorigins.compat.CompatPower.Config cc
+                && cc.cooldownTicks() > 0) {
+            // Route B compat powers store cooldowns keyed by power ID string.
+            // Reverse-lookup the power ID from the data manager.
+            key = null;
+            for (var e : PowerDataManager.INSTANCE.getPowers().entrySet()) {
+                if (e.getValue() == holder) { key = e.getKey().toString(); break; }
+            }
+            if (key == null) return;
+            totalTicks = cc.cooldownTicks();
+        } else {
+            return;
+        }
+
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         int remaining = data.remainingCooldown(key, sp.tickCount);
         if (remaining > 0) {
-            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, cfg.cooldownTicks(), remaining));
-        } else {
-            NeoOrigins.LOGGER.debug("Cooldown not synced for slot {} (key={}, remaining={})",
-                slot, key, remaining);
+            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, totalTicks, remaining));
         }
     }
 

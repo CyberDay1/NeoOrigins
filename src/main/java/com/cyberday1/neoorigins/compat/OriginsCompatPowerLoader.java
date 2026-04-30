@@ -340,6 +340,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
 
         return CompatPower.Config.builder()
+            .cooldownTicks(cooldown)
             .onActivated((ServerPlayer player) -> {
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
@@ -676,6 +677,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int count = json.has("count") ? json.get("count").getAsInt() : 1;
 
         return CompatPower.Config.builder()
+            .cooldownTicks(cooldown)
             .onActivated(player -> {
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
@@ -738,6 +740,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
 
         return CompatPower.Config.builder()
+            .cooldownTicks(cooldown)
             .onActivated(player -> {
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());

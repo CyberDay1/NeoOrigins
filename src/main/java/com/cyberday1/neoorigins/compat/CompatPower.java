@@ -30,7 +30,8 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         Consumer<ServerPlayer> onRespawn,
         Consumer<ServerPlayer> onHit,
         Consumer<ServerPlayer> onKill,
-        Consumer<LivingIncomingDamageEvent> onIncomingDamage
+        Consumer<LivingIncomingDamageEvent> onIncomingDamage,
+        int cooldownTicks
     ) implements PowerConfiguration {
 
         public static Builder builder() { return new Builder(); }
@@ -38,6 +39,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         public static final class Builder {
             private Consumer<ServerPlayer> onGranted, onRevoked, onTick, onActivated, onRespawn, onHit, onKill;
             private Consumer<LivingIncomingDamageEvent> onIncomingDamage;
+            private int cooldownTicks;
 
             public Builder onGranted(Consumer<ServerPlayer> c)   { onGranted   = c; return this; }
             public Builder onRevoked(Consumer<ServerPlayer> c)   { onRevoked   = c; return this; }
@@ -49,10 +51,11 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             public Builder onIncomingDamage(Consumer<LivingIncomingDamageEvent> c) {
                 onIncomingDamage = c; return this;
             }
+            public Builder cooldownTicks(int ticks) { cooldownTicks = ticks; return this; }
 
             public Config build() {
                 return new Config(onGranted, onRevoked, onTick, onActivated, onRespawn,
-                    onHit, onKill, onIncomingDamage);
+                    onHit, onKill, onIncomingDamage, cooldownTicks);
             }
         }
     }
@@ -60,7 +63,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public Codec<Config> codec() {
         // Never called for Route B powers — they are injected directly, not codec-decoded.
-        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null)).codec();
+        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, 0)).codec();
     }
 
     /** Active only when this specific config has an onActivated consumer. */
