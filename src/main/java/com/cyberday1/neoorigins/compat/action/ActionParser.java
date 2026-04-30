@@ -116,6 +116,16 @@ public final class ActionParser {
                 case "neoorigins:add_to_set"                    -> parseAddToSet(json, contextId);
                 case "neoorigins:remove_from_set"               -> parseRemoveFromSet(json, contextId);
 
+                // ---- Bientity→entity unwrappers ----
+                // In Apoli these operate on (actor, target) pairs; in our model
+                // the dispatch target is already the correct entity, so we just
+                // unwrap the inner "action" field.
+                case "neoorigins:target_action"                 -> parseTargetAction(json, contextId);
+                case "neoorigins:actor_action"                  -> parseActorAction(json, contextId);
+
+                // ---- Block-position delegate ----
+                case "neoorigins:block_action_at"               -> parseBlockActionAt(json, contextId);
+
                 default -> failNoop(type, contextId, "unsupported action type");
             };
         } catch (Exception e) {
@@ -1627,6 +1637,51 @@ public final class ActionParser {
             if (le == null) return;
             var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
             data.removeFromEntitySet(player, key, le.getUUID());
+        };
+    }
+
+    /**
+     * Bientity unwrapper: in Apoli {@code target_action} extracts the target
+     * from a (actor, target) pair and runs {@code action} on it. In our model
+     * the dispatch target is already the correct entity when called from
+     * {@code area_of_effect}'s bientity_action path, so we just delegate
+     * to the inner action.
+     */
+    private static EntityAction parseTargetAction(JsonObject json, String contextId) {
+        EntityAction inner = json.has("action") && json.get("action").isJsonObject()
+            ? parse(json.getAsJsonObject("action"), contextId) : EntityAction.noop();
+        return inner;
+    }
+
+    /**
+     * Bientity unwrapper: {@code actor_action} runs the inner {@code action}
+     * on the actor (source player). In our AoE dispatch the source is the
+     * player who invoked the power — we just run the action on them.
+     */
+    private static EntityAction parseActorAction(JsonObject json, String contextId) {
+        EntityAction inner = json.has("action") && json.get("action").isJsonObject()
+            ? parse(json.getAsJsonObject("action"), contextId) : EntityAction.noop();
+        return inner;
+    }
+
+    /**
+     * Runs a {@code block_action} at the entity's current block position.
+     * Publishes the block pos to {@link com.cyberday1.neoorigins.service.ActionContextHolder}
+     * so nested actions like {@code execute_command} can resolve {@code ~ ~ ~}
+     * to the block centre.
+     */
+    private static EntityAction parseBlockActionAt(JsonObject json, String contextId) {
+        EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
+            ? parse(json.getAsJsonObject("block_action"), contextId) : EntityAction.noop();
+        return player -> {
+            BlockPos pos = player.blockPosition();
+            Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                new RaycastBlockContext(pos));
+            try {
+                blockAction.execute(player);
+            } finally {
+                com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
+            }
         };
     }
 

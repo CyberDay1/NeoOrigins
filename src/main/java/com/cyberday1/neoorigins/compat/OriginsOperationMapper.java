@@ -13,8 +13,8 @@ public final class OriginsOperationMapper {
     public static String mapOperation(String originsOp) {
         return switch (originsOp) {
             case "addition"             -> "add_value";
-            case "multiply_base"        -> "add_multiplied_base";
-            case "multiply_total"       -> "add_multiplied_total";
+            case "multiply_base", "multiply_base_additive"        -> "add_multiplied_base";
+            case "multiply_total", "multiply_base_multiplicative" -> "add_multiplied_total";
             // Pass-through if already in NeoForge format
             case "add_value"            -> "add_value";
             case "add_multiplied_base"  -> "add_multiplied_base";
