@@ -582,6 +582,9 @@ public final class ActionParser {
         final net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> applyEffectHolder;
         final int applyEffectDuration;
         final int applyEffectAmplifier;
+        final boolean applyEffectAmbient;
+        final boolean applyEffectParticles;
+        final boolean applyEffectIcon;
         if (innerIsApplyEffect) {
             String eid = innerJson.has("effect") ? innerJson.get("effect").getAsString()
                         : innerJson.has("effect_id") ? innerJson.get("effect_id").getAsString() : null;
@@ -592,10 +595,16 @@ public final class ActionParser {
             applyEffectHolder = eidOpt.orElse(null);
             applyEffectDuration = innerJson.has("duration") ? innerJson.get("duration").getAsInt() : 200;
             applyEffectAmplifier = innerJson.has("amplifier") ? innerJson.get("amplifier").getAsInt() : 0;
+            applyEffectAmbient = innerJson.has("is_ambient") && innerJson.get("is_ambient").getAsBoolean();
+            applyEffectParticles = !innerJson.has("show_particles") || innerJson.get("show_particles").getAsBoolean();
+            applyEffectIcon = !innerJson.has("show_icon") || innerJson.get("show_icon").getAsBoolean();
         } else {
             applyEffectHolder = null;
             applyEffectDuration = 0;
             applyEffectAmplifier = 0;
+            applyEffectAmbient = false;
+            applyEffectParticles = true;
+            applyEffectIcon = true;
         }
         // origins:damage mob-fan-out
         final float damageAmount;
@@ -673,7 +682,8 @@ public final class ActionParser {
                             && mob instanceof net.minecraft.world.entity.animal.golem.IronGolem) continue;
                     if (applyEffectHolder != null) {
                         mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                            applyEffectHolder, applyEffectDuration, applyEffectAmplifier));
+                            applyEffectHolder, applyEffectDuration, applyEffectAmplifier,
+                            applyEffectAmbient, applyEffectParticles, applyEffectIcon));
                     }
                     if (innerIsDamage && damageAmount > 0f) {
                         var dmgSrc = switch (damageSourceName) {
