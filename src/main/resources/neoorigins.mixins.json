@@ -23,6 +23,7 @@
     "client.GuiHudBarsMixin",
     "client.PlayerWaterVisionMixin",
     "client.LocalPlayerNaturalGlideMixin",
+    "client.LocalPlayerNoPhysicsMixin",
     "client.MerchantScreenTreasureGlowMixin"
   ],
   "injectors": {

@@ -23,6 +23,11 @@ import net.minecraft.world.effect.MobEffects;
  */
 public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Config> {
 
+    private static final java.util.Set<String> CAPS = java.util.Set.of("no_physics");
+
+    @Override
+    public java.util.Set<String> capabilities(Config config) { return CAPS; }
+
     public record Config(
         boolean invisibility,
         boolean noGravity,

@@ -27,6 +27,11 @@ import java.util.Set;
  */
 public class WraithPhasePower extends PowerType<WraithPhasePower.Config> {
 
+    private static final Set<String> CAPS = Set.of("wall_phase");
+
+    @Override
+    public Set<String> capabilities(Config config) { return CAPS; }
+
     public record Config(
         List<String> blockedBlocks,
         float exhaustionPerTick,
