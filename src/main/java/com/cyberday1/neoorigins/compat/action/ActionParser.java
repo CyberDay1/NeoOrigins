@@ -60,7 +60,8 @@ public final class ActionParser {
                 case "neoorigins:dash"                          -> parseDash(json);
                 case "neoorigins:set_on_fire"                   -> parseSetOnFire(json);
                 case "neoorigins:exhaust"                       -> parseExhaust(json);
-                case "neoorigins:change_resource"               -> parseChangeResource(json);
+                case "neoorigins:change_resource",
+                     "neoorigins:modify_resource"               -> parseChangeResource(json);
                 case "neoorigins:nothing"                       -> EntityAction.noop();
 
                 // ---- Phase 2: New actions ----
@@ -395,9 +396,19 @@ public final class ActionParser {
 
         final String key = resourceId;
         return switch (operation) {
-            case "add" -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            case "add" -> player -> {
+                var meta = CompatAttachments.getResourceMeta(key);
+                int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
+                int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
+                player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
+            };
             case "set" -> player -> player.getData(CompatAttachments.resourceState()).set(key, change);
-            default -> player -> player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            default -> player -> {
+                var meta = CompatAttachments.getResourceMeta(key);
+                int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
+                int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
+                player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
+            };
         };
     }
 

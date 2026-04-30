@@ -139,7 +139,8 @@ public final class ConditionParser {
                     return true;
                 };
                 case "neoorigins:health"                        -> parseHealth(json);
-                case "neoorigins:resource"                      -> parseResource(json, contextId);
+                case "neoorigins:resource",
+                     "neoorigins:resource_level"                -> parseResource(json, contextId);
                 case "neoorigins:power_active"                  -> parsePowerActive(json, contextId);
                 case "neoorigins:on_block"                      -> parseOnBlock(json, contextId);
 

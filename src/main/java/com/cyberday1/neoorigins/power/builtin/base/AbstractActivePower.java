@@ -37,6 +37,10 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         int cooldownTicks();
         /** Food points debited on activation (not hunger bars). Default 0 = no cost. */
         default int hungerCost() { return 0; }
+        /** Power ID of the resource to debit on activation. Empty string = no resource cost. */
+        default String resourceCost() { return ""; }
+        /** Amount of resource to debit on activation. Only used when resourceCost is non-empty. */
+        default int resourceCostAmount() { return 0; }
     }
 
     @Override
@@ -53,10 +57,22 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
             return;  // not enough hunger — silent abort, no cooldown consumed
         }
 
+        // Resource cost check (pre-flight)
+        String resCostKey = config.resourceCost();
+        int resCostAmt = config.resourceCostAmount();
+        boolean hasResourceCost = !resCostKey.isEmpty() && resCostAmt > 0;
+        if (hasResourceCost) {
+            int current = com.cyberday1.neoorigins.power.builtin.ResourcePower.getValue(player, resCostKey);
+            if (current < resCostAmt) return; // not enough resource — silent abort
+        }
+
         if (execute(player, config)) {
             if (hungerCost > 0) {
                 player.getFoodData().setFoodLevel(
                     player.getFoodData().getFoodLevel() - hungerCost);
+            }
+            if (hasResourceCost) {
+                com.cyberday1.neoorigins.power.builtin.ResourcePower.deduct(player, resCostKey, resCostAmt);
             }
             data.setCooldown(key, player.tickCount, config.cooldownTicks());
         }
