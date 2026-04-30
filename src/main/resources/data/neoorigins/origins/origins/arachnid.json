@@ -9,7 +9,8 @@
     "neoorigins:arachnid_cobweb_affinity",
     "neoorigins:arachnid_entity_group",
     "neoorigins:arachnid_spiders_fang",
-    "neoorigins:arachnid_cobweb_projectile"
+    "neoorigins:arachnid_cobweb_projectile",
+    "neoorigins:arachnid_energy"
   ],
   "upgrades": [],
   "tier_powers": [

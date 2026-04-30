@@ -1,6 +1,11 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 80,
-  "hunger_cost": 2,
-  "entity_action": { "type": "neoorigins:dash", "strength": 2.5, "allow_vertical": false }
+  "entity_action": {
+    "type": "neoorigins:dash",
+    "strength": 2.5,
+    "allow_vertical": false
+  },
+  "resource_cost": "neoorigins:strider_stamina",
+  "resource_cost_amount": 20
 }

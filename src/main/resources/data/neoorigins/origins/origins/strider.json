@@ -13,7 +13,8 @@
     "neoorigins:strider_overworld_slowness",
     "neoorigins:strider_natural_armor",
     "neoorigins:strider_stampede",
-    "neoorigins:nether_fungus_diet"
+    "neoorigins:nether_fungus_diet",
+    "neoorigins:strider_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

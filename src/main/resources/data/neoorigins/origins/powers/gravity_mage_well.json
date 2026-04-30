@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 400,
-  "hunger_cost": 4,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
@@ -16,5 +15,7 @@
       "damage_per_tick": 2.0,
       "effect_type": "void"
     }
-  }
+  },
+  "resource_cost": "neoorigins:gravity_mage_mana",
+  "resource_cost_amount": 40
 }

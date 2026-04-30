@@ -8,7 +8,8 @@
     "neoorigins:enderian_ender_eyes",
     "neoorigins:enderian_projectile_dodge",
     "neoorigins:enderian_water_damage",
-    "neoorigins:enderian_teleport"
+    "neoorigins:enderian_teleport",
+    "neoorigins:enderian_energy"
   ],
   "upgrades": [],
   "tier_powers": [

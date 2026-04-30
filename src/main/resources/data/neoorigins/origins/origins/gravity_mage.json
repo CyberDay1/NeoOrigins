@@ -10,7 +10,8 @@
     "neoorigins:gravity_mage_levitation",
     "neoorigins:gravity_mage_no_fall_damage",
     "neoorigins:gravity_mage_unmoored",
-    "neoorigins:gravity_mage_frail"
+    "neoorigins:gravity_mage_frail",
+    "neoorigins:gravity_mage_mana"
   ],
   "upgrades": [],
   "tier_powers": [

@@ -9,7 +9,8 @@
     "neoorigins:tamer_command_pack",
     "neoorigins:tamer_horde_regen",
     "neoorigins:tamer_weak_alone",
-    "neoorigins:tamer_hunger_drain"
+    "neoorigins:tamer_hunger_drain",
+    "neoorigins:tamer_essence"
   ],
   "upgrades": [],
   "tier_powers": [

@@ -11,7 +11,8 @@
     "neoorigins:water_mage_swim_speed",
     "neoorigins:water_mage_moisture_regen",
     "neoorigins:water_mage_dehydration",
-    "neoorigins:water_mage_fragile"
+    "neoorigins:water_mage_fragile",
+    "neoorigins:water_mage_mana"
   ],
   "upgrades": [],
   "tier_powers": [

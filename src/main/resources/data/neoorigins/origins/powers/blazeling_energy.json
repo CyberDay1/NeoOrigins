@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 80,
+  "start_value": 80,
+  "regen_rate": 2,
+  "regen_interval": 20,
+  "hud_render": {
+    "label": "Energy",
+    "color": "#AADD33"
+  }
+}

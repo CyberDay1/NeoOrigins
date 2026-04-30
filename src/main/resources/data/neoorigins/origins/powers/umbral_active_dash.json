@@ -1,6 +1,11 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 60,
-  "hunger_cost": 2,
-  "entity_action": { "type": "neoorigins:dash", "strength": 2.0, "allow_vertical": true }
+  "entity_action": {
+    "type": "neoorigins:dash",
+    "strength": 2.0,
+    "allow_vertical": true
+  },
+  "resource_cost": "neoorigins:umbral_energy",
+  "resource_cost_amount": 20
 }

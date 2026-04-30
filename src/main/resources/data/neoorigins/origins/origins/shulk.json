@@ -9,7 +9,8 @@
     "neoorigins:shulk_slow_movement",
     "neoorigins:shulk_levitation_burst",
     "neoorigins:shulk_shell_retreat",
-    "neoorigins:shulk_levitation_immunity"
+    "neoorigins:shulk_levitation_immunity",
+    "neoorigins:shulk_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

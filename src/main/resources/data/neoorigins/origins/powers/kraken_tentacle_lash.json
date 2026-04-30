@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 160,
-  "hunger_cost": 2,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
@@ -19,5 +18,7 @@
         "amplifier": 2
       }
     }
-  }
+  },
+  "resource_cost": "neoorigins:kraken_essence",
+  "resource_cost_amount": 20
 }

@@ -10,7 +10,8 @@
     "neoorigins:umbral_active_dash",
     "neoorigins:umbral_daylight_damage",
     "neoorigins:umbral_projectile_immunity",
-    "neoorigins:umbral_no_hunger_sprint"
+    "neoorigins:umbral_no_hunger_sprint",
+    "neoorigins:umbral_energy"
   ],
   "upgrades": [],
   "tier_powers": [

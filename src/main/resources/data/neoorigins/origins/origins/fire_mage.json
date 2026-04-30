@@ -10,7 +10,8 @@
     "neoorigins:fire_mage_flame_cloak",
     "neoorigins:fire_mage_fire_immunity",
     "neoorigins:fire_mage_water_weakness",
-    "neoorigins:fire_mage_hunger"
+    "neoorigins:fire_mage_hunger",
+    "neoorigins:fire_mage_mana"
   ],
   "upgrades": [],
   "tier_powers": [

@@ -14,7 +14,8 @@
     "neoorigins:sculkborn_projectile_immunity",
     "neoorigins:sculkborn_vibration_sense",
     "neoorigins:sculkborn_slow_movement",
-    "neoorigins:sculkborn_reduced_health"
+    "neoorigins:sculkborn_reduced_health",
+    "neoorigins:sculkborn_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

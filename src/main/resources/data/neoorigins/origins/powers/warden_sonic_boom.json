@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 400,
-  "hunger_cost": 4,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
@@ -15,10 +14,23 @@
       "entity_action": {
         "type": "neoorigins:and",
         "actions": [
-          { "type": "neoorigins:apply_effect", "effect": "minecraft:slowness", "duration": 120, "amplifier": 2 },
-          { "type": "neoorigins:damage", "amount": 8.0, "source": { "name": "magic" } }
+          {
+            "type": "neoorigins:apply_effect",
+            "effect": "minecraft:slowness",
+            "duration": 120,
+            "amplifier": 2
+          },
+          {
+            "type": "neoorigins:damage",
+            "amount": 8.0,
+            "source": {
+              "name": "magic"
+            }
+          }
         ]
       }
     }
-  }
+  },
+  "resource_cost": "neoorigins:warden_stamina",
+  "resource_cost_amount": 40
 }

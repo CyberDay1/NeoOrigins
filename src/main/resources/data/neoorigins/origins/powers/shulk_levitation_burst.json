@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 160,
-  "hunger_cost": 2,
   "entity_action": {
     "type": "neoorigins:area_of_effect",
     "radius": 5,
@@ -12,5 +11,7 @@
       "duration": 60,
       "amplifier": 2
     }
-  }
+  },
+  "resource_cost": "neoorigins:shulk_stamina",
+  "resource_cost_amount": 20
 }

@@ -12,7 +12,8 @@
     "neoorigins:enderite_scare_endermites",
     "neoorigins:enderite_water_damage",
     "neoorigins:enderite_daylight_weakness",
-    "neoorigins:enderite_attack_bonus"
+    "neoorigins:enderite_attack_bonus",
+    "neoorigins:enderite_energy"
   ],
   "upgrades": [],
   "tier_powers": [

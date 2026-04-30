@@ -17,7 +17,8 @@
     "neoorigins:aquatic_fish_diet_bonus",
     "neoorigins:abyssal_land_speed_penalty",
     "neoorigins:abyssal_dries_out",
-    "neoorigins:aquatic_depth_strider"
+    "neoorigins:aquatic_depth_strider",
+    "neoorigins:abyssal_essence"
   ],
   "upgrades": [],
   "tier_powers": [

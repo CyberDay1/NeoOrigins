@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 120,
-  "hunger_cost": 1,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
@@ -15,10 +14,23 @@
       "entity_action": {
         "type": "neoorigins:and",
         "actions": [
-          { "type": "neoorigins:damage",      "amount": 4.0, "source": { "name": "magic" } },
-          { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 200, "amplifier": 1 }
+          {
+            "type": "neoorigins:damage",
+            "amount": 4.0,
+            "source": {
+              "name": "magic"
+            }
+          },
+          {
+            "type": "neoorigins:apply_effect",
+            "effect": "minecraft:poison",
+            "duration": 200,
+            "amplifier": 1
+          }
         ]
       }
     }
-  }
+  },
+  "resource_cost": "neoorigins:hiveling_energy",
+  "resource_cost_amount": 10
 }

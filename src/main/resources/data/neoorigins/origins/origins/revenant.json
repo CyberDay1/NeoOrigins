@@ -11,7 +11,8 @@
     "neoorigins:revenant_active_phase",
     "neoorigins:revenant_active_bolt",
     "neoorigins:revenant_daylight_damage",
-    "neoorigins:revenant_slow_regen"
+    "neoorigins:revenant_slow_regen",
+    "neoorigins:revenant_energy"
   ],
   "upgrades": [],
   "tier_powers": [

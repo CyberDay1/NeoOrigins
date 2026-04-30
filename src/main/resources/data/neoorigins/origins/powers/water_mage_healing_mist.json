@@ -1,11 +1,15 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 200,
-  "hunger_cost": 3,
   "entity_action": {
     "type": "neoorigins:area_of_effect",
     "radius": 8.0,
     "include_source": true,
-    "entity_action": { "type": "neoorigins:heal", "amount": 6.0 }
-  }
+    "entity_action": {
+      "type": "neoorigins:heal",
+      "amount": 6.0
+    }
+  },
+  "resource_cost": "neoorigins:water_mage_mana",
+  "resource_cost_amount": 30
 }

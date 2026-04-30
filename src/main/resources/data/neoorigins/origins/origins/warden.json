@@ -13,7 +13,8 @@
     "neoorigins:warden_night_vision",
     "neoorigins:warden_hulking_frame",
     "neoorigins:warden_daylight_damage",
-    "neoorigins:warden_lumbering"
+    "neoorigins:warden_lumbering",
+    "neoorigins:warden_stamina"
   ],
   "upgrades": [],
   "tier_powers": [
