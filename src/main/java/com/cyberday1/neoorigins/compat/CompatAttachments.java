@@ -83,13 +83,31 @@ public class CompatAttachments {
         }));
 
         public int get(String key, int defaultValue) { return values.getOrDefault(key, defaultValue); }
-        public void set(String key, int value)       { values.put(key, value); }
+        public void set(String key, int value)       { values.put(key, value); dirty = true; }
 
         public void clampedAdd(String key, int delta, int min, int max) {
             int cur = values.getOrDefault(key, 0);
             values.put(key, Math.max(min, Math.min(max, cur + delta)));
+            dirty = true;
         }
+
+        /** Dirty flag — set when any value changes. Cleared by sync logic. */
+        private boolean dirty;
+        public boolean isDirty() { return dirty; }
+        public void clearDirty() { dirty = false; }
+
+        public Map<String, Integer> getAll() { return Map.copyOf(values); }
     }
+
+    /** Per-resource display metadata registered at parse time. */
+    public record ResourceMeta(int min, int max, String label, int color) {}
+
+    private static final Map<String, ResourceMeta> RESOURCE_META = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerResourceMeta(String key, ResourceMeta meta) { RESOURCE_META.put(key, meta); }
+    public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(key); }
+    public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
+    public static void clearResourceMeta() { RESOURCE_META.clear(); }
 
     // ---- ToggleState ----
 
@@ -117,5 +135,22 @@ public class CompatAttachments {
         }
 
         public void set(String key, boolean value) { states.put(key, value); }
+    }
+
+    /**
+     * Build and send a {@link com.cyberday1.neoorigins.network.payload.SyncResourcePayload}
+     * containing all active resources for this player.
+     */
+    public static void syncResourcesToClient(net.minecraft.server.level.ServerPlayer player) {
+        var state = player.getData(resourceState());
+        var entries = new HashMap<String, com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry>();
+        for (var e : state.getAll().entrySet()) {
+            ResourceMeta meta = getResourceMeta(e.getKey());
+            if (meta == null) continue;
+            entries.put(e.getKey(), new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
+                e.getValue(), meta.min(), meta.max(), meta.label(), meta.color()));
+        }
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));
     }
 }
