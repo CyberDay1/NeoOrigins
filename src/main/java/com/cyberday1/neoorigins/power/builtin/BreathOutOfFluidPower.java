@@ -7,9 +7,17 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -115,9 +123,12 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 // isInWaterRainOrBubble covers water blocks, rain, and bubble columns.
                 // Also treat standing inside a water cauldron as "in fluid" so aquatic
                 // origins can rehydrate from cauldrons.
+                // Water Breathing effect acts as a magical air supply — pauses the
+                // land drain entirely so aquatic players can explore on land with a potion.
                 inFluid = sp.isInWaterRainOrBubble()
                     || sp.level().getBlockState(sp.blockPosition())
-                           .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON);
+                           .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)
+                    || sp.hasEffect(MobEffects.WATER_BREATHING);
             }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
@@ -131,9 +142,18 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             // vanilla's drown-supply lower bound; each subsequent damage cycle
             // happens every 20 ticks below 0 (mirroring AbstractFish /
             // WaterAnimal cadence).
+            //
+            // Respiration enchantment (OXYGEN_BONUS attribute) extends land
+            // time using the same probability vanilla uses for underwater air:
+            // each drain tick has a 1/(oxygenBonus+1) chance to actually
+            // decrement, so Resp III gives ~4x the land time.
             int tracked = VIRTUAL_AIR.getOrDefault(sp.getUUID(), maxAir);
             if (sp.tickCount % chosen.drainRate == 0 && tracked > -20) {
-                tracked--;
+                AttributeInstance oxygenAttr = sp.getAttribute(Attributes.OXYGEN_BONUS);
+                double oxygenBonus = oxygenAttr != null ? oxygenAttr.getValue() : 0.0;
+                if (oxygenBonus <= 0.0 || sp.getRandom().nextDouble() < 1.0 / (oxygenBonus + 1.0)) {
+                    tracked--;
+                }
             }
             VIRTUAL_AIR.put(sp.getUUID(), tracked);
 
@@ -169,6 +189,31 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
         @SubscribeEvent
         public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
             VIRTUAL_AIR.remove(event.getEntity().getUUID());
+        }
+
+        /**
+         * Drinking a water bottle restores half the max air supply for aquatic
+         * origins that are drying out on land. Gives players an emergency
+         * rehydration option without requiring a full water source.
+         */
+        @SubscribeEvent
+        public static void onItemUseFinish(LivingEntityUseItemEvent.Finish event) {
+            if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+            var stack = event.getItem();
+            if (!stack.is(Items.POTION)) return;
+            PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
+            if (contents == null || !contents.is(Potions.WATER)) return;
+
+            // Only restore air if the player actually has a breath_out_of_fluid power
+            boolean[] has = {false};
+            ActiveOriginService.forEachOfType(sp, BreathOutOfFluidPower.class, cfg -> has[0] = true);
+            if (!has[0]) return;
+
+            int maxAir = sp.getMaxAirSupply();
+            int current = VIRTUAL_AIR.getOrDefault(sp.getUUID(), maxAir);
+            int restored = Math.min(current + maxAir / 2, maxAir);
+            VIRTUAL_AIR.put(sp.getUUID(), restored);
+            sp.setAirSupply(Math.max(restored, 0));
         }
     }
 }

@@ -5,6 +5,7 @@ import com.cyberday1.neoorigins.power.builtin.BreathOutOfFluidPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
@@ -43,6 +44,9 @@ public abstract class LivingEntityAirRefillMixin {
         // Power only drains while out of water — let vanilla refill run normally
         // when the player re-enters water so the bubble row recovers.
         if (player.isUnderWater()) return false;
+        // Water Breathing effect acts as a magical air supply — let vanilla
+        // refill the bar so the HUD recovers while the potion is active.
+        if (player.hasEffect(MobEffects.WATER_BREATHING)) return false;
 
         if (self.level().isClientSide) {
             // Dedicated server's world is never client-side, so this branch is
