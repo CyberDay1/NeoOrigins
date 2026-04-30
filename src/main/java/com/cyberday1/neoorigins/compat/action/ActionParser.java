@@ -889,7 +889,8 @@ public final class ActionParser {
     }
 
     private record FanoutEffect(net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> holder,
-                                int duration, int amplifier) {}
+                                int duration, int amplifier, boolean ambient,
+                                boolean particles, boolean icon) {}
     private record FanoutDamage(float amount, String sourceName) {}
 
     /**
@@ -927,7 +928,10 @@ public final class ActionParser {
                 if (holderOpt.isEmpty()) return;
                 int dur = inner.has("duration") ? inner.get("duration").getAsInt() : 200;
                 int amp = inner.has("amplifier") ? inner.get("amplifier").getAsInt() : 0;
-                effects.add(new FanoutEffect(holderOpt.get(), dur, amp));
+                boolean amb = inner.has("is_ambient") && inner.get("is_ambient").getAsBoolean();
+                boolean par = !inner.has("show_particles") || inner.get("show_particles").getAsBoolean();
+                boolean ico = !inner.has("show_icon") || inner.get("show_icon").getAsBoolean();
+                effects.add(new FanoutEffect(holderOpt.get(), dur, amp, amb, par, ico));
             }
             case "neoorigins:damage", "origins:damage", "apace:damage" -> {
                 float amt = inner.has("amount") ? inner.get("amount").getAsFloat() : 1.0f;
@@ -1029,7 +1033,8 @@ public final class ActionParser {
                             && mob instanceof net.minecraft.world.entity.animal.IronGolem) continue;
                     for (var fx : finalEffects) {
                         mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                            fx.holder(), fx.duration(), fx.amplifier()));
+                            fx.holder(), fx.duration(), fx.amplifier(),
+                            fx.ambient(), fx.particles(), fx.icon()));
                     }
                     for (var dmg : finalDamages) {
                         if (dmg.amount() <= 0f) continue;
