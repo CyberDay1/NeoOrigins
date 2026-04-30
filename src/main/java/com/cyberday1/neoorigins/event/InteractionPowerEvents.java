@@ -147,6 +147,9 @@ public class InteractionPowerEvents {
         });
         if (matched[0] == null) return;
         EdibleItemPower.Config cfg = matched[0];
+        // Snapshot the stack before shrinking — if the player had exactly 1,
+        // shrink empties it and downstream conditions (food_item_in_tag) fail.
+        ItemStack snapshot = stack.copy();
         sp.getFoodData().eat(cfg.nutrition(), cfg.saturation());
         stack.shrink(1);
         cfg.consumeSound().ifPresent(soundId -> {
@@ -154,12 +157,12 @@ public class InteractionPowerEvents {
             snd.ifPresent(s -> sp.level().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
                 s, SoundSource.PLAYERS, 1.0f, 1.0f));
         });
-        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, stack);
+        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, snapshot);
         // Also dispatch FOOD_FINISHED with FoodContext so food_item_in_tag /
         // food_item_id conditions work for edible-item-promoted items (e.g.
         // Caveborn minerals, Skeleton bone meal).
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.FOOD_FINISHED,
-            new EventPowerIndex.FoodContext(stack));
+            new EventPowerIndex.FoodContext(snapshot));
     }
 
     @SubscribeEvent
