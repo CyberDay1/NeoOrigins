@@ -324,7 +324,12 @@ public final class ActionParser {
             return EntityAction.noop();
         }
         var sound = soundHolder.value();
-        return player -> player.playSound(sound, volume, pitch);
+        return player -> {
+            if (player.level() instanceof ServerLevel sl) {
+                sl.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    sound, net.minecraft.sounds.SoundSource.PLAYERS, volume, pitch);
+            }
+        };
     }
 
     private static EntityAction parseAddVelocity(JsonObject json) {
