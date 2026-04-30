@@ -63,7 +63,8 @@ public final class ItemConditionParser {
                 case "neoorigins:or"           -> parseOr(json);
                 case "neoorigins:not"          -> parseNot(json);
                 case "neoorigins:empty"        -> ItemStack::isEmpty;
-                case "neoorigins:nbt"          -> parseNbt(json);
+                case "neoorigins:nbt",
+                     "neoorigins:custom_data"  -> parseNbt(json);
                 case "neoorigins:enchantment"  -> parseEnchantment(json);
                 case "neoorigins:ingredient"   -> parseIngredient(json);
                 default -> {
