@@ -47,7 +47,10 @@
     "neoorigins:fire_mage",
     "neoorigins:air_mage",
     "neoorigins:gravity_mage",
-    "neoorigins:darkness_mage"
+    "neoorigins:darkness_mage",
+    "neoorigins:wraith",
+    "neoorigins:skeleton",
+    "neoorigins:slime"
   ],
   "allow_random": true,
   "auto_choose": false,
