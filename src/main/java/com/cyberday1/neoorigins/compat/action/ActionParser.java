@@ -94,7 +94,8 @@ public final class ActionParser {
                 case "neoorigins:raycast"                       -> parseRaycast(json, contextId);
 
                 // ---- Phase 0/1: new actions for consolidation (active_ability) ----
-                case "neoorigins:spawn_projectile"              -> parseSpawnProjectile(json, contextId);
+                case "neoorigins:spawn_projectile",
+                     "neoorigins:fire_projectile"               -> parseSpawnProjectile(json, contextId);
                 case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
                 case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
                 case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
@@ -1161,15 +1162,19 @@ public final class ActionParser {
         }
         final EntityType<?> entityType = entityTypeOpt.get();
         final float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
-        final float inaccuracy = json.has("inaccuracy") ? json.get("inaccuracy").getAsFloat() : 0f;
+        // Apoli uses "divergence"; NeoOrigins uses "inaccuracy" — accept both.
+        final float inaccuracy = json.has("inaccuracy") ? json.get("inaccuracy").getAsFloat()
+            : json.has("divergence") ? json.get("divergence").getAsFloat() : 0f;
         final float verticalOffset = json.has("vertical_offset") ? json.get("vertical_offset").getAsFloat() : 0f;
         // Optional on_hit_action: stored on ProjectileActionRegistry keyed by the
         // spawned projectile's UUID. Fires from CombatPowerEvents.onProjectileImpact
         // with the ProjectileHitContext installed so area_of_effect can center on
         // the impact point rather than the (by-then-stale) player position.
-        final EntityAction onHitAction = json.has("on_hit_action") && json.get("on_hit_action").isJsonObject()
-            ? parse(json.getAsJsonObject("on_hit_action"), contextId)
-            : null;
+        // Apoli uses "projectile_action"; NeoOrigins uses "on_hit_action" — accept both.
+        JsonObject hitActionJson = json.has("on_hit_action") ? json.getAsJsonObject("on_hit_action")
+            : json.has("projectile_action") ? json.getAsJsonObject("projectile_action") : null;
+        final EntityAction onHitAction = hitActionJson != null
+            ? parse(hitActionJson, contextId) : null;
         // Optional effect_type: when spawning a MagicOrbProjectile, set the
         // synched data so the client-side renderer picks the right palette.
         final String effectType = json.has("effect_type")

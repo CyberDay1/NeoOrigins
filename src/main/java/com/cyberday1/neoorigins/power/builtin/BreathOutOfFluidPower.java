@@ -123,12 +123,14 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 // isInWaterRainOrBubble covers water blocks, rain, and bubble columns.
                 // Also treat standing inside a water cauldron as "in fluid" so aquatic
                 // origins can rehydrate from cauldrons.
-                // Water Breathing effect acts as a magical air supply — pauses the
-                // land drain entirely so aquatic players can explore on land with a potion.
+                // Water Breathing and Conduit Power effects act as a magical air
+                // supply — pauses the land drain entirely so aquatic players can
+                // explore on land with a potion or near an active conduit.
                 inFluid = sp.isInWaterRainOrBubble()
                     || sp.level().getBlockState(sp.blockPosition())
                            .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)
-                    || sp.hasEffect(MobEffects.WATER_BREATHING);
+                    || sp.hasEffect(MobEffects.WATER_BREATHING)
+                    || sp.hasEffect(MobEffects.CONDUIT_POWER);
             }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
