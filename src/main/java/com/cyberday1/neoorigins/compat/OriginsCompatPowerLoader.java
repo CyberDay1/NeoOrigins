@@ -122,6 +122,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         CompatPlayerState.clearAll();
         ModifyCraftingRegistry.clearAll();
         NumericModifierRegistry.clearAll();
+        CompatAttachments.clearResourceMeta();
 
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
         Map<ResourceLocation, JsonObject> expanded = inlineExpand(data);
@@ -472,8 +473,43 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         EntityAction tickAction = json.has("entity_action")
             ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr) : EntityAction.noop();
 
+        // HUD display metadata — parse from hud_render block or fall back to defaults.
+        String label = "Resource";
+        int color = 0xFF55AAFF;
+        if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
+            JsonObject hud = json.getAsJsonObject("hud_render");
+            if (hud.has("bar_index")) {
+                // Apoli hud_render has bar_index, sprite_location, condition — we
+                // use a flat color bar, so just derive a label from the power ID.
+            }
+        }
+        // Derive a human-readable label from the power ID path segment.
+        String path = id.getPath();
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash >= 0) path = path.substring(lastSlash + 1);
+        label = path.replace('_', ' ');
+        // Capitalize first letter of each word
+        StringBuilder sb = new StringBuilder();
+        for (String word : label.split(" ")) {
+            if (!word.isEmpty()) {
+                if (sb.length() > 0) sb.append(' ');
+                sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+            }
+        }
+        label = sb.toString();
+
+        CompatAttachments.registerResourceMeta(key,
+            new CompatAttachments.ResourceMeta(min, max, label, color));
+
         return CompatPower.Config.builder()
-            .onGranted(player -> player.getData(CompatAttachments.resourceState()).set(key, startValue))
+            .onGranted(player -> {
+                player.getData(CompatAttachments.resourceState()).set(key, startValue);
+                CompatAttachments.syncResourcesToClient(player);
+            })
+            .onRevoked(player -> {
+                player.getData(CompatAttachments.resourceState()).set(key, 0);
+                CompatAttachments.syncResourcesToClient(player);
+            })
             .onTick(player -> {
                 var state = player.getData(CompatAttachments.resourceState());
                 if (player.level().getServer() != null && (player.level().getServer().getTickCount() + offset) % interval == 0) {
@@ -482,6 +518,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 int cur = state.get(key, startValue);
                 if (cur <= min) minAction.execute(player);
                 if (cur >= max) maxAction.execute(player);
+                // Sync to client every 10 ticks when dirty
+                if (state.isDirty() && player.tickCount % 10 == 0) {
+                    state.clearDirty();
+                    CompatAttachments.syncResourcesToClient(player);
+                }
             })
             .build();
     }
