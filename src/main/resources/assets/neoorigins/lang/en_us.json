@@ -587,7 +587,7 @@
   "power.neoorigins.class_archer_hawk_eye.name": "Hawk Eye",
   "power.neoorigins.class_archer_hawk_eye.description": "Sees more clearly in low light — the hunter's gift.",
   "power.neoorigins.class_archer_arthropod_bane.name": "Arthropod Bane",
-  "power.neoorigins.class_archer_arthropod_bane.description": "Hits on spiders and other arthropods leave them poisoned for 2 seconds.",
+  "power.neoorigins.class_archer_arthropod_bane.description": "Hits on spiders and other arthropods slow them for 2 seconds.",
   "power.neoorigins.class_archer_starting_bow.name": "Starting Bow",
   "power.neoorigins.class_archer_starting_bow.description": "Spawn with a Power I bow.",
   "power.neoorigins.class_archer_starting_arrows.name": "Starting Arrows",
