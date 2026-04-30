@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 120,
-  "hunger_cost": 2,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
@@ -15,10 +14,23 @@
       "entity_action": {
         "type": "neoorigins:and",
         "actions": [
-          { "type": "neoorigins:apply_effect", "effect": "minecraft:darkness", "duration": 80, "amplifier": 0 },
-          { "type": "neoorigins:damage", "amount": 3.0, "source": { "name": "magic" } }
+          {
+            "type": "neoorigins:apply_effect",
+            "effect": "minecraft:darkness",
+            "duration": 80,
+            "amplifier": 0
+          },
+          {
+            "type": "neoorigins:damage",
+            "amount": 3.0,
+            "source": {
+              "name": "magic"
+            }
+          }
         ]
       }
     }
-  }
+  },
+  "resource_cost": "neoorigins:sculkborn_stamina",
+  "resource_cost_amount": 20
 }

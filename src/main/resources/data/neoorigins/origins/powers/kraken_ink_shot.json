@@ -1,7 +1,6 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 120,
-  "hunger_cost": 2,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",
     "entity_type": "neoorigins:magic_orb",
@@ -15,10 +14,22 @@
       "entity_action": {
         "type": "neoorigins:and",
         "actions": [
-          { "type": "neoorigins:apply_effect", "effect": "minecraft:blindness", "duration": 100, "amplifier": 0 },
-          { "type": "neoorigins:apply_effect", "effect": "minecraft:slowness", "duration": 100, "amplifier": 1 }
+          {
+            "type": "neoorigins:apply_effect",
+            "effect": "minecraft:blindness",
+            "duration": 100,
+            "amplifier": 0
+          },
+          {
+            "type": "neoorigins:apply_effect",
+            "effect": "minecraft:slowness",
+            "duration": 100,
+            "amplifier": 1
+          }
         ]
       }
     }
-  }
+  },
+  "resource_cost": "neoorigins:kraken_essence",
+  "resource_cost_amount": 20
 }

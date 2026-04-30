@@ -12,7 +12,8 @@
     "neoorigins:air_mage_zephyr",
     "neoorigins:air_mage_slow_fall",
     "neoorigins:air_mage_fragile",
-    "neoorigins:air_mage_light"
+    "neoorigins:air_mage_light",
+    "neoorigins:air_mage_mana"
   ],
   "upgrades": [],
   "tier_powers": [

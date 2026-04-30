@@ -11,7 +11,8 @@
     "neoorigins:golem_effect_immunity",
     "neoorigins:golem_slow_movement",
     "neoorigins:golem_fire_weakness",
-    "neoorigins:golem_ground_slam"
+    "neoorigins:golem_ground_slam",
+    "neoorigins:golem_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

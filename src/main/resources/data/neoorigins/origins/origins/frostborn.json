@@ -11,7 +11,8 @@
     "neoorigins:frostborn_ice_walk",
     "neoorigins:frostborn_natural_armor",
     "neoorigins:frostborn_nether_damage",
-    "neoorigins:frostborn_freeze_immunity"
+    "neoorigins:frostborn_freeze_immunity",
+    "neoorigins:frostborn_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

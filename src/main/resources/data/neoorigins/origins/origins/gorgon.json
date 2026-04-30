@@ -11,7 +11,8 @@
     "neoorigins:gorgon_knockback_resist",
     "neoorigins:gorgon_heavy_frame",
     "neoorigins:gorgon_size",
-    "neoorigins:gorgon_hunger_drain"
+    "neoorigins:gorgon_hunger_drain",
+    "neoorigins:gorgon_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

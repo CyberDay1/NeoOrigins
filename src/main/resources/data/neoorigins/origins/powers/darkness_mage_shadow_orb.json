@@ -4,5 +4,6 @@
   "radius": 5.0,
   "cooldown_ticks": 100,
   "tick_interval": 20,
-  "hunger_cost": 3
+  "resource_cost": "neoorigins:darkness_mage_mana",
+  "resource_cost_amount": 30
 }

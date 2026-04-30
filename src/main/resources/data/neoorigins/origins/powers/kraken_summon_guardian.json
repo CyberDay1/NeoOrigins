@@ -3,7 +3,8 @@
   "mob_type": "minecraft:guardian",
   "max_count": 2,
   "cooldown_ticks": 400,
-  "hunger_cost": 5,
   "despawn_ticks": 18000,
-  "death_damage": 1.0
+  "death_damage": 1.0,
+  "resource_cost": "neoorigins:kraken_essence",
+  "resource_cost_amount": 50
 }

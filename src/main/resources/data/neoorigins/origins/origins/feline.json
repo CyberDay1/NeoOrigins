@@ -11,7 +11,8 @@
     "neoorigins:feline_mobs_ignore",
     "neoorigins:feline_active_launch",
     "neoorigins:feline_water_weakness",
-    "neoorigins:feline_hunger_drain"
+    "neoorigins:feline_hunger_drain",
+    "neoorigins:feline_energy"
   ],
   "upgrades": [],
   "tier_powers": [

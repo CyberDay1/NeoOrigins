@@ -1,14 +1,35 @@
 {
   "type": "neoorigins:active_ability",
   "cooldown_ticks": 80,
-  "hunger_cost": 3,
   "entity_action": {
     "type": "neoorigins:and",
     "actions": [
-      { "type": "neoorigins:spawn_projectile", "entity_type": "minecraft:small_fireball", "speed": 1.5, "inaccuracy": 0.2 },
-      { "type": "neoorigins:spawn_projectile", "entity_type": "minecraft:small_fireball", "speed": 1.5, "inaccuracy": 0.2 },
-      { "type": "neoorigins:spawn_projectile", "entity_type": "minecraft:small_fireball", "speed": 1.5, "inaccuracy": 0.2 },
-      { "type": "neoorigins:spawn_projectile", "entity_type": "minecraft:small_fireball", "speed": 1.5, "inaccuracy": 0.2 }
+      {
+        "type": "neoorigins:spawn_projectile",
+        "entity_type": "minecraft:small_fireball",
+        "speed": 1.5,
+        "inaccuracy": 0.2
+      },
+      {
+        "type": "neoorigins:spawn_projectile",
+        "entity_type": "minecraft:small_fireball",
+        "speed": 1.5,
+        "inaccuracy": 0.2
+      },
+      {
+        "type": "neoorigins:spawn_projectile",
+        "entity_type": "minecraft:small_fireball",
+        "speed": 1.5,
+        "inaccuracy": 0.2
+      },
+      {
+        "type": "neoorigins:spawn_projectile",
+        "entity_type": "minecraft:small_fireball",
+        "speed": 1.5,
+        "inaccuracy": 0.2
+      }
     ]
-  }
+  },
+  "resource_cost": "neoorigins:draconic_stamina",
+  "resource_cost_amount": 30
 }

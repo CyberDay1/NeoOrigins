@@ -11,7 +11,8 @@
     "neoorigins:necromancer_night_vision",
     "neoorigins:necromancer_daylight_damage",
     "neoorigins:necromancer_reduced_health",
-    "neoorigins:necromancer_slow_regen"
+    "neoorigins:necromancer_slow_regen",
+    "neoorigins:necromancer_essence"
   ],
   "upgrades": [],
   "tier_powers": [

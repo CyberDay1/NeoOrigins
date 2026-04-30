@@ -12,7 +12,8 @@
     "neoorigins:sporeling_fungal_contact",
     "neoorigins:sporeling_natural_armor",
     "neoorigins:sporeling_daylight_damage",
-    "neoorigins:sporeling_slow_movement"
+    "neoorigins:sporeling_slow_movement",
+    "neoorigins:sporeling_vitality"
   ],
   "upgrades": [],
   "tier_powers": [

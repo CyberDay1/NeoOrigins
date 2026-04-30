@@ -10,7 +10,8 @@
     "neoorigins:sylvan_forest_speed",
     "neoorigins:sylvan_crop_growth",
     "neoorigins:sylvan_active_root",
-    "neoorigins:sylvan_nether_damage"
+    "neoorigins:sylvan_nether_damage",
+    "neoorigins:sylvan_vitality"
   ],
   "upgrades": [],
   "tier_powers": [

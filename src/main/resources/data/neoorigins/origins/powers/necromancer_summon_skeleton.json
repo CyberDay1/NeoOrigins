@@ -3,10 +3,11 @@
   "mob_type": "minecraft:skeleton",
   "max_count": 3,
   "cooldown_ticks": 400,
-  "hunger_cost": 4,
   "despawn_ticks": 18000,
   "death_damage": 1.0,
   "head": "minecraft:iron_helmet",
   "chest": "minecraft:chainmail_chestplate",
-  "mainhand": "minecraft:bow"
+  "mainhand": "minecraft:bow",
+  "resource_cost": "neoorigins:necromancer_essence",
+  "resource_cost_amount": 40
 }

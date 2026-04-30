@@ -13,7 +13,8 @@
     "neoorigins:draconic_size",
     "neoorigins:draconic_attack_bonus",
     "neoorigins:draconic_water_weakness",
-    "neoorigins:draconic_hunger_drain"
+    "neoorigins:draconic_hunger_drain",
+    "neoorigins:draconic_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

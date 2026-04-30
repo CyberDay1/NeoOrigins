@@ -3,5 +3,6 @@
   "knockback_strength": 2.5,
   "radius": 8.0,
   "cooldown_ticks": 80,
-  "hunger_cost": 3
+  "resource_cost": "neoorigins:gravity_mage_mana",
+  "resource_cost_amount": 30
 }

@@ -11,7 +11,8 @@
     "neoorigins:stoneguard_active_glowstone",
     "neoorigins:stoneguard_slow_movement",
     "neoorigins:stoneguard_stone_mining",
-    "neoorigins:stoneguard_no_mob_spawns"
+    "neoorigins:stoneguard_no_mob_spawns",
+    "neoorigins:stoneguard_stamina"
   ],
   "upgrades": [],
   "tier_powers": [

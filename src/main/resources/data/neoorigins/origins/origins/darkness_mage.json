@@ -10,7 +10,8 @@
     "neoorigins:darkness_mage_night_vision",
     "neoorigins:darkness_mage_shadow_cloak",
     "neoorigins:darkness_mage_sunburn",
-    "neoorigins:darkness_mage_light_sensitivity"
+    "neoorigins:darkness_mage_light_sensitivity",
+    "neoorigins:darkness_mage_mana"
   ],
   "upgrades": [],
   "tier_powers": [
