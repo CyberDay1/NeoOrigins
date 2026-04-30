@@ -37,15 +37,20 @@ public abstract class LivingEntityMixin {
                 // Stop flight on ground, in water, or as passenger (same as vanilla canGlide)
                 if (self.onGround() || self.isInWater() || self.isPassenger()) {
                     sp.stopFallFlying();
-                    // Reset the per-glide tick counter so it doesn't accumulate
-                    // across landing → relaunch cycles. Vanilla does this via
-                    // the canGlide-failed branch in updateFallFlying which our
-                    // mixin cancels — without the reset, fallFlyTicks grows
-                    // unboundedly across multiple glide cycles. Speculative
-                    // mitigation for #42 ("flight audio gets louder over time
-                    // for other players") in case some pack/mod ties sound
-                    // emit or volume to fallFlyTicks.
                     this.fallFlyTicks = 0;
+                    // Broadcast stop-elytra-sound to all nearby clients.
+                    // Vanilla's ElytraOnPlayerSoundInstance checks isFallFlying()
+                    // each tick, but network sync delay can leave the loop running
+                    // for remote players — the sound stacks and gets louder (#42).
+                    var stopPacket = new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(
+                        net.minecraft.sounds.SoundEvents.ELYTRA_FLYING.location(),
+                        net.minecraft.sounds.SoundSource.PLAYERS);
+                    for (var nearby : ((net.minecraft.server.level.ServerLevel) sp.level())
+                            .players()) {
+                        if (nearby.distanceToSqr(sp) < 64 * 64) {
+                            nearby.connection.send(stopPacket);
+                        }
+                    }
                 } else {
                     // Don't check canGlide() — allow flight without elytra.
                     // Don't damage equipment — there's no elytra to damage.

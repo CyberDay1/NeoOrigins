@@ -435,6 +435,9 @@ public class NeoOriginsNetwork {
         int remaining = data.remainingCooldown(key, sp.tickCount);
         if (remaining > 0) {
             PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, cfg.cooldownTicks(), remaining));
+        } else {
+            NeoOrigins.LOGGER.debug("Cooldown not synced for slot {} (key={}, remaining={})",
+                slot, key, remaining);
         }
     }
 
