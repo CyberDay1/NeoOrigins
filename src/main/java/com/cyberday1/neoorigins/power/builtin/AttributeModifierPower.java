@@ -78,7 +78,8 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
                 String s = el.getAsString();
                 EntityCondition c = switch (s) {
                     case "in_water" -> p -> p.isInWater();
-                    case "on_land"  -> p -> !p.isInWater();
+                    case "on_land"  -> p -> !p.isInWater()
+                        && !p.hasEffect(net.minecraft.world.effect.MobEffects.CONDUIT_POWER);
                     case "in_lava"  -> p -> p.isInLava();
                     default -> {
                         NeoOrigins.LOGGER.warn(

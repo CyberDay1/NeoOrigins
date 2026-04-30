@@ -124,11 +124,15 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 // so aquatic origins can rehydrate from those sources.
                 // Water Breathing effect acts as a magical air supply — pauses the
                 // land drain entirely so aquatic players can explore on land with a potion.
+                // Water Breathing and Conduit Power effects act as a magical air
+                // supply — pauses the land drain entirely so aquatic players can
+                // explore on land with a potion or near an active conduit.
                 inFluid = sp.isInWater()
                     || sp.level().isRainingAt(sp.blockPosition())
                     || sp.level().getBlockState(sp.blockPosition())
                            .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)
-                    || sp.hasEffect(MobEffects.WATER_BREATHING);
+                    || sp.hasEffect(MobEffects.WATER_BREATHING)
+                    || sp.hasEffect(MobEffects.CONDUIT_POWER);
             }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {

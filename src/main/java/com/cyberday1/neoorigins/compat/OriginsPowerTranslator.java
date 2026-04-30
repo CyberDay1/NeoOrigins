@@ -459,9 +459,12 @@ public final class OriginsPowerTranslator {
 
     /** Normalises a single Origins effect object into a persistent_effect effects-array entry JSON. */
     private static JsonObject buildEffectEntry(JsonObject src) {
-        if (!src.has("effect")) throw new IllegalArgumentException("effect object missing 'effect' id field");
+        // Apoli uses "effect", but some packs use "id" (vanilla potion format).
+        String effectId = src.has("effect") ? src.get("effect").getAsString()
+            : src.has("id") ? src.get("id").getAsString() : null;
+        if (effectId == null) throw new IllegalArgumentException("effect object missing 'effect'/'id' field");
         JsonObject entry = new JsonObject();
-        entry.addProperty("effect", src.get("effect").getAsString());
+        entry.addProperty("effect", effectId);
         if (src.has("amplifier"))      entry.addProperty("amplifier", src.get("amplifier").getAsInt());
         if (src.has("ambient"))        entry.addProperty("ambient", src.get("ambient").getAsBoolean());
         if (src.has("show_particles")) entry.addProperty("show_particles", src.get("show_particles").getAsBoolean());
