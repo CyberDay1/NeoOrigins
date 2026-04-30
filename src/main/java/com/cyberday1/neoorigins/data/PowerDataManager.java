@@ -166,6 +166,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         configJson.remove("name");
         configJson.remove("description");
         configJson.remove("hidden");
+        // Inject power ID for types that need it at codec-decode time (e.g. ResourcePower).
+        configJson.addProperty("_power_id", id.toString());
 
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))

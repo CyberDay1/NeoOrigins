@@ -118,6 +118,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, RareWanderingLootPower>     RARE_WANDERING_LOOT    = reg("rare_wandering_loot",    new RareWanderingLootPower());
     public static final DeferredHolder<PowerType<?>, WraithPhasePower>          WRAITH_PHASE           = reg("wraith_phase",           new WraithPhasePower());
     public static final DeferredHolder<PowerType<?>, SlimeMoisturePower>       SLIME_MOISTURE         = reg("slime_moisture",         new SlimeMoisturePower());
+    public static final DeferredHolder<PowerType<?>, com.cyberday1.neoorigins.power.builtin.ResourcePower> RESOURCE = reg("resource", new com.cyberday1.neoorigins.power.builtin.ResourcePower());
     public static final DeferredHolder<PowerType<?>, SlimeDeathSavePower>      SLIME_DEATH_SAVE       = reg("slime_death_save",       new SlimeDeathSavePower());
     public static final DeferredHolder<PowerType<?>, SlimeLevelHPPower>        SLIME_LEVEL_HP         = reg("slime_level_hp",         new SlimeLevelHPPower());
     public static final DeferredHolder<PowerType<?>, ThornsOnHitPower>         THORNS_ON_HIT          = reg("thorns_on_hit",          new ThornsOnHitPower());
