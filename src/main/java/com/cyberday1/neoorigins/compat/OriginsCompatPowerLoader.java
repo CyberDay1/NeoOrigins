@@ -335,7 +335,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String idStr = id.toString();
         JsonObject actionJson = json.has("entity_action") ? json.getAsJsonObject("entity_action")
             : json.has("action") ? json.getAsJsonObject("action") : null;
-        if (actionJson == null) return null;
+        if (actionJson == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: active_self power missing 'entity_action' or 'action' field — power will not be registered", id);
+            return null;
+        }
 
         EntityAction action = ActionParser.parse(actionJson, idStr);
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;

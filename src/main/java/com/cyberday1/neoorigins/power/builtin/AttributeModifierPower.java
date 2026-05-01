@@ -278,21 +278,25 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
      * amounts use their own {@code keep}-equivalent IDs and are left alone.
      */
     private static void purgeStaleModifiers(AttributeInstance instance, Identifier attrId, Identifier keep) {
-        String prefix = "power_" + attrId.getPath() + "_";
+        String legacyPrefix = "power_" + attrId.getPath() + "_";
+        // Also purge same-power modifiers with a different amount hash — this
+        // happens when a JSON value changes between versions (e.g. evolved HP
+        // updated from 1.0 to 2.0). The current-format ID embeds the power key
+        // before the attribute path, so we match on the power key + attr prefix
+        // and remove any ID that isn't the exact `keep` ID.
+        String currentPowerPrefix = null;
+        String keepPath = keep.getPath();
+        int attrStart = keepPath.indexOf("_" + attrId.getPath() + "_");
+        if (attrStart > 0) {
+            currentPowerPrefix = keepPath.substring(0, attrStart + 1 + attrId.getPath().length() + 1);
+        }
         java.util.List<Identifier> stale = new java.util.ArrayList<>();
         for (AttributeModifier m : instance.getModifiers()) {
             Identifier id = m.id();
             if (!"neoorigins".equals(id.getNamespace())) continue;
-            String path = id.getPath();
-            if (!path.startsWith(prefix)) continue;
             if (id.equals(keep)) continue;
-
-            String suffix = path.substring(prefix.length());
-            int underscore = suffix.indexOf('_');
-            if (underscore > 0 && OPERATION_PREFIXES.contains(suffix.substring(0, underscore))) {
-                continue; // new-format modifier belonging to a different power
-            }
-            stale.add(id);
+            if (id.getPath().startsWith(legacyPrefix)) { stale.add(id); continue; }
+            if (currentPowerPrefix != null && id.getPath().startsWith(currentPowerPrefix)) stale.add(id);
         }
         for (Identifier id : stale) instance.removeModifier(id);
     }

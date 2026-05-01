@@ -31,6 +31,15 @@ public final class NeoOriginsConfig {
                      "Turn off to keep vanilla bars visible regardless of origin.")
             .define("hide_hud_bars", true);
 
+    public static final ModConfigSpec.BooleanValue DISABLE_RESOURCE_BARS =
+        BUILDER
+            .comment("Disable all resource bars (mana, stamina, rage, etc.) globally.",
+                     "When true, resource bars are hidden from the HUD and any active",
+                     "power that would normally cost a resource falls back to costing",
+                     "hunger instead (resource_cost_amount food points are deducted).",
+                     "Useful for packs that prefer vanilla hunger as the universal cost.")
+            .define("disable_resource_bars", false);
+
     // ── Disabled Origins ────────────────────────────────────────────────
     // Each built-in origin can be disabled here. Disabled origins are
     // removed after data loading and will not appear in the origin selection screen.
@@ -257,6 +266,10 @@ public final class NeoOriginsConfig {
         // ── Merling ──
         p("merling_aquatic_speed");     f("amount", 0.6, -1, 10); ep();
         p("merling_land_slowdown");     f("amount", -0.1, -1, 1); ep();
+        // (aquatic_fish_diet_bonus values are nested inside if_else_list
+        // actions; the shallow power_overrides system can't reach them.
+        // Pack authors who want different cooked-equivalent values should
+        // copy aquatic_fish_diet_bonus.json into their pack and edit directly.)
 
         // ── Necromancer ──
         p("necromancer_summon_skeleton");fi("max_count", 3, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
@@ -337,6 +350,13 @@ public final class NeoOriginsConfig {
         p("umbral_active_dash");        fi("cooldown_ticks", 60, 0, 72000); ep();
         p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
 
+        // ── Wraith ──
+        p("wraith_phase");              fb("always_on", false); ep();
+        p("wraith_evolved_phase");      fb("always_on", false); ep();
+        p("wraith_apex_phase");         fb("always_on", false); ep();
+        p("wraith_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
+        p("wraith_hunger_drain");       f("value", 1.75, 0, 100); ep();
+
         // ── Vampire ──
         p("vampire_attack_bonus");      f("amount", 2.0, -100, 100); ep();
         p("vampire_speed_boost");       f("amount", 0.15, -1, 10); ep();
@@ -392,6 +412,21 @@ public final class NeoOriginsConfig {
         p("class_cook_smoker_xp");      f("multiplier", 2.0, 0, 100); ep();
         p("class_blacksmith_quality");  fi("unbreaking_level", 1, 0, 10); ep();
         p("class_blacksmith_repairs");  f("cost_multiplier", 0.5, 0, 10); ep();
+
+        // ── Fisher ──
+        p("class_fisher_swim_speed");   f("amount", 0.15, -1, 10); ep();
+        p("class_fisher_waters_luck");  f("amount", 1.0, -10, 10); ep();
+        p("class_fisher_sea_legs");     f("multiplier", 0.5, 0, 10); ep();
+
+        // ── Mason ──
+        p("class_mason_block_reach");   f("amount", 1.0, -10, 10); ep();
+        p("class_mason_strong_grip");   f("amount", 1.0, -100, 100); ep();
+        p("class_mason_stone_speed");   f("multiplier", 1.25, 0, 100); ep();
+
+        // ── Paladin ──
+        p("class_paladin_holy_armor");  f("amount", 2.0, -100, 100); ep();
+        p("class_paladin_turn_undead"); fi("duration", 80, 0, 72000); fi("amplifier", 0, 0, 255); ep();
+        p("class_paladin_beacon_regen");f("radius", 8.0, 0, 128); ep();
 
         BUILDER.pop(); // power_overrides
     }
@@ -730,6 +765,10 @@ public final class NeoOriginsConfig {
      */
     public static boolean isHideHudBarsEnabled() {
         return HIDE_HUD_BARS.get();
+    }
+
+    public static boolean isResourceBarsDisabled() {
+        return DISABLE_RESOURCE_BARS.get();
     }
 
     public static boolean isPowerRestrictedInDimension(Identifier powerId, ResourceKey<Level> dimension) {

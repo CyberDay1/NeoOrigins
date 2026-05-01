@@ -131,6 +131,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
+        if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
         player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
         CompatAttachments.registerResourceMeta(key,
@@ -147,6 +148,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
+        if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
         var state = player.getData(CompatAttachments.resourceState());
 

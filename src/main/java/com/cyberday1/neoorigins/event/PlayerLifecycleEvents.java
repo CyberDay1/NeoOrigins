@@ -80,6 +80,14 @@ public class PlayerLifecycleEvents {
         repairCorruptedVitals(sp);
 
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
+
+        // Clamp health to the (possibly changed) max — catches stale health
+        // from modifier loss, evolution tier changes while offline, or attribute
+        // reloads that reduced max_health below current health.
+        if (sp.getHealth() > sp.getMaxHealth()) {
+            sp.setHealth(sp.getMaxHealth());
+        }
+
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);

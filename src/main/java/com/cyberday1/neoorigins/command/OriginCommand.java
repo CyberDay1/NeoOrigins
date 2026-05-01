@@ -34,9 +34,28 @@ public class OriginCommand {
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_TIERS =
         (ctx, builder) -> SharedSuggestionProvider.suggest(TIER_NAMES, builder);
 
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_LAYERS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            LayerDataManager.INSTANCE.getLayers().keySet(), builder);
+
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_ORIGINS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            OriginDataManager.INSTANCE.getOrigins().keySet(), builder);
+
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_POWERS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(
-            Commands.literal("origin")
+        // Register under both namespaces independently — Brigadier's redirect()
+        // loses tab-complete suggestions on the aliased command, so we build
+        // the tree twice instead.
+        dispatcher.register(buildCommandTree("neoorigins"));
+        dispatcher.register(buildCommandTree("origin"));
+    }
+
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildCommandTree(String name) {
+        return Commands.literal(name)
                 .then(Commands.literal("evolve")
                     .then(Commands.literal("accept")
                         .executes(OriginCommand::executeEvolveAccept))
@@ -56,26 +75,32 @@ public class OriginCommand {
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeGet(ctx, null))
                         .then(Commands.argument("layer", IdentifierArgument.id())
+                            .suggests(SUGGEST_LAYERS)
                             .executes(ctx -> executeGet(ctx, IdentifierArgument.getId(ctx, "layer"))))))
                 .then(Commands.literal("set")
                     .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                     .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("layer", IdentifierArgument.id())
+                            .suggests(SUGGEST_LAYERS)
                             .then(Commands.argument("origin", IdentifierArgument.id())
+                                .suggests(SUGGEST_ORIGINS)
                                 .executes(ctx -> executeSet(ctx))))))
                 .then(Commands.literal("reset")
                     .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeReset(ctx, null))
                         .then(Commands.argument("layer", IdentifierArgument.id())
+                            .suggests(SUGGEST_LAYERS)
                             .executes(ctx -> executeReset(ctx, IdentifierArgument.getId(ctx, "layer"))))))
                 .then(Commands.literal("list")
                     .executes(ctx -> executeList(ctx, null))
                     .then(Commands.argument("layer", IdentifierArgument.id())
+                        .suggests(SUGGEST_LAYERS)
                         .executes(ctx -> executeList(ctx, IdentifierArgument.getId(ctx, "layer")))))
                 .then(Commands.literal("has")
                     .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("power", IdentifierArgument.id())
+                            .suggests(SUGGEST_POWERS)
                             .executes(ctx -> executeHas(ctx)))))
                 .then(Commands.literal("gui")
                     .executes(ctx -> executeGui(ctx, null))
@@ -86,8 +111,7 @@ public class OriginCommand {
                     .executes(ctx -> executeEditor(ctx)))
                 .then(Commands.literal("reload")
                     .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
-                    .executes(ctx -> executeReload(ctx)))
-        );
+                    .executes(ctx -> executeReload(ctx)));
     }
 
     // ── Evolution commands ──────────────────────────────────────────────

@@ -154,6 +154,10 @@ public final class EssenceEvolutionManager {
         // Revoke removed powers, grant added powers
         applyPowerDiff(player, oldPowers, newPowers);
 
+        // Sync max_health changes to current health — without this the player's
+        // HP bar doesn't reflect the new maximum until they die and respawn.
+        player.setHealth(player.getMaxHealth());
+
         String tierName = TIER_NAMES[nextTier];
         ChatFormatting color = TIER_COLORS[nextTier];
 
