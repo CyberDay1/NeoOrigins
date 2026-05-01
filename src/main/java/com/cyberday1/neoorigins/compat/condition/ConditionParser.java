@@ -92,6 +92,7 @@ public final class ConditionParser {
                 };
                 case "neoorigins:in_rain"                       -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
+                    if (p.isPassenger()) return false;
                     // isRainingAt only considers world weather + biome — it does
                     // not check whether overhead blocks shield the player. A
                     // glass roof would still report "raining at this position",
@@ -109,6 +110,7 @@ public final class ConditionParser {
                 };
                 case "neoorigins:exposed_to_sun"                -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
+                    if (p.isPassenger()) return false;
                     // Vanilla daytime is 0–12000 (sunrise to sunset). The prior
                     // impl gated on 6000–12000, which skipped morning hours and
                     // silently made sun-damage origins (Abyssal Surface Burn,

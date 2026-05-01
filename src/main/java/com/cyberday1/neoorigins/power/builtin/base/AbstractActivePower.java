@@ -55,14 +55,23 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         if (data.isOnCooldown(key, player.tickCount)) return;
 
         int hungerCost = config.hungerCost();
+
+        // Resource cost — if resource bars are globally disabled, fall back to hunger
+        String resCostKey = config.resourceCost();
+        int resCostAmt = config.resourceCostAmount();
+        boolean hasResourceCost = !resCostKey.isEmpty() && resCostAmt > 0;
+        boolean resourceBarsDisabled = com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled();
+        if (hasResourceCost && resourceBarsDisabled) {
+            // Convert resource cost to hunger cost
+            hungerCost += resCostAmt;
+            hasResourceCost = false;
+        }
+
         if (hungerCost > 0 && player.getFoodData().getFoodLevel() < hungerCost) {
             return;  // not enough hunger — silent abort, no cooldown consumed
         }
 
         // Resource cost check (pre-flight)
-        String resCostKey = config.resourceCost();
-        int resCostAmt = config.resourceCostAmount();
-        boolean hasResourceCost = !resCostKey.isEmpty() && resCostAmt > 0;
         if (hasResourceCost) {
             int current = com.cyberday1.neoorigins.power.builtin.ResourcePower.getValue(player, resCostKey);
             if (current < resCostAmt) return; // not enough resource — silent abort

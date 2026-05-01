@@ -217,6 +217,43 @@ normal eating, `edible_item` grants the bone meal override. The
 whitelist tag must include ALL items the player can eat (both vanilla
 food and edible-item-promoted items).
 
+### 3c. "Food restores more hunger and saturation"
+
+Use `action_on_event` with the `MOD_FOOD_NUTRITION` event to boost how
+much hunger and saturation every food item restores. The modifier
+multiplies the base nutrition value, so `2.0` doubles all food.
+
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "name": "Iron Stomach",
+  "description": "All food restores 50% more hunger.",
+  "event": "MOD_FOOD_NUTRITION",
+  "modifier": {
+    "operation": "multiply",
+    "value": 1.5
+  }
+}
+```
+
+To also boost saturation, add a second power with `MOD_FOOD_NUTRITION`
+targeting saturation, or pair with `neoorigins:modify_food` in a
+`FOOD_EATEN` action for a flat bonus on top:
+
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "name": "Well Fed",
+  "description": "Gain +2 extra saturation whenever you eat.",
+  "event": "FOOD_EATEN",
+  "entity_action": {
+    "type": "neoorigins:modify_food",
+    "food": 0,
+    "saturation": 2.0
+  }
+}
+```
+
 ### 4. "Fire weakness — +50% damage from fire"
 
 ```json

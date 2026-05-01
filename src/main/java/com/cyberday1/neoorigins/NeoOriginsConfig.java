@@ -31,6 +31,15 @@ public final class NeoOriginsConfig {
                      "Turn off to keep vanilla bars visible regardless of origin.")
             .define("hide_hud_bars", true);
 
+    public static final ModConfigSpec.BooleanValue DISABLE_RESOURCE_BARS =
+        BUILDER
+            .comment("Disable all resource bars (mana, stamina, rage, etc.) globally.",
+                     "When true, resource bars are hidden from the HUD and any active",
+                     "power that would normally cost a resource falls back to costing",
+                     "hunger instead (resource_cost_amount food points are deducted).",
+                     "Useful for packs that prefer vanilla hunger as the universal cost.")
+            .define("disable_resource_bars", false);
+
     // ── Disabled Origins ────────────────────────────────────────────────
     // Each built-in origin can be disabled here. Disabled origins are
     // removed after data loading and will not appear in the origin selection screen.
@@ -753,6 +762,10 @@ public final class NeoOriginsConfig {
      */
     public static boolean isHideHudBarsEnabled() {
         return HIDE_HUD_BARS.get();
+    }
+
+    public static boolean isResourceBarsDisabled() {
+        return DISABLE_RESOURCE_BARS.get();
     }
 
     public static boolean isPowerRestrictedInDimension(ResourceLocation powerId, ResourceKey<Level> dimension) {

@@ -4,6 +4,7 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -76,6 +77,9 @@ public final class VisualEffectsHandler {
 
     // ---- Model Color ----
 
+    /** True while we have an active model_color tint that needs cleanup in Post. */
+    private static boolean modelColorActive = false;
+
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
         String data = findCapabilityData("model_color");
@@ -88,15 +92,30 @@ public final class VisualEffectsHandler {
             float g = Float.parseFloat(parts[1]);
             float b = Float.parseFloat(parts[2]);
             float a = parts.length >= 4 ? Float.parseFloat(parts[3]) : 1.0f;
+            if (a < 1.0f) {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+            }
             RenderSystem.setShaderColor(r, g, b, a);
+            modelColorActive = true;
         } catch (NumberFormatException ignored) {}
     }
 
     @SubscribeEvent
     public static void onRenderPlayerPost(RenderPlayerEvent.Post event) {
-        if (findCapabilityData("model_color") != null) {
-            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+        if (!modelColorActive) return;
+        modelColorActive = false;
+
+        // Flush any batched geometry so it is drawn with the tinted shader color
+        // before we reset it. Without this, when nametag rendering is skipped the
+        // buffer may not have been flushed yet and the tint would be lost.
+        MultiBufferSource buf = event.getMultiBufferSource();
+        if (buf instanceof MultiBufferSource.BufferSource bufferSource) {
+            bufferSource.endBatch();
         }
+
+        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+        RenderSystem.disableBlend();
     }
 
     // ---- Lava Vision ----

@@ -28,6 +28,7 @@ public class ResourceHudOverlay {
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
+        if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
         var resources = ClientResourceState.getResources();
         if (resources.isEmpty()) return;
 
