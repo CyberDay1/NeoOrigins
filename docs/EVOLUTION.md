@@ -1,3 +1,8 @@
+---
+title: Evolution System
+nav_order: 6
+---
+
 # Evolution System
 
 Origins evolve through three tiers as players accumulate mob kills. Each tier
