@@ -147,6 +147,19 @@ public final class EventPowerIndex {
         }
     }
 
+    /**
+     * Remove ALL handlers (action + modifier) for the given player UUID.
+     * Called from {@code revokeAllPowers} as a belt-and-suspenders cleanup —
+     * individual {@code onRevoked} calls should have already unregistered
+     * their own handlers, but if any were missed (e.g. due to Config record
+     * equality mismatch from lambda identity) this sweep prevents stale
+     * handlers from persisting after an origin reset.
+     */
+    public static void clearAll(UUID uuid) {
+        INDEX.remove(uuid);
+        MOD_INDEX.remove(uuid);
+    }
+
     /** Dispatch an event to all registered handlers. */
     public static void dispatch(ServerPlayer player, Event event, Object context) {
         Map<Event, List<Handler>> perEvent = INDEX.get(player.getUUID());

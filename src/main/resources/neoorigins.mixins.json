@@ -16,7 +16,8 @@
     "PlayerStartFallFlyingMixin",
     "ItemStackEdibleDurationMixin",
     "ItemStackEdibleAnimationMixin",
-    "EntityIgnoreWaterMixin"
+    "EntityIgnoreWaterMixin",
+    "PlayerPhaseOverrideMixin"
   ],
   "client": [
     "client.LightTextureMixin",

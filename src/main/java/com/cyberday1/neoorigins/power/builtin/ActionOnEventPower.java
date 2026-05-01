@@ -121,7 +121,7 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
     /** Tracks both action and modifier tokens per-player per-config so revoke is clean. */
     private record Tokens(EventPowerIndex.Token action, EventPowerIndex.Token modifier) {}
 
-    private final java.util.Map<UUID, java.util.Map<Config, Tokens>> tokens = new ConcurrentHashMap<>();
+    private static final java.util.Map<UUID, java.util.Map<Config, Tokens>> tokens = new ConcurrentHashMap<>();
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
@@ -211,5 +211,15 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
             EventPowerIndex.unregister(t.modifier());
         }
         if (perConfig.isEmpty()) tokens.remove(player.getUUID());
+    }
+
+    /**
+     * Remove all cached tokens for a player. Called from
+     * {@code ActiveOriginService.revokeAllPowers} as a safety sweep
+     * after individual {@code onRevoked} calls, mirroring the
+     * attribute-modifier purge pattern.
+     */
+    public static void clearTokens(UUID uuid) {
+        tokens.remove(uuid);
     }
 }

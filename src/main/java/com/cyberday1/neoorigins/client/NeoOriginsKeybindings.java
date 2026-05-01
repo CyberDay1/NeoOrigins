@@ -46,6 +46,12 @@ public class NeoOriginsKeybindings {
         NEOORIGINS_CATEGORY
     );
 
+    public static final KeyMapping EDIT_HUD = new KeyMapping(
+        "key.neoorigins.edit_hud",
+        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default
+        NEOORIGINS_CATEGORY
+    );
+
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.registerCategory(NEOORIGINS_CATEGORY);
         event.register(SKILL_1);
@@ -54,5 +60,6 @@ public class NeoOriginsKeybindings {
         event.register(SKILL_4);
         event.register(CLASS_SKILL);
         event.register(VIEW_INFO);
+        event.register(EDIT_HUD);
     }
 }
