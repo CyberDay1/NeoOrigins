@@ -28,7 +28,22 @@ public final class Toggles {
     private Toggles() {}
 
     /** Current value, falling back to the registered TogglePower's {@code default} if unset. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static boolean isOn(Player player, String powerId) {
+        // Check native AbstractTogglePower subclasses first (wraith_phase, flight, phantom_form, etc.)
+        // These store toggle state in PlayerOriginData, not CompatAttachments.
+        ResourceLocation id;
+        try {
+            id = ResourceLocation.parse(powerId);
+        } catch (Exception e) {
+            return false;
+        }
+        var holder = PowerDataManager.INSTANCE.getPower(id);
+        if (holder != null && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower toggle
+                && player instanceof net.minecraft.server.level.ServerPlayer sp) {
+            return !toggle.isToggledOff(sp, holder.config());
+        }
+        // Fall back to compat TogglePower facade
         boolean def = resolveDefault(powerId);
         return player.getData(CompatAttachments.toggleState()).isActive(powerId, def);
     }

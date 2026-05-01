@@ -188,6 +188,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 Collections.unmodifiableList(merged));
         }
 
+        // Inject synthetic powers for well-known Origins built-in power IDs.
+        // These are referenced by addon packs as bare IDs (e.g. "origins:elytra")
+        // with no JSON file — the original Origins mod hardcodes them.
+        injectWellKnownPowers(injected);
+
         PowerDataManager.INSTANCE.injectExternalPowers(injected);
         NeoOrigins.LOGGER.info("[CompatB] Injected {} Route B powers", injected.size());
     }
@@ -197,6 +202,96 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * Returns a flat map of id -> JsonObject covering both direct powers and sub-powers.
      * Does NOT call OriginsMultipleExpander (avoids touching its state twice).
      */
+    /**
+     * Registers synthetic PowerHolders for well-known Origins built-in power IDs
+     * that addon packs reference by ID without providing a JSON file.
+     */
+    private void injectWellKnownPowers(Map<ResourceLocation, PowerHolder<?>> injected) {
+        // Map of origins:id -> NeoOrigins JSON equivalent
+        Map<String, java.util.function.Supplier<com.google.gson.JsonObject>> WELL_KNOWN = Map.ofEntries(
+            Map.entry("origins:elytra",              () -> json("neoorigins:natural_glide")),
+            Map.entry("origins:fire_immunity",       () -> json("neoorigins:prevent_action", "action", "fire")),
+            Map.entry("origins:fresh_air",           () -> json("neoorigins:prevent_action", "action", "sleep")),
+            Map.entry("origins:like_water",          () -> json("neoorigins:ignore_water")),
+            Map.entry("origins:aquatic",             () -> json("neoorigins:dries_out")),
+            Map.entry("origins:water_vision",        () -> json("neoorigins:lava_vision")),
+            Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining")),
+            Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power")),
+            Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
+            Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
+            Map.entry("origins:swim_speed",          () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
+            Map.entry("origins:night_vision",        () -> json("neoorigins:night_vision")),
+            Map.entry("origins:slow_falling",        () -> json("neoorigins:prevent_action", "action", "fall_damage")),
+            Map.entry("origins:climbing",            () -> json("neoorigins:wall_climbing")),
+            Map.entry("origins:shulker_inventory",   () -> json("neoorigins:extra_inventory")),
+            Map.entry("origins:phantomize",          () -> json("neoorigins:phantom_form")),
+            Map.entry("origins:translucent",         () -> json("neoorigins:model_color", "red", 1.0, "green", 1.0, "blue", 1.0, "alpha", 0.5))
+        );
+
+        for (var entry : WELL_KNOWN.entrySet()) {
+            ResourceLocation id = ResourceLocation.parse(entry.getKey());
+            // Skip if already loaded via JSON or Route B
+            if (PowerDataManager.INSTANCE.hasPower(id) || injected.containsKey(id)) continue;
+            try {
+                com.google.gson.JsonObject powerJson = entry.getValue().get();
+                String typeStr = powerJson.get("type").getAsString();
+                ResourceLocation typeId = ResourceLocation.parse(typeStr);
+                com.cyberday1.neoorigins.api.power.PowerType<?> powerType =
+                    com.cyberday1.neoorigins.power.registry.PowerTypes.get(typeId);
+                if (powerType != null) {
+                    // Route A — parse via native codec
+                    injectViaNativeCodec(id, powerType, powerJson, injected);
+                    NeoOrigins.LOGGER.debug("[CompatSynth] Registered well-known power {} -> {}", id, typeStr);
+                } else {
+                    // Fall back to Route B parsing
+                    CompatPower.Config config = parseRouteB(id, typeStr, powerJson);
+                    if (config != null) {
+                        injected.put(id, new PowerHolder<>(id, CompatPower.INSTANCE, config, net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty()));
+                        NeoOrigins.LOGGER.debug("[CompatSynth] Registered well-known power {} -> {} (Route B)", id, typeStr);
+                    }
+                }
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.warn("[CompatSynth] Failed to register well-known power {}: {}", id, e.getMessage());
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <C extends com.cyberday1.neoorigins.api.power.PowerConfiguration> void injectViaNativeCodec(
+            ResourceLocation id, com.cyberday1.neoorigins.api.power.PowerType<C> type,
+            com.google.gson.JsonObject json, Map<ResourceLocation, PowerHolder<?>> target) {
+        com.google.gson.JsonObject configJson = json.deepCopy();
+        configJson.addProperty("_power_id", id.toString());
+        type.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, configJson)
+            .resultOrPartial(err -> NeoOrigins.LOGGER.warn("[CompatSynth] codec error for {}: {}", id, err))
+            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty())));
+    }
+
+    private static com.google.gson.JsonObject json(String type) {
+        com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+        o.addProperty("type", type);
+        return o;
+    }
+
+    private static com.google.gson.JsonObject json(String type, String k1, String v1) {
+        com.google.gson.JsonObject o = json(type);
+        o.addProperty(k1, v1);
+        return o;
+    }
+
+    private static com.google.gson.JsonObject json(String type, String k1, double v1, String k2, double v2, String k3, double v3, String k4, double v4) {
+        com.google.gson.JsonObject o = json(type);
+        o.addProperty(k1, v1); o.addProperty(k2, v2);
+        o.addProperty(k3, v3); o.addProperty(k4, v4);
+        return o;
+    }
+
+    private static com.google.gson.JsonObject json(String type, String k1, String v1, String k2, double v2, String k3, String v3) {
+        com.google.gson.JsonObject o = json(type);
+        o.addProperty(k1, v1); o.addProperty(k2, v2); o.addProperty(k3, v3);
+        return o;
+    }
+
     private Map<ResourceLocation, JsonObject> inlineExpand(Map<ResourceLocation, JsonElement> data) {
         Map<ResourceLocation, JsonObject> result = new HashMap<>();
         for (var entry : data.entrySet()) {

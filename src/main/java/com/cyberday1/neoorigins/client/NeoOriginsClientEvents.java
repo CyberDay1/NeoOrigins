@@ -19,6 +19,8 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 public class NeoOriginsClientEvents {
 
     private static boolean wasJumping = false;
+    /** Tick count when the last air jump packet was sent — prevents infinite re-activation. */
+    private static int lastAirJumpTick = -100;
 
     @SubscribeEvent
     public static void onClientPlayerTick(PlayerTickEvent.Pre event) {
@@ -51,7 +53,9 @@ public class NeoOriginsClientEvents {
         wasJumping = jumpHeld;
 
         if (jumpPressed && !player.onGround() && !player.isInWater()
-                && !player.isFallFlying() && !player.isPassenger()) {
+                && !player.isFallFlying() && !player.isPassenger()
+                && (player.tickCount - lastAirJumpTick) > 10) {
+            lastAirJumpTick = player.tickCount;
             PacketDistributor.sendToServer(new AirJumpPayload());
         }
     }

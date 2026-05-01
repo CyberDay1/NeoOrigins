@@ -36,6 +36,9 @@ import java.util.Set;
  */
 public class ModelColorPower extends PowerType<ModelColorPower.Config> {
 
+    /** Tracks previous condition result per-player to avoid redundant resyncs. */
+    private static final java.util.Map<java.util.UUID, Boolean> CONDITION_STATE = new java.util.concurrent.ConcurrentHashMap<>();
+
     public record Config(
         float red, float green, float blue, float alpha,
         Optional<EntityCondition> condition,
@@ -93,6 +96,23 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
             return Set.of();
         }
         return colorCapSet(config);
+    }
+
+    /**
+     * Re-evaluate the condition every second and resync capabilities to the
+     * client when the result changes — otherwise the tint only updates on
+     * toggle or login.
+     */
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (config.condition().isEmpty()) return;
+        if (player.tickCount % 20 != 0) return;
+
+        boolean active = config.condition().get().test(player);
+        Boolean prev = CONDITION_STATE.put(player.getUUID(), active);
+        if (prev == null || prev != active) {
+            com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncActivePowersToPlayer(player);
+        }
     }
 
     private static Set<String> colorCapSet(Config config) {

@@ -232,7 +232,9 @@ public final class ConditionParser {
                 };
                 case "neoorigins:has_effect"                    -> parseHasEffect(json);
                 case "neoorigins:climbing"                      -> p -> p.onClimbable();
-                case "neoorigins:near_block"                    -> parseNearBlock(json, contextId);
+                case "neoorigins:near_block",
+                     "origins:block_in_radius",
+                     "apace:block_in_radius"                       -> parseNearBlock(json, contextId);
                 case "neoorigins:near_entity"                   -> parseNearEntity(json, contextId);
                 case "neoorigins:out_of_combat"                 -> parseOutOfCombat(json);
 
@@ -1162,9 +1164,21 @@ public final class ConditionParser {
                 if (el.isJsonPrimitive()) tags.add(parseBlockTag(el.getAsString()));
             }
         }
+        // Origins block_in_radius format: nested block_condition object
+        if (json.has("block_condition") && json.get("block_condition").isJsonObject()) {
+            JsonObject bc = json.getAsJsonObject("block_condition");
+            String bcType = bc.has("type") ? bc.get("type").getAsString() : "";
+            if ((bcType.equals("origins:in_tag") || bcType.equals("apace:in_tag")
+                    || bcType.equals("neoorigins:in_tag")) && bc.has("tag")) {
+                tags.add(parseBlockTag(bc.get("tag").getAsString()));
+            } else if ((bcType.equals("origins:block") || bcType.equals("apace:block")
+                    || bcType.equals("neoorigins:block")) && bc.has("block")) {
+                blockIds.add(ResourceLocation.parse(bc.get("block").getAsString()));
+            }
+        }
 
         if (blockIds.isEmpty() && tags.isEmpty()) return failClosed("neoorigins:near_block",
-            contextId, "requires 'block'/'blocks' or 'tag'/'tags'");
+            contextId, "requires 'block'/'blocks' or 'tag'/'tags' or 'block_condition'");
 
         final int r = radius;
         final List<ResourceLocation> finalBlockIds = List.copyOf(blockIds);

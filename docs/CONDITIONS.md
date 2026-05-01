@@ -408,13 +408,40 @@ Numeric comparison against a named resource power's stored value.
 
 ## `neoorigins:power_active`
 
-Whether a named toggle power is currently active on this entity. Resolves the registered [`neoorigins:toggle`](POWER_TYPES.md#neooriginstoggle) power's `default` field if the toggle has never been flipped on this player.
+Whether a named toggle power is currently active (toggled on) on this entity. Works with:
+
+- **`neoorigins:toggle`** powers — resolves the `default` field if the toggle has never been flipped.
+- **Native toggle powers** — `wraith_phase`, `flight`, `phantom_form`, and any other power that extends the internal toggle system (skill-key toggled powers).
+
+Use this to gate other powers so they only tick while a specific toggle is on. For example, apply debuffs only while phasing is active, or drain a resource only while flight is toggled on.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `power` | resource location | yes | — | Power ID |
+| `power` | resource location | yes | — | Power ID to check (e.g. `"mypack:wraith_phase"`, `"mypack:my_toggle"`) |
 
-See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
+```json
+{
+  "type": "neoorigins:condition_passive",
+  "name": "Phasing Hunger",
+  "description": "Phasing drains your hunger.",
+  "hidden": true,
+  "interval": 20,
+  "condition": { "type": "neoorigins:power_active", "power": "mypack:wraith_phase" },
+  "entity_action": { "type": "neoorigins:exhaust", "amount": 1.0 }
+}
+```
+
+Combine with `neoorigins:and` to add extra gates:
+
+```json
+"condition": {
+  "type": "neoorigins:and",
+  "conditions": [
+    { "type": "neoorigins:power_active", "power": "mypack:wraith_phase" },
+    { "type": "neoorigins:near_block", "tag": "mypack:soul-repellent", "radius": 6 }
+  ]
+}
+```
 
 ## `neoorigins:power_type`
 
@@ -691,6 +718,8 @@ Typically combined with `near_block` or `biome` in an `neoorigins:and` so the bu
 
 ## `neoorigins:near_block`
 
+**Aliases:** `origins:block_in_radius`, `apace:block_in_radius`
+
 True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists — a block matches if it appears in ANY of the provided blocks/tags (logical OR).
 
 Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 8 to avoid expensive per-tick scans.
@@ -701,9 +730,10 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 | `blocks` | list of resource location | no | `[]` | Additional block IDs to match |
 | `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
 | `tags` | list of block tag | no | `[]` | Additional block tags |
+| `block_condition` | object | no | — | Origins-format nested block condition (`in_tag` or `block` type) |
 | `radius` | int (1–8) | no | `4` | Cubic radius to scan around the player |
 
-At least one of `block`/`blocks`/`tag`/`tags` must be non-empty.
+At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empty.
 
 **Example — warm near any fire source:**
 ```json

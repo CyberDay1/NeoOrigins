@@ -122,7 +122,17 @@ public final class OriginsPowerTranslator {
         Map.entry("origins-classes:tamed_animal_boost",     () -> simpleType("neoorigins:tamed_animal_boost")),
         Map.entry("origins-classes:tamed_potion_diffusal",  () -> simpleType("neoorigins:tamed_potion_diffusal")),
         Map.entry("origins-classes:stealth_descriptor",     () -> simpleType("neoorigins:more_smoker_xp")), // display-only, no-op
-        Map.entry("origins-classes:double_teleport_range",  () -> simpleType("neoorigins:teleport_range_modifier"))
+        Map.entry("origins-classes:double_teleport_range",  () -> simpleType("neoorigins:teleport_range_modifier")),
+        // Built-in Origins power IDs referenced by addon packs (no JSON file, hardcoded in Origins)
+        Map.entry("origins:elytra",             () -> simpleType("neoorigins:natural_glide")),
+        Map.entry("origins:fire_immunity",      () -> simpleType("neoorigins:prevent_action", "action", "fire")),
+        Map.entry("origins:fresh_air",          () -> simpleType("neoorigins:prevent_action", "action", "sleep")),
+        Map.entry("origins:like_water",         () -> simpleType("neoorigins:ignore_water")),
+        Map.entry("origins:aquatic",            () -> simpleType("neoorigins:dries_out")),
+        Map.entry("origins:water_vision",       () -> simpleType("neoorigins:lava_vision")),
+        Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining")),
+        Map.entry("origins:conduit_power_on_land", () -> simpleType("neoorigins:conduit_power")),
+        Map.entry("origins:air_from_potions",   () -> simpleType("neoorigins:water_breathing"))
     );
 
     private static JsonObject simpleType(String type) {
@@ -565,6 +575,19 @@ public final class OriginsPowerTranslator {
                 }
                 case "origins:in_tag", "apace:in_tag", "origins:tag", "apace:tag" -> {
                     if (dc.has("tag")) dmgTags.add(dc.get("tag").getAsString());
+                }
+                case "origins:fire", "apace:fire" -> {
+                    // Fire damage condition — block all fire-related damage types
+                    dmgTags.add("minecraft:is_fire");
+                }
+                case "origins:projectile", "apace:projectile" -> {
+                    dmgTags.add("minecraft:is_projectile");
+                }
+                case "origins:fall", "apace:fall" -> {
+                    dmgTags.add("minecraft:is_fall");
+                }
+                case "origins:explosive", "apace:explosive", "origins:explosion", "apace:explosion" -> {
+                    dmgTags.add("minecraft:is_explosion");
                 }
                 case "origins:attacker", "apace:attacker" -> {
                     // [LOSSY] attacker sub-conditions can't be projected into damage-source filters.
