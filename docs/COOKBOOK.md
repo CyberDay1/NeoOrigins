@@ -166,6 +166,57 @@ For finer control, list items explicitly under `item_tag` as an array.
 Tags (prefixed with `#`) and bare item IDs can be mixed — the player
 can eat anything matching any entry.
 
+### 3b. "Restricted diet + make non-food items edible" (Skeleton pattern)
+
+Combine `food_restriction` to block normal food with `edible_item` to
+make non-food items consumable. The Skeleton origin uses this pattern:
+only bone meal, rotten flesh, and spider eyes are edible.
+
+**Step 1 — Restrict to a whitelist tag:**
+
+Create the item tag at `data/mypack/tags/item/skeleton_foods.json`:
+```json
+{
+  "replace": false,
+  "values": [
+    "minecraft:bone_meal",
+    "minecraft:rotten_flesh",
+    "minecraft:spider_eye"
+  ]
+}
+```
+
+**Step 2 — Block all food except the whitelist:**
+```json
+{
+  "type": "neoorigins:food_restriction",
+  "mode": "whitelist",
+  "item_tag": "mypack:skeleton_foods"
+}
+```
+
+**Step 3 — Make bone meal edible** (rotten flesh and spider eye are
+already vanilla food items, but bone meal is not):
+```json
+{
+  "type": "neoorigins:edible_item",
+  "tags": ["mypack:skeleton_bone_meal"],
+  "nutrition": 3,
+  "saturation": 0.4,
+  "always_edible": true
+}
+```
+
+With the companion tag at `data/mypack/tags/item/skeleton_bone_meal.json`:
+```json
+{ "replace": false, "values": ["minecraft:bone_meal"] }
+```
+
+The origin JSON references both powers — `food_restriction` blocks
+normal eating, `edible_item` grants the bone meal override. The
+whitelist tag must include ALL items the player can eat (both vanilla
+food and edible-item-promoted items).
+
 ### 4. "Fire weakness — +50% damage from fire"
 
 ```json

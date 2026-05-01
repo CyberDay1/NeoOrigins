@@ -30,6 +30,7 @@ NeoForge port of Origins with a JSON-first power framework, an event dispatcher,
 | [Actions](ACTIONS) | Every `entity_action` verb and its fields. |
 | [Conditions](CONDITIONS) | Every `condition` verb and its fields. |
 | [Events](EVENTS) | Which events fire when; how to attach actions to them. |
+| [Evolution](EVOLUTION) | Kill-based tier progression for every origin. |
 
 ## Project
 
