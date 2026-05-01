@@ -82,4 +82,12 @@ public abstract class PowerType<C extends PowerConfiguration> {
      */
     public Set<String> capabilities(C config) { return Set.of(); }
 
+    /**
+     * Player-aware capability variant called during active-power sync.
+     * Override when capabilities depend on runtime state (conditions,
+     * cooldowns, resource levels, etc.). Default delegates to
+     * {@link #capabilities(PowerConfiguration)}.
+     */
+    public Set<String> capabilities(ServerPlayer player, C config) { return capabilities(config); }
+
 }

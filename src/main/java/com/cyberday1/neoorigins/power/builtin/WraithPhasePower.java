@@ -36,14 +36,27 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
     public record Config(
         List<String> blockedBlocks,
         float exhaustionPerTick,
+        boolean alwaysOn,
         String type
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("blocked_blocks", List.of("minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"))
                 .forGetter(Config::blockedBlocks),
             Codec.FLOAT.optionalFieldOf("exhaustion_per_tick", 0.15F).forGetter(Config::exhaustionPerTick),
+            Codec.BOOL.optionalFieldOf("always_on", false).forGetter(Config::alwaysOn),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
+    }
+
+    /** When always_on, the power is passive — no skill key slot. */
+    @Override
+    public boolean isActivePower(Config config) { return !config.alwaysOn(); }
+
+    /** When always_on, never report as toggled off. */
+    @Override
+    public boolean isToggledOff(ServerPlayer player, Config config) {
+        if (config.alwaysOn()) return false;
+        return super.isToggledOff(player, config);
     }
 
     @Override
@@ -121,12 +134,14 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
     protected void removeEffect(ServerPlayer player, Config config) {
         player.noPhysics = false;
         var abilities = player.getAbilities();
-        boolean wasFlying = abilities.flying;
         if (!player.isCreative() && !player.isSpectator()) {
             abilities.mayfly = false;
             abilities.flying = false;
         }
-        if (wasFlying) player.onUpdateAbilities();
+        // Always sync — even if flying was already false, mayfly may still
+        // be true on the client from a previous in-block sync. Without this
+        // the client keeps mayfly=true and can double-tap jump to fly.
+        player.onUpdateAbilities();
         player.fallDistance = 0.0F;
     }
 

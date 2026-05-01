@@ -341,6 +341,13 @@ public final class NeoOriginsConfig {
         p("umbral_active_dash");        fi("cooldown_ticks", 60, 0, 72000); ep();
         p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
 
+        // ── Wraith ──
+        p("wraith_phase");              fb("always_on", false); ep();
+        p("wraith_evolved_phase");      fb("always_on", false); ep();
+        p("wraith_apex_phase");         fb("always_on", false); ep();
+        p("wraith_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
+        p("wraith_hunger_drain");       f("value", 1.75, 0, 100); ep();
+
         // ── Vampire ──
         p("vampire_attack_bonus");      f("amount", 2.0, -100, 100); ep();
         p("vampire_speed_boost");       f("amount", 0.15, -1, 10); ep();

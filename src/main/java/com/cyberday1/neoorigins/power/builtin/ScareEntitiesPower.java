@@ -58,17 +58,14 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
                 }
             }
             if (!matches) continue;
-            // Drop aggro: NearestAttackableTargetGoal (or Endermite's attack goal)
-            // will re-path toward the player on the next tick if we only set a
-            // flee destination. Clearing the current target + last-hurt-by lets
-            // our flee navigation stick. Hostile AI may re-acquire the target
-            // on line of sight, but that's OK — we re-clear on the next tick.
-            if (mob.getTarget() == player) {
-                mob.setTarget(null);
-            }
-            if (mob.getLastHurtByMob() == player) {
-                mob.setLastHurtByMob(null);
-            }
+            // Drop aggro unconditionally — not just when targeting this player.
+            // Mobs like Phantoms use shared targeting goals that pick ANY nearby
+            // player; if we only clear when target == this player, a Phantom
+            // chasing a different player nearby would ignore the scare entirely.
+            // Clearing the target forces re-evaluation, and our flee navigation
+            // takes over before the goal can re-acquire.
+            mob.setTarget(null);
+            mob.setLastHurtByMob(null);
             if (!mob.getNavigation().isDone()
                 && mob.getNavigation().getTargetPos() != null
                 && mob.getNavigation().getTargetPos().distSqr(player.blockPosition()) > RANGE * RANGE) {

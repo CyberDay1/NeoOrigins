@@ -85,7 +85,7 @@ public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Confi
             abilities.mayfly = false;
             abilities.flying = false;
         }
-        if (wasFlying) player.onUpdateAbilities();
+        player.onUpdateAbilities();
         player.fallDistance = 0.0F;
     }
 }
