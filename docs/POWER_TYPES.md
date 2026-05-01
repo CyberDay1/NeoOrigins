@@ -2683,6 +2683,7 @@ Tints the player model with an RGBA colour. Client-side rendering applies a colo
 | `green` | float | no | `1.0` | Green channel (0.0–1.0). |
 | `blue` | float | no | `1.0` | Blue channel (0.0–1.0). |
 | `alpha` | float | no | `1.0` | Alpha channel (0.0–1.0). |
+| `condition` | object | no | — | EntityCondition that gates when the tint is applied. When absent, the tint is always active. When present, the colour only shows while the condition evaluates true. |
 
 Origins compat: translates `origins:model_color`.
 
@@ -2696,6 +2697,17 @@ Origins compat: translates `origins:model_color`.
   "alpha": 0.8,
   "name": "Spectral Hue",
   "description": "Your form shimmers with a faint blue glow."
+}
+```
+
+**Example — red glow at low health:**
+```json
+{
+  "type": "neoorigins:model_color",
+  "red": 0.9, "green": 0.2, "blue": 0.2, "alpha": 0.7,
+  "condition": { "type": "neoorigins:health", "comparison": "<=", "value": 6 },
+  "name": "Blood Rage",
+  "description": "Your body glows red when near death."
 }
 ```
 
@@ -2740,6 +2752,38 @@ Origins compat: translates `origins:shader`.
   "shader": "minecraft:desaturate",
   "name": "Phantom Eyes",
   "description": "The world appears washed of colour."
+}
+```
+
+---
+
+## `neoorigins:wraith_phase`
+
+Toggleable spectral phasing. When active the player walks through solid blocks horizontally. While inside a solid block, flight enables (jump = up, shift = down). Holding shift on the surface phases downward into the ground. Certain blocks cannot be phased through.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `blocked_blocks` | list of string | no | `["minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"]` | Block IDs that cannot be phased through. |
+| `exhaustion_per_tick` | float | no | `0.15` | Hunger drain per tick while inside solid blocks. |
+| `always_on` | bool | no | `false` | When `true`, the power is passive (always active, no toggle, no skill key slot). Configurable per tier in the mod config. |
+
+Emits the `wall_phase` capability while active (toggled on or always_on).
+
+**Example — base wraith phase:**
+```json
+{
+  "type": "neoorigins:wraith_phase",
+  "blocked_blocks": ["minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"],
+  "exhaustion_per_tick": 0.15
+}
+```
+
+**Example — apex tier (only bedrock blocks, minimal drain):**
+```json
+{
+  "type": "neoorigins:wraith_phase",
+  "blocked_blocks": ["minecraft:bedrock"],
+  "exhaustion_per_tick": 0.075
 }
 ```
 

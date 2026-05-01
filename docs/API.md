@@ -357,6 +357,14 @@ doc, the schema wins.
 
 ---
 
+## Capability system
+
+Powers declare capability tags via `capabilities(Config)`. These tags are synced to the client and used by client-predicted mixins (e.g. `"wall_climb"`, `"wall_phase"`, `"no_physics"`, `"flight"`).
+
+A **player-aware variant** `capabilities(ServerPlayer, Config)` is available for capabilities that depend on runtime state (conditions, resource levels, etc.). Default delegates to the static variant. Used by `model_color` to conditionally emit the color capability based on a condition field.
+
+---
+
 ## Source-of-truth paths
 
 When docs drift, these are the code files that won:

@@ -120,7 +120,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True between time 6001–11999 with sky access and no rain.
+True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios slot blocks sun damage entirely (checked before helmets).
 
 ## `neoorigins:on_fire` (alias `neoorigins:fire`)
 
