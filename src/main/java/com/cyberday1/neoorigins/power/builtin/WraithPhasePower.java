@@ -1,31 +1,32 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
-import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Wraith Phase — the player passively phases through most blocks.
- * Configurable blocklist prevents phasing through certain blocks (obsidian
- * by default). Drains hunger while the player is inside solid blocks.
+ * Wraith Phase -- toggleable spectral phasing.
  *
- * <p>Unlike {@code PhantomFormPower}, this is a passive (always-on) power
- * with no flight, no invisibility, and no toggle. The player walks on the
- * ground normally but can walk through walls.
+ * <p>When active the player walks through solid blocks horizontally.
+ * While inside a solid block, flight kicks in (jump = up, shift = down).
+ * On the surface the player walks on the ground normally.
+ *
+ * <p>Certain blocks (obsidian, bedrock by default) cannot be phased through.
+ * Phasing drains hunger.
  */
-public class WraithPhasePower extends PowerType<WraithPhasePower.Config> {
+public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Config> {
 
     private static final Set<String> CAPS = Set.of("wall_phase");
 
@@ -49,14 +50,13 @@ public class WraithPhasePower extends PowerType<WraithPhasePower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onTick(ServerPlayer player, Config config) {
-        // Resolve the blocked block set (cheap — small list, string compare)
+    protected void tickEffect(ServerPlayer player, Config config) {
+        // --- blocked-block check ---
         Set<ResourceLocation> blocked = new HashSet<>();
         for (String id : config.blockedBlocks()) {
             blocked.add(ResourceLocation.parse(id));
         }
 
-        // Check if the player is currently inside a blocked block
         AABB box = player.getBoundingBox().deflate(0.05);
         boolean inBlockedBlock = false;
         for (BlockPos pos : BlockPos.betweenClosed(
@@ -72,31 +72,64 @@ public class WraithPhasePower extends PowerType<WraithPhasePower.Config> {
             }
         }
 
-        if (inBlockedBlock) {
-            // Can't phase through blocked blocks — disable noclip so
-            // vanilla collision pushes the player out
-            player.noPhysics = false;
+        // Noclip -- always on so the server accepts client-predicted phased
+        // positions. Disabled when inside a blocked block so vanilla collision
+        // pushes the player out.
+        player.noPhysics = !inBlockedBlock;
+
+        boolean insideSolid = isInsideSolid(player);
+        boolean crouching = player.isShiftKeyDown();
+
+        if (insideSolid || crouching) {
+            // Inside a block OR holding shift on the surface -- enable flight
+            // for vertical control (jump = up, shift = down). Holding shift
+            // on the surface lets the player phase downward into the ground.
+            var abilities = player.getAbilities();
+            boolean changed = false;
+            if (!abilities.mayfly)  { abilities.mayfly  = true;  changed = true; }
+            if (!abilities.flying)  { abilities.flying  = true;  changed = true; }
+            if (changed) player.onUpdateAbilities();
         } else {
-            player.noPhysics = true;
+            // On surface, not crouching -- disable flight, walk normally.
+            var abilities = player.getAbilities();
+            if (abilities.flying && !player.isCreative() && !player.isSpectator()) {
+                abilities.mayfly = false;
+                abilities.flying = false;
+                player.onUpdateAbilities();
+            }
+            // Clamp downward velocity to prevent server-side gravity drift
+            // while noPhysics is true (client sends correct positions but
+            // the server's own Entity.move() would accumulate downward velocity).
+            Vec3 vel = player.getDeltaMovement();
+            if (vel.y < 0) {
+                player.setDeltaMovement(vel.x, 0, vel.z);
+            }
         }
 
-        // Drain hunger while inside solid blocks (phasing)
-        if (isInsideSolid(player)) {
+        // Hunger drain while phasing through solid blocks
+        if (insideSolid) {
             player.causeFoodExhaustion(config.exhaustionPerTick());
         }
 
-        // Prevent fall damage accumulation while phasing
         player.fallDistance = 0.0F;
     }
 
     @Override
-    public void onRevoked(ServerPlayer player, Config config) {
+    protected void removeEffect(ServerPlayer player, Config config) {
         player.noPhysics = false;
+        var abilities = player.getAbilities();
+        boolean wasFlying = abilities.flying;
+        if (!player.isCreative() && !player.isSpectator()) {
+            abilities.mayfly = false;
+            abilities.flying = false;
+        }
+        if (wasFlying) player.onUpdateAbilities();
+        player.fallDistance = 0.0F;
     }
 
     /**
      * Returns true if any block overlapping the player's hitbox is solid
-     * (non-air, non-fluid-only). Used to detect active phasing for hunger drain.
+     * (non-air with a collision shape). Used to detect active phasing.
      */
     private static boolean isInsideSolid(ServerPlayer player) {
         AABB box = player.getBoundingBox().deflate(0.1);

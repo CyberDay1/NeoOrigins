@@ -250,6 +250,13 @@ public final class ActiveOriginService {
         // Cheap to run; in the common case, all targeted modifiers were already
         // removed by the loop above and this is a no-op.
         com.cyberday1.neoorigins.power.builtin.AttributeModifierPower.purgeAllOriginModifiers(player);
+        // Belt-and-suspenders: clear ALL event handlers for this player.
+        // Covers the same class of leaks as purgeAllOriginModifiers — if an
+        // origin's JSON was removed (null above) or a Config record equality
+        // mismatch prevented token-based unregistration, this ensures stale
+        // food_restriction / action_on_event handlers don't persist.
+        com.cyberday1.neoorigins.service.EventPowerIndex.clearAll(player.getUUID());
+        com.cyberday1.neoorigins.power.builtin.ActionOnEventPower.clearTokens(player.getUUID());
     }
 
     /**

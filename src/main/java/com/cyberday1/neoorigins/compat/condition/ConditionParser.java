@@ -118,6 +118,10 @@ public final class ConditionParser {
                     if (time >= 12000L
                         || !sl.canSeeSky(p.blockPosition())
                         || sl.isRaining()) return false;
+                    // Umbrella protection — if Vampires Need Umbrellas is loaded,
+                    // holding an umbrella in either hand blocks sun damage entirely
+                    // (takes priority over helmet protection).
+                    if (neoorigins$isHoldingUmbrella(p)) return false;
                     // Helmet protection — mirrors vanilla zombie/skeleton sun-burn
                     // logic. A damageable helmet absorbs the burn at the cost of
                     // its own durability; once the helmet breaks the player burns
@@ -1257,5 +1261,71 @@ public final class ConditionParser {
         NeoOrigins.LOGGER.warn("[CompatB] condition '{}' in {} failed closed: {}",
             type, contextId, detail);
         return CompatPolicy.FALSE_CONDITION;
+    }
+
+    // ── Vampires Need Umbrellas compat ──────────────────────────────────
+
+    /** Cached result of mod-loaded check so we don't query ModList every tick. */
+    private static final boolean VNU_LOADED = net.neoforged.fml.ModList.get()
+        .isLoaded("vampiresneedumbrellas");
+    private static final boolean CURIOS_LOADED = net.neoforged.fml.ModList.get()
+        .isLoaded("curios");
+
+    /**
+     * Returns true if the player has an umbrella from Vampires Need Umbrellas
+     * equipped — either hand or any Curios/Accessories slot.
+     */
+    private static boolean neoorigins$isHoldingUmbrella(net.minecraft.world.entity.LivingEntity entity) {
+        if (!VNU_LOADED) return false;
+        if (neoorigins$isUmbrella(entity.getMainHandItem())) return true;
+        if (neoorigins$isUmbrella(entity.getOffhandItem())) return true;
+        if (CURIOS_LOADED) {
+            return neoorigins$checkCuriosForUmbrella(entity);
+        }
+        return false;
+    }
+
+    private static boolean neoorigins$isUmbrella(net.minecraft.world.item.ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        net.minecraft.resources.ResourceLocation id =
+            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return "vampiresneedumbrellas".equals(id.getNamespace());
+    }
+
+    /**
+     * Scan all equipped Curios slots for an umbrella via reflection.
+     * Curios is not a compile-time dependency so we resolve the API at
+     * runtime. The reflected method handle is cached after the first call.
+     */
+    private static java.lang.reflect.Method CURIOS_GET_INVENTORY;
+    private static java.lang.reflect.Method CURIOS_GET_EQUIPPED;
+    private static boolean CURIOS_REFLECT_FAILED = false;
+
+    private static boolean neoorigins$checkCuriosForUmbrella(net.minecraft.world.entity.LivingEntity entity) {
+        if (CURIOS_REFLECT_FAILED) return false;
+        try {
+            if (CURIOS_GET_INVENTORY == null) {
+                Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");
+                CURIOS_GET_INVENTORY = api.getMethod("getCuriosInventory", net.minecraft.world.entity.LivingEntity.class);
+                // ICuriosItemHandler.getEquippedCurios() returns IItemHandlerModifiable
+                Class<?> handlerClass = Class.forName("top.theillusivec4.curios.api.type.capability.ICuriosItemHandler");
+                CURIOS_GET_EQUIPPED = handlerClass.getMethod("getEquippedCurios");
+            }
+            // CuriosApi.getCuriosInventory(entity) -> Optional<ICuriosItemHandler>
+            @SuppressWarnings("unchecked")
+            java.util.Optional<?> opt = (java.util.Optional<?>) CURIOS_GET_INVENTORY.invoke(null, entity);
+            if (opt.isPresent()) {
+                Object handler = opt.get();
+                // handler.getEquippedCurios() -> IItemHandlerModifiable
+                var equipped = (net.neoforged.neoforge.items.IItemHandlerModifiable) CURIOS_GET_EQUIPPED.invoke(handler);
+                for (int i = 0; i < equipped.getSlots(); i++) {
+                    if (neoorigins$isUmbrella(equipped.getStackInSlot(i))) return true;
+                }
+            }
+        } catch (Exception e) {
+            // Curios API not available or changed — disable further attempts
+            CURIOS_REFLECT_FAILED = true;
+        }
+        return false;
     }
 }

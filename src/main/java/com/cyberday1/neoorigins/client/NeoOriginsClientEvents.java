@@ -41,6 +41,10 @@ public class NeoOriginsClientEvents {
             }
         }
 
+        if (NeoOriginsKeybindings.EDIT_HUD.consumeClick()) {
+            Minecraft.getInstance().setScreen(new ResourceHudEditorScreen());
+        }
+
         // Detect jump press while airborne for flight power activation
         boolean jumpHeld = Minecraft.getInstance().options.keyJump.isDown();
         boolean jumpPressed = jumpHeld && !wasJumping;
