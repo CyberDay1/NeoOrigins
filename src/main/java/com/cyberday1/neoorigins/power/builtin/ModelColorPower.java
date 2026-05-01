@@ -25,6 +25,8 @@ import java.util.Set;
  */
 public class ModelColorPower extends PowerType<ModelColorPower.Config> {
 
+    private static final java.util.Map<java.util.UUID, Boolean> CONDITION_STATE = new java.util.concurrent.ConcurrentHashMap<>();
+
     public record Config(float red, float green, float blue, float alpha, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("red",   1.0f).forGetter(Config::red),

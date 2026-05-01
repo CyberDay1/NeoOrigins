@@ -53,34 +53,54 @@ public abstract class LocalPlayerNoPhysicsMixin {
             self.setDeltaMovement(movement);
         } else if (neoorigins$isInsideSolid(self) || net.minecraft.client.Minecraft.getInstance().options.keyShift.isDown()) {
             // Wall phase + inside a block or holding shift -- full noclip (server enables flight)
-            self.setPos(self.getX() + movement.x, self.getY() + movement.y, self.getZ() + movement.z);
+            Vec3 clamped = neoorigins$clampAgainstBedrock(self, movement);
+            self.setPos(self.getX() + clamped.x, self.getY() + clamped.y, self.getZ() + clamped.z);
             self.horizontalCollision = false;
             self.minorHorizontalCollision = false;
             self.verticalCollision = false;
             self.verticalCollisionBelow = false;
-            self.setDeltaMovement(movement);
+            self.setDeltaMovement(clamped);
         } else {
-            // Wall phase + on surface -- horizontal noclip, vertical collision kept
-            double newX = self.getX() + movement.x;
-            double newZ = self.getZ() + movement.z;
+            // Wall phase + on surface -- horizontal noclip (except bedrock), vertical collision kept
+            Vec3 hClamped = neoorigins$clampAgainstBedrock(self, new Vec3(movement.x, 0, movement.z));
+            double newX = self.getX() + hClamped.x;
+            double newZ = self.getZ() + hClamped.z;
 
-            AABB movedBox = self.getBoundingBox().move(movement.x, 0, movement.z);
+            AABB movedBox = self.getBoundingBox().move(hClamped.x, 0, hClamped.z);
             List<VoxelShape> shapes = self.level().getEntityCollisions(self, movedBox.expandTowards(0, movement.y, 0));
             Vec3 verticalOnly = Entity.collideBoundingBox(self, new Vec3(0, movement.y, 0), movedBox, self.level(), shapes);
             double newY = self.getY() + verticalOnly.y;
 
             self.setPos(newX, newY, newZ);
-            self.horizontalCollision = false;
+            self.horizontalCollision = hClamped.x != movement.x || hClamped.z != movement.z;
             self.minorHorizontalCollision = false;
             self.verticalCollision = movement.y != verticalOnly.y;
             self.verticalCollisionBelow = self.verticalCollision && movement.y < 0;
             if (self.verticalCollisionBelow) {
                 self.setOnGround(true);
             }
-            self.setDeltaMovement(movement.x, verticalOnly.y, movement.z);
+            self.setDeltaMovement(hClamped.x, verticalOnly.y, hClamped.z);
         }
         self.fallDistance = 0.0F;
         ci.cancel();
+    }
+
+    @Unique
+    private static Vec3 neoorigins$clampAgainstBedrock(Entity entity, Vec3 movement) {
+        AABB moved = entity.getBoundingBox().move(movement);
+        for (BlockPos pos : BlockPos.betweenClosed(
+                BlockPos.containing(moved.minX, moved.minY, moved.minZ),
+                BlockPos.containing(moved.maxX, moved.maxY, moved.maxZ))) {
+            BlockState state = entity.level().getBlockState(pos);
+            if (state.is(net.minecraft.world.level.block.Blocks.BEDROCK)) {
+                java.util.List<VoxelShape> shapes = new java.util.ArrayList<>();
+                entity.level().getBlockCollisions(entity, moved).forEach(shapes::add);
+                if (!shapes.isEmpty()) {
+                    return Entity.collideBoundingBox(entity, movement, entity.getBoundingBox(), entity.level(), shapes);
+                }
+            }
+        }
+        return movement;
     }
 
     @Unique

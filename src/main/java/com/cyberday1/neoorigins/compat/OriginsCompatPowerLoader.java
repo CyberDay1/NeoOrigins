@@ -183,8 +183,83 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 Collections.unmodifiableList(merged));
         }
 
+        // Inject synthetic powers for well-known Origins built-in power IDs.
+        injectWellKnownPowers(injected);
+
         PowerDataManager.INSTANCE.injectExternalPowers(injected);
         NeoOrigins.LOGGER.info("[CompatB] Injected {} Route B powers", injected.size());
+    }
+
+    private void injectWellKnownPowers(Map<Identifier, PowerHolder<?>> injected) {
+        Map<String, java.util.function.Supplier<JsonObject>> WELL_KNOWN = Map.ofEntries(
+            Map.entry("origins:elytra",              () -> json("neoorigins:natural_glide")),
+            Map.entry("origins:fire_immunity",       () -> json("neoorigins:prevent_action", "action", "fire")),
+            Map.entry("origins:fresh_air",           () -> json("neoorigins:prevent_action", "action", "sleep")),
+            Map.entry("origins:like_water",          () -> json("neoorigins:ignore_water")),
+            Map.entry("origins:aquatic",             () -> json("neoorigins:dries_out")),
+            Map.entry("origins:water_vision",        () -> json("neoorigins:lava_vision")),
+            Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining")),
+            Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power")),
+            Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
+            Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
+            Map.entry("origins:swim_speed",          () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
+            Map.entry("origins:night_vision",        () -> json("neoorigins:night_vision")),
+            Map.entry("origins:slow_falling",        () -> json("neoorigins:prevent_action", "action", "fall_damage")),
+            Map.entry("origins:climbing",            () -> json("neoorigins:wall_climbing")),
+            Map.entry("origins:shulker_inventory",   () -> json("neoorigins:extra_inventory")),
+            Map.entry("origins:phantomize",          () -> json("neoorigins:phantom_form")),
+            Map.entry("origins:translucent",         () -> json("neoorigins:model_color", "red", 1.0, "green", 1.0, "blue", 1.0, "alpha", 0.5))
+        );
+
+        for (var entry : WELL_KNOWN.entrySet()) {
+            Identifier id = Identifier.parse(entry.getKey());
+            if (PowerDataManager.INSTANCE.hasPower(id) || injected.containsKey(id)) continue;
+            try {
+                JsonObject powerJson = entry.getValue().get();
+                String typeStr = powerJson.get("type").getAsString();
+                Identifier typeId = Identifier.parse(typeStr);
+                com.cyberday1.neoorigins.api.power.PowerType<?> powerType =
+                    com.cyberday1.neoorigins.power.registry.PowerTypes.get(typeId);
+                if (powerType != null) {
+                    injectViaNativeCodec(id, powerType, powerJson, injected);
+                    NeoOrigins.LOGGER.debug("[CompatSynth] Registered well-known power {} -> {}", id, typeStr);
+                } else {
+                    CompatPower.Config config = parseRouteB(id, typeStr, powerJson);
+                    if (config != null) {
+                        injected.put(id, new PowerHolder<>(CompatPower.INSTANCE, config,
+                            net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty()));
+                        NeoOrigins.LOGGER.debug("[CompatSynth] Registered well-known power {} -> {} (Route B)", id, typeStr);
+                    }
+                }
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.warn("[CompatSynth] Failed to register well-known power {}: {}", id, e.getMessage());
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <C extends com.cyberday1.neoorigins.api.power.PowerConfiguration> void injectViaNativeCodec(
+            Identifier id, com.cyberday1.neoorigins.api.power.PowerType<C> type,
+            JsonObject json, Map<Identifier, PowerHolder<?>> target) {
+        JsonObject configJson = json.deepCopy();
+        configJson.addProperty("_power_id", id.toString());
+        type.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, configJson)
+            .resultOrPartial(err -> NeoOrigins.LOGGER.warn("[CompatSynth] codec error for {}: {}", id, err))
+            .ifPresent(config -> target.put(id, new PowerHolder<>(type, config,
+                net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty())));
+    }
+
+    private static JsonObject json(String type) {
+        JsonObject o = new JsonObject(); o.addProperty("type", type); return o;
+    }
+    private static JsonObject json(String type, String k1, String v1) {
+        JsonObject o = json(type); o.addProperty(k1, v1); return o;
+    }
+    private static JsonObject json(String type, String k1, double v1, String k2, double v2, String k3, double v3, String k4, double v4) {
+        JsonObject o = json(type); o.addProperty(k1, v1); o.addProperty(k2, v2); o.addProperty(k3, v3); o.addProperty(k4, v4); return o;
+    }
+    private static JsonObject json(String type, String k1, String v1, String k2, double v2, String k3, String v3) {
+        JsonObject o = json(type); o.addProperty(k1, v1); o.addProperty(k2, v2); o.addProperty(k3, v3); return o;
     }
 
     /**
