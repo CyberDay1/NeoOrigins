@@ -37,16 +37,28 @@ public class OriginCommand {
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_TIERS =
         (ctx, builder) -> SharedSuggestionProvider.suggest(TIER_NAMES, builder);
 
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_LAYERS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            LayerDataManager.INSTANCE.getLayers().keySet(), builder);
+
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_ORIGINS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            OriginDataManager.INSTANCE.getOrigins().keySet(), builder);
+
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_POWERS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // Build the command tree once, register under both namespaces
-        var tree = buildCommandTree();
-        dispatcher.register(Commands.literal("neoorigins").redirect(dispatcher.register(tree)));
-        // Legacy alias
-        dispatcher.register(Commands.literal("origin").redirect(dispatcher.getRoot().getChild("neoorigins")));
+        // Register under both namespaces independently — Brigadier's redirect()
+        // loses tab-complete suggestions on the aliased command, so we build
+        // the tree twice instead.
+        dispatcher.register(buildCommandTree("neoorigins"));
+        dispatcher.register(buildCommandTree("origin"));
     }
 
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildCommandTree() {
-        return Commands.literal("neoorigins")
+    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildCommandTree(String name) {
+        return Commands.literal(name)
             // ── Player-level commands (permission 0) ───────────────────
             .then(Commands.literal("evolve")
                 // /neoorigins evolve accept — player accepts pending prompt
@@ -72,28 +84,34 @@ public class OriginCommand {
                 .then(Commands.argument("player", EntityArgument.player())
                     .executes(ctx -> executeGet(ctx, null))
                     .then(Commands.argument("layer", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_LAYERS)
                         .executes(ctx -> executeGet(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
             .then(Commands.literal("set")
                 .requires(cs -> cs.hasPermission(2))
                 .then(Commands.argument("player", EntityArgument.player())
                     .then(Commands.argument("layer", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_LAYERS)
                         .then(Commands.argument("origin", ResourceLocationArgument.id())
+                            .suggests(SUGGEST_ORIGINS)
                             .executes(OriginCommand::executeSet)))))
             .then(Commands.literal("reset")
                 .requires(cs -> cs.hasPermission(2))
                 .then(Commands.argument("player", EntityArgument.player())
                     .executes(ctx -> executeReset(ctx, null))
                     .then(Commands.argument("layer", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_LAYERS)
                         .executes(ctx -> executeReset(ctx, ResourceLocationArgument.getId(ctx, "layer"))))))
             .then(Commands.literal("list")
                 .requires(cs -> cs.hasPermission(2))
                 .executes(ctx -> executeList(ctx, null))
                 .then(Commands.argument("layer", ResourceLocationArgument.id())
+                    .suggests(SUGGEST_LAYERS)
                     .executes(ctx -> executeList(ctx, ResourceLocationArgument.getId(ctx, "layer")))))
             .then(Commands.literal("has")
                 .requires(cs -> cs.hasPermission(2))
                 .then(Commands.argument("player", EntityArgument.player())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
                         .executes(OriginCommand::executeHas))))
             .then(Commands.literal("gui")
                 .executes(ctx -> executeGui(ctx, null))

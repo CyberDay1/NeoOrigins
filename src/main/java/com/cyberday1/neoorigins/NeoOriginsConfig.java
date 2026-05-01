@@ -404,6 +404,21 @@ public final class NeoOriginsConfig {
         p("class_blacksmith_quality");  fi("unbreaking_level", 1, 0, 10); ep();
         p("class_blacksmith_repairs");  f("cost_multiplier", 0.5, 0, 10); ep();
 
+        // ── Fisher ──
+        p("class_fisher_swim_speed");   f("amount", 0.15, -1, 10); ep();
+        p("class_fisher_waters_luck");  f("amount", 1.0, -10, 10); ep();
+        p("class_fisher_sea_legs");     f("multiplier", 0.5, 0, 10); ep();
+
+        // ── Mason ──
+        p("class_mason_block_reach");   f("amount", 1.0, -10, 10); ep();
+        p("class_mason_strong_grip");   f("amount", 1.0, -100, 100); ep();
+        p("class_mason_stone_speed");   f("multiplier", 1.25, 0, 100); ep();
+
+        // ── Paladin ──
+        p("class_paladin_holy_armor");  f("amount", 2.0, -100, 100); ep();
+        p("class_paladin_turn_undead"); fi("duration", 80, 0, 72000); fi("amplifier", 0, 0, 255); ep();
+        p("class_paladin_beacon_regen");f("radius", 8.0, 0, 128); ep();
+
         BUILDER.pop(); // power_overrides
     }
 
