@@ -36,6 +36,7 @@ evolution_message_interval = 100
 ## Evolution by Origin
 
 ### Abyssal
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -43,6 +44,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Conduit Power | Ascended HP |
 
 ### Air Mage
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -50,6 +52,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed Boost | Ascended HP |
 
 ### Arachnid
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -57,6 +60,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Night Vision | Ascended HP |
 
 ### Automaton
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -64,6 +68,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fire Resistance | Ascended HP |
 
 ### Avian
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP, Improved Slow Fall | -- |
@@ -71,6 +76,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed Boost | Ascended HP |
 
 ### Blazeling
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -78,6 +84,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP | Evolved HP, Water Damage |
 
 ### Breeze
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -85,6 +92,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Jump Boost | Ascended HP |
 
 ### Caveborn
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -92,6 +100,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Haste | Ascended HP |
 
 ### Cinderborn
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -99,6 +108,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fire Resistance | Ascended HP |
 
 ### Darkness Mage
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -106,6 +116,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Attack Bonus | Ascended HP |
 
 ### Draconic
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -113,6 +124,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Apex Attack, Speed | Ascended HP, Ascended Attack |
 
 ### Dwarf
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -120,6 +132,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Armor | Ascended HP |
 
 ### Earth Mage
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -127,6 +140,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Apex Armor | Ascended HP, Ascended Armor |
 
 ### Elytrian
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -134,6 +148,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Apex Sky Piercer | Ascended HP, Ascended Sky Piercer |
 
 ### Enderian
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -141,6 +156,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP | Ascended HP, Water Damage |
 
 ### Enderite
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -148,6 +164,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fire Resistance | Ascended HP |
 
 ### Feline
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP, Fall Resist | -- |
@@ -155,6 +172,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed | Ascended HP |
 
 ### Fire Mage
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -162,6 +180,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Attack Bonus | Ascended HP |
 
 ### Frostborn
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -169,6 +188,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP | Ascended HP, Ascended Fire Weakness |
 
 ### Golem
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP, Armor | -- |
@@ -176,6 +196,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Armor, Fire Resistance | Ascended HP, Ascended Armor |
 
 ### Gorgon
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -183,6 +204,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed | Ascended HP |
 
 ### Gravity Mage
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -190,6 +212,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Jump Boost | Ascended HP |
 
 ### Hiveling
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -197,6 +220,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Poison Immunity | Ascended HP |
 
 ### Human
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -204,6 +228,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Luck | Ascended HP |
 
 ### Inchling
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -211,6 +236,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Dodge | Ascended HP |
 
 ### Kraken
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -218,6 +244,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Conduit Power | Ascended HP |
 
 ### Merling
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP, Swim Speed | -- |
@@ -225,6 +252,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Dolphin's Grace | Ascended HP |
 
 ### Monster Tamer
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -232,6 +260,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed | Ascended HP |
 
 ### Necromancer
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -239,6 +268,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Night Vision | Ascended HP |
 
 ### Phantom
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -246,6 +276,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Reduced Daylight Damage, Spectral Dodge | Ascended HP, Base Sunburn |
 
 ### Piglin
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -253,6 +284,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fire Resistance | Ascended HP |
 
 ### Revenant
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -260,6 +292,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Armor, Fire Resistance | Ascended HP, Undying Will |
 
 ### Sculkborn
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -267,6 +300,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Armor | Ascended HP |
 
 ### Shulk
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -274,6 +308,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Knockback Resistance | Ascended HP |
 
 ### Siren
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -281,6 +316,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Dolphin's Grace | Ascended HP |
 
 ### Skeleton
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | Improved Marksmanship, +1 HP, Expanded Diet | Base Marksmanship, Base Diet |
@@ -288,6 +324,7 @@ evolution_message_interval = 100
 | 3 - Apex | Less Fragile Frame, Fire Resistance | Base Brittle Frame, Ascended Daylight, Evolved Diet |
 
 ### Slime
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -295,6 +332,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fire Resistance | Evolved HP |
 
 ### Sporeling
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -302,6 +340,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP | Ascended HP |
 
 ### Stoneguard
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -309,6 +348,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Apex Armor | Ascended HP, Ascended Armor |
 
 ### Strider
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -316,6 +356,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fire Resistance | Ascended HP |
 
 ### Sylvan
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -323,6 +364,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed | Ascended HP |
 
 ### Tiny
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -330,6 +372,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Evasion | Ascended HP |
 
 ### Umbral
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -337,6 +380,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Speed | Ascended HP |
 
 ### Vampire
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | Improved Attack, Improved Speed | Base Attack, Base Speed |
@@ -344,6 +388,7 @@ evolution_message_interval = 100
 | 3 - Apex | Apex Attack, Fire Resistance | Evolved Attack, Ascended Daylight |
 
 ### Verdant
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -351,6 +396,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Regeneration | Ascended HP |
 
 ### Voidwalker
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -358,6 +404,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Fall Immunity | Ascended HP, Ascended Fall Resist |
 
 ### Warden
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -365,6 +412,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Apex Armor, Attack Damage | Ascended HP, Ascended Armor |
 
 ### Water Mage
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +1 HP | -- |
@@ -372,6 +420,7 @@ evolution_message_interval = 100
 | 3 - Apex | +3 HP, Conduit Power | Ascended HP |
 
 ### Wraith
+
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | Night Vision, Evolved Phase | Base Phase |
