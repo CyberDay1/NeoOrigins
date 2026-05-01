@@ -257,6 +257,10 @@ public final class ActiveOriginService {
         // food_restriction / action_on_event handlers don't persist.
         com.cyberday1.neoorigins.service.EventPowerIndex.clearAll(player.getUUID());
         com.cyberday1.neoorigins.power.builtin.ActionOnEventPower.clearTokens(player.getUUID());
+        // Clamp health to the new max now that all attribute modifiers are gone.
+        if (player.getHealth() > player.getMaxHealth()) {
+            player.setHealth(player.getMaxHealth());
+        }
     }
 
     /**
@@ -279,6 +283,9 @@ public final class ActiveOriginService {
                     }
                 }
             }
+            // Sweep any orphaned neoorigins attribute modifiers from the old origin
+            // in case the JSON was edited or a power was removed since it was granted.
+            com.cyberday1.neoorigins.power.builtin.AttributeModifierPower.purgeAllOriginModifiers(player);
         }
         Origin newOrigin = OriginDataManager.INSTANCE.getOrigin(newOriginId);
         if (newOrigin != null) {
@@ -291,6 +298,11 @@ public final class ActiveOriginService {
                         player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.GAINED, powerId);
                 }
             }
+        }
+        // Clamp health to the new max — attribute modifiers may have changed
+        // max_health (e.g. swapping from a +HP origin to one without).
+        if (player.getHealth() > player.getMaxHealth()) {
+            player.setHealth(player.getMaxHealth());
         }
     }
 }
