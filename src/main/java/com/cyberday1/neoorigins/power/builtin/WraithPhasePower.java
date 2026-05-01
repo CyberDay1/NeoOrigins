@@ -97,11 +97,14 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
                 abilities.flying = false;
                 player.onUpdateAbilities();
             }
-            // Clamp downward velocity to prevent server-side gravity drift
-            // while noPhysics is true (client sends correct positions but
-            // the server's own Entity.move() would accumulate downward velocity).
+            // Zero server-side vertical velocity while noPhysics is true.
+            // The client handles actual movement via the mixin; the server
+            // just needs to accept client positions. Without this, the
+            // server's Entity.move() accumulates velocity (both up from
+            // jumps and down from gravity) with no collision to stop it,
+            // causing the player to float or sink on the server side.
             Vec3 vel = player.getDeltaMovement();
-            if (vel.y < 0) {
+            if (vel.y != 0) {
                 player.setDeltaMovement(vel.x, 0, vel.z);
             }
         }
