@@ -89,9 +89,13 @@ public class ResourceHudEditorScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        // No-op: suppress vanilla blur; we draw our own backdrop in render().
+    }
+
+    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
-        // Dim background
-        g.fill(0, 0, width, height, 0x88000000);
+        g.fill(0, 0, width, height, 0xCC060610);
 
         Minecraft mc = Minecraft.getInstance();
         for (int i = 0; i < widgets.size(); i++) {
