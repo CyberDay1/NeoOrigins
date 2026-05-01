@@ -165,6 +165,30 @@ For powers in subdirectories (e.g. `powers/combat/slash.json` → ID `mypack:com
 
 ---
 
+## Resource Bar HUD
+
+Powers of type `neoorigins:resource` display a HUD bar. The appearance is configured via a `hud_render` object in the power JSON:
+
+```json
+{
+  "type": "neoorigins:resource",
+  "min": 0, "max": 100, "start_value": 100,
+  "hud_render": {
+    "label": "Mana",
+    "color": "#5577FF"
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `label` | string | `"Resource"` | Display name shown above the bar. |
+| `color` | string (hex) | `"#55AAFF"` | Fill colour as `#RRGGBB`. |
+
+Bars automatically **hide when full** and reappear when the resource drops below max. Players can reposition bars via the **Edit HUD** keybind (unbound by default). Positions persist across sessions in `config/neoorigins-hud.json`.
+
+---
+
 ## Origins Mod Compatibility
 
 Packs originally written for the Fabric Origins mod can be dropped into `originpacks/` and will be translated automatically. See the README for which power types translate and which are skipped.
