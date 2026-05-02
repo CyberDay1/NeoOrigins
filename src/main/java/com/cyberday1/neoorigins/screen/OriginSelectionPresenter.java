@@ -66,8 +66,10 @@ public class OriginSelectionPresenter {
 
         List<Identifier> rawIds = new ArrayList<>();
         for (var co : layer.origins()) {
-            if (OriginDataManager.INSTANCE.hasOrigin(co.origin()))
-                rawIds.add(co.origin());
+            if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) continue;
+            var origin = OriginDataManager.INSTANCE.getOrigin(co.origin());
+            if (origin != null && origin.unchoosable()) continue;
+            rawIds.add(co.origin());
         }
 
         Map<String, List<Identifier>> byNamespace = new LinkedHashMap<>();
@@ -170,7 +172,10 @@ public class OriginSelectionPresenter {
         while (currentLayerIndex < pendingLayers.size()) {
             OriginLayer layer = pendingLayers.get(currentLayerIndex);
             boolean hasAny = layer.origins().stream()
-                .anyMatch(co -> OriginDataManager.INSTANCE.hasOrigin(co.origin()));
+                .anyMatch(co -> {
+                    var o = OriginDataManager.INSTANCE.getOrigin(co.origin());
+                    return o != null && !o.unchoosable();
+                });
             if (hasAny) break;
             currentLayerIndex++;
         }
