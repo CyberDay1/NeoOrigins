@@ -163,14 +163,17 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             && json.get("hidden").getAsJsonPrimitive().isBoolean()
             && json.get("hidden").getAsBoolean();
 
-        // Parse top-level condition gate (optional, works for all power types)
+        // Parse top-level condition gate (optional, works for all power types).
+        // Field is named "power_condition" (not "condition") to avoid colliding with
+        // power types that already use "condition" in their own config codecs
+        // (e.g. condition_passive, action_on_event, attribute_modifier, model_color).
         EntityCondition condition = null;
         PowerHolder.ConditionMode conditionMode = PowerHolder.ConditionMode.DENY;
-        if (json.has("condition") && json.get("condition").isJsonObject()) {
-            condition = ConditionParser.parse(json.getAsJsonObject("condition"), id.toString());
+        if (json.has("power_condition") && json.get("power_condition").isJsonObject()) {
+            condition = ConditionParser.parse(json.getAsJsonObject("power_condition"), id.toString());
         }
-        if (json.has("condition_mode") && json.get("condition_mode").isJsonPrimitive()) {
-            String modeStr = json.get("condition_mode").getAsString().toUpperCase();
+        if (json.has("power_condition_mode") && json.get("power_condition_mode").isJsonPrimitive()) {
+            String modeStr = json.get("power_condition_mode").getAsString().toUpperCase();
             if ("ALLOW".equals(modeStr)) {
                 conditionMode = PowerHolder.ConditionMode.ALLOW;
             }
@@ -183,8 +186,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         configJson.remove("name");
         configJson.remove("description");
         configJson.remove("hidden");
-        configJson.remove("condition");
-        configJson.remove("condition_mode");
+        configJson.remove("power_condition");
+        configJson.remove("power_condition_mode");
         // Inject power ID for types that need it at codec-decode time (e.g. ResourcePower).
         configJson.addProperty("_power_id", id.toString());
 
