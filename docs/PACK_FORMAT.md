@@ -75,8 +75,8 @@ See [POWER_TYPES.md](POWER_TYPES.md) for the full reference.
 | `name` | string or component | no | _(derived from ID)_ | Display name in the selection screen |
 | `description` | string or component | no | _(derived from ID)_ | Description text |
 | `hidden` | boolean | no | `false` | If true, power is hidden from the origin info panel |
-| `condition` | condition object | no | _(none)_ | Top-level entity condition gate. See [CONDITIONS.md](CONDITIONS.md) for the full condition DSL. |
-| `condition_mode` | string | no | `"deny"` | `"deny"` = power is disabled when condition is true. `"allow"` = power only operates when condition is true. |
+| `power_condition` | condition object | no | _(none)_ | Top-level entity condition gate. See [CONDITIONS.md](CONDITIONS.md) for the full condition DSL. |
+| `power_condition_mode` | string | no | `"deny"` | `"deny"` = power is disabled when condition is true. `"allow"` = power only operates when condition is true. |
 
 ### Name/description resolution order
 

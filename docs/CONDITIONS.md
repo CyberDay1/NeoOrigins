@@ -12,12 +12,14 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 
 # Universal power condition gate (v2.0.20+)
 
-Every power type — passive, toggle, active, persistent effect, compat — supports an optional top-level `condition` field and `condition_mode` field. This allows any power to be gated or blocked by entity conditions without needing per-type condition support.
+Every power type — passive, toggle, active, persistent effect, compat — supports an optional top-level `power_condition` field and `power_condition_mode` field. This allows any power to be gated or blocked by entity conditions without needing per-type condition support.
+
+> **Note:** The field is named `power_condition` (not `condition`) to avoid colliding with power types that already use `condition` in their own config (e.g. `condition_passive`, `action_on_event`, `attribute_modifier`).
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `condition` | condition object | _(none)_ | Entity condition using the full DSL documented below |
-| `condition_mode` | `"deny"` or `"allow"` | `"deny"` | How the condition result maps to power operation |
+| `power_condition` | condition object | _(none)_ | Entity condition using the full DSL documented below |
+| `power_condition_mode` | `"deny"` or `"allow"` | `"deny"` | How the condition result maps to power operation |
 
 **Modes:**
 - `"deny"` (default) — the power is **disabled** when the condition evaluates to true. Use this to express "this power doesn't work when X".
@@ -32,14 +34,14 @@ Block wraith phase when in water AND exposed to sun:
 {
   "type": "neoorigins:wraith_phase",
   "blocked_blocks": ["minecraft:obsidian"],
-  "condition": {
+  "power_condition": {
     "type": "neoorigins:and",
     "conditions": [
       { "type": "neoorigins:in_water" },
       { "type": "neoorigins:exposed_to_sun" }
     ]
   },
-  "condition_mode": "deny"
+  "power_condition_mode": "deny"
 }
 ```
 
@@ -47,8 +49,8 @@ Flight only works in the Nether:
 ```json
 {
   "type": "neoorigins:flight",
-  "condition": { "type": "neoorigins:dimension", "dimension": "minecraft:the_nether" },
-  "condition_mode": "allow"
+  "power_condition": { "type": "neoorigins:dimension", "dimension": "minecraft:the_nether" },
+  "power_condition_mode": "allow"
 }
 ```
 
@@ -58,8 +60,8 @@ Active teleport blocked while sneaking:
   "type": "neoorigins:active_teleport",
   "range": 32,
   "cooldown_ticks": 60,
-  "condition": { "type": "neoorigins:sneaking" },
-  "condition_mode": "deny"
+  "power_condition": { "type": "neoorigins:sneaking" },
+  "power_condition_mode": "deny"
 }
 ```
 
