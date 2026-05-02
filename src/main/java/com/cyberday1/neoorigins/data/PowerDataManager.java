@@ -5,6 +5,8 @@ import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.compat.condition.ConditionParser;
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.network.chat.Component;
 import com.cyberday1.neoorigins.compat.CompatTranslationLog;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
@@ -161,17 +163,34 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             && json.get("hidden").getAsJsonPrimitive().isBoolean()
             && json.get("hidden").getAsBoolean();
 
+        // Parse top-level condition gate (optional, works for all power types)
+        EntityCondition condition = null;
+        PowerHolder.ConditionMode conditionMode = PowerHolder.ConditionMode.DENY;
+        if (json.has("condition") && json.get("condition").isJsonObject()) {
+            condition = ConditionParser.parse(json.getAsJsonObject("condition"), id.toString());
+        }
+        if (json.has("condition_mode") && json.get("condition_mode").isJsonPrimitive()) {
+            String modeStr = json.get("condition_mode").getAsString().toUpperCase();
+            if ("ALLOW".equals(modeStr)) {
+                conditionMode = PowerHolder.ConditionMode.ALLOW;
+            }
+        }
+        final EntityCondition finalCondition = condition;
+        final PowerHolder.ConditionMode finalConditionMode = conditionMode;
+
         // Strip display fields so they don't confuse the typed codec.
         JsonObject configJson = json.deepCopy();
         configJson.remove("name");
         configJson.remove("description");
         configJson.remove("hidden");
+        configJson.remove("condition");
+        configJson.remove("condition_mode");
         // Inject power ID for types that need it at codec-decode time (e.g. ResourcePower).
         configJson.addProperty("_power_id", id.toString());
 
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc, hidden)));
+            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc, hidden, finalCondition, finalConditionMode)));
     }
 
     /** Merges config-file overrides into the power JSON before CODEC parsing. */

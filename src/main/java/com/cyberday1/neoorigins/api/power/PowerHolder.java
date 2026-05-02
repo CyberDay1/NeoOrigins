@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.api.power;
 
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,18 +17,35 @@ public final class PowerHolder<C extends PowerConfiguration> {
     private final Component name;
     private final Component description;
     private final boolean hidden;
+    private final EntityCondition condition;
+    private final ConditionMode conditionMode;
+
+    /** Condition mode for the top-level power condition gate. */
+    public enum ConditionMode {
+        /** Power is blocked when the condition is true (default). */
+        DENY,
+        /** Power only operates when the condition is true. */
+        ALLOW
+    }
 
     public PowerHolder(ResourceLocation id, PowerType<C> type, C config, Component name, Component description) {
-        this(id, type, config, name, description, false);
+        this(id, type, config, name, description, false, null, ConditionMode.DENY);
     }
 
     public PowerHolder(ResourceLocation id, PowerType<C> type, C config, Component name, Component description, boolean hidden) {
+        this(id, type, config, name, description, hidden, null, ConditionMode.DENY);
+    }
+
+    public PowerHolder(ResourceLocation id, PowerType<C> type, C config, Component name, Component description,
+                        boolean hidden, EntityCondition condition, ConditionMode conditionMode) {
         this.id = id;
         this.type = type;
         this.config = config;
         this.name = name;
         this.description = description;
         this.hidden = hidden;
+        this.condition = condition;
+        this.conditionMode = conditionMode;
     }
 
     public ResourceLocation id()      { return id; }
@@ -37,6 +55,24 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public Component description()    { return description; }
     /** When true, this power is excluded from the origin info panel (purely-internal flags, glue powers under multiple, etc.). */
     public boolean hidden()           { return hidden; }
+    /** Returns the top-level entity condition, or null if none. */
+    public EntityCondition condition()       { return condition; }
+    /** Returns the condition mode (DENY or ALLOW). */
+    public ConditionMode conditionMode()     { return conditionMode; }
+
+    /**
+     * Returns true if the power's top-level condition allows the power to operate.
+     * <ul>
+     *   <li>No condition → always satisfied.</li>
+     *   <li>DENY mode  → satisfied when condition is <b>false</b> (condition blocks the power when true).</li>
+     *   <li>ALLOW mode → satisfied when condition is <b>true</b> (condition enables the power when true).</li>
+     * </ul>
+     */
+    public boolean isConditionSatisfied(ServerPlayer player) {
+        if (condition == null) return true;
+        boolean result = condition.test(player);
+        return conditionMode == ConditionMode.ALLOW ? result : !result;
+    }
 
     /** Returns true if this power occupies a keybind slot (has active behaviour). */
     public boolean isActive()                              { return type.isActivePower(config); }
@@ -49,12 +85,15 @@ public final class PowerHolder<C extends PowerConfiguration> {
 
     public static ResourceLocation currentDispatchId() { return CURRENT_DISPATCH_ID.get(); }
 
+    // Lifecycle methods that are NOT condition-gated (power is still owned):
     public void onGranted(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onRevoked(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRevoked(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onTick(ServerPlayer player)             { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onTick(player, config);    } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onLogin(ServerPlayer player)            { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onLogin(player, config);   } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onActivated(ServerPlayer player)        { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onRespawn(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRespawn(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onHit(ServerPlayer player, float amount){ ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onHit(player, config, amount); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onKill(ServerPlayer player, LivingEntity killed) { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onKill(player, config, killed); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+
+    // Condition-gated methods — skipped when the top-level condition is not satisfied:
+    public void onTick(ServerPlayer player)             { if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onTick(player, config);    } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onActivated(ServerPlayer player)        { if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onHit(ServerPlayer player, float amount){ if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onHit(player, config, amount); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onKill(ServerPlayer player, LivingEntity killed) { if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onKill(player, config, killed); } finally { CURRENT_DISPATCH_ID.set(prev); } }
 }
