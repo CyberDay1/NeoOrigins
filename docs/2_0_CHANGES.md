@@ -1,7 +1,7 @@
 # NeoOrigins 2.0 — Change Document
 
 **Status:** ready for 2.0.0 release. All phases landed; alpha.12 → alpha.37 polish + dedicated-server boot port complete on both branches.
-**Last updated:** 2026-04-25
+**Last updated:** 2026-05-02
 **Audience:** contributors and future-you. This is not a pack-author doc — user-facing docs
 (`POWER_TYPES.md`, `PACK_FORMAT.md`) reflect the post-Phase 7 generic power types.
 
@@ -19,6 +19,23 @@ authored as JSON configs against the composable types rather than as new Java cl
 2. Pack authors never see a hard break — old class IDs are aliased to new generic types.
 3. Dual-path dispatch during the deprecation window: legacy Java class and new generic
    type both run side-by-side at every migrated event site.
+
+---
+
+## v2.0.20 — Universal power condition gate (2026-05-02)
+
+All power types now support an optional top-level `condition` + `condition_mode` field,
+parsed in `PowerDataManager.parsePower` and stored on `PowerHolder`. The full condition
+DSL (and/or/not, biome, water, sun, health, etc.) can gate any power without per-type changes.
+
+- `condition_mode: "deny"` (default) — power disabled when condition is true
+- `condition_mode: "allow"` — power only operates when condition is true
+- Gates: `onTick`, `onActivated`, `onHit`, `onKill`, capability checks
+- Ungated: `onGranted`, `onRevoked`, `onLogin`, `onRespawn`
+
+Files changed: `PowerHolder.java` (new fields + `isConditionSatisfied`),
+`PowerDataManager.java` (condition parsing + stripping before codec),
+`ActiveOriginService.java` (condition check in `hasCapability`).
 
 ---
 

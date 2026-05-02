@@ -1,12 +1,67 @@
 # NeoOrigins 2.0 Condition Reference
 
-Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions.
+Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, bientity interactions, and — as of v2.0.20 — **any power type** via the universal condition gate.
 
 **Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `neoorigins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `neoorigins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
 **Universal `inverted` field:** every condition supports a top-level `"inverted": true` flag that flips its result. Compatible with the Apoli/Origins convention used by upstream packs.
+
+---
+
+# Universal power condition gate (v2.0.20+)
+
+Every power type — passive, toggle, active, persistent effect, compat — supports an optional top-level `condition` field and `condition_mode` field. This allows any power to be gated or blocked by entity conditions without needing per-type condition support.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `condition` | condition object | _(none)_ | Entity condition using the full DSL documented below |
+| `condition_mode` | `"deny"` or `"allow"` | `"deny"` | How the condition result maps to power operation |
+
+**Modes:**
+- `"deny"` (default) — the power is **disabled** when the condition evaluates to true. Use this to express "this power doesn't work when X".
+- `"allow"` — the power **only operates** when the condition evaluates to true. Use this to express "this power only works when X".
+
+**What gets gated:** `onTick`, `onActivated` (keybind), `onHit`, `onKill`, and capability checks are all suppressed when the condition is not satisfied. Lifecycle methods (`onGranted`, `onRevoked`, `onLogin`, `onRespawn`) are never gated, so powers can still set up and tear down correctly.
+
+**Examples:**
+
+Block wraith phase when in water AND exposed to sun:
+```json
+{
+  "type": "neoorigins:wraith_phase",
+  "blocked_blocks": ["minecraft:obsidian"],
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:in_water" },
+      { "type": "neoorigins:exposed_to_sun" }
+    ]
+  },
+  "condition_mode": "deny"
+}
+```
+
+Flight only works in the Nether:
+```json
+{
+  "type": "neoorigins:flight",
+  "condition": { "type": "neoorigins:dimension", "dimension": "minecraft:the_nether" },
+  "condition_mode": "allow"
+}
+```
+
+Active teleport blocked while sneaking:
+```json
+{
+  "type": "neoorigins:active_teleport",
+  "range": 32,
+  "cooldown_ticks": 60,
+  "condition": { "type": "neoorigins:sneaking" },
+  "condition_mode": "deny"
+}
+```
 
 ```json
 // "true when the player is NOT swimming"
