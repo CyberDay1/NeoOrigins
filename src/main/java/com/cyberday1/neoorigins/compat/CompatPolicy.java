@@ -21,4 +21,21 @@ public final class CompatPolicy {
 
     /** Route B condition fallback: unknown condition type suppresses the ability. */
     public static final EntityCondition FALSE_CONDITION = p -> false;
+
+    /**
+     * Thread-local counter tracking how many conditions failed closed during
+     * the current parse operation. Route B power parsers call
+     * {@link #resetFailClosedCount()} before parsing conditions, then check
+     * {@link #failClosedCount()} afterwards to detect unsupported condition types.
+     */
+    private static final ThreadLocal<Integer> FAIL_CLOSED_COUNT = ThreadLocal.withInitial(() -> 0);
+
+    /** Increment the fail-closed counter. Called by ConditionParser.failClosed(). */
+    public static void recordFailClosed() { FAIL_CLOSED_COUNT.set(FAIL_CLOSED_COUNT.get() + 1); }
+
+    /** Reset the counter before parsing a condition tree. */
+    public static void resetFailClosedCount() { FAIL_CLOSED_COUNT.set(0); }
+
+    /** Returns how many conditions failed closed since the last reset. */
+    public static int failClosedCount() { return FAIL_CLOSED_COUNT.get(); }
 }

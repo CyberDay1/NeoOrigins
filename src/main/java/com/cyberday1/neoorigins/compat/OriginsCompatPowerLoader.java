@@ -443,11 +443,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Accept both — without this, packs like MoR Pixie's flight resource
         // drain gate and Mido moisture ticks silently dropped their
         // condition, defaulting to alwaysTrue and firing every interval.
+        CompatPolicy.resetFailClosedCount();
         EntityCondition condition = json.has("condition")
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
             : json.has("entity_condition")
                 ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), idStr)
                 : EntityCondition.alwaysTrue();
+        // If any condition in the tree used an unsupported type, refuse to compile
+        // this power. Running an action_over_time unconditionally (because its gate
+        // condition silently failed) causes disasters like entity-per-tick spawns.
+        if (CompatPolicy.failClosedCount() > 0) {
+            NeoOrigins.LOGGER.warn("[CompatB] action_over_time {} has unsupported condition(s) — refusing to compile to prevent unconditional execution", idStr);
+            return null;
+        }
 
         // Stagger by ID hash so not all action_over_time powers run on the same tick.
         int offset = Math.abs(idStr.hashCode()) % interval;
@@ -700,9 +708,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return null;
         }
 
+        CompatPolicy.resetFailClosedCount();
         EntityCondition condition = json.has("condition")
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
             : EntityCondition.alwaysTrue();
+        if (CompatPolicy.failClosedCount() > 0) {
+            NeoOrigins.LOGGER.warn("[CompatB] conditioned_status_effect {} has unsupported condition(s) — refusing to compile", idStr);
+            return null;
+        }
 
         // Cache mob effect holder at parse time — registry is static
         var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
@@ -717,7 +730,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         return CompatPower.Config.builder()
             .onTick(player -> {
-                if (!condition.test(player)) return;
+                if (!condition.test(player)) {
+                    // Remove the effect when the condition is no longer met,
+                    // so conditioned effects toggle off cleanly instead of
+                    // lingering for their remaining duration.
+                    player.removeEffect(effectHolder);
+                    return;
+                }
                 var existing = player.getEffect(effectHolder);
                 // Re-apply at 200t duration if missing or about to expire (<100t).
                 if (existing == null || existing.getDuration() < 100) {
@@ -725,6 +744,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                         effectHolder, 200, finalAmp, finalAmb, finalPart, true));
                 }
             })
+            .onRevoked(player -> player.removeEffect(effectHolder))
             .build();
     }
 
@@ -753,9 +773,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                        || (src.has("bypasses_armor") && src.get("bypasses_armor").getAsBoolean());
         }
 
+        CompatPolicy.resetFailClosedCount();
         EntityCondition condition = json.has("condition")
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
             : EntityCondition.alwaysTrue();
+        if (CompatPolicy.failClosedCount() > 0) {
+            NeoOrigins.LOGGER.warn("[CompatB] damage_over_time {} has unsupported condition(s) — refusing to compile", idStr);
+            return null;
+        }
 
         int offset          = Math.abs(idStr.hashCode()) % interval;
         float finalDamage   = damage;
