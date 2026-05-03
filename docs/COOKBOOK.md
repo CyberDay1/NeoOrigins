@@ -332,11 +332,9 @@ See [EVENTS.md](EVENTS.md) for the full list of event keys. Common ones:
   "cooldown_ticks": 60,
   "hunger_cost": 1,
   "entity_action": {
-    "type": "neoorigins:add_velocity",
-    "x": 0,
-    "y": 0.2,
-    "z": 1.2,
-    "set": false
+    "type": "neoorigins:dash",
+    "strength": 1.2,
+    "allow_vertical": true
   }
 }
 ```
