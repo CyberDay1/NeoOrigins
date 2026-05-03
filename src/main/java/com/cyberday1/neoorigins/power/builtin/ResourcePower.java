@@ -142,7 +142,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         String key = storageKey(player, config);
-        player.getData(CompatAttachments.resourceState()).set(key, 0);
+        player.getData(CompatAttachments.resourceState()).remove(key);
+        CompatAttachments.unregisterResourceMeta(key);
         CompatAttachments.syncResourcesToClient(player);
     }
 

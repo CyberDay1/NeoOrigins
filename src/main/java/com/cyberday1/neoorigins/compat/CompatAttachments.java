@@ -84,6 +84,7 @@ public class CompatAttachments {
 
         public int get(String key, int defaultValue) { return values.getOrDefault(key, defaultValue); }
         public void set(String key, int value)       { values.put(key, value); dirty = true; }
+        public void remove(String key)               { values.remove(key); dirty = true; }
 
         public void clampedAdd(String key, int delta, int min, int max) {
             int cur = values.getOrDefault(key, 0);
@@ -105,6 +106,7 @@ public class CompatAttachments {
     private static final Map<String, ResourceMeta> RESOURCE_META = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void registerResourceMeta(String key, ResourceMeta meta) { RESOURCE_META.put(key, meta); }
+    public static void unregisterResourceMeta(String key) { RESOURCE_META.remove(key); }
     public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(key); }
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
     public static void clearResourceMeta() { RESOURCE_META.clear(); }

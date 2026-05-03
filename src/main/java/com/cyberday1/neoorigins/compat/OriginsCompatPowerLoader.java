@@ -565,7 +565,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onRevoked(player -> {
-                player.getData(CompatAttachments.resourceState()).set(key, 0);
+                player.getData(CompatAttachments.resourceState()).remove(key);
+                CompatAttachments.unregisterResourceMeta(key);
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onTick(player -> {
