@@ -22,11 +22,14 @@ public abstract class LivingEntityClimbMixin {
     @Inject(method = "onClimbable", at = @At("HEAD"), cancellable = true)
     private void neoorigins$wallClimbCapability(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
-        // Only hijack the return when the entity is actually pressed against a wall —
-        // otherwise ordinary climbing on ladders and vines is unchanged.
-        if (!self.horizontalCollision) return;
         if (self.onGround()) return;
         if (!PowerCapabilities.hasActive(self, "wall_climb")) return;
+        // Accept both full and minor horizontal collision — when sneaking,
+        // movement speed drops and may not trigger a full collision, but
+        // minorHorizontalCollision still indicates wall contact. Without
+        // this, sneaking on a wall loses the climbing state and the player
+        // falls instead of holding position.
+        if (!self.horizontalCollision && !self.minorHorizontalCollision) return;
         cir.setReturnValue(true);
     }
 }
