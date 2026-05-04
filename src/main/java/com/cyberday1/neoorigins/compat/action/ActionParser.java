@@ -545,10 +545,9 @@ public final class ActionParser {
 
     private static EntityAction parseSetBlock(JsonObject json) {
         String blockId = json.has("block") ? json.get("block").getAsString() : null;
-        if (blockId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] set_block: missing block id — action will no-op");
-            return EntityAction.noop();
-        }
+        if (blockId == null) return EntityAction.noop();
+        // Substitute known missing blocks from other mods
+        if (blockId.equals("origins:temporary_cobweb")) blockId = "minecraft:cobweb";
         Identifier bid = Identifier.parse(blockId);
         boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
         return player -> {

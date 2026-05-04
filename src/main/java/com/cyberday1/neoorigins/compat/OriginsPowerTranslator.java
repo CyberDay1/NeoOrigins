@@ -62,7 +62,7 @@ public final class OriginsPowerTranslator {
         // origins:particle is translated in doTranslate() — was previously skipped
         // origins:lava_vision — translated in doTranslate()
         // origins:model_color — translated in doTranslate()
-        "origins:shaking",
+        // origins:shaking — handled by Route B (freeze ticks visual)
         // origins:swim_speed — translated in doTranslate()
         "origins:air_acceleration",      "apace:air_acceleration",
         // origins:modify_swim_speed translates in doTranslate() to
