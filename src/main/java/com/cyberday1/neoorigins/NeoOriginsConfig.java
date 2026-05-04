@@ -53,7 +53,8 @@ public final class NeoOriginsConfig {
         "sculkborn", "enderite", "necromancer", "gorgon", "automaton", "kraken",
         "warden", "dwarf", "breeze", "vampire",
         "air_mage", "darkness_mage", "earth_mage", "fire_mage", "gravity_mage",
-        "water_mage", "monster_tamer"
+        "water_mage", "monster_tamer",
+        "skeleton", "slime", "wraith"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;
@@ -309,6 +310,28 @@ public final class NeoOriginsConfig {
         p("siren_land_slowdown");       f("amount", -0.15, -1, 1); ep();
         p("siren_reduced_health");      f("amount", -4.0, -100, 100); ep();
 
+        // ── Skeleton ──
+        // (skeleton_daylight_damage and skeleton_ascended_daylight_damage have
+        // tuneable values nested in entity_action; shallow overrides can't reach them.)
+        p("skeleton_speed");            f("amount", 0.2, -1, 10); ep();
+        p("skeleton_jump");             f("amount", 0.3, -1, 10); ep();
+        p("skeleton_brittle_frame");    f("amount", -6.0, -100, 100); ep();
+        p("skeleton_marksmanship");     f("multiplier", 1.5, 0, 100); ep();
+        p("skeleton_eat_bone_meal");    fi("nutrition", 3, 0, 20); f("saturation", 0.4, 0, 10); ep();
+        p("skeleton_evolved_marksmanship");f("multiplier", 1.75, 0, 100); ep();
+        p("skeleton_evolved_hp");       f("amount", 2.0, -100, 100); ep();
+        p("skeleton_ascended_speed");   f("amount", 0.3, -1, 10); ep();
+        p("skeleton_apex_brittle_frame");f("amount", -2.0, -100, 100); ep();
+
+        // ── Slime ──
+        // (slime_ascended_sticky values are nested in entity_action;
+        // shallow overrides can't reach them. Edit JSON directly to retune.)
+        p("slime_moisture");            f("drain_per_tick", 0.0004, 0, 0.01); f("dry_biome_drain_multiplier", 3.0, 0, 100); f("fire_drain_multiplier", 10.0, 0, 100); f("water_refill_per_tick", 0.005, 0, 0.1); f("regen_threshold", 0.75, 0, 1.0); f("armor_penalty_threshold", 0.10, 0, 1.0); f("dot_damage", 1.0, 0, 100); fi("dot_interval", 40, 1, 72000); ep();
+        p("slime_death_save");          f("moisture_threshold", 0.75, 0, 1.0); fi("teleport_distance", 50, 1, 256); fi("teleport_y_range", 10, 0, 256); f("split_max_hp", 4.0, 1, 100); fi("recovery_ticks", 2400, 0, 72000); ep();
+        p("slime_level_hp");            fi("levels_per_hp", 10, 1, 100); fi("max_bonus_hp", 20, 0, 100); ep();
+        p("slime_evolved_hp");          f("amount", 2.0, -100, 100); ep();
+        p("slime_apex_hp");             f("amount", 6.0, -100, 100); ep();
+
         // ── Sporeling ──
         p("sporeling_spore_cloud");     fi("amplifier", 1, 0, 255); fi("duration_ticks", 100, 1, 72000); f("radius", 5.0, 0, 64); fi("cooldown_ticks", 240, 0, 72000); ep();
         p("sporeling_natural_armor");   fi("amplifier", 0, 0, 4); ep();
@@ -351,11 +374,15 @@ public final class NeoOriginsConfig {
         p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
 
         // ── Wraith ──
-        p("wraith_phase");              fb("always_on", false); ep();
-        p("wraith_evolved_phase");      fb("always_on", false); ep();
-        p("wraith_apex_phase");         fb("always_on", false); ep();
+        // (wraith_ascended_daylight_damage and wraith_ascended_weakness_aura
+        // have tuneable values nested in entity_action; shallow overrides
+        // can't reach them. Edit JSON directly to retune.)
+        p("wraith_phase");              fb("always_on", false); f("exhaustion_per_tick", 0.15, 0, 1.0); ep();
+        p("wraith_evolved_phase");      fb("always_on", false); f("exhaustion_per_tick", 0.1125, 0, 1.0); ep();
+        p("wraith_apex_phase");         fb("always_on", false); f("exhaustion_per_tick", 0.075, 0, 1.0); ep();
         p("wraith_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
         p("wraith_hunger_drain");       f("value", 1.75, 0, 100); ep();
+        p("wraith_apex_hunger_drain");  f("value", 1.25, 0, 100); ep();
 
         // ── Vampire ──
         p("vampire_attack_bonus");      f("amount", 2.0, -100, 100); ep();
@@ -430,6 +457,26 @@ public final class NeoOriginsConfig {
 
         BUILDER.pop(); // power_overrides
     }
+
+    // ── Orb of Origins ──────────────────────────────────────────────────
+    public static final ModConfigSpec.IntValue ORB_LEVELS_PER_USE;
+
+    static {
+        BUILDER.comment(
+            "Orb of Origins settings.",
+            "Controls XP cost behaviour when a player uses an Orb of Origin."
+        ).push("orb_of_origins");
+
+        ORB_LEVELS_PER_USE = BUILDER
+            .comment("XP levels charged per prior orb use.",
+                     "Cost = this value * number of previous orb uses.",
+                     "First use is always free. Set to 0 to disable XP cost entirely.")
+            .defineInRange("levels_per_use", 5, 0, 1000);
+
+        BUILDER.pop();
+    }
+
+    public static int orbLevelsPerUse() { return ORB_LEVELS_PER_USE.get(); }
 
     // ── Random Origin Assignment ─────────────────────────────────────────
     public static final ModConfigSpec.EnumValue<RandomMode> RANDOM_MODE;

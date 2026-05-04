@@ -584,7 +584,7 @@ public class NeoOriginsNetwork {
      * intent, so closing the picker without picking is a free cancel.
      */
     private static void commitOrbUse(ServerPlayer sp, PlayerOriginData data) {
-        int cost = data.getOrbUseCount() * com.cyberday1.neoorigins.content.OrbOfOriginItem.LEVELS_PER_USE;
+        int cost = com.cyberday1.neoorigins.content.OrbOfOriginItem.computeCost(data.getOrbUseCount());
 
         ActiveOriginService.revokeAllPowers(sp);
         for (var layer : LayerDataManager.INSTANCE.getLayers().values()) {
