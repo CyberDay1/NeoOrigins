@@ -500,12 +500,19 @@ public class CombatPowerEvents {
         // longer_potions moved to action_on_event (MOD_POTION_DURATION).
         float dMult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_POTION_DURATION, inst, 1.0f);
-        if (dMult != 1.0f) {
+
+        // modify_status_effect_amplifier (Route B) — boost amplifier for matching effects.
+        var effectKey = BuiltInRegistries.MOB_EFFECT.getKey(inst.getEffect().value());
+        int ampBoost = effectKey != null
+            ? com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.getAmplifierBoost(sp.getUUID(), effectKey) : 0;
+
+        if (dMult != 1.0f || ampBoost != 0) {
             int newDuration = (int)(inst.getDuration() * dMult);
+            int newAmplifier = inst.getAmplifier() + ampBoost;
             LENGTHENING_EFFECT.set(true);
             try {
                 sp.addEffect(new MobEffectInstance(inst.getEffect(), newDuration,
-                    inst.getAmplifier(), inst.isAmbient(), inst.isVisible()));
+                    newAmplifier, inst.isAmbient(), inst.isVisible()));
             } finally {
                 LENGTHENING_EFFECT.set(false);
             }

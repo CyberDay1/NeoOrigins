@@ -85,7 +85,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:modify_lava_speed",    "apace:modify_lava_speed",
         "origins:modify_xp_gain",       "apace:modify_xp_gain",
         "origins:shaking",              "apace:shaking",
-        "apoli:overlay"
+        "apoli:overlay",
+        "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
+        "origins:modify_falling",       "apace:modify_falling"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -388,6 +390,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:modify_damage_taken",        "apace:modify_damage_taken"        -> parseConditionedModifyDamageTaken(id, json);
             case "origins:shaking",                    "apace:shaking"                    -> parseShaking(id, json);
             case "apoli:overlay"                                                          -> parseOverlay(id, json);
+            case "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier" -> parseModifyEffectAmplifier(id, json);
+            case "origins:modify_falling",             "apace:modify_falling"             -> parseModifyFalling(id, json);
             default -> null;
         };
     }
@@ -768,6 +772,85 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .onRevoked(player -> player.setTicksFrozen(0))
+            .build();
+    }
+
+    // ── Effect amplifier modifier registry ─────────────────────────────
+    // Keyed by player UUID → effect ResourceLocation → amplifier delta.
+    // Checked by CombatPowerEvents.onMobEffectAdded to boost amplifiers.
+    private static final java.util.concurrent.ConcurrentHashMap<java.util.UUID,
+        java.util.Map<ResourceLocation, Integer>> EFFECT_AMP_MODIFIERS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static int getAmplifierBoost(java.util.UUID playerId, ResourceLocation effectId) {
+        var map = EFFECT_AMP_MODIFIERS.get(playerId);
+        return map == null ? 0 : map.getOrDefault(effectId, 0);
+    }
+
+    static void addAmplifierModifier(java.util.UUID playerId, ResourceLocation effectId, int delta) {
+        EFFECT_AMP_MODIFIERS.computeIfAbsent(playerId, k -> new java.util.concurrent.ConcurrentHashMap<>())
+            .merge(effectId, delta, Integer::sum);
+    }
+
+    static void removeAmplifierModifier(java.util.UUID playerId, ResourceLocation effectId, int delta) {
+        var map = EFFECT_AMP_MODIFIERS.get(playerId);
+        if (map == null) return;
+        map.merge(effectId, -delta, Integer::sum);
+        if (map.getOrDefault(effectId, 0) == 0) map.remove(effectId);
+        if (map.isEmpty()) EFFECT_AMP_MODIFIERS.remove(playerId);
+    }
+
+    /** origins:modify_status_effect_amplifier — boosts the amplifier of a specific
+     *  effect whenever it's applied to the player. */
+    private CompatPower.Config parseModifyEffectAmplifier(ResourceLocation id, JsonObject json) {
+        String effectStr = json.has("status_effect") ? json.get("status_effect").getAsString() : null;
+        if (effectStr == null) return null;
+        ResourceLocation effectId = ResourceLocation.parse(effectStr);
+
+        JsonObject modObj = json.has("modifier") && json.get("modifier").isJsonObject()
+            ? json.getAsJsonObject("modifier") : json;
+        int value = modObj.has("value") ? modObj.get("value").getAsInt() : 1;
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> addAmplifierModifier(player.getUUID(), effectId, value))
+            .onRevoked(player -> removeAmplifierModifier(player.getUUID(), effectId, value))
+            .build();
+    }
+
+    /** origins:modify_falling — slow fall with optional no fall damage. */
+    private CompatPower.Config parseModifyFalling(ResourceLocation id, JsonObject json) {
+        float velocity = json.has("velocity") ? json.get("velocity").getAsFloat() : 0.1f;
+        boolean takeFallDamage = !json.has("take_fall_damage") || json.get("take_fall_damage").getAsBoolean();
+
+        String safeKey = id.getPath().replace('/', '_');
+        ResourceLocation gravModId = ResourceLocation.fromNamespaceAndPath("neoorigins", "modfalling_grav_" + safeKey);
+        ResourceLocation fallModId = ResourceLocation.fromNamespaceAndPath("neoorigins", "modfalling_fall_" + safeKey);
+
+        // velocity 0.1 means slow fall — reduce gravity. Lower velocity = less gravity.
+        // Vanilla gravity is 0.08; slow_falling effect sets it to 0.01.
+        // We scale: velocity=0.01 → -0.9875 mult, velocity=0.1 → -0.875 mult
+        double gravMult = -(1.0 - (velocity / 0.08));
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> {
+                var gravAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.GRAVITY);
+                if (gravAttr != null && gravAttr.getModifier(gravModId) == null) {
+                    gravAttr.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                        gravModId, gravMult, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+                }
+                if (!takeFallDamage) {
+                    var fallAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SAFE_FALL_DISTANCE);
+                    if (fallAttr != null && fallAttr.getModifier(fallModId) == null) {
+                        fallAttr.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                            fallModId, 1000.0, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+                    }
+                }
+            })
+            .onRevoked(player -> {
+                var gravAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.GRAVITY);
+                if (gravAttr != null) gravAttr.removeModifier(gravModId);
+                var fallAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SAFE_FALL_DISTANCE);
+                if (fallAttr != null) fallAttr.removeModifier(fallModId);
+            })
             .build();
     }
 
