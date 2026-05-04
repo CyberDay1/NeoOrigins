@@ -582,11 +582,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // HUD display metadata — parse from hud_render block or fall back to defaults.
         String label = "Resource";
         int color = 0xFF55AAFF;
+        boolean hidden = false;
         if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
             JsonObject hud = json.getAsJsonObject("hud_render");
             if (hud.has("bar_index")) {
                 // Apoli hud_render has bar_index, sprite_location, condition — we
                 // use a flat color bar, so just derive a label from the power ID.
+            }
+            // Origins compat: should_render=false hides the bar
+            if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
+                hidden = true;
             }
         }
         // Derive a human-readable label from the power ID path segment.
@@ -605,7 +610,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         label = sb.toString();
 
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(min, max, label, color));
+            new CompatAttachments.ResourceMeta(min, max, label, color, hidden));
 
         return CompatPower.Config.builder()
             .onGranted(player -> {

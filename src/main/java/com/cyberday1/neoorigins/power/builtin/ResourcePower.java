@@ -60,6 +60,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         EntityAction maxAction,
         String label,
         int color,
+        boolean hidden,
         String type
     ) implements PowerConfiguration {
 
@@ -94,6 +95,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 // HUD render
                 String label = "Resource";
                 int color = 0xFF55AAFF;
+                boolean hidden = obj.has("hidden") && obj.get("hidden").getAsBoolean();
                 if (obj.has("hud_render") && obj.get("hud_render").isJsonObject()) {
                     JsonObject hud = obj.getAsJsonObject("hud_render");
                     if (hud.has("label")) label = hud.get("label").getAsString();
@@ -101,11 +103,15 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                         String cs = hud.get("color").getAsString();
                         color = parseColor(cs);
                     }
+                    // Origins compat: should_render=false hides the bar
+                    if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
+                        hidden = true;
+                    }
                 }
 
                 return DataResult.success(Pair.of(new Config(
                     powerId, min, max, startValue, regenRate, regenInterval,
-                    regenCond, minAction, maxAction, label, color, t
+                    regenCond, minAction, maxAction, label, color, hidden, t
                 ), ops.empty()));
             }
 
@@ -139,7 +145,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         String key = storageKey(player, config);
         player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color()));
+            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(), config.hidden()));
         CompatAttachments.syncResourcesToClient(player);
     }
 

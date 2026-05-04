@@ -77,7 +77,12 @@ public class CompatAttachments {
     }
 
     /** Per-resource display metadata registered at parse time. */
-    public record ResourceMeta(int min, int max, String label, int color) {}
+    public record ResourceMeta(int min, int max, String label, int color, boolean hidden) {
+        /** Convenience constructor — defaults to visible. */
+        public ResourceMeta(int min, int max, String label, int color) {
+            this(min, max, label, color, false);
+        }
+    }
 
     private static final Map<String, ResourceMeta> RESOURCE_META = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -125,7 +130,7 @@ public class CompatAttachments {
         var entries = new HashMap<String, com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry>();
         for (var e : state.getAll().entrySet()) {
             ResourceMeta meta = getResourceMeta(e.getKey());
-            if (meta == null) continue;
+            if (meta == null || meta.hidden()) continue;
             entries.put(e.getKey(), new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color()));
         }
