@@ -884,6 +884,8 @@ public final class ActionParser {
     private static EntityAction parseSetBlock(JsonObject json) {
         String blockId = json.has("block") ? json.get("block").getAsString() : null;
         if (blockId == null) return EntityAction.noop();
+        // Substitute known missing blocks from other mods
+        if (blockId.equals("origins:temporary_cobweb")) blockId = "minecraft:cobweb";
         // Cache block at parse time
         ResourceLocation bid = ResourceLocation.parse(blockId);
         var blockOpt = BuiltInRegistries.BLOCK.getOptional(bid);

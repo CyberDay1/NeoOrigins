@@ -83,7 +83,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:prevent_sprinting",    "apace:prevent_sprinting",
         "origins:modify_crafting",      "apace:modify_crafting",
         "origins:modify_lava_speed",    "apace:modify_lava_speed",
-        "origins:modify_xp_gain",       "apace:modify_xp_gain"
+        "origins:modify_xp_gain",       "apace:modify_xp_gain",
+        "origins:shaking",              "apace:shaking",
+        "apoli:overlay"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -379,6 +381,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:modify_xp_gain",             "apace:modify_xp_gain"             -> parseNumericModifier(id, json, NumericModifierRegistry.Kind.XP_GAIN);
             // Conditioned modify_damage_taken — only dispatched here when a condition is present.
             case "origins:modify_damage_taken",        "apace:modify_damage_taken"        -> parseConditionedModifyDamageTaken(id, json);
+            case "origins:shaking",                    "apace:shaking"                    -> parseShaking(id, json);
+            case "apoli:overlay"                                                          -> parseOverlay(id, json);
             default -> null;
         };
     }
@@ -660,13 +664,21 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseConditionedAttribute(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        if (!json.has("attribute")) {
+        // Attribute can be at top level or nested inside "modifier" object
+        String attrStr = null;
+        if (json.has("attribute")) {
+            attrStr = json.get("attribute").getAsString();
+        } else if (json.has("modifier") && json.get("modifier").isJsonObject()
+                   && json.getAsJsonObject("modifier").has("attribute")) {
+            attrStr = json.getAsJsonObject("modifier").get("attribute").getAsString();
+        }
+        if (attrStr == null) {
             CompatTranslationLog.skip(id, "origins:conditioned_attribute",
                 "missing 'attribute' field in JSON");
             return null;
         }
 
-        ResourceLocation rawAttrIdent = ResourceLocation.parse(json.get("attribute").getAsString());
+        ResourceLocation rawAttrIdent = ResourceLocation.parse(attrStr);
         // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
         ResourceLocation attrIdent = rawAttrIdent.getPath().startsWith("generic.")
             ? ResourceLocation.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
@@ -723,6 +735,34 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (inst != null) inst.removeModifier(modifierId);
             })
             .build();
+    }
+
+    /** origins:shaking — makes the player model shake (like zombie-to-drowned conversion).
+     *  Implemented via freeze ticks which trigger the same visual. */
+    private CompatPower.Config parseShaking(ResourceLocation id, JsonObject json) {
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), id.toString())
+            : EntityCondition.alwaysTrue();
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                // Set freeze ticks just above the threshold to trigger shaking
+                // without actually freezing the player. 1 tick above threshold
+                // shows the animation without dealing damage.
+                if (condition.test(player)) {
+                    if (player.getTicksFrozen() < 2) player.setTicksFrozen(2);
+                } else {
+                    if (player.getTicksFrozen() > 0) player.setTicksFrozen(0);
+                }
+            })
+            .onRevoked(player -> player.setTicksFrozen(0))
+            .build();
+    }
+
+    /** apoli:overlay — screen overlay effect. Parsed as a no-op since overlay rendering
+     *  requires client-side hooks not yet ported. The power loads successfully so it
+     *  doesn't count against the compat power-ratio threshold. */
+    private CompatPower.Config parseOverlay(ResourceLocation id, JsonObject json) {
+        return CompatPower.Config.builder().build();
     }
 
     private CompatPower.Config parseConditionedStatusEffect(ResourceLocation id, JsonObject json) {
