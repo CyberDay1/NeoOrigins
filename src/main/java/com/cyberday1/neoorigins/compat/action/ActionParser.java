@@ -1797,23 +1797,38 @@ public final class ActionParser {
 
     /** origins:spawn_effect_cloud — spawn an AreaEffectCloud at the player's position. */
     private static EntityAction parseSpawnEffectCloud(JsonObject json) {
-        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
+        // Effect can be a string ("minecraft:wither") or an object ({ "effect": "...", "duration": N })
+        String effectId = null;
         int duration = json.has("duration") ? json.get("duration").getAsInt() : 200;
         int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+        if (json.has("effect")) {
+            JsonElement effectEl = json.get("effect");
+            if (effectEl.isJsonPrimitive()) {
+                effectId = effectEl.getAsString();
+            } else if (effectEl.isJsonObject()) {
+                JsonObject effectObj = effectEl.getAsJsonObject();
+                effectId = effectObj.has("effect") ? effectObj.get("effect").getAsString() : null;
+                if (effectObj.has("duration")) duration = effectObj.get("duration").getAsInt();
+                if (effectObj.has("amplifier")) amplifier = effectObj.get("amplifier").getAsInt();
+            }
+        }
         float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
         int waitTime = json.has("wait_time") ? json.get("wait_time").getAsInt() : 10;
+        final String fEffectId = effectId;
+        final int fDuration = duration;
+        final int fAmplifier = amplifier;
         return player -> {
             if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
             var cloud = new net.minecraft.world.entity.AreaEffectCloud(sl, player.getX(), player.getY(), player.getZ());
             cloud.setRadius(radius);
-            cloud.setDuration(duration);
+            cloud.setDuration(fDuration);
             cloud.setWaitTime(waitTime);
             cloud.setOwner(player);
-            if (effectId != null) {
-                var eff = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(effectId));
+            if (fEffectId != null) {
+                var eff = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(fEffectId));
                 if (eff.isPresent()) {
                     var holder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.wrapAsHolder(eff.get());
-                    cloud.addEffect(new net.minecraft.world.effect.MobEffectInstance(holder, duration, amplifier));
+                    cloud.addEffect(new net.minecraft.world.effect.MobEffectInstance(holder, fDuration, fAmplifier));
                 }
             }
             sl.addFreshEntity(cloud);

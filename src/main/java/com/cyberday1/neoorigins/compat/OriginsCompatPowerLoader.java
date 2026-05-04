@@ -90,6 +90,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
 
+    /** Check if a raw type string (before canonicalization) is handled by Route B. */
+    public static boolean isRouteBType(String rawType) {
+        return ROUTE_B_TYPES.contains(rawType);
+    }
+
     private static final FileToIdConverter FILE_CONVERTER  = FileToIdConverter.json("origins/powers");
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("powers");
 
@@ -679,14 +684,22 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
 
         ResourceLocation rawAttrIdent = ResourceLocation.parse(attrStr);
-        // Normalize legacy "generic." prefix (removed in MC 1.21.2+)
-        ResourceLocation attrIdent = rawAttrIdent.getPath().startsWith("generic.")
-            ? ResourceLocation.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
-                rawAttrIdent.getPath().substring("generic.".length()))
-            : rawAttrIdent;
-
-        // Cache attribute holder at parse time
-        var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
+        // Try the raw attribute name first. If that fails and the name has a
+        // "generic." prefix (used in MC ≤1.21.1), try without it (MC 1.21.2+
+        // dropped the prefix). This lets the same pack work on both versions.
+        var attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(rawAttrIdent);
+        ResourceLocation attrIdent = rawAttrIdent;
+        if (attrOpt.isEmpty() && rawAttrIdent.getPath().startsWith("generic.")) {
+            attrIdent = ResourceLocation.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
+                rawAttrIdent.getPath().substring("generic.".length()));
+            attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
+        }
+        // Also try adding "generic." prefix if not present (26.1 pack on 1.21.1)
+        if (attrOpt.isEmpty() && !rawAttrIdent.getPath().startsWith("generic.")) {
+            attrIdent = ResourceLocation.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
+                "generic." + rawAttrIdent.getPath());
+            attrOpt = BuiltInRegistries.ATTRIBUTE.getOptional(attrIdent);
+        }
         if (attrOpt.isEmpty()) {
             NeoOrigins.LOGGER.warn("[CompatB] {}: unknown attribute '{}' (raw: '{}') — power will no-op",
                 idStr, attrIdent, rawAttrIdent);

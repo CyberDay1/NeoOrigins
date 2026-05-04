@@ -244,6 +244,7 @@ public final class ConditionParser {
                 case "neoorigins:replacable",
                      "neoorigins:replaceable"                   -> parseReplaceable(json);
                 case "neoorigins:actor_condition"               -> parseActorCondition(json, contextId);
+                case "neoorigins:advancement"                   -> parseAdvancement(json, contextId);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -1319,6 +1320,19 @@ public final class ConditionParser {
             return ConditionParser.parse(json.getAsJsonObject("condition"), contextId);
         }
         return failClosed("neoorigins:actor_condition", contextId, "missing 'condition' field");
+    }
+
+    /** origins:advancement — true when the player has completed a specific advancement. */
+    private static EntityCondition parseAdvancement(JsonObject json, String contextId) {
+        String advId = json.has("advancement") ? json.get("advancement").getAsString() : null;
+        if (advId == null) return failClosed("neoorigins:advancement", contextId, "missing 'advancement' field");
+        ResourceLocation id = ResourceLocation.parse(advId);
+        return p -> {
+            if (!(p.level() instanceof net.minecraft.server.level.ServerLevel sl)) return false;
+            var adv = sl.getServer().getAdvancements().get(id);
+            if (adv == null) return false;
+            return p.getAdvancements().getOrStartProgress(adv).isDone();
+        };
     }
 
     /**
