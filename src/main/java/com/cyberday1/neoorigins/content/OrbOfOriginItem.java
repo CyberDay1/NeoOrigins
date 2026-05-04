@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.content;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
@@ -19,7 +20,14 @@ public class OrbOfOriginItem extends Item {
         super(properties);
     }
 
+    /** @deprecated Use {@link NeoOriginsConfig#orbLevelsPerUse()} instead. Kept for binary compat. */
+    @Deprecated
     public static final int LEVELS_PER_USE = 5;
+
+    /** Compute the XP level cost for an orb use based on config and prior use count. */
+    public static int computeCost(int orbUseCount) {
+        return orbUseCount * NeoOriginsConfig.orbLevelsPerUse();
+    }
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
@@ -31,7 +39,7 @@ public class OrbOfOriginItem extends Item {
         }
 
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
-        int cost = data.getOrbUseCount() * LEVELS_PER_USE;
+        int cost = computeCost(data.getOrbUseCount());
 
         if (!sp.isCreative() && cost > 0 && sp.experienceLevel < cost) {
             sp.sendSystemMessage(Component.translatable("item.neoorigins.orb_of_origin.not_enough_xp", cost)

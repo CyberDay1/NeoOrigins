@@ -53,11 +53,11 @@ public class PlayerOriginData {
      *  been committed yet. The first successful ChooseOrigin after this flag is set
      *  performs the actual revoke/XP/stack-shrink; picker-close clears it. */
     private transient boolean pendingOrbCommit = false;
-    /** Session-only — set when the player closes the origin picker without
-     *  committing any origin. Disables first-pick invulnerability so they
-     *  can't stay immortal forever by dismissing the picker. Cleared on the
-     *  next successful ChooseOrigin. */
-    private transient boolean pickerAbandoned = false;
+    /** Set when the player closes the origin picker without committing any
+     *  origin. Disables first-pick invulnerability so they can't stay
+     *  immortal forever by dismissing the picker. Persisted so the flag
+     *  survives relog. Cleared on the next successful ChooseOrigin. */
+    private boolean pickerAbandoned = false;
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
@@ -100,8 +100,11 @@ public class PlayerOriginData {
             .forGetter(d -> d.essenceKills),
         Codec.INT
             .optionalFieldOf("evolution_tier", 0)
-            .forGetter(d -> d.evolutionTier)
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats, kills, tier) -> {
+            .forGetter(d -> d.evolutionTier),
+        Codec.BOOL
+            .optionalFieldOf("picker_abandoned", false)
+            .forGetter(d -> d.pickerAbandoned)
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats, kills, tier, abandoned) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         data.hadAllOrigins = hadAll;
@@ -120,6 +123,7 @@ public class PlayerOriginData {
         data.customFloats.putAll(floats);
         data.essenceKills = kills;
         data.evolutionTier = tier;
+        data.pickerAbandoned = abandoned;
         return data;
     }));
 
