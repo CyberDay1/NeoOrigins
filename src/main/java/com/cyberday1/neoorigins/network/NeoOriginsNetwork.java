@@ -540,7 +540,7 @@ public class NeoOriginsNetwork {
                 }
                 powerMapOut.put(powerId, toggledOn);
                 if (toggledOn) {
-                    capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(holder.config()));
+                    capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
                 }
             }
         }

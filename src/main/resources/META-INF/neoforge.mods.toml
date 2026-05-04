@@ -39,3 +39,6 @@ license = "${mod_license}"
 
 [[mixins]]
     config = "neoorigins.mixins.json"
+
+[[mixins]]
+    config = "neoorigins-compat.mixins.json"
