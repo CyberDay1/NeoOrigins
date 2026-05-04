@@ -244,6 +244,7 @@ public final class ConditionParser {
                 case "neoorigins:replacable",
                      "neoorigins:replaceable"                   -> parseReplaceable(json);
                 case "neoorigins:actor_condition"               -> parseActorCondition(json, contextId);
+                case "neoorigins:advancement"                   -> parseAdvancement(json, contextId);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -369,7 +370,7 @@ public final class ConditionParser {
             if (blockId == null || blockId.isBlank()) {
                 return failClosed("origins:on_block", contextId, "block_condition.block is empty");
             }
-            ResourceLocation bid = ResourceLocation.parse(blockId);
+            Identifier bid = Identifier.parse(blockId);
             return player -> {
                 if (!player.onGround()) return false;
                 BlockPos below = player.blockPosition().below();
@@ -1263,7 +1264,7 @@ public final class ConditionParser {
         // or just { "effect": "...", "amplifier": 0 }
         String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
         if (effectId == null) return CompatPolicy.FALSE_CONDITION;
-        ResourceLocation id = ResourceLocation.parse(effectId);
+        Identifier id = Identifier.parse(effectId);
         int minAmp = json.has("min_amplifier") ? json.get("min_amplifier").getAsInt() : -1;
         int maxAmp = json.has("max_amplifier") ? json.get("max_amplifier").getAsInt() : Integer.MAX_VALUE;
         if (json.has("amplifier")) { minAmp = json.get("amplifier").getAsInt(); maxAmp = minAmp; }
@@ -1291,7 +1292,7 @@ public final class ConditionParser {
     private static EntityCondition parsePower(JsonObject json, String contextId) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
         if (powerId == null) return failClosed("neoorigins:power", contextId, "missing 'power' field");
-        ResourceLocation id = ResourceLocation.parse(powerId);
+        Identifier id = Identifier.parse(powerId);
         return p -> {
             var data = p.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
             for (var entry : data.getOrigins().entrySet()) {
@@ -1315,6 +1316,19 @@ public final class ConditionParser {
             return ConditionParser.parse(json.getAsJsonObject("condition"), contextId);
         }
         return failClosed("neoorigins:actor_condition", contextId, "missing 'condition' field");
+    }
+
+    /** origins:advancement — true when the player has completed a specific advancement. */
+    private static EntityCondition parseAdvancement(JsonObject json, String contextId) {
+        String advId = json.has("advancement") ? json.get("advancement").getAsString() : null;
+        if (advId == null) return failClosed("neoorigins:advancement", contextId, "missing 'advancement' field");
+        Identifier id = Identifier.parse(advId);
+        return p -> {
+            if (!(p.level() instanceof net.minecraft.server.level.ServerLevel sl)) return false;
+            var adv = sl.getServer().getAdvancements().get(id);
+            if (adv == null) return false;
+            return p.getAdvancements().getOrStartProgress(adv).isDone();
+        };
     }
 
     /**

@@ -112,7 +112,12 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                 typeId = LegacyPowerTypeAliases.apply(typeId, json, id);
                 PowerType<?> type = PowerTypes.get(typeId);
                 if (type == null) {
-                    NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}", typeId, id);
+                    // Don't warn for types handled by Route B compat — they'll
+                    // be picked up by OriginsCompatPowerLoader after us.
+                    String rawType = json.get("type").getAsString();
+                    if (!com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.isRouteBType(rawType)) {
+                        NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}", typeId, id);
+                    }
                     continue;
                 }
                 parsePower(id, type, json, loaded);
