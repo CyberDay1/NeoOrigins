@@ -35,17 +35,22 @@ service class directly.
 
 ```gradle
 repositories {
-    maven { url "https://maven.neoforged.net/releases" }
-    // NeoOrigins publishes to GitHub Packages + Modrinth.
-    // Adjust the URL to your preferred mirror.
+    maven { url "https://api.modrinth.com/maven" }
 }
 
 dependencies {
     // Compile against a stable minor release; runtime will use whatever
     // version of NeoOrigins the user has installed ≥ the declared version.
-    implementation "com.cyberday1:neoorigins:2.0.0"
+    // For 26.1.x:
+    compileOnly "maven.modrinth:neo-origins:v2.0.25+26.1"
+    // For 1.21.1:
+    // compileOnly "maven.modrinth:neo-origins:v2.0.25+1.21.1"
 }
 ```
+
+> **Version format:** Modrinth Maven uses the exact version string from the
+> [releases page](https://modrinth.com/mod/neo-origins/versions).
+> The format is `v{version}+{mc_version}` (e.g. `v2.0.25+26.1`).
 
 `neoforge.mods.toml`:
 
