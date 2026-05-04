@@ -185,10 +185,17 @@ public class NeoOriginsNetwork {
     }
 
     private static void handleSyncOrigins(SyncOriginsPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() ->
+        ctx.enqueueWork(() -> {
             com.cyberday1.neoorigins.client.ClientOriginState.setOrigins(
-                payload.origins(), payload.hadAllOrigins())
-        );
+                payload.origins(), payload.hadAllOrigins());
+            // Clear stale HUD state from a previous session/server — these static
+            // fields survive across disconnect/reconnect within the same client JVM.
+            // The server will re-send current values for any active resource/moisture
+            // powers via their normal tick-sync paths.
+            com.cyberday1.neoorigins.client.ClientMoistureState.clear();
+            com.cyberday1.neoorigins.client.ClientResourceState.clear();
+            com.cyberday1.neoorigins.client.ClientCooldownState.clear();
+        });
     }
 
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
