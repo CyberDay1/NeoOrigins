@@ -1600,7 +1600,7 @@ public final class ActionParser {
                 if (entityId != null && !net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())
                         .equals(Identifier.parse(entityId))) continue;
                 if (entity.isAlive() && !entity.isPassenger()) {
-                    player.startRiding(entity, true);
+                    player.startRiding(entity, true, true);
                     return;
                 }
             }

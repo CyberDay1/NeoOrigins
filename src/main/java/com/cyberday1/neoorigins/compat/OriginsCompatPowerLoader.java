@@ -221,7 +221,30 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:climbing",            () -> json("neoorigins:wall_climbing")),
             Map.entry("origins:shulker_inventory",   () -> json("neoorigins:extra_inventory")),
             Map.entry("origins:phantomize",          () -> json("neoorigins:phantom_form")),
-            Map.entry("origins:translucent",         () -> json("neoorigins:model_color", "red", 1.0, "green", 1.0, "blue", 1.0, "alpha", 0.5))
+            Map.entry("origins:translucent",         () -> json("neoorigins:model_color", "red", 1.0, "green", 1.0, "blue", 1.0, "alpha", 0.5)),
+            // ── Felvaxian / common addon references ──
+            Map.entry("origins:carnivore",           () -> json("neoorigins:food_restriction", "mode", "whitelist", "item_tag", "neoorigins:meat_foods")),
+            Map.entry("origins:cat_vision",           () -> json("neoorigins:night_vision")),
+            Map.entry("origins:fall_immunity",        () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", 1000.0, "operation", "add_value")),
+            Map.entry("origins:launch_into_air",      () -> json("neoorigins:active_ability")),
+            Map.entry("origins:light_armor",          () -> json("neoorigins:restrict_armor", "armor_class", "heavy")),
+            Map.entry("origins:nine_lives",           () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -2.0, "operation", "add_value")),
+            Map.entry("origins:no_shield",            () -> json("neoorigins:prevent_action", "action", "shield")),
+            Map.entry("origins:vegetarian",           () -> json("neoorigins:food_restriction", "mode", "blacklist", "item_tag", "neoorigins:meat_foods")),
+            Map.entry("origins:weak_arms",            () -> json("neoorigins:break_speed_modifier", "modifier", -0.5)),
+            Map.entry("origins:master_of_webs",       () -> json("neoorigins:wall_climbing")),
+            Map.entry("origins:arthropod",            () -> json("neoorigins:entity_group", "group", "arthropod")),
+            Map.entry("origins:fragile",              () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -6.0, "operation", "add_value")),
+            Map.entry("origins:phasing",              () -> json("neoorigins:phantom_form")),
+            Map.entry("origins:burn_in_daylight",     () -> json("neoorigins:condition_passive")),
+            Map.entry("origins:damage_from_potions",  () -> json("neoorigins:effect_immunity")),
+            Map.entry("origins:more_kinetic_damage",  () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", -2.0, "operation", "add_value")),
+            Map.entry("origins:throw_ender_pearl",    () -> json("neoorigins:active_ability")),
+            Map.entry("origins:pumpkin_hate",         () -> json("neoorigins:restrict_armor", "armor_class", "pumpkin")),
+            Map.entry("origins:hotblooded",           () -> json("neoorigins:effect_immunity")),
+            Map.entry("origins:water_vulnerability",  () -> json("neoorigins:condition_passive")),
+            Map.entry("origins:flame_particles",      () -> json("neoorigins:particle")),
+            Map.entry("origins:nether_spawn",         () -> json("neoorigins:spawn_location"))
         );
 
         for (var entry : WELL_KNOWN.entrySet()) {
@@ -273,6 +296,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
     private static JsonObject json(String type, String k1, String v1, String k2, double v2, String k3, String v3) {
         JsonObject o = json(type); o.addProperty(k1, v1); o.addProperty(k2, v2); o.addProperty(k3, v3); return o;
+    }
+
+    private static JsonObject json(String type, String k1, String v1, String k2, String v2) {
+        JsonObject o = json(type); o.addProperty(k1, v1); o.addProperty(k2, v2); return o;
+    }
+    private static JsonObject json(String type, String k1, double v1) {
+        JsonObject o = json(type); o.addProperty(k1, v1); return o;
     }
 
     /**
@@ -675,14 +705,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (attrHolder == null) {
             NeoOrigins.LOGGER.warn("[CompatB] {}: unknown attribute '{}' (raw: '{}') — power will no-op",
                 idStr, attrIdent, rawAttrIdent);
-            // Surface the bad attribute id in the compat log too — pack
-            // authors usually only check that file when debugging, not the
-            // main game log. Without the id they only see "no handler
-            // produced a config" which is unactionable.
             CompatTranslationLog.skip(id, "origins:conditioned_attribute",
                 "unknown attribute '" + rawAttrIdent + "' — pack-side fix: confirm attribute exists in this MC version");
             return null;
         }
+        final var resolvedAttrHolder = attrHolder;
 
         JsonObject modObj = json.has("modifier") ? json.getAsJsonObject("modifier") : json;
         double value = modObj.has("value")  ? modObj.get("value").getAsDouble()
@@ -704,7 +731,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         return CompatPower.Config.builder()
             .onTick(player -> {
-                AttributeInstance inst = player.getAttribute(attrHolder);
+                AttributeInstance inst = player.getAttribute(resolvedAttrHolder);
                 if (inst == null) return;
                 boolean shouldHave = condition.test(player);
                 boolean has = inst.getModifier(modifierId) != null;
@@ -715,7 +742,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .onRevoked(player -> {
-                AttributeInstance inst = player.getAttribute(attrHolder);
+                AttributeInstance inst = player.getAttribute(resolvedAttrHolder);
                 if (inst != null) inst.removeModifier(modifierId);
             })
             .build();
@@ -743,22 +770,22 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     // ── Effect amplifier modifier registry ─────────────────────────────
-    // Keyed by player UUID → effect ResourceLocation → amplifier delta.
+    // Keyed by player UUID → effect Identifier → amplifier delta.
     // Checked by CombatPowerEvents.onMobEffectAdded to boost amplifiers.
     private static final java.util.concurrent.ConcurrentHashMap<java.util.UUID,
-        java.util.Map<ResourceLocation, Integer>> EFFECT_AMP_MODIFIERS = new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.Map<Identifier, Integer>> EFFECT_AMP_MODIFIERS = new java.util.concurrent.ConcurrentHashMap<>();
 
-    public static int getAmplifierBoost(java.util.UUID playerId, ResourceLocation effectId) {
+    public static int getAmplifierBoost(java.util.UUID playerId, Identifier effectId) {
         var map = EFFECT_AMP_MODIFIERS.get(playerId);
         return map == null ? 0 : map.getOrDefault(effectId, 0);
     }
 
-    static void addAmplifierModifier(java.util.UUID playerId, ResourceLocation effectId, int delta) {
+    static void addAmplifierModifier(java.util.UUID playerId, Identifier effectId, int delta) {
         EFFECT_AMP_MODIFIERS.computeIfAbsent(playerId, k -> new java.util.concurrent.ConcurrentHashMap<>())
             .merge(effectId, delta, Integer::sum);
     }
 
-    static void removeAmplifierModifier(java.util.UUID playerId, ResourceLocation effectId, int delta) {
+    static void removeAmplifierModifier(java.util.UUID playerId, Identifier effectId, int delta) {
         var map = EFFECT_AMP_MODIFIERS.get(playerId);
         if (map == null) return;
         map.merge(effectId, -delta, Integer::sum);
@@ -768,10 +795,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     /** origins:modify_status_effect_amplifier — boosts the amplifier of a specific
      *  effect whenever it's applied to the player. */
-    private CompatPower.Config parseModifyEffectAmplifier(ResourceLocation id, JsonObject json) {
+    private CompatPower.Config parseModifyEffectAmplifier(Identifier id, JsonObject json) {
         String effectStr = json.has("status_effect") ? json.get("status_effect").getAsString() : null;
         if (effectStr == null) return null;
-        ResourceLocation effectId = ResourceLocation.parse(effectStr);
+        Identifier effectId = Identifier.parse(effectStr);
 
         JsonObject modObj = json.has("modifier") && json.get("modifier").isJsonObject()
             ? json.getAsJsonObject("modifier") : json;
@@ -784,13 +811,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     /** origins:modify_falling — slow fall with optional no fall damage. */
-    private CompatPower.Config parseModifyFalling(ResourceLocation id, JsonObject json) {
+    private CompatPower.Config parseModifyFalling(Identifier id, JsonObject json) {
         float velocity = json.has("velocity") ? json.get("velocity").getAsFloat() : 0.1f;
         boolean takeFallDamage = !json.has("take_fall_damage") || json.get("take_fall_damage").getAsBoolean();
 
         String safeKey = id.getPath().replace('/', '_');
-        ResourceLocation gravModId = ResourceLocation.fromNamespaceAndPath("neoorigins", "modfalling_grav_" + safeKey);
-        ResourceLocation fallModId = ResourceLocation.fromNamespaceAndPath("neoorigins", "modfalling_fall_" + safeKey);
+        Identifier gravModId = Identifier.fromNamespaceAndPath("neoorigins", "modfalling_grav_" + safeKey);
+        Identifier fallModId = Identifier.fromNamespaceAndPath("neoorigins", "modfalling_fall_" + safeKey);
 
         // velocity 0.1 means slow fall — reduce gravity. Lower velocity = less gravity.
         // Vanilla gravity is 0.08; slow_falling effect sets it to 0.01.
