@@ -74,7 +74,8 @@ public final class OriginsPowerTranslator {
         // origins:phasing — translated in doTranslate()
         // origins:burn — translated in doTranslate()
         "origins:exhaust",               "apace:exhaust",
-        "origins:modify_status_effect_amplifier",
+        // origins:modify_status_effect_amplifier — handled by Route B
+        // origins:modify_falling — handled by Route B
         "origins:modify_player_spawn",
         "origins:action_on_wake_up",
         "origins:action_on_item_use",
