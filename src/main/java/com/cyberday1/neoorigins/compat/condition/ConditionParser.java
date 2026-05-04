@@ -233,10 +233,17 @@ public final class ConditionParser {
                 case "neoorigins:has_effect"                    -> parseHasEffect(json);
                 case "neoorigins:climbing"                      -> p -> p.onClimbable();
                 case "neoorigins:near_block",
-                     "origins:block_in_radius",
-                     "apace:block_in_radius"                       -> parseNearBlock(json, contextId);
+                     "neoorigins:block_in_radius"                  -> parseNearBlock(json, contextId);
                 case "neoorigins:near_entity"                   -> parseNearEntity(json, contextId);
                 case "neoorigins:out_of_combat"                 -> parseOutOfCombat(json);
+
+                // ---- Origins++ compat expansion ----
+                case "neoorigins:status_effect"                 -> parseStatusEffect(json);
+                case "neoorigins:air"                           -> parseAir(json);
+                case "neoorigins:power"                         -> parsePower(json, contextId);
+                case "neoorigins:replacable",
+                     "neoorigins:replaceable"                   -> parseReplaceable(json);
+                case "neoorigins:actor_condition"               -> parseActorCondition(json, contextId);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -346,20 +353,62 @@ public final class ConditionParser {
 
     private static EntityCondition parseOnBlock(JsonObject json, String contextId) {
         if (!json.has("block_condition") || !json.get("block_condition").isJsonObject()) {
-            return failClosed("origins:on_block", contextId, "missing required field 'block_condition'");
+            // Some packs omit block_condition entirely — treat as "standing on any block"
+            return p -> p.onGround();
         }
         JsonObject blockCond = json.getAsJsonObject("block_condition");
-        String blockId = blockCond.has("id") ? blockCond.get("id").getAsString() : null;
-        if (blockId == null || blockId.isBlank()) {
-            return failClosed("origins:on_block", contextId, "missing required field 'block_condition.id'");
+        String bcType = blockCond.has("type") ? blockCond.get("type").getAsString() : "";
+        // Strip namespace for matching
+        String bareType = bcType.contains(":") ? bcType.substring(bcType.indexOf(':') + 1) : bcType;
+
+        // Simple block match: { "type": "origins:block", "block": "minecraft:water" }
+        // or legacy: { "id": "minecraft:stone" }
+        String blockId = blockCond.has("block") ? blockCond.get("block").getAsString()
+                       : blockCond.has("id") ? blockCond.get("id").getAsString() : null;
+        if (bareType.equals("block") || (blockId != null && !blockId.isBlank())) {
+            if (blockId == null || blockId.isBlank()) {
+                return failClosed("origins:on_block", contextId, "block_condition.block is empty");
+            }
+            ResourceLocation bid = ResourceLocation.parse(blockId);
+            return player -> {
+                if (!player.onGround()) return false;
+                BlockPos below = player.blockPosition().below();
+                return BuiltInRegistries.BLOCK.getKey(player.level().getBlockState(below).getBlock()).equals(bid);
+            };
         }
-        Identifier bid = Identifier.parse(blockId);
-        return player -> {
-            if (!player.onGround()) return false;
-            BlockPos below = player.blockPosition().below();
-            Block block = player.level().getBlockState(below).getBlock();
-            return BuiltInRegistries.BLOCK.getKey(block).equals(bid);
-        };
+        // Tag match: { "type": "origins:in_tag", "tag": "minecraft:ice" }
+        if (bareType.equals("in_tag") && blockCond.has("tag")) {
+            TagKey<Block> tag = parseBlockTag(blockCond.get("tag").getAsString());
+            return player -> {
+                if (!player.onGround()) return false;
+                return player.level().getBlockState(player.blockPosition().below()).is(tag);
+            };
+        }
+        // Boolean combinators: { "type": "origins:and/or", "conditions": [...] }
+        if (bareType.equals("and") || bareType.equals("or")) {
+            // Block conditions don't map cleanly to entity conditions, but we can
+            // evaluate them against the block below the player.
+            boolean isAnd = bareType.equals("and");
+            JsonArray conditions = blockCond.has("conditions") ? blockCond.getAsJsonArray("conditions") : new JsonArray();
+            List<EntityCondition> subconds = new ArrayList<>();
+            for (JsonElement el : conditions) {
+                if (!el.isJsonObject()) continue;
+                JsonObject wrapper = new JsonObject();
+                wrapper.add("block_condition", el.getAsJsonObject());
+                subconds.add(parseOnBlock(wrapper, contextId));
+            }
+            return player -> {
+                for (EntityCondition c : subconds) {
+                    boolean result = c.test(player);
+                    if (isAnd && !result) return false;
+                    if (!isAnd && result) return true;
+                }
+                return isAnd;
+            };
+        }
+        // Fallback: unknown block_condition type — pass through as always-on-ground
+        NeoOrigins.LOGGER.debug("[CompatB] on_block: unknown block_condition type '{}' in {} — falling back to onGround()", bcType, contextId);
+        return p -> p.onGround();
     }
 
     // ---- Phase 1: New condition parsers ----
@@ -1204,6 +1253,68 @@ public final class ConditionParser {
     private static TagKey<Block> parseBlockTag(String raw) {
         if (raw.startsWith("#")) raw = raw.substring(1);
         return TagKey.create(Registries.BLOCK, Identifier.parse(raw));
+    }
+
+    // ── Origins++ compat conditions ──────────────────────────────────────
+
+    /** origins:status_effect — true when player has a specific effect at a given amplifier. */
+    private static EntityCondition parseStatusEffect(JsonObject json) {
+        // Apoli format: { "effect": "minecraft:speed", "min_amplifier": 0, "max_amplifier": 2 }
+        // or just { "effect": "...", "amplifier": 0 }
+        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
+        if (effectId == null) return CompatPolicy.FALSE_CONDITION;
+        ResourceLocation id = ResourceLocation.parse(effectId);
+        int minAmp = json.has("min_amplifier") ? json.get("min_amplifier").getAsInt() : -1;
+        int maxAmp = json.has("max_amplifier") ? json.get("max_amplifier").getAsInt() : Integer.MAX_VALUE;
+        if (json.has("amplifier")) { minAmp = json.get("amplifier").getAsInt(); maxAmp = minAmp; }
+        final int fMin = minAmp, fMax = maxAmp;
+        return p -> {
+            var effect = BuiltInRegistries.MOB_EFFECT.getOptional(id);
+            if (effect.isEmpty()) return false;
+            var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect.get());
+            var inst = p.getEffect(holder);
+            if (inst == null) return false;
+            int amp = inst.getAmplifier();
+            return amp >= fMin && amp <= fMax;
+        };
+    }
+
+    /** origins:air — compare player's air supply. */
+    private static EntityCondition parseAir(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> comparison.test(p.getAirSupply(), target);
+    }
+
+    /** origins:power — true when the player has a specific power granted. */
+    private static EntityCondition parsePower(JsonObject json, String contextId) {
+        String powerId = json.has("power") ? json.get("power").getAsString() : null;
+        if (powerId == null) return failClosed("neoorigins:power", contextId, "missing 'power' field");
+        ResourceLocation id = ResourceLocation.parse(powerId);
+        return p -> {
+            var data = p.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            for (var entry : data.getOrigins().entrySet()) {
+                var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                if (origin != null && origin.powers().contains(id)) return true;
+            }
+            // Also check dynamic grants
+            return data.hasDynamicGrant(id);
+        };
+    }
+
+    /** origins:replacable / replaceable — true when the block at the player's position is replaceable (air, grass, etc.). */
+    private static EntityCondition parseReplaceable(JsonObject json) {
+        return p -> p.level().getBlockState(p.blockPosition()).canBeReplaced();
+    }
+
+    /** origins:actor_condition — unwrap and delegate to the inner condition. In Apoli this
+     *  filters the "actor" in a bientity context; here we just evaluate on the player. */
+    private static EntityCondition parseActorCondition(JsonObject json, String contextId) {
+        if (json.has("condition") && json.get("condition").isJsonObject()) {
+            return ConditionParser.parse(json.getAsJsonObject("condition"), contextId);
+        }
+        return failClosed("neoorigins:actor_condition", contextId, "missing 'condition' field");
     }
 
     /**
