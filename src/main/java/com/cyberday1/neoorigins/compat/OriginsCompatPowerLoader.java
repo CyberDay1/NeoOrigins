@@ -564,8 +564,17 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
         String label = sb.toString();
 
+        // Check hud_render.should_render — Origins compat field to hide the bar
+        boolean hidden = false;
+        if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
+            com.google.gson.JsonObject hud = json.getAsJsonObject("hud_render");
+            if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
+                hidden = true;
+            }
+        }
+
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(min, max, label, 0xFF55AAFF));
+            new CompatAttachments.ResourceMeta(min, max, label, 0xFF55AAFF, hidden));
 
         return CompatPower.Config.builder()
             .onGranted(player -> {
