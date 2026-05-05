@@ -76,7 +76,7 @@ public final class OriginsPowerTranslator {
         "origins:exhaust",               "apace:exhaust",
         // origins:modify_status_effect_amplifier — handled by Route B
         // origins:modify_falling — handled by Route B
-        "origins:modify_player_spawn",
+        // origins:modify_player_spawn — translated in doTranslate()
         "origins:action_on_wake_up",
         "origins:action_on_item_use",
         "origins:inventory",
@@ -265,6 +265,7 @@ public final class OriginsPowerTranslator {
             case "origins:shader",                 "apace:shader"                 -> translateShader(src);
             case "origins:particle",               "apace:particle",
                  "apoli:particle",                 "apugli:particle"              -> translateParticle(src);
+            case "origins:modify_player_spawn",    "apace:modify_player_spawn"    -> translateModifyPlayerSpawn(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -294,6 +295,24 @@ public final class OriginsPowerTranslator {
         out.add("particle", src.get("particle"));
         if (src.has("frequency")) out.add("frequency", src.get("frequency"));
         if (src.has("visible_in_first_person")) out.add("visible_to_self", src.get("visible_in_first_person"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Maps {@code origins:modify_player_spawn} to {@code neoorigins:modify_player_spawn}.
+     * Origins puts dimension/biome/structure at the top level; NeoOrigins nests them
+     * under a {@code location} object matching {@code LocationCondition}'s codec.
+     */
+    private static Optional<JsonObject> translateModifyPlayerSpawn(JsonObject src) {
+        JsonObject location = new JsonObject();
+        if (src.has("dimension")) location.addProperty("dimension", src.get("dimension").getAsString());
+        if (src.has("biome"))     location.addProperty("biome",     src.get("biome").getAsString());
+        if (src.has("structure")) location.addProperty("structure",  src.get("structure").getAsString());
+        if (location.size() == 0) return Optional.empty(); // nothing to spawn into
+
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:modify_player_spawn");
+        out.add("location", location);
         return Optional.of(out);
     }
 

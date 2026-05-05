@@ -90,11 +90,17 @@ public class CompatEventPowers {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onPlayerSleep(CanPlayerSleepEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // Only block vanilla beds — modded sleep blocks (Vampirism coffins,
+        // etc.) should not be prevented by origins sleep restrictions.
+        if (!(sp.level().getBlockState(event.getPos())
+                .getBlock() instanceof net.minecraft.world.level.block.BedBlock)) return;
         var powers = CompatPlayerState.getPowers(sp, CompatPlayerState.EventType.PREVENT_SLEEP);
         if (powers.isEmpty()) return;
 
         for (var power : powers) {
             if (power.entityCondition() != null && !power.entityCondition().test(sp)) continue;
+            // block_condition gates on the bed's position (e.g. height < 70)
+            if (power.blockPredicate() != null && !power.blockPredicate().test(sp, event.getPos())) continue;
             event.setProblem(net.minecraft.world.entity.player.Player.BedSleepingProblem.OTHER_PROBLEM);
             return;
         }

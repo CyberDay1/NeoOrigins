@@ -337,9 +337,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             if ("origins:multiple".equals(subType) || "apace:multiple".equals(subType)) {
                 expandMultiple(syntheticId, subJson, out); // recurse
             } else {
+                // Resolve *:* self-references before storing. In Origins/Apoli,
+                // "*:*_subkey" within a multiple means the sibling sub-power
+                // whose synthetic ID is "parentId/subkey".
+                subJson = resolveSelfReferences(subJson, parentId);
                 out.put(syntheticId, subJson);
             }
         }
+    }
+
+    /** Delegates to shared self-reference resolver in OriginsMultipleExpander. */
+    private static JsonObject resolveSelfReferences(JsonObject json, Identifier parentId) {
+        return OriginsMultipleExpander.resolveSelfReferences(json, parentId);
     }
 
     private static Component extractComponent(JsonObject json, String field) {
@@ -1179,13 +1188,38 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String idStr = id.toString();
         EntityCondition condition = json.has("condition")
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
-        var data = CompatPlayerState.EventPowerData.withEntityCondition(
-            idStr, CompatPlayerState.EventType.PREVENT_SLEEP, condition);
+        // Origins prevent_sleep supports block_condition to gate on the bed's
+        // position (e.g. height < 70 = can't sleep below Y 70).
+        java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> blockCond = null;
+        if (json.has("block_condition") && json.get("block_condition").isJsonObject()) {
+            blockCond = compileSleepBlockCondition(json.getAsJsonObject("block_condition"));
+        }
+        var data = new CompatPlayerState.EventPowerData(
+            idStr, CompatPlayerState.EventType.PREVENT_SLEEP,
+            condition, null, blockCond, null);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
             .onRevoked(player -> CompatPlayerState.unregister(player, data))
             .build();
+    }
+
+    /**
+     * Compiles a block_condition for prevent_sleep. Supports height checks
+     * (the bed's Y coordinate) and delegates to compileBlockPredicate for
+     * block-type checks.
+     */
+    private static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileSleepBlockCondition(JsonObject condJson) {
+        String type = condJson.has("type") ? condJson.get("type").getAsString() : "";
+        String bareType = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+        if ("height".equals(bareType)) {
+            String comp = condJson.has("comparison") ? condJson.get("comparison").getAsString() : ">=";
+            int target = condJson.has("compare_to") ? condJson.get("compare_to").getAsInt() : 0;
+            var comparison = com.cyberday1.neoorigins.compat.condition.ComparisonType.fromString(comp);
+            return (player, pos) -> comparison.test(pos.getY(), target);
+        }
+        // Fall back to standard block predicate (block type / tag checks)
+        return compileBlockPredicate(condJson);
     }
 
     private CompatPower.Config parsePreventBlockUse(Identifier id, JsonObject json) {
