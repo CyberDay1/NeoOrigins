@@ -35,15 +35,31 @@ public final class SleepPreventionEvents {
     public static void onCanSleep(CanPlayerSleepEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (!hasSleepPrevent(sp)) return;
+        if (sp.connection == null) return;
 
-        // Set respawn first via the cross-version helper, so sleepless
-        // origins still get the bed-anchor benefit even though the actual
-        // sleep is blocked below.
-        SpawnHelper.setBedSpawn(sp, sp.level().dimension(), event.getPos(),
-            sp.getYRot(), true, true);
+        // Only block vanilla beds. Modded sleep blocks (Vampirism coffins,
+        // etc.) use CanPlayerSleepEvent for their own day-skip mechanic —
+        // origins that prevent bed-sleep should not interfere with those.
+        if (!(sp.level().getBlockState(event.getPos())
+                .getBlock() instanceof net.minecraft.world.level.block.BedBlock)) {
+            return;
+        }
+
+        // Set respawn first so sleepless origins still get the bed-anchor
+        // benefit even though the actual sleep is blocked below.
+        try {
+            SpawnHelper.setBedSpawn(sp, sp.level().dimension(), event.getPos(),
+                sp.getYRot(), true, true);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.debug("[SleepPrevention] Failed to set bed spawn: {}", e.getMessage());
+        }
 
         event.setProblem(Player.BedSleepingProblem.OTHER_PROBLEM);
-        sp.sendSystemMessage(Component.literal("You don't need sleep — but you remember this place."));
+        try {
+            sp.sendSystemMessage(Component.literal("You don't need sleep \u2014 but you remember this place."));
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.debug("[SleepPrevention] Failed to send message: {}", e.getMessage());
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

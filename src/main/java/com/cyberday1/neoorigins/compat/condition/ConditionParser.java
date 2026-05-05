@@ -617,16 +617,19 @@ public final class ConditionParser {
     private static EntityCondition parseCommand(JsonObject json) {
         String command = json.has("command") ? json.get("command").getAsString() : "";
         if (command.isBlank()) return EntityCondition.alwaysFalse();
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 1;
+        ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> {
             if (player.level().getServer() == null) return false;
             try {
-                // performPrefixedCommand returns void; wrap to detect success via no exception
-                player.level().getServer().getCommands().performPrefixedCommand(
-                    player.createCommandSourceStack().withSuppressedOutput(), command
-                );
-                return true;
+                var src = player.createCommandSourceStack().withSuppressedOutput();
+                String cmd = command.startsWith("/") ? command.substring(1) : command;
+                var dispatcher = player.level().getServer().getCommands().getDispatcher();
+                int result = dispatcher.execute(cmd, src);
+                return comparison.test(result, target);
             } catch (Exception e) {
-                return false;
+                return comparison.test(0, target);
             }
         };
     }

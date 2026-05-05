@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.compat;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -95,6 +96,10 @@ public final class OriginsMultipleExpander {
                 id.getPath() + "/" + key
             );
 
+            // Resolve *:* self-references: in Origins/Apoli, "*:*_subkey" within
+            // a multiple refers to the sibling sub-power "parentId/subkey".
+            subPowerJson = resolveSelfReferences(subPowerJson, id);
+
             if (!OriginsFormatDetector.isOriginsFormat(subPowerJson)) {
                 // Sub-power is already NeoOrigins format (unusual but pass through)
                 NeoOrigins.LOGGER.debug("OriginsCompat: multiple sub-power {} is not Origins format, using as-is", syntheticId);
@@ -141,5 +146,17 @@ public final class OriginsMultipleExpander {
         }
 
         return result;
+    }
+
+    /**
+     * Rewrites {@code *:*_<subkey>} self-references in a sub-power JSON to
+     * the resolved synthetic form {@code namespace:parentPath/subkey}.
+     */
+    static JsonObject resolveSelfReferences(JsonObject json, ResourceLocation parentId) {
+        String raw = json.toString();
+        if (!raw.contains("*:*")) return json;
+        String resolved = raw.replace("*:*_", parentId.getNamespace() + ":" + parentId.getPath() + "/");
+        resolved = resolved.replace("*:*", parentId.toString());
+        return JsonParser.parseString(resolved).getAsJsonObject();
     }
 }
