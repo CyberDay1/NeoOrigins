@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LivingEntityMixin",
+    "LivingEntityUndeadPotionMixin",
     "LivingEntityAirRefillMixin",
     "LivingEntityClimbMixin",
     "LivingEntityLavaSpeedMixin",

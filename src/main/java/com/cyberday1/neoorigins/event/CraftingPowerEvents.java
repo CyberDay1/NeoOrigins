@@ -67,6 +67,7 @@ public class CraftingPowerEvents {
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         boostFoodIfCook(sp, event.getCrafting());
+        applyQualityEnchant(sp, event.getCrafting());
     }
 
     @SubscribeEvent
@@ -95,6 +96,16 @@ public class CraftingPowerEvents {
             .saturationModifier(food.saturation() + bonus);
         if (food.canAlwaysEat()) builder.alwaysEdible();
         result.set(DataComponents.FOOD, builder.build());
+    }
+
+    /**
+     * Applies Unbreaking from QualityEquipmentPower to freshly crafted items.
+     * Only fires at craft time — items from enchanting tables, anvils, loot, or
+     * trades are left untouched so players can enchant normally first.
+     */
+    private static void applyQualityEnchant(ServerPlayer sp, ItemStack result) {
+        ActiveOriginService.forEachOfType(sp, QualityEquipmentPower.class,
+            config -> QualityEquipmentPower.onItemCrafted(sp, result, config.unbreakingLevel()));
     }
 
     @SubscribeEvent

@@ -256,7 +256,7 @@ public final class OriginsPowerTranslator {
             case "origins:edible_item",            "apace:edible_item"            -> translateEdibleItem(src);
             case "origins:keep_inventory",         "apace:keep_inventory"         -> translateSimple("neoorigins:keep_inventory");
             case "origins:ignore_water",           "apace:ignore_water"           -> translateSimple("neoorigins:ignore_water");
-            case "origins:phasing",                "apace:phasing"                -> translatePhasing(src);
+            case "origins:phasing",                "apace:phasing"                -> translatePhasing(id, src);
             case "origins:burn",                   "apace:burn"                   -> translateBurn(src);
             case "origins:swim_speed",             "apace:swim_speed"             -> translateSwimSpeed(src);
             case "origins:overlay",                "apace:overlay"                -> translateOverlay(src);
@@ -727,7 +727,15 @@ public final class OriginsPowerTranslator {
         return Optional.of(out);
     }
 
-    private static Optional<JsonObject> translatePhasing(JsonObject src) {
+    private static Optional<JsonObject> translatePhasing(Identifier id, JsonObject src) {
+        // Origins phasing with a block_condition is selective (e.g. pass through
+        // berry bushes only). Mapping that to wraith_phase would give full wall
+        // noclip — skip it so it's a safe no-op instead.
+        if (src.has("block_condition")) {
+            CompatTranslationLog.skip(id, "origins:phasing",
+                "selective phasing (block_condition) — cannot map to wraith_phase");
+            return Optional.empty();
+        }
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:wraith_phase");
         // Carry over blocklist if present

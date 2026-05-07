@@ -6,23 +6,18 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
-import java.util.*;
-
 /**
- * Adds Unbreaking I to newly crafted tools/armor via inventory monitoring.
- * Tracks inventory contents and applies enchantment to new tool/armor items.
+ * Adds Unbreaking to items crafted by the player. Only fires at craft time
+ * via {@code CraftingPowerEvents.onItemCrafted} — items from enchanting
+ * tables, anvils, loot, or trades are left untouched so players can enchant
+ * normally first.
  */
 public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Config> {
-
-    private static final Map<UUID, Set<Integer>> TRACKED_HASHES = new WeakHashMap<>();
 
     public record Config(int unbreakingLevel, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -34,38 +29,22 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
-    @Override
-    public void onTick(ServerPlayer player, Config config) {
-        if (player.tickCount % 5 != 0) return;
+    /**
+     * Called from {@link com.cyberday1.neoorigins.event.CraftingPowerEvents#onItemCrafted}
+     * when the player has this power. Applies Unbreaking to the freshly crafted item
+     * if it is damageable and doesn't already have the enchantment.
+     */
+    public static void onItemCrafted(ServerPlayer player, ItemStack result, int level) {
+        if (result.isEmpty() || !result.isDamageableItem()) return;
 
-        var inv = player.getInventory();
-        Set<Integer> tracked = TRACKED_HASHES.computeIfAbsent(player.getUUID(), k -> new HashSet<>());
+        ItemEnchantments existing = result.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        var enchLookup = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var unbreakingHolder = enchLookup.get(Enchantments.UNBREAKING);
+        if (unbreakingHolder.isEmpty()) return;
+        if (existing.getLevel(unbreakingHolder.get()) > 0) return;
 
-        for (int i = 0; i < inv.getContainerSize(); i++) {
-            ItemStack stack = inv.getItem(i);
-            if (stack.isEmpty()) continue;
-            if (!stack.isDamageableItem()) continue;
-
-            int hash = System.identityHashCode(stack);
-            if (tracked.contains(hash)) continue;
-            tracked.add(hash);
-
-            ItemEnchantments existing = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-
-            var enchLookup = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-            var unbreakingHolder = enchLookup.get(Enchantments.UNBREAKING);
-            if (unbreakingHolder.isEmpty()) continue;
-
-            if (existing.getLevel(unbreakingHolder.get()) > 0) continue;
-
-            ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(existing);
-            mutable.set(unbreakingHolder.get(), config.unbreakingLevel());
-            stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable());
-        }
-    }
-
-    @Override
-    public void onRevoked(ServerPlayer player, Config config) {
-        TRACKED_HASHES.remove(player.getUUID());
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(existing);
+        mutable.set(unbreakingHolder.get(), level);
+        result.set(DataComponents.ENCHANTMENTS, mutable.toImmutable());
     }
 }

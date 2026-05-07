@@ -207,7 +207,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         Map<String, java.util.function.Supplier<JsonObject>> WELL_KNOWN = Map.ofEntries(
             Map.entry("origins:elytra",              () -> json("neoorigins:natural_glide")),
             Map.entry("origins:fire_immunity",       () -> json("neoorigins:prevent_action", "action", "fire")),
-            Map.entry("origins:fresh_air",           () -> json("neoorigins:prevent_action", "action", "sleep")),
+            Map.entry("origins:fresh_air",           OriginsCompatPowerLoader::freshAirJson),
             Map.entry("origins:like_water",          () -> json("neoorigins:ignore_water")),
             Map.entry("origins:aquatic",             () -> json("neoorigins:dries_out")),
             Map.entry("origins:water_vision",        () -> json("neoorigins:lava_vision")),
@@ -303,6 +303,23 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
     private static JsonObject json(String type, String k1, double v1) {
         JsonObject o = json(type); o.addProperty(k1, v1); return o;
+    }
+
+    /**
+     * Generates an Origins-format {@code prevent_sleep} JSON with a height
+     * block_condition. Vanilla Origins' fresh_air prevents sleep below Y 86.
+     * Uses Origins type so it falls through to Route B's parsePreventSleep.
+     */
+    private static com.google.gson.JsonObject freshAirJson() {
+        com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+        o.addProperty("type", "origins:prevent_sleep");
+        o.addProperty("set_spawn_point", true);
+        com.google.gson.JsonObject blockCond = new com.google.gson.JsonObject();
+        blockCond.addProperty("type", "origins:height");
+        blockCond.addProperty("comparison", "<");
+        blockCond.addProperty("compare_to", 86);
+        o.add("block_condition", blockCond);
+        return o;
     }
 
     /**

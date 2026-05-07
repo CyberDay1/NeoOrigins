@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
@@ -132,7 +133,8 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                     || sp.level().getBlockState(sp.blockPosition())
                            .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)
                     || sp.hasEffect(MobEffects.WATER_BREATHING)
-                    || sp.hasEffect(MobEffects.CONDUIT_POWER);
+                    || sp.hasEffect(MobEffects.CONDUIT_POWER)
+                    || consumeBacktankAir(sp);
             }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
@@ -218,6 +220,52 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             int restored = Math.min(current + maxAir / 2, maxAir);
             VIRTUAL_AIR.put(sp.getUUID(), restored);
             sp.setAirSupply(Math.max(restored, 0));
+        }
+
+        // ── Create Mod backtank compat ──────────────────────────────────
+        // The Create backtank stores pressurized air as a custom data component.
+        // When equipped in the chest slot and charged, it acts as an air supply
+        // for aquatic origins on land — each tick we consume 1 air from the tank
+        // instead of draining the player's bubble bar.
+
+        /** Tag that identifies items which act as pressurized air sources. */
+        private static final net.minecraft.tags.TagKey<net.minecraft.world.item.Item> PRESSURIZED_AIR_TAG =
+            net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM,
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("create", "pressurized_air_sources"));
+
+        /** Cached component type for the backtank air counter ({@code create:backtank_air}). Null if Create is absent. */
+        private static volatile net.minecraft.core.component.DataComponentType<?> BACKTANK_AIR_TYPE;
+        private static volatile boolean BACKTANK_AIR_RESOLVED = false;
+
+        @SuppressWarnings("unchecked")
+        private static boolean consumeBacktankAir(ServerPlayer sp) {
+            if (!BACKTANK_AIR_RESOLVED) {
+                try {
+                    // Create registers this as "banktank_air" (typo in their source).
+                    BACKTANK_AIR_TYPE = net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE
+                        .get(net.minecraft.resources.Identifier.fromNamespaceAndPath("create", "banktank_air"))
+                        .map(net.minecraft.core.Holder::value)
+                        .orElse(null);
+                } catch (Exception ignored) {
+                    BACKTANK_AIR_TYPE = null;
+                }
+                BACKTANK_AIR_RESOLVED = true;
+            }
+            if (BACKTANK_AIR_TYPE == null) return false;
+
+            ItemStack chest = sp.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+            if (chest.isEmpty() || !chest.is(PRESSURIZED_AIR_TAG)) return false;
+
+            // The component stores a float (air remaining). Consume 1 per tick.
+            @SuppressWarnings("rawtypes")
+            net.minecraft.core.component.DataComponentType rawType = BACKTANK_AIR_TYPE;
+            Object val = chest.get(rawType);
+            if (!(val instanceof Number num)) return false;
+            float air = num.floatValue();
+            if (air <= 0f) return false;
+
+            chest.set((net.minecraft.core.component.DataComponentType<Float>) rawType, Math.max(0f, air - 1f));
+            return true;
         }
     }
 }
