@@ -19,8 +19,12 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 public class NeoOriginsClientEvents {
 
     private static boolean wasJumping = false;
-    /** Tick count when the last air jump packet was sent — prevents infinite re-activation. */
-    private static int lastAirJumpTick = -100;
+    /** Monotonic timestamp (ms) when the last air jump packet was sent — prevents infinite re-activation.
+     *  Uses {@code Util.getMillis()} instead of {@code player.tickCount} because the client creates
+     *  a new LocalPlayer (with tickCount=0) on dimension change, while a static field keeps the old
+     *  value — making {@code (0 - oldTick) > 10} false and silently blocking all flight activation
+     *  until tickCount catches up (minutes). Monotonic ms never resets. */
+    private static long lastAirJumpMs = 0;
 
     @SubscribeEvent
     public static void onClientPlayerTick(PlayerTickEvent.Pre event) {
@@ -54,8 +58,8 @@ public class NeoOriginsClientEvents {
 
         if (jumpPressed && !player.onGround() && !player.isInWater()
                 && !player.isFallFlying() && !player.isPassenger()
-                && (player.tickCount - lastAirJumpTick) > 10) {
-            lastAirJumpTick = player.tickCount;
+                && (net.minecraft.Util.getMillis() - lastAirJumpMs) > 500) {
+            lastAirJumpMs = net.minecraft.Util.getMillis();
             PacketDistributor.sendToServer(new AirJumpPayload());
         }
     }

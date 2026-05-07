@@ -551,27 +551,12 @@ public class CombatPowerEvents {
             event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
             return;
         }
-        // Undead entity group — vanilla-undead potion reversal:
-        //   Poison      → immune (already undead-flavoured)
-        //   Regeneration → immune (vanilla undead behaviour)
-        //   Instant Health → block and deal damage instead
-        //   Instant Damage → block and heal instead
-        // Food-based natural regen is allowed (handled by vanilla FoodData).
+        // Undead entity group — poison/regen immunity (vanilla undead behaviour).
+        // Instant Health/Damage inversion is handled by the isInvertedHealAndHarm
+        // mixin (LivingEntityUndeadPotionMixin) since instant effects bypass addEffect().
         if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
             if (effectId.equals("minecraft:poison") || effectId.equals("minecraft:regeneration")) {
                 event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
-            } else if (effectId.equals("minecraft:instant_health")) {
-                // Reverse: instant health → damage
-                event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
-                int amplifier = effectInstance.getAmplifier();
-                float damage = (float)(6 << amplifier);  // vanilla formula
-                sp.hurt(sp.damageSources().magic(), damage);
-            } else if (effectId.equals("minecraft:instant_damage")) {
-                // Reverse: instant damage → heal
-                event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
-                int amplifier = effectInstance.getAmplifier();
-                float heal = (float)(6 << amplifier);  // vanilla formula
-                sp.heal(heal);
             }
         }
     }

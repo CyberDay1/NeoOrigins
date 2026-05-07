@@ -17,7 +17,8 @@
     "ItemStackEdibleDurationMixin",
     "ItemStackEdibleAnimationMixin",
     "EntityIgnoreWaterMixin",
-    "PlayerPhaseOverrideMixin"
+    "PlayerPhaseOverrideMixin",
+    "LivingEntityUndeadPotionMixin"
   ],
   "client": [
     "client.LightTextureMixin",

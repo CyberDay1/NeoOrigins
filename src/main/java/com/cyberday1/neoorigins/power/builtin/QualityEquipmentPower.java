@@ -6,23 +6,21 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
-import java.util.*;
-
 /**
- * Adds Unbreaking I to newly crafted tools/armor via inventory monitoring.
- * Tracks inventory contents and applies enchantment to new tool/armor items.
+ * Adds Unbreaking to items the player <em>crafts</em>.
+ *
+ * <p>Only fires on the crafting event — items obtained from enchanting tables,
+ * anvils, loot, or trades are left untouched. This prevents the old tick-scan
+ * approach from slapping Unbreaking on every tool the moment it enters the
+ * inventory, which blocked players from using the enchanting table (vanilla
+ * rejects items that already carry enchantments).
  */
 public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Config> {
-
-    private static final Map<UUID, Set<Integer>> TRACKED_HASHES = new WeakHashMap<>();
 
     public record Config(int unbreakingLevel, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -34,38 +32,22 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
-    @Override
-    public void onTick(ServerPlayer player, Config config) {
-        if (player.tickCount % 5 != 0) return;
+    /**
+     * Called by {@link com.cyberday1.neoorigins.event.CraftingPowerEvents}
+     * when the player crafts an item. Adds Unbreaking if the item is
+     * damageable and doesn't already have it.
+     */
+    public static void onItemCrafted(ServerPlayer player, ItemStack stack, int unbreakingLevel) {
+        if (stack.isEmpty() || !stack.isDamageableItem()) return;
 
-        var inv = player.getInventory();
-        Set<Integer> tracked = TRACKED_HASHES.computeIfAbsent(player.getUUID(), k -> new HashSet<>());
+        ItemEnchantments existing = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
+        var enchLookup = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var unbreakingHolder = enchLookup.get(Enchantments.UNBREAKING);
+        if (unbreakingHolder.isEmpty()) return;
+        if (existing.getLevel(unbreakingHolder.get()) > 0) return;
 
-        for (int i = 0; i < inv.getContainerSize(); i++) {
-            ItemStack stack = inv.getItem(i);
-            if (stack.isEmpty()) continue;
-            if (!stack.isDamageableItem()) continue;
-
-            int hash = System.identityHashCode(stack);
-            if (tracked.contains(hash)) continue;
-            tracked.add(hash);
-
-            ItemEnchantments existing = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-
-            var enchLookup = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-            var unbreakingHolder = enchLookup.get(Enchantments.UNBREAKING);
-            if (unbreakingHolder.isEmpty()) continue;
-
-            if (existing.getLevel(unbreakingHolder.get()) > 0) continue;
-
-            ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(existing);
-            mutable.set(unbreakingHolder.get(), config.unbreakingLevel());
-            stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable());
-        }
-    }
-
-    @Override
-    public void onRevoked(ServerPlayer player, Config config) {
-        TRACKED_HASHES.remove(player.getUUID());
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(existing);
+        mutable.set(unbreakingHolder.get(), unbreakingLevel);
+        stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable());
     }
 }

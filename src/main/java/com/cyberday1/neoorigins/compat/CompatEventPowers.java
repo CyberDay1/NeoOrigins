@@ -102,6 +102,11 @@ public class CompatEventPowers {
             // block_condition gates on the bed's position (e.g. height < 70)
             if (power.blockPredicate() != null && !power.blockPredicate().test(sp, event.getPos())) continue;
             event.setProblem(net.minecraft.world.entity.player.Player.BedSleepingProblem.OTHER_PROBLEM);
+            // Height-gated sleep: tell the player why they can't sleep here
+            if (power.blockPredicate() != null) {
+                sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "You need fresher air to sleep \u2014 try higher ground."));
+            }
             return;
         }
     }

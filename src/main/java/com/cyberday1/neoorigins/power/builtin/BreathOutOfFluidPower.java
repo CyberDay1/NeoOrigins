@@ -7,11 +7,17 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
@@ -130,7 +136,8 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                     || sp.level().getBlockState(sp.blockPosition())
                            .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)
                     || sp.hasEffect(MobEffects.WATER_BREATHING)
-                    || sp.hasEffect(MobEffects.CONDUIT_POWER);
+                    || sp.hasEffect(MobEffects.CONDUIT_POWER)
+                    || consumeBacktankAir(sp);
             }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
@@ -216,6 +223,60 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             int restored = Math.min(current + maxAir / 2, maxAir);
             VIRTUAL_AIR.put(sp.getUUID(), restored);
             sp.setAirSupply(Math.max(restored, 0));
+        }
+
+        // ---- Create Copper Backtank compat ----
+
+        /** Item tag used by Create for pressurized air source items (backtanks). */
+        private static final TagKey<net.minecraft.world.item.Item> PRESSURIZED_AIR_SOURCES =
+            TagKey.create(net.minecraft.core.registries.Registries.ITEM,
+                ResourceLocation.fromNamespaceAndPath("create", "pressurized_air_sources"));
+
+        /** Lazily resolved reference to Create's backtank air DataComponent. Null if Create isn't loaded.
+         *  Note: Create registers this as "banktank_air" (typo in their source). */
+        private static volatile DataComponentType<Integer> backtankAirComponent;
+        private static boolean backtankAirResolved;
+
+        @SuppressWarnings("unchecked")
+        private static DataComponentType<Integer> getBacktankAirComponent() {
+            if (!backtankAirResolved) {
+                backtankAirResolved = true;
+                // Create's AllDataComponents registers BACKTANK_AIR with the
+                // string "banktank_air" (typo in their source, confirmed in
+                // create-1.21.1-6.0.10.jar bytecode).
+                var opt = BuiltInRegistries.DATA_COMPONENT_TYPE
+                    .getOptional(ResourceLocation.fromNamespaceAndPath("create", "banktank_air"));
+                if (opt.isPresent()) {
+                    backtankAirComponent = (DataComponentType<Integer>) opt.get();
+                }
+            }
+            return backtankAirComponent;
+        }
+
+        /**
+         * Inverted backtank: for aquatic origins on land, a pressurized air
+         * source in the chestplate slot acts as a portable water supply —
+         * pausing the dries-out drain while consuming air from the tank.
+         * Consumes 1 air per 20 ticks (same rate Create uses underwater).
+         *
+         * @return true if a backtank with air remaining is equipped
+         */
+        private static boolean consumeBacktankAir(ServerPlayer sp) {
+            DataComponentType<Integer> comp = getBacktankAirComponent();
+            if (comp == null) return false; // Create not loaded
+
+            ItemStack chest = sp.getItemBySlot(EquipmentSlot.CHEST);
+            if (chest.isEmpty() || !chest.is(PRESSURIZED_AIR_SOURCES)) return false;
+
+            Integer air = chest.get(comp);
+            if (air == null || air <= 0) return false;
+
+            // Consume 1 air per second (every 20 ticks), matching Create's
+            // underwater consumption rate.
+            if (sp.tickCount % 20 == 0) {
+                chest.set(comp, air - 1);
+            }
+            return true;
         }
     }
 }

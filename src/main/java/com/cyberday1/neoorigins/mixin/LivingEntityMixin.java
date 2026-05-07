@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
+import com.cyberday1.neoorigins.power.capability.PowerCapabilities;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
@@ -56,6 +57,25 @@ public abstract class LivingEntityMixin {
                     // Don't damage equipment — there's no elytra to damage.
                     this.fallFlyTicks++;
                 }
+            }
+            ci.cancel();
+        }
+        // Client-side: bypass vanilla's canGlide() for powers that grant flight
+        // or natural_glide. Without this, the client clears fall-flying on the
+        // very next tick (no elytra equipped), causing rubber-banding on dedicated
+        // servers where entity-state sync has latency. PowerCapabilities safely
+        // bridges client/server via ClientPowerCapabilitiesBridge (no server
+        // classloading risk).
+        else if (self.level().isClientSide
+                && self instanceof net.minecraft.world.entity.player.Player clientPlayer
+                && (PowerCapabilities.hasActive(self, "flight")
+                    || PowerCapabilities.hasActive(self, "natural_glide"))) {
+            self.checkSlowFallDistance();
+            if (self.onGround() || self.isInWater() || self.isPassenger()) {
+                clientPlayer.stopFallFlying();
+                this.fallFlyTicks = 0;
+            } else {
+                this.fallFlyTicks++;
             }
             ci.cancel();
         }
