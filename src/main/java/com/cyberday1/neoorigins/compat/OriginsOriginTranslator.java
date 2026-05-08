@@ -47,20 +47,9 @@ public final class OriginsOriginTranslator {
         out.addProperty("description", extractLiteralOrDerive(src.has("description") ? src.get("description") : null,
             ""));
 
-        // ---- icon: unwrap {"item": "..."} or {"id": "..."} object to string ----
+        // ---- icon: pass through as-is (IconCodec handles all formats) ----
         if (src.has("icon")) {
-            JsonElement iconEl = src.get("icon");
-            if (iconEl.isJsonObject()) {
-                JsonObject iconObj = iconEl.getAsJsonObject();
-                if (iconObj.has("item")) {
-                    out.addProperty("icon", iconObj.get("item").getAsString());
-                } else if (iconObj.has("id")) {
-                    out.addProperty("icon", iconObj.get("id").getAsString());
-                }
-                // else: unknown icon object format — omit (will use CODEC default)
-            } else if (iconEl.isJsonPrimitive()) {
-                out.add("icon", iconEl);
-            }
+            out.add("icon", src.get("icon"));
         }
 
         // ---- impact: integer → string ----

@@ -5,26 +5,48 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 /**
- * Adds Unbreaking to items the player <em>crafts</em>.
+ * Blacksmith quality craftsmanship — equipment the player crafts or upgrades
+ * at a smithing table receives bonus attributes:
+ * <ul>
+ *   <li>Tools (pickaxe, axe, shovel, hoe): +mining speed</li>
+ *   <li>Weapons (sword, axe, trident): +attack damage</li>
+ *   <li>Armor (helmet, chest, legs, boots): +armor toughness</li>
+ *   <li>All damageable items: +10% max durability</li>
+ * </ul>
  *
- * <p>Only fires on the crafting event — items obtained from enchanting tables,
- * anvils, loot, or trades are left untouched. This prevents the old tick-scan
- * approach from slapping Unbreaking on every tool the moment it enters the
- * inventory, which blocked players from using the enchanting table (vanilla
- * rejects items that already carry enchantments).
+ * <p>Called from {@link com.cyberday1.neoorigins.event.CraftingPowerEvents}
+ * on crafting and smithing events.
  */
 public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Config> {
 
-    public record Config(int unbreakingLevel, String type) implements PowerConfiguration {
+    private static final ResourceLocation QUALITY_MINING_SPEED =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_mining_speed");
+    private static final ResourceLocation QUALITY_ATTACK_DAMAGE =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_attack_damage");
+    private static final ResourceLocation QUALITY_ARMOR_TOUGHNESS =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_armor_toughness");
+
+    public record Config(
+        double bonusMiningSpeed,
+        double bonusAttackDamage,
+        double bonusArmorToughness,
+        double durabilityMultiplier,
+        String type
+    ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.INT.optionalFieldOf("unbreaking_level", 1).forGetter(Config::unbreakingLevel),
+            Codec.DOUBLE.optionalFieldOf("bonus_mining_speed", 0.25).forGetter(Config::bonusMiningSpeed),
+            Codec.DOUBLE.optionalFieldOf("bonus_attack_damage", 0.20).forGetter(Config::bonusAttackDamage),
+            Codec.DOUBLE.optionalFieldOf("bonus_armor_toughness", 1.0).forGetter(Config::bonusArmorToughness),
+            Codec.DOUBLE.optionalFieldOf("durability_multiplier", 0.10).forGetter(Config::durabilityMultiplier),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -32,22 +54,55 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
-    /**
-     * Called by {@link com.cyberday1.neoorigins.event.CraftingPowerEvents}
-     * when the player crafts an item. Adds Unbreaking if the item is
-     * damageable and doesn't already have it.
-     */
-    public static void onItemCrafted(ServerPlayer player, ItemStack stack, int unbreakingLevel) {
-        if (stack.isEmpty() || !stack.isDamageableItem()) return;
+    public static void onItemCrafted(ServerPlayer player, ItemStack stack, Config config) {
+        if (stack.isEmpty()) return;
+        Item item = stack.getItem();
 
-        ItemEnchantments existing = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-        var enchLookup = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-        var unbreakingHolder = enchLookup.get(Enchantments.UNBREAKING);
-        if (unbreakingHolder.isEmpty()) return;
-        if (existing.getLevel(unbreakingHolder.get()) > 0) return;
+        boolean isTool = item instanceof DiggerItem || item instanceof ShearsItem;
+        boolean isWeapon = item instanceof SwordItem || item instanceof AxeItem || item instanceof TridentItem;
+        boolean isArmor = item instanceof ArmorItem;
 
-        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(existing);
-        mutable.set(unbreakingHolder.get(), unbreakingLevel);
-        stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable());
+        if (!isTool && !isWeapon && !isArmor && !stack.isDamageableItem()) return;
+
+        // Apply attribute modifiers via withModifierAdded (preserves existing modifiers)
+        ItemAttributeModifiers modifiers = stack.getOrDefault(
+            DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
+
+        if (isTool && config.bonusMiningSpeed > 0) {
+            modifiers = modifiers.withModifierAdded(Attributes.MINING_EFFICIENCY,
+                new AttributeModifier(QUALITY_MINING_SPEED,
+                    config.bonusMiningSpeed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
+                EquipmentSlotGroup.MAINHAND);
+        }
+
+        if (isWeapon && config.bonusAttackDamage > 0) {
+            modifiers = modifiers.withModifierAdded(Attributes.ATTACK_DAMAGE,
+                new AttributeModifier(QUALITY_ATTACK_DAMAGE,
+                    config.bonusAttackDamage, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
+                EquipmentSlotGroup.MAINHAND);
+        }
+
+        if (isArmor && config.bonusArmorToughness > 0) {
+            EquipmentSlotGroup slot = switch (((ArmorItem) item).getEquipmentSlot()) {
+                case HEAD  -> EquipmentSlotGroup.HEAD;
+                case CHEST -> EquipmentSlotGroup.CHEST;
+                case LEGS  -> EquipmentSlotGroup.LEGS;
+                case FEET  -> EquipmentSlotGroup.FEET;
+                default    -> EquipmentSlotGroup.ARMOR;
+            };
+            modifiers = modifiers.withModifierAdded(Attributes.ARMOR_TOUGHNESS,
+                new AttributeModifier(QUALITY_ARMOR_TOUGHNESS,
+                    config.bonusArmorToughness, AttributeModifier.Operation.ADD_VALUE),
+                slot);
+        }
+
+        stack.set(DataComponents.ATTRIBUTE_MODIFIERS, modifiers);
+
+        // Durability boost — increase max damage (durability) by the configured multiplier
+        if (stack.isDamageableItem() && config.durabilityMultiplier > 0) {
+            int baseDurability = stack.getMaxDamage();
+            int bonus = (int) Math.ceil(baseDurability * config.durabilityMultiplier);
+            stack.set(DataComponents.MAX_DAMAGE, baseDurability + bonus);
+        }
     }
 }

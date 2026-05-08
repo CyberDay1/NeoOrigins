@@ -92,6 +92,14 @@ public final class VisualEffectsHandler {
             float g = Float.parseFloat(parts[1]);
             float b = Float.parseFloat(parts[2]);
             float a = parts.length >= 4 ? Float.parseFloat(parts[3]) : 1.0f;
+
+            // Flush any previously batched geometry before changing the shader
+            // color, so prior renders aren't accidentally tinted.
+            MultiBufferSource buf = event.getMultiBufferSource();
+            if (buf instanceof MultiBufferSource.BufferSource bufferSource) {
+                bufferSource.endBatch();
+            }
+
             if (a < 1.0f) {
                 RenderSystem.enableBlend();
                 RenderSystem.defaultBlendFunc();
@@ -106,9 +114,11 @@ public final class VisualEffectsHandler {
         if (!modelColorActive) return;
         modelColorActive = false;
 
-        // Flush any batched geometry so it is drawn with the tinted shader color
-        // before we reset it. Without this, when nametag rendering is skipped the
-        // buffer may not have been flushed yet and the tint would be lost.
+        // Flush all batched entity geometry so it is drawn with the tinted
+        // shader color before we reset it. Without this, when nametag rendering
+        // is skipped (hidden nametag) the buffer is never flushed mid-entity,
+        // so the tinted geometry would be drawn after the color reset — losing
+        // the tint entirely.
         MultiBufferSource buf = event.getMultiBufferSource();
         if (buf instanceof MultiBufferSource.BufferSource bufferSource) {
             bufferSource.endBatch();

@@ -5,6 +5,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +13,7 @@ import java.util.Optional;
 public record Origin(
     ResourceLocation id,
     List<ResourceLocation> powers,
-    ResourceLocation icon,
+    ItemStack icon,
     Impact impact,
     int order,
     boolean unchoosable,
@@ -26,7 +27,7 @@ public record Origin(
     public static final Codec<Origin> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         ResourceLocation.CODEC.fieldOf("id").forGetter(Origin::id),
         ResourceLocation.CODEC.listOf().optionalFieldOf("powers", List.of()).forGetter(Origin::powers),
-        ResourceLocation.CODEC.optionalFieldOf("icon", ResourceLocation.fromNamespaceAndPath("minecraft", "stone")).forGetter(Origin::icon),
+        IconCodec.CODEC.optionalFieldOf("icon", ItemStack.EMPTY).forGetter(Origin::icon),
         Impact.CODEC.optionalFieldOf("impact", Impact.NONE).forGetter(Origin::impact),
         Codec.INT.optionalFieldOf("order", 0).forGetter(Origin::order),
         Codec.BOOL.optionalFieldOf("unchoosable", false).forGetter(Origin::unchoosable),

@@ -130,6 +130,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Clear event power state from the previous reload cycle
         CompatPlayerState.clearAll();
         ModifyCraftingRegistry.clearAll();
+        ModifyFoodRegistry.clearAll();
         NumericModifierRegistry.clearAll();
         CompatAttachments.clearResourceMeta();
 
@@ -1404,13 +1405,56 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseModifyFood(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        var data = CompatPlayerState.EventPowerData.noCondition(
-            idStr, CompatPlayerState.EventType.MODIFY_FOOD);
 
+        // Parse item_condition filter (optional — null means all food)
+        java.util.function.Predicate<ItemStack> itemPred = null;
+        if (json.has("item_condition") && json.get("item_condition").isJsonObject()) {
+            itemPred = compileItemPredicate(json.getAsJsonObject("item_condition"));
+        }
+
+        // Parse food_modifier (single object or array)
+        var foodMods = parseModifierList(json, "food_modifier");
+        // Parse saturation_modifier (single object or array)
+        var satMods = parseModifierList(json, "saturation_modifier");
+
+        var entry = new ModifyFoodRegistry.Entry(idStr, itemPred, foodMods, satMods);
         return CompatPower.Config.builder()
-            .onGranted(player -> CompatPlayerState.register(player, data))
-            .onRevoked(player -> CompatPlayerState.unregister(player, data))
+            .onGranted(player -> ModifyFoodRegistry.register(player, entry))
+            .onRevoked(player -> ModifyFoodRegistry.unregister(player, idStr))
             .build();
+    }
+
+    /** Parse an Apoli modifier or modifiers array into a list. */
+    private static java.util.List<OriginsModifierMath.Modifier> parseModifierList(JsonObject json, String key) {
+        java.util.List<OriginsModifierMath.Modifier> result = new java.util.ArrayList<>();
+        if (json.has(key)) {
+            var el = json.get(key);
+            if (el.isJsonArray()) {
+                for (var item : el.getAsJsonArray()) {
+                    if (item.isJsonObject()) result.add(parseSingleModifier(item.getAsJsonObject()));
+                }
+            } else if (el.isJsonObject()) {
+                result.add(parseSingleModifier(el.getAsJsonObject()));
+            }
+        }
+        // Also check for plural "food_modifiers" / "saturation_modifiers"
+        String plural = key + "s";
+        if (json.has(plural)) {
+            var el = json.get(plural);
+            if (el.isJsonArray()) {
+                for (var item : el.getAsJsonArray()) {
+                    if (item.isJsonObject()) result.add(parseSingleModifier(item.getAsJsonObject()));
+                }
+            }
+        }
+        return result;
+    }
+
+    private static OriginsModifierMath.Modifier parseSingleModifier(JsonObject mod) {
+        String operation = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+        double value = mod.has("value") ? mod.get("value").getAsDouble()
+                     : mod.has("amount") ? mod.get("amount").getAsDouble() : 0.0;
+        return new OriginsModifierMath.Modifier(operation, value);
     }
 
     // ---- Compile-time predicate builders for event powers ----

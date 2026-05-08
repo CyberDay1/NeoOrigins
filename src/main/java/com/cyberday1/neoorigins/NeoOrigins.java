@@ -118,6 +118,11 @@ public class NeoOrigins {
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStarting);
+
+        // Optional mod compat — only loads if the target mod is present
+        if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
+            com.cyberday1.neoorigins.compat.ArsNouveauCompat.register();
+        }
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {

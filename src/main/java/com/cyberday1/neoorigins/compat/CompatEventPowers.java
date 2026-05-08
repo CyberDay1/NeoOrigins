@@ -7,6 +7,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.food.FoodProperties;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
@@ -158,6 +160,56 @@ public class CompatEventPowers {
         double modified = NumericModifierRegistry.apply(sp, NumericModifierRegistry.Kind.XP_GAIN, original);
         int rounded = Math.max(0, (int) Math.round(modified));
         if (rounded != original) event.setAmount(rounded);
+    }
+
+    // ---- modify_food ----
+
+    /**
+     * Apply registered {@code origins:modify_food} modifiers when food is eaten.
+     * Fires at HIGH priority so the food properties are modified before vanilla
+     * processes the nutrition/saturation.
+     *
+     * <p>Each entry can optionally filter by item condition. Modifiers follow
+     * Apoli's {@code food_modifier}/{@code saturation_modifier} semantics via
+     * {@link OriginsModifierMath}.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onFoodEaten(LivingEntityUseItemEvent.Finish event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack stack = event.getItem();
+        FoodProperties food = stack.get(DataComponents.FOOD);
+        if (food == null) return;
+
+        var entries = ModifyFoodRegistry.getEntries(sp);
+        if (entries.isEmpty()) return;
+
+        int nutrition = food.nutrition();
+        float saturation = food.saturation();
+        boolean modified = false;
+
+        for (var entry : entries) {
+            // Check item condition if present
+            if (entry.itemPredicate() != null && !entry.itemPredicate().test(stack)) continue;
+
+            if (!entry.foodModifiers().isEmpty()) {
+                nutrition = (int) Math.round(OriginsModifierMath.apply(nutrition, entry.foodModifiers()));
+                modified = true;
+            }
+            if (!entry.saturationModifiers().isEmpty()) {
+                saturation = (float) OriginsModifierMath.apply(saturation, entry.saturationModifiers());
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            nutrition = Math.max(0, nutrition);
+            saturation = Math.max(0f, saturation);
+            FoodProperties.Builder builder = new FoodProperties.Builder()
+                .nutrition(nutrition)
+                .saturationModifier(saturation);
+            if (food.canAlwaysEat()) builder.alwaysEdible();
+            stack.set(DataComponents.FOOD, builder.build());
+        }
     }
 
     // ---- modify_crafting ----

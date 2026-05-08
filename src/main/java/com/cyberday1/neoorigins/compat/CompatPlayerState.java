@@ -26,8 +26,7 @@ public final class CompatPlayerState {
         RESTRICT_ARMOR,
         PREVENT_SLEEP,
         PREVENT_BLOCK_USE,
-        PREVENT_ENTITY_USE,
-        MODIFY_FOOD
+        PREVENT_ENTITY_USE
     }
 
     /**

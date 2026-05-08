@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
+import com.cyberday1.neoorigins.power.builtin.ModifyFoodNutritionPower;
 import com.cyberday1.neoorigins.power.builtin.RareWanderingLootPower;
 import com.cyberday1.neoorigins.power.builtin.RestrictArmorPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
@@ -82,12 +83,12 @@ public class InteractionPowerEvents {
     @SubscribeEvent
     public static void onItemUseFinish(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // Modify food nutrition before vanilla processes the eaten food
+        if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {
+            ActiveOriginService.forEachOfType(sp, ModifyFoodNutritionPower.class,
+                config -> ModifyFoodNutritionPower.applyOverride(sp, event.getItem(), config.nutrition()));
+        }
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, event.getItem());
-        // Food-specific finish dispatch with FoodContext so food_item_in_tag /
-        // food_item_id conditions can target the eaten stack. Distinct from
-        // FOOD_EATEN (which fires at use-START for cancellable restrictions —
-        // applying a bonus there lets the player keep the bonus by releasing
-        // right-click before the eat animation completes).
         if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {
             EventPowerIndex.dispatch(sp, EventPowerIndex.Event.FOOD_FINISHED,
                 new EventPowerIndex.FoodContext(event.getItem()));

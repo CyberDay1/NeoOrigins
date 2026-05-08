@@ -124,27 +124,24 @@ public final class ConditionParser {
                     // holding an umbrella in either hand blocks sun damage entirely
                     // (takes priority over helmet protection).
                     if (neoorigins$isHoldingUmbrella(p)) return false;
-                    // Helmet protection — mirrors vanilla zombie/skeleton sun-burn
-                    // logic. A damageable helmet absorbs the burn at the cost of
-                    // its own durability; once the helmet breaks the player burns
-                    // again. 7% per-evaluation gate (≈30% slower than the 2.0.1
-                    // baseline of 10%); a typical iron helmet now lasts ~40 min
-                    // of continuous sun, more with Unbreaking — hurtAndBreak's
-                    // internal Unbreaking roll stacks on top of our gate.
-                    // Side-effect inside a predicate is unusual but the
-                    // alternative — a parallel ticking handler that re-derives
-                    // exposed-to-sun state — duplicates this whole check.
+                    // Helmet protection — any helmet blocks sun damage.
+                    // Damageable helmets take durability damage over time;
+                    // invulnerable/unbreakable helmets (e.g. allthemodium)
+                    // protect indefinitely.
                     ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
-                    if (!head.isEmpty() && head.isDamageableItem()) {
-                        float chance = com.cyberday1.neoorigins.NeoOriginsConfig.sunHelmetDuraDamageChance();
-                        if (chance > 0f && p.getRandom().nextFloat() < chance) {
-                            head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                    if (!head.isEmpty()) {
+                        if (head.isDamageableItem()) {
+                            float chance = com.cyberday1.neoorigins.NeoOriginsConfig.sunHelmetDuraDamageChance();
+                            if (chance > 0f && p.getRandom().nextFloat() < chance) {
+                                head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                            }
                         }
                         return false;
                     }
                     return true;
                 };
                 case "neoorigins:health"                        -> parseHealth(json);
+                case "neoorigins:cooldown"                      -> parseCooldown(json);
                 case "neoorigins:resource",
                      "neoorigins:resource_level"                -> parseResource(json, contextId);
                 case "neoorigins:power_active"                  -> parsePowerActive(json, contextId);
@@ -318,6 +315,15 @@ public final class ConditionParser {
             return EntityCondition.alwaysTrue();
         }
         return p -> supplier.getAsBoolean();
+    }
+
+    private static EntityCondition parseCooldown(JsonObject json) {
+        String powerId = json.has("power") ? json.get("power").getAsString() : null;
+        if (powerId == null) return EntityCondition.alwaysTrue();
+        return player -> {
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            return !data.isOnCooldown(powerId, player.tickCount);
+        };
     }
 
     private static EntityCondition parseHealth(JsonObject json) {
