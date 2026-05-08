@@ -114,6 +114,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, NoProjectileDivergencePower> NO_PROJECTILE_DIVERGENCE = reg("no_projectile_divergence", new NoProjectileDivergencePower());
     public static final DeferredHolder<PowerType<?>, QualityEquipmentPower>      QUALITY_EQUIPMENT      = reg("quality_equipment",      new QualityEquipmentPower());
     public static final DeferredHolder<PowerType<?>, MoreSmokerXpPower>          MORE_SMOKER_XP         = reg("more_smoker_xp",         new MoreSmokerXpPower());
+    public static final DeferredHolder<PowerType<?>, ModifyFoodNutritionPower>  MODIFY_FOOD_NUTRITION  = reg("modify_food_nutrition",  new ModifyFoodNutritionPower());
     public static final DeferredHolder<PowerType<?>, TradeAvailabilityPower>     TRADE_AVAILABILITY     = reg("trade_availability",     new TradeAvailabilityPower());
     public static final DeferredHolder<PowerType<?>, RareWanderingLootPower>     RARE_WANDERING_LOOT    = reg("rare_wandering_loot",    new RareWanderingLootPower());
     public static final DeferredHolder<PowerType<?>, WraithPhasePower>          WRAITH_PHASE           = reg("wraith_phase",           new WraithPhasePower());

@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Gui.class)
 public abstract class GuiHudBarsMixin {
 
-    @Inject(method = "renderFoodLevel", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "extractFoodLevel", at = @At("HEAD"), cancellable = true)
     private void neoorigins$maybeHideFood(GuiGraphicsExtractor guiGraphics, CallbackInfo ci) {
         if (!NeoOriginsConfig.isHideHudBarsEnabled()) return;
         if (ClientActivePowers.hasCapability("hide_hunger_bar")) {
@@ -29,7 +29,7 @@ public abstract class GuiHudBarsMixin {
         }
     }
 
-    @Inject(method = "renderAirLevel", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "extractAirLevel", at = @At("HEAD"), cancellable = true)
     private void neoorigins$maybeHideAir(GuiGraphicsExtractor guiGraphics, CallbackInfo ci) {
         if (!NeoOriginsConfig.isHideHudBarsEnabled()) return;
         if (ClientActivePowers.hasCapability("hide_air_bar")) {

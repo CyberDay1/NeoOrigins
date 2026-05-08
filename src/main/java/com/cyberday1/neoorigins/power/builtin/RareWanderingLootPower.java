@@ -57,49 +57,66 @@ public class RareWanderingLootPower extends PowerType<RareWanderingLootPower.Con
         }
     }
 
-    private static final List<MasterTrade> MASTER_POOL = List.of(
-        // Farmer level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 3), Optional.empty(), new ItemStack(Items.GOLDEN_CARROT, 3), 12, 30, 0.05F),
-        new MasterTrade(new ItemCost(Items.EMERALD, 4), Optional.empty(), new ItemStack(Items.GLISTERING_MELON_SLICE, 3), 12, 30, 0.05F),
-        // Cleric level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 3), Optional.empty(), new ItemStack(Items.EXPERIENCE_BOTTLE), 12, 30, 0.2F),
-        // Cleric level 4
-        new MasterTrade(new ItemCost(Items.EMERALD, 5), Optional.empty(), new ItemStack(Items.ENDER_PEARL), 12, 15, 0.2F),
-        // Librarian level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 20), Optional.empty(), new ItemStack(Items.NAME_TAG), 12, 30, 0.2F),
-        // Cartographer level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.GLOBE_BANNER_PATTERN), 12, 30, 0.2F),
-        // Armorer level 4 (unenchanted equivalents)
-        new MasterTrade(new ItemCost(Items.EMERALD, 14), Optional.empty(), new ItemStack(Items.DIAMOND_LEGGINGS), 3, 15, 0.2F),
-        new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.DIAMOND_BOOTS), 3, 15, 0.2F),
-        // Armorer level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.DIAMOND_HELMET), 3, 30, 0.2F),
-        new MasterTrade(new ItemCost(Items.EMERALD, 16), Optional.empty(), new ItemStack(Items.DIAMOND_CHESTPLATE), 3, 30, 0.2F),
-        // Weaponsmith level 4-5
-        new MasterTrade(new ItemCost(Items.EMERALD, 12), Optional.empty(), new ItemStack(Items.DIAMOND_AXE), 3, 15, 0.2F),
-        new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.DIAMOND_SWORD), 3, 30, 0.2F),
-        // Toolsmith level 4-5
-        new MasterTrade(new ItemCost(Items.EMERALD, 5), Optional.empty(), new ItemStack(Items.DIAMOND_SHOVEL), 3, 15, 0.2F),
-        new MasterTrade(new ItemCost(Items.EMERALD, 13), Optional.empty(), new ItemStack(Items.DIAMOND_PICKAXE), 3, 30, 0.2F),
-        new MasterTrade(new ItemCost(Items.EMERALD, 12), Optional.empty(), new ItemStack(Items.DIAMOND_AXE), 3, 15, 0.2F),
-        // Leatherworker level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 6), Optional.empty(), new ItemStack(Items.SADDLE), 12, 30, 0.2F),
-        // Shepherd level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 2), Optional.empty(), new ItemStack(Items.PAINTING, 3), 12, 30, 0.2F),
-        // Fletcher level 5
-        new MasterTrade(new ItemCost(Items.EMERALD, 3), Optional.empty(), new ItemStack(Items.CROSSBOW), 3, 15, 0.2F)
-    );
+    // Lazy-init: ItemCost / ItemStack constructors require component registries
+    // to be bound, which hasn't happened during static class loading on 26.1.2+.
+    private static List<MasterTrade> masterPool;
 
-    // ── Treasure pool: rare items costing emeralds + netherite ingot ────
-    private static final ItemStack[] TREASURE_RESULTS = {
-        new ItemStack(Items.HEART_OF_THE_SEA),
-        new ItemStack(Items.NETHER_STAR),
-        new ItemStack(Items.TOTEM_OF_UNDYING),
-        new ItemStack(Items.ENCHANTED_GOLDEN_APPLE),
-        new ItemStack(Items.TRIDENT),
-        new ItemStack(Items.ELYTRA),
-        new ItemStack(Items.DRAGON_HEAD),
-    };
+    private static List<MasterTrade> masterPool() {
+        if (masterPool == null) {
+            masterPool = List.of(
+                // Farmer level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 3), Optional.empty(), new ItemStack(Items.GOLDEN_CARROT, 3), 12, 30, 0.05F),
+                new MasterTrade(new ItemCost(Items.EMERALD, 4), Optional.empty(), new ItemStack(Items.GLISTERING_MELON_SLICE, 3), 12, 30, 0.05F),
+                // Cleric level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 3), Optional.empty(), new ItemStack(Items.EXPERIENCE_BOTTLE), 12, 30, 0.2F),
+                // Cleric level 4
+                new MasterTrade(new ItemCost(Items.EMERALD, 5), Optional.empty(), new ItemStack(Items.ENDER_PEARL), 12, 15, 0.2F),
+                // Librarian level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 20), Optional.empty(), new ItemStack(Items.NAME_TAG), 12, 30, 0.2F),
+                // Cartographer level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.GLOBE_BANNER_PATTERN), 12, 30, 0.2F),
+                // Armorer level 4 (unenchanted equivalents)
+                new MasterTrade(new ItemCost(Items.EMERALD, 14), Optional.empty(), new ItemStack(Items.DIAMOND_LEGGINGS), 3, 15, 0.2F),
+                new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.DIAMOND_BOOTS), 3, 15, 0.2F),
+                // Armorer level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.DIAMOND_HELMET), 3, 30, 0.2F),
+                new MasterTrade(new ItemCost(Items.EMERALD, 16), Optional.empty(), new ItemStack(Items.DIAMOND_CHESTPLATE), 3, 30, 0.2F),
+                // Weaponsmith level 4-5
+                new MasterTrade(new ItemCost(Items.EMERALD, 12), Optional.empty(), new ItemStack(Items.DIAMOND_AXE), 3, 15, 0.2F),
+                new MasterTrade(new ItemCost(Items.EMERALD, 8), Optional.empty(), new ItemStack(Items.DIAMOND_SWORD), 3, 30, 0.2F),
+                // Toolsmith level 4-5
+                new MasterTrade(new ItemCost(Items.EMERALD, 5), Optional.empty(), new ItemStack(Items.DIAMOND_SHOVEL), 3, 15, 0.2F),
+                new MasterTrade(new ItemCost(Items.EMERALD, 13), Optional.empty(), new ItemStack(Items.DIAMOND_PICKAXE), 3, 30, 0.2F),
+                new MasterTrade(new ItemCost(Items.EMERALD, 12), Optional.empty(), new ItemStack(Items.DIAMOND_AXE), 3, 15, 0.2F),
+                // Leatherworker level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 6), Optional.empty(), new ItemStack(Items.SADDLE), 12, 30, 0.2F),
+                // Shepherd level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 2), Optional.empty(), new ItemStack(Items.PAINTING, 3), 12, 30, 0.2F),
+                // Fletcher level 5
+                new MasterTrade(new ItemCost(Items.EMERALD, 3), Optional.empty(), new ItemStack(Items.CROSSBOW), 3, 15, 0.2F)
+            );
+        }
+        return masterPool;
+    }
+
+    // Lazy-init: ItemStack constructors require component registries to be
+    // bound, which hasn't happened during static class loading on 26.1.2+.
+    private static ItemStack[] treasureResults;
+
+    private static ItemStack[] treasureResults() {
+        if (treasureResults == null) {
+            treasureResults = new ItemStack[] {
+                new ItemStack(Items.HEART_OF_THE_SEA),
+                new ItemStack(Items.NETHER_STAR),
+                new ItemStack(Items.TOTEM_OF_UNDYING),
+                new ItemStack(Items.ENCHANTED_GOLDEN_APPLE),
+                new ItemStack(Items.TRIDENT),
+                new ItemStack(Items.ELYTRA),
+                new ItemStack(Items.DRAGON_HEAD),
+            };
+        }
+        return treasureResults;
+    }
     private static final int TREASURE_EMERALD_MIN = 32;
     private static final int TREASURE_EMERALD_MAX = 64;
     private static final int TREASURE_NETHERITE_MIN = 1;
@@ -122,8 +139,8 @@ public class RareWanderingLootPower extends PowerType<RareWanderingLootPower.Con
         RandomSource random = trader.getRandom();
 
         // Pick N random master trades from the inline pool
-        int toAdd = Math.min(masterSlots[0], MASTER_POOL.size());
-        List<MasterTrade> pool = new ArrayList<>(MASTER_POOL);
+        int toAdd = Math.min(masterSlots[0], masterPool().size());
+        List<MasterTrade> pool = new ArrayList<>(masterPool());
         for (int i = 0; i < toAdd; i++) {
             int idx = random.nextInt(pool.size());
             offers.add(pool.get(idx).toOffer());
@@ -135,7 +152,7 @@ public class RareWanderingLootPower extends PowerType<RareWanderingLootPower.Con
         if (random.nextDouble() < treasureChance[0]) {
             int emeraldCost = TREASURE_EMERALD_MIN + random.nextInt(TREASURE_EMERALD_MAX - TREASURE_EMERALD_MIN + 1);
             int netheriteCost = TREASURE_NETHERITE_MIN + random.nextInt(TREASURE_NETHERITE_MAX - TREASURE_NETHERITE_MIN + 1);
-            ItemStack treasureResult = TREASURE_RESULTS[random.nextInt(TREASURE_RESULTS.length)].copy();
+            ItemStack treasureResult = treasureResults()[random.nextInt(treasureResults().length)].copy();
             CompoundTag tag = new CompoundTag();
             tag.putBoolean("NeoOriginsTreasure", true);
             treasureResult.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));

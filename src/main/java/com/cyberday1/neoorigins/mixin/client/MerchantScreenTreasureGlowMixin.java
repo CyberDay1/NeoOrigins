@@ -37,7 +37,7 @@ public abstract class MerchantScreenTreasureGlowMixin {
      * each visible treasure trade button before vanilla renders the button
      * sprites and item icons on top.
      */
-    @Inject(method = "render", at = @At("HEAD"))
+    @Inject(method = "extractContents", at = @At("HEAD"))
     private void neoorigins$renderTreasureGlow(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         MerchantScreen self = (MerchantScreen) (Object) this;
         MerchantOffers offers = self.getMenu().getOffers();

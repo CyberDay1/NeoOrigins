@@ -67,45 +67,66 @@ public class CraftingPowerEvents {
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         boostFoodIfCook(sp, event.getCrafting());
-        applyQualityEnchant(sp, event.getCrafting());
+        applyQualityAttributes(sp, event.getCrafting());
     }
 
     @SubscribeEvent
     public static void onItemSmelted(PlayerEvent.ItemSmeltedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         boostFoodIfCook(sp, event.getSmelting());
+        applySmokingExpertBonus(sp, event.getSmelting());
     }
 
+
     /**
-     * One-shot food saturation boost for BetterCraftedFoodPower. Applied once
-     * at craft/smelt time — no tick scanning, no identity-hash tracking, no
-     * compound re-application.
+     * One-shot food boost for Cook class. Adds bonus saturation AND nutrition
+     * at craft/smelt time — no tick scanning, no identity-hash tracking.
      */
     private static void boostFoodIfCook(ServerPlayer sp, ItemStack result) {
         FoodProperties food = result.get(DataComponents.FOOD);
         if (food == null) return;
 
-        // better_crafted_food moved to action_on_event (MOD_CRAFTED_FOOD_SATURATION).
-        float bonus = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+        float satBonus = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_CRAFTED_FOOD_SATURATION,
             result, 0f);
-        if (bonus <= 0f) return;
+        if (satBonus <= 0f) return;
 
+        // Add +1 nutrition (hunger bar) alongside the saturation bonus
+        int bonusNutrition = 1;
         FoodProperties.Builder builder = new FoodProperties.Builder()
-            .nutrition(food.nutrition())
-            .saturationModifier(food.saturation() + bonus);
+            .nutrition(food.nutrition() + bonusNutrition)
+            .saturationModifier(food.saturation() + satBonus);
         if (food.canAlwaysEat()) builder.alwaysEdible();
         result.set(DataComponents.FOOD, builder.build());
     }
 
     /**
-     * Applies Unbreaking from QualityEquipmentPower to freshly crafted items.
-     * Only fires at craft time — items from enchanting tables, anvils, loot, or
-     * trades are left untouched so players can enchant normally first.
+     * Smoking Expert — extra nutrition for food cooked in a smoker/furnace.
+     * Stacks with the Cook's base food boost from boostFoodIfCook.
      */
-    private static void applyQualityEnchant(ServerPlayer sp, ItemStack result) {
+    private static void applySmokingExpertBonus(ServerPlayer sp, ItemStack result) {
+        FoodProperties food = result.get(DataComponents.FOOD);
+        if (food == null) return;
+
+        ActiveOriginService.forEachOfType(sp, MoreSmokerXpPower.class, config -> {
+            int bonusNutrition = Math.round(config.multiplier());
+            if (bonusNutrition <= 0) return;
+            FoodProperties.Builder builder = new FoodProperties.Builder()
+                .nutrition(food.nutrition() + bonusNutrition)
+                .saturationModifier(food.saturation() + config.multiplier() * 0.25f);
+            if (food.canAlwaysEat()) builder.alwaysEdible();
+            result.set(DataComponents.FOOD, builder.build());
+        });
+    }
+
+    /**
+     * Applies blacksmith quality attributes to freshly crafted items.
+     * Only fires at craft time — items from enchanting tables, anvils, loot, or
+     * trades are left untouched.
+     */
+    private static void applyQualityAttributes(ServerPlayer sp, ItemStack result) {
         ActiveOriginService.forEachOfType(sp, QualityEquipmentPower.class,
-            config -> QualityEquipmentPower.onItemCrafted(sp, result, config.unbreakingLevel()));
+            config -> QualityEquipmentPower.onItemCrafted(sp, result, config));
     }
 
     @SubscribeEvent

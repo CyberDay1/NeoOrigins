@@ -7,7 +7,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 /**
  * Compact origin list item for the left panel of OriginSelectionScreen.
@@ -48,17 +47,16 @@ public class OriginButton extends Button {
     }
 
     /**
-     * Renders a 16×16 origin icon. Tries the item registry first; if the item
-     * is not registered (e.g. from a Fabric-only mod), falls back to blitting
-     * the texture at assets/<ns>/textures/item/<path>.png, which is available
-     * when the origin pack has been mounted as a client resource pack.
+     * Renders a 16×16 origin icon. If the stack is non-empty it is rendered
+     * directly (preserving data components like custom model data); otherwise
+     * falls back to blitting the texture at assets/&lt;ns&gt;/textures/item/&lt;path&gt;.png.
      */
-    static void renderIcon(GuiGraphicsExtractor g, Identifier iconId, int x, int y) {
-        var item = BuiltInRegistries.ITEM.getValue(iconId);
-        if (item != null && item != Items.AIR) {
-            g.item(new ItemStack(item), x, y);
+    static void renderIcon(GuiGraphicsExtractor g, ItemStack icon, int x, int y) {
+        if (!icon.isEmpty()) {
+            g.item(icon, x, y);
             return;
         }
+        Identifier iconId = BuiltInRegistries.ITEM.getKey(icon.getItem());
         Identifier texture = Identifier.fromNamespaceAndPath(
             iconId.getNamespace(), "textures/item/" + iconId.getPath() + ".png");
         g.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0f, 0.0f, 16, 16, 16, 16);
