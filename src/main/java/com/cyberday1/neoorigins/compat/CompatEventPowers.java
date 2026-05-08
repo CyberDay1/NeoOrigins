@@ -2,6 +2,9 @@ package com.cyberday1.neoorigins.compat;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.server.level.ServerPlayer;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
@@ -186,6 +189,102 @@ public class CompatEventPowers {
                 .saturationModifier(saturation);
             if (food.canAlwaysEat()) builder.alwaysEdible();
             stack.set(DataComponents.FOOD, builder.build());
+        }
+    }
+
+    // ---- modify_crafting ----
+
+    /**
+     * When the player completes a craft, check whether any of their active
+     * {@code modify_crafting} entries target the recipe just used. If so,
+     * empty the original result stack and give the player the configured
+     * replacement instead.
+     *
+     * <p>Recipe match works by iterating each registered entry and asking
+     * the recipe manager whether {@code recipeManager.byKey(entry.recipeId)}
+     * matches the {@link net.minecraft.world.item.crafting.CraftingInput}
+     * built from the event's container. We do this rather than calling
+     * {@code recipeManager.getRecipeFor} once because Apoli's
+     * {@code modify_crafting} can target any recipe by id — including
+     * pack-defined ones — and there's typically only a handful of
+     * registered overrides per player.
+     */
+    @SubscribeEvent
+    public static void onItemCrafted(net.neoforged.neoforge.event.entity.player.PlayerEvent.ItemCraftedEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (!(event.getInventory() instanceof net.minecraft.world.inventory.CraftingContainer cc)) return;
+
+        var entries = ModifyCraftingRegistry.getEntries(sp);
+        if (entries.isEmpty()) return;
+
+        // Build a CraftingInput once and reuse for each entry's recipe match.
+        int width = cc.getWidth();
+        int height = cc.getHeight();
+        java.util.List<ItemStack> items = new java.util.ArrayList<>(cc.getContainerSize());
+        for (int i = 0; i < cc.getContainerSize(); i++) items.add(cc.getItem(i));
+        var input = net.minecraft.world.item.crafting.CraftingInput.of(width, height, items);
+
+        var recipeManager = sp.level().getServer().getRecipeManager();
+
+        for (var entry : entries) {
+            var holderOpt = recipeManager.byKey(
+                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, entry.recipeId()));
+            if (holderOpt.isEmpty()) continue;
+            var recipe = holderOpt.get().value();
+            if (!(recipe instanceof net.minecraft.world.item.crafting.CraftingRecipe craftingRecipe)) continue;
+            if (!craftingRecipe.matches(input, sp.level())) continue;
+
+            // Build the replacement stack: resolve item, set count, run
+            // legacy SNBT through the bridge for Potion/Enchantments/etc.
+            var itemOpt = net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(entry.replacementItem());
+            if (itemOpt.isEmpty()) {
+                NeoOrigins.LOGGER.warn("[CompatB] modify_crafting: replacement item '{}' not in registry — skipped",
+                    entry.replacementItem());
+                continue;
+            }
+            ItemStack replacement = new ItemStack(itemOpt.get(), entry.replacementCount());
+            if (!entry.replacementTag().isEmpty()) {
+                LegacyTagToComponents.applySnbt(replacement, entry.replacementTag(), sp.registryAccess());
+            }
+
+            // Empty what the player just crafted; vanilla finishes the take
+            // by removing this stack-shaped result so setCount(0) is the
+            // canonical "consume the original" gesture. Then add the
+            // replacement to the player's inventory.
+            event.getCrafting().setCount(0);
+            sp.getInventory().add(replacement);
+            return;
+        }
+    }
+
+    // ---- modify_harvest ----
+
+    /** Per-player block tag predicates for modify_harvest (allow:true). */
+    private static final Map<java.util.UUID, List<net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>>> HARVEST_TAGS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerHarvestTag(ServerPlayer player, net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> tag) {
+        HARVEST_TAGS.computeIfAbsent(player.getUUID(), k -> Collections.synchronizedList(new java.util.ArrayList<>())).add(tag);
+    }
+
+    public static void unregisterHarvestTag(ServerPlayer player, net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> tag) {
+        var list = HARVEST_TAGS.get(player.getUUID());
+        if (list != null) list.remove(tag);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onHarvestCheck(net.neoforged.neoforge.event.entity.player.PlayerEvent.HarvestCheck event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (event.canHarvest()) return;
+
+        var tags = HARVEST_TAGS.get(sp.getUUID());
+        if (tags == null || tags.isEmpty()) return;
+
+        for (var tag : tags) {
+            if (event.getTargetBlock().is(tag)) {
+                event.setCanHarvest(true);
+                return;
+            }
         }
     }
 }

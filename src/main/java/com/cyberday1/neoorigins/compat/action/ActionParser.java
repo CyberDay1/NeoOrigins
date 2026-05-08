@@ -241,8 +241,9 @@ public final class ActionParser {
                     .withPosition(pos)
                     .withRotation(player.getRotationVector())
                     .withLevel((net.minecraft.server.level.ServerLevel) player.level());
+                String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
                 player.level().getServer().getCommands().performPrefixedCommand(
-                    serverSource, command
+                    serverSource, finalCmd
                 );
             } catch (Exception e) {
                 NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());

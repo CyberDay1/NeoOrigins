@@ -18,6 +18,7 @@
     "ItemStackEdibleDurationMixin",
     "ItemStackEdibleAnimationMixin",
     "EntityIgnoreWaterMixin",
+    "LivingEntityWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin"
   ],
   "client": [

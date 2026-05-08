@@ -2,6 +2,71 @@
 
 ---
 
+## v2.0.30
+
+### New Power Types
+
+- **`neoorigins:walk_on_fluid`** — Walk on water and/or lava surfaces (same mechanic as vanilla Striders). Configurable: `water`, `lava`, or `both`.
+- **`neoorigins:extra_inventory`** — Extra inventory opened via skill keybind. Vanilla chest UI, configurable size up to 54 slots, persistent, supports `drop_on_death`.
+
+### Origins++ Compatibility — 100%
+
+Origins++ 2.4 power compat raised from ~96% to **100%** (all ~1326 powers handled). 17 new power type handlers covering `action_on_block_break`, `action_on_entity_use`, `action_on_item_use`, `action_on_wake_up`, `status_bar_texture`, `prevent_elytra_flight`, `modify_projectile_damage`, `modify_air_speed`, `exhaust`, `starting_equipment`, `walk_on_fluid`, `inventory`, `conditioned_restrict_armor`, `freeze`, `modify_harvest`, `recipe`.
+
+### Origins++ mcfunction Compatibility
+
+- **`/resource change|set|get`** command — mirrors Origins-mod resource API
+- **`/power grant|revoke`** command — mirrors Origins-mod power API
+- **`LegacyCommandRewriter`** — runtime rewriting of 1.20→1.21 attribute names, item data paths, and modifier IDs in mcfunction commands
+
+### Other
+
+- Added `elytra` value to `prevent_action` power type
+- `LivingEntityWalkOnFluidMixin` — overrides `canStandOnFluid()` for walk capabilities
+
+### Documentation
+
+- 8 new power type sections, 5 stale entry fixes, `food_finished` event added to EVENTS.md, v2.0.29 patch notes merged
+
+---
+
+## v2.0.29
+
+### Features
+
+- **Custom origin icons with data components** — Origins can now use custom model data in their icon field. Supports string (`"icon": "minecraft:ink_sac"`), object with legacy tag (`"icon": {"item": "minecraft:ink_sac", "tag": "{CustomModelData:1}"}`), and full ItemStack format.
+- **Ars Nouveau compatibility** — Undead-origin players now correctly have Ars Nouveau's Harm spell damage inverted into healing, matching vanilla undead potion behavior.
+- **New power type: `neoorigins:modify_food_nutrition`** — Overrides all food to give a fixed nutrition value. Example: `{"type": "neoorigins:modify_food_nutrition", "nutrition": 1}`
+- **New condition type: `neoorigins:cooldown`** — Returns true when a power is off cooldown. Use with `trigger_cooldown` to gate event-driven powers.
+- **Stoneguard Warding Presence is now toggleable** — Players can turn the mob spawn suppression on/off via skill keybind.
+
+### Reworks
+
+- **Blacksmith Quality Craftsmanship** — Complete rework. Equipment you craft now receives: tools +25% mining speed, weapons +20% attack damage, armor +1 armor toughness, all damageable items +10% max durability. All values configurable in JSON.
+- **Cook Good Meals** — Now adds +1 nutrition (hunger) alongside the saturation bonus.
+- **Cook Smoking Expert** — Was previously inert. Now grants +2 nutrition and +0.5 saturation to food cooked in a smoker or furnace.
+- **Stoneguard Warding Presence** — Radius increased from 24 to 48 blocks (24 was the vanilla default and had no effect).
+
+### Bug Fixes
+
+- **`origins:modify_food` compat power was inert** — The compat layer accepted the power type without errors but never applied `food_modifier`/`saturation_modifier` at eat time. Now fully functional with item_condition filtering and Apoli-compatible modifier math.
+- **26.1.2 crash on startup** — Fixed `ExceptionInInitializerError` caused by `RareWanderingLootPower` creating ItemStack/ItemCost objects in static initializers before component registries were bound.
+- **26.1.2 mixin failures** — Fixed three mixin target renames for 26.1.2: `renderFoodLevel` → `extractFoodLevel`, `renderAirLevel` → `extractAirLevel`, `MerchantScreen.render` → `extractContents`.
+- **Mod armor helmets not blocking sunburn** — Any helmet now blocks sun damage, not just damageable ones.
+- **Model color transparency broken with nametag off** — Fixed by flushing the render buffer before and after applying the shader color tint.
+- **Unknown icon items no longer crash origin loading** — Origins with unrecognized icon items now fall back to stone with a warning.
+- **Compat translator stripping icon data** — The Origins compat translator was unwrapping icon objects to plain strings, discarding the `tag` field.
+
+### Description Fixes
+
+- Rogue Hidden Presence — added mob detection reduction
+- Feline Predator's Calm — updated to describe creeper-only behavior
+- Verdant Wild Kin — clarified that all mobs (including hostile) ignore you
+- Stoneguard Warding Presence — updated radius to 48 blocks
+- Feline, Draconic, Hiveling, Gorgon — updated hunger-related descriptions to reference energy/stamina
+
+---
+
 ## v2.0.11
 
 ### Headline: Essence Evolution System
@@ -232,6 +297,7 @@ Every power extending `AbstractActivePower` inherits a `hungerCost()` method —
 ### Cross-mod compat
 
 - **Origins / Apoli / Apugli** packs drop into `config/originpacks/` and load automatically. Two translation passes: direct type mapping for the common types, and a compat power engine that compiles `origins:active_self` / `origins:toggle` / `origins:resource` / `origins:conditioned_*` into live event-driven behavior.
+- **Ars Nouveau** — Harm spell damage inverted into healing for undead-origin players (v2.0.29+)
 - **Epic Fight** — sized origins maintain their scale in combat mode
 - **GeckoLib (optional)** — custom projectile / VFX animations when present
 

@@ -109,14 +109,18 @@ All fields are optional and combine with AND. So `{ "dimension": "minecraft:the_
 ```
 
 **Useful attributes:**
-- `minecraft:generic.movement_speed` — walk speed (base ≈ 0.1)
-- `minecraft:generic.swimming_speed` — swim speed
-- `minecraft:generic.armor` — armor points
-- `minecraft:generic.armor_toughness` — armor toughness
-- `minecraft:generic.attack_damage` — melee damage
-- `minecraft:generic.attack_speed` — attack cooldown speed
-- `minecraft:generic.max_health` — max HP
-- `minecraft:generic.fall_damage_multiplier` — fall damage scale
+- `minecraft:movement_speed` — walk speed (base ≈ 0.1)
+- `minecraft:water_movement_efficiency` — swim speed boost (0.0–1.0, stacks with Depth Strider)
+- `minecraft:armor` — armor points
+- `minecraft:armor_toughness` — armor toughness
+- `minecraft:attack_damage` — melee damage
+- `minecraft:attack_speed` — attack cooldown speed
+- `minecraft:max_health` — max HP
+- `minecraft:fall_damage_multiplier` — fall damage scale
+- `minecraft:mining_efficiency` — mining speed bonus
+- `minecraft:oxygen_bonus` — extends underwater air (like Respiration)
+
+> **Note:** 1.21+ uses short-form IDs (`minecraft:movement_speed`). The legacy `minecraft:generic.movement_speed` format still parses via fallback.
 
 ---
 
@@ -170,6 +174,7 @@ Prevents a specific harmful action or event from affecting the player.
 | `water_damage` | Prevents water/rain contact damage |
 | `swim` | Prevents swimming (velocity-sinks the player in water) |
 | `sleep` | Prevents sleeping (bed use returns a "no sleep" message). Sleepless origins should pair this with `modify_player_spawn` if they still want bed interactions to set respawn. |
+| `elytra` | Prevents elytra flight (player is stopped from gliding each tick) |
 
 **Example — fire immunity:**
 ```json
@@ -894,7 +899,7 @@ Drains the player's air supply when submerged in the specified fluid. Useful for
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid: `water` or `lava` |
-| `drain_rate` | int | no | `20` | Air drained per tick while submerged |
+| `drain_rate` | int | no | `20` | Ticks between each air drain (1 air lost every N ticks) |
 
 **Example:**
 ```json
@@ -906,6 +911,31 @@ Drains the player's air supply when submerged in the specified fluid. Useful for
   "description": "Cannot breathe in water."
 }
 ```
+
+---
+
+## `neoorigins:breath_out_of_fluid`
+
+Drains the player's air supply while they are **not** submerged in the specified fluid — a fish out of water. Once the air supply reaches 0, vanilla drown damage applies. Water Breathing and Conduit Power effects pause the drain, and drinking a water bottle restores half the air bar. Compatible with Create's Copper Backtank (worn in chestplate slot, consumes pressurized air to pause drain). Respiration enchantment extends land time using the same probability curve vanilla uses underwater.
+
+The drain rate is controlled globally by the `ocean_origins.drain_rate_ticks` config option, not the per-power `drain_rate` field.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `fluid` | string | no | `water` | Fluid the player must stay in: `water` or `lava` |
+| `drain_rate` | int | no | `40` | Legacy field — overridden by `ocean_origins.drain_rate_ticks` config |
+
+**Example — aquatic origin that drowns on land:**
+```json
+{
+  "type": "neoorigins:breath_out_of_fluid",
+  "fluid": "water",
+  "name": "Dries Out",
+  "description": "Suffocates when not in water."
+}
+```
+
+> Pair with `neoorigins:water_breathing` so the player never loses air underwater while the bubble row depletes on land.
 
 ---
 
@@ -1009,19 +1039,21 @@ Causes specific mob types to passively ignore the player unless provoked.
 
 ## `neoorigins:no_mob_spawns_nearby`
 
-Suppresses hostile mob spawns within a radius of the player.
+Suppresses mob spawns within a radius of the player. Toggleable — the player can turn the aura on/off via their skill keybind.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `radius` | float | no | `16.0` | Radius in blocks within which spawns are suppressed |
+| `radius` | int | no | `48` | Radius in blocks within which spawns are suppressed |
+| `categories` | list of string | no | `["monster"]` | Spawn categories to suppress: `monster`, `creature`, `ambient`, `water_creature`, or `all` |
 
-**Example:**
+**Example — suppress hostile spawns in a 48-block radius:**
 ```json
 {
   "type": "neoorigins:no_mob_spawns_nearby",
-  "radius": 16.0,
-  "name": "Warden's Presence",
-  "description": "Hostile mobs don't spawn nearby."
+  "radius": 48,
+  "categories": ["monster"],
+  "name": "Warding Presence",
+  "description": "Hostile mobs don't spawn within 48 blocks. Toggle with skill key."
 }
 ```
 
@@ -1433,6 +1465,26 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 ```
 
 Effects are re-applied every `refresh_interval` ticks (default 300 = 15 seconds), so the effect never expires. When `toggleable` is true (the default), the player can press their skill key to toggle effects on/off — set `toggleable: false` for effects that should always be active. A single effect can be specified inline on the top-level object (`effect`, `amplifier`, etc.) instead of using the `effects` list.
+
+---
+
+## `neoorigins:modify_food_nutrition`
+
+Overrides the nutrition (hunger) value of all food the player eats. Every food item gives exactly the configured number of hunger points regardless of its original value. Saturation is scaled proportionally to the original food's saturation modifier.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `nutrition` | int | no | `1` | Fixed hunger points all food gives |
+
+**Example — all food gives 1 hunger point:**
+```json
+{
+  "type": "neoorigins:modify_food_nutrition",
+  "nutrition": 1,
+  "name": "Picky Eater",
+  "description": "Gains almost no nutrition from food."
+}
+```
 
 ---
 
@@ -2092,33 +2144,41 @@ No fields beyond `name` / `description`.
 
 ## `neoorigins:quality_equipment`
 
-Adds Unbreaking to newly crafted tools and armor by monitoring the player's inventory and enchanting eligible items as they appear.
+Equipment the player crafts or upgrades at a smithing table receives bonus attributes. Tools mine faster, weapons hit harder, armor is tougher, and everything lasts longer.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `unbreaking_level` | int | no | `1` | Level of Unbreaking to apply |
+| `bonus_mining_speed` | double | no | `0.25` | Mining speed multiplier for tools (+25%) |
+| `bonus_attack_damage` | double | no | `0.20` | Attack damage multiplier for weapons (+20%) |
+| `bonus_armor_toughness` | double | no | `1.0` | Flat armor toughness bonus for armor pieces |
+| `durability_multiplier` | double | no | `0.10` | Max durability increase for all damageable items (+10%) |
+
+**What gets buffed:**
+- **Tools** (pickaxe, axe, shovel, hoe, shears): +mining speed via `MINING_EFFICIENCY` attribute
+- **Weapons** (sword, axe, trident): +attack damage via `ATTACK_DAMAGE` attribute
+- **Armor** (helmet, chest, legs, boots): +armor toughness via `ARMOR_TOUGHNESS` attribute
+- **All damageable items**: +max durability via `MAX_DAMAGE` component
 
 **Example:**
 ```json
 {
   "type": "neoorigins:quality_equipment",
-  "unbreaking_level": 1,
-  "name": "Craftsman's Touch",
-  "description": "Tools you craft gain Unbreaking I."
+  "name": "Quality Craftsmanship",
+  "description": "Tools mine faster, weapons hit harder, armor is tougher, and everything lasts longer."
 }
 ```
 
-Scans every 5 ticks. Items already carrying Unbreaking at any level are skipped so this doesn't stack up.
+Bonuses are applied at craft/smelt time via attribute modifiers stored on the item. Items already carrying the quality modifier are not double-buffed.
 
 ---
 
 ## `neoorigins:more_smoker_xp`
 
-Intended to grant bonus XP from smoker cooking. **Currently inert** — no furnace XP event exists in NeoForge 21.11.38. Registered so pack JSON referencing it doesn't fail.
+Grants bonus nutrition and saturation to food cooked in a smoker or furnace by the player. Applied at smelt-finish time.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `multiplier` | float | no | `2.0` | Planned XP multiplier (not yet applied) |
+| `multiplier` | float | no | `2.0` | Nutrition/saturation bonus multiplier |
 
 ---
 
@@ -2628,6 +2688,51 @@ Origins compat: translates `origins:burn`.
 
 ---
 
+## `neoorigins:walk_on_fluid`
+
+Allows the player to walk on the surface of a fluid (water, lava, or both), using the same vanilla mechanic as Striders (`LivingEntity.canStandOnFluid`). The player can still dive by jumping into the fluid.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `fluid` | string | no | `both` | Which fluid to walk on: `water`, `lava`, or `both` |
+
+**Example — walk on water:**
+```json
+{
+  "type": "neoorigins:walk_on_fluid",
+  "fluid": "water",
+  "name": "Water Walking",
+  "description": "Can walk on water surfaces."
+}
+```
+
+Origins compat: translates `origins:walk_on_fluid`.
+
+---
+
+## `neoorigins:extra_inventory`
+
+Gives the player an extra inventory opened via the skill keybind. Uses vanilla's chest UI. Contents are persisted across sessions.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `size` | int | no | `9` | Number of slots (rounded up to nearest multiple of 9, max 54) |
+| `drop_on_death` | bool | no | `false` | Whether to drop contents on death |
+
+**Example — 27-slot extra inventory:**
+```json
+{
+  "type": "neoorigins:extra_inventory",
+  "size": 27,
+  "name": "Shulker Inventory",
+  "description": "Press your skill key to open an extra inventory."
+}
+```
+
+Origins compat: translates `origins:inventory` / `origins:shulker_inventory`.
+
+---
+
 ## `neoorigins:ignore_water`
 
 Makes the player unaffected by water: full movement speed in water (via `water_movement_efficiency` attribute) and immune to water-current pushing (via `EntityIgnoreWaterMixin`). Emits the `ignore_water` capability tag.
@@ -2784,6 +2889,126 @@ Emits the `wall_phase` capability while active (toggled on or always_on).
   "type": "neoorigins:wraith_phase",
   "blocked_blocks": ["minecraft:bedrock"],
   "exhaustion_per_tick": 0.075
+}
+```
+
+---
+
+## `neoorigins:resource`
+
+A named, persistent, HUD-visible resource bar. Values are stored per-player and synced to the client for rendering. Supports regeneration with conditions, threshold actions when min/max are hit, and compatibility with the Origins `change_resource` / `resource` condition system.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `min` | int | no | `0` | Minimum resource value |
+| `max` | int | no | `100` | Maximum resource value |
+| `start_value` | int | no | `max` | Initial value when granted |
+| `regen_rate` | int | no | `0` | Amount regenerated per interval (0 = no regen) |
+| `regen_interval` | int | no | `20` | Ticks between regen ticks |
+| `regen_condition` | EntityCondition | no | always-true | Condition for when regeneration occurs |
+| `min_action` | EntityAction | no | noop | Action triggered each tick while resource is at minimum |
+| `max_action` | EntityAction | no | noop | Action triggered each tick while resource is at maximum |
+| `hud_render` | object | no | — | HUD display settings (see below) |
+| `hidden` | bool | no | `false` | Whether to hide the bar from the HUD |
+
+**`hud_render` object:**
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `label` | string | no | `"Resource"` | Display label on the HUD bar |
+| `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
+| `should_render` | bool | no | `true` | Origins compat — when false, hides the bar |
+
+**Example — mana bar that regens while not in combat:**
+```json
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 100,
+  "start_value": 100,
+  "regen_rate": 1,
+  "regen_interval": 20,
+  "regen_condition": { "type": "neoorigins:out_of_combat" },
+  "hud_render": {
+    "label": "Mana",
+    "color": "#55AAFF"
+  },
+  "name": "Mana Pool",
+  "description": "Magical energy that regenerates outside of combat."
+}
+```
+
+---
+
+## `neoorigins:slime_moisture`
+
+Custom resource bar (0.0–1.0 float) that drains passively over time, faster in dry biomes (desert, badlands, savanna) and much faster when on fire. Replenished by standing in water or rain. Triggers threshold effects: Regeneration above 75%, armor penalty below 10%, and damage-over-time at 0%.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `drain_per_tick` | float | no | `0.0004` | Base moisture drain per tick |
+| `dry_biome_drain_multiplier` | float | no | `3.0` | Drain multiplier in desert/badlands/savanna biomes |
+| `fire_drain_multiplier` | float | no | `10.0` | Drain multiplier when player is on fire |
+| `water_refill_per_tick` | float | no | `0.005` | Moisture gained per tick in water or rain |
+| `regen_threshold` | float | no | `0.75` | Moisture level above which Regeneration I is applied |
+| `armor_penalty_threshold` | float | no | `0.10` | Below this, -4 armor is applied |
+| `dot_threshold` | float | no | `0.0` | Below this, damage-over-time triggers |
+| `dot_damage` | float | no | `1.0` | Damage per interval when below dot_threshold |
+| `dot_interval` | int | no | `40` | Ticks between damage ticks |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:slime_moisture",
+  "name": "Moisture",
+  "description": "Must stay hydrated. Dries out faster in hot biomes."
+}
+```
+
+---
+
+## `neoorigins:slime_death_save`
+
+Death prevention mechanic for slime-themed origins. When the player would die with moisture above the threshold, they "split" instead: teleported to a random location, max HP reduced to 2 hearts, which gradually recovers over time.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `moisture_threshold` | float | no | `0.75` | Moisture level required to trigger the save |
+| `teleport_distance` | int | no | `50` | Horizontal blocks to teleport |
+| `teleport_y_range` | int | no | `10` | Random Y offset range (±) |
+| `split_max_hp` | float | no | `4.0` | Max HP while "split" (2 hearts) |
+| `recovery_ticks` | int | no | `2400` | Ticks for HP to recover to normal (default: 120 seconds) |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:slime_death_save",
+  "name": "Slime Split",
+  "description": "Instead of dying, splits and teleports away — but at 2 hearts."
+}
+```
+
+> Requires a companion `slime_moisture` power to provide the moisture value. Without it, the death save never triggers (moisture defaults to 1.0 and never changes).
+
+---
+
+## `neoorigins:slime_level_hp`
+
+Grants bonus max HP based on the player's experience level. The bonus resets on death (since vanilla drops XP on death).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `levels_per_hp` | int | no | `10` | Experience levels needed per +1 max HP |
+| `max_bonus_hp` | int | no | `20` | Maximum HP bonus cap |
+
+**Example — +1 HP every 10 levels, capped at +20:**
+```json
+{
+  "type": "neoorigins:slime_level_hp",
+  "levels_per_hp": 10,
+  "max_bonus_hp": 20,
+  "name": "Growth",
+  "description": "Grows tougher with experience. Resets on death."
 }
 ```
 
