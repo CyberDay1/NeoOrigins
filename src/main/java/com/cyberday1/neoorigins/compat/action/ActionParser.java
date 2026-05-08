@@ -237,7 +237,8 @@ public final class ActionParser {
                 if (blockPos != null) {
                     src = src.withPosition(net.minecraft.world.phys.Vec3.atCenterOf(blockPos));
                 }
-                player.level().getServer().getCommands().performPrefixedCommand(src, command);
+                String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
+                player.level().getServer().getCommands().performPrefixedCommand(src, finalCmd);
             } catch (Exception e) {
                 NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());
             }

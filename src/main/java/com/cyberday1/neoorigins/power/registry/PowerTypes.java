@@ -64,6 +64,8 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
     public static final DeferredHolder<PowerType<?>, BurnPower>                BURN                 = reg("burn",                new BurnPower());
     public static final DeferredHolder<PowerType<?>, IgnoreWaterPower>         IGNORE_WATER         = reg("ignore_water",        new IgnoreWaterPower());
+    public static final DeferredHolder<PowerType<?>, WalkOnFluidPower>         WALK_ON_FLUID        = reg("walk_on_fluid",       new WalkOnFluidPower());
+    public static final DeferredHolder<PowerType<?>, ExtraInventoryPower>      EXTRA_INVENTORY      = reg("extra_inventory",     new ExtraInventoryPower());
     public static final DeferredHolder<PowerType<?>, LavaVisionPower>          LAVA_VISION          = reg("lava_vision",         new LavaVisionPower());
     public static final DeferredHolder<PowerType<?>, OverlayPower>             OVERLAY              = reg("overlay",             new OverlayPower());
     public static final DeferredHolder<PowerType<?>, ModelColorPower>          MODEL_COLOR          = reg("model_color",         new ModelColorPower());

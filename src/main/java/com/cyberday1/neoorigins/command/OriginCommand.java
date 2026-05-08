@@ -55,6 +55,7 @@ public class OriginCommand {
         // the tree twice instead.
         dispatcher.register(buildCommandTree("neoorigins"));
         dispatcher.register(buildCommandTree("origin"));
+        OriginsCompatCommands.register(dispatcher);
     }
 
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildCommandTree(String name) {

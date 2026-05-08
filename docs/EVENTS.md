@@ -250,6 +250,20 @@ bonus-effect-on-eat.
 
 ---
 
+## `food_finished`
+
+Fires when the player **finishes eating** a food item (post-eat). **Not cancellable** — the food has already been consumed. This is distinct from `food_eaten` which fires at eat-start and can cancel the eat.
+
+Also synthetically fired by `EdibleItemPower` after a successful bite, so custom edible items trigger the same post-eat hooks.
+
+**Context:** `FoodContext(stack, event)` — the consumed food `ItemStack`. Context-aware conditions like `neoorigins:food_item_in_tag` and `neoorigins:food_item_id` read the stack.
+
+**Dispatch site:** `InteractionPowerEvents.onItemUseFinish` (`LivingEntityUseItemEvent.Finish`, only dispatched when the stack has a FOOD component).
+
+**Typical use:** post-eat nutrition bonuses, food-specific buffs, bonus saturation for certain food types.
+
+---
+
 ## `gained`
 
 Fires when a power has just been granted to the player.

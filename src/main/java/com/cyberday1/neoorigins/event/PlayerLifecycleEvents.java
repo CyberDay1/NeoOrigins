@@ -157,6 +157,7 @@ public class PlayerLifecycleEvents {
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
         MinionTracker.clearAll(uuid);
+        com.cyberday1.neoorigins.power.builtin.ExtraInventoryPower.onPlayerLogout(sp);
         ActiveOriginService.invalidate(uuid);
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
         com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);

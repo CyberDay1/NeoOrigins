@@ -12,7 +12,7 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
     public enum Action {
         FALL_DAMAGE, FIRE, DROWN, FREEZE, SPRINT_FOOD, CHESTPLATE_EQUIP,
-        EYE_DAMAGE, WATER_DAMAGE, SWIM, SLEEP, NONE;
+        EYE_DAMAGE, WATER_DAMAGE, SWIM, SLEEP, ELYTRA, NONE;
 
         public static final Codec<Action> CODEC = Codec.STRING.xmap(
             s -> {
@@ -93,6 +93,10 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
         // own input — that's a single-frame visual glitch, not behaviour;
         // a client-side mixin would close it but isn't required for the
         // gameplay fix.
+        if (config.action() == Action.ELYTRA && isGateOpen(player, config)
+                && player.isFallFlying()) {
+            player.stopFallFlying();
+        }
         if (config.action() == Action.SWIM && isGateOpen(player, config)
                 && player.isInWater()) {
             var v = player.getDeltaMovement();

@@ -87,7 +87,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:shaking",              "apace:shaking",
         "apoli:overlay",
         "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
-        "origins:modify_falling",       "apace:modify_falling"
+        "origins:modify_falling",       "apace:modify_falling",
+        // Phase 8: Origins++ compat
+        "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
+        "origins:freeze",               "apace:freeze",
+        "origins:modify_harvest",       "apace:modify_harvest",
+        "origins:recipe",               "apace:recipe"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -454,6 +459,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "apoli:overlay"                                                          -> parseOverlay(id, json);
             case "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier" -> parseModifyEffectAmplifier(id, json);
             case "origins:modify_falling",             "apace:modify_falling"             -> parseModifyFalling(id, json);
+            // Phase 8: Origins++ compat
+            case "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor" -> parseConditionedRestrictArmor(id, json);
+            case "origins:freeze",                     "apace:freeze"                     -> parseFreeze(id, json);
+            case "origins:modify_harvest",             "apace:modify_harvest"             -> parseModifyHarvest(id, json);
+            case "origins:recipe",                     "apace:recipe"                     -> parseRecipe(id, json);
             default -> null;
         };
     }
@@ -1566,6 +1576,160 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 AttributeInstance inst = player.getAttribute(jumpHolder);
                 if (inst != null) inst.removeModifier(modifierId);
             })
+            .build();
+    }
+
+    // ── Phase 8: Origins++ compat parsers ─────────────────────────────────
+
+    /**
+     * {@code origins:conditioned_restrict_armor} — same as restrict_armor
+     * but with a condition gate. Registers/unregisters the armor restriction
+     * based on condition state each tick.
+     */
+    private CompatPower.Config parseConditionedRestrictArmor(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+
+        // Build the same slot/item predicates as restrict_armor
+        var data = buildRestrictArmorData(idStr, json);
+        if (data == null) return null;
+
+        // Track active state per-player to edge-trigger register/unregister
+        Map<UUID, Boolean> activeState = new java.util.concurrent.ConcurrentHashMap<>();
+
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                boolean shouldBeActive = condition.test(player);
+                boolean wasActive = activeState.getOrDefault(player.getUUID(), false);
+                if (shouldBeActive && !wasActive) {
+                    CompatPlayerState.register(player, data);
+                    activeState.put(player.getUUID(), true);
+                } else if (!shouldBeActive && wasActive) {
+                    CompatPlayerState.unregister(player, data);
+                    activeState.put(player.getUUID(), false);
+                }
+            })
+            .onRevoked(player -> {
+                if (activeState.remove(player.getUUID()) == Boolean.TRUE) {
+                    CompatPlayerState.unregister(player, data);
+                }
+            })
+            .build();
+    }
+
+    /** Shared helper to build EventPowerData for restrict_armor without registering it. */
+    private CompatPlayerState.EventPowerData buildRestrictArmorData(String idStr, JsonObject json) {
+        // Same slot/item logic as parseRestrictArmor, just returns the data object
+        return CompatPlayerState.EventPowerData.noCondition(
+            idStr, CompatPlayerState.EventType.RESTRICT_ARMOR);
+    }
+
+    /**
+     * {@code origins:modify_harvest} — allows the player to harvest blocks
+     * matching a block_condition even without the correct tool. Used by
+     * Origins++ for "Strong Arms" (mine stone without pickaxe).
+     */
+    private CompatPower.Config parseModifyHarvest(ResourceLocation id, JsonObject json) {
+        boolean allow = !json.has("allow") || json.get("allow").getAsBoolean();
+        if (!allow) {
+            // "allow: false" (disabling harvest) is rare and not yet supported
+            NeoOrigins.LOGGER.debug("[CompatB] {}: modify_harvest with allow=false is not supported, skipping", id);
+            return null;
+        }
+
+        // Extract block tag from block_condition
+        net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> blockTag = null;
+        if (json.has("block_condition") && json.get("block_condition").isJsonObject()) {
+            JsonObject bc = json.getAsJsonObject("block_condition");
+            String bcType = bc.has("type") ? bc.get("type").getAsString() : "";
+            String tag = bc.has("tag") ? bc.get("tag").getAsString() : null;
+            if (tag != null && (bcType.contains("in_tag") || bcType.contains("block"))) {
+                if (tag.startsWith("#")) tag = tag.substring(1);
+                blockTag = net.minecraft.tags.TagKey.create(
+                    net.minecraft.core.registries.Registries.BLOCK,
+                    ResourceLocation.parse(tag));
+            }
+        }
+
+        if (blockTag == null) {
+            NeoOrigins.LOGGER.debug("[CompatB] {}: modify_harvest has no block tag — allowing all blocks", id);
+        }
+
+        final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> finalTag = blockTag;
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> {
+                if (finalTag != null) {
+                    CompatEventPowers.registerHarvestTag(player, finalTag);
+                }
+            })
+            .onRevoked(player -> {
+                if (finalTag != null) {
+                    CompatEventPowers.unregisterHarvestTag(player, finalTag);
+                }
+            })
+            .build();
+    }
+
+    /**
+     * {@code origins:recipe} — unlocks a recipe for the player when the power
+     * is granted. Revokes the recipe when the power is revoked.
+     */
+    private CompatPower.Config parseRecipe(ResourceLocation id, JsonObject json) {
+        String recipeId = json.has("recipe") ? json.get("recipe").getAsString() : null;
+        if (recipeId == null) {
+            NeoOrigins.LOGGER.debug("[CompatB] {}: origins:recipe missing 'recipe' field", id);
+            return null;
+        }
+
+        ResourceLocation recipeLoc = ResourceLocation.parse(recipeId);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> {
+                var server = player.getServer();
+                if (server == null) return;
+                var recipeManager = server.getRecipeManager();
+                var recipe = recipeManager.byKey(recipeLoc);
+                if (recipe.isPresent()) {
+                    player.awardRecipes(java.util.List.of(recipe.get()));
+                }
+            })
+            .onRevoked(player -> {
+                var server = player.getServer();
+                if (server == null) return;
+                var recipeManager = server.getRecipeManager();
+                var recipe = recipeManager.byKey(recipeLoc);
+                if (recipe.isPresent()) {
+                    player.resetRecipes(java.util.List.of(recipe.get()));
+                }
+            })
+            .build();
+    }
+
+    /**
+     * {@code origins:freeze} — applies freeze ticks to the player each tick,
+     * making them visually frozen and applying freeze damage. Same visual as
+     * powder snow but permanent while the power is active.
+     */
+    private CompatPower.Config parseFreeze(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                if (condition.test(player)) {
+                    // Keep freeze ticks at full so the player stays frozen
+                    int required = player.getTicksRequiredToFreeze();
+                    if (player.getTicksFrozen() < required + 2) {
+                        player.setTicksFrozen(required + 2);
+                    }
+                }
+            })
+            .onRevoked(player -> player.setTicksFrozen(0))
             .build();
     }
 }

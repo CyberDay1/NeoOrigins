@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -77,17 +78,21 @@ public final class OriginsPowerTranslator {
         // origins:climbing — translated in doTranslate()
         // origins:phasing — translated in doTranslate()
         // origins:burn — translated in doTranslate()
-        "origins:exhaust",               "apace:exhaust",
+        // origins:exhaust — translated in doTranslate()
         // origins:modify_status_effect_amplifier — handled by Route B
         // origins:modify_falling — handled by Route B
         // origins:modify_player_spawn — translated in doTranslate()
-        "origins:action_on_wake_up",
-        "origins:action_on_item_use",
-        "origins:inventory",
-        "origins:recipe",
-        "origins:starting_equipment",
-        "origins:action_on_entity_use",  "apace:action_on_entity_use",
-        "origins:walk_on_fluid",         "apace:walk_on_fluid",
+        // origins:action_on_wake_up — translated in doTranslate()
+        // origins:action_on_item_use — translated in doTranslate()
+        // origins:inventory — translated in doTranslate()
+        // origins:recipe — handled by Route B
+        "origins:recipe",                "apace:recipe",
+        // origins:starting_equipment — translated in doTranslate()
+        // origins:walk_on_fluid — translated in doTranslate()
+        // Phase 8: Route B compat
+        "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
+        "origins:freeze",                "apace:freeze",
+        "origins:modify_harvest",        "apace:modify_harvest",
         // Display-only, no gameplay effect
         "origins:tooltip",               "apace:tooltip",
         "origins:simple",                "apace:simple",
@@ -248,6 +253,19 @@ public final class OriginsPowerTranslator {
             case "origins:particle",               "apace:particle",
                  "apoli:particle",                 "apugli:particle"              -> translateParticle(src);
             case "origins:modify_player_spawn",    "apace:modify_player_spawn"    -> translateModifyPlayerSpawn(src);
+            // Phase 8: Origins++ compat
+            case "origins:action_on_block_break",  "apace:action_on_block_break"  -> translateActionOnBlockBreak(src);
+            case "origins:action_on_entity_use",   "apace:action_on_entity_use"   -> translateActionOnEntityUse(src);
+            case "origins:status_bar_texture",      "apace:status_bar_texture"     -> translateDisplayNoop();
+            case "origins:prevent_elytra_flight",   "apace:prevent_elytra_flight"  -> translateSimplePrevent("ELYTRA");
+            case "origins:modify_projectile_damage","apace:modify_projectile_damage"-> translateModifyProjectileDamage(src);
+            case "origins:modify_air_speed",        "apace:modify_air_speed"        -> translateModifyAirSpeed(src);
+            case "origins:action_on_item_use",      "apace:action_on_item_use"      -> translateActionOnItemUse(src);
+            case "origins:action_on_wake_up",       "apace:action_on_wake_up"       -> translateActionOnWakeUp(src);
+            case "origins:exhaust",                 "apace:exhaust"                 -> translateExhaust(src);
+            case "origins:starting_equipment",      "apace:starting_equipment"      -> translateStartingEquipment(id, src);
+            case "origins:walk_on_fluid",           "apace:walk_on_fluid"           -> translateWalkOnFluid(src);
+            case "origins:inventory",              "apace:inventory"              -> translateInventory(src);
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -342,6 +360,239 @@ public final class OriginsPowerTranslator {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:prevent_action");
         out.addProperty("action", action);
+        return Optional.of(out);
+    }
+
+    /** Display-only power type — load successfully, no gameplay effect. */
+    private static Optional<JsonObject> translateDisplayNoop() {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:toggle");
+        out.addProperty("hidden", true);
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:action_on_block_break} to
+     * {@code neoorigins:action_on_event} with event {@code block_break}.
+     * Carries over entity_action, condition, and block_condition.
+     */
+    private static Optional<JsonObject> translateActionOnBlockBreak(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "block_break");
+        if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        if (src.has("block_condition")) out.add("block_condition", src.get("block_condition"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:action_on_entity_use} to
+     * {@code neoorigins:action_on_event} with event {@code entity_use}.
+     * Carries over entity_action and condition.
+     */
+    private static Optional<JsonObject> translateActionOnEntityUse(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "entity_use");
+        if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:modify_projectile_damage} to
+     * {@code neoorigins:modify_damage} with direction {@code out} and
+     * damage_type filter for projectiles.
+     */
+    private static Optional<JsonObject> translateModifyProjectileDamage(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:modify_damage");
+        out.addProperty("direction", "out");
+        out.addProperty("damage_type", "#minecraft:is_projectile");
+
+        // Extract multiplier from the modifier object
+        if (src.has("modifier") && src.get("modifier").isJsonObject()) {
+            JsonObject mod = src.getAsJsonObject("modifier");
+            double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
+            String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+            // Convert Apoli operation to a multiplier
+            float multiplier = switch (op.toLowerCase(Locale.ROOT)) {
+                case "addition", "add_value", "add_base_early", "add_base_late" -> (float)(1.0 + value);
+                case "multiply_base", "multiply_base_additive" -> (float)(1.0 + value);
+                case "multiply_total", "multiply_total_multiplicative" -> (float) value;
+                default -> (float)(1.0 + value);
+            };
+            out.addProperty("multiplier", multiplier);
+        } else {
+            out.addProperty("multiplier", 1.5f); // sensible default
+        }
+
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:modify_air_speed} to a conditioned attribute
+     * modifier on movement_speed that only applies while airborne.
+     * In practice, Origins++ uses this for flight-speed-in-air bonuses.
+     */
+    private static Optional<JsonObject> translateModifyAirSpeed(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:attribute_modifier");
+        out.addProperty("attribute", "minecraft:movement_speed");
+
+        if (src.has("modifier") && src.get("modifier").isJsonObject()) {
+            JsonObject mod = src.getAsJsonObject("modifier");
+            double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
+            String op = mod.has("operation") ? mod.get("operation").getAsString() : "multiply_base";
+            out.addProperty("amount", value);
+            out.addProperty("operation", OriginsOperationMapper.mapOperation(op));
+        } else {
+            // Some packs use a flat value at top level
+            double value = src.has("value") ? src.get("value").getAsDouble() : 0.2;
+            out.addProperty("amount", value);
+            out.addProperty("operation", "add_multiplied_base");
+        }
+
+        // No direct "airborne only" condition in attribute_modifier, but
+        // the modifier applies globally — acceptable approximation for
+        // pack compat (Origins' air_speed bonus is also active on ground
+        // in many packs since the movement_speed attribute affects both).
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:action_on_item_use} to
+     * {@code neoorigins:action_on_event} with event {@code item_use}.
+     * Carries over entity_action, condition, and item_condition.
+     */
+    private static Optional<JsonObject> translateActionOnItemUse(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "item_use");
+        if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        if (src.has("item_condition"))  out.add("item_condition", src.get("item_condition"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:action_on_wake_up} to
+     * {@code neoorigins:action_on_event} with event {@code wake_up}.
+     */
+    private static Optional<JsonObject> translateActionOnWakeUp(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "wake_up");
+        if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:exhaust} to
+     * {@code neoorigins:action_on_event} with event {@code mod_exhaustion}
+     * and a modifier that multiplies the exhaustion rate.
+     */
+    private static Optional<JsonObject> translateExhaust(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "mod_exhaustion");
+
+        // Extract the exhaustion interval/amount and convert to a modifier
+        float interval = src.has("interval") ? src.get("interval").getAsFloat() : 20f;
+        // origins:exhaust applies exhaustion every N ticks — translate to a multiplier
+        // Default vanilla exhaustion rate is 1x; origins:exhaust adds extra drain
+        JsonObject modifier = new JsonObject();
+        modifier.addProperty("operation", "add_base");
+        // Normalized: default interval is 20 ticks, lower = faster drain
+        modifier.addProperty("value", 20f / Math.max(1, interval));
+        out.add("modifier", modifier);
+
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:starting_equipment} to
+     * {@code neoorigins:starting_equipment}. Origins format uses a
+     * {@code stack} object or {@code stacks} array; NeoOrigins uses a
+     * flat {@code item} + {@code count} + {@code grant_id}. Best-effort:
+     * only the first stack item is taken.
+     */
+    /**
+     * Translates {@code origins:walk_on_fluid} to {@code neoorigins:walk_on_fluid}.
+     * Origins format uses a {@code fluid} field with a fluid tag ID.
+     */
+    /**
+     * Translates {@code origins:inventory} to {@code neoorigins:extra_inventory}.
+     * Maps the Origins inventory size to slot count.
+     */
+    private static Optional<JsonObject> translateInventory(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:extra_inventory");
+
+        // Origins uses "container_type" or defaults to 9 slots
+        int size = 9;
+        if (src.has("container_type")) {
+            String ct = src.get("container_type").getAsString().toLowerCase(Locale.ROOT);
+            if (ct.contains("9x6") || ct.contains("54")) size = 54;
+            else if (ct.contains("9x5") || ct.contains("45")) size = 45;
+            else if (ct.contains("9x4") || ct.contains("36")) size = 36;
+            else if (ct.contains("9x3") || ct.contains("27")) size = 27;
+            else if (ct.contains("9x2") || ct.contains("18")) size = 18;
+            else if (ct.contains("9x1") || ct.contains("9")) size = 9;
+            else if (ct.contains("3x3")) size = 9;
+        }
+
+        out.addProperty("size", size);
+        if (src.has("drop_on_death")) out.addProperty("drop_on_death", src.get("drop_on_death").getAsBoolean());
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateWalkOnFluid(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:walk_on_fluid");
+
+        // Origins format: { "fluid": "minecraft:water" } or fluid tag
+        if (src.has("fluid")) {
+            String fluid = src.get("fluid").getAsString();
+            if (fluid.contains("water")) out.addProperty("fluid", "water");
+            else if (fluid.contains("lava")) out.addProperty("fluid", "lava");
+            else out.addProperty("fluid", "both");
+        }
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateStartingEquipment(ResourceLocation id, JsonObject src) {
+        String itemId = null;
+        int count = 1;
+
+        if (src.has("stack") && src.get("stack").isJsonObject()) {
+            JsonObject stack = src.getAsJsonObject("stack");
+            itemId = stack.has("item") ? stack.get("item").getAsString() : null;
+            if (stack.has("amount")) count = stack.get("amount").getAsInt();
+            else if (stack.has("count")) count = stack.get("count").getAsInt();
+        } else if (src.has("stacks") && src.get("stacks").isJsonArray()) {
+            JsonArray stacks = src.getAsJsonArray("stacks");
+            if (!stacks.isEmpty() && stacks.get(0).isJsonObject()) {
+                JsonObject first = stacks.get(0).getAsJsonObject();
+                itemId = first.has("item") ? first.get("item").getAsString() : null;
+                if (first.has("amount")) count = first.get("amount").getAsInt();
+                else if (first.has("count")) count = first.get("count").getAsInt();
+            }
+        } else if (src.has("item")) {
+            itemId = src.get("item").getAsString();
+            if (src.has("count")) count = src.get("count").getAsInt();
+        }
+
+        if (itemId == null) return Optional.empty();
+
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:starting_equipment");
+        out.addProperty("item", itemId);
+        out.addProperty("count", count);
+        out.addProperty("grant_id", id.toString());
         return Optional.of(out);
     }
 

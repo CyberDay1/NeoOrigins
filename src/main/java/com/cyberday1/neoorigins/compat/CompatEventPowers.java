@@ -2,6 +2,9 @@ package com.cyberday1.neoorigins.compat;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.server.level.ServerPlayer;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
@@ -273,6 +276,37 @@ public class CompatEventPowers {
             event.getCrafting().setCount(0);
             sp.getInventory().add(replacement);
             return;
+        }
+    }
+
+    // ---- modify_harvest ----
+
+    /** Per-player block tag predicates for modify_harvest (allow:true). */
+    private static final Map<java.util.UUID, List<net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>>> HARVEST_TAGS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerHarvestTag(ServerPlayer player, net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> tag) {
+        HARVEST_TAGS.computeIfAbsent(player.getUUID(), k -> Collections.synchronizedList(new java.util.ArrayList<>())).add(tag);
+    }
+
+    public static void unregisterHarvestTag(ServerPlayer player, net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> tag) {
+        var list = HARVEST_TAGS.get(player.getUUID());
+        if (list != null) list.remove(tag);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onHarvestCheck(net.neoforged.neoforge.event.entity.player.PlayerEvent.HarvestCheck event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (event.canHarvest()) return;
+
+        var tags = HARVEST_TAGS.get(sp.getUUID());
+        if (tags == null || tags.isEmpty()) return;
+
+        for (var tag : tags) {
+            if (event.getTargetBlock().is(tag)) {
+                event.setCanHarvest(true);
+                return;
+            }
         }
     }
 }
