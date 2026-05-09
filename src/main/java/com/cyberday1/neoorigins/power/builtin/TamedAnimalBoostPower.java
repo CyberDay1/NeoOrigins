@@ -49,7 +49,7 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
 
             AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
             if (healthAttr != null && healthAttr.getModifier(HEALTH_MOD_ID) == null) {
-                healthAttr.addPermanentModifier(new AttributeModifier(
+                healthAttr.addTransientModifier(new AttributeModifier(
                     HEALTH_MOD_ID, config.healthBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
                 animal.setHealth(animal.getMaxHealth());
@@ -57,10 +57,27 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
 
             AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
             if (speedAttr != null && speedAttr.getModifier(SPEED_MOD_ID) == null) {
-                speedAttr.addPermanentModifier(new AttributeModifier(
+                speedAttr.addTransientModifier(new AttributeModifier(
                     SPEED_MOD_ID, config.speedBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
             }
+        }
+    }
+
+    @Override
+    public void onRevoked(ServerPlayer player, Config config) {
+        AABB area = player.getBoundingBox().inflate(config.radius());
+        var animals = player.level().getEntitiesOfClass(Animal.class, area);
+        for (Animal animal : animals) {
+            if (!(animal instanceof OwnableEntity ownable)) continue;
+            var owner = ownable.getOwner();
+            if (owner == null || !player.getUUID().equals(owner.getUUID())) continue;
+
+            AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
+            if (healthAttr != null) healthAttr.removeModifier(HEALTH_MOD_ID);
+
+            AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
+            if (speedAttr != null) speedAttr.removeModifier(SPEED_MOD_ID);
         }
     }
 }

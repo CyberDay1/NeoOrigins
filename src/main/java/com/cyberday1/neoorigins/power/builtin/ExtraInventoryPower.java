@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Map;
@@ -65,9 +66,21 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
         // Clamp to valid chest row counts (1-6 rows of 9)
         int rows = Math.max(1, Math.min(6, (config.size() + 8) / 9));
         player.openMenu(new SimpleMenuProvider(
-            (windowId, playerInv, p) -> ChestMenu.threeRows(windowId, playerInv, container),
+            (windowId, playerInv, p) -> new ChestMenu(menuTypeForRows(rows), windowId, playerInv, container, rows),
             Component.translatable("container.neoorigins.extra_inventory")
         ));
+    }
+
+    private static MenuType<ChestMenu> menuTypeForRows(int rows) {
+        return switch (rows) {
+            case 1 -> MenuType.GENERIC_9x1;
+            case 2 -> MenuType.GENERIC_9x2;
+            case 3 -> MenuType.GENERIC_9x3;
+            case 4 -> MenuType.GENERIC_9x4;
+            case 5 -> MenuType.GENERIC_9x5;
+            case 6 -> MenuType.GENERIC_9x6;
+            default -> MenuType.GENERIC_9x3;
+        };
     }
 
     /** Save inventory to player NBT on logout / world save. */

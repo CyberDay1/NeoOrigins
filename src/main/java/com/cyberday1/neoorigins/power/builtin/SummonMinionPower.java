@@ -19,6 +19,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.target.TargetGoal;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -160,9 +162,72 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             mob.targetSelector.addGoal(1, new TameMobPower.OwnerAwareHurtByTargetGoal(pathfinder, summoner));
         }
 
-        mob.targetSelector.addGoal(2, new TameMobPower.DefendOwnerGoal(mob, summoner));
+        mob.targetSelector.addGoal(2, new SummonerCombatTargetGoal(mob, summoner));
 
         mob.goalSelector.getAvailableGoals().removeIf(g -> g.getGoal() instanceof AvoidEntityGoal);
+    }
+
+    /**
+     * Target goal that mirrors the summoner's current combat:
+     * <ul>
+     *   <li>{@code summoner.getLastHurtMob()} — whatever the player just hit</li>
+     *   <li>{@code summoner.getLastHurtByMob()} — whatever just hit the player</li>
+     * </ul>
+     * Both are queried by direct reference, so there's no distance check —
+     * the minion picks up the fight even if the target is 50 blocks away.
+     * A recency window of 200 ticks (10s) stops old fights from re-triggering.
+     */
+    public static class SummonerCombatTargetGoal extends TargetGoal {
+        private static final int RECENCY_TICKS = 200;
+
+        private final Mob minion;
+        private final ServerPlayer summoner;
+        private LivingEntity pendingTarget;
+
+        public SummonerCombatTargetGoal(Mob minion, ServerPlayer summoner) {
+            super(minion, false, false);
+            this.minion = minion;
+            this.summoner = summoner;
+            this.setFlags(java.util.EnumSet.of(Goal.Flag.TARGET));
+        }
+
+        @Override
+        public boolean canUse() {
+            LivingEntity candidate = resolve();
+            if (candidate == null) return false;
+            this.pendingTarget = candidate;
+            return true;
+        }
+
+        @Override
+        public void start() {
+            this.minion.setTarget(this.pendingTarget);
+            super.start();
+        }
+
+        /** Pick whichever of hurt-to / hurt-by is the most recent valid live target. */
+        private LivingEntity resolve() {
+            int now = summoner.tickCount;
+
+            LivingEntity lastHit = summoner.getLastHurtMob();
+            boolean lastHitFresh = lastHit != null && lastHit.isAlive()
+                && lastHit != summoner
+                && now - summoner.getLastHurtMobTimestamp() < RECENCY_TICKS;
+
+            LivingEntity lastHurtBy = summoner.getLastHurtByMob();
+            boolean lastHurtByFresh = lastHurtBy != null && lastHurtBy.isAlive()
+                && lastHurtBy != summoner
+                && now - summoner.getLastHurtByMobTimestamp() < RECENCY_TICKS;
+
+            // Prefer the more recent one so a fresh hit flips the minion to the new threat.
+            if (lastHitFresh && lastHurtByFresh) {
+                return (summoner.getLastHurtMobTimestamp() >= summoner.getLastHurtByMobTimestamp())
+                    ? lastHit : lastHurtBy;
+            }
+            if (lastHitFresh) return lastHit;
+            if (lastHurtByFresh) return lastHurtBy;
+            return null;
+        }
     }
 
     private static void equipSlot(Mob mob, EquipmentSlot slot, Optional<String> configItem, ItemStack fallback) {

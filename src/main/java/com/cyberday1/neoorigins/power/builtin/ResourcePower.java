@@ -16,6 +16,8 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * A named, persistent, HUD-visible resource bar.
  *
@@ -43,6 +45,9 @@ import net.minecraft.server.level.ServerPlayer;
  * so {@code change_resource} and {@code resource} conditions work uniformly).
  */
 public class ResourcePower extends PowerType<ResourcePower.Config> {
+
+    /** Tracks previous tick values for edge-triggered threshold actions. */
+    static final ConcurrentHashMap<String, Integer> PREV_VALUES = new ConcurrentHashMap<>();
 
     public record Config(
         String powerId,
@@ -151,6 +156,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         player.getData(CompatAttachments.resourceState()).remove(key);
         CompatAttachments.unregisterResourceMeta(key);
         CompatAttachments.syncResourcesToClient(player);
+        PREV_VALUES.remove(player.getUUID() + ":" + key);
     }
 
     @Override
@@ -166,10 +172,14 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
             }
         }
 
-        // Threshold actions
+        // Threshold actions — edge-triggered to fire only on transitions
         int cur = state.get(key, config.startValue());
-        if (cur <= config.min()) config.minAction().execute(player);
-        if (cur >= config.max()) config.maxAction().execute(player);
+        String edgeKey = player.getUUID() + ":" + key;
+        Integer prev = PREV_VALUES.put(edgeKey, cur);
+        if (prev != null) {
+            if (cur <= config.min() && prev > config.min()) config.minAction().execute(player);
+            if (cur >= config.max() && prev < config.max()) config.maxAction().execute(player);
+        }
 
         // Sync to client every 10 ticks when dirty
         if (state.isDirty() && player.tickCount % 10 == 0) {
