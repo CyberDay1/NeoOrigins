@@ -894,12 +894,12 @@ Grants periodic health regeneration while submerged in the specified fluid.
 
 ## `neoorigins:breath_in_fluid`
 
-Drains the player's air supply when submerged in the specified fluid. Useful for fire-themed origins that "drown" in water.
+Drains the player's air supply when submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Fully overrides vanilla's air management while in the target fluid (suppresses both vanilla drowning and water-breathing refill), so the configured `drain_rate` is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid: `water` or `lava` |
-| `drain_rate` | int | no | `20` | Ticks between each air drain (1 air lost every N ticks) |
+| `drain_rate` | int | no | `20` | Ticks between each air drain (1 air point lost every N ticks; lower = faster drain) |
 
 **Example:**
 ```json
@@ -2283,7 +2283,7 @@ When the player breaks a log, BFS/DFS upward to break all connected logs. Skippe
 
 ## `neoorigins:craft_amount_bonus`
 
-Grants bonus items when crafting a specific output (e.g., more planks per log). Uses tick-based inventory monitoring because NeoForge exposes no `ItemCraftedEvent`; tracks total count of the target item while a container is open and grants `bonus_count` extra on each increase.
+Grants bonus items when crafting a specific output (e.g., more planks per log). Hooks `PlayerEvent.ItemCraftedEvent` directly, so bonuses only trigger on genuine crafting operations.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2301,13 +2301,13 @@ Grants bonus items when crafting a specific output (e.g., more planks per log). 
 }
 ```
 
-The bonus is capped at `min(diff, bonus_count)` so shift-clicking a full log doesn't multiply out.
+The bonus fires once per craft event — shift-clicking triggers one event per output stack.
 
 ---
 
 ## `neoorigins:tamed_animal_boost`
 
-Boosts stats (max health, movement speed) on every tamed animal owned by the player within a radius. Applies permanent attribute modifiers with fixed IDs, so reloading or re-granting is idempotent.
+Boosts stats (max health, movement speed) on every tamed animal owned by the player within a radius. Applies transient attribute modifiers with fixed IDs; modifiers are removed when the power is revoked.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2712,11 +2712,11 @@ Origins compat: translates `origins:walk_on_fluid`.
 
 ## `neoorigins:extra_inventory`
 
-Gives the player an extra inventory opened via the skill keybind. Uses vanilla's chest UI. Contents are persisted across sessions.
+Gives the player an extra inventory opened via the skill keybind. Uses vanilla's chest UI, dynamically sized to fit the configured slot count (1-6 rows). Contents are persisted across sessions.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `size` | int | no | `9` | Number of slots (rounded up to nearest multiple of 9, max 54) |
+| `size` | int | no | `9` | Number of slots (rounded up to nearest row of 9, max 54 = 6 rows) |
 | `drop_on_death` | bool | no | `false` | Whether to drop contents on death |
 
 **Example — 27-slot extra inventory:**
