@@ -36,6 +36,8 @@ public class NeoOriginsClientEvents {
         if (NeoOriginsKeybindings.SKILL_2.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(1));
         if (NeoOriginsKeybindings.SKILL_3.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(2));
         if (NeoOriginsKeybindings.SKILL_4.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(3));
+        if (NeoOriginsKeybindings.SKILL_5.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(4));
+        if (NeoOriginsKeybindings.SKILL_6.consumeClick()) ClientPacketDistributor.sendToServer(new ActivatePowerPayload(5));
         if (NeoOriginsKeybindings.CLASS_SKILL.consumeClick()) ClientPacketDistributor.sendToServer(new ActivateClassPowerPayload());
         if (NeoOriginsKeybindings.VIEW_INFO.consumeClick()) {
             // If the player never finished the origin picker (Escape'd out, died
