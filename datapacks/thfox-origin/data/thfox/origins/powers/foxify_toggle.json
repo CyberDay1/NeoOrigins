@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:toggle",
+  "hidden": true,
+  "name": "power.thfox.foxify_toggle.name",
+  "description": "power.thfox.foxify_toggle.description"
+}

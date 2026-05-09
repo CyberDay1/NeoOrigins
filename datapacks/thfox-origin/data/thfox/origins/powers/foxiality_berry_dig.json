@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "block_break",
+  "hidden": true,
+  "block_condition": {
+    "type": "neoorigins:block",
+    "block": "minecraft:sweet_berry_bush"
+  },
+  "entity_action": {
+    "type": "neoorigins:give",
+    "item": "minecraft:sweet_berries",
+    "count": 2
+  }
+}

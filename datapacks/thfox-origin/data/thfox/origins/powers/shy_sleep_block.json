@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "sleep",
+  "condition": {
+    "type": "neoorigins:resource",
+    "resource": "thfox:tracker_fear_level",
+    "comparison": ">=",
+    "compare_to": 60
+  },
+  "hidden": true
+}

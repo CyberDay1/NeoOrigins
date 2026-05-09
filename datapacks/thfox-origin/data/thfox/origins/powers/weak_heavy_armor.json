@@ -1,0 +1,36 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "effects": [
+    {
+      "effect": "minecraft:weakness",
+      "amplifier": 1,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": true
+    },
+    {
+      "effect": "minecraft:slowness",
+      "amplifier": 1,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": true
+    }
+  ],
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_heavy_armor_restriction",
+        "comparison": ">=",
+        "compare_to": 1
+      },
+      {
+        "type": "neoorigins:armor_value",
+        "comparison": ">=",
+        "compare_to": 15
+      }
+    ]
+  },
+  "hidden": true
+}

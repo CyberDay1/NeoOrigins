@@ -629,7 +629,9 @@ public final class ConditionParser {
         return player -> {
             if (player.level().getServer() == null) return false;
             try {
-                var src = player.createCommandSourceStack().withSuppressedOutput();
+                // Permission level 2 matches execute_command action and vanilla's
+                // function-permission-level — required for entity selectors (@e).
+                var src = player.createCommandSourceStack().withSuppressedOutput().withPermission(2);
                 String cmd = command.startsWith("/") ? command.substring(1) : command;
                 var dispatcher = player.level().getServer().getCommands().getDispatcher();
                 int result = dispatcher.execute(cmd, src);

@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "wake_up",
+  "hidden": true,
+  "entity_action": {
+    "type": "neoorigins:choice",
+    "actions": [
+      { "type": "neoorigins:give", "item": "minecraft:emerald", "count": 1 },
+      { "type": "neoorigins:give", "item": "minecraft:rabbit_foot", "count": 1 },
+      { "type": "neoorigins:give", "item": "minecraft:rabbit_hide", "count": 1 },
+      { "type": "neoorigins:give", "item": "minecraft:egg", "count": 1 },
+      { "type": "neoorigins:give", "item": "minecraft:wheat", "count": 1 },
+      { "type": "neoorigins:give", "item": "minecraft:leather", "count": 1 },
+      { "type": "neoorigins:give", "item": "minecraft:feather", "count": 1 }
+    ]
+  }
+}

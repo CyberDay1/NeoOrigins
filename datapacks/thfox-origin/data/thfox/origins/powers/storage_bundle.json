@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "items": [
+    {
+      "item": "minecraft:bundle",
+      "slot": "inventory"
+    }
+  ],
+  "name": "power.thfox.storage_bundle.name",
+  "description": "power.thfox.storage_bundle.description"
+}

@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 600,
+  "start_value": 0,
+  "regen_rate": -1,
+  "regen_interval": 1,
+  "hidden": true,
+  "name": "Comforted",
+  "description": "Fear suppression timer after social interaction"
+}

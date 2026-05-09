@@ -1,0 +1,24 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_start",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_shield_restriction",
+        "comparison": ">=",
+        "compare_to": 1
+      },
+      {
+        "type": "neoorigins:using_item"
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:execute_command",
+    "command": "item replace entity @s weapon.offhand with minecraft:air"
+  },
+  "name": "power.thfox.weak_shield.name",
+  "description": "power.thfox.weak_shield.description"
+}

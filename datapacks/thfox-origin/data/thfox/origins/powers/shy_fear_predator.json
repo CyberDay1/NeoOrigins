@@ -1,0 +1,32 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_shy_enabled",
+        "comparison": ">=",
+        "compare_to": 1
+      },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:tracker_comforted",
+        "comparison": "<=",
+        "compare_to": 0
+      },
+      {
+        "type": "neoorigins:near_entity",
+        "entity_type": "#thfox:fear_source",
+        "radius": 16
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 15
+  }
+}

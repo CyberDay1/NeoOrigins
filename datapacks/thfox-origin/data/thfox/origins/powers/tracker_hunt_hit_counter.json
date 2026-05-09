@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 7,
+  "start_value": 0,
+  "hud_render": {
+    "label": "Strikes",
+    "color": "#FF5555"
+  },
+  "hidden": true,
+  "name": "Hunt Hit Counter",
+  "description": "Hit counter for EXTRA STRIKE during hunt — triggers at 3"
+}

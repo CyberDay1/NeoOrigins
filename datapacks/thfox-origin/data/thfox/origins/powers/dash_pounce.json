@@ -1,0 +1,41 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 40,
+  "hunger_cost": 2,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:on_ground" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_allow_second_pounce",
+        "comparison": ">=",
+        "compare_to": 0
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:add_velocity",
+        "x": 0,
+        "y": 0.4,
+        "z": 0,
+        "set": false
+      },
+      {
+        "type": "neoorigins:dash",
+        "strength": 1.8
+      },
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.fox.sniff",
+        "volume": 0.8,
+        "pitch": 1.2
+      }
+    ]
+  },
+  "name": "power.thfox.dash_pounce.name",
+  "description": "power.thfox.dash_pounce.description"
+}

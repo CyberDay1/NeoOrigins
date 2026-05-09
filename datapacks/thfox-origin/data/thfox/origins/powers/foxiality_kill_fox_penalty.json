@@ -1,0 +1,18 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "kill",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:target_type",
+    "entity_type": "minecraft:fox"
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:apply_effect", "effect": "minecraft:unluck", "duration": 24000, "amplifier": 4 },
+      { "type": "neoorigins:apply_effect", "effect": "minecraft:weakness", "duration": 600, "amplifier": 2 },
+      { "type": "neoorigins:apply_effect", "effect": "minecraft:nausea", "duration": 200, "amplifier": 0 },
+      { "type": "neoorigins:apply_effect", "effect": "minecraft:darkness", "duration": 200, "amplifier": 0 }
+    ]
+  }
+}

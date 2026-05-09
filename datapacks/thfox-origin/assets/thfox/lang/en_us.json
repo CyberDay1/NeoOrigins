@@ -1,0 +1,57 @@
+{
+  "origins.thfox.fox.name": "Fox",
+  "origins.thfox.fox.description": "Vulpes are known for their cunning. They hide in shadows, attack unexpectedly and strike at their enemies' weakest.",
+
+  "power.thfox.dash_pounce.name": "\u00a76\u00a7l\u00a7nPounce",
+  "power.thfox.dash_pounce.description": "By sacrificing defence, pounce forward and boost your attack while falling down.",
+
+  "power.thfox.hunt_toggle.name": "\u00a76\u00a7l\u00a7nHunt",
+  "power.thfox.hunt_toggle.description": "Hide yourself by crouching and enter a hunting phase after much preparation.",
+
+  "power.thfox.foxify_toggle.name": "\u00a76\u00a7l\u00a7nFoxify",
+  "power.thfox.foxify_toggle.description": "Become a literal fox when sleeping, and be able to yoink a fox away on an adventure with you.",
+
+  "power.thfox.swift_sprint_speed.name": "\u00a7a\u00a7nAgility",
+  "power.thfox.swift_sprint_speed.description": "You have specialized limbs that enhance sprinting and jumping abilities, and you're more resilient to fall damage.",
+
+  "power.thfox.smol_size.name": "\u00a7e\u00a7nSmol",
+  "power.thfox.smol_size.description": "Being a fox, you're shorter and have less endurance. But monsters will have a harder time noticing you.",
+
+  "power.thfox.weak_shield.name": "\u00a7c\u00a7nWeak",
+  "power.thfox.weak_shield.description": "You were born with slender limbs, which restrict you from using shields and performing well in heavy armors.",
+
+  "power.thfox.foxiality_night_vision.name": "\u00a7e\u00a7nFoxiality",
+  "power.thfox.foxiality_night_vision.description": "Embrace your fox nature and thrive.",
+
+  "power.thfox.fluffy_fire_vuln.name": "\u00a7e\u00a7nFluffy",
+  "power.thfox.fluffy_fire_vuln.description": "Shaggy fur provides excellent cold protection but is highly flammable.",
+
+  "power.thfox.shy_weakness.name": "\u00a7c\u00a7nTimidity",
+  "power.thfox.shy_weakness.description": "Survival instincts make you fear predators, death, crowds, and danger, but there are ways to conquer the fears.",
+
+  "power.thfox.food_berry_bonus.name": "\u00a7e\u00a7nUnique Taste",
+  "power.thfox.food_berry_bonus.description": "Your food preferences are heavily influenced by your nature.",
+
+  "power.thfox.hunger_exhaustion.name": "\u00a7e\u00a7nFast-Paced",
+  "power.thfox.hunger_exhaustion.description": "Your small body has a fast metabolism, granting higher attack speed but requiring frequent large food intake.",
+
+  "power.thfox.sound_emote_sniff.name": "\u00a7a\u00a7nFox Sound Pack",
+  "power.thfox.sound_emote_sniff.description": "In case it isn't obvious, foxes aren't players.",
+
+  "power.thfox.storage_bundle.name": "\u00a76\u00a7l\u00a7nMouth Pouch",
+  "power.thfox.storage_bundle.description": "A bundle to store items. (Approximation of the Origins inventory pouch.)",
+
+  "power.thfox.force_sit.name": "Reset Fox State",
+  "power.thfox.force_sit.description": "Emergency reset of all fox entity states.",
+
+  "neoorigins.sleep_blocked.thfox.shade": "Your fox instinct forces you to sleep under shades!",
+  "neoorigins.sleep_blocked.thfox.fear": "You're too scared to fall asleep!",
+  "neoorigins.sleep_blocked.thfox.hunt": "You're hunting! Don't slack it off!",
+
+  "death.attack.thfox.foxie_bite": "%1$s was torn apart.",
+  "death.attack.thfox.predator_bite": "%1$s was disemboweled by %2$s.",
+  "death.attack.thfox.foxie_bite.player": "%1$s was mauled by %2$s.",
+  "death.attack.thfox.predator_bite.player": "%1$s couldn't escape the claws and fangs of %2$s.",
+  "death.attack.thfox.foxie_bite.item": "%1$s underestimated how feral %2$s with their %3$s can be in a fight.",
+  "death.attack.thfox.predator_bite.item": "%1$s was eviscerated to an unrecognizable shape by a %3$s-wielding %2$s."
+}

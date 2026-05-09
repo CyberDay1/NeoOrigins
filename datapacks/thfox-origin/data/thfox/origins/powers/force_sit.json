@@ -1,0 +1,27 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 200,
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:execute_command", "command": "kill @e[type=fox,distance=..10,tag=thfox_sleeping]" },
+      { "type": "neoorigins:toggle", "power": "thfox:foxify_toggle", "value": false },
+      { "type": "neoorigins:toggle", "power": "thfox:hunt_toggle", "value": false },
+      { "type": "neoorigins:clear_effect" },
+      {
+        "type": "neoorigins:change_resource",
+        "resource": "thfox:hunt_sneak_timer",
+        "operation": "set",
+        "change": 0
+      },
+      {
+        "type": "neoorigins:change_resource",
+        "resource": "thfox:tracker_afk_timer",
+        "operation": "set",
+        "change": 0
+      }
+    ]
+  },
+  "name": "power.thfox.force_sit.name",
+  "description": "power.thfox.force_sit.description"
+}

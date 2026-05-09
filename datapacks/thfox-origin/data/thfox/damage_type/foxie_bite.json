@@ -1,0 +1,7 @@
+{
+  "exhaustion": 0.1,
+  "effects": "hurt",
+  "scaling": "when_caused_by_living_non_player",
+  "death_message_type": "default",
+  "message_id": "thfox.foxie_bite"
+}

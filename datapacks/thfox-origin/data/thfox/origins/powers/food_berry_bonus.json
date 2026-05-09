@@ -1,0 +1,35 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "condition": {
+    "type": "neoorigins:food_item_in_tag",
+    "tag": "#thfox:fox_food"
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:feed", "food": 1, "saturation": 2.0 },
+      {
+        "type": "neoorigins:chance",
+        "chance": 0.2,
+        "action": {
+          "type": "neoorigins:give",
+          "item": "minecraft:sweet_berries",
+          "count": 1
+        }
+      },
+      {
+        "type": "neoorigins:chance",
+        "chance": 0.05,
+        "action": {
+          "type": "neoorigins:apply_effect",
+          "effect": "minecraft:speed",
+          "duration": 600,
+          "amplifier": 0
+        }
+      }
+    ]
+  },
+  "name": "power.thfox.food_berry_bonus.name",
+  "description": "power.thfox.food_berry_bonus.description"
+}

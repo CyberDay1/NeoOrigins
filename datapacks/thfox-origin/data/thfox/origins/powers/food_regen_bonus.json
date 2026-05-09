@@ -1,0 +1,22 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:food_item_in_tag",
+    "tag": "#thfox:regen_food"
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:feed", "food": 2, "saturation": 5.0 },
+      {
+        "type": "neoorigins:apply_effect",
+        "effect": "minecraft:regeneration",
+        "duration": 100,
+        "amplifier": 0,
+        "show_particles": true
+      }
+    ]
+  }
+}

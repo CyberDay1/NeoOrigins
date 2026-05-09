@@ -1,0 +1,18 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "out",
+  "multiplier": 1.5,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:power_active", "power": "thfox:hunt_toggle" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:hunt_sneak_timer",
+        "comparison": ">=",
+        "compare_to": 100
+      }
+    ]
+  },
+  "hidden": true
+}

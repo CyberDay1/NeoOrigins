@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "multiplier": 1.3,
+  "condition": {
+    "type": "neoorigins:on_ground",
+    "inverted": true
+  },
+  "hidden": true
+}

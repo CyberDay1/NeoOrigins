@@ -1,0 +1,39 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:tracker_afk_timer",
+        "comparison": ">=",
+        "compare_to": 1200
+      },
+      { "type": "neoorigins:power_active", "power": "thfox:foxify_toggle", "inverted": true }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:toggle", "power": "thfox:foxify_toggle", "value": true },
+      {
+        "type": "neoorigins:execute_command",
+        "command": "summon fox ~ ~ ~ {Sitting:1b,NoAI:1b,Invulnerable:1b,Silent:1b,Tags:[\"thfox_sleeping\"]}"
+      },
+      {
+        "type": "neoorigins:change_resource",
+        "resource": "thfox:tracker_afk_timer",
+        "operation": "set",
+        "change": 0
+      },
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.fox.sleep",
+        "volume": 0.8,
+        "pitch": 1.0
+      }
+    ]
+  }
+}

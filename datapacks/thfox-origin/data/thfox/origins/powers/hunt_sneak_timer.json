@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 100,
+  "start_value": 0,
+  "hud_render": {
+    "label": "Preparing",
+    "color": "#FF8855"
+  },
+  "hidden": true
+}

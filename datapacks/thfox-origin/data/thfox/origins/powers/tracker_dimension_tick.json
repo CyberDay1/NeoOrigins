@@ -1,0 +1,26 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      { "type": "neoorigins:dimension", "dimension": "minecraft:the_nether" },
+      { "type": "neoorigins:dimension", "dimension": "minecraft:the_end" }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": { "type": "neoorigins:dimension", "dimension": "minecraft:the_nether" },
+    "if_action": {
+      "type": "neoorigins:change_resource",
+      "resource": "thfox:tracker_nether_time",
+      "change": 20
+    },
+    "else_action": {
+      "type": "neoorigins:change_resource",
+      "resource": "thfox:tracker_end_time",
+      "change": 20
+    }
+  }
+}

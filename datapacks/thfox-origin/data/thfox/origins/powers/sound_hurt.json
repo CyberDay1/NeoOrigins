@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "hit_taken",
+  "hidden": true,
+  "entity_action": {
+    "type": "neoorigins:play_sound",
+    "sound": "minecraft:entity.fox.hurt",
+    "volume": 1.0,
+    "pitch": 1.0
+  }
+}

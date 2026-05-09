@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:near_entity", "entity_type": "minecraft:ender_dragon", "radius": 32 },
+      { "type": "neoorigins:resource", "resource": "thfox:tracker_dragon_kills", "comparison": "<", "compare_to": 1 }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 25
+  }
+}

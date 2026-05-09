@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 18,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_oxygen_restriction",
+        "comparison": ">=",
+        "compare_to": 1
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:gain_air",
+    "amount": -12
+  },
+  "hidden": true
+}

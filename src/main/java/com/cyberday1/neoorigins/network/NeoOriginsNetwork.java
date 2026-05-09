@@ -371,7 +371,7 @@ public class NeoOriginsNetwork {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
 
             int slot = payload.slot();
-            if (slot < 0 || slot >= 4) return;
+            if (slot < 0 || slot >= 6) return;
 
             // Per-slot debounce — prevents key-spam without blocking adjacent slots.
             int currentTick = sp.tickCount;

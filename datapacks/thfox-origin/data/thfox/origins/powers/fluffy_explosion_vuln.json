@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "damage_tag": "minecraft:is_explosion",
+  "multiplier": 1.75,
+  "hidden": true
+}

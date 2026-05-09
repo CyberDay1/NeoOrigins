@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:break_speed_modifier",
+  "multiplier": 10.0,
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "slot": "mainhand",
+    "item": "minecraft:air"
+  },
+  "hidden": true
+}

@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 65535,
+  "start_value": 0,
+  "hidden": true,
+  "name": "Warden Kills",
+  "description": "Number of wardens killed"
+}

@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 100,
+  "start_value": 0,
+  "regen_rate": -1,
+  "regen_interval": 100,
+  "hud_render": {
+    "label": "Fear",
+    "color": "#AA5555"
+  },
+  "name": "Fear Level",
+  "description": "Current fear level — increases near threats, decays over time"
+}

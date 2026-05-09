@@ -1,0 +1,54 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "attack",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:power_active", "power": "thfox:hunt_toggle" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:hunt_sneak_timer",
+        "comparison": ">=",
+        "compare_to": 100
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:change_resource",
+        "resource": "thfox:tracker_hunt_hit_counter",
+        "change": 1
+      },
+      {
+        "type": "neoorigins:if_else",
+        "condition": {
+          "type": "neoorigins:resource",
+          "resource": "thfox:tracker_hunt_hit_counter",
+          "comparison": ">=",
+          "compare_to": 3
+        },
+        "if_action": {
+          "type": "neoorigins:and",
+          "actions": [
+            {
+              "type": "neoorigins:change_resource",
+              "resource": "thfox:tracker_hunt_hit_counter",
+              "operation": "set",
+              "change": 0
+            },
+            { "type": "neoorigins:feed", "food": 2, "saturation": 2.0 },
+            {
+              "type": "neoorigins:play_sound",
+              "sound": "minecraft:entity.fox.bite",
+              "volume": 1.0,
+              "pitch": 0.8
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

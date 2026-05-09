@@ -1,0 +1,15 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "mod_exhaustion",
+  "condition": {
+    "type": "neoorigins:food_level",
+    "comparison": ">=",
+    "compare_to": 6
+  },
+  "modifier": {
+    "operation": "multiply_base",
+    "value": 1.5
+  },
+  "name": "power.thfox.hunger_exhaustion.name",
+  "description": "power.thfox.hunger_exhaustion.description"
+}

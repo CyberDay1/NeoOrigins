@@ -1,0 +1,26 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:near_entity",
+        "entity_type": "minecraft:warden",
+        "radius": 24
+      },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:tracker_warden_kills",
+        "comparison": "<",
+        "compare_to": 3
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 20
+  }
+}

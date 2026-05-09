@@ -1,0 +1,26 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:relative_health",
+        "comparison": "<=",
+        "compare_to": 0.3
+      },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:tracker_deaths",
+        "comparison": "<",
+        "compare_to": 8
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 10
+  }
+}

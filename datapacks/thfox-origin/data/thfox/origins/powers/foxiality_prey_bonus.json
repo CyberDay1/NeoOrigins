@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "attack",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:target_type",
+    "entity_type": "#thfox:prey"
+  },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:strength",
+    "duration": 5,
+    "amplifier": 1,
+    "show_particles": false,
+    "show_icon": false
+  }
+}

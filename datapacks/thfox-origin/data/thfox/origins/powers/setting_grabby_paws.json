@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 1,
+  "start_value": 1,
+  "hidden": true,
+  "name": "Grabby Paws",
+  "description": "Extended item pickup range"
+}

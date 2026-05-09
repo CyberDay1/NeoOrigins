@@ -1,0 +1,27 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "effects": [
+    {
+      "effect": "minecraft:weakness",
+      "amplifier": 0,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": true
+    },
+    {
+      "effect": "minecraft:speed",
+      "amplifier": 0,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": true
+    }
+  ],
+  "condition": {
+    "type": "neoorigins:resource",
+    "resource": "thfox:tracker_fear_level",
+    "comparison": ">=",
+    "compare_to": 60
+  },
+  "name": "power.thfox.shy_weakness.name",
+  "description": "power.thfox.shy_weakness.description"
+}

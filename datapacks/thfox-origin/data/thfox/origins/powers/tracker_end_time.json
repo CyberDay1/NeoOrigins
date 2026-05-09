@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 12000,
+  "start_value": 0,
+  "hidden": true,
+  "name": "End Time",
+  "description": "Ticks spent in the End (for fear conquest)"
+}

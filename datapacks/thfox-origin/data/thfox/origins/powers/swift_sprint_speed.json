@@ -1,0 +1,15 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.movement_speed",
+  "amount": 0.4,
+  "operation": "add_multiplied_base",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:sprinting" },
+      { "type": "neoorigins:sneaking", "inverted": true }
+    ]
+  },
+  "name": "power.thfox.swift_sprint_speed.name",
+  "description": "power.thfox.swift_sprint_speed.description"
+}

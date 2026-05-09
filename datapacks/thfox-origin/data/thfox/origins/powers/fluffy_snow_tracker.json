@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 5,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:exposed_to_sky" },
+      { "type": "neoorigins:in_tag", "tag": "minecraft:is_snowy" }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_snowness",
+    "change": 2
+  }
+}

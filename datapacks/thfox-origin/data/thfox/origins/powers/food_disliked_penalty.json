@@ -1,0 +1,24 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "mod_food_nutrition",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:food_item_in_tag",
+        "tag": "#thfox:disliked_food"
+      },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_food_nerfs",
+        "comparison": ">=",
+        "compare_to": 1
+      }
+    ]
+  },
+  "modifier": {
+    "operation": "multiply_base",
+    "value": 0.5
+  }
+}

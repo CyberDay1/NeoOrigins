@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 80,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:using_item"
+  },
+  "entity_action": {
+    "type": "neoorigins:play_sound",
+    "sound": "minecraft:entity.fox.sleep",
+    "volume": 0.6,
+    "pitch": 1.0
+  }
+}

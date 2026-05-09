@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 20,
+  "entity_action": {
+    "type": "neoorigins:play_sound",
+    "sound": "minecraft:entity.fox.sniff",
+    "volume": 1.0,
+    "pitch": 1.0
+  },
+  "name": "power.thfox.sound_emote_sniff.name",
+  "description": "power.thfox.sound_emote_sniff.description"
+}

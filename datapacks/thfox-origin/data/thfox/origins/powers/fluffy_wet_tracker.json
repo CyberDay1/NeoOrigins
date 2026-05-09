@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 5,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      { "type": "neoorigins:in_water" },
+      { "type": "neoorigins:in_rain" }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_wetness",
+    "change": 2
+  }
+}

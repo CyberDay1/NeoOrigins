@@ -45,6 +45,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     public static final OriginsCompatPowerLoader INSTANCE = new OriginsCompatPowerLoader();
 
+    /** Edge-detection tracker for Route B resource min/max actions. */
+    private static final java.util.Map<String, Integer> PREV_RESOURCE_VALUES = new java.util.concurrent.ConcurrentHashMap<>();
+
     /** Power types that Route B handles (Route A SKIPs these). */
     private static final Set<String> ROUTE_B_TYPES = Set.of(
         "origins:active_self",           "apace:active_self",
@@ -531,16 +534,59 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         EntityAction action = ActionParser.parse(actionJson, idStr);
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+        String key = json.has("key") ? json.get("key").getAsString() : "key.origins.primary_active";
 
+        // Parse the optional condition gate
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+
+        // Only primary_active and secondary_active go into skill-key slots.
+        // Other keys (key.use, key.sneak, key.attack, etc.) fire via tick-based
+        // input polling since we can't intercept vanilla keybinds server-side.
+        if (key.contains("primary_active") || key.contains("secondary_active")) {
+            return CompatPower.Config.builder()
+                .cooldownTicks(cooldown)
+                .onActivated((ServerPlayer player) -> {
+                    if (!condition.test(player)) return;
+                    if (cooldown > 0) {
+                        PlayerOriginData data = player.getData(OriginAttachments.originData());
+                        if (data.isOnCooldown(idStr, player.tickCount)) return;
+                        data.setCooldown(idStr, player.tickCount, cooldown);
+                    }
+                    action.execute(player);
+                })
+                .build();
+        }
+
+        // Non-slot keys: fire from onTick when the corresponding input is held.
+        // Uses edge detection (fire once per press, not every tick held).
+        // key.saveToolbarActivator and key.loadToolbarActivator have no server-
+        // side input state — these powers become no-ops (Origins mod uses a
+        // client-side keybind hook we can't replicate server-side).
         return CompatPower.Config.builder()
-            .cooldownTicks(cooldown)
-            .onActivated((ServerPlayer player) -> {
-                if (cooldown > 0) {
-                    PlayerOriginData data = player.getData(OriginAttachments.originData());
-                    if (data.isOnCooldown(idStr, player.tickCount)) return;
-                    data.setCooldown(idStr, player.tickCount, cooldown);
+            .onTick(player -> {
+                boolean pressed = switch (key) {
+                    case "key.sneak"   -> player.isShiftKeyDown();
+                    case "key.use"     -> player.isUsingItem();
+                    case "key.jump"    -> !player.onGround() && player.getDeltaMovement().y > 0;
+                    case "key.forward" -> player.zza > 0;
+                    case "key.back"    -> player.zza < 0;
+                    case "key.left"    -> player.xxa > 0;
+                    case "key.right"   -> player.xxa < 0;
+                    default -> false;
+                };
+                String edgeKey = idStr + ":keypress";
+                PlayerOriginData data = player.getData(OriginAttachments.originData());
+                boolean wasPressedLastTick = data.getCustomFloat(edgeKey, 0) > 0;
+                data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
+                if (pressed && !wasPressedLastTick && condition.test(player)) {
+                    if (cooldown > 0) {
+                        if (data.isOnCooldown(idStr, player.tickCount)) return;
+                        data.setCooldown(idStr, player.tickCount, cooldown);
+                    }
+                    action.execute(player);
                 }
-                action.execute(player);
             })
             .build();
     }
@@ -668,6 +714,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String label = "Resource";
         int color = 0xFF55AAFF;
         boolean hidden = false;
+        // Boolean toggles (min=0, max=1) are internal state, not player-facing bars.
+        if (min == 0 && max == 1) hidden = true;
         if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
             JsonObject hud = json.getAsJsonObject("hud_render");
             if (hud.has("bar_index")) {
@@ -676,6 +724,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             }
             // Origins compat: should_render=false hides the bar
             if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
+                hidden = true;
+            }
+            // Condition-gated hud_render means the bar is contextual — hide it
+            // from our flat bar display since we can't evaluate render conditions.
+            if (hud.has("condition")) {
                 hidden = true;
             }
         }
@@ -712,9 +765,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (player.level().getServer() != null && (player.level().getServer().getTickCount() + offset) % interval == 0) {
                     tickAction.execute(player);
                 }
+                // Edge-triggered min/max actions — only fire on the transition,
+                // not every tick while sitting at the boundary. Use the static
+                // PREV_RESOURCE_VALUES map for edge detection. On first tick
+                // (prev == null), assume previous was startValue so boundary
+                // actions fire if the resource was persisted at min/max.
                 int cur = state.get(key, startValue);
-                if (cur <= min) minAction.execute(player);
-                if (cur >= max) maxAction.execute(player);
+                String edgeKey = player.getUUID() + ":" + key;
+                Integer prev = PREV_RESOURCE_VALUES.put(edgeKey, cur);
+                int prevVal = prev != null ? prev : startValue;
+                if (cur != prevVal) {
+                    if (cur <= min && prevVal > min) minAction.execute(player);
+                    if (cur >= max && prevVal < max) maxAction.execute(player);
+                }
                 // Sync to client every 10 ticks when dirty
                 if (state.isDirty() && player.tickCount % 10 == 0) {
                     state.clearDirty();
