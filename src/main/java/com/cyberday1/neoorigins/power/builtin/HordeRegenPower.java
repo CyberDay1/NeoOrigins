@@ -42,7 +42,7 @@ public class HordeRegenPower extends PowerType<HordeRegenPower.Config> {
             if (entity.getHealth() >= entity.getMaxHealth()) continue;
 
             // Skip if mob took damage recently (in combat)
-            if (entity.getLastDamageSource() != null
+            if (entity.getLastHurtByMobTimestamp() > 0
                     && entity.tickCount - entity.getLastHurtByMobTimestamp() < config.combatCooldownTicks()) {
                 continue;
             }

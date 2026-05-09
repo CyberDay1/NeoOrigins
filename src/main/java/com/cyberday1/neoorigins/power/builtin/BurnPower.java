@@ -12,10 +12,10 @@ import net.minecraft.server.level.ServerPlayer;
  * <p>JSON fields:
  * <ul>
  *   <li>{@code interval} (int, default 20) — ticks between fire applications</li>
- *   <li>{@code burn_duration} (int, default 5) — seconds of fire per application</li>
+ *   <li>{@code burn_duration} (int, default 100) — ticks (20 ticks = 1 second) of fire per application</li>
  * </ul>
  *
- * <pre>{ "type": "neoorigins:burn", "interval": 20, "burn_duration": 5 }</pre>
+ * <pre>{ "type": "neoorigins:burn", "interval": 20, "burn_duration": 100 }</pre>
  */
 public class BurnPower extends PowerType<BurnPower.Config> {
 

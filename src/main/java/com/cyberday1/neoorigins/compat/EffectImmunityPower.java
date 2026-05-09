@@ -16,7 +16,7 @@ public class EffectImmunityPower extends PowerType<EffectImmunityPower.Config> {
 
     public record Config(List<String> effects, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.listOf().fieldOf("effects").forGetter(Config::effects),
+            Codec.STRING.listOf().optionalFieldOf("effects", List.of()).forGetter(Config::effects),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
