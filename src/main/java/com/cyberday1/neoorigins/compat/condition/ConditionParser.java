@@ -653,7 +653,7 @@ public final class ConditionParser {
         return player -> {
             if (player.level().getServer() == null) return false;
             try {
-                var src = player.createCommandSourceStack().withSuppressedOutput();
+                var src = player.createCommandSourceStack().withSuppressedOutput().withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
                 String cmd = command.startsWith("/") ? command.substring(1) : command;
                 var dispatcher = player.level().getServer().getCommands().getDispatcher();
                 int result = dispatcher.execute(cmd, src);
