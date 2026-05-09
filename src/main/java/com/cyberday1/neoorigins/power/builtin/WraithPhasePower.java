@@ -12,9 +12,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Wraith Phase -- toggleable spectral phasing.
@@ -29,6 +31,9 @@ import java.util.Set;
 public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Config> {
 
     private static final Set<String> CAPS = Set.of("wall_phase");
+
+    /** Cached parsed blocked-block sets, keyed by the string list to avoid per-tick allocation. */
+    private static final Map<List<String>, Set<ResourceLocation>> BLOCKED_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public Set<String> capabilities(Config config) { return CAPS; }
@@ -64,11 +69,9 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
 
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {
-        // --- blocked-block check ---
-        Set<ResourceLocation> blocked = new HashSet<>();
-        for (String id : config.blockedBlocks()) {
-            blocked.add(ResourceLocation.parse(id));
-        }
+        // --- blocked-block check (cached to avoid per-tick allocation) ---
+        Set<ResourceLocation> blocked = BLOCKED_CACHE.computeIfAbsent(config.blockedBlocks(),
+            list -> list.stream().map(ResourceLocation::parse).collect(Collectors.toUnmodifiableSet()));
 
         AABB box = player.getBoundingBox().deflate(0.05);
         boolean inBlockedBlock = false;

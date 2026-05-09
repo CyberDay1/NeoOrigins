@@ -44,7 +44,9 @@ public class LowHPThresholdPower extends PowerType<LowHPThresholdPower.Config> {
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
-        float hpPercent = player.getHealth() / player.getMaxHealth();
+        float maxHealth = player.getMaxHealth();
+        if (maxHealth <= 0) return;
+        float hpPercent = player.getHealth() / maxHealth;
         boolean belowThreshold = hpPercent < config.threshold();
 
         for (EffectEntry entry : config.effects()) {

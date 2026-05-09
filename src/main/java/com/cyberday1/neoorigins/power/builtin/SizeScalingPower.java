@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -20,9 +21,14 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
-    private static final ResourceLocation MOD_SCALE        = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_scale");
-    private static final ResourceLocation MOD_REACH_BLOCK  = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_reach_block");
-    private static final ResourceLocation MOD_REACH_ENTITY = ResourceLocation.fromNamespaceAndPath("neoorigins", "size_reach_entity");
+    /** Generates a per-power modifier ID so multiple size_scaling powers don't collide. */
+    private static ResourceLocation modId(String suffix) {
+        ResourceLocation powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return ResourceLocation.fromNamespaceAndPath("neoorigins", "size_" + key + "_" + suffix);
+    }
 
     public record Config(float scale, boolean modifyReach, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -51,12 +57,15 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
     private void applyModifiers(ServerPlayer player, Config config, boolean add) {
         // scale attribute uses ADD_VALUE: base is 1.0, so delta = (scale - 1.0)
         double scaleDelta = config.scale() - 1.0;
-        applyMod(player, Attributes.SCALE, MOD_SCALE, scaleDelta, AttributeModifier.Operation.ADD_VALUE, add);
+        ResourceLocation scaleId = modId("scale");
+        ResourceLocation reachBlockId = modId("reach_block");
+        ResourceLocation reachEntityId = modId("reach_entity");
+        applyMod(player, Attributes.SCALE, scaleId, scaleDelta, AttributeModifier.Operation.ADD_VALUE, add);
 
         if (config.modifyReach()) {
             // reach attributes use ADD_MULTIPLIED_BASE so reach scales proportionally
-            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  MOD_REACH_BLOCK,  scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
-            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, MOD_REACH_ENTITY, scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  reachBlockId,  scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, reachEntityId, scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
         }
     }
 

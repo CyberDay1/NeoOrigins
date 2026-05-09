@@ -4,11 +4,11 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.Set;
 
@@ -26,8 +26,6 @@ public class IgnoreWaterPower extends PowerType<IgnoreWaterPower.Config> {
 
     private static final ResourceLocation MOD_WATER_SPEED =
         ResourceLocation.fromNamespaceAndPath("neoorigins", "ignore_water_speed");
-    private static final ResourceLocation ATTR_WATER_EFFICIENCY =
-        ResourceLocation.fromNamespaceAndPath("minecraft", "generic.water_movement_efficiency");
 
     public record Config(String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -45,22 +43,16 @@ public class IgnoreWaterPower extends PowerType<IgnoreWaterPower.Config> {
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        var attr = BuiltInRegistries.ATTRIBUTE.getOptional(ATTR_WATER_EFFICIENCY);
-        if (attr.isPresent()) {
-            AttributeInstance inst = player.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr.get()));
-            if (inst != null && inst.getModifier(MOD_WATER_SPEED) == null) {
-                inst.addPermanentModifier(new AttributeModifier(
-                    MOD_WATER_SPEED, 1.0, AttributeModifier.Operation.ADD_VALUE));
-            }
+        AttributeInstance inst = player.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY);
+        if (inst != null && inst.getModifier(MOD_WATER_SPEED) == null) {
+            inst.addPermanentModifier(new AttributeModifier(
+                MOD_WATER_SPEED, 1.0, AttributeModifier.Operation.ADD_VALUE));
         }
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        var attr = BuiltInRegistries.ATTRIBUTE.getOptional(ATTR_WATER_EFFICIENCY);
-        if (attr.isPresent()) {
-            AttributeInstance inst = player.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr.get()));
-            if (inst != null) inst.removeModifier(MOD_WATER_SPEED);
-        }
+        AttributeInstance inst = player.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY);
+        if (inst != null) inst.removeModifier(MOD_WATER_SPEED);
     }
 }

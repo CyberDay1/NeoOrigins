@@ -165,7 +165,7 @@ Collapses 26 modifier/action hook powers into `action_on_event`.
 **Skipped (deliberately — no viable event):**
 - `break_speed_modifier`, `underwater_mining_speed` — attribute-based; `PlayerEvent.BreakSpeed`
   is client-side only in current NeoForge
-- `craft_amount_bonus` — no reliable `ItemCraftedEvent` fire point; currently tick-polled
+- ~~`craft_amount_bonus`~~ — **resolved in v2.0.31**: now uses `PlayerEvent.ItemCraftedEvent` directly
 - `more_smoker_xp` — no furnace XP event in NeoForge 21.11.38
 
 **Known alias lossiness — all three fixed via context-aware DSL extensions:**

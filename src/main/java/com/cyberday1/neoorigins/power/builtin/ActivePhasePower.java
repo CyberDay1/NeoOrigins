@@ -62,10 +62,7 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
 
         if (target == null) return false;
 
-        if (config.hungerCost() > 0) {
-            var food = player.getFoodData();
-            food.setFoodLevel(Math.max(0, food.getFoodLevel() - config.hungerCost()));
-        }
+        // Hunger cost is handled by AbstractActivePower.onActivated() when we return true.
         player.teleportTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
         return true;
     }

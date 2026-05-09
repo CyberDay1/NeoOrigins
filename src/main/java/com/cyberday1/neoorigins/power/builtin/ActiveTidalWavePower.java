@@ -85,6 +85,6 @@ public class ActiveTidalWavePower extends AbstractActivePower<ActiveTidalWavePow
                 10, 0.5 * i, 0.3, 0.5 * i, 0.02);
         }
 
-        return true;
+        return hit > 0;
     }
 }

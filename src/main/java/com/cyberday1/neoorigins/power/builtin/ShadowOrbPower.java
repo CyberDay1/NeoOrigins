@@ -16,6 +16,9 @@ import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Lets the player place persistent "shadow orbs" (invisible anchors) that apply Darkness
@@ -23,6 +26,9 @@ import java.util.List;
  * placing a new one when at max removes the oldest. Orb positions are stored in PlayerOriginData.
  */
 public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
+
+    /** Tracks which dimension each player's orbs were placed in. Cleared on revoke/logout. */
+    private static final Map<UUID, ResourceLocation> ORB_DIMENSIONS = new ConcurrentHashMap<>();
 
     public record Config(
         int maxOrbs,
@@ -52,6 +58,14 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         List<BlockPos> orbs = new ArrayList<>(data.getShadowOrbs());
         if (orbs.size() >= config.maxOrbs()) orbs.remove(0);
+        // If placing in a new dimension, clear existing orbs from the old one
+        ResourceLocation currentDim = player.level().dimension().location();
+        ResourceLocation orbDim = ORB_DIMENSIONS.get(player.getUUID());
+        if (orbDim != null && !orbDim.equals(currentDim)) {
+            orbs.clear();
+        }
+        ORB_DIMENSIONS.put(player.getUUID(), currentDim);
+
         BlockPos pos = player.blockPosition();
         orbs.add(pos);
         data.setShadowOrbs(orbs);
@@ -74,6 +88,10 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         if (orbs.isEmpty()) return;
 
         ServerLevel level = (ServerLevel) player.level();
+
+        // Skip ticking orbs if the player is in a different dimension
+        ResourceLocation orbDim = ORB_DIMENSIONS.get(player.getUUID());
+        if (orbDim != null && !orbDim.equals(level.dimension().location())) return;
 
         // Orb visual — spawn a sculk soul particle at each orb every 3 ticks
         // so the anchor is visible. Previously the orb was invisible after
@@ -115,5 +133,6 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         player.getData(OriginAttachments.originData()).setShadowOrbs(List.of());
+        ORB_DIMENSIONS.remove(player.getUUID());
     }
 }

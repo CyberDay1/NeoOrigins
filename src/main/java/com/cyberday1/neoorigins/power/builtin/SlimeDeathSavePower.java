@@ -95,9 +95,11 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
         }
         player.setHealth(config.splitMaxHP());
 
-        // Store the split state — recovery tick counter and total reduction
+        // Store the split state — remaining recovery ticks and total reduction.
+        // We store remaining ticks (not a start tickCount) so recovery survives
+        // relogs and avoids float precision loss on large tick values.
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setCustomFloat(SPLIT_KEY, (float) player.tickCount);
+        data.setCustomFloat(SPLIT_KEY, (float) config.recoveryTicks());
         data.setCustomFloat("slime_split_reduction", reduction);
 
         return true;
@@ -106,21 +108,22 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
     @Override
     public void onTick(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        float splitStartTick = data.getCustomFloat(SPLIT_KEY, -1);
-        if (splitStartTick < 0) return;
+        float remaining = data.getCustomFloat(SPLIT_KEY, -1);
+        if (remaining < 0) return;
 
-        int elapsed = player.tickCount - (int) splitStartTick;
         float totalReduction = data.getCustomFloat("slime_split_reduction", 0);
 
-        if (elapsed >= config.recoveryTicks() || totalReduction >= 0) {
+        remaining--;
+        if (remaining <= 0 || totalReduction >= 0) {
             // Recovery complete — remove the modifier
             var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
             if (maxHpAttr != null) maxHpAttr.removeModifier(SPLIT_HP_MOD);
             data.setCustomFloat(SPLIT_KEY, -1);
             data.setCustomFloat("slime_split_reduction", 0);
         } else {
+            data.setCustomFloat(SPLIT_KEY, remaining);
             // Gradually ease the reduction toward 0
-            float progress = (float) elapsed / config.recoveryTicks();
+            float progress = 1.0F - (remaining / config.recoveryTicks());
             float currentReduction = totalReduction * (1.0F - progress);
             var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
             if (maxHpAttr != null) {

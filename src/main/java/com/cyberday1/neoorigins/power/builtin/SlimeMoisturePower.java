@@ -68,8 +68,19 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        setMoisture(player, 1.0F);
+        // Only set initial moisture if there's no saved value yet (first grant).
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        if (data.getCustomFloat(MOISTURE_KEY, -1.0F) < 0) {
+            setMoisture(player, 1.0F);
+        }
     }
+
+    // onLogin/onRespawn default to onGranted — override to preserve saved moisture.
+    @Override
+    public void onLogin(ServerPlayer player, Config config) {}
+
+    @Override
+    public void onRespawn(ServerPlayer player, Config config) {}
 
     @Override
     public void onTick(ServerPlayer player, Config config) {

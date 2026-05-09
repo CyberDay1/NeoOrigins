@@ -48,6 +48,9 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public class ResourcePower extends PowerType<ResourcePower.Config> {
 
+    /** Tracks previous resource values for edge-triggered min/max actions. */
+    private static final java.util.Map<String, Integer> PREV_VALUES = new java.util.concurrent.ConcurrentHashMap<>();
+
     public record Config(
         String powerId,
         int min,
@@ -155,6 +158,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         player.getData(CompatAttachments.resourceState()).remove(key);
         CompatAttachments.unregisterResourceMeta(key);
         CompatAttachments.syncResourcesToClient(player);
+        PREV_VALUES.remove(player.getUUID() + ":" + key);
     }
 
     @Override
@@ -170,10 +174,15 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
             }
         }
 
-        // Threshold actions
+        // Threshold actions — edge-triggered: only fire when the value
+        // transitions TO the boundary, not every tick while sitting on it.
         int cur = state.get(key, config.startValue());
-        if (cur <= config.min()) config.minAction().execute(player);
-        if (cur >= config.max()) config.maxAction().execute(player);
+        String edgeKey = player.getUUID() + ":" + key;
+        Integer prev = PREV_VALUES.put(edgeKey, cur);
+        if (prev != null) {
+            if (cur <= config.min() && prev > config.min()) config.minAction().execute(player);
+            if (cur >= config.max() && prev < config.max()) config.maxAction().execute(player);
+        }
 
         // Sync to client every 10 ticks when dirty
         if (state.isDirty() && player.tickCount % 10 == 0) {

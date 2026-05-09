@@ -115,6 +115,11 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
         }
     }
 
+    @Override
+    public void onRevoked(ServerPlayer player, Config config) {
+        CONDITION_STATE.remove(player.getUUID());
+    }
+
     private static Set<String> colorCapSet(Config config) {
         return Set.of("model_color:" + config.red() + ":" + config.green()
             + ":" + config.blue() + ":" + config.alpha());

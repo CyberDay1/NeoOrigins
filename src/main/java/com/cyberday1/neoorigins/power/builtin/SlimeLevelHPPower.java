@@ -50,7 +50,7 @@ public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
         if ((int) currentBonus != bonusHP) {
             maxHpAttr.removeModifier(MOD_ID);
             if (bonusHP > 0) {
-                maxHpAttr.addPermanentModifier(new AttributeModifier(
+                maxHpAttr.addTransientModifier(new AttributeModifier(
                     MOD_ID, bonusHP, AttributeModifier.Operation.ADD_VALUE));
             }
         }

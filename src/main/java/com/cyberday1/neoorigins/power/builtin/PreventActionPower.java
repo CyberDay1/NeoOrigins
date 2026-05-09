@@ -100,9 +100,13 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
         if (config.action() == Action.SWIM && isGateOpen(player, config)
                 && player.isInWater()) {
             var v = player.getDeltaMovement();
-            player.setDeltaMovement(v.x, Math.min(v.y, -0.16), v.z);
-            if (player.isSwimming()) player.setSwimming(false);
-            player.hurtMarked = true;
+            double clampedY = Math.min(v.y, -0.16);
+            // Only sync velocity when we actually changed it
+            if (clampedY != v.y || player.isSwimming()) {
+                player.setDeltaMovement(v.x, clampedY, v.z);
+                if (player.isSwimming()) player.setSwimming(false);
+                player.hurtMarked = true;
+            }
         }
     }
 }

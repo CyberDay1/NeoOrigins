@@ -26,11 +26,14 @@ public class ElytraBoostPower extends AbstractActivePower<ElytraBoostPower.Confi
 
         Vec3 look = player.getLookAngle();
         Vec3 motion = player.getDeltaMovement();
-        player.setDeltaMovement(motion.add(
+        // Scale only the boost impulse, not the entire velocity — otherwise
+        // high existing speed gets amplified exponentially.
+        Vec3 boost = new Vec3(
             look.x * 0.1 + (look.x * 1.5 - motion.x) * 0.5,
             look.y * 0.1 + (look.y * 1.5 - motion.y) * 0.5,
             look.z * 0.1 + (look.z * 1.5 - motion.z) * 0.5
-        ).scale(config.strength()));
+        );
+        player.setDeltaMovement(motion.add(boost.scale(config.strength())));
         player.hurtMarked = true; // sync velocity to client
         return true;
     }
