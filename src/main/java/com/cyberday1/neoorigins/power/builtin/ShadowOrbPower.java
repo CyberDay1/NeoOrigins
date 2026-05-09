@@ -14,8 +14,13 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Lets the player place persistent "shadow orbs" (invisible anchors) that apply Darkness
@@ -23,6 +28,8 @@ import java.util.List;
  * placing a new one when at max removes the oldest. Orb positions are stored in PlayerOriginData.
  */
 public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
+
+    private static final ConcurrentHashMap<UUID, ResourceKey<Level>> ORB_DIMENSIONS = new ConcurrentHashMap<>();
 
     public record Config(
         int maxOrbs,
@@ -50,6 +57,12 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
+        ResourceKey<Level> currentDim = player.level().dimension();
+        ResourceKey<Level> storedDim = ORB_DIMENSIONS.get(player.getUUID());
+        if (storedDim != null && !storedDim.equals(currentDim)) {
+            data.setShadowOrbs(List.of());
+        }
+        ORB_DIMENSIONS.put(player.getUUID(), currentDim);
         List<BlockPos> orbs = new ArrayList<>(data.getShadowOrbs());
         if (orbs.size() >= config.maxOrbs()) orbs.remove(0);
         BlockPos pos = player.blockPosition();
@@ -69,6 +82,9 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
+        ResourceKey<Level> storedDim = ORB_DIMENSIONS.get(player.getUUID());
+        if (storedDim != null && !storedDim.equals(player.level().dimension())) return;
+
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         List<BlockPos> orbs = data.getShadowOrbs();
         if (orbs.isEmpty()) return;
@@ -113,5 +129,6 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         player.getData(OriginAttachments.originData()).setShadowOrbs(List.of());
+        ORB_DIMENSIONS.remove(player.getUUID());
     }
 }

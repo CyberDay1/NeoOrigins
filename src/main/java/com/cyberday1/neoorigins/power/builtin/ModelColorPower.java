@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Tints the player model with an RGBA colour. Client-side rendering is
@@ -44,5 +45,10 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
     public Set<String> capabilities(Config config) {
         return Set.of("model_color:" + config.red() + ":" + config.green()
             + ":" + config.blue() + ":" + config.alpha());
+    }
+
+    @Override
+    public void onRevoked(ServerPlayer player, Config config) {
+        CONDITION_STATE.remove(player.getUUID());
     }
 }
