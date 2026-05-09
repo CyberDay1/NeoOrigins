@@ -172,7 +172,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 boolean powerHidden = json.has("hidden") && json.get("hidden").isJsonPrimitive()
                     && json.get("hidden").getAsJsonPrimitive().isBoolean()
                     && json.get("hidden").getAsBoolean();
-                injected.put(id, new PowerHolder<>(CompatPower.INSTANCE, config, powerName, powerDesc, powerHidden));
+                injected.put(id, new PowerHolder<>(id, CompatPower.INSTANCE, config, powerName, powerDesc, powerHidden));
                 CompatTranslationLog.pass(id, type + " -> Route B compiled");
                 NeoOrigins.LOGGER.debug("[CompatB] loaded {} ({})", id, type);
 
@@ -270,7 +270,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 } else {
                     CompatPower.Config config = parseRouteB(id, typeStr, powerJson);
                     if (config != null) {
-                        injected.put(id, new PowerHolder<>(CompatPower.INSTANCE, config,
+                        injected.put(id, new PowerHolder<>(id, CompatPower.INSTANCE, config,
                             net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty()));
                         NeoOrigins.LOGGER.debug("[CompatSynth] Registered well-known power {} -> {} (Route B)", id, typeStr);
                     }
@@ -289,7 +289,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         configJson.addProperty("_power_id", id.toString());
         type.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.warn("[CompatSynth] codec error for {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(type, config,
+            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config,
                 net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty())));
     }
 

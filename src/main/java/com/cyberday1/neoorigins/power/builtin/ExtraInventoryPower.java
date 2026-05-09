@@ -76,7 +76,9 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
         if (container == null) return;
 
         CompoundTag playerData = player.getPersistentData();
-        CompoundTag modTag = new CompoundTag();
+        CompoundTag modTag = playerData.contains(NeoOrigins.MOD_ID)
+            ? playerData.getCompound(NeoOrigins.MOD_ID).orElseGet(CompoundTag::new)
+            : new CompoundTag();
 
         var nbtOps = player.registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
         ListTag items = new ListTag();

@@ -264,7 +264,11 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             float air = num.floatValue();
             if (air <= 0f) return false;
 
-            chest.set((net.minecraft.core.component.DataComponentType<Float>) rawType, Math.max(0f, air - 1f));
+            // Consume 1 air per second (every 20 ticks), matching Create's
+            // underwater consumption rate.
+            if (sp.tickCount % 20 == 0) {
+                chest.set((net.minecraft.core.component.DataComponentType<Float>) rawType, Math.max(0f, air - 1f));
+            }
             return true;
         }
     }

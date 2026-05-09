@@ -54,16 +54,9 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
 
     /** When always_on, never report as toggled off. */
     @Override
-    public boolean isToggledOff(ServerPlayer player) {
-        // Config isn't passed on 26.1 — look it up from the active powers.
-        // For the common case (single wraith_phase power), just check if
-        // ANY wraith_phase config has always_on set.
-        for (var holder : com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(player)) {
-            if (holder.type() == this && holder.config() instanceof Config cfg && cfg.alwaysOn()) {
-                return false;
-            }
-        }
-        return super.isToggledOff(player);
+    public boolean isToggledOff(ServerPlayer player, Config config) {
+        if (config.alwaysOn()) return false;
+        return super.isToggledOff(player, config);
     }
 
     @Override

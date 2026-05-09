@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.api.power;
 
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.LivingEntity;
  * Used internally to avoid repeated deserialization.
  */
 public final class PowerHolder<C extends PowerConfiguration> {
+    private final Identifier id;
     private final PowerType<C> type;
     private final C config;
     private final Component name;
@@ -17,6 +19,14 @@ public final class PowerHolder<C extends PowerConfiguration> {
     private final boolean hidden;
     private final EntityCondition condition;
     private final ConditionMode conditionMode;
+
+    // Power dispatch is single-threaded on the server main thread, but ThreadLocal
+    // is safer than a static field if anything ever dispatches off-thread (and the
+    // overhead is negligible). PowerType subclasses that need to know which power
+    // they're being invoked as can read PowerHolder.currentDispatchId().
+    private static final ThreadLocal<Identifier> CURRENT_DISPATCH_ID = new ThreadLocal<>();
+
+    public static Identifier currentDispatchId() { return CURRENT_DISPATCH_ID.get(); }
 
     /** Condition mode for the top-level power condition gate. */
     public enum ConditionMode {
@@ -26,16 +36,17 @@ public final class PowerHolder<C extends PowerConfiguration> {
         ALLOW
     }
 
-    public PowerHolder(PowerType<C> type, C config, Component name, Component description) {
-        this(type, config, name, description, false, null, ConditionMode.DENY);
+    public PowerHolder(Identifier id, PowerType<C> type, C config, Component name, Component description) {
+        this(id, type, config, name, description, false, null, ConditionMode.DENY);
     }
 
-    public PowerHolder(PowerType<C> type, C config, Component name, Component description, boolean hidden) {
-        this(type, config, name, description, hidden, null, ConditionMode.DENY);
+    public PowerHolder(Identifier id, PowerType<C> type, C config, Component name, Component description, boolean hidden) {
+        this(id, type, config, name, description, hidden, null, ConditionMode.DENY);
     }
 
-    public PowerHolder(PowerType<C> type, C config, Component name, Component description,
+    public PowerHolder(Identifier id, PowerType<C> type, C config, Component name, Component description,
                         boolean hidden, EntityCondition condition, ConditionMode conditionMode) {
+        this.id = id;
         this.type = type;
         this.config = config;
         this.name = name;
@@ -45,6 +56,7 @@ public final class PowerHolder<C extends PowerConfiguration> {
         this.conditionMode = conditionMode;
     }
 
+    public Identifier id()            { return id; }
     public PowerType<C> type()        { return type; }
     public C config()                 { return config; }
     public Component name()           { return name; }
@@ -74,14 +86,14 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public boolean isActive()                              { return type.isActivePower(config); }
 
     // Lifecycle methods that are NOT condition-gated (power is still owned):
-    public void onGranted(ServerPlayer player)          { type.onGranted(player, config); }
-    public void onRevoked(ServerPlayer player)          { type.onRevoked(player, config); }
-    public void onLogin(ServerPlayer player)            { type.onLogin(player, config); }
-    public void onRespawn(ServerPlayer player)          { type.onRespawn(player, config); }
+    public void onGranted(ServerPlayer player)          { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onRevoked(ServerPlayer player)          { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRevoked(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onLogin(ServerPlayer player)            { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onLogin(player, config);   } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onRespawn(ServerPlayer player)          { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRespawn(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
 
     // Condition-gated methods — skipped when the top-level condition is not satisfied:
-    public void onTick(ServerPlayer player)             { if (!isConditionSatisfied(player)) return; type.onTick(player, config); }
-    public void onActivated(ServerPlayer player)        { if (!isConditionSatisfied(player)) return; type.onActivated(player, config); }
-    public void onHit(ServerPlayer player, float amount){ if (!isConditionSatisfied(player)) return; type.onHit(player, config, amount); }
-    public void onKill(ServerPlayer player, LivingEntity killed) { if (!isConditionSatisfied(player)) return; type.onKill(player, config, killed); }
+    public void onTick(ServerPlayer player)             { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onTick(player, config);    } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onActivated(ServerPlayer player)        { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onHit(ServerPlayer player, float amount){ if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onHit(player, config, amount); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onKill(ServerPlayer player, LivingEntity killed) { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onKill(player, config, killed); } finally { CURRENT_DISPATCH_ID.set(prev); } }
 }

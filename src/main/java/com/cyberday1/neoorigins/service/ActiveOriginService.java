@@ -197,8 +197,9 @@ public final class ActiveOriginService {
     public static boolean hasCapability(ServerPlayer player, String tag) {
         for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
             if (!holder.isConditionSatisfied(player)) continue;
-            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?> toggle
-                    && toggle.isToggledOff(player)) {
+            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
+                    && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
+                            .isToggledOff(player, holder.config())) {
                 continue;
             }
             if (((PowerHolder) holder).type().capabilities(holder.config()).contains(tag)) {

@@ -23,6 +23,7 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
         Direction direction,
         float multiplier,
         Optional<String> damageType,
+        Optional<String> targetGroup,
         Optional<EntityCondition> condition,
         String type
     ) implements PowerConfiguration {
@@ -46,6 +47,8 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
                 float mult = obj.has("multiplier") ? obj.get("multiplier").getAsFloat() : 1.0f;
                 Optional<String> dmg = obj.has("damage_type")
                     ? Optional.of(obj.get("damage_type").getAsString()) : Optional.empty();
+                Optional<String> grp = obj.has("target_group")
+                    ? Optional.of(obj.get("target_group").getAsString()) : Optional.empty();
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:modify_damage";
 
                 Optional<EntityCondition> cond = obj.has("condition") && obj.get("condition").isJsonObject()
@@ -53,7 +56,7 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
                     : Optional.empty();
 
                 return DataResult.success(Pair.of(
-                    new Config(dir, mult, dmg, cond, t), ops.empty()));
+                    new Config(dir, mult, dmg, grp, cond, t), ops.empty()));
             }
 
             @Override

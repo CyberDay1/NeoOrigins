@@ -16,7 +16,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     @Override
     public final void onActivated(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        String key = getToggleKey();
+        String key = getToggleKey(config);
         boolean wasOff = data.isPowerToggledOff(key);
 
         if (wasOff) {
@@ -33,26 +33,32 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
 
     @Override
     public final void onTick(ServerPlayer player, C config) {
-        if (isToggledOff(player)) return;
+        if (isToggledOff(player, config)) return;
         tickEffect(player, config);
     }
 
     @Override
     public void onRevoked(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setPowerToggledOff(getToggleKey(), false);
+        data.setPowerToggledOff(getToggleKey(config), false);
         removeEffect(player, config);
     }
 
     protected abstract void tickEffect(ServerPlayer player, C config);
     protected abstract void removeEffect(ServerPlayer player, C config);
 
-    public boolean isToggledOff(ServerPlayer player) {
+    public boolean isToggledOff(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        return data.isPowerToggledOff(getToggleKey());
+        return data.isPowerToggledOff(getToggleKey(config));
     }
 
-    private String getToggleKey() {
+    /**
+     * Per-instance toggle key. Subclasses with multiple configurations on a
+     * single player (e.g. StatusEffectPower where several status_effect powers
+     * coexist) must override to include a config-derived discriminator —
+     * otherwise all instances share one toggle state.
+     */
+    protected String getToggleKey(C config) {
         return getClass().getName();
     }
 }

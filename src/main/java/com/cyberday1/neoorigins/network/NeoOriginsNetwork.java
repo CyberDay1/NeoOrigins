@@ -535,8 +535,10 @@ public class NeoOriginsNetwork {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;
                 boolean toggledOn = true;
-                if (holder.type() instanceof AbstractTogglePower<?> togglePower) {
-                    toggledOn = !togglePower.isToggledOff(player);
+                if (holder.type() instanceof AbstractTogglePower<?>) {
+                    @SuppressWarnings({"unchecked", "rawtypes"})
+                    AbstractTogglePower tp = (AbstractTogglePower) holder.type();
+                    toggledOn = !tp.isToggledOff(player, holder.config());
                 }
                 powerMapOut.put(powerId, toggledOn);
                 if (toggledOn) {

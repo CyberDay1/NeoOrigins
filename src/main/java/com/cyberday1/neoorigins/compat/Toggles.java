@@ -38,9 +38,12 @@ public final class Toggles {
             return false;
         }
         var holder = PowerDataManager.INSTANCE.getPower(id);
-        if (holder != null && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower toggle
+        if (holder != null && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower
                 && player instanceof net.minecraft.server.level.ServerPlayer sp) {
-            return !toggle.isToggledOff(sp);
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower toggle =
+                (com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type();
+            return !toggle.isToggledOff(sp, holder.config());
         }
         // Fall back to compat TogglePower facade
         boolean def = resolveDefault(powerId);

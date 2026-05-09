@@ -1,9 +1,11 @@
 package com.cyberday1.neoorigins.power.builtin.base;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -88,11 +90,13 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
     }
 
     /**
-     * Returns the cooldown key for this power instance. Uses the config's
-     * identity hash so each distinct power config has its own cooldown.
+     * Returns the cooldown key for this power instance. Uses the power's
+     * Identifier so each power has its own independent cooldown that
+     * survives JVM restarts and respawns.
      */
     public String getCooldownKey(C config) {
-        return getClass().getName() + ":" + System.identityHashCode(config);
+        Identifier id = PowerHolder.currentDispatchId();
+        return id != null ? id.toString() : getClass().getName();
     }
 
     /**

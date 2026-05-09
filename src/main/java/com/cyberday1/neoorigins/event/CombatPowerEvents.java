@@ -63,18 +63,19 @@ public class CombatPowerEvents {
         // case that the PvP-only block below would miss.
         if (event.getSource().getEntity() instanceof ServerPlayer outAttacker
             && outAttacker != event.getEntity()) {
+            LivingEntity outTarget = event.getEntity();
             ActiveOriginService.forEachOfType(outAttacker, ModifyDamagePower.class, config -> {
                 if (config.direction() != ModifyDamagePower.Direction.OUT) return;
                 if (config.condition().isPresent() && !config.condition().get().test(outAttacker)) return;
                 if (config.damageType().isPresent()
                         && !matchesDamageType(event.getSource(), config.damageType().get())) return;
+                if (config.targetGroup().isPresent() && !matchesEntityGroup(outTarget, config.targetGroup().get())) return;
                 float scaled = event.getAmount() * config.multiplier();
                 if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
                 event.setAmount(scaled);
             });
 
             // ActionOnHitPower — fire when the attacker's filters match any target (mob or player).
-            LivingEntity outTarget = event.getEntity();
             final float outHitAmount = event.getAmount();
             ActiveOriginService.forEachOfType(outAttacker, ActionOnHitPower.class, config -> {
                 if (outHitAmount < config.minDamage()) return;
