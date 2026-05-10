@@ -29,7 +29,7 @@ public class ActiveRecallPower extends AbstractActivePower<ActiveRecallPower.Con
         } else {
             target = sl.getSharedSpawnPos();
         }
-        player.teleportTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
+        TeleportEffects.teleportWithEffects(player, target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
         return true;
     }
 }

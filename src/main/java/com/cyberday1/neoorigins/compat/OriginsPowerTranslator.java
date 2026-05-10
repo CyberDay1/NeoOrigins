@@ -793,19 +793,38 @@ public final class OriginsPowerTranslator {
         out.addProperty("type", "neoorigins:modify_damage");
         out.addProperty("direction", direction);
 
-        // Origins modifier is nested; extract value and operation to compute multiplier
+        // Origins modifier is nested; extract value/amount and operation to compute multiplier.
+        // Origins packs use either "value" or "amount" for the modifier number.
         if (src.has("modifier")) {
             JsonObject mod = src.getAsJsonObject("modifier");
-            if (mod.has("value")) {
-                double value = mod.get("value").getAsDouble();
+            double value = mod.has("value") ? mod.get("value").getAsDouble()
+                : mod.has("amount") ? mod.get("amount").getAsDouble() : Double.NaN;
+            if (!Double.isNaN(value)) {
                 String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
-                // [LOSSY] multiply_total / multiply_base and addition all collapse to (1 + value) multiplier.
-                float multiplier = (float)(1.0 + value);
+                float multiplier;
+                if ("set_total".equals(op)) {
+                    // set_total with -1 means "cancel all damage"
+                    multiplier = (float) Math.max(0, 1.0 + value);
+                } else {
+                    // [LOSSY] multiply_total / multiply_base / addition all collapse to (1 + value).
+                    multiplier = (float)(1.0 + value);
+                }
                 out.addProperty("multiplier", multiplier);
             }
         }
 
         if (!out.has("multiplier")) out.addProperty("multiplier", 1.0f);
+
+        // Translate damage_condition → damage_type filter on native ModifyDamagePower.
+        if (src.has("damage_condition") && src.get("damage_condition").isJsonObject()) {
+            JsonObject dc = src.getAsJsonObject("damage_condition");
+            String dcType = dc.has("type") ? dc.get("type").getAsString() : "";
+            if (("origins:name".equals(dcType) || "apace:name".equals(dcType)) && dc.has("name")) {
+                out.addProperty("damage_type", dc.get("name").getAsString());
+            } else if (("origins:type".equals(dcType) || "apace:type".equals(dcType)) && dc.has("damage_type")) {
+                out.addProperty("damage_type", dc.get("damage_type").getAsString());
+            }
+        }
 
         // Translate target_condition when it's an entity_group check — the most common
         // pattern (e.g. "undead" damage bonuses). Other target_condition shapes skip

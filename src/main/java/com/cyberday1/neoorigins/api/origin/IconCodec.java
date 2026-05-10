@@ -38,20 +38,46 @@ final class IconCodec {
      * On encode, extracts known components back into SNBT so the tag
      * survives the JSON round-trip without needing RegistryOps.
      */
-    private static final Codec<ItemStack> OBJECT_CODEC = RecordCodecBuilder.create(inst -> inst.group(
-        ResourceLocation.CODEC.fieldOf("item").forGetter(stack ->
-            BuiltInRegistries.ITEM.getKey(stack.getItem())),
-        Codec.STRING.optionalFieldOf("tag").forGetter(IconCodec::extractSnbt)
-    ).apply(inst, (itemId, tag) -> {
-        Item item = BuiltInRegistries.ITEM.get(itemId);
-        if (item == null || item == Items.AIR) {
-            NeoOrigins.LOGGER.warn("[Origin] Icon item not found: {}", itemId);
-            return ItemStack.EMPTY;
+    private static final Codec<ItemStack> OBJECT_CODEC = Codec.of(
+        // Encode: write as {"item": "...", "tag": "..."} for round-trip
+        RecordCodecBuilder.<ItemStack>create(inst -> inst.group(
+            ResourceLocation.CODEC.fieldOf("item").forGetter(stack ->
+                BuiltInRegistries.ITEM.getKey(stack.getItem())),
+            Codec.STRING.optionalFieldOf("tag").forGetter(IconCodec::extractSnbt)
+        ).apply(inst, (id, tag) -> ItemStack.EMPTY)).comap(stack -> stack),
+        // Decode: accept "item" or "id" key
+        new com.mojang.serialization.Codec<ItemStack>() {
+            @Override
+            public <T> com.mojang.serialization.DataResult<com.mojang.datafixers.util.Pair<ItemStack, T>> decode(com.mojang.serialization.DynamicOps<T> ops, T input) {
+                var map = ops.getMap(input);
+                if (map.error().isPresent()) return com.mojang.serialization.DataResult.error(() -> "Not a map");
+                var mapLike = map.result().get();
+                // Try "item" first, then "id"
+                T itemVal = mapLike.get("item");
+                if (itemVal == null) itemVal = mapLike.get("id");
+                if (itemVal == null) return com.mojang.serialization.DataResult.error(() -> "No key 'item' or 'id'");
+                var itemIdResult = ResourceLocation.CODEC.parse(ops, itemVal);
+                if (itemIdResult.error().isPresent()) return com.mojang.serialization.DataResult.error(() -> "Invalid item id");
+                ResourceLocation itemId = itemIdResult.result().get();
+                Item item = BuiltInRegistries.ITEM.get(itemId);
+                if (item == null || item == Items.AIR) {
+                    NeoOrigins.LOGGER.warn("[Origin] Icon item not found: {} — using stone", itemId);
+                    return com.mojang.serialization.DataResult.success(com.mojang.datafixers.util.Pair.of(new ItemStack(Items.STONE), ops.empty()));
+                }
+                ItemStack stack = new ItemStack(item);
+                T tagVal = mapLike.get("tag");
+                if (tagVal != null) {
+                    var tagResult = Codec.STRING.parse(ops, tagVal);
+                    tagResult.result().ifPresent(snbt -> LegacyTagToComponents.applySnbt(stack, snbt, null));
+                }
+                return com.mojang.serialization.DataResult.success(com.mojang.datafixers.util.Pair.of(stack, ops.empty()));
+            }
+            @Override
+            public <T> com.mojang.serialization.DataResult<T> encode(ItemStack input, com.mojang.serialization.DynamicOps<T> ops, T prefix) {
+                return com.mojang.serialization.DataResult.success(prefix);
+            }
         }
-        ItemStack stack = new ItemStack(item);
-        tag.ifPresent(snbt -> LegacyTagToComponents.applySnbt(stack, snbt, null));
-        return stack;
-    }));
+    );
 
     /** Simple string form: just an item id. */
     private static final Codec<ItemStack> STRING_CODEC = ResourceLocation.CODEC.xmap(

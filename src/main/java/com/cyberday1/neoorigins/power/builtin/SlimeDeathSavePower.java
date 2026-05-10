@@ -82,7 +82,7 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
             }
         }
 
-        player.teleportTo(newX, newY, newZ);
+        TeleportEffects.teleportWithEffects(player, newX, newY, newZ);
 
         // Set HP to split max and apply the HP reduction modifier
         float normalMax = (float) player.getAttributeValue(Attributes.MAX_HEALTH);

@@ -29,7 +29,9 @@ public class ActiveSwapPower extends AbstractActivePower<ActiveSwapPower.Config>
         if (target.isEmpty()) return false;
         Vec3 playerPos = player.position();
         Vec3 targetPos = target.get().position();
+        TeleportEffects.playAt(player, playerPos);
         player.teleportTo(targetPos.x, targetPos.y, targetPos.z);
+        TeleportEffects.playAt(player, targetPos);
         target.get().teleportTo(playerPos.x, playerPos.y, playerPos.z);
         return true;
     }

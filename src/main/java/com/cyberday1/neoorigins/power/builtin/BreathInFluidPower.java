@@ -111,7 +111,9 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
             if ("lava".equalsIgnoreCase(chosen.fluid)) {
                 inFluid = sp.isInLava();
             } else {
-                inFluid = sp.isInWater();
+                // Use isUnderWater (eyes submerged) — not isInWater (any body part).
+                // Players at the surface with head above water should breathe normally.
+                inFluid = sp.isUnderWater();
             }
 
             int maxAir = sp.getMaxAirSupply();
@@ -166,7 +168,7 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
             boolean[] result = {false};
             ActiveOriginService.forEachOfType(sp, BreathInFluidPower.class, cfg -> {
                 if (result[0]) return;
-                boolean inFluid = "lava".equalsIgnoreCase(cfg.fluid()) ? sp.isInLava() : sp.isInWater();
+                boolean inFluid = "lava".equalsIgnoreCase(cfg.fluid()) ? sp.isInLava() : sp.isUnderWater();
                 if (inFluid) result[0] = true;
             });
             return result[0];

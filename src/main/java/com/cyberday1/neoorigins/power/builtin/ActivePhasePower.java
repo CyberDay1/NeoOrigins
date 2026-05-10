@@ -63,7 +63,7 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
         if (target == null) return false;
 
         // Hunger cost is handled by AbstractActivePower.onActivated() when we return true.
-        player.teleportTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
+        TeleportEffects.teleportWithEffects(player, target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
         return true;
     }
 }

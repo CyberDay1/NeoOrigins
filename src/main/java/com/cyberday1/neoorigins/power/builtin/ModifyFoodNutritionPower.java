@@ -5,31 +5,43 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.Optional;
+
 /**
- * Overrides the nutrition (hunger) value of all food the player eats.
- * When set, every food item gives exactly {@code nutrition} hunger points
+ * Overrides the nutrition (hunger) value of food the player eats.
+ * When set, matching food gives exactly {@code nutrition} hunger points
  * regardless of its original value. Saturation is scaled proportionally.
  *
- * <p><b>Why post-eat correction.</b> The NeoForge {@code Finish} event fires
- * <em>after</em> vanilla has already consumed the food and applied nutrition /
- * saturation to {@link net.minecraft.world.food.FoodData}. Modifying the
- * stack's {@link DataComponents#FOOD} at that point does nothing. Instead we
- * compute the difference between what vanilla applied and what we want, and
- * correct the player's {@code FoodData} directly.
+ * <p>An optional {@code food_item} or {@code food_tag} field filters which
+ * foods are affected. If neither is set, ALL food is affected.
+ *
+ * <pre>{@code
+ * { "type": "neoorigins:modify_food_nutrition", "nutrition": 1 }
+ * { "type": "neoorigins:modify_food_nutrition", "nutrition": 8, "food_tag": "#minecraft:meat" }
+ * { "type": "neoorigins:modify_food_nutrition", "nutrition": 2, "food_item": "minecraft:sweet_berries" }
+ * }</pre>
  *
  * <p>Applied at eat-finish time via
  * {@link com.cyberday1.neoorigins.event.InteractionPowerEvents}.
  */
 public class ModifyFoodNutritionPower extends PowerType<ModifyFoodNutritionPower.Config> {
 
-    public record Config(int nutrition, String type) implements PowerConfiguration {
+    public record Config(int nutrition, Optional<String> foodItem, Optional<String> foodTag, String type)
+            implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("nutrition", 1).forGetter(Config::nutrition),
+            Codec.STRING.optionalFieldOf("food_item").forGetter(Config::foodItem),
+            Codec.STRING.optionalFieldOf("food_tag").forGetter(Config::foodTag),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -38,13 +50,27 @@ public class ModifyFoodNutritionPower extends PowerType<ModifyFoodNutritionPower
     public Codec<Config> codec() { return Config.CODEC; }
 
     /**
+     * Check if the given food item matches this power's filter.
+     * Returns true if no filter is set (affects all food).
+     */
+    public static boolean matchesFilter(ItemStack stack, Config config) {
+        if (config.foodItem().isPresent()) {
+            String id = config.foodItem().get();
+            var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(id));
+            if (itemOpt.isEmpty() || !stack.is(itemOpt.get())) return false;
+        }
+        if (config.foodTag().isPresent()) {
+            String tag = config.foodTag().get();
+            if (tag.startsWith("#")) tag = tag.substring(1);
+            var tagKey = TagKey.create(Registries.ITEM, ResourceLocation.parse(tag));
+            if (!stack.is(tagKey)) return false;
+        }
+        return true;
+    }
+
+    /**
      * Corrects the player's food data after vanilla has already applied the
-     * original food properties. Called from the {@code Finish} event handler.
-     *
-     * @param player        the player who just ate
-     * @param originalStack a copy of the food item <em>before</em> it was consumed
-     *                      (the {@code Finish} event provides this)
-     * @param targetNutrition the nutrition value this power wants to enforce
+     * original food properties.
      */
     public static void applyOverride(ServerPlayer player, ItemStack originalStack, int targetNutrition) {
         FoodProperties food = originalStack.get(DataComponents.FOOD);
@@ -54,20 +80,16 @@ public class ModifyFoodNutritionPower extends PowerType<ModifyFoodNutritionPower
         float originalSaturation = food.saturation();
         if (originalNutrition == targetNutrition) return;
 
-        // Scale saturation proportionally to the nutrition change.
-        // saturation = nutrition * ratio, so preserve the ratio.
         float ratio = originalNutrition > 0
             ? originalSaturation / (float) originalNutrition
             : 0f;
         float targetSaturation = targetNutrition * ratio;
 
-        // Compute deltas and correct the player's FoodData.
         int nutritionDelta = targetNutrition - originalNutrition;
         float saturationDelta = targetSaturation - originalSaturation;
 
         var foodData = player.getFoodData();
         foodData.setFoodLevel(Mth.clamp(foodData.getFoodLevel() + nutritionDelta, 0, 20));
-        // Saturation is capped at the current food level per vanilla rules.
         foodData.setSaturation(Mth.clamp(
             foodData.getSaturationLevel() + saturationDelta,
             0.0F, (float) foodData.getFoodLevel()));

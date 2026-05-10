@@ -894,7 +894,7 @@ Grants periodic health regeneration while submerged in the specified fluid.
 
 ## `neoorigins:breath_in_fluid`
 
-Drains the player's air supply when submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Fully overrides vanilla's air management while in the target fluid (suppresses both vanilla drowning and water-breathing refill), so the configured `drain_rate` is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
+Drains the player's air supply when their eyes are submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Surfacing (head above water) restores air normally via vanilla breathing. While submerged, fully overrides vanilla's air management (suppresses both vanilla drowning and water-breathing refill), so the configured `drain_rate` is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1081,7 +1081,7 @@ Changes the player's entity group, making them treated as a different creature c
 
 ## `neoorigins:active_teleport`
 
-Active ability that teleports the player to the block they are looking at, up to a maximum distance.
+Active ability that teleports the player to the block they are looking at, up to a maximum distance. Plays enderman teleport sound and portal particles at departure and arrival.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1470,11 +1470,13 @@ Effects are re-applied every `refresh_interval` ticks (default 300 = 15 seconds)
 
 ## `neoorigins:modify_food_nutrition`
 
-Overrides the nutrition (hunger) value of all food the player eats. Every food item gives exactly the configured number of hunger points regardless of its original value. Saturation is scaled proportionally to the original food's saturation modifier.
+Overrides the nutrition (hunger) value of food the player eats. Matching food gives exactly the configured number of hunger points regardless of its original value. Saturation is scaled proportionally. Use `food_item` or `food_tag` to filter which foods are affected — if neither is set, ALL food is affected.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `nutrition` | int | no | `1` | Fixed hunger points all food gives |
+| `nutrition` | int | no | `1` | Fixed hunger points matching food gives |
+| `food_item` | Identifier | no | — | Only affect this specific item (e.g. `minecraft:sweet_berries`) |
+| `food_tag` | string | no | — | Only affect items in this tag (e.g. `#minecraft:meat`). Supports `#` prefix. |
 
 **Example — all food gives 1 hunger point:**
 ```json
@@ -1483,6 +1485,17 @@ Overrides the nutrition (hunger) value of all food the player eats. Every food i
   "nutrition": 1,
   "name": "Picky Eater",
   "description": "Gains almost no nutrition from food."
+}
+```
+
+**Example — meat gives 8 hunger points:**
+```json
+{
+  "type": "neoorigins:modify_food_nutrition",
+  "nutrition": 8,
+  "food_tag": "#minecraft:meat",
+  "name": "Carnivore",
+  "description": "Thrives on meat."
 }
 ```
 

@@ -1,10 +1,11 @@
 package com.cyberday1.neoorigins.compat;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
@@ -12,6 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.food.FoodProperties;
+import net.neoforged.neoforge.event.VanillaGameEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
@@ -205,13 +207,19 @@ public class CompatEventPowers {
         }
 
         if (modified) {
-            nutrition = Math.max(0, nutrition);
-            saturation = Math.max(0f, saturation);
-            FoodProperties.Builder builder = new FoodProperties.Builder()
-                .nutrition(nutrition)
-                .saturationModifier(saturation);
-            if (food.canAlwaysEat()) builder.alwaysEdible();
-            stack.set(DataComponents.FOOD, builder.build());
+            // The Finish event fires AFTER vanilla has already applied the
+            // original food to FoodData. We can't modify the stack — instead
+            // correct FoodData directly by computing the delta.
+            int newNutrition = Math.max(0, nutrition);
+            float newSaturation = Math.max(0f, saturation);
+            int nutritionDelta = newNutrition - food.nutrition();
+            float saturationDelta = newSaturation - food.saturation();
+            var foodData = sp.getFoodData();
+            foodData.setFoodLevel(net.minecraft.util.Mth.clamp(
+                foodData.getFoodLevel() + nutritionDelta, 0, 20));
+            foodData.setSaturation(net.minecraft.util.Mth.clamp(
+                foodData.getSaturationLevel() + saturationDelta,
+                0.0F, (float) foodData.getFoodLevel()));
         }
     }
 
@@ -307,6 +315,36 @@ public class CompatEventPowers {
                 event.setCanHarvest(true);
                 return;
             }
+        }
+    }
+
+    // ---- prevent_game_event ----
+
+    /** Per-player set of blocked game event ResourceLocations. */
+    private static final Map<UUID, Set<ResourceLocation>> BLOCKED_GAME_EVENTS = new ConcurrentHashMap<>();
+
+    public static void registerBlockedGameEvent(ServerPlayer player, ResourceLocation eventId) {
+        BLOCKED_GAME_EVENTS.computeIfAbsent(player.getUUID(), k -> ConcurrentHashMap.newKeySet())
+            .add(eventId);
+    }
+
+    public static void unregisterBlockedGameEvent(ServerPlayer player, ResourceLocation eventId) {
+        var set = BLOCKED_GAME_EVENTS.get(player.getUUID());
+        if (set != null) {
+            set.remove(eventId);
+            if (set.isEmpty()) BLOCKED_GAME_EVENTS.remove(player.getUUID());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onGameEvent(VanillaGameEvent event) {
+        if (event.getCause() == null) return;
+        if (!(event.getCause() instanceof ServerPlayer sp)) return;
+        var blocked = BLOCKED_GAME_EVENTS.get(sp.getUUID());
+        if (blocked == null || blocked.isEmpty()) return;
+        var eventKey = event.getVanillaEvent().unwrapKey();
+        if (eventKey.isPresent() && blocked.contains(eventKey.get().location())) {
+            event.setCanceled(true);
         }
     }
 }
