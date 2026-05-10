@@ -511,17 +511,36 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         EntityAction action = ActionParser.parse(actionJson, idStr);
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
-        String key = json.has("key") ? json.get("key").getAsString() : "key.origins.primary_active";
+
+        // Key can be a string ("key.origins.primary_active") or an object
+        // ({"key": "key.origins.primary_active", "continuous": true}).
+        String key = "key.origins.primary_active";
+        boolean continuous = false;
+        if (json.has("key")) {
+            var keyEl = json.get("key");
+            if (keyEl.isJsonPrimitive()) {
+                key = keyEl.getAsString();
+            } else if (keyEl.isJsonObject()) {
+                var keyObj = keyEl.getAsJsonObject();
+                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
+            }
+        }
 
         // Parse the optional condition gate
         EntityCondition condition = json.has("condition")
             ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
             : EntityCondition.alwaysTrue();
 
-        // Only primary_active and secondary_active go into skill-key slots.
-        // Other keys (key.use, key.sneak, key.attack, etc.) fire via tick-based
-        // input polling since we can't intercept vanilla keybinds server-side.
-        if (key.contains("primary_active") || key.contains("secondary_active")) {
+        // Skill-slot keys: primary_active, secondary_active, and the two toolbar
+        // keys (loadToolbarActivator, saveToolbarActivator) which have no server-side
+        // input state and must be mapped to skill slots to be usable.
+        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
+            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
+            || key.contains("pickItem");
+        // Continuous slot powers DON'T use onActivated — they need every-tick
+        // execution which onActivated (single-fire per keypress) can't provide.
+        if (isSlotKey && !continuous) {
             return CompatPower.Config.builder()
                 .cooldownTicks(cooldown)
                 .onActivated((ServerPlayer player) -> {
@@ -537,29 +556,47 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
 
         // Non-slot keys: fire from onTick when the corresponding input is held.
-        // Uses edge detection (fire once per press, not every tick held).
+        // When continuous=false, uses edge detection (fire once per press).
+        // When continuous=true, fires every tick while the key is held.
+        final String finalKey = key;
+        final String finalIdStr = idStr;
+        final boolean isContinuous = continuous;
         return CompatPower.Config.builder()
             .onTick(player -> {
-                boolean pressed = switch (key) {
+                boolean pressed = switch (finalKey) {
                     case "key.sneak"   -> player.isShiftKeyDown();
                     case "key.use"     -> player.isUsingItem();
+                    case "key.attack"  -> player.swinging;
                     case "key.jump"    -> !player.onGround() && player.getDeltaMovement().y > 0;
                     case "key.forward" -> player.zza > 0;
                     case "key.back"    -> player.zza < 0;
                     case "key.left"    -> player.xxa > 0;
                     case "key.right"   -> player.xxa < 0;
-                    default -> false;
-                };
-                String edgeKey = idStr + ":keypress";
-                PlayerOriginData data = player.getData(OriginAttachments.originData());
-                boolean wasPressedLastTick = data.getCustomFloat(edgeKey, 0) > 0;
-                data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
-                if (pressed && !wasPressedLastTick && condition.test(player)) {
-                    if (cooldown > 0) {
-                        if (data.isOnCooldown(idStr, player.tickCount)) return;
-                        data.setCooldown(idStr, player.tickCount, cooldown);
+                    default -> {
+                        if (player.tickCount == 1) {
+                            NeoOrigins.LOGGER.warn("[CompatB] active_self key '{}' has no server-side input state — power {} will not fire", finalKey, finalIdStr);
+                        }
+                        yield false;
                     }
-                    action.execute(player);
+                };
+                if (isContinuous) {
+                    // Fire every tick while held
+                    if (pressed && condition.test(player)) {
+                        action.execute(player);
+                    }
+                } else {
+                    // Edge detection: fire once on press
+                    String edgeKey = idStr + ":keypress";
+                    PlayerOriginData data = player.getData(OriginAttachments.originData());
+                    boolean wasPressedLastTick = data.getCustomFloat(edgeKey, 0) > 0;
+                    data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
+                    if (pressed && !wasPressedLastTick && condition.test(player)) {
+                        if (cooldown > 0) {
+                            if (data.isOnCooldown(idStr, player.tickCount)) return;
+                            data.setCooldown(idStr, player.tickCount, cooldown);
+                        }
+                        action.execute(player);
+                    }
                 }
             })
             .build();
