@@ -224,6 +224,10 @@ public class CombatPowerEvents {
                     // Feline on v1.3.0.
                     float scaled = event.getAmount() * config.multiplier();
                     if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                    if (scaled <= 0.0f) {
+                        event.setCanceled(true);
+                        return;
+                    }
                     event.setAmount(scaled);
                 }
             }

@@ -95,7 +95,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
         "origins:freeze",               "apace:freeze",
         "origins:modify_harvest",       "apace:modify_harvest",
-        "origins:recipe",               "apace:recipe"
+        "origins:recipe",               "apace:recipe",
+        "origins:prevent_game_event",   "apace:prevent_game_event"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -438,6 +439,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:freeze",                     "apace:freeze"                     -> parseFreeze(id, json);
             case "origins:modify_harvest",             "apace:modify_harvest"             -> parseModifyHarvest(id, json);
             case "origins:recipe",                     "apace:recipe"                     -> parseRecipe(id, json);
+            case "origins:prevent_game_event",         "apace:prevent_game_event"         -> parsePreventGameEvent(id, json);
             default -> null;
         };
     }
@@ -451,11 +453,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         // Extract the multiplier from the Origins modifier object. All operations
         // collapse to (1 + value) — same lossy mapping as Route A's translateModifyDamage.
+        // Origins packs use either "value" or "amount" for the modifier number.
         float multiplier = 1.0f;
         if (json.has("modifier") && json.get("modifier").isJsonObject()) {
             JsonObject mod = json.getAsJsonObject("modifier");
-            if (mod.has("value")) {
-                multiplier = (float)(1.0 + mod.get("value").getAsDouble());
+            double val = mod.has("value") ? mod.get("value").getAsDouble()
+                : mod.has("amount") ? mod.get("amount").getAsDouble() : Double.NaN;
+            if (!Double.isNaN(val)) {
+                String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+                multiplier = "set_total".equals(op) ? (float) Math.max(0, 1.0 + val) : (float)(1.0 + val);
             }
         }
 
@@ -1481,7 +1487,42 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String safeKey = id.getPath().replace('/', '_');
         Identifier modifierId = Identifier.fromNamespaceAndPath("neoorigins", "modjump_" + safeKey);
         double finalValue = value;
+        String idStr = id.toString();
 
+        // Parse optional condition gate — if present, modifier is applied/removed
+        // each tick based on condition state (e.g. only while sneaking).
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : null;
+
+        // Parse optional entity_action to fire on jump
+        EntityAction jumpAction = json.has("entity_action")
+            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
+            : EntityAction.noop();
+
+        if (condition != null) {
+            // Conditioned: toggle modifier based on condition each tick
+            return CompatPower.Config.builder()
+                .onTick(player -> {
+                    AttributeInstance inst = player.getAttribute(jumpHolder);
+                    if (inst == null) return;
+                    if (condition.test(player)) {
+                        if (inst.getModifier(modifierId) == null) {
+                            inst.addTransientModifier(new AttributeModifier(
+                                modifierId, finalValue, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+                        }
+                    } else {
+                        inst.removeModifier(modifierId);
+                    }
+                })
+                .onRevoked(player -> {
+                    AttributeInstance inst = player.getAttribute(jumpHolder);
+                    if (inst != null) inst.removeModifier(modifierId);
+                })
+                .build();
+        }
+
+        // Unconditional: apply on grant, remove on revoke
         return CompatPower.Config.builder()
             .onGranted(player -> {
                 AttributeInstance inst = player.getAttribute(jumpHolder);
@@ -1626,6 +1667,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     player.resetRecipes(java.util.List.of(recipe.get()));
                 }
             })
+            .build();
+    }
+
+    private CompatPower.Config parsePreventGameEvent(Identifier id, JsonObject json) {
+        String eventId = json.has("event") ? json.get("event").getAsString() : null;
+        if (eventId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: prevent_game_event missing 'event' field", id);
+            return null;
+        }
+        Identifier eventLoc = Identifier.parse(eventId);
+        return CompatPower.Config.builder()
+            .onGranted(player -> CompatEventPowers.registerBlockedGameEvent(player, eventLoc))
+            .onRevoked(player -> CompatEventPowers.unregisterBlockedGameEvent(player, eventLoc))
             .build();
     }
 

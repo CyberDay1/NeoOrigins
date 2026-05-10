@@ -85,8 +85,11 @@ public class InteractionPowerEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         // Modify food nutrition before vanilla processes the eaten food
         if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {
-            ActiveOriginService.forEachOfType(sp, ModifyFoodNutritionPower.class,
-                config -> ModifyFoodNutritionPower.applyOverride(sp, event.getItem(), config.nutrition()));
+            ActiveOriginService.forEachOfType(sp, ModifyFoodNutritionPower.class, config -> {
+                if (ModifyFoodNutritionPower.matchesFilter(event.getItem(), config)) {
+                    ModifyFoodNutritionPower.applyOverride(sp, event.getItem(), config.nutrition());
+                }
+            });
         }
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, event.getItem());
         if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {

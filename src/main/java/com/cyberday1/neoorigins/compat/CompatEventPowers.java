@@ -182,13 +182,19 @@ public class CompatEventPowers {
         }
 
         if (modified) {
-            nutrition = Math.max(0, nutrition);
-            saturation = Math.max(0f, saturation);
-            FoodProperties.Builder builder = new FoodProperties.Builder()
-                .nutrition(nutrition)
-                .saturationModifier(saturation);
-            if (food.canAlwaysEat()) builder.alwaysEdible();
-            stack.set(DataComponents.FOOD, builder.build());
+            // The Finish event fires AFTER vanilla has already applied the
+            // original food to FoodData. We can't modify the stack — instead
+            // correct FoodData directly by computing the delta.
+            int newNutrition = Math.max(0, nutrition);
+            float newSaturation = Math.max(0f, saturation);
+            int nutritionDelta = newNutrition - food.nutrition();
+            float saturationDelta = newSaturation - food.saturation();
+            var foodData = sp.getFoodData();
+            foodData.setFoodLevel(net.minecraft.util.Mth.clamp(
+                foodData.getFoodLevel() + nutritionDelta, 0, 20));
+            foodData.setSaturation(net.minecraft.util.Mth.clamp(
+                foodData.getSaturationLevel() + saturationDelta,
+                0.0F, (float) foodData.getFoodLevel()));
         }
     }
 
@@ -285,6 +291,36 @@ public class CompatEventPowers {
                 event.setCanHarvest(true);
                 return;
             }
+        }
+    }
+
+    // ---- prevent_game_event ----
+
+    /** Per-player set of blocked game event Identifiers. */
+    private static final Map<java.util.UUID, java.util.Set<net.minecraft.resources.Identifier>> BLOCKED_GAME_EVENTS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerBlockedGameEvent(ServerPlayer player, net.minecraft.resources.Identifier eventId) {
+        BLOCKED_GAME_EVENTS.computeIfAbsent(player.getUUID(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
+            .add(eventId);
+    }
+
+    public static void unregisterBlockedGameEvent(ServerPlayer player, net.minecraft.resources.Identifier eventId) {
+        var set = BLOCKED_GAME_EVENTS.get(player.getUUID());
+        if (set != null) {
+            set.remove(eventId);
+            if (set.isEmpty()) BLOCKED_GAME_EVENTS.remove(player.getUUID());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onGameEvent(net.neoforged.neoforge.event.VanillaGameEvent event) {
+        if (event.getCause() == null) return;
+        if (!(event.getCause() instanceof ServerPlayer sp)) return;
+        var blocked = BLOCKED_GAME_EVENTS.get(sp.getUUID());
+        if (blocked == null || blocked.isEmpty()) return;
+        var eventKey = event.getVanillaEvent().unwrapKey();
+        if (eventKey.isPresent() && blocked.contains(eventKey.get().identifier())) {
+            event.setCanceled(true);
         }
     }
 }

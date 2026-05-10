@@ -53,7 +53,7 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         HitResult hit = player.pick(range, 1.0f, false);
         if (hit.getType() == HitResult.Type.MISS) return false;
         Vec3 loc = hit.getLocation();
-        player.teleportTo(loc.x, loc.y, loc.z);
+        TeleportEffects.teleportWithEffects(player, loc.x, loc.y, loc.z);
         return true;
     }
 
@@ -67,7 +67,7 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
                 pos.y + (RANDOM.nextDouble() - 0.5) * (range / 4)));
             BlockPos target = new BlockPos((int) tx, (int) ty, (int) tz);
             if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {
-                player.teleportTo(tx, ty, tz);
+                TeleportEffects.teleportWithEffects(player, tx, ty, tz);
                 return true;
             }
         }

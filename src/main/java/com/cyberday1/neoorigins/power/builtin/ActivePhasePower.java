@@ -62,7 +62,7 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
 
         if (target == null) return false;
 
-        player.teleportTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
+        TeleportEffects.teleportWithEffects(player, target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
         return true;
     }
 }
