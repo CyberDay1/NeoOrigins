@@ -316,9 +316,16 @@ public class PlayerOriginData {
 
     private static void gcSet(ServerPlayer sp, Set<UUID> set) {
         if (sp == null) return;
-        var lvl = sp.level();
-        if (!(lvl instanceof net.minecraft.server.level.ServerLevel server)) return;
-        set.removeIf(u -> server.getEntity(u) == null);
+        var minecraftServer = sp.getServer();
+        if (minecraftServer == null) return;
+        // Search all loaded dimensions so entities in other dimensions aren't
+        // falsely treated as despawned and pruned from the set.
+        set.removeIf(u -> {
+            for (var level : minecraftServer.getAllLevels()) {
+                if (level.getEntity(u) != null) return false;
+            }
+            return true;
+        });
     }
 
     public void clear() {

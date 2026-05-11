@@ -135,4 +135,8 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         player.getData(OriginAttachments.originData()).setShadowOrbs(List.of());
         ORB_DIMENSIONS.remove(player.getUUID());
     }
+
+    public static void clearPlayer(UUID uuid) {
+        ORB_DIMENSIONS.remove(uuid);
+    }
 }

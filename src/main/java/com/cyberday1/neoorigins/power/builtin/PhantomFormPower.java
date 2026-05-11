@@ -78,7 +78,6 @@ public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Confi
         player.setNoGravity(false);
         player.noPhysics = false;
         var abilities = player.getAbilities();
-        boolean wasFlying = abilities.flying;
         // Restore survival defaults — do NOT set mayfly/flying false if the
         // player is in creative (would lock them out of their own mode).
         if (!player.isCreative() && !player.isSpectator()) {

@@ -26,7 +26,6 @@ public class CompatAttachments {
         ATTACHMENT_TYPES.register("resource_state", () ->
             AttachmentType.builder(ResourceState::new)
                 .serialize(ResourceState.CODEC)
-                .copyOnDeath()
                 .build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<ToggleState>> TOGGLE_STATE =
@@ -118,6 +117,9 @@ public class CompatAttachments {
         }
 
         public void set(String key, boolean value) { states.put(key, value); }
+
+        /** Returns an unmodifiable view of the toggle states map for iteration (e.g. wildcard matching). */
+        public java.util.Map<String, Boolean> getStates() { return java.util.Collections.unmodifiableMap(states); }
     }
 
     /**

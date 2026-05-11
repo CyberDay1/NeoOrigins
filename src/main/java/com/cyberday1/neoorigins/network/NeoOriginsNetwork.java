@@ -283,7 +283,8 @@ public class NeoOriginsNetwork {
                 return;
             }
 
-            if (!layer.getAvailableOriginIds().contains(originId)) {
+            PlayerOriginData validationData = sp.getData(OriginAttachments.originData());
+            if (!layer.getAvailableOriginIds(validationData.getOrigins()).contains(originId)) {
                 NeoOrigins.LOGGER.warn("Player {} tried to choose origin {} not in layer {}", sp.getName().getString(), originId, layerId);
                 return;
             }
@@ -324,18 +325,33 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
 
+            // Cascade invalidation: if the player changed a parent layer,
+            // sub-layer choices whose conditions no longer pass must be cleared.
+            final java.util.Map<ResourceLocation, ResourceLocation> cascadeChoices = data.getOrigins();
+            for (var otherLayer : LayerDataManager.INSTANCE.getSortedLayers()) {
+                if (otherLayer.order() <= layer.order()) continue;
+                if (!data.hasOriginForLayer(otherLayer.id())) continue;
+                ResourceLocation chosenInOther = data.getOrigin(otherLayer.id());
+                boolean stillValid = otherLayer.origins().stream()
+                    .anyMatch(co -> co.origin().equals(chosenInOther) && co.isAvailable(cascadeChoices));
+                if (!stillValid) {
+                    ActiveOriginService.applyOriginPowers(sp, otherLayer.id(), chosenInOther, null);
+                    data.removeOrigin(otherLayer.id());
+                }
+            }
+
             // Mark complete once every layer the picker would actually show
-            // has a selection. Must match OriginSelectionPresenter.init /
-            // skipEmptyLayers: skip hidden layers, and skip layers where no
-            // registered origin is available to pick (e.g. all classes
-            // disabled). Otherwise the client closes the picker but the
-            // server waits forever — stranding the player in first-pick
-            // invulnerability and blocking the spawn_location teleport.
+            // has a selection. Condition-aware: skip layers where no origin
+            // passes the current choices (conditioned sub-layers for a
+            // different parent race, etc.). Must match
+            // OriginSelectionPresenter.skipEmptyLayers logic.
+            final java.util.Map<ResourceLocation, ResourceLocation> filledChoices = data.getOrigins();
             boolean allFilled = true;
             for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
                 if (l.hidden()) continue;
                 boolean hasAnyOrigin = l.origins().stream()
-                    .anyMatch(co -> OriginDataManager.INSTANCE.hasOrigin(co.origin()));
+                    .anyMatch(co -> co.isAvailable(filledChoices)
+                                 && OriginDataManager.INSTANCE.hasOrigin(co.origin()));
                 if (!hasAnyOrigin) continue;
                 if (!data.hasOriginForLayer(l.id())) { allFilled = false; break; }
             }
@@ -541,6 +557,22 @@ public class NeoOriginsNetwork {
                 if (toggledOn) {
                     capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
                 }
+            }
+        }
+        // Also include dynamically-granted powers (via /power grant or grant_power actions).
+        for (ResourceLocation powerId : data.getDynamicGrantedPowers()) {
+            if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder == null) continue;
+            boolean toggledOn = true;
+            if (holder.type() instanceof AbstractTogglePower<?>) {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                AbstractTogglePower tp = (AbstractTogglePower) holder.type();
+                toggledOn = !tp.isToggledOff(player, holder.config());
+            }
+            powerMapOut.put(powerId, toggledOn);
+            if (toggledOn) {
+                capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
             }
         }
     }

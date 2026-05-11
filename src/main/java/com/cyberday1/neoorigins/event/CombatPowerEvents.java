@@ -340,6 +340,8 @@ public class CombatPowerEvents {
         if (event.getEntity() instanceof ServerPlayer dyingSp) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 dyingSp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DEATH);
+            // ExtraInventoryPower drop-on-death: drop or clear extra inventory contents.
+            handleExtraInventoryDeath(dyingSp);
         }
 
         var killer = event.getSource().getEntity();
@@ -356,6 +358,14 @@ public class CombatPowerEvents {
                 && NeoOriginsConfig.isEvolutionEnabled()) {
             com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.onMobKill(sp);
         }
+    }
+
+    private static void handleExtraInventoryDeath(ServerPlayer dyingPlayer) {
+        ActiveOriginService.forEachOfType(dyingPlayer,
+            com.cyberday1.neoorigins.power.builtin.ExtraInventoryPower.class, cfg -> {
+                com.cyberday1.neoorigins.power.builtin.ExtraInventoryPower
+                    .onPlayerDeath(dyingPlayer, cfg.dropOnDeath());
+            });
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)

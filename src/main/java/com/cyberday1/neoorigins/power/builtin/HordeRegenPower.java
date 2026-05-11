@@ -33,7 +33,7 @@ public class HordeRegenPower extends PowerType<HordeRegenPower.Config> {
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
-        if (player.tickCount % config.intervalTicks() != 0) return;
+        if (config.intervalTicks() <= 0 || player.tickCount % config.intervalTicks() != 0) return;
 
         var tamed = MinionTracker.getAlive(player.getUUID(), TameMobPower.tamedMobKey());
         for (var minion : tamed) {

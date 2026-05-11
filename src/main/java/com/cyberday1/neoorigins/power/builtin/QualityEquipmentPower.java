@@ -69,17 +69,19 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
             DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
 
         if (isTool && config.bonusMiningSpeed > 0) {
-            modifiers = modifiers.withModifierAdded(Attributes.MINING_EFFICIENCY,
-                new AttributeModifier(QUALITY_MINING_SPEED,
-                    config.bonusMiningSpeed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
-                EquipmentSlotGroup.MAINHAND);
+            modifiers = stripModifier(modifiers, QUALITY_MINING_SPEED)
+                .withModifierAdded(Attributes.MINING_EFFICIENCY,
+                    new AttributeModifier(QUALITY_MINING_SPEED,
+                        config.bonusMiningSpeed, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
+                    EquipmentSlotGroup.MAINHAND);
         }
 
         if (isWeapon && config.bonusAttackDamage > 0) {
-            modifiers = modifiers.withModifierAdded(Attributes.ATTACK_DAMAGE,
-                new AttributeModifier(QUALITY_ATTACK_DAMAGE,
-                    config.bonusAttackDamage, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
-                EquipmentSlotGroup.MAINHAND);
+            modifiers = stripModifier(modifiers, QUALITY_ATTACK_DAMAGE)
+                .withModifierAdded(Attributes.ATTACK_DAMAGE,
+                    new AttributeModifier(QUALITY_ATTACK_DAMAGE,
+                        config.bonusAttackDamage, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
+                    EquipmentSlotGroup.MAINHAND);
         }
 
         if (isArmor && config.bonusArmorToughness > 0) {
@@ -90,10 +92,11 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
                 case FEET  -> EquipmentSlotGroup.FEET;
                 default    -> EquipmentSlotGroup.ARMOR;
             };
-            modifiers = modifiers.withModifierAdded(Attributes.ARMOR_TOUGHNESS,
-                new AttributeModifier(QUALITY_ARMOR_TOUGHNESS,
-                    config.bonusArmorToughness, AttributeModifier.Operation.ADD_VALUE),
-                slot);
+            modifiers = stripModifier(modifiers, QUALITY_ARMOR_TOUGHNESS)
+                .withModifierAdded(Attributes.ARMOR_TOUGHNESS,
+                    new AttributeModifier(QUALITY_ARMOR_TOUGHNESS,
+                        config.bonusArmorToughness, AttributeModifier.Operation.ADD_VALUE),
+                    slot);
         }
 
         stack.set(DataComponents.ATTRIBUTE_MODIFIERS, modifiers);
@@ -104,5 +107,16 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
             int bonus = (int) Math.ceil(baseDurability * config.durabilityMultiplier);
             stack.set(DataComponents.MAX_DAMAGE, baseDurability + bonus);
         }
+    }
+
+    /** Rebuild an ItemAttributeModifiers without any entry whose modifier has the given ID. */
+    private static ItemAttributeModifiers stripModifier(ItemAttributeModifiers modifiers, ResourceLocation id) {
+        ItemAttributeModifiers result = ItemAttributeModifiers.EMPTY;
+        for (var entry : modifiers.modifiers()) {
+            if (!entry.modifier().id().equals(id)) {
+                result = result.withModifierAdded(entry.attribute(), entry.modifier(), entry.slot());
+            }
+        }
+        return result;
     }
 }

@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Random;
 
@@ -52,7 +53,21 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
     private boolean targetTeleport(ServerPlayer player, double range) {
         HitResult hit = player.pick(range, 1.0f, false);
         if (hit.getType() == HitResult.Type.MISS) return false;
+        if (!(player.level() instanceof ServerLevel level)) return false;
         Vec3 loc = hit.getLocation();
+        // For a block hit the ray stops at the face of a solid block; offset one
+        // step away from the hit face so the destination is in open air rather
+        // than inside the block surface.
+        if (hit instanceof BlockHitResult blockHit) {
+            Vec3 faceNorm = Vec3.atLowerCornerOf(blockHit.getDirection().getNormal());
+            loc = loc.add(faceNorm.scale(0.5));
+        }
+        // Verify the two blocks the player will occupy (feet + head) are not solid.
+        BlockPos feet = BlockPos.containing(loc.x, loc.y, loc.z);
+        BlockPos head = feet.above();
+        BlockState feetState = level.getBlockState(feet);
+        BlockState headState = level.getBlockState(head);
+        if (feetState.isSolid() || headState.isSolid()) return false;
         TeleportEffects.teleportWithEffects(player, loc.x, loc.y, loc.z);
         return true;
     }

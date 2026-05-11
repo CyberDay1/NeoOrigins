@@ -198,6 +198,11 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         return player.getData(CompatAttachments.resourceState()).get(key, 0);
     }
 
+    public static void clearPlayer(java.util.UUID uuid) {
+        String prefix = uuid.toString() + ":";
+        PREV_VALUES.keySet().removeIf(k -> k.startsWith(prefix));
+    }
+
     /** Deduct amount from a resource. Returns true if sufficient, false if not. */
     public static boolean deduct(ServerPlayer player, String key, int amount) {
         var state = player.getData(CompatAttachments.resourceState());

@@ -1,6 +1,7 @@
 {
   "neoorigins.toggle.on": "Power enabled",
   "neoorigins.toggle.off": "Power disabled",
+  "neoorigins.sleep.remember_spawn": "You don't need sleep \u2014 but you remember this place.",
   "message.neoorigins.food_restriction.cannot_eat": "Your diet forbids this food.",
   "origins.layer.origin": "Origin",
   "origins.layer.class": "Class",

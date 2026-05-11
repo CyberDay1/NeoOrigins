@@ -33,7 +33,7 @@ public class PlayerLifecycleEvents {
 
     /** Grace period (in ticks) after login to retry the origin check if data wasn't loaded yet. */
     private static final int LOGIN_RETRY_TICKS = 100;
-    private static final java.util.Map<java.util.UUID, Integer> pendingOriginCheck = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, Integer> pendingOriginCheck = new java.util.concurrent.ConcurrentHashMap<>();
 
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
@@ -161,6 +161,11 @@ public class PlayerLifecycleEvents {
         ActiveOriginService.invalidate(uuid);
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
         com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);
+        com.cyberday1.neoorigins.power.builtin.ModelColorPower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.builtin.ResourcePower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.builtin.StealthPower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.clearAmplifierModifiers(uuid);
     }
 
     /**
@@ -224,7 +229,7 @@ public class PlayerLifecycleEvents {
     }
 
     /** Players awaiting a deferred origin re-sync after respawn (UUID → ticks remaining). */
-    private static final java.util.Map<java.util.UUID, Integer> pendingResync = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, Integer> pendingResync = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Applies datapack-defined origin upgrades when a player earns an advancement.

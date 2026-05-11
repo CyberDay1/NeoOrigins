@@ -47,4 +47,8 @@ public class StealthPower extends AbstractTogglePower<StealthPower.Config> {
     protected void removeEffect(ServerPlayer player, Config config) {
         SNEAK_TICKS.remove(player.getUUID());
     }
+
+    public static void clearPlayer(UUID uuid) {
+        SNEAK_TICKS.remove(uuid);
+    }
 }

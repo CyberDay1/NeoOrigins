@@ -56,7 +56,7 @@ public final class SleepPreventionEvents {
 
         event.setProblem(Player.BedSleepingProblem.OTHER_PROBLEM);
         try {
-            sp.sendSystemMessage(Component.literal("You don't need sleep \u2014 but you remember this place."));
+            sp.sendSystemMessage(Component.translatable("neoorigins.sleep.remember_spawn"));
         } catch (Exception e) {
             NeoOrigins.LOGGER.debug("[SleepPrevention] Failed to send message: {}", e.getMessage());
         }
