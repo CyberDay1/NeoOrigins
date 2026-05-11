@@ -2,6 +2,60 @@
 
 ---
 
+## v2.0.35
+
+### Sub-Origins (Conditioned Layers)
+
+New feature for datapack authors: create origin trees where picking an origin in one layer unlocks sub-choices in a later layer. Think D&D race/subrace: pick Elf → pick High/Wood/Dark Elf → pick a Cantrip. Fully compatible with Origins mod's conditioned layer format — packs like `digs_dnd_origins` work without modification.
+
+- `OriginCondition` system: `origins:origin`, `origins:and`, `origins:or` condition types with `inverted` support
+- Conditioned-batch format: `{"condition": {...}, "origins": [...]}` automatically expanded
+- Cascade invalidation: changing a parent layer choice clears invalid sub-layer choices
+- Condition-aware picker: sub-layers with no visible origins are auto-skipped
+- Full documentation: `docs/SUB_ORIGINS.md`
+
+### Headless Compat Test Harness
+
+`./gradlew compatTest` validates origin pack JSONs through the compat translator without launching Minecraft. Detects unsupported types (FAIL), lossy translations (WARN), and structural issues in Route B powers. Origins++ 1323 powers: 0 FAIL.
+
+### Code Audit — 31 Bug Fixes
+
+**7 HIGH (crash/data loss):**
+- InvulnerabilityPower: malformed ResourceLocation in damage handler no longer crashes
+- HordeRegenPower: guard against `interval_ticks: 0` (div/zero)
+- CompatTickScheduler: thread-safe deque (ConcurrentLinkedDeque)
+- PlayerLifecycleEvents: thread-safe pending maps
+- MinionTracker: thread-safe minion list (CopyOnWriteArrayList)
+- NeoOriginsConfig: monotonic version counter for dimension restrictions
+- conditioned_restrict_armor: slot/item predicates now respected
+
+**16 MEDIUM (incorrect behavior):**
+- ExtraInventoryPower `drop_on_death` now functional (wired to death event)
+- Dynamic-granted powers (`/power grant`) now synced to client
+- EntityAction/FloatModifier: singleton noop/identity for correct reference equality
+- ActiveTeleportPower: safe-landing check prevents wall suffocation
+- QualityEquipmentPower: no duplicate modifiers on re-smithed items
+- 5 static map memory leaks on player logout (ModelColor, Resource, ShadowOrb, Stealth, EffectAmp)
+- CompatAttachments: resource bars reset on death (removed copyOnDeath)
+- PlayerOriginData gcSet: cross-dimension entity lookup
+- Math.abs(MIN_VALUE) negative offset in action_over_time stagger
+
+**8 LOW (edge cases):**
+- PersistentEffectPower: removed dead `refresh_interval` field
+- SleepPreventionEvents: translation key instead of hardcoded English
+- PhantomFormPower: removed unused variable
+
+### Compat Improvements
+
+- `origins:ingredient` nested object unwrap (fixes 9 packs, 16+ powers)
+- `origins:type` damage_condition support (fixes Kitsune invincibility bug)
+- Wildcard `*:*_toggle` in `power_active` condition (155 Origins++ uses)
+- `origins:phasing` with `block_condition` no longer skipped (19 Origins++ powers)
+- `origins:biome` sub-conditions (temperature/precipitation) — fail closed instead of fail open
+- Conditioned `modify_damage_dealt` now routed to Route B (15 Origins++ powers)
+
+---
+
 ## v2.0.30
 
 ### New Power Types
