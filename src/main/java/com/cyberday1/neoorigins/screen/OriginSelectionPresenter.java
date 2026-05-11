@@ -65,7 +65,9 @@ public class OriginSelectionPresenter {
         OriginLayer layer = currentLayer();
 
         List<Identifier> rawIds = new ArrayList<>();
+        var choices = ClientOriginState.getOrigins();
         for (var co : layer.origins()) {
+            if (!co.isAvailable(choices)) continue;
             if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) continue;
             var origin = OriginDataManager.INSTANCE.getOrigin(co.origin());
             if (origin != null && origin.unchoosable()) continue;
@@ -169,10 +171,12 @@ public class OriginSelectionPresenter {
      * Advances currentLayerIndex past any empty layers.
      */
     private void skipEmptyLayers() {
+        var choices = ClientOriginState.getOrigins();
         while (currentLayerIndex < pendingLayers.size()) {
             OriginLayer layer = pendingLayers.get(currentLayerIndex);
             boolean hasAny = layer.origins().stream()
                 .anyMatch(co -> {
+                    if (!co.isAvailable(choices)) return false;
                     var o = OriginDataManager.INSTANCE.getOrigin(co.origin());
                     return o != null && !o.unchoosable();
                 });

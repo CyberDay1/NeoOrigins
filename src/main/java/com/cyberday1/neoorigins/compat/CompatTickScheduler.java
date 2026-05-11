@@ -16,11 +16,11 @@ public final class CompatTickScheduler {
 
     private record ScheduledAction(long tickTarget, Consumer<ServerPlayer> action) {}
 
-    /** Player UUID → list of scheduled actions. */
+    /** Player UUID → list of scheduled actions. Uses ConcurrentLinkedDeque for thread safety. */
     private static final Map<UUID, Deque<ScheduledAction>> QUEUES = new ConcurrentHashMap<>();
 
     public static void schedule(long tickTarget, ServerPlayer player, Consumer<ServerPlayer> action) {
-        QUEUES.computeIfAbsent(player.getUUID(), k -> new ArrayDeque<>())
+        QUEUES.computeIfAbsent(player.getUUID(), k -> new java.util.concurrent.ConcurrentLinkedDeque<>())
             .add(new ScheduledAction(tickTarget, action));
     }
 

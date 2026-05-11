@@ -237,17 +237,39 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
             obj.addProperty("name", nameStr);
         }
 
-        // Strip non-string condition fields from origins entries so codec can parse them
+        // Expand conditioned-batch format: entries with {"condition": {...}, "origins": [...]}
+        // (plural array under a shared condition) into individual entries with singular "origin".
+        // Also preserves conditions on individual entries for ConditionedOrigin.CODEC to parse.
         if (obj.has("origins") && obj.get("origins").isJsonArray()) {
             JsonArray origins = obj.getAsJsonArray("origins");
+            JsonArray expanded = new JsonArray();
             for (JsonElement el : origins) {
                 if (el.isJsonObject()) {
                     JsonObject entry = el.getAsJsonObject();
-                    if (entry.has("condition") && entry.get("condition").isJsonObject()) {
-                        entry.remove("condition");
+                    // Batch format: {"condition": {...}, "origins": ["id1", "id2", ...]}
+                    if (entry.has("origins") && entry.get("origins").isJsonArray()) {
+                        JsonElement condEl = entry.get("condition");
+                        JsonArray batchOrigins = entry.getAsJsonArray("origins");
+                        for (JsonElement originEl : batchOrigins) {
+                            if (originEl.isJsonPrimitive()) {
+                                JsonObject single = new JsonObject();
+                                single.addProperty("origin", originEl.getAsString());
+                                if (condEl != null && condEl.isJsonObject()) {
+                                    single.add("condition", condEl.deepCopy());
+                                }
+                                expanded.add(single);
+                            } else {
+                                // Already an object — pass through
+                                expanded.add(originEl);
+                            }
+                        }
+                        continue;
                     }
+                    // Single entry with "origin" (singular) — preserve as-is (condition intact)
                 }
+                expanded.add(el);
             }
+            obj.add("origins", expanded);
         }
     }
 

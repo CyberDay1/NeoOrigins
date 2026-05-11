@@ -806,6 +806,7 @@ public final class NeoOriginsConfig {
 
     private static volatile Map<String, Set<ResourceKey<Level>>> parsedRestrictions;
     private static volatile int lastConfigHash;
+    private static volatile int restrictionsVersionCounter;
 
     /**
      * Returns true if the given power ID is restricted in the player's current dimension.
@@ -829,7 +830,10 @@ public final class NeoOriginsConfig {
      * content changes. Used by ActiveOriginService's per-player power cache for invalidation.
      */
     public static int restrictionsVersion() {
-        return DIMENSION_RESTRICTIONS.get().hashCode();
+        // Use the monotonic counter bumped on each config reload rather than
+        // hashCode() which has collision risk across different rule sets.
+        getParsedRestrictions(); // ensure counter is up to date
+        return restrictionsVersionCounter;
     }
 
     /**
@@ -864,6 +868,7 @@ public final class NeoOriginsConfig {
             }
             parsedRestrictions = map;
             lastConfigHash = hash;
+            restrictionsVersionCounter++;
         }
         return parsedRestrictions;
     }

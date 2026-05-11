@@ -428,8 +428,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:prevent_entity_use",         "apace:prevent_entity_use"         -> parsePreventEntityUse(id, json);
             case "origins:modify_food",                "apace:modify_food"                -> parseModifyFood(id, json);
             case "origins:modify_jump",                "apace:modify_jump"                -> parseModifyJump(id, json);
-            // Conditioned modify_damage_taken — only dispatched here when a condition is present.
+            case "origins:prevent_sprinting",          "apace:prevent_sprinting"          -> parsePreventSprinting(id, json);
+            case "origins:modify_crafting",            "apace:modify_crafting"            -> parseModifyCrafting(id, json);
+            case "origins:modify_lava_speed",          "apace:modify_lava_speed"          -> parseNumericModifier(id, json, NumericModifierRegistry.Kind.LAVA_SPEED);
+            case "origins:modify_xp_gain",             "apace:modify_xp_gain"             -> parseNumericModifier(id, json, NumericModifierRegistry.Kind.XP_GAIN);
+            // Conditioned modify_damage_taken/dealt — only dispatched here when a condition is present.
             case "origins:modify_damage_taken",        "apace:modify_damage_taken"        -> parseConditionedModifyDamageTaken(id, json);
+            case "origins:modify_damage_dealt",        "apace:modify_damage_dealt"        -> parseConditionedModifyDamageDealt(id, json);
             case "origins:shaking",                    "apace:shaking"                    -> parseShaking(id, json);
             case "apoli:overlay"                                                          -> parseOverlay(id, json);
             case "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier" -> parseModifyEffectAmplifier(id, json);
@@ -445,7 +450,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     private static boolean isModifyDamageTakenType(String type) {
-        return "origins:modify_damage_taken".equals(type) || "apace:modify_damage_taken".equals(type);
+        return "origins:modify_damage_taken".equals(type) || "apace:modify_damage_taken".equals(type)
+            || "origins:modify_damage_dealt".equals(type) || "apace:modify_damage_dealt".equals(type);
     }
 
     private CompatPower.Config parseConditionedModifyDamageTaken(Identifier id, JsonObject json) {
@@ -467,11 +473,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         // Optional damage type filter — msgId-based, mirrors native ModifyDamagePower.
         String damageTypeFilter = null;
+        Identifier damageTypeKeyFilter = null;
         if (json.has("damage_condition") && json.get("damage_condition").isJsonObject()) {
             JsonObject dc = json.getAsJsonObject("damage_condition");
             String dcType = dc.has("type") ? dc.get("type").getAsString() : "";
             if (("origins:name".equals(dcType) || "apace:name".equals(dcType)) && dc.has("name")) {
                 damageTypeFilter = dc.get("name").getAsString();
+            } else if (("origins:type".equals(dcType) || "apace:type".equals(dcType)) && dc.has("damage_type")) {
+                damageTypeKeyFilter = Identifier.parse(dc.get("damage_type").getAsString());
             }
         }
 
@@ -481,6 +490,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         final float  finalMultiplier = multiplier;
         final String finalDmgFilter  = damageTypeFilter;
+        final Identifier finalDmgTypeKey = damageTypeKeyFilter;
 
         return CompatPower.Config.builder()
             .onIncomingDamage(event -> {
@@ -490,11 +500,71 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                         && !event.getSource().getMsgId().equalsIgnoreCase(finalDmgFilter)) {
                     return;
                 }
+                if (finalDmgTypeKey != null) {
+                    var typeKey = event.getSource().typeHolder().unwrapKey().orElse(null);
+                    if (typeKey == null || !typeKey.identifier().equals(finalDmgTypeKey)) return;
+                }
                 // Overflow-safe multiply (same clamp used by CombatPowerEvents native path).
                 float scaled = event.getAmount() * finalMultiplier;
                 if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
                 event.setAmount(scaled);
                 // A 0-multiplier effectively cancels the hit; callers commonly rely on that.
+                if (scaled <= 0.0f) event.setCanceled(true);
+            })
+            .build();
+    }
+
+    private CompatPower.Config parseConditionedModifyDamageDealt(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+
+        float multiplier = 1.0f;
+        if (json.has("modifier") && json.get("modifier").isJsonObject()) {
+            JsonObject mod = json.getAsJsonObject("modifier");
+            double val = mod.has("value") ? mod.get("value").getAsDouble()
+                : mod.has("amount") ? mod.get("amount").getAsDouble() : Double.NaN;
+            if (!Double.isNaN(val)) {
+                String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+                multiplier = "set_total".equals(op) ? (float) Math.max(0, 1.0 + val) : (float)(1.0 + val);
+            }
+        }
+
+        String damageTypeFilter = null;
+        Identifier damageTypeKeyFilter = null;
+        if (json.has("damage_condition") && json.get("damage_condition").isJsonObject()) {
+            JsonObject dc = json.getAsJsonObject("damage_condition");
+            String dcType = dc.has("type") ? dc.get("type").getAsString() : "";
+            if (("origins:name".equals(dcType) || "apace:name".equals(dcType)) && dc.has("name")) {
+                damageTypeFilter = dc.get("name").getAsString();
+            } else if (("origins:type".equals(dcType) || "apace:type".equals(dcType)) && dc.has("damage_type")) {
+                damageTypeKeyFilter = Identifier.parse(dc.get("damage_type").getAsString());
+            }
+        }
+
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+
+        final float finalMultiplier = multiplier;
+        final String finalDmgFilter = damageTypeFilter;
+        final Identifier finalDmgTypeKey = damageTypeKeyFilter;
+
+        // Outgoing damage: the player is the ATTACKER, not the victim.
+        // We hook LivingIncomingDamageEvent and check event.getSource().getEntity().
+        return CompatPower.Config.builder()
+            .onIncomingDamage(event -> {
+                if (!(event.getSource().getEntity() instanceof ServerPlayer sp)) return;
+                if (!condition.test(sp)) return;
+                if (finalDmgFilter != null
+                        && !event.getSource().getMsgId().equalsIgnoreCase(finalDmgFilter)) {
+                    return;
+                }
+                if (finalDmgTypeKey != null) {
+                    var typeKey = event.getSource().typeHolder().unwrapKey().orElse(null);
+                    if (typeKey == null || !typeKey.identifier().equals(finalDmgTypeKey)) return;
+                }
+                float scaled = event.getAmount() * finalMultiplier;
+                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                event.setAmount(scaled);
                 if (scaled <= 0.0f) event.setCanceled(true);
             })
             .build();
@@ -629,7 +699,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
 
         // Stagger by ID hash so not all action_over_time powers run on the same tick.
-        int offset = Math.abs(idStr.hashCode()) % interval;
+        int offset = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
 
         return CompatPower.Config.builder()
             .onTick(player -> {
@@ -712,7 +782,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int max          = json.has("max")         ? json.get("max").getAsInt()         : 100;
         int startValue   = json.has("start_value") ? json.get("start_value").getAsInt() : min;
         int interval     = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
-        int offset       = Math.abs(idStr.hashCode()) % interval;
+        int offset       = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
 
         EntityAction minAction  = json.has("min_action")
             ? ActionParser.parse(json.getAsJsonObject("min_action"),  idStr) : EntityAction.noop();
@@ -934,6 +1004,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (map.isEmpty()) EFFECT_AMP_MODIFIERS.remove(playerId);
     }
 
+    public static void clearAmplifierModifiers(java.util.UUID playerId) {
+        EFFECT_AMP_MODIFIERS.remove(playerId);
+    }
+
     /** origins:modify_status_effect_amplifier — boosts the amplifier of a specific
      *  effect whenever it's applied to the player. */
     private CompatPower.Config parseModifyEffectAmplifier(Identifier id, JsonObject json) {
@@ -1099,7 +1173,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return null;
         }
 
-        int offset          = Math.abs(idStr.hashCode()) % interval;
+        int offset          = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
         float finalDamage   = damage;
         boolean finalUnblock = unblockable;
 
@@ -1618,9 +1692,32 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     /** Shared helper to build EventPowerData for restrict_armor without registering it. */
     private CompatPlayerState.EventPowerData buildRestrictArmorData(String idStr, JsonObject json) {
-        // Same slot/item logic as parseRestrictArmor, just returns the data object
-        return CompatPlayerState.EventPowerData.noCondition(
-            idStr, CompatPlayerState.EventType.RESTRICT_ARMOR);
+        // Compile per-slot predicates (same logic as parseRestrictArmor)
+        java.util.function.Predicate<ItemStack> globalPred = json.has("item_condition")
+            ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
+        java.util.function.Predicate<ItemStack> headPred = json.has("head")
+            ? compileItemPredicate(json.getAsJsonObject("head")) : null;
+        java.util.function.Predicate<ItemStack> chestPred = json.has("chest")
+            ? compileItemPredicate(json.getAsJsonObject("chest")) : null;
+        java.util.function.Predicate<ItemStack> legsPred = json.has("legs")
+            ? compileItemPredicate(json.getAsJsonObject("legs")) : null;
+        java.util.function.Predicate<ItemStack> feetPred = json.has("feet")
+            ? compileItemPredicate(json.getAsJsonObject("feet")) : null;
+
+        CompatPlayerState.ArmorPredicate armorPred = (stack, slot) -> {
+            var slotPred = switch (slot) {
+                case HEAD  -> headPred;
+                case CHEST -> chestPred;
+                case LEGS  -> legsPred;
+                case FEET  -> feetPred;
+                default    -> null;
+            };
+            if (slotPred != null) return slotPred.test(stack);
+            if (globalPred != null) return globalPred.test(stack);
+            return true; // No condition = restrict all armor
+        };
+
+        return CompatPlayerState.EventPowerData.withArmorPredicate(idStr, armorPred);
     }
 
     /**
@@ -1742,6 +1839,69 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .onRevoked(player -> player.setTicksFrozen(0))
+            .build();
+    }
+
+    private CompatPower.Config parseNumericModifier(Identifier id, JsonObject json,
+                                                     NumericModifierRegistry.Kind kind) {
+        String idStr = id.toString();
+        if (!json.has("modifier") || !json.get("modifier").isJsonObject()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {} '{}' missing modifier object — skipped", kind, id);
+            return null;
+        }
+        JsonObject mod = json.getAsJsonObject("modifier");
+        String operation = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+        double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
+        return CompatPower.Config.builder()
+            .onGranted(player -> NumericModifierRegistry.register(player, kind, idStr, operation, value))
+            .onRevoked(player -> NumericModifierRegistry.unregister(player, kind, idStr))
+            .build();
+    }
+
+    private CompatPower.Config parseModifyCrafting(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+        if (!json.has("recipe") || !json.has("result")) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' missing 'recipe' or 'result' — skipped", id);
+            return null;
+        }
+        Identifier recipeId = Identifier.tryParse(json.get("recipe").getAsString());
+        if (recipeId == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' has malformed recipe id — skipped", id);
+            return null;
+        }
+        JsonObject result = json.getAsJsonObject("result");
+        String resultItemStr = result.has("item") ? result.get("item").getAsString() : null;
+        if (resultItemStr == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' result missing 'item' — skipped", id);
+            return null;
+        }
+        Identifier resultItem = Identifier.tryParse(resultItemStr);
+        if (resultItem == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_crafting '{}' result item '{}' is malformed — skipped", id, resultItemStr);
+            return null;
+        }
+        int resultCount = result.has("amount") ? result.get("amount").getAsInt()
+                        : result.has("count")  ? result.get("count").getAsInt()
+                        : 1;
+        String resultTag = result.has("tag") ? result.get("tag").getAsString() : "";
+
+        var entry = new ModifyCraftingRegistry.Entry(idStr, recipeId, resultItem, resultCount, resultTag);
+        return CompatPower.Config.builder()
+            .onGranted(player -> ModifyCraftingRegistry.register(player, entry))
+            .onRevoked(player -> ModifyCraftingRegistry.unregister(player, idStr))
+            .build();
+    }
+
+    private CompatPower.Config parsePreventSprinting(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                if (!player.isSprinting()) return;
+                if (condition.test(player)) player.setSprinting(false);
+            })
             .build();
     }
 }

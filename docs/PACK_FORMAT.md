@@ -123,7 +123,7 @@ Layers are the selection groups shown to the player when they first join. Most p
 |---|---|---|---|---|
 | `order` | int | no | `0` | Layer display order |
 | `name` | string or component | no | — | Layer title |
-| `origins` | list of Identifier | yes | — | Origins available in this layer |
+| `origins` | list | yes | — | Origins available in this layer (plain IDs, or conditioned entries — see [Sub-Origins](SUB_ORIGINS.md)) |
 | `allow_random` | bool | no | `true` | Show the Random button |
 | `auto_choose` | bool | no | `false` | Automatically pick an origin if only one is available |
 | `hidden` | bool | no | `false` | Hide the layer from the screen (still applies its origin) |
@@ -138,6 +138,10 @@ data/neoorigins/origins/origin_layers/origin.json
 ```
 
 This overwrites the built-in layer entirely, so be sure to include all existing origins you want to keep. Alternatively, create your own layer with a different namespace and ID.
+
+### Conditioned sub-layers
+
+Layers can contain origins that are only visible when the player has chosen a specific origin in a parent layer. This enables race/subrace trees. See [Sub-Origins](SUB_ORIGINS.md) for full documentation and examples.
 
 ---
 

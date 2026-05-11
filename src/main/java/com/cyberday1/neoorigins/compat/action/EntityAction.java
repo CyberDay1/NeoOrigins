@@ -6,5 +6,8 @@ import net.minecraft.server.level.ServerPlayer;
 public interface EntityAction {
     void execute(ServerPlayer player);
 
-    static EntityAction noop() { return p -> {}; }
+    /** Singleton no-op — reference equality with {@code == NOOP} is intentional. */
+    EntityAction NOOP = p -> {};
+
+    static EntityAction noop() { return NOOP; }
 }

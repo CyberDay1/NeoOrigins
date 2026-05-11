@@ -12,8 +12,11 @@ public interface FloatModifier {
     /** Apply this modifier to a base value and return the result. */
     float apply(float base);
 
+    /** Singleton identity modifier — reference equality with {@code == IDENTITY} is intentional. */
+    FloatModifier IDENTITY = base -> base;
+
     /** Identity modifier — returns the base value unchanged. */
     static FloatModifier identity() {
-        return base -> base;
+        return IDENTITY;
     }
 }

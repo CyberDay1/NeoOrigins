@@ -63,7 +63,6 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public record Config(
         List<EffectSpec> effects,
         EntityCondition condition,
-        int refreshInterval,
         boolean toggleable,
         boolean defaultOff,
         String type
@@ -83,7 +82,6 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 }
                 JsonObject obj = json.getAsJsonObject();
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:persistent_effect";
-                int refresh = obj.has("refresh_interval") ? obj.get("refresh_interval").getAsInt() : 300;
                 boolean toggleable = !obj.has("toggleable") || obj.get("toggleable").getAsBoolean();
                 boolean defaultOff = obj.has("default_off") && obj.get("default_off").getAsBoolean();
 
@@ -121,7 +119,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     : EntityCondition.alwaysTrue();
 
                 return DataResult.success(Pair.of(
-                    new Config(List.copyOf(specs), cond, Math.max(1, refresh), toggleable, defaultOff, t),
+                    new Config(List.copyOf(specs), cond, toggleable, defaultOff, t),
                     ops.empty()));
             }
 

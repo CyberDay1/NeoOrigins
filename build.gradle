@@ -172,3 +172,26 @@ tasks.register('smokeTestAliases', JavaExec) {
     mainClass = 'com.cyberday1.neoorigins.dev.PowerAliasSmokeTest'
     args 'src/main/resources/data'
 }
+
+// ── Headless compat test ────────────────────────────────────────────────────
+//
+// Validates origin pack JSONs through the compat translator without launching
+// Minecraft. Detects: unsupported types (FAIL), lossy translations (WARN),
+// and structural issues in Route B powers.
+//
+// Run against built-in data:
+//   ./gradlew compatTest
+//
+// Run against external packs (extracted zip/jar directories):
+//   ./gradlew compatTest --args="/path/to/pack1 /path/to/pack2"
+//
+// Exit code 1 if any FAILs are detected.
+tasks.register('compatTest', JavaExec) {
+    group = 'neoorigins'
+    description = 'Headless compat validation — test origin packs without launching MC.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.CompatTestHarness'
+    // Default: scan internal data + example pack
+    args 'src/main/resources/data', 'example-pack/data'
+}

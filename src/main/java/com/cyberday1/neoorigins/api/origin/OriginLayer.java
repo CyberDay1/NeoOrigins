@@ -34,4 +34,12 @@ public record OriginLayer(
     public List<Identifier> getAvailableOriginIds() {
         return origins.stream().map(ConditionedOrigin::origin).toList();
     }
+
+    /** Returns origin IDs filtered by layer conditions against the player's current choices. */
+    public List<Identifier> getAvailableOriginIds(java.util.Map<Identifier, Identifier> chosenOrigins) {
+        return origins.stream()
+            .filter(co -> co.isAvailable(chosenOrigins))
+            .map(ConditionedOrigin::origin)
+            .toList();
+    }
 }

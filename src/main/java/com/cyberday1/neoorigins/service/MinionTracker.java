@@ -77,7 +77,7 @@ public final class MinionTracker {
      * and server restarts (the in-memory {@link #MINIONS} map is session-scoped). */
     public static void track(ServerPlayer summoner, LivingEntity minion, String mobType,
                              int currentTick, int despawnTicks, float deathDamage) {
-        MINIONS.computeIfAbsent(summoner.getUUID(), k -> new ArrayList<>())
+        MINIONS.computeIfAbsent(summoner.getUUID(), k -> new java.util.concurrent.CopyOnWriteArrayList<>())
             .add(new TrackedMinion(minion.getUUID(), mobType, currentTick, currentTick + despawnTicks, deathDamage));
         minion.setData(EntityAttachments.minionOwner(), MinionOwner.of(summoner.getUUID()));
         if (minion.level() instanceof ServerLevel sl) {

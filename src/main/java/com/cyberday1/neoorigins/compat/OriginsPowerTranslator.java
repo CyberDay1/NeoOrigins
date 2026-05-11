@@ -1023,16 +1023,64 @@ public final class OriginsPowerTranslator {
         }
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:wraith_phase");
-        // Carry over blocklist if present
+
+        com.google.gson.JsonArray blockedBlocks = new com.google.gson.JsonArray();
+
+        // Carry over blacklist if present
         if (src.has("blacklist") && src.get("blacklist").isJsonArray()) {
-            com.google.gson.JsonArray origList = src.getAsJsonArray("blacklist");
-            com.google.gson.JsonArray neoList = new com.google.gson.JsonArray();
-            for (var el : origList) {
-                if (el.isJsonPrimitive()) neoList.add(el.getAsString());
+            for (var el : src.getAsJsonArray("blacklist")) {
+                if (el.isJsonPrimitive()) blockedBlocks.add(el.getAsString());
             }
-            out.add("blocked_blocks", neoList);
+        }
+
+        // Try to extract block IDs from block_condition for the blocked_blocks list.
+        // Partial translation is better than skipping entirely.
+        if (src.has("block_condition") && src.get("block_condition").isJsonObject()) {
+            JsonObject bc = src.getAsJsonObject("block_condition");
+            extractBlockIdsFromCondition(bc, blockedBlocks);
+            if (blockedBlocks.isEmpty()) {
+                // block_condition was too complex to extract block IDs — emit the
+                // power anyway (partial translation) but log a warning.
+                NeoOrigins.LOGGER.warn("[CompatA] phasing {} has complex block_condition that " +
+                    "could not be fully translated to blocked_blocks — wraith_phase will " +
+                    "allow passing through all blocks", id);
+            }
+        }
+
+        if (!blockedBlocks.isEmpty()) {
+            out.add("blocked_blocks", blockedBlocks);
         }
         return Optional.of(out);
+    }
+
+    /**
+     * Best-effort extraction of block IDs from a block_condition JSON into a flat list.
+     * Handles simple cases: single block ID, in_tag, and/or combinators.
+     */
+    private static void extractBlockIdsFromCondition(JsonObject bc, com.google.gson.JsonArray out) {
+        String bcType = bc.has("type") ? bc.get("type").getAsString() : "";
+        String bareType = bcType.contains(":") ? bcType.substring(bcType.indexOf(':') + 1) : bcType;
+
+        switch (bareType) {
+            case "block" -> {
+                String blockId = bc.has("block") ? bc.get("block").getAsString() : null;
+                if (blockId != null) out.add(blockId);
+            }
+            case "in_tag" -> {
+                // Tag-based — can't flatten to individual blocks, but add the tag reference
+                String tag = bc.has("tag") ? bc.get("tag").getAsString() : null;
+                if (tag != null) out.add("#" + (tag.startsWith("#") ? tag.substring(1) : tag));
+            }
+            case "and", "or" -> {
+                JsonArray conditions = bc.has("conditions") ? bc.getAsJsonArray("conditions") : new JsonArray();
+                for (JsonElement el : conditions) {
+                    if (el.isJsonObject()) extractBlockIdsFromCondition(el.getAsJsonObject(), out);
+                }
+            }
+            default -> {
+                // Too complex — can't extract block IDs
+            }
+        }
     }
 
     private static Optional<JsonObject> translateBurn(JsonObject src) {

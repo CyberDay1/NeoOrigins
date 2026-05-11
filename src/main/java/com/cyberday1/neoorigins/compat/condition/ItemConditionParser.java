@@ -195,14 +195,21 @@ public final class ItemConditionParser {
 
     /** Vanilla-recipe-style ingredient: top-level item or tag string. */
     private static ItemCondition parseIngredient(JsonObject json) {
-        if (json.has("item")) {
-            Identifier target = Identifier.parse(json.get("item").getAsString());
+        // Origins spec nests the actual item/tag inside an "ingredient" key:
+        // { "type": "origins:ingredient", "ingredient": { "tag": "..." } }
+        // Unwrap the nested object if present; otherwise check at top level.
+        JsonObject effective = json;
+        if (json.has("ingredient") && json.get("ingredient").isJsonObject()) {
+            effective = json.getAsJsonObject("ingredient");
+        }
+        if (effective.has("item")) {
+            Identifier target = Identifier.parse(effective.get("item").getAsString());
             Item item = BuiltInRegistries.ITEM.get(target).map(h -> h.value()).orElse(null);
             if (item == null) return ItemCondition.alwaysFalse();
             return s -> !s.isEmpty() && s.is(item);
         }
-        if (json.has("tag")) {
-            TagKey<Item> tag = TagKey.create(Registries.ITEM, Identifier.parse(json.get("tag").getAsString()));
+        if (effective.has("tag")) {
+            TagKey<Item> tag = TagKey.create(Registries.ITEM, Identifier.parse(effective.get("tag").getAsString()));
             return s -> !s.isEmpty() && s.is(tag);
         }
         return ItemCondition.alwaysFalse();

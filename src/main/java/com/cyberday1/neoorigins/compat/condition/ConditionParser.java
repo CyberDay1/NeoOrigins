@@ -352,6 +352,21 @@ public final class ConditionParser {
         if (powerId == null || powerId.isBlank()) {
             return failClosed("origins:power_active", contextId, "missing required field 'power'");
         }
+        // Wildcard power IDs (e.g. "*:*_toggle") cannot be parsed as ResourceLocations.
+        // Instead, do a suffix match against the player's toggle state keys.
+        if (powerId.contains("*")) {
+            // Extract the suffix after the last '*' for substring matching
+            final String suffix = powerId.substring(powerId.lastIndexOf('*') + 1);
+            return player -> {
+                var toggleState = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.toggleState());
+                for (var entry : toggleState.getStates().entrySet()) {
+                    if (entry.getKey().endsWith(suffix) && entry.getValue()) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+        }
         // Toggles facade resolves the registered TogglePower's `default` when the
         // toggleState map has no entry yet — so `"default": true` JSONs read as
         // on-until-flipped-off without needing an action_on_event GAINED hook.
@@ -448,6 +463,28 @@ public final class ConditionParser {
         if (tag != null) {
             TagKey<Biome> biomeTag = TagKey.create(Registries.BIOME, Identifier.parse(tag));
             return player -> player.level().getBiome(player.blockPosition()).is(biomeTag);
+        }
+        // Handle nested sub-conditions (origins:temperature, origins:precipitation, etc.)
+        // These cannot be precisely mapped but must NOT return alwaysTrue() (fail open)
+        // as that would cause the power to fire in every biome.
+        if (json.has("condition") && json.get("condition").isJsonObject()) {
+            JsonObject subCond = json.getAsJsonObject("condition");
+            String subType = subCond.has("type") ? subCond.get("type").getAsString() : "";
+            String bareSubType = subType.contains(":") ? subType.substring(subType.indexOf(':') + 1) : subType;
+            if ("temperature".equals(bareSubType)) {
+                // Use the biome's base temperature for comparison
+                String comp = subCond.has("comparison") ? subCond.get("comparison").getAsString() : ">=";
+                double target = subCond.has("compare_to") ? subCond.get("compare_to").getAsDouble() : 0.0;
+                ComparisonType comparison = ComparisonType.fromString(comp);
+                return player -> {
+                    float temp = player.level().getBiome(player.blockPosition()).value().getBaseTemperature();
+                    return comparison.test(temp, target);
+                };
+            }
+            // Unsupported biome sub-conditions — fail closed and warn
+            NeoOrigins.LOGGER.warn("[CompatB] biome condition has unsupported sub-condition type '{}' — " +
+                "failing closed (power will not activate). Pack authors should use biome tags instead.", subType);
+            return EntityCondition.alwaysFalse();
         }
         return EntityCondition.alwaysTrue();
     }
