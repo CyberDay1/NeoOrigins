@@ -7,11 +7,15 @@ import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -48,14 +52,24 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
         String item,
         List<EnchantEntry> enchantments,
         int count,
-        String type
+        String type,
+        String legacyTag,
+        String components
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.fieldOf("grant_id").forGetter(Config::grantId),
             Codec.STRING.fieldOf("item").forGetter(Config::item),
             EnchantEntry.CODEC.listOf().optionalFieldOf("enchantments", List.of()).forGetter(Config::enchantments),
             Codec.INT.optionalFieldOf("count", 1).forGetter(Config::count),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            // Apoli pack authors set NBT via a flat SNBT string (Potion type,
+            // Enchantments list, display.Name, etc.). Translated into data
+            // components at grant time via LegacyTagToComponents.
+            Codec.STRING.optionalFieldOf("legacy_tag", "").forGetter(Config::legacyTag),
+            // Arbitrary data components as SNBT — allows modded components like
+            // irons_spellbooks:spell_container to be set directly on the item.
+            // Parsed via DataComponentPatch.CODEC with registry ops at grant time.
+            Codec.STRING.optionalFieldOf("components", "").forGetter(Config::components)
         ).apply(inst, Config::new));
     }
 
@@ -107,6 +121,30 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
                 enchLookup.get(key).ifPresent(h -> enchMutable.set(h, entry.level()));
             }
             stack.set(DataComponents.ENCHANTMENTS, enchMutable.toImmutable());
+        }
+
+        // Apply translated Apoli SNBT — Potion type, Enchantments list,
+        // display.Name/Lore, etc. — via the shared legacy-tag bridge.
+        if (!config.legacyTag().isEmpty()) {
+            com.cyberday1.neoorigins.compat.LegacyTagToComponents.applySnbt(
+                stack, config.legacyTag(), player.registryAccess());
+        }
+
+        // Apply arbitrary data components from SNBT string — supports modded
+        // DataComponentTypes (e.g. irons_spellbooks:spell_container).
+        if (!config.components().isEmpty()) {
+            try {
+                CompoundTag parsed = TagParser.parseCompoundFully(config.components());
+                RegistryOps<net.minecraft.nbt.Tag> ops = RegistryOps.create(
+                    net.minecraft.nbt.NbtOps.INSTANCE, player.registryAccess());
+                DataComponentPatch patch = DataComponentPatch.CODEC.parse(ops, parsed)
+                    .getOrThrow(e -> new IllegalArgumentException("Failed to parse components: " + e));
+                stack.applyComponents(patch);
+            } catch (Exception e) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[starting_equipment] failed to parse components for grantId '{}': {}",
+                    config.grantId(), e.getMessage());
+            }
         }
 
         player.addItem(stack);
