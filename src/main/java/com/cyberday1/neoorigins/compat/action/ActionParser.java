@@ -1864,6 +1864,14 @@ public final class ActionParser {
     private static EntityAction failNoop(String type, String contextId, String detail) {
         NeoOrigins.LOGGER.warn("[CompatB] action '{}' in {} defaulted to no-op: {}",
             type, contextId, detail);
-        return CompatPolicy.NOOP_ACTION;
+        final String finalType = type;
+        final String finalContextId = contextId;
+        return player -> {
+            if (com.cyberday1.neoorigins.NeoOriginsConfig.isDebugCompatActions()) {
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "[NeoOrigins Compat Debug] Action '" + finalType + "' in " + finalContextId + " is unsupported (no-op)")
+                    .withStyle(net.minecraft.ChatFormatting.YELLOW));
+            }
+        };
     }
 }
