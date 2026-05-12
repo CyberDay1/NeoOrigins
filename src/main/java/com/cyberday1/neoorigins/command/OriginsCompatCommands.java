@@ -6,8 +6,11 @@ import com.cyberday1.neoorigins.compat.LegacyCommandRewriter;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.resources.ResourceLocation;
@@ -30,6 +33,10 @@ import java.util.Collection;
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class OriginsCompatCommands {
 
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_POWERS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+
     /**
      * Register the Origins-mod compat commands. Called from
      * {@link OriginCommand#register}.
@@ -43,16 +50,19 @@ public class OriginsCompatCommands {
             .then(Commands.literal("change")
                 .then(Commands.argument("targets", EntityArgument.players())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
                         .then(Commands.argument("amount", IntegerArgumentType.integer())
                             .executes(OriginsCompatCommands::executeResourceChange)))))
             .then(Commands.literal("set")
                 .then(Commands.argument("targets", EntityArgument.players())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
                         .then(Commands.argument("amount", IntegerArgumentType.integer())
                             .executes(OriginsCompatCommands::executeResourceSet)))))
             .then(Commands.literal("get")
                 .then(Commands.argument("targets", EntityArgument.players())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
                         .executes(OriginsCompatCommands::executeResourceGet)))));
 
         // /power grant <target> <power>
@@ -62,10 +72,12 @@ public class OriginsCompatCommands {
             .then(Commands.literal("grant")
                 .then(Commands.argument("targets", EntityArgument.entities())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
                         .executes(OriginsCompatCommands::executePowerGrant))))
             .then(Commands.literal("revoke")
                 .then(Commands.argument("targets", EntityArgument.entities())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
                         .executes(OriginsCompatCommands::executePowerRevoke)))));
     }
 

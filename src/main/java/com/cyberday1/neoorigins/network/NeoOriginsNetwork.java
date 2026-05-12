@@ -471,7 +471,14 @@ public class NeoOriginsNetwork {
         if (holder.type() instanceof AbstractActivePower) {
             AbstractActivePower ap = (AbstractActivePower) holder.type();
             AbstractActivePower.Config cfg = (AbstractActivePower.Config) holder.config();
-            key = ap.getCooldownKey(cfg);
+            // getCooldownKey's default impl reads PowerHolder.currentDispatchId(), which
+            // is only set inside the onActivated dispatch wrapper and has been cleared by
+            // now.  Resolve the key the same way onActivated did: use holder.id() for the
+            // default impl, but honour subclass overrides that don't rely on dispatch ID.
+            String candidateKey = ap.getCooldownKey(cfg);
+            key = candidateKey.equals(ap.getClass().getName())
+                    ? holder.id().toString()   // default impl fell back — use real ID
+                    : candidateKey;            // subclass override (e.g. SummonMinionPower)
             totalTicks = cfg.cooldownTicks();
         } else if (holder.type() instanceof com.cyberday1.neoorigins.compat.CompatPower
                 && holder.config() instanceof com.cyberday1.neoorigins.compat.CompatPower.Config cc

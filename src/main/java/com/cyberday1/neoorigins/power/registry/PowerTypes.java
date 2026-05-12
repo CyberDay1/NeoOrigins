@@ -67,6 +67,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, WalkOnFluidPower>         WALK_ON_FLUID        = reg("walk_on_fluid",       new WalkOnFluidPower());
     public static final DeferredHolder<PowerType<?>, ExtraInventoryPower>      EXTRA_INVENTORY      = reg("extra_inventory",     new ExtraInventoryPower());
     public static final DeferredHolder<PowerType<?>, LavaVisionPower>          LAVA_VISION          = reg("lava_vision",         new LavaVisionPower());
+    public static final DeferredHolder<PowerType<?>, ModifyLavaSpeedPower>    MODIFY_LAVA_SPEED    = reg("modify_lava_speed",   new ModifyLavaSpeedPower());
     public static final DeferredHolder<PowerType<?>, OverlayPower>             OVERLAY              = reg("overlay",             new OverlayPower());
     public static final DeferredHolder<PowerType<?>, ModelColorPower>          MODEL_COLOR          = reg("model_color",         new ModelColorPower());
     public static final DeferredHolder<PowerType<?>, ShaderPower>              SHADER               = reg("shader",              new ShaderPower());
