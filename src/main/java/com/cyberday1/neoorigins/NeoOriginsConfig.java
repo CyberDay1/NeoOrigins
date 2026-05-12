@@ -24,6 +24,15 @@ public final class NeoOriginsConfig {
                      "Useful for addon and datapack authors debugging load issues.")
             .define("debug_power_loading", false);
 
+    public static final ModConfigSpec.BooleanValue DEBUG_COMPAT_ACTIONS =
+        BUILDER
+            .comment("Send in-game chat feedback when a compat power action resolves to no-op (unsupported action type).",
+                     "Useful for pack authors debugging why their imported powers aren't working.")
+            .define("debug_compat_actions", false);
+
+    /** Convenience accessor for hot-path checks. */
+    public static boolean isDebugCompatActions() { return DEBUG_COMPAT_ACTIONS.get(); }
+
     public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS =
         BUILDER
             .comment("Hide hunger / air HUD bars for origins that don't consume them",

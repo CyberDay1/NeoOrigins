@@ -188,6 +188,28 @@ Prevents a specific harmful action or event from affecting the player.
 
 ---
 
+## `neoorigins:modify_lava_speed`
+
+Modifies the player's movement speed while submerged in lava. Uses the `NumericModifierRegistry` system consumed by `LivingEntityLavaSpeedMixin`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `operation` | string | no | `"addition"` | `"addition"` or `"multiply"` |
+| `value` | double | yes | — | Amount to add or multiply. Vanilla lava-swim factor is `0.02`; an addition of `0.4` gives roughly walking speed. |
+
+**Example — strider-like lava swimming:**
+```json
+{
+  "type": "neoorigins:modify_lava_speed",
+  "operation": "addition",
+  "value": 0.4,
+  "name": "Molten Stride",
+  "description": "Swims through lava at normal walking speed."
+}
+```
+
+---
+
 ## `neoorigins:modify_damage`
 
 Multiplies damage dealt or received, optionally filtered to a specific damage type and, for `direction: out`, restricted to a target entity group.
@@ -1325,6 +1347,8 @@ Grants the player a specific item (optionally with enchantments) once on first o
 | `item` | Identifier | yes | — | Item to grant, e.g. `minecraft:trident` |
 | `count` | int | no | `1` | Stack count |
 | `enchantments` | list | no | `[]` | List of `{"id": "...", "level": N}` enchantment entries |
+| `legacy_tag` | string | no | `""` | SNBT string for legacy NBT data (Potion, display.Name, etc.). Recognised keys are translated to data components; unrecognised keys go to `minecraft:custom_data`. |
+| `components` | string | no | `""` | SNBT string representing a `DataComponentPatch`. Supports any registered data component (vanilla or modded). Parsed with registry context at grant time. |
 
 **Example — enchanted trident:**
 ```json
@@ -1339,6 +1363,18 @@ Grants the player a specific item (optionally with enchantments) once on first o
   ],
   "name": "Deep-Sea Armament",
   "description": "Begins life with an enchanted trident."
+}
+```
+
+**Example — modded item with custom data components (Iron's Spellbooks):**
+```json
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "mage_spellbook",
+  "item": "irons_spellbooks:iron_spell_book",
+  "components": "{\"irons_spellbooks:spell_container\":{data:[{id:\"irons_spellbooks:firebolt\",index:1,level:1}],maxSpells:5,mustEquip:1b,spellWheel:1b}}",
+  "name": "Arcane Tome",
+  "description": "Begins life with a pre-inscribed spell book."
 }
 ```
 
