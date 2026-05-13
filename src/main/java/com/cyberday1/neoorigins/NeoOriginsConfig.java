@@ -50,8 +50,8 @@ public final class NeoOriginsConfig {
             .define("disable_resource_bars", false);
 
     // ── Disabled Origins ────────────────────────────────────────────────
-    // Each built-in origin can be disabled here. Disabled origins are
-    // removed after data loading and will not appear in the origin selection screen.
+    // Each built-in origin can be disabled here. Disabled origins are hidden
+    // from the origin selection screen but remain registered for commands.
 
     private static final String[] BUILT_IN_ORIGINS = {
         "human", "merling", "avian", "blazeling", "elytrian", "enderian",
@@ -71,7 +71,8 @@ public final class NeoOriginsConfig {
     static {
         BUILDER.comment(
             "Enable or disable built-in origins.",
-            "Set to false to remove an origin from the selection screen.",
+            "Set to false to hide an origin from the selection screen.",
+            "Disabled origins can still be assigned via /neoorigins set.",
             "Datapack and originpack origins are not affected by these toggles."
         ).push("origins");
 
@@ -486,6 +487,26 @@ public final class NeoOriginsConfig {
     }
 
     public static int orbLevelsPerUse() { return ORB_LEVELS_PER_USE.get(); }
+
+    // ── Auto-Human Mode ───────────────────────────────────────────────
+    public static final ModConfigSpec.BooleanValue AUTO_HUMAN;
+
+    static {
+        BUILDER.comment(
+            "Auto-human mode.",
+            "When enabled, new players are automatically assigned neoorigins:human",
+            "on the origin layer and skip straight to the class selection screen.",
+            "Useful for servers that want to bypass origin selection entirely."
+        ).push("auto_human");
+
+        AUTO_HUMAN = BUILDER
+            .comment("Automatically assign human origin and open class selection only.")
+            .define("enabled", false);
+
+        BUILDER.pop();
+    }
+
+    public static boolean isAutoHuman() { return AUTO_HUMAN.get(); }
 
     // ── Random Origin Assignment ─────────────────────────────────────────
     public static final ModConfigSpec.EnumValue<RandomMode> RANDOM_MODE;

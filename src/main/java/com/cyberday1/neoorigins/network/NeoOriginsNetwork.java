@@ -608,8 +608,13 @@ public class NeoOriginsNetwork {
                 holder.name(), holder.description(), holder.isActive(), isToggle, typeId, holder.hidden()));
         }
 
+        // Filter out config-disabled origins from the client sync — they stay
+        // registered server-side for /neoorigins set but shouldn't appear in the GUI.
+        java.util.Map<ResourceLocation, com.cyberday1.neoorigins.api.origin.Origin> visibleOrigins = new java.util.HashMap<>(OriginDataManager.INSTANCE.getOrigins());
+        visibleOrigins.entrySet().removeIf(e -> com.cyberday1.neoorigins.NeoOriginsConfig.isOriginDisabled(e.getKey()));
+
         PacketDistributor.sendToPlayer(player, new SyncOriginRegistryPayload(
-            OriginDataManager.INSTANCE.getOrigins(),
+            visibleOrigins,
             LayerDataManager.INSTANCE.getSortedLayers(),
             powerEntries,
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP,
