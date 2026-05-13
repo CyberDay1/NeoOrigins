@@ -124,7 +124,9 @@ public class PlayerLifecycleEvents {
             }
         }
         if (needsOrigin) {
-            if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
+            if (NeoOriginsConfig.isAutoHuman()) {
+                assignAutoHuman(sp);
+            } else if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
                 assignRandomOrigins(sp);
             } else {
                 NeoOriginsNetwork.openSelectionScreen(sp, false);
@@ -280,6 +282,33 @@ public class PlayerLifecycleEvents {
                 // they should use distinct advancements.
                 break;
             }
+        }
+    }
+
+    private static void assignAutoHuman(ServerPlayer sp) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        Identifier originLayer = Identifier.parse("origins:origin");
+        Identifier humanOrigin = Identifier.parse("neoorigins:human");
+
+        if (!data.hasOriginForLayer(originLayer) && OriginDataManager.INSTANCE.hasOrigin(humanOrigin)) {
+            data.setOrigin(originLayer, humanOrigin);
+            ActiveOriginService.applyOriginPowers(sp, originLayer, null, humanOrigin);
+            NeoOriginsNetwork.syncToPlayer(sp);
+            NeoOrigins.LOGGER.info("Auto-assigned human origin to {}", sp.getName().getString());
+        }
+
+        // Check if any remaining layers (class) still need selection
+        boolean needsMore = false;
+        for (var layer : LayerDataManager.INSTANCE.getSortedLayers()) {
+            if (!data.hasOriginForLayer(layer.id())) {
+                needsMore = true;
+                break;
+            }
+        }
+        if (needsMore) {
+            NeoOriginsNetwork.openSelectionScreen(sp, false);
+        } else {
+            data.setHadAllOrigins(true);
         }
     }
 

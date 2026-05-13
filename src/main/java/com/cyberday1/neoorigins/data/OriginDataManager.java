@@ -85,12 +85,9 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
                 NeoOrigins.LOGGER.error("Error loading origin {}", id, e);
             }
         }
-        // Filter out disabled built-in origins
-        int beforeFilter = loaded.size();
-        loaded.entrySet().removeIf(entry -> NeoOriginsConfig.isOriginDisabled(entry.getKey()));
-        if (loaded.size() < beforeFilter) {
-            NeoOrigins.LOGGER.info("Disabled {} built-in origin(s) via config", beforeFilter - loaded.size());
-        }
+        // NOTE: Config-disabled origins are NOT removed here — they remain registered
+        // so that /neoorigins set and other commands can still reference them.
+        // The selection screen filters them out via NeoOriginsConfig.isOriginDisabled().
 
         // Filter out addon origins with too many broken powers
         double minRatio = NeoOriginsConfig.COMPAT_MIN_POWER_RATIO.get();
