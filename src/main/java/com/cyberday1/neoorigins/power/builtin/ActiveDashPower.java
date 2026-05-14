@@ -12,12 +12,14 @@ public class ActiveDashPower extends AbstractActivePower<ActiveDashPower.Config>
         float power,
         int cooldownTicks,
         boolean allowVertical,
+        boolean setVelocity,
         String type
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("power", 1.5f).forGetter(Config::power),
             Codec.INT.optionalFieldOf("cooldown_ticks", 40).forGetter(Config::cooldownTicks),
             Codec.BOOL.optionalFieldOf("allow_vertical", false).forGetter(Config::allowVertical),
+            Codec.BOOL.optionalFieldOf("set_velocity", false).forGetter(Config::setVelocity),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -30,7 +32,11 @@ public class ActiveDashPower extends AbstractActivePower<ActiveDashPower.Config>
         Vec3 dash = config.allowVertical()
             ? look.scale(config.power())
             : new Vec3(look.x, 0.2, look.z).normalize().scale(config.power());
-        player.setDeltaMovement(player.getDeltaMovement().add(dash));
+        if (config.setVelocity()) {
+            player.setDeltaMovement(dash);
+        } else {
+            player.setDeltaMovement(player.getDeltaMovement().add(dash));
+        }
         player.hurtMarked = true;
         return true;
     }

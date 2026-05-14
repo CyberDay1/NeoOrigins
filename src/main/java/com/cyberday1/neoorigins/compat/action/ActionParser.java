@@ -723,12 +723,17 @@ public final class ActionParser {
     private static EntityAction parseDash(JsonObject json) {
         float strength = json.has("strength") ? json.get("strength").getAsFloat() : 1.5f;
         boolean allowVertical = !json.has("allow_vertical") || json.get("allow_vertical").getAsBoolean();
+        boolean setVelocity = json.has("set_velocity") && json.get("set_velocity").getAsBoolean();
         return player -> {
             Vec3 look = player.getLookAngle();
             double dx = look.x * strength;
             double dy = allowVertical ? look.y * strength : 0.0;
             double dz = look.z * strength;
-            player.push(dx, dy, dz);
+            if (setVelocity) {
+                player.setDeltaMovement(dx, dy, dz);
+            } else {
+                player.push(dx, dy, dz);
+            }
             player.hurtMarked = true;
         };
     }
