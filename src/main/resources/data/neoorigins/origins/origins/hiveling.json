@@ -6,6 +6,7 @@
   "order": 28,
   "powers": [
     "neoorigins:hiveling_flight",
+    "neoorigins:hiveling_jump_boost",
     "neoorigins:hiveling_sting",
     "neoorigins:hiveling_crop_growth",
     "neoorigins:hiveling_size",
