@@ -107,9 +107,11 @@ public final class MinionTracker {
         if (list == null || list.isEmpty()) return;
 
         int currentTick = player.tickCount;
-        Iterator<TrackedMinion> it = list.iterator();
-        while (it.hasNext()) {
-            TrackedMinion m = it.next();
+        // CopyOnWriteArrayList's iterator doesn't support remove(); collect
+        // entries to remove in a first pass, then drop them via removeAll
+        // (which is supported via atomic snapshot replacement).
+        List<TrackedMinion> toRemove = new ArrayList<>();
+        for (TrackedMinion m : list) {
             LivingEntity entity = m.entity();
 
             // Entity not resolvable (in an unloaded chunk, or already gone).
@@ -117,22 +119,25 @@ public final class MinionTracker {
             // are just temporarily unloaded.
             if (entity == null) {
                 if (currentTick >= m.despawnTick()) {
-                    it.remove();
+                    toRemove.add(m);
                     DIM_HINTS.remove(m.minionUuid());
                 }
                 continue;
             }
 
             if (!entity.isAlive()) {
-                it.remove();
+                toRemove.add(m);
                 DIM_HINTS.remove(m.minionUuid());
                 continue;
             }
             if (currentTick >= m.despawnTick()) {
                 entity.discard();
-                it.remove();
+                toRemove.add(m);
                 DIM_HINTS.remove(m.minionUuid());
             }
+        }
+        if (!toRemove.isEmpty()) {
+            list.removeAll(toRemove);
         }
     }
 
@@ -143,24 +148,28 @@ public final class MinionTracker {
     public static void onEntityDeath(LivingEntity entity) {
         UUID entityUuid = entity.getUUID();
         for (var entry : MINIONS.entrySet()) {
-            Iterator<TrackedMinion> it = entry.getValue().iterator();
-            while (it.hasNext()) {
-                TrackedMinion m = it.next();
+            List<TrackedMinion> list = entry.getValue();
+            TrackedMinion match = null;
+            for (TrackedMinion m : list) {
                 if (m.minionUuid().equals(entityUuid)) {
-                    it.remove();
-                    DIM_HINTS.remove(entityUuid);
-                    // Damage the summoner — the entity died in combat, not from discard
-                    ServerPlayer summoner = entity.level().getServer() != null
-                        ? entity.level().getServer().getPlayerList().getPlayer(entry.getKey())
-                        : null;
-                    if (summoner != null && m.deathDamage() > 0) {
-                        summoner.hurt(summoner.damageSources().magic(), m.deathDamage());
-                        NeoOrigins.LOGGER.debug("Necromancer {} took {} backlash damage from minion death",
-                            summoner.getName().getString(), m.deathDamage());
-                    }
-                    return;
+                    match = m;
+                    break;
                 }
             }
+            if (match == null) continue;
+            // CopyOnWriteArrayList's iterator doesn't support remove(); use remove(Object).
+            list.remove(match);
+            DIM_HINTS.remove(entityUuid);
+            // Damage the summoner — the entity died in combat, not from discard
+            ServerPlayer summoner = entity.level().getServer() != null
+                ? entity.level().getServer().getPlayerList().getPlayer(entry.getKey())
+                : null;
+            if (summoner != null && match.deathDamage() > 0) {
+                summoner.hurt(summoner.damageSources().magic(), match.deathDamage());
+                NeoOrigins.LOGGER.debug("Necromancer {} took {} backlash damage from minion death",
+                    summoner.getName().getString(), match.deathDamage());
+            }
+            return;
         }
     }
 
