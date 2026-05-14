@@ -4,7 +4,8 @@
   "entity_action": {
     "type": "neoorigins:dash",
     "strength": 2.0,
-    "allow_vertical": true
+    "allow_vertical": true,
+    "set_velocity": true
   },
   "resource_cost": "neoorigins:umbral_energy",
   "resource_cost_amount": 20
