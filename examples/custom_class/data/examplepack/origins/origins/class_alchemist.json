@@ -1,0 +1,12 @@
+{
+  "name": { "text": "Alchemist" },
+  "description": { "text": "A brewer's constitution: hardy, and immune to poison." },
+  "icon": "minecraft:brewing_stand",
+  "impact": "none",
+  "order": 21,
+  "powers": [
+    "examplepack:class_alchemist_resilience",
+    "examplepack:class_alchemist_antidote"
+  ],
+  "upgrades": []
+}

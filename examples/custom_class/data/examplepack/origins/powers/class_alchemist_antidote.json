@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:effect_immunity",
+  "name": { "text": "Antidote" },
+  "description": { "text": "Immune to poison." },
+  "effects": ["minecraft:poison"]
+}

@@ -5,13 +5,20 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 
 import java.util.Locale;
 
 public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
     public enum Action {
-        FALL_DAMAGE, FIRE, DROWN, FREEZE, SPRINT_FOOD, CHESTPLATE_EQUIP,
+        FALL_DAMAGE, FIRE, DROWN, FREEZE, SPRINT_FOOD,
+        // ARMOR_EQUIP — per-slot prevention via head/chest/legs/feet booleans on Config.
+        ARMOR_EQUIP,
+        // CHESTPLATE_EQUIP — legacy alias kept for back-compat with packs that
+        // pre-date ARMOR_EQUIP. Treated as ARMOR_EQUIP with chest=true at the
+        // event-handler site; the legacy enum value otherwise has no extra config.
+        CHESTPLATE_EQUIP,
         EYE_DAMAGE, WATER_DAMAGE, SWIM, SLEEP, ELYTRA, NONE;
 
         public static final Codec<Action> CODEC = Codec.STRING.xmap(
@@ -41,12 +48,38 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
         );
     }
 
-    public record Config(Action action, ActiveWhen activeWhen, String type) implements PowerConfiguration {
+    public record Config(Action action, ActiveWhen activeWhen,
+                         boolean head, boolean chest, boolean legs, boolean feet,
+                         String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Action.CODEC.fieldOf("action").forGetter(Config::action),
             ActiveWhen.CODEC.optionalFieldOf("active_when", ActiveWhen.ALWAYS).forGetter(Config::activeWhen),
+            // Per-slot toggles for ARMOR_EQUIP. Omitted = false. Ignored when
+            // action is anything other than ARMOR_EQUIP.
+            Codec.BOOL.optionalFieldOf("head",  false).forGetter(Config::head),
+            Codec.BOOL.optionalFieldOf("chest", false).forGetter(Config::chest),
+            Codec.BOOL.optionalFieldOf("legs",  false).forGetter(Config::legs),
+            Codec.BOOL.optionalFieldOf("feet",  false).forGetter(Config::feet),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
+    }
+
+    /**
+     * True when this power blocks equipping armor in the given slot.
+     * Returns true if {@code action == ARMOR_EQUIP} and the matching per-slot
+     * boolean is set, OR if {@code action == CHESTPLATE_EQUIP} (legacy alias)
+     * and the slot is {@link EquipmentSlot#CHEST}.
+     */
+    public static boolean blocksArmorSlot(EquipmentSlot slot, Config config) {
+        if (config.action() == Action.CHESTPLATE_EQUIP) return slot == EquipmentSlot.CHEST;
+        if (config.action() != Action.ARMOR_EQUIP) return false;
+        return switch (slot) {
+            case HEAD  -> config.head();
+            case CHEST -> config.chest();
+            case LEGS  -> config.legs();
+            case FEET  -> config.feet();
+            default    -> false;
+        };
     }
 
     @Override

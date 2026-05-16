@@ -139,6 +139,13 @@ data/neoorigins/origins/origin_layers/origin.json
 
 This overwrites the built-in layer entirely, so be sure to include all existing origins you want to keep. Alternatively, create your own layer with a different namespace and ID.
 
+### Adding a class
+
+Classes are origins in the special `neoorigins:class` layer. Adding one uses
+the same same-path auto-merge shown above (any layer file whose path is
+`class` folds into `neoorigins:class`). See **[CLASSES.md](CLASSES.md)** for
+the full guide and a copy-paste example datapack.
+
 ### Conditioned sub-layers
 
 Layers can contain origins that are only visible when the player has chosen a specific origin in a parent layer. This enables race/subrace trees. See [Sub-Origins](SUB_ORIGINS.md) for full documentation and examples.

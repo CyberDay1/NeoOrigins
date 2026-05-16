@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.command;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
@@ -26,6 +27,7 @@ import net.minecraft.server.permissions.PermissionCheck;
 import net.minecraft.server.permissions.Permissions;
 
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 public class OriginCommand {
 
@@ -46,6 +48,10 @@ public class OriginCommand {
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
             PowerDataManager.INSTANCE.getPowers().keySet(), builder);
 
+    /** Admin gate (gamemaster / permission level 2 equivalent). */
+    private static final Predicate<CommandSourceStack> REQUIRE_GM =
+        Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER));
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         // Register under both namespaces independently — Brigadier's redirect()
         // loses tab-complete suggestions on the aliased command, so we build
@@ -56,6 +62,10 @@ public class OriginCommand {
     }
 
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> buildCommandTree(String name) {
+        // Permission model mirrors the 1.21.1 port: no root-level gate,
+        // each admin subcommand gated individually, player-facing commands
+        // (evolve accept/decline, bare gui, editor) open. `get` is gated by
+        // REQUIRE_GM OR the public_origin_get config toggle.
         return Commands.literal(name)
                 .then(Commands.literal("evolve")
                     .then(Commands.literal("accept")
@@ -63,23 +73,24 @@ public class OriginCommand {
                     .then(Commands.literal("decline")
                         .executes(OriginCommand::executeEvolveDecline))
                     .then(Commands.argument("player", EntityArgument.player())
-                        .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                        .requires(REQUIRE_GM)
                         .then(Commands.argument("tier", StringArgumentType.word())
                             .suggests(SUGGEST_TIERS)
                             .executes(OriginCommand::executeEvolveSet)))
                     .then(Commands.literal("query")
-                        .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                        .requires(REQUIRE_GM)
                         .then(Commands.argument("player", EntityArgument.player())
                             .executes(OriginCommand::executeEvolveQuery))))
-                .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
                 .then(Commands.literal("get")
+                    // OPs always; other players only when public_origin_get is on.
+                    .requires(REQUIRE_GM.or(src -> NeoOriginsConfig.isPublicOriginGetAllowed()))
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeGet(ctx, null))
                         .then(Commands.argument("layer", IdentifierArgument.id())
                             .suggests(SUGGEST_LAYERS)
                             .executes(ctx -> executeGet(ctx, IdentifierArgument.getId(ctx, "layer"))))))
                 .then(Commands.literal("set")
-                    .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                    .requires(REQUIRE_GM)
                     .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("layer", IdentifierArgument.id())
                             .suggests(SUGGEST_LAYERS)
@@ -87,18 +98,20 @@ public class OriginCommand {
                                 .suggests(SUGGEST_ORIGINS)
                                 .executes(ctx -> executeSet(ctx))))))
                 .then(Commands.literal("reset")
-                    .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                    .requires(REQUIRE_GM)
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeReset(ctx, null))
                         .then(Commands.argument("layer", IdentifierArgument.id())
                             .suggests(SUGGEST_LAYERS)
                             .executes(ctx -> executeReset(ctx, IdentifierArgument.getId(ctx, "layer"))))))
                 .then(Commands.literal("list")
+                    .requires(REQUIRE_GM)
                     .executes(ctx -> executeList(ctx, null))
                     .then(Commands.argument("layer", IdentifierArgument.id())
                         .suggests(SUGGEST_LAYERS)
                         .executes(ctx -> executeList(ctx, IdentifierArgument.getId(ctx, "layer")))))
                 .then(Commands.literal("has")
+                    .requires(REQUIRE_GM)
                     .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("power", IdentifierArgument.id())
                             .suggests(SUGGEST_POWERS)
@@ -106,12 +119,12 @@ public class OriginCommand {
                 .then(Commands.literal("gui")
                     .executes(ctx -> executeGui(ctx, null))
                     .then(Commands.argument("player", EntityArgument.player())
-                        .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                        .requires(REQUIRE_GM)
                         .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
                 .then(Commands.literal("editor")
                     .executes(ctx -> executeEditor(ctx)))
                 .then(Commands.literal("reload")
-                    .requires(Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER)))
+                    .requires(REQUIRE_GM)
                     .executes(ctx -> executeReload(ctx)));
     }
 

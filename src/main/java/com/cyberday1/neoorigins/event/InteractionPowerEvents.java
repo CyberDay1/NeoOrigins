@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.event;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
 import com.cyberday1.neoorigins.power.builtin.ModifyFoodNutritionPower;
+import com.cyberday1.neoorigins.power.builtin.PreventActionPower;
 import com.cyberday1.neoorigins.power.builtin.RareWanderingLootPower;
 import com.cyberday1.neoorigins.power.builtin.RestrictArmorPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
@@ -178,6 +179,15 @@ public class InteractionPowerEvents {
         final boolean[] rejected = {false};
         ActiveOriginService.forEachOfType(sp, RestrictArmorPower.class, cfg -> {
             if (RestrictArmorPower.isRestricted(neu, slot, cfg)) rejected[0] = true;
+        });
+        // PreventActionPower armor_equip / chestplate_equip — same eject-on-block
+        // behaviour as RestrictArmorPower, gated by the per-slot booleans on Config
+        // (or by the legacy chestplate_equip → CHEST mapping).
+        ActiveOriginService.forEachOfType(sp, PreventActionPower.class, cfg -> {
+            if (PreventActionPower.blocksArmorSlot(slot, cfg)
+                    && PreventActionPower.isGateOpen(sp, cfg)) {
+                rejected[0] = true;
+            }
         });
         if (rejected[0]) {
             sp.setItemSlot(slot, ItemStack.EMPTY);

@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "NeoOrigins example: a complete custom class (Alchemist) added additively without overriding built-ins.",
+    "pack_format": 48
+  }
+}

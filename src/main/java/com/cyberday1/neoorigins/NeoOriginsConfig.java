@@ -795,6 +795,29 @@ public final class NeoOriginsConfig {
         return SUN_HELMET_DURA_DAMAGE_CHANCE.get().floatValue();
     }
 
+    // ── Commands ────────────────────────────────────────────────────────
+    public static final ModConfigSpec.BooleanValue PUBLIC_ORIGIN_GET;
+
+    static {
+        BUILDER.comment(
+            "Command access tuning."
+        ).push("commands");
+
+        PUBLIC_ORIGIN_GET = BUILDER
+            .comment("Allow non-OP players to run /neoorigins get <player> to look up",
+                     "another player's origin. Operators (permission level 2) can always",
+                     "run it regardless of this setting. Set to false to make origins",
+                     "visible only to staff.")
+            .define("public_origin_get", true);
+
+        BUILDER.pop();
+    }
+
+    /** True if any player (not just OPs) may run {@code /neoorigins get <player>}. */
+    public static boolean isPublicOriginGetAllowed() {
+        return PUBLIC_ORIGIN_GET.get();
+    }
+
     /**
      * True if the spawn_location teleport should apply to this origin. Always
      * true for non-ocean origins; for the four built-in ocean origins,
