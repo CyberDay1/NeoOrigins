@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Hardy Constitution" },
+  "description": { "text": "+4 max health." },
+  "attribute": "minecraft:max_health",
+  "amount": 4.0,
+  "operation": "add_value"
+}

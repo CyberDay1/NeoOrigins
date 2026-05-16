@@ -138,12 +138,16 @@
         "type": { "const": "neoorigins:prevent_action" },
         "action": {
           "type": "string",
-          "enum": ["FIRE", "FALL_DAMAGE", "DROWN", "SWIM", "FREEZE", "SPRINT_FOOD"]
+          "enum": ["FIRE", "FALL_DAMAGE", "DROWN", "SWIM", "FREEZE", "SPRINT_FOOD", "ARMOR_EQUIP", "CHESTPLATE_EQUIP"]
         },
         "active_when": {
           "type": "string",
           "enum": ["ALWAYS", "NOT_SNEAKING", "SNEAKING", "ON_GROUND", "NOT_ON_GROUND"]
-        }
+        },
+        "head":  { "type": "boolean", "description": "ARMOR_EQUIP only — block helmet slot." },
+        "chest": { "type": "boolean", "description": "ARMOR_EQUIP only — block chestplate slot." },
+        "legs":  { "type": "boolean", "description": "ARMOR_EQUIP only — block leggings slot." },
+        "feet":  { "type": "boolean", "description": "ARMOR_EQUIP only — block boots slot." }
       },
       "required": ["type", "action"]
     },

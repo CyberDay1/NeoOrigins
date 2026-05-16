@@ -13,6 +13,7 @@
     "FoodDataNoRegenMixin",
     "EnderManLookMixin",
     "EntityMakeStuckInBlockMixin",
+    "EntityBlockSpeedFactorMixin",
     "PlayerStartFallFlyingMixin",
     "ItemStackEdibleDurationMixin",
     "ItemStackEdibleAnimationMixin",

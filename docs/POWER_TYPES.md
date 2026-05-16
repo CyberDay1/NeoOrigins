@@ -159,6 +159,7 @@ Prevents a specific harmful action or event from affecting the player.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `action` | string | yes | — | The action to prevent (see values below) |
+| `head` / `chest` / `legs` / `feet` | bool | no | `false` | Per-slot toggles for `armor_equip` only. When `true`, the matching armor slot rejects equip attempts (item snaps back to inventory, drops on the ground if full). |
 
 **Action values:**
 
@@ -169,7 +170,8 @@ Prevents a specific harmful action or event from affecting the player.
 | `drown` | Drowning damage |
 | `freeze` | Freeze damage from powder snow |
 | `sprint_food` | Sprinting no longer drains extra hunger |
-| `chestplate_equip` | Prevents wearing chestplate armor |
+| `armor_equip` | Prevents wearing armor in any slot whose corresponding `head` / `chest` / `legs` / `feet` boolean is `true`. Items are ejected back to the inventory (or dropped if full). |
+| `chestplate_equip` | Legacy alias of `armor_equip` with `chest: true`. Kept for back-compat with packs that pre-date `armor_equip`. |
 | `eye_damage` | Prevents projectile hits to the eye |
 | `water_damage` | Prevents water/rain contact damage |
 | `swim` | Prevents swimming (velocity-sinks the player in water) |
@@ -183,6 +185,18 @@ Prevents a specific harmful action or event from affecting the player.
   "action": "fire",
   "name": "Fire Immunity",
   "description": "Immune to fire and lava."
+}
+```
+
+**Example — heavy-armor restriction (chest + legs only):**
+```json
+{
+  "type": "neoorigins:prevent_action",
+  "action": "armor_equip",
+  "chest": true,
+  "legs":  true,
+  "name": "Light-Footed",
+  "description": "Cannot wear chestplate or leggings."
 }
 ```
 
@@ -318,18 +332,25 @@ No additional fields beyond `name` and `description`.
 
 ## `neoorigins:no_slowdown`
 
-Prevents the player from being slowed down by specific blocks (cobwebs, berry bushes, etc.).
+Prevents the player from being slowed by movement-impeding blocks: cobwebs,
+sweet berry bushes, and powder snow (the stuck-velocity clamp), plus soul
+sand and honey blocks (the reduced walk-speed factor).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `block_tag` | string | no | _(all slowdown blocks)_ | Restrict immunity to blocks in this tag |
+
+With `block_tag` omitted the immunity is unconditional and predicted
+client-side, so there's no rubberbanding when entering a web. Restricting
+it to a tag keeps the check server-authoritative — a brief correction may
+be visible.
 
 **Example — immune to all block slowdown:**
 ```json
 {
   "type": "neoorigins:no_slowdown",
   "name": "Unimpeded",
-  "description": "Not slowed by cobwebs or dense foliage."
+  "description": "Not slowed by webs, soul sand, or dense foliage."
 }
 ```
 

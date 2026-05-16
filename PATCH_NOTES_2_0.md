@@ -2,6 +2,32 @@
 
 ---
 
+## v2.0.37
+
+### New / Changed Powers
+
+- **`neoorigins:active_dash` + `neoorigins:dash` action** — new optional `set_velocity` bool. When `true`, the dash overwrites player velocity instead of adding to it, so backward momentum can no longer cancel a dash. Default `false` preserves existing behavior. All four built-in dashes (`feline_active_launch`, `breeze_wind_dash`, `strider_stampede`, `umbral_active_dash`) now ship with `set_velocity: true`; pack authors can override in a datapack to restore the additive feel.
+- **`hiveling_jump_boost`** — Hiveling's 60% size scaling made a one-block jump impossible. New `attribute_modifier` on `minecraft:jump_strength` (+40%, `ADD_MULTIPLIED_BASE`) restores single-block traversal without changing the small frame.
+- **`prevent_action: armor_equip`** — new action with per-slot `head` / `chest` / `legs` / `feet` toggles. Blocked slots reject equip attempts (item returns to inventory, drops if full). `chestplate_equip` retained as a legacy alias (= `armor_equip` with `chest: true`) for older packs.
+- **`neoorigins:no_slowdown`** — now functional. The power was registered but had no implementation (a silent no-op). It now cancels the stuck-in-block slowdown (cobweb, sweet berry bush, powder snow) **and** the soul sand / honey-block walk-speed reduction. The optional `block_tag` field restricts immunity to a block tag; with no tag the immunity is unconditional and client-predicted (no rubberbanding into webs). A tag-restricted variant stays server-authoritative.
+
+### Bug Fixes
+
+- **Minion-death server crash** — tracked minions dying or hitting their despawn tick no longer crash the server event loop. Surfaced on a 1.21.1 SMP where clients saw "Internal server error" on every minion-death attack.
+- **Player commands gated by OP (26.1 build)** — the `/origin`–`/neoorigins` tree was gated at the root, so `editor`, `evolve accept` / `decline`, and the self-`gui` were OP-only on the 26.1 build, diverging from 1.21.1. Permissions are now applied per-subcommand on both builds; player-facing commands work without OP everywhere.
+
+### Commands & Config
+
+- **`/neoorigins get <player>` for non-operators** — new `[commands] public_origin_get` option in `neoorigins-common.toml` (default `true`). Any player can look up another player's origin; operators can always run it. Set `false` to keep origins staff-only.
+
+### Documentation
+
+- `prevent_action: armor_equip` documented in `docs/POWER_TYPES.md` (field table, action values, worked example); `docs/schema/power.schema.json` updated with the new enum values and per-slot boolean properties.
+- **`neoorigins:no_slowdown`** rewritten in `docs/POWER_TYPES.md` (soul sand / honey scope, client-prediction note); the `[commands] public_origin_get` option added to the `README.md` config example.
+- **Custom classes** — new `docs/CLASSES.md` explaining that classes are origins in the special `neoorigins:class` layer, the recommended additive (no-override) method, conventions, defaults, and config. New copy-paste `examples/custom_class/` datapack; `docs/PACK_FORMAT.md` and `README.md` cross-link the guide.
+
+---
+
 ## v2.0.35
 
 ### Sub-Origins (Conditioned Layers)

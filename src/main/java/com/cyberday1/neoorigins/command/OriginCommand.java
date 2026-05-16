@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.command;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
@@ -81,7 +82,8 @@ public class OriginCommand {
                         .executes(OriginCommand::executeEvolveQuery))))
             // ── Admin commands (permission 2) ──────────────────────────
             .then(Commands.literal("get")
-                .requires(cs -> cs.hasPermission(2))
+                // OPs always; other players only when public_origin_get is on.
+                .requires(cs -> cs.hasPermission(2) || NeoOriginsConfig.isPublicOriginGetAllowed())
                 .then(Commands.argument("player", EntityArgument.player())
                     .executes(ctx -> executeGet(ctx, null))
                     .then(Commands.argument("layer", ResourceLocationArgument.id())

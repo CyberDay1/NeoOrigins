@@ -100,6 +100,8 @@ See `docs/2_0_CHANGES.md` for the full Phase 1–8 architecture write-up.
 
 Classes are a second selection layer — every player picks both an origin and a class. All class powers are passive or condition-gated — **zero keybind slots consumed** by any class.
 
+Pack authors can add their own classes — see [docs/CLASSES.md](docs/CLASSES.md).
+
 | Class | Description |
 |---|---|
 | **Warrior** | +1 attack, 30% KB resist, +2 armor, +2 HP, immune weakness |
@@ -154,6 +156,11 @@ rerolls = 0
 rules = [
     # "neoorigins:elytrian_flight = minecraft:the_nether, minecraft:the_end"
 ]
+
+# Command access
+[commands]
+# Allow non-OP players to run /neoorigins get <player> (OPs always can)
+public_origin_get = true
 ```
 
 ---
