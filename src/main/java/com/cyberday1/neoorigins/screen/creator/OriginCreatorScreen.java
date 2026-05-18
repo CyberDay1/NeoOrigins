@@ -47,6 +47,7 @@ public class OriginCreatorScreen extends Screen {
         super(Component.translatable("screen.neoorigins.creator"));
         this.parent = parent;
         this.draft = draft;
+        com.cyberday1.neoorigins.client.ClientCreatorState.clear();
     }
 
     /** The shared model every tab reads/writes. */
@@ -92,9 +93,31 @@ public class OriginCreatorScreen extends Screen {
         tab.init(this, contentX, contentY, contentW, contentH);
         tab.pullFromDraft();
 
+        // Save | Apply | Close — server gates each; result shown above the bar.
+        int by = height - 26, bw = 78, gap = 4;
+        int total = bw * 3 + gap * 2;
+        int bx = (width - total) / 2;
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.neoorigins.creator.save"), b -> sendSave())
+            .bounds(bx, by, bw, 20).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.neoorigins.creator.apply"), b -> sendApply())
+            .bounds(bx + bw + gap, by, bw, 20).build());
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.neoorigins.info.close"), b -> onClose())
-            .bounds(width / 2 - 40, height - 26, 80, 20).build());
+            .bounds(bx + (bw + gap) * 2, by, bw, 20).build());
+    }
+
+    private void sendSave() {
+        tabs.get(activeTab).pushToDraft();
+        net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(
+            new com.cyberday1.neoorigins.network.payload.SaveCustomOriginPayload(
+                com.cyberday1.neoorigins.service.OriginDraftJson.toJson(draft)));
+    }
+
+    private void sendApply() {
+        net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(
+            new com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload());
     }
 
     private void switchTo(int idx) {
@@ -126,6 +149,14 @@ public class OriginCreatorScreen extends Screen {
 
         tabs.get(activeTab).render(g, mouseX, mouseY, partial,
             contentX, contentY, contentW, contentH);
+
+        // Latest server Save/Apply result, just above the button bar.
+        String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
+        if (!msg.isEmpty()) {
+            int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
+                ? 0xFF55DD77 : 0xFFDD5555;
+            g.centeredText(font, Component.literal(msg), width / 2, height - 42, color);
+        }
     }
 
     @Override

@@ -64,6 +64,12 @@ public class NeoOriginsKeybindings {
         NEOORIGINS_CATEGORY
     );
 
+    public static final KeyMapping OPEN_CREATOR = new KeyMapping(
+        "key.neoorigins.open_creator",
+        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default — server gates access anyway
+        NEOORIGINS_CATEGORY
+    );
+
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.registerCategory(NEOORIGINS_CATEGORY);
         event.register(SKILL_1);
@@ -75,5 +81,6 @@ public class NeoOriginsKeybindings {
         event.register(CLASS_SKILL);
         event.register(VIEW_INFO);
         event.register(EDIT_HUD);
+        event.register(OPEN_CREATOR);
     }
 }

@@ -54,6 +54,13 @@ public class NeoOriginsClientEvents {
             Minecraft.getInstance().setScreen(new ResourceHudEditorScreen());
         }
 
+        if (NeoOriginsKeybindings.OPEN_CREATOR.consumeClick()) {
+            // Server gates access and replies with OpenEditorScreenPayload;
+            // we never open the creator client-side directly.
+            ClientPacketDistributor.sendToServer(
+                new com.cyberday1.neoorigins.network.payload.RequestOpenCreatorPayload());
+        }
+
         // Detect jump press while airborne for flight power activation
         boolean jumpHeld = Minecraft.getInstance().options.keyJump.isDown();
         boolean jumpPressed = jumpHeld && !wasJumping;
