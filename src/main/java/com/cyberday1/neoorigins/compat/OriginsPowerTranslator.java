@@ -45,7 +45,8 @@ public final class OriginsPowerTranslator {
         "origins:launch",               "apace:launch",
         "origins:entity_glow",          "apace:entity_glow",
         "origins:self_glow",            "apace:self_glow",
-        "origins:prevent_death",        "apace:prevent_death",
+        // prevent_death is now Route A (translatePreventDeath); it falls back
+        // to Route B only when a damage_condition is present (see that method).
         "origins:action_when_hit",      "apace:action_when_hit",
         "origins:action_when_damage_taken", "apace:action_when_damage_taken",
         "origins:attacker_action_when_hit", "apace:attacker_action_when_hit",
@@ -244,6 +245,7 @@ public final class OriginsPowerTranslator {
             case "origins:modify_damage_taken"                                    -> translateModifyDamage(src, "in");
             case "origins:modify_damage_dealt"                                    -> translateModifyDamage(src, "out");
             case "origins:invulnerability"                                        -> translateInvulnerability(src);
+            case "origins:prevent_death",          "apace:prevent_death"          -> translatePreventDeath(src);
             case "origins:disable_regen"                                          -> translateSimplePrevent("SPRINT_FOOD");
             case "origins:slow_falling"                                           -> translateSimplePrevent("FALL_DAMAGE");
             case "origins:walk_speed",             "apace:walk_speed"             -> translateWalkSpeed(src);
@@ -498,6 +500,29 @@ public final class OriginsPowerTranslator {
      * Translates {@code origins:action_on_wake_up} to
      * {@code neoorigins:action_on_event} with event {@code wake_up}.
      */
+    /**
+     * Translates Origins/Apace {@code prevent_death} to the native
+     * {@code neoorigins:prevent_death} power. The power-level {@code condition}
+     * and {@code entity_action} pass straight through — the native power parses
+     * them with the same ConditionParser / ActionParser, so no remapping is
+     * needed and the condition is finally honored (the old Route B
+     * parsePreventDeath silently dropped it).
+     *
+     * <p>Powers that use a {@code damage_condition} return empty, falling back
+     * to Route B so their exact prior behavior is preserved: an arbitrary
+     * Apoli damage-condition tree cannot be reduced losslessly to the native
+     * {@code damage_types} filter string, and guessing would be worse than the
+     * known legacy behavior. Net effect: strictly better, never worse.
+     */
+    private static Optional<JsonObject> translatePreventDeath(JsonObject src) {
+        if (src.has("damage_condition")) return Optional.empty();
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:prevent_death");
+        if (src.has("entity_action")) out.add("entity_action", src.get("entity_action"));
+        if (src.has("condition"))     out.add("condition", src.get("condition"));
+        return Optional.of(out);
+    }
+
     private static Optional<JsonObject> translateActionOnWakeUp(JsonObject src) {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:action_on_event");

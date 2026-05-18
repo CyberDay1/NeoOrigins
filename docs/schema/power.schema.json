@@ -26,7 +26,7 @@
         "neoorigins:modify_damage", "neoorigins:modify_player_spawn", "neoorigins:more_smoker_xp",
         "neoorigins:no_mob_spawns_nearby", "neoorigins:no_natural_regen", "neoorigins:no_projectile_divergence",
         "neoorigins:no_slowdown", "neoorigins:persistent_effect", "neoorigins:phantom_form",
-        "neoorigins:prevent_action", "neoorigins:projectile_immunity", "neoorigins:quality_equipment",
+        "neoorigins:prevent_action", "neoorigins:prevent_death", "neoorigins:projectile_immunity", "neoorigins:quality_equipment",
         "neoorigins:rare_wandering_loot", "neoorigins:restrict_armor", "neoorigins:scare_entities",
         "neoorigins:shadow_orb", "neoorigins:size_scaling", "neoorigins:sneaky",
         "neoorigins:starting_equipment", "neoorigins:stealth", "neoorigins:summon_minion",

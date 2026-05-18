@@ -128,6 +128,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | Type | Summary |
 |---|---|
 | [`invulnerability`](POWER_TYPES.md#neooriginsinvulnerability) | Filter damage types the player is immune to. |
+| [`prevent_death`](POWER_TYPES.md#neooriginsprevent_death) | Cancel the lethal blow; condition / damage-type / cooldown gated. |
 | [`projectile_immunity`](POWER_TYPES.md#neooriginsprojectile_immunity) | Filter projectile types the player is immune to. |
 | [`effect_immunity`](POWER_TYPES.md#neooriginseffect_immunity) | Block specific status effects. |
 | [`dodge_chance`](POWER_TYPES.md#neooriginsdodge_chance) | Percentage chance to dodge incoming damage. |

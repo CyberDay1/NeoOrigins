@@ -124,6 +124,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, SlimeMoisturePower>       SLIME_MOISTURE         = reg("slime_moisture",         new SlimeMoisturePower());
     public static final DeferredHolder<PowerType<?>, com.cyberday1.neoorigins.power.builtin.ResourcePower> RESOURCE = reg("resource", new com.cyberday1.neoorigins.power.builtin.ResourcePower());
     public static final DeferredHolder<PowerType<?>, SlimeDeathSavePower>      SLIME_DEATH_SAVE       = reg("slime_death_save",       new SlimeDeathSavePower());
+    public static final DeferredHolder<PowerType<?>, com.cyberday1.neoorigins.power.builtin.PreventDeathPower> PREVENT_DEATH = reg("prevent_death", new com.cyberday1.neoorigins.power.builtin.PreventDeathPower());
     public static final DeferredHolder<PowerType<?>, SlimeLevelHPPower>        SLIME_LEVEL_HP         = reg("slime_level_hp",         new SlimeLevelHPPower());
     public static final DeferredHolder<PowerType<?>, ThornsOnHitPower>         THORNS_ON_HIT          = reg("thorns_on_hit",          new ThornsOnHitPower());
     public static final DeferredHolder<PowerType<?>, LightLevelEffectPower>    LIGHT_LEVEL_EFFECT     = reg("light_level_effect",     new LightLevelEffectPower());

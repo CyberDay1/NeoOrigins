@@ -15,8 +15,9 @@ bin/
 *.ipr
 *.iws
 
-# VS Code
+# Visual Studio
 .vscode/
+.vs/
 
 # Mac
 .DS_Store
@@ -36,3 +37,6 @@ reference/
 # Claude
 CLAUDE.md
 .claude/
+
+# Agent instructions (local only)
+AGENTS.md

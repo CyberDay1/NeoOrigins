@@ -339,6 +339,23 @@ public class CombatPowerEvents {
             }
         }
 
+        // Native prevent_death — cancel the lethal blow if the player has the
+        // power and its condition / damage-type filter / cooldown all allow it.
+        if (event.getEntity() instanceof ServerPlayer dyingSp) {
+            final boolean[] saved = {false};
+            ActiveOriginService.forEachOfType(dyingSp,
+                com.cyberday1.neoorigins.power.builtin.PreventDeathPower.class, cfg -> {
+                    if (!saved[0] && com.cyberday1.neoorigins.power.builtin.PreventDeathPower
+                            .shouldPreventDeath(dyingSp, cfg, event.getSource())) {
+                        saved[0] = true;
+                    }
+                });
+            if (saved[0]) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
         // Dispatch DEATH event for the dying player (if applicable)
         if (event.getEntity() instanceof ServerPlayer dyingSp) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
