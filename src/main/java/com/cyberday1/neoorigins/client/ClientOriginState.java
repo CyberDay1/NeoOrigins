@@ -37,15 +37,20 @@ public class ClientOriginState {
 
     /**
      * Trampoline used by {@code NeoOriginsNetwork.handleOpenEditorScreen} so the
-     * `new OriginEditorScreen(...)` opcode lives in this client-package class
+     * `new OriginCreatorScreen(...)` opcode lives in this client-package class
      * instead of in NeoOriginsNetwork. RuntimeDistCleaner walks NEW opcodes in
      * common-side classes during dist verification — referencing a Screen
      * subclass directly from NeoOriginsNetwork forces a Screen class load on
      * dedicated server and the boot crashes. Routing through this method keeps
      * the constant-pool reference in client-side code only.
+     *
+     * <p>2.1: opens the tabbed {@code OriginCreatorScreen} with a fresh draft
+     * (editing an existing origin lands in a later phase). The old
+     * {@code OriginEditorScreen} is retained in-tree but no longer opened.
      */
     public static void openEditorScreen() {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.setScreen(new com.cyberday1.neoorigins.screen.OriginEditorScreen(null));
+        mc.setScreen(new com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen(
+            null, new com.cyberday1.neoorigins.screen.creator.model.OriginDraft()));
     }
 }
