@@ -61,6 +61,20 @@ public final class CustomPackCheck {
         int n = l3.getAsJsonArray("origins").size();
         if (n != 2) { fail("layer patch should dedup then append (expected 2, got " + n + ")"); failures++; }
 
+        // 4. OriginDraftJson round-trip (the network transport shape).
+        d.icon = ResourceLocation.fromNamespaceAndPath("minecraft", "feather");
+        String wire = com.cyberday1.neoorigins.service.OriginDraftJson.toJson(d);
+        OriginDraft rt = com.cyberday1.neoorigins.service.OriginDraftJson.fromJson(wire);
+        if (!rt.idPath.equals(d.idPath) || !rt.name.equals(d.name)
+                || rt.impact != d.impact || rt.order != d.order
+                || !rt.icon.equals(d.icon) || !rt.layerId.equals(d.layerId)
+                || rt.powers.size() != d.powers.size()
+                || !rt.powers.get(0).powerId.equals(d.powers.get(0).powerId)
+                || !rt.powers.get(0).typeId.equals(d.powers.get(0).typeId)
+                || !rt.powers.get(0).rawJson.equals(d.powers.get(0).rawJson)) {
+            fail("OriginDraftJson round-trip lost data"); failures++;
+        }
+
         System.out.printf("[custompack-check] %d failures%n", failures);
         if (failures > 0) System.exit(1);
         System.out.println("[custompack-check] OK");

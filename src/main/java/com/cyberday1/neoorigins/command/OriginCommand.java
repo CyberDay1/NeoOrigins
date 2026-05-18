@@ -8,7 +8,6 @@ import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
-import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -122,6 +121,8 @@ public class OriginCommand {
                     .requires(cs -> cs.hasPermission(2))
                     .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
             .then(Commands.literal("editor")
+                .requires(cs -> cs.hasPermission(
+                    com.cyberday1.neoorigins.service.CreatorAccess.LEVEL))
                 .executes(OriginCommand::executeEditor))
             .then(Commands.literal("reload")
                 .requires(cs -> cs.hasPermission(2))
@@ -341,9 +342,7 @@ public class OriginCommand {
 
     private static int executeEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer target = ctx.getSource().getPlayerOrException();
-        NeoOriginsNetwork.syncRegistryToPlayer(target);
-        NeoOriginsNetwork.syncToPlayer(target);
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(target, new OpenEditorScreenPayload());
+        NeoOriginsNetwork.openCreatorFor(target);
         return 1;
     }
 

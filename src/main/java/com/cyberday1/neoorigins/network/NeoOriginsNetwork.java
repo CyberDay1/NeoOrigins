@@ -109,6 +109,12 @@ public class NeoOriginsNetwork {
             NeoOriginsNetwork::handleOpenEditorScreen
         );
 
+        registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.CreatorResultPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.CreatorResultPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleCreatorResult
+        );
+
         registrar.playToServer(
             ChooseOriginPayload.TYPE,
             ChooseOriginPayload.STREAM_CODEC,
@@ -149,6 +155,24 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload.TYPE,
             com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload.STREAM_CODEC,
             NeoOriginsNetwork::handlePickerAbandoned
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.RequestOpenCreatorPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.RequestOpenCreatorPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleRequestOpenCreator
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.SaveCustomOriginPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SaveCustomOriginPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSaveCustomOrigin
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleApplyCustomPack
         );
     }
 
@@ -266,6 +290,88 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientOriginState.openEditorScreen()
         );
+    }
+
+    private static void handleCreatorResult(
+            com.cyberday1.neoorigins.network.payload.CreatorResultPayload payload, IPayloadContext ctx) {
+        // Registered playToClient; same dist-safety guard as handleOpenEditorScreen.
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientCreatorState.setResult(
+                payload.ok(), payload.message())
+        );
+    }
+
+    /**
+     * Shared open path for the 2.1 creator (command + keybind). Gate-checked by
+     * the caller; syncs registry/state then asks the client to open the screen
+     * via {@link OpenEditorScreenPayload} (the Screen-opcode trampoline lives in
+     * {@code ClientOriginState}, see {@link #handleOpenEditorScreen}).
+     */
+    public static void openCreatorFor(ServerPlayer sp) {
+        syncRegistryToPlayer(sp);
+        syncToPlayer(sp);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new OpenEditorScreenPayload());
+    }
+
+    private static void sendCreatorResult(ServerPlayer sp, boolean ok, String message) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp,
+            new com.cyberday1.neoorigins.network.payload.CreatorResultPayload(ok, message));
+    }
+
+    private static void handleRequestOpenCreator(
+            com.cyberday1.neoorigins.network.payload.RequestOpenCreatorPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                NeoOrigins.LOGGER.warn("Player {} requested the creator without permission",
+                    sp.getName().getString());
+                sendCreatorResult(sp, false, "You don't have permission to use the origin creator.");
+                return;
+            }
+            openCreatorFor(sp);
+        });
+    }
+
+    private static void handleSaveCustomOrigin(
+            com.cyberday1.neoorigins.network.payload.SaveCustomOriginPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                NeoOrigins.LOGGER.warn("Player {} tried to save a custom origin without permission",
+                    sp.getName().getString());
+                sendCreatorResult(sp, false, "You don't have permission to use the origin creator.");
+                return;
+            }
+            com.cyberday1.neoorigins.screen.creator.model.OriginDraft draft;
+            try {
+                draft = com.cyberday1.neoorigins.service.OriginDraftJson.fromJson(payload.draftJson());
+            } catch (IllegalArgumentException e) {
+                sendCreatorResult(sp, false, "Invalid draft: " + e.getMessage());
+                return;
+            }
+            var result = com.cyberday1.neoorigins.service.CustomPackWriter.write(sp.getServer(), draft);
+            sendCreatorResult(sp, result.ok(), result.ok()
+                ? "Saved " + result.paths().size() + " file(s). Press Apply to reload."
+                : "Save failed: " + result.error());
+        });
+    }
+
+    private static void handleApplyCustomPack(
+            com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                NeoOrigins.LOGGER.warn("Player {} tried to apply the custom pack without permission",
+                    sp.getName().getString());
+                sendCreatorResult(sp, false, "You don't have permission to use the origin creator.");
+                return;
+            }
+            com.cyberday1.neoorigins.service.CustomPackReloadService.reload(sp.getServer())
+                .whenComplete((v, err) -> sendCreatorResult(sp, err == null,
+                    err == null ? "Datapack reloaded — custom origins are live."
+                                 : "Reload failed: " + err.getMessage()));
+        });
     }
 
     // ---------- Server-side handlers ----------
