@@ -20,6 +20,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
@@ -147,6 +148,22 @@ public class PlayerLifecycleEvents {
                 sp.getName().getString(), sp.getUUID(), sp.getAbsorptionAmount());
             sp.setAbsorptionAmount(0.0f);
         }
+    }
+
+    /**
+     * Re-push the config-filtered origin registry after a datapack reload
+     * (and on login). {@code /reload} re-runs {@code OriginDataManager.apply()},
+     * which repopulates the shared singleton with the *unfiltered* origin set
+     * (config-disabled origins are intentionally kept so {@code /neoorigins set}
+     * can still reference them). On an integrated server the selection screen
+     * shares that singleton, so without a re-sync the disabled origins reappear
+     * in the picker after {@code /reload}. NeoForge fires this for the single
+     * joining player on login, or for every player on {@code /reload} —
+     * {@link OnDatapackSyncEvent#getRelevantPlayers()} resolves the right set.
+     */
+    @SubscribeEvent
+    public static void onDatapackSync(OnDatapackSyncEvent event) {
+        event.getRelevantPlayers().forEach(NeoOriginsNetwork::syncRegistryToPlayer);
     }
 
     @SubscribeEvent

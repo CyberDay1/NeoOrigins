@@ -59,6 +59,27 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         applyModifiers(player, config, false);
+        // Defensively clear any drifted size modifier (e.g. the power's
+        // `type` string changed across a mod update, so the deterministic
+        // id no longer matches) — otherwise the player is left permanently
+        // rescaled after an origin change. The `_scale` / `_reach_block` /
+        // `_reach_entity` suffixes are SizeScaling-exclusive, so this never
+        // touches other neoorigins reach powers. GitHub #90.
+        clearBySuffix(player, Attributes.SCALE, "_scale");
+        clearBySuffix(player, Attributes.BLOCK_INTERACTION_RANGE, "_reach_block");
+        clearBySuffix(player, Attributes.ENTITY_INTERACTION_RANGE, "_reach_entity");
+    }
+
+    private static void clearBySuffix(ServerPlayer player,
+            net.minecraft.core.Holder<Attribute> attr, String suffix) {
+        AttributeInstance inst = player.getAttribute(attr);
+        if (inst == null) return;
+        for (AttributeModifier mod : new java.util.ArrayList<>(inst.getModifiers())) {
+            Identifier id = mod.id();
+            if ("neoorigins".equals(id.getNamespace()) && id.getPath().endsWith(suffix)) {
+                inst.removeModifier(id);
+            }
+        }
     }
 
     private void applyModifiers(ServerPlayer player, Config config, boolean add) {
