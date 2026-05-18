@@ -1,0 +1,195 @@
+package com.cyberday1.neoorigins.power.schemaform;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
+/**
+ * Parses {@code power.schema.json} and resolves, per power type, the list of
+ * {@link FormFieldSpec}s the in-game creator renders for powers that have a
+ * structured schema branch. Powers without a branch fall back to
+ * {@link CodecFieldSpecExtractor} (Config-record reflection).
+ *
+ * <p>Schema shape (draft 2020-12): a common {@code properties} block
+ * (type/name/description/hidden) shared by every power, plus a {@code oneOf}
+ * array of branches. A <em>structured</em> branch carries
+ * {@code "$comment": "<powerId>"}, a {@code properties} map of that power's
+ * fields, and {@code required}. A final <em>fallback</em> branch matches every
+ * type NOT in its {@code type.not.enum} list with {@code additionalProperties:
+ * true} — i.e. no field info at all.
+ *
+ * <p>At runtime the schema is loaded from the classpath resource
+ * {@code /data/neoorigins/schema/power.schema.json} (the build copies it there
+ * from {@code docs/schema/}); {@link #load(Path)} remains for headless tooling.
+ */
+public final class SchemaFormModel {
+
+    /** Classpath location the build's processResources copy writes the schema to. */
+    public static final String RESOURCE_PATH = "/data/neoorigins/schema/power.schema.json";
+
+    /** Common fields every power shares (from root {@code properties}). */
+    private final List<FormFieldSpec> commonFields = new ArrayList<>();
+    /** powerId → its structured field list (common + branch), if it has a branch. */
+    private final Map<String, List<FormFieldSpec>> structured = new LinkedHashMap<>();
+    /** Every power id appearing in the root {@code type} enum (the universe). */
+    private final Set<String> allTypes = new TreeSet<>();
+
+    private SchemaFormModel() {}
+
+    /** Load from a filesystem path (headless tooling / tests). */
+    public static SchemaFormModel load(Path schemaFile) throws IOException {
+        return parseJson(Files.readString(schemaFile));
+    }
+
+    /** Load from an open stream (runtime classpath resource); does not close it. */
+    public static SchemaFormModel load(InputStream in) throws IOException {
+        return parseJson(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Load from the packaged classpath resource ({@link #RESOURCE_PATH}). Throws
+     * {@link UncheckedIOException} if the resource is missing — that means the
+     * build's processResources copy step did not run, a hard packaging error.
+     */
+    public static SchemaFormModel loadFromClasspath() {
+        try (InputStream in = SchemaFormModel.class.getResourceAsStream(RESOURCE_PATH)) {
+            if (in == null) {
+                throw new UncheckedIOException(new IOException(
+                    "power schema not on classpath at " + RESOURCE_PATH
+                        + " — build processResources copy missing"));
+            }
+            return load(in);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static SchemaFormModel parseJson(String json) {
+        JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+        SchemaFormModel m = new SchemaFormModel();
+        m.parse(root);
+        return m;
+    }
+
+    private void parse(JsonObject root) {
+        JsonObject props = root.getAsJsonObject("properties");
+        Set<String> rootRequired = readRequired(root);
+
+        // Universe of types from properties.type.enum
+        JsonArray typeEnum = props.getAsJsonObject("type").getAsJsonArray("enum");
+        for (JsonElement e : typeEnum) allTypes.add(e.getAsString());
+
+        // Common fields: every root property except the `type` discriminator.
+        for (Map.Entry<String, JsonElement> e : props.entrySet()) {
+            if (e.getKey().equals("type")) continue;
+            commonFields.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
+                rootRequired.contains(e.getKey())));
+        }
+
+        // Structured oneOf branches.
+        for (JsonElement be : root.getAsJsonArray("oneOf")) {
+            JsonObject branch = be.getAsJsonObject();
+            JsonObject bprops = branch.has("properties") ? branch.getAsJsonObject("properties") : null;
+            if (bprops == null || !bprops.has("type")) continue;
+            JsonObject typeProp = bprops.getAsJsonObject("type");
+            if (!typeProp.has("const")) continue; // fallback branch uses type.not.enum — skip
+            String powerId = typeProp.get("const").getAsString();
+
+            Set<String> req = readRequired(branch);
+            List<FormFieldSpec> fields = new ArrayList<>(commonFields);
+            for (Map.Entry<String, JsonElement> e : bprops.entrySet()) {
+                if (e.getKey().equals("type")) continue;
+                fields.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
+                    req.contains(e.getKey())));
+            }
+            structured.put(powerId, fields);
+        }
+    }
+
+    private static Set<String> readRequired(JsonObject o) {
+        Set<String> s = new TreeSet<>();
+        if (o.has("required")) for (JsonElement e : o.getAsJsonArray("required")) s.add(e.getAsString());
+        return s;
+    }
+
+    /** Map a single JSON-schema property node to a {@link FormFieldSpec}. */
+    private static FormFieldSpec mapProperty(String name, JsonObject p, boolean required) {
+        String desc = p.has("description") ? p.get("description").getAsString() : null;
+        String ref = p.has("$ref") ? p.get("$ref").getAsString() : null;
+        Object def = p.has("default") ? unwrap(p.get("default")) : null;
+
+        List<String> enumVals = new ArrayList<>();
+        if (p.has("enum")) for (JsonElement e : p.getAsJsonArray("enum")) enumVals.add(e.getAsString());
+
+        Double min = null, max = null;
+        if (p.has("minimum")) min = p.get("minimum").getAsDouble();
+        if (p.has("exclusiveMinimum")) min = p.get("exclusiveMinimum").getAsDouble();
+        if (p.has("maximum")) max = p.get("maximum").getAsDouble();
+        if (p.has("exclusiveMaximum")) max = p.get("exclusiveMaximum").getAsDouble();
+
+        FormFieldSpec.Kind kind;
+        if (ref != null) {
+            kind = FormFieldSpec.Kind.REF;
+        } else if (!enumVals.isEmpty()) {
+            kind = FormFieldSpec.Kind.ENUM;
+        } else if (p.has("oneOf")) {
+            kind = FormFieldSpec.Kind.MIXED; // e.g. name: string | object
+        } else if (p.has("type")) {
+            kind = switch (p.get("type").getAsString()) {
+                case "string"  -> FormFieldSpec.Kind.STRING;
+                case "integer" -> FormFieldSpec.Kind.INTEGER;
+                case "number"  -> FormFieldSpec.Kind.NUMBER;
+                case "boolean" -> FormFieldSpec.Kind.BOOLEAN;
+                case "array"   -> FormFieldSpec.Kind.ARRAY;
+                case "object"  -> FormFieldSpec.Kind.OBJECT;
+                default        -> FormFieldSpec.Kind.UNKNOWN;
+            };
+        } else {
+            kind = FormFieldSpec.Kind.UNKNOWN;
+        }
+        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref);
+    }
+
+    private static Object unwrap(JsonElement e) {
+        if (e.isJsonPrimitive()) {
+            var pr = e.getAsJsonPrimitive();
+            if (pr.isBoolean()) return pr.getAsBoolean();
+            if (pr.isNumber()) return pr.getAsNumber();
+            return pr.getAsString();
+        }
+        return e.toString();
+    }
+
+    // ── Accessors ───────────────────────────────────────────────────────────
+
+    public Set<String> allTypes() { return allTypes; }
+
+    public List<FormFieldSpec> commonFields() { return commonFields; }
+
+    public boolean hasStructuredForm(String powerId) { return structured.containsKey(powerId); }
+
+    /**
+     * The structured field list for a power, or just the common fields (the
+     * fallback branch contributes no fields) when it has no structured branch.
+     */
+    public List<FormFieldSpec> formFor(String powerId) {
+        return structured.getOrDefault(powerId, commonFields);
+    }
+
+    /** powerIds that have a structured branch. */
+    public Set<String> structuredTypes() { return structured.keySet(); }
+}
