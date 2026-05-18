@@ -277,6 +277,47 @@ Multiplies damage dealt or received, optionally filtered to a specific damage ty
 
 ---
 
+## `neoorigins:prevent_death`
+
+Cancels the lethal blow instead of letting the player die. Faithful to Origins' `prevent_death`, with first-class condition and damage-type gating.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `condition` | object | no | _(always)_ | Standard entity condition; the power only saves the player while it is true. |
+| `damage_types` | string | no | _(all)_ | Damage-type filter (comma-separated, `#tags`, msgIds, or registry keys). When set, only matching killing blows are prevented. |
+| `invert` | bool | no | `false` | Flips `damage_types` into a blacklist: prevent all deaths _except_ the listed types. |
+| `set_health` | float | no | `1.0` | Health the player is left at after a save (minimum 1). |
+| `cooldown_ticks` | int | no | `0` | After a save, the power is inert for N ticks. `0` = unlimited (Origins behavior). |
+| `entity_action` | object | no | — | Optional action run on the player each time a death is prevented. |
+
+**Example — survive lethal fire once every 30 s, then drop to 4 hearts:**
+```json
+{
+  "type": "neoorigins:prevent_death",
+  "damage_types": "#minecraft:is_fire,lava",
+  "set_health": 8.0,
+  "cooldown_ticks": 600,
+  "name": "Fireproof Soul",
+  "description": "Cannot burn to death — but only so often."
+}
+```
+
+**Example — immortal except to the void, only while sneaking:**
+```json
+{
+  "type": "neoorigins:prevent_death",
+  "damage_types": "fell_out_of_world",
+  "invert": true,
+  "condition": { "type": "origins:sneaking" },
+  "name": "Guarded Stance",
+  "description": "Death cannot touch a braced body — the void still can."
+}
+```
+
+**Caveat (same as Origins):** this only cancels the lethal event; it does not clear the damage source. For recurring damage-over-time (fire, lava, poison) pair it with a `condition` or an `entity_action` that removes the source, otherwise the player is re-killed on the next damage tick.
+
+---
+
 ## `neoorigins:flight`
 
 Grants the player creative-style free flight. The player can fly freely at any time without an elytra.

@@ -202,6 +202,7 @@ NeoOrigins runs two translation passes over Origins-format JSON at load time.
 | `origins:effect_immunity` | `neoorigins:effect_immunity` |
 | `origins:modify_damage_taken` / `origins:modify_damage_dealt` | `neoorigins:modify_damage` |
 | `origins:invulnerability` | `neoorigins:prevent_action` (fire, approximate) |
+| `origins:prevent_death` / `apace:prevent_death` | `neoorigins:prevent_death` (condition + `entity_action` honored; `damage_condition` packs fall back to Route B) |
 | `origins:disable_regen` | `neoorigins:prevent_action` (sprint food) |
 | `origins:slow_falling` | `neoorigins:prevent_action` (fall damage) |
 | `origins:walk_speed` | `neoorigins:attribute_modifier` (movement speed) |
