@@ -51,7 +51,33 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        applyModifiers(player, config, false);
+        clearSizeModifiers(player);
+    }
+
+    /**
+     * Remove every {@code neoorigins:size_*} modifier from the scale and
+     * interaction-range attributes. We clear by id prefix rather than the
+     * per-power computed id because {@link PowerHolder#currentDispatchId()}
+     * is not guaranteed to resolve to the same value during revoke as during
+     * grant (origin change / orb reroll), which previously left the player
+     * permanently rescaled after switching origins — GitHub #90.
+     */
+    private static void clearSizeModifiers(ServerPlayer player) {
+        clearPrefixed(player, Attributes.SCALE);
+        clearPrefixed(player, Attributes.BLOCK_INTERACTION_RANGE);
+        clearPrefixed(player, Attributes.ENTITY_INTERACTION_RANGE);
+    }
+
+    private static void clearPrefixed(ServerPlayer player,
+            net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr) {
+        AttributeInstance inst = player.getAttribute(attr);
+        if (inst == null) return;
+        for (AttributeModifier mod : new java.util.ArrayList<>(inst.getModifiers())) {
+            ResourceLocation id = mod.id();
+            if ("neoorigins".equals(id.getNamespace()) && id.getPath().startsWith("size_")) {
+                inst.removeModifier(id);
+            }
+        }
     }
 
     private void applyModifiers(ServerPlayer player, Config config, boolean add) {

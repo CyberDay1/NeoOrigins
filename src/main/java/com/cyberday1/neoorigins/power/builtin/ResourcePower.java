@@ -162,6 +162,22 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
     }
 
     @Override
+    public void onLogin(ServerPlayer player, Config config) {
+        if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
+        String key = storageKey(player, config);
+        // Restore resource meta on relog WITHOUT touching the stored value.
+        // The base PowerType.onLogin default delegates to onGranted, but
+        // onGranted resets the stored resource to config.startValue() — so a
+        // returning player's energy/stamina was being wiped back to start on
+        // every relog. This override re-registers the meta and re-syncs the
+        // client (so the bar renders) while leaving the persisted value in
+        // the attachment untouched. GitHub #90.
+        CompatAttachments.registerResourceMeta(key,
+            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(), config.hidden()));
+        CompatAttachments.syncResourcesToClient(player);
+    }
+
+    @Override
     public void onTick(ServerPlayer player, Config config) {
         if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);

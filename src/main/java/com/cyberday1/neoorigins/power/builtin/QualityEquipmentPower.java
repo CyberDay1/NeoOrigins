@@ -64,12 +64,15 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
 
         if (!isTool && !isWeapon && !isArmor && !stack.isDamageableItem()) return;
 
-        // Apply attribute modifiers via withModifierAdded (preserves existing modifiers).
-        // Seed from the item's default attributes — most items (armor, tools, weapons)
-        // don't store defaults in the ATTRIBUTE_MODIFIERS component; they come from
-        // Item.getDefaultAttributeModifiers(). Using EMPTY as fallback would erase base stats.
-        ItemAttributeModifiers modifiers = stack.getOrDefault(
-            DataComponents.ATTRIBUTE_MODIFIERS, item.getDefaultAttributeModifiers());
+        // Seed from the EFFECTIVE attribute modifiers, not the raw component.
+        // Freshly crafted armor/tools usually have no ATTRIBUTE_MODIFIERS
+        // component patch — their base stats come from
+        // Item#getDefaultAttributeModifiers(stack). Reading the raw component
+        // (or item.getDefaultAttributeModifiers() no-arg) returns EMPTY there,
+        // so the stack.set(...) below would wipe all base armor/tool/weapon
+        // stats (GitHub #89 / #67). ItemStack#getAttributeModifiers() resolves
+        // component → item default → stack-sensitive default correctly.
+        ItemAttributeModifiers modifiers = stack.getAttributeModifiers();
 
         if (isTool && config.bonusMiningSpeed > 0) {
             modifiers = stripModifier(modifiers, QUALITY_MINING_SPEED)

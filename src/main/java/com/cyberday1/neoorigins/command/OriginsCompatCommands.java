@@ -183,15 +183,38 @@ public class OriginsCompatCommands {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCommand(CommandEvent event) {
-        String input = event.getParseResults().getReader().getString();
+        var original = event.getParseResults();
+        String input = original.getReader().getString();
         if (!LegacyCommandRewriter.needsRewrite(input)) return;
+
+        // Never touch a command that already parses to an executable command.
+        // The rewriter exists only to repair genuinely legacy Origins++
+        // mcfunction syntax that vanilla can't resolve; rewriting valid
+        // commands (e.g. a player's `/attribute @p minecraft:armor ...`)
+        // corrupted vanilla attribute commands for the whole pack — see
+        // GitHub #92.
+        if (parsesCleanly(original)) return;
 
         String rewritten = LegacyCommandRewriter.rewrite(input);
         if (rewritten.equals(input)) return;
 
-        // Re-parse the rewritten command through the dispatcher
-        var dispatcher = event.getParseResults().getContext().getDispatcher();
-        var source = event.getParseResults().getContext().getSource();
-        event.setParseResults(dispatcher.parse(rewritten, source));
+        var dispatcher = original.getContext().getDispatcher();
+        var source = original.getContext().getSource();
+        var reparsed = dispatcher.parse(rewritten, source);
+
+        // Only substitute when the rewrite actually yields a valid command.
+        // If it still fails, leave the original so vanilla reports its own
+        // error rather than a confusing rewritten one.
+        if (parsesCleanly(reparsed)) {
+            event.setParseResults(reparsed);
+        }
+    }
+
+    /** True when the parse resolved to a complete, executable command. */
+    private static boolean parsesCleanly(
+            com.mojang.brigadier.ParseResults<net.minecraft.commands.CommandSourceStack> pr) {
+        return pr.getExceptions().isEmpty()
+            && pr.getContext().getCommand() != null
+            && !pr.getReader().canRead();
     }
 }
