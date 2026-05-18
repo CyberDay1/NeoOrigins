@@ -219,3 +219,14 @@ tasks.register('schemaFormCheck', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.cyberday1.neoorigins.dev.SchemaFormCheck'
 }
+
+// Headless guard for the creator's datapack shape rules (origin has no
+// id/type, power has type, layer patch is additive+dedup). Pure — no MC
+// server. Run: ./gradlew customPackCheck
+tasks.register('customPackCheck', JavaExec) {
+    group = 'neoorigins'
+    description = '[2.1] Verify CustomPackSerializer datapack shape invariants.'
+    dependsOn 'classes'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.CustomPackCheck'
+}
