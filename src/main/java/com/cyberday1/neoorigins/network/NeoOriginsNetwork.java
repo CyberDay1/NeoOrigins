@@ -350,6 +350,13 @@ public class NeoOriginsNetwork {
                 sendCreatorResult(sp, false, "Invalid draft: " + e.getMessage());
                 return;
             }
+            var validation = com.cyberday1.neoorigins.service.CreatorValidator.validate(draft);
+            if (!validation.ok()) {
+                NeoOrigins.LOGGER.warn("Player {} submitted an invalid custom origin: {}",
+                    sp.getName().getString(), validation.message());
+                sendCreatorResult(sp, false, "Invalid: " + validation.message());
+                return;
+            }
             var result = com.cyberday1.neoorigins.service.CustomPackWriter.write(sp.level().getServer(), draft);
             sendCreatorResult(sp, result.ok(), result.ok()
                 ? "Saved " + result.paths().size() + " file(s). Press Apply to reload."
