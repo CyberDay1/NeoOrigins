@@ -37,6 +37,45 @@ public final class ConditionParser {
 
     private ConditionParser() {}
 
+    /**
+     * Canonical {@code neoorigins:} ids this parser's {@code switch} accepts —
+     * the single source the 2.1 creator's condition picker reads. Kept honest
+     * by {@code SchemaFormCheck}, which re-derives the case labels from this
+     * file's source and fails the build if this set drifts from the switch.
+     */
+    public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
+        "neoorigins:actor_condition", "neoorigins:advancement", "neoorigins:air",
+        "neoorigins:amount", "neoorigins:and", "neoorigins:armor_value",
+        "neoorigins:biome", "neoorigins:block", "neoorigins:block_collision",
+        "neoorigins:brightness", "neoorigins:can_see", "neoorigins:climbing",
+        "neoorigins:command", "neoorigins:config_flag", "neoorigins:constant",
+        "neoorigins:cooldown", "neoorigins:creative_flying", "neoorigins:damage_name",
+        "neoorigins:damage_tag", "neoorigins:damage_type", "neoorigins:daytime",
+        "neoorigins:dimension", "neoorigins:distance", "neoorigins:enchantment",
+        "neoorigins:entity_type", "neoorigins:equal", "neoorigins:equipped_item",
+        "neoorigins:exists", "neoorigins:exposed_to_sky", "neoorigins:exposed_to_sun",
+        "neoorigins:fall_distance", "neoorigins:fall_flying", "neoorigins:fluid_height",
+        "neoorigins:food_item_id", "neoorigins:food_item_in_tag", "neoorigins:food_level",
+        "neoorigins:from_explosion", "neoorigins:from_fire", "neoorigins:from_projectile",
+        "neoorigins:has_effect", "neoorigins:health", "neoorigins:height",
+        "neoorigins:hit_taken_amount", "neoorigins:in_block", "neoorigins:in_rain",
+        "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
+        "neoorigins:invisible", "neoorigins:lava", "neoorigins:light_level",
+        "neoorigins:living", "neoorigins:moon_phase", "neoorigins:moving",
+        "neoorigins:nbt", "neoorigins:near_block", "neoorigins:near_entity",
+        "neoorigins:night", "neoorigins:no_minions_alive", "neoorigins:not",
+        "neoorigins:on_block", "neoorigins:on_fire", "neoorigins:on_ground",
+        "neoorigins:or", "neoorigins:out_of_combat", "neoorigins:passenger",
+        "neoorigins:power", "neoorigins:power_active", "neoorigins:power_type",
+        "neoorigins:predicate", "neoorigins:relative_health", "neoorigins:replacable",
+        "neoorigins:resource", "neoorigins:scoreboard", "neoorigins:sneaking",
+        "neoorigins:sprinting", "neoorigins:status_effect", "neoorigins:submerged_in",
+        "neoorigins:submerged_in_water", "neoorigins:swimming", "neoorigins:target_group",
+        "neoorigins:target_type", "neoorigins:temperature", "neoorigins:thundering",
+        "neoorigins:ticking", "neoorigins:time_of_day", "neoorigins:using_item",
+        "neoorigins:water", "neoorigins:weather", "neoorigins:xp_level",
+        "neoorigins:xp_points");
+
     private static final EquipmentSlot[] EQUIPMENT_SLOTS = EquipmentSlot.values();
 
     public static EntityCondition parse(JsonObject json, String contextId) {

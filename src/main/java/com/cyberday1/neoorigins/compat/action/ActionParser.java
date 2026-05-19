@@ -28,6 +28,38 @@ public final class ActionParser {
 
     private ActionParser() {}
 
+    /**
+     * Canonical {@code neoorigins:} ids this parser's {@code switch} accepts —
+     * the single source the 2.1 creator's action picker reads. Kept honest by
+     * {@code SchemaFormCheck}, which re-derives the case labels from this
+     * file's source and fails the build if this set drifts from the switch.
+     */
+    public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
+        "neoorigins:actor_action", "neoorigins:add_to_set", "neoorigins:add_velocity",
+        "neoorigins:add_xp", "neoorigins:and", "neoorigins:apply_effect",
+        "neoorigins:area_of_effect", "neoorigins:block_action_at", "neoorigins:cancel_event",
+        "neoorigins:chain_to_nearest", "neoorigins:chance", "neoorigins:change_resource",
+        "neoorigins:choice", "neoorigins:clear_effect", "neoorigins:crafting_table",
+        "neoorigins:damage", "neoorigins:damage_attacker", "neoorigins:dash",
+        "neoorigins:delay", "neoorigins:dismount", "neoorigins:drop_items",
+        "neoorigins:effect_on_attacker", "neoorigins:emit_game_event",
+        "neoorigins:equipped_item_action", "neoorigins:execute_command", "neoorigins:exhaust",
+        "neoorigins:explode", "neoorigins:extinguish", "neoorigins:feed",
+        "neoorigins:gain_air", "neoorigins:give", "neoorigins:grant_power",
+        "neoorigins:heal", "neoorigins:if_else", "neoorigins:if_else_list",
+        "neoorigins:ignite_attacker", "neoorigins:invert", "neoorigins:launch",
+        "neoorigins:modify_food", "neoorigins:modify_inventory", "neoorigins:mount",
+        "neoorigins:nothing", "neoorigins:offset", "neoorigins:passenger_action",
+        "neoorigins:play_sound", "neoorigins:pull_entities", "neoorigins:random_teleport",
+        "neoorigins:raycast", "neoorigins:remove_from_set", "neoorigins:revoke_power",
+        "neoorigins:set_block", "neoorigins:set_fall_distance", "neoorigins:set_on_fire",
+        "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
+        "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",
+        "neoorigins:spawn_projectile", "neoorigins:spawn_tornado",
+        "neoorigins:swap_with_entity", "neoorigins:swing_hand", "neoorigins:target_action",
+        "neoorigins:teleport_to_marker", "neoorigins:throw_target", "neoorigins:toggle",
+        "neoorigins:trigger_cooldown");
+
     public static EntityAction parse(JsonObject json, String contextId) {
         if (json == null) {
             return failNoop("root", contextId, "missing action object");

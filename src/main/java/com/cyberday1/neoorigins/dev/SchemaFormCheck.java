@@ -123,10 +123,77 @@ public final class SchemaFormCheck {
         //    Config and either expose fields or be a genuine marker-only power.
         failures += auditPowerFormCoverage(model);
 
+        // 8. Condition/Action picker sources stay in sync with the parsers.
+        failures += auditParserTypes(
+            "src/main/java/com/cyberday1/neoorigins/compat/condition/ConditionParser.java",
+            "condition");
+        failures += auditParserTypes(
+            "src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java",
+            "action");
+
         System.out.printf("[schema-check] %d power types, %d structured branches, %d failures%n",
             types, model.structuredTypes().size(), failures);
         if (failures > 0) System.exit(1);
         System.out.println("[schema-check] OK");
+    }
+
+    /**
+     * Re-derives the parser's {@code case "<ns>:<name>"} labels from its source
+     * (canonicalised to {@code neoorigins:<name>}, as the parser does at
+     * runtime) and asserts they exactly equal the parser's {@code KNOWN_TYPES}
+     * set — so the creator's picker can never silently drift from what the
+     * parser actually accepts. Returns the failure count.
+     */
+    private static int auditParserTypes(String src, String label) {
+        String text;
+        try {
+            text = java.nio.file.Files.readString(java.nio.file.Path.of(src));
+        } catch (java.io.IOException e) {
+            System.out.println("[schema-check] FAIL  cannot read " + src + ": " + e);
+            return 1;
+        }
+        // Switch arms — canonicalised to neoorigins:<name> like the parser does.
+        java.util.Set<String> fromSwitch = new java.util.TreeSet<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("case \"[a-z_]+:([a-z_]+)\"").matcher(text);
+        while (m.find()) fromSwitch.add("neoorigins:" + m.group(1));
+
+        // The declared KNOWN_TYPES = Set.of( … ) literal block.
+        java.util.Set<String> declared = new java.util.TreeSet<>();
+        int s = text.indexOf("KNOWN_TYPES");
+        int open = s < 0 ? -1 : text.indexOf("Set.of(", s);
+        int close = open < 0 ? -1 : text.indexOf(");", open);
+        if (close > 0) {
+            java.util.regex.Matcher dm = java.util.regex.Pattern
+                .compile("\"(neoorigins:[a-z_]+)\"").matcher(text.substring(open, close));
+            while (dm.find()) declared.add(dm.group(1));
+        }
+
+        java.util.Set<String> missing = new java.util.TreeSet<>(fromSwitch);
+        missing.removeAll(declared);
+        java.util.Set<String> extra = new java.util.TreeSet<>(declared);
+        extra.removeAll(fromSwitch);
+        int fails = 0;
+        if (declared.isEmpty()) {
+            System.out.println("[schema-check] FAIL  " + label
+                + " KNOWN_TYPES literal not found in " + src);
+            fails++;
+        }
+        if (!missing.isEmpty()) {
+            System.out.println("[schema-check] FAIL  " + label
+                + " KNOWN_TYPES missing switch arms: " + missing);
+            fails++;
+        }
+        if (!extra.isEmpty()) {
+            System.out.println("[schema-check] FAIL  " + label
+                + " KNOWN_TYPES has ids the switch doesn't handle: " + extra);
+            fails++;
+        }
+        if (fails == 0) {
+            System.out.printf("[schema-check] %s picker: %d types, in sync with switch%n",
+                label, declared.size());
+        }
+        return fails;
     }
 
     /**
