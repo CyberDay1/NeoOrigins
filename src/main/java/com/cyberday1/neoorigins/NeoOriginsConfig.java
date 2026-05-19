@@ -140,11 +140,26 @@ public final class NeoOriginsConfig {
 
     /** power-id → field-name → config value. Only entries changed from default are applied. */
     static final Map<String, Map<String, ModConfigSpec.ConfigValue<?>>> POWER_OVERRIDES = new LinkedHashMap<>();
+
+    /** Inclusive numeric bound a {@code defineInRange} field was registered with. */
+    public record NumericRange(double min, double max) {}
+
+    /**
+     * power-id → field-name → the (min,max) the field was registered with.
+     * {@link ModConfigSpec.ConfigValue} only exposes {@code getDefault()}, so the
+     * range is otherwise discarded after spec build; the 2.1 creator needs it to
+     * render sliders/clamp inputs for codec-only powers. Populated alongside
+     * {@link #POWER_OVERRIDES} at registration. */
+    static final Map<String, Map<String, NumericRange>> POWER_RANGES = new LinkedHashMap<>();
     private static String _cp; // current power being registered
 
-    private static void p(String power) { _cp = power; BUILDER.push(power); POWER_OVERRIDES.put("neoorigins:" + power, new LinkedHashMap<>()); }
-    private static void f(String field, double def, double min, double max)   { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); }
-    private static void fi(String field, int def, int min, int max)           { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); }
+    private static void p(String power) {
+        _cp = power; BUILDER.push(power);
+        POWER_OVERRIDES.put("neoorigins:" + power, new LinkedHashMap<>());
+        POWER_RANGES.put("neoorigins:" + power, new LinkedHashMap<>());
+    }
+    private static void f(String field, double def, double min, double max)   { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
+    private static void fi(String field, int def, int min, int max)           { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
     private static void fb(String field, boolean def)                          { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.define(field, def)); }
     private static void ep() { BUILDER.pop(); }
 
@@ -955,5 +970,25 @@ public final class NeoOriginsConfig {
             }
         }
         return changed.isEmpty() ? null : changed;
+    }
+
+    /**
+     * The (min,max) a numeric override field was registered with, or {@code null}
+     * if this power/field has no ranged override. Used by the 2.1 creator's form
+     * renderer to bound/slider numeric inputs even for codec-only powers.
+     */
+    public static NumericRange getPowerRange(String powerId, String field) {
+        Map<String, NumericRange> fields = POWER_RANGES.get(powerId);
+        return fields == null ? null : fields.get(field);
+    }
+
+    /** The default value a numeric/bool override field was registered with, or
+     *  {@code null} if absent. Lets the creator pre-fill effective defaults that
+     *  codec {@code optionalFieldOf} lambdas hide from record reflection. */
+    public static Object getPowerDefault(String powerId, String field) {
+        Map<String, ModConfigSpec.ConfigValue<?>> fields = POWER_OVERRIDES.get(powerId);
+        if (fields == null) return null;
+        ModConfigSpec.ConfigValue<?> cv = fields.get(field);
+        return cv == null ? null : cv.getDefault();
     }
 }

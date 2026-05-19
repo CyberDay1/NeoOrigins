@@ -61,6 +61,15 @@ public class OriginCreatorScreen extends Screen {
         return addRenderableWidget(widget);
     }
 
+    /**
+     * Rebuild the active tab's widget set in place. Tabs whose widget set is
+     * dynamic (the Powers tab: power list / type / raw-mode all change which
+     * widgets exist) call this after mutating their own state. The active tab
+     * must {@code pushToDraft()} itself first — {@link #rebuild} reloads from
+     * the draft via {@code pullFromDraft()}.
+     */
+    public void requestRebuild() { rebuild(); }
+
     @Override
     protected void init() {
         panelW = Math.min(width - 40, 480);
