@@ -275,22 +275,32 @@ public final class FieldWidgetFactory {
             integral = spec.kind() == FormFieldSpec.Kind.INTEGER;
         }
 
+        private static final int TOGGLE_W = 52;
+
         @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {
             this.fieldW = fieldW; this.rowH = h;
-            int toggleW = 30, gap = 4, boxW = Math.max(40, fieldW - toggleW - gap);
+            int gap = 4, boxW = Math.max(40, fieldW - TOGGLE_W - gap);
             box = new EditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));
             box.setFilter(this::accept);
             if (spec.defaultValue() != null) box.setValue(String.valueOf(spec.defaultValue()));
+            applyHint();
             modeToggle = Button.builder(modeLabel(), b -> {
                 random = !random;
                 box.setValue("");
+                applyHint();
                 modeToggle.setMessage(modeLabel());
-            }).bounds(0, 0, toggleW, h).build();
+            }).bounds(0, 0, TOGGLE_W, h).build();
             parent.register(box);
             parent.register(modeToggle);
         }
 
-        private Component modeLabel() { return Component.literal(random ? "rnd" : "n"); }
+        /** Placeholder makes the current mode obvious in the (empty) box. */
+        private void applyHint() {
+            box.setHint(Component.literal(random ? "min, max"
+                : (integral ? "whole number" : "number")));
+        }
+
+        private Component modeLabel() { return Component.literal(random ? "random" : "fixed"); }
 
         /** Permit digits / sign / dot, plus a single comma in random (min,max) mode. */
         private boolean accept(String s) {
@@ -301,11 +311,18 @@ public final class FieldWidgetFactory {
 
         @Override public void reposition(int fieldX, int y) {
             box.setPosition(fieldX, y);
-            modeToggle.setPosition(fieldX + fieldW - 30, y);
+            modeToggle.setPosition(fieldX + fieldW - TOGGLE_W, y);
         }
         @Override public void setVisible(boolean v) {
             box.visible = v; box.active = v;
             modeToggle.visible = v; modeToggle.active = v;
+        }
+        @Override public List<String> tooltip() {
+            List<String> t = super.tooltip();
+            t.add(random
+                ? "Random mode: enter \"min, max\" — rolled once per player."
+                : "Click \"fixed\" → \"random\" to use a {min,max} range instead.");
+            return t;
         }
 
         private Number parse(String s) {
