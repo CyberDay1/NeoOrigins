@@ -22,6 +22,7 @@ import com.cyberday1.neoorigins.network.payload.SyncEvolutionConfigPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMoisturePayload;
 import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
+import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
@@ -90,6 +91,12 @@ public class NeoOriginsNetwork {
             SyncOriginsPayload.TYPE,
             SyncOriginsPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncOrigins
+        );
+
+        registrar.playToClient(
+            SyncMobOriginPayload.TYPE,
+            SyncMobOriginPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncMobOrigin
         );
 
         registrar.playToClient(
@@ -233,6 +240,19 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.compat.OriginsMultipleExpander.setClientData(
                 payload.multipleExpansionMap(), payload.multipleDisplayMap());
         });
+    }
+
+    private static void handleSyncMobOrigin(SyncMobOriginPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientMobOriginCache.set(
+                payload.entityId(), payload.originId()));
+    }
+
+    /** Tell players tracking {@code mob} which mob origin it now carries. */
+    public static void syncMobOriginToTrackers(net.minecraft.world.entity.LivingEntity mob,
+                                               java.util.Optional<Identifier> originId) {
+        PacketDistributor.sendToPlayersTrackingEntity(mob,
+            new SyncMobOriginPayload(mob.getId(), originId));
     }
 
     private static void handleSyncOrigins(SyncOriginsPayload payload, IPayloadContext ctx) {
