@@ -26,6 +26,13 @@ public interface CreatorTab {
     default Component help() { return Component.empty(); }
 
     /**
+     * Drawn by the screen <em>before</em> widgets render, so a tab that owns a
+     * full-screen overlay (search/item picker) can paint its backdrop behind
+     * its own input widgets instead of over them.
+     */
+    default void renderBackdrop(GuiGraphicsExtractor g) {}
+
+    /**
      * Register this tab's widgets. The content rectangle excludes the tab strip
      * and the bottom button bar.
      */

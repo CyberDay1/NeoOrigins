@@ -38,7 +38,7 @@ public class OriginCreatorScreen extends Screen {
     private final OriginDraft draft;
     private final List<CreatorTab> tabs = List.of(
         new IdentityTab(), new PowersTab(), new AppearanceTab(),
-        new LayerTab(), new JsonPreviewTab());
+        new JsonPreviewTab());
     private int activeTab = 0;
 
     private int panelX, panelW;
@@ -146,6 +146,7 @@ public class OriginCreatorScreen extends Screen {
         CreatorStyle.panel(g, contentX - 1, contentY - CONTENT_TOP_GAP / 2 - 1,
             contentW + 2, contentH + CONTENT_TOP_GAP / 2 + 2);
 
+        tabs.get(activeTab).renderBackdrop(g); // behind overlay input widgets
         super.extractRenderState(g, mouseX, mouseY, partial); // tab-strip + close
 
         // Active-tab highlight bar under its tab button.
