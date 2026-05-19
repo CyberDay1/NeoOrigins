@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.screen.creator;
 import com.cyberday1.neoorigins.power.schemaform.FormModel;
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft.PowerDraft;
 import com.cyberday1.neoorigins.screen.creator.widget.PowerFormPanel;
+import com.cyberday1.neoorigins.screen.creator.widget.SearchPickerOverlay;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -12,28 +13,29 @@ import java.util.List;
 
 /**
  * Powers tab — the generic per-power editor. Owns the draft's power list
- * (add / remove / navigate) and the type picker; the selected power's body is
- * rendered by a shared {@link PowerFormPanel} (schema/codec hybrid form +
- * raw-JSON escape). The Appearance tab reuses the same panel scoped to the
- * Tier-A visual powers.
+ * (add / remove / navigate) and a searchable power-type picker; the selected
+ * power's body is rendered by a shared {@link PowerFormPanel} (guided field
+ * form, or a JSON escape hatch for anything the form can't express).
  */
 public final class PowersTab implements CreatorTab {
 
     private static final Component TITLE =
         Component.translatable("gui.neoorigins.creator.tab.powers");
+    private static final Component HELP = Component.literal(
+        "Add powers to your origin. Pick a type, fill the fields, or edit JSON.");
 
     private static final int HDR_H = 20, LABEL_DX = 6, FIELD_DX = 140;
 
-    private final List<String> allTypes = FormModel.allTypes();
     private final PowerFormPanel form = new PowerFormPanel();
+    private final SearchPickerOverlay typePicker = new SearchPickerOverlay();
 
     private OriginCreatorScreen parent;
     private int x, y, w, h;
     private int sel = 0;       // index into draft.powers
     private boolean rawMode;
-    private int typeIdx;
 
     @Override public Component title() { return TITLE; }
+    @Override public Component help() { return HELP; }
 
     private List<PowerDraft> powers() { return parent.draft().powers; }
 
@@ -46,6 +48,12 @@ public final class PowersTab implements CreatorTab {
     public void init(OriginCreatorScreen parent, int x, int y, int w, int h) {
         this.parent = parent;
         this.x = x; this.y = y; this.w = w; this.h = h;
+
+        if (typePicker.isOpen()) {           // picker owns input while open
+            int pw = Math.min(w - 20, 320), ph = h - 16;
+            typePicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
+            return;
+        }
 
         List<PowerDraft> ps = powers();
         if (sel >= ps.size()) sel = Math.max(0, ps.size() - 1);
@@ -63,19 +71,20 @@ public final class PowersTab implements CreatorTab {
         PowerDraft p = current();
         if (p == null) return; // empty list — render() shows the hint
 
-        typeIdx = Math.max(0, allTypes.indexOf(p.typeId));
         int r2 = y + HDR_H + 4;
-        parent.register(Button.builder(typeLabel(), b -> cycleType())
-            .bounds(x + FIELD_DX, r2, Math.min(w - FIELD_DX - 60, 220), HDR_H).build());
         parent.register(Button.builder(
-                Component.literal(rawMode ? "form" : "raw"), b -> toggleRaw())
-            .bounds(x + w - 52, r2, 48, HDR_H).build());
+                Component.literal("Type: " + shortType(p.typeId) + "  (change)"),
+                b -> openTypePicker())
+            .bounds(x + LABEL_DX, r2, Math.min(w - 70, 300), HDR_H).build());
+        parent.register(Button.builder(
+                Component.literal(rawMode ? "Use form" : "Edit JSON"), b -> toggleRaw())
+            .bounds(x + w - 78, r2, 74, HDR_H).build());
 
-        int formTop = r2 + HDR_H + 12;
+        int formTop = r2 + HDR_H + 14;
         form.init(parent, p, rawMode, x, formTop, w, (y + h) - formTop);
     }
 
-    // ── header actions (capture form → mutate → rebuild) ────────────────────
+    // ── header actions ──────────────────────────────────────────────────────
 
     private void step(int d) {
         List<PowerDraft> ps = powers();
@@ -85,14 +94,18 @@ public final class PowersTab implements CreatorTab {
         parent.requestRebuild();
     }
 
+    /** "+ add" picks the type first, then appends the power. */
     private void addPower() {
         pushToDraft();
-        String type = allTypes.isEmpty() ? "neoorigins:flight" : allTypes.get(0);
-        PowerDraft np = new PowerDraft(null, type);
-        np.rawJson = "{}";
-        powers().add(np);
-        sel = powers().size() - 1;
-        rawMode = false;
+        typePicker.open("pick a power type", FormModel::creatorTypes,
+            type -> {
+                PowerDraft np = new PowerDraft(null, type);
+                np.rawJson = "{}";
+                powers().add(np);
+                sel = powers().size() - 1;
+                rawMode = false;
+            },
+            parent::requestRebuild);
         parent.requestRebuild();
     }
 
@@ -104,13 +117,19 @@ public final class PowersTab implements CreatorTab {
         parent.requestRebuild();
     }
 
-    private void cycleType() {
+    private void openTypePicker() {
         PowerDraft p = current();
-        if (p == null || allTypes.isEmpty()) return;
+        if (p == null) return;
         pushToDraft();
-        typeIdx = (typeIdx + 1) % allTypes.size();
-        p.typeId = allTypes.get(typeIdx);
-        p.rawJson = "{}"; // fields differ per type — start clean
+        typePicker.open("pick a power type", FormModel::creatorTypes,
+            type -> {
+                PowerDraft cur = current();
+                if (cur != null && !type.equals(cur.typeId)) {
+                    cur.typeId = type;
+                    cur.rawJson = "{}"; // fields differ per type — start clean
+                }
+            },
+            parent::requestRebuild);
         parent.requestRebuild();
     }
 
@@ -123,22 +142,20 @@ public final class PowersTab implements CreatorTab {
 
     // ── draft sync ──────────────────────────────────────────────────────────
 
-    @Override public void pullFromDraft() { form.pull(); }
+    @Override public void pullFromDraft() { if (!typePicker.isOpen()) form.pull(); }
 
     @Override
     public void pushToDraft() {
+        if (typePicker.isOpen()) return;
         PowerDraft p = current();
         if (p == null) return;
-        if (!allTypes.isEmpty()) {
-            p.typeId = allTypes.get(Math.max(0, Math.min(typeIdx, allTypes.size() - 1)));
-        }
         p.powerId = parent.draft().mintPowerId(p, p.typeId);
         form.push();
     }
 
-    private Component typeLabel() {
-        return Component.literal(allTypes.isEmpty() ? "(no types)"
-            : allTypes.get(Math.max(0, Math.min(typeIdx, allTypes.size() - 1))));
+    private static String shortType(String typeId) {
+        int c = typeId.indexOf(':');
+        return c >= 0 ? typeId.substring(c + 1) : typeId;
     }
 
     // ── render ──────────────────────────────────────────────────────────────
@@ -146,12 +163,14 @@ public final class PowersTab implements CreatorTab {
     @Override
     public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial,
                        int x, int y, int w, int h) {
+        if (typePicker.isOpen()) { typePicker.render(g); return; }
+
         Font font = parent.font();
         List<PowerDraft> ps = powers();
 
         if (ps.isEmpty()) {
             g.centeredText(font,
-                Component.literal("No powers yet — click \"+ add\""),
+                Component.literal("No powers yet — click \"+ add\" to choose one"),
                 x + w / 2, y + h / 2 - 4, 0xFF8888AA);
             return;
         }
@@ -160,14 +179,15 @@ public final class PowersTab implements CreatorTab {
             x + FIELD_DX, y + 6, 0xFFBBBBCC, false);
         PowerDraft p = current();
         if (p != null && p.powerId != null) {
-            g.text(font, p.powerId.toString(),
-                x + LABEL_DX, y + HDR_H + 8, 0xFF6E6E92, false);
+            g.text(font, "id: " + p.powerId,
+                x + LABEL_DX, y + HDR_H + 4, 0xFF6E6E92, false);
         }
         form.render(g);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
+        if (typePicker.isOpen()) return typePicker.onScroll(mx, my, sy);
         return form.onScroll(mx, my, sy);
     }
 }

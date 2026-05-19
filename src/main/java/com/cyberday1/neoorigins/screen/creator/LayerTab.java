@@ -31,6 +31,10 @@ public final class LayerTab implements CreatorTab {
     private int rowY;
 
     @Override public Component title() { return TITLE; }
+    @Override public Component help() {
+        return Component.literal(
+            "Which picker this appears in. \"class\" makes it a class instead of an origin.");
+    }
 
     @Override
     public void init(OriginCreatorScreen parent, int x, int y, int w, int h) {

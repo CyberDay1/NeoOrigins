@@ -31,6 +31,7 @@ public class OriginCreatorScreen extends Screen {
     private static final int TAB_STRIP_Y = 28;
     private static final int TAB_H = 18;
     private static final int CONTENT_TOP_GAP = 8;
+    private static final int HELP_H = 14;
     private static final int BOTTOM_BAR = 34;
 
     private final Screen parent;
@@ -99,7 +100,7 @@ public class OriginCreatorScreen extends Screen {
         }
 
         CreatorTab tab = tabs.get(activeTab);
-        tab.init(this, contentX, contentY, contentW, contentH);
+        tab.init(this, contentX, contentY + HELP_H, contentW, contentH - HELP_H);
         tab.pullFromDraft();
 
         // Save | Apply | Close — server gates each; result shown above the bar.
@@ -156,8 +157,11 @@ public class OriginCreatorScreen extends Screen {
         int hw = (activeTab == n - 1) ? panelW - activeTab * tabW : tabW;
         g.fill(hx, TAB_STRIP_Y + TAB_H - 1, hx + hw - 2, TAB_STRIP_Y + TAB_H + 1, 0xFF4A90D9);
 
-        tabs.get(activeTab).render(g, mouseX, mouseY, partial,
-            contentX, contentY, contentW, contentH);
+        // Per-tab one-line help, then the tab body below it.
+        CreatorTab active = tabs.get(activeTab);
+        g.text(font, active.help(), contentX + 6, contentY + 2, 0xFF9A9AB8, false);
+        active.render(g, mouseX, mouseY, partial,
+            contentX, contentY + HELP_H, contentW, contentH - HELP_H);
 
         // Latest server Save/Apply result, just above the button bar.
         String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();

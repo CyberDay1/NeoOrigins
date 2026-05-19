@@ -22,13 +22,16 @@ public interface CreatorTab {
     /** Tab-strip label. */
     Component title();
 
+    /** One-line "what this tab is for" shown under the title by the screen. */
+    default Component help() { return Component.empty(); }
+
     /**
      * Register this tab's widgets. The content rectangle excludes the tab strip
      * and the bottom button bar.
      */
     void init(OriginCreatorScreen parent, int x, int y, int w, int h);
 
-    /** Draw the tab body (widgets are rendered by the screen's super extract). */
+    /** Draw the tab body (widgets are rendered by the screen's super.render). */
     void render(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial, int x, int y, int w, int h);
 
     /** Load the shared draft into this tab's widgets. */
