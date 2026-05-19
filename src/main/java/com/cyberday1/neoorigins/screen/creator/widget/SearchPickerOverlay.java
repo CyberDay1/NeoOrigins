@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.screen.creator.widget;
 
 import com.cyberday1.neoorigins.screen.creator.CreatorStyle;
-import com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen;
+import com.cyberday1.neoorigins.screen.creator.CreatorHost;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -46,7 +46,7 @@ public final class SearchPickerOverlay {
     private List<String> filteredLower = List.of();
     private String prevQuery = "";
 
-    private OriginCreatorScreen parent;
+    private CreatorHost parent;
     private int x, y, w, h, listTop, listH;
     private EditBox search;
     private final List<Button> rows = new ArrayList<>();
@@ -69,7 +69,7 @@ public final class SearchPickerOverlay {
 
     public int listBottom() { return listTop + listH; }
 
-    public void build(OriginCreatorScreen parent, int x, int y, int w, int h) {
+    public void build(CreatorHost parent, int x, int y, int w, int h) {
         this.parent = parent;
         this.x = x; this.y = y; this.w = w; this.h = h;
         rows.clear();
@@ -171,7 +171,7 @@ public final class SearchPickerOverlay {
         if (!open || parent == null) return;
         Font font = parent.font();
 
-        g.fill(0, 0, parent.width, parent.height, CreatorStyle.SCRIM);
+        g.fill(0, 0, parent.hostWidth(), parent.hostHeight(), CreatorStyle.SCRIM);
         CreatorStyle.panel(g, x, y, w, h);
 
         // Header strip + title.

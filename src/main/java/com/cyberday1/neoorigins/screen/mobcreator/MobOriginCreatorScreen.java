@@ -1,78 +1,54 @@
-package com.cyberday1.neoorigins.screen.creator;
+package com.cyberday1.neoorigins.screen.mobcreator;
 
-import com.cyberday1.neoorigins.screen.creator.model.OriginDraft;
+import com.cyberday1.neoorigins.screen.creator.CreatorHost;
+import com.cyberday1.neoorigins.screen.creator.CreatorStyle;
+import com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
 /**
- * 2.1 in-game origin/class creator — the tabbed shell.
- *
- * <p>Owns the tab strip, the shared {@link OriginDraft}, widget lifecycle, and
- * the backdrop; each {@link CreatorTab} fills one page. Replaces routing to the
- * old runtime-only {@code OriginEditorScreen} (kept in-tree but no longer
- * opened — see {@code ClientOriginState#openEditorScreen}).
- *
- * <p>Phase 1 scope: the framework — tab switching, draft plumbing, layout.
- * Tabs are stubs; persistence, the server-auth gate, and real tab content
- * land in Phases 2–4. The backdrop / blur / pause overrides intentionally
- * mirror {@code OriginEditorScreen} (semi-transparent fill would otherwise
- * bleed the blurred world through).
+ * Mob Origin Creator — the tabbed shell, mirroring {@code OriginCreatorScreen}.
+ * Implements {@link CreatorHost} so the shared picker/form widgets work
+ * verbatim. Save/Apply result feedback reuses {@code ClientCreatorState}
+ * (the {@code CreatorResultPayload} channel is shared).
  */
-public class OriginCreatorScreen extends Screen implements CreatorHost {
+public class MobOriginCreatorScreen extends Screen implements CreatorHost {
 
-    private static final int TITLE_Y = 12;
-    private static final int TAB_STRIP_Y = 28;
-    private static final int TAB_H = 18;
-    private static final int CONTENT_TOP_GAP = 8;
-    private static final int HELP_H = 14;
-    private static final int BOTTOM_BAR = 34;
+    private static final int TITLE_Y = 12, TAB_STRIP_Y = 28, TAB_H = 18;
+    private static final int CONTENT_TOP_GAP = 8, HELP_H = 14, BOTTOM_BAR = 34;
 
     private final Screen parent;
-    private final OriginDraft draft;
-    private final List<CreatorTab> tabs = List.of(
-        new IdentityTab(), new PowersTab(), new AppearanceTab(),
-        new JsonPreviewTab());
+    private final MobOriginDraft draft;
+    private final List<MobCreatorTab> tabs = List.of(
+        new MobIdentityTab(), new MobPowersTab(), new MobJsonPreviewTab());
     private int activeTab = 0;
+    private int panelX, panelW, contentX, contentY, contentW, contentH;
 
-    private int panelX, panelW;
-    private int contentX, contentY, contentW, contentH;
-
-    public OriginCreatorScreen(Screen parent, OriginDraft draft) {
-        super(Component.translatable("screen.neoorigins.creator"));
+    public MobOriginCreatorScreen(Screen parent, MobOriginDraft draft) {
+        super(Component.translatable("screen.neoorigins.mob_creator"));
         this.parent = parent;
         this.draft = draft;
         com.cyberday1.neoorigins.client.ClientCreatorState.clear();
     }
 
-    /** The shared model every tab reads/writes. */
-    public OriginDraft draft() { return draft; }
+    public MobOriginDraft draft() { return draft; }
+    @Override public Font font() { return font; }
 
-    /** Font accessor for tabs (Screen#font is protected). */
-    public Font font() { return font; }
-
-    /** Let tabs register widgets through the screen's protected machinery. */
+    @Override
     public <T extends GuiEventListener & Renderable & NarratableEntry> T register(T widget) {
         return addRenderableWidget(widget);
     }
 
-    /**
-     * Rebuild the active tab's widget set in place. Tabs whose widget set is
-     * dynamic (the Powers tab: power list / type / raw-mode all change which
-     * widgets exist) call this after mutating their own state. The active tab
-     * must {@code pushToDraft()} itself first — {@link #rebuild} reloads from
-     * the draft via {@code pullFromDraft()}.
-     */
-    public void requestRebuild() { rebuild(); }
-
+    @Override public void requestRebuild() { rebuild(); }
     @Override public int hostWidth()  { return width; }
     @Override public int hostHeight() { return height; }
 
@@ -80,43 +56,37 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     protected void init() {
         panelW = Math.min(width - 40, 480);
         panelX = (width - panelW) / 2;
-
         int stripBottom = TAB_STRIP_Y + TAB_H;
         contentX = panelX;
         contentY = stripBottom + CONTENT_TOP_GAP;
         contentW = panelW;
         contentH = (height - BOTTOM_BAR) - contentY;
-
         rebuild();
     }
 
     private void rebuild() {
         clearWidgets();
-
-        // Tab strip — one button per tab, evenly split across the panel.
         int n = tabs.size();
         int tabW = panelW / n;
         for (int i = 0; i < n; i++) {
             final int idx = i;
             int tx = panelX + i * tabW;
-            int tw = (i == n - 1) ? panelW - i * tabW : tabW; // absorb rounding
+            int tw = (i == n - 1) ? panelW - i * tabW : tabW;
             addRenderableWidget(Button.builder(tabs.get(i).title(), b -> switchTo(idx))
                 .bounds(tx, TAB_STRIP_Y, tw - 2, TAB_H).build());
         }
-
-        CreatorTab tab = tabs.get(activeTab);
+        MobCreatorTab tab = tabs.get(activeTab);
         tab.init(this, contentX, contentY + HELP_H, contentW, contentH - HELP_H);
         tab.pullFromDraft();
 
-        // Save | Apply | Close — server gates each; result shown above the bar.
         int by = height - 26, bw = 78, gap = 4;
         int total = bw * 3 + gap * 2;
         int bx = (width - total) / 2;
         addRenderableWidget(Button.builder(
-                Component.translatable("gui.neoorigins.creator.save"), b -> sendSave())
+                Component.translatable("gui.neoorigins.mob_creator.save"), b -> sendSave())
             .bounds(bx, by, bw, 20).build());
         addRenderableWidget(Button.builder(
-                Component.translatable("gui.neoorigins.creator.apply"), b -> sendApply())
+                Component.translatable("gui.neoorigins.mob_creator.apply"), b -> sendApply())
             .bounds(bx + bw + gap, by, bw, 20).build());
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.neoorigins.info.close"), b -> onClose())
@@ -126,13 +96,13 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     private void sendSave() {
         tabs.get(activeTab).pushToDraft();
         net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-            new com.cyberday1.neoorigins.network.payload.SaveCustomOriginPayload(
-                com.cyberday1.neoorigins.service.OriginDraftJson.toJson(draft)));
+            new com.cyberday1.neoorigins.network.payload.SaveMobOriginPayload(
+                com.cyberday1.neoorigins.service.MobOriginDraftJson.toJson(draft)));
     }
 
     private void sendApply() {
         net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-            new com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload());
+            new com.cyberday1.neoorigins.network.payload.ApplyMobPackPayload());
     }
 
     private void switchTo(int idx) {
@@ -146,15 +116,11 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
         g.fill(0, 0, width, height, CreatorStyle.SCRIM);
         g.drawCenteredString(font, getTitle(), width / 2, TITLE_Y, CreatorStyle.TEXT);
-
-        // Content panel frame.
         CreatorStyle.panel(g, contentX - 1, contentY - CONTENT_TOP_GAP / 2 - 1,
             contentW + 2, contentH + CONTENT_TOP_GAP / 2 + 2);
+        tabs.get(activeTab).renderBackdrop(g);
+        super.render(g, mouseX, mouseY, partial);
 
-        tabs.get(activeTab).renderBackdrop(g); // behind overlay input widgets
-        super.render(g, mouseX, mouseY, partial); // tab-strip + close buttons
-
-        // Active-tab highlight bar under its tab button.
         int n = tabs.size();
         int tabW = panelW / n;
         int hx = panelX + activeTab * tabW;
@@ -162,26 +128,22 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         g.fill(hx, TAB_STRIP_Y + TAB_H - 1, hx + hw - 2, TAB_STRIP_Y + TAB_H + 1,
             CreatorStyle.ACCENT);
 
-        // Per-tab one-line help + a divider, then the tab body below it.
-        CreatorTab active = tabs.get(activeTab);
+        MobCreatorTab active = tabs.get(activeTab);
         g.drawString(font, active.help(), contentX + CreatorStyle.PAD, contentY + 2,
             CreatorStyle.TEXT_DIM, false);
         CreatorStyle.divider(g, contentX + 4, contentY + HELP_H - 3, contentW - 8);
-        pendingTip = null; // tabs re-queue it during their render
+        pendingTip = null;
         active.render(g, mouseX, mouseY, partial,
             contentX, contentY + HELP_H, contentW, contentH - HELP_H);
 
-        // Latest server Save/Apply result, just above the button bar.
         String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
         if (!msg.isEmpty()) {
             int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
                 ? CreatorStyle.OK : CreatorStyle.ERR;
             g.drawCenteredString(font, Component.literal(msg), width / 2, height - 42, color);
         }
-
-        // Hover tooltip drawn dead last so it sits over every widget/box.
         if (pendingTip != null && !pendingTip.isEmpty()) {
-            g.flush(); // commit batched widget text so the tooltip paints over it
+            g.flush();
             CreatorStyle.tooltip(g, font, pendingTip, tipX, tipY, width, height);
         }
     }
@@ -189,11 +151,9 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     private java.util.List<String> pendingTip;
     private int tipX, tipY;
 
-    /** A tab requests its hover tooltip; the screen draws it last (topmost). */
+    @Override
     public void queueTooltip(java.util.List<String> lines, int mx, int my) {
-        this.pendingTip = lines;
-        this.tipX = mx;
-        this.tipY = my;
+        this.pendingTip = lines; this.tipX = mx; this.tipY = my;
     }
 
     @Override
@@ -203,15 +163,10 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     }
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partial) {
-        // No-op: render() draws its own backdrop; vanilla's would paint the
-        // blurred world behind our semi-transparent fill (mirrors OriginEditorScreen).
-    }
+    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partial) { }
 
     @Override
-    protected void renderBlurredBackground(float partialTick) {
-        // No-op: keep our semi-transparent fill visible.
-    }
+    protected void renderBlurredBackground(float partialTick) { }
 
     @Override public boolean isPauseScreen() { return false; }
 

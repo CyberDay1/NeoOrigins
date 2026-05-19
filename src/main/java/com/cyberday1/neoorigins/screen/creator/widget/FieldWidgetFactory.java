@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.screen.creator.widget;
 
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
-import com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen;
+import com.cyberday1.neoorigins.screen.creator.CreatorHost;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -37,7 +37,7 @@ public final class FieldWidgetFactory {
     public interface FieldRow {
         String fieldName();
         /** Create widgets (registered with the screen) at a provisional origin. */
-        void build(OriginCreatorScreen parent, Font font, int fieldW, int h);
+        void build(CreatorHost parent, Font font, int fieldW, int h);
         /** Move widgets so the row sits at content-Y {@code y}; field column at {@code fieldX}. */
         void reposition(int fieldX, int y);
         void setVisible(boolean v);
@@ -163,7 +163,7 @@ public final class FieldWidgetFactory {
             this.refKind = refOpener != null ? pickKind(spec) : null;
         }
 
-        @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
             int boxW = refKind != null ? Math.max(40, fieldW - 42) : fieldW;
             box = new EditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));
             box.setMaxLength(32767);
@@ -210,7 +210,7 @@ public final class FieldWidgetFactory {
             super(spec);
             value = Boolean.TRUE.equals(spec.defaultValue());
         }
-        @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
             button = Button.builder(label(), b -> { value = !value; button.setMessage(label()); })
                 .bounds(0, 0, Math.min(fieldW, 70), h).build();
             parent.register(button);
@@ -239,7 +239,7 @@ public final class FieldWidgetFactory {
                 if (i >= 0) idx = i;
             }
         }
-        @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
             button = Button.builder(label(), b -> {
                 idx = (idx + 1) % values.size(); button.setMessage(label());
             }).bounds(0, 0, fieldW, h).build();
@@ -277,7 +277,7 @@ public final class FieldWidgetFactory {
 
         private static final int TOGGLE_W = 52;
 
-        @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
             this.fieldW = fieldW; this.rowH = h;
             int gap = 4, boxW = Math.max(40, fieldW - TOGGLE_W - gap);
             box = new EditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));

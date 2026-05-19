@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.screen.creator.widget;
 
-import com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen;
+import com.cyberday1.neoorigins.screen.creator.CreatorHost;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -26,7 +26,7 @@ public final class ItemPickerOverlay {
     private final SearchPickerOverlay picker = new SearchPickerOverlay();
     private boolean wantComponents;
     private EditBox components;
-    private OriginCreatorScreen parent;
+    private CreatorHost parent;
     private int x, y, w, h;
 
     public boolean isOpen() { return picker.isOpen(); }
@@ -48,7 +48,7 @@ public final class ItemPickerOverlay {
             onClose);
     }
 
-    public void build(OriginCreatorScreen parent, int x, int y, int w, int h) {
+    public void build(CreatorHost parent, int x, int y, int w, int h) {
         this.parent = parent;
         this.x = x; this.y = y; this.w = w; this.h = h;
         picker.build(parent, x, y, w, h);

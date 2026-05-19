@@ -60,6 +60,11 @@ public class NeoOriginsClientEvents {
                 new com.cyberday1.neoorigins.network.payload.RequestOpenCreatorPayload());
         }
 
+        if (NeoOriginsKeybindings.OPEN_MOB_CREATOR.consumeClick()) {
+            PacketDistributor.sendToServer(
+                new com.cyberday1.neoorigins.network.payload.RequestOpenMobCreatorPayload());
+        }
+
         // Detect jump press while airborne for flight power activation
         boolean jumpHeld = Minecraft.getInstance().options.keyJump.isDown();
         boolean jumpPressed = jumpHeld && !wasJumping;

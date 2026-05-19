@@ -91,34 +91,7 @@ public final class CustomPackWriter {
             plan.put(layerFile, CustomPackSerializer.layerPatch(
                 readJsonIfPresent(layerFile), originId.toString()));
 
-            // Phase 2 — stage every file to a .tmp sibling. If any stage fails,
-            // delete all temps and abort: no final file has been touched, so a
-            // failed Save can no longer leave a half-written, non-loadable
-            // origin (origin referencing powers whose files were never written).
-            java.util.LinkedHashMap<Path, Path> staged = new java.util.LinkedHashMap<>();
-            try {
-                for (var e : plan.entrySet()) {
-                    Path f = e.getKey();
-                    Files.createDirectories(f.getParent());
-                    Path tmp = f.resolveSibling(f.getFileName() + ".tmp");
-                    Files.writeString(tmp, GSON.toJson(e.getValue()), StandardCharsets.UTF_8);
-                    staged.put(f, tmp);
-                }
-            } catch (IOException | RuntimeException e) {
-                for (Path tmp : staged.values()) {
-                    try { Files.deleteIfExists(tmp); } catch (IOException ignored) { /* best effort */ }
-                }
-                throw e;
-            }
-
-            // Phase 3 — commit: same-directory renames of already-written
-            // temps. The only remaining inconsistency window is this tight
-            // rename loop (no serialization/validation interleaved).
-            List<String> written = new ArrayList<>();
-            for (var e : staged.entrySet()) {
-                commitMove(e.getValue(), e.getKey());
-                written.add(rel(root, e.getKey()));
-            }
+            List<String> written = stageAndCommit(root, plan);
             NeoOrigins.LOGGER.info("[creator] wrote custom origin '{}' ({} files)",
                 originId, written.size());
             return new WriteResult(true, written, null);
@@ -128,6 +101,79 @@ public final class CustomPackWriter {
             return WriteResult.fail(e.getClass().getSimpleName() + ": "
                 + (m != null ? m : "(no detail)"));
         }
+    }
+
+    /**
+     * Write a mob origin to {@code origins/mob_origins/<id>.json} (+ its power
+     * files). Same staged/atomic machinery and the same C1 path-containment
+     * hardening as the player {@link #write(MinecraftServer, OriginDraft)};
+     * no layer patch (mobs aren't layered).
+     */
+    public static WriteResult write(MinecraftServer server,
+            com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft draft) {
+        Path root = packDir(server).normalize();
+        try {
+            Files.createDirectories(root);
+            ResourceLocation originId = draft.originId();
+            java.util.LinkedHashMap<Path, JsonObject> plan = new java.util.LinkedHashMap<>();
+
+            Path meta = root.resolve("pack.mcmeta");
+            if (needsPackMeta(meta)) plan.put(meta, packMetaJson());
+
+            Path mobFile = dataFile(root, originId.getNamespace(),
+                "origins/mob_origins", originId.getPath());
+            if (Files.exists(mobFile)) {
+                NeoOrigins.LOGGER.warn("[creator] overwriting existing custom mob origin '{}' "
+                    + "— no author/ownership tracking, this replaces whoever saved it last",
+                    originId);
+            }
+            plan.put(mobFile, com.cyberday1.neoorigins.service.MobCustomPackSerializer.mobOriginJson(draft));
+
+            for (OriginDraft.PowerDraft p : draft.powers) {
+                plan.put(dataFile(root, OriginDraft.CUSTOM_NAMESPACE, "origins/powers",
+                    p.powerId.getPath()), CustomPackSerializer.powerJson(p));
+            }
+
+            List<String> written = stageAndCommit(root, plan);
+            NeoOrigins.LOGGER.info("[creator] wrote custom mob origin '{}' ({} files)",
+                originId, written.size());
+            return new WriteResult(true, written, null);
+        } catch (IOException | RuntimeException e) {
+            NeoOrigins.LOGGER.error("[creator] failed writing custom mob origin to {}", root, e);
+            String m = e.getMessage();
+            return WriteResult.fail(e.getClass().getSimpleName() + ": "
+                + (m != null ? m : "(no detail)"));
+        }
+    }
+
+    /**
+     * Phase 2+3 shared by both writers: stage every planned file to a .tmp
+     * sibling (rolling back all temps on any failure — nothing moved), then
+     * commit with same-directory atomic renames. Returns pack-relative paths.
+     */
+    private static List<String> stageAndCommit(Path root,
+            java.util.LinkedHashMap<Path, JsonObject> plan) throws IOException {
+        java.util.LinkedHashMap<Path, Path> staged = new java.util.LinkedHashMap<>();
+        try {
+            for (var e : plan.entrySet()) {
+                Path f = e.getKey();
+                Files.createDirectories(f.getParent());
+                Path tmp = f.resolveSibling(f.getFileName() + ".tmp");
+                Files.writeString(tmp, GSON.toJson(e.getValue()), StandardCharsets.UTF_8);
+                staged.put(f, tmp);
+            }
+        } catch (IOException | RuntimeException e) {
+            for (Path tmp : staged.values()) {
+                try { Files.deleteIfExists(tmp); } catch (IOException ignored) { /* best effort */ }
+            }
+            throw e;
+        }
+        List<String> written = new ArrayList<>();
+        for (var e : staged.entrySet()) {
+            commitMove(e.getValue(), e.getKey());
+            written.add(rel(root, e.getKey()));
+        }
+        return written;
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────

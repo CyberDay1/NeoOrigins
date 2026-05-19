@@ -133,6 +133,12 @@ public class NeoOriginsNetwork {
         );
 
         registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.OpenMobCreatorScreenPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.OpenMobCreatorScreenPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleOpenMobCreatorScreen
+        );
+
+        registrar.playToClient(
             com.cyberday1.neoorigins.network.payload.CreatorResultPayload.TYPE,
             com.cyberday1.neoorigins.network.payload.CreatorResultPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleCreatorResult
@@ -196,6 +202,24 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload.TYPE,
             com.cyberday1.neoorigins.network.payload.ApplyCustomPackPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleApplyCustomPack
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.RequestOpenMobCreatorPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.RequestOpenMobCreatorPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleRequestOpenMobCreator
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.SaveMobOriginPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SaveMobOriginPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSaveMobOrigin
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.ApplyMobPackPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.ApplyMobPackPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleApplyMobPack
         );
     }
 
@@ -465,6 +489,106 @@ public class NeoOriginsNetwork {
                 RELOAD_IN_FLIGHT.set(false);
                 sendCreatorResult(sp, err == null,
                     err == null ? "Datapack reloaded — custom origins are live."
+                                 : "Reload failed: " + msgOf(err));
+            }, sp.getServer());
+        });
+    }
+
+    // ── Mob Origin Creator (parallels the player creator above; reuses the
+    //    shared CreatorResultPayload / gate / rate-limit / RELOAD_IN_FLIGHT) ──
+
+    private static void handleOpenMobCreatorScreen(
+            com.cyberday1.neoorigins.network.payload.OpenMobCreatorScreenPayload payload,
+            IPayloadContext ctx) {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientMobCreatorState.openMobCreatorScreen());
+    }
+
+    /** Shared open path for the Mob Origin Creator (command + keybind). */
+    public static void openMobCreatorFor(ServerPlayer sp) {
+        syncRegistryToPlayer(sp);
+        syncToPlayer(sp);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp,
+            new com.cyberday1.neoorigins.network.payload.OpenMobCreatorScreenPayload());
+    }
+
+    private static void handleRequestOpenMobCreator(
+            com.cyberday1.neoorigins.network.payload.RequestOpenMobCreatorPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                NeoOrigins.LOGGER.warn("Player {} requested the mob creator without permission",
+                    sp.getName().getString());
+                sendCreatorResult(sp, false, "You don't have permission to use the mob origin creator.");
+                return;
+            }
+            openMobCreatorFor(sp);
+        });
+    }
+
+    private static void handleSaveMobOrigin(
+            com.cyberday1.neoorigins.network.payload.SaveMobOriginPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                sendCreatorResult(sp, false, "You don't have permission to use the mob origin creator.");
+                return;
+            }
+            if (creatorRateLimited(sp, "save_mob", SAVE_COOLDOWN_MS)) return;
+            com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft draft;
+            try {
+                draft = com.cyberday1.neoorigins.service.MobOriginDraftJson.fromJson(payload.draftJson());
+            } catch (IllegalArgumentException e) {
+                sendCreatorResult(sp, false, "Invalid draft: " + e.getMessage());
+                return;
+            }
+            try {
+                var validation = com.cyberday1.neoorigins.service.MobCreatorValidator.validate(draft);
+                if (!validation.ok()) {
+                    NeoOrigins.LOGGER.warn("Player {} submitted an invalid mob origin: {}",
+                        sp.getName().getString(), validation.message());
+                    sendCreatorResult(sp, false, "Invalid: " + validation.message());
+                    return;
+                }
+                var result = com.cyberday1.neoorigins.service.CustomPackWriter.write(sp.getServer(), draft);
+                sendCreatorResult(sp, result.ok(), result.ok()
+                    ? "Saved " + result.paths().size() + " file(s). Press Apply to reload."
+                    : "Save failed: " + result.error());
+            } catch (RuntimeException e) {
+                NeoOrigins.LOGGER.error("[creator] mob save failed unexpectedly for {}",
+                    sp.getName().getString(), e);
+                sendCreatorResult(sp, false, "Save failed: " + msgOf(e));
+            }
+        });
+    }
+
+    private static void handleApplyMobPack(
+            com.cyberday1.neoorigins.network.payload.ApplyMobPackPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                sendCreatorResult(sp, false, "You don't have permission to use the mob origin creator.");
+                return;
+            }
+            if (creatorRateLimited(sp, "apply_mob", APPLY_COOLDOWN_MS)) return;
+            if (!RELOAD_IN_FLIGHT.compareAndSet(false, true)) {
+                sendCreatorResult(sp, false, "A datapack reload is already in progress — please wait.");
+                return;
+            }
+            java.util.concurrent.CompletableFuture<Void> fut;
+            try {
+                fut = com.cyberday1.neoorigins.service.CustomPackReloadService.reload(sp.getServer());
+            } catch (RuntimeException e) {
+                RELOAD_IN_FLIGHT.set(false);
+                NeoOrigins.LOGGER.error("[creator] mob reload failed to start", e);
+                sendCreatorResult(sp, false, "Reload failed: " + msgOf(e));
+                return;
+            }
+            fut.whenCompleteAsync((v, err) -> {
+                RELOAD_IN_FLIGHT.set(false);
+                sendCreatorResult(sp, err == null,
+                    err == null ? "Datapack reloaded — custom mob origins are live."
                                  : "Reload failed: " + msgOf(err));
             }, sp.getServer());
         });
