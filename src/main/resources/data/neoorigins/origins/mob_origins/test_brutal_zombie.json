@@ -1,0 +1,10 @@
+{
+  "name": "Brutal Zombie",
+  "description": "Test mob origin (manual): glowing, hostile, fire-resistant zombie. Apply with /neoorigins mob apply.",
+  "icon": "minecraft:zombie_head",
+  "target": { "entity_type": "minecraft:zombie" },
+  "powers": [
+    "neoorigins:test_brutal_zombie_behavior",
+    "neoorigins:test_brutal_zombie_buffs"
+  ]
+}
