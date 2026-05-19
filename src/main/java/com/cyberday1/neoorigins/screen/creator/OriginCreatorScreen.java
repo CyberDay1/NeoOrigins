@@ -178,6 +178,7 @@ public class OriginCreatorScreen extends Screen {
 
         // Hover tooltip drawn dead last so it sits over every widget/box.
         if (pendingTip != null && !pendingTip.isEmpty()) {
+            g.flush(); // commit batched widget text so the tooltip paints over it
             CreatorStyle.tooltip(g, font, pendingTip, tipX, tipY, width, height);
         }
     }
