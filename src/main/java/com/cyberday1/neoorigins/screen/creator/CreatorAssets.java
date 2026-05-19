@@ -50,20 +50,4 @@ public final class CreatorAssets {
         }
         return shaders;
     }
-
-    /**
-     * Curated "what you can do here by default" reference for the Appearance
-     * tab — what each visual power is, what it needs, and a known-good example.
-     */
-    public static final List<String> DEFAULTS_REFERENCE = List.of(
-        "overlay      full-screen texture (e.g. a tint/vignette). Needs a .png you ship;",
-        "             pick from installed textures or type assets/<ns>/textures/x.png.",
-        "model_color  tints the player model — just RGBA, no asset needed.",
-        "shader       a post-process shader. Needs a shaders/post/<name>.json;",
-        "             vanilla ships e.g. minecraft:shaders/post/creeper.json.",
-        "size_scaling scales the player — numeric only, no asset.",
-        "invisibility persistent_effect with minecraft:invisibility (a vanilla effect).",
-        "glow         persistent_effect with minecraft:glowing (a vanilla effect).",
-        "Use Browse to pick from everything actually installed (vanilla + packs)."
-    );
 }

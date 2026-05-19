@@ -66,4 +66,26 @@ public final class CreatorStyle {
                                   int cx, int y) {
         g.centeredText(font, Component.literal(text), cx, y, TEXT_DIM);
     }
+
+    /**
+     * Boxed multi-line hover tooltip near {@code (mx,my)}, clamped on screen.
+     * Drawn by tabs after their widgets so it sits on top.
+     */
+    public static void tooltip(GuiGraphicsExtractor g, Font font, java.util.List<String> lines,
+                               int mx, int my, int screenW, int screenH) {
+        if (lines.isEmpty()) return;
+        int wMax = 0;
+        for (String s : lines) wMax = Math.max(wMax, font.width(s));
+        int bw = wMax + 8, bh = lines.size() * 10 + 4;
+        int bx = Math.min(mx + 12, screenW - bw - 6);
+        int by = Math.min(Math.max(my - 6, 4), screenH - bh - 6);
+        g.fill(bx - 3, by - 3, bx + bw + 3, by + bh + 3, 0xF0060612);
+        g.outline(bx - 3, by - 3, bw + 6, bh + 6, ACCENT);
+        int ly = by + 2;
+        for (int i = 0; i < lines.size(); i++) {
+            g.text(font, lines.get(i), bx + 2, ly,
+                i == 0 ? SECTION : TEXT, false);
+            ly += 10;
+        }
+    }
 }

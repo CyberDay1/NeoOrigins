@@ -158,7 +158,34 @@ public final class IdentityTab implements CreatorTab {
             isClass ? "This origin will be a CLASS (neoorigins:class layer)."
                     : "Appears as a normal origin in the chosen picker.",
             lx, layerRowY + 26, isClass ? CreatorStyle.ACCENT : CreatorStyle.TEXT_DIM, false);
+
+        // Hover help for every Identity field.
+        String tip = null;
+        for (int i = 0; i < TIPS.length; i++) {
+            int top = rowY + ROW_H * i;
+            if (mouseY >= top && mouseY < top + ROW_H && mouseX >= lx && mouseX <= x + w) {
+                tip = TIPS[i];
+                break;
+            }
+        }
+        if (tip == null && mouseY >= layerRowY && mouseY < layerRowY + 20
+                && mouseX >= lx && mouseX <= x + w) {
+            tip = "Which picker this appears in. neoorigins:class makes it a class.";
+        }
+        if (tip != null) {
+            CreatorStyle.tooltip(g, font, java.util.List.of(tip),
+                mouseX, mouseY, parent.width, parent.height);
+        }
     }
+
+    private static final String[] TIPS = {
+        "Datapack id (lowercase a-z/0-9/_). Becomes neoorigins_custom:<id>.",
+        "Display name shown in the origin picker.",
+        "Flavor text shown under the name in the picker.",
+        "Item used as this origin's icon. Click Pick to browse all items.",
+        "Origins impact rating (NONE..HIGH) — the dots in the picker.",
+        "Sort order in the picker; lower numbers appear first."
+    };
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {

@@ -126,7 +126,7 @@ public final class PowerFormPanel {
         target.rawJson = body.toString();
     }
 
-    public void render(GuiGraphicsExtractor g) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (target == null) return;
         Font font = parent.font();
 
@@ -139,20 +139,31 @@ public final class PowerFormPanel {
         }
         if (rows.isEmpty()) {
             com.cyberday1.neoorigins.screen.creator.CreatorStyle.emptyState(g, font,
-                "This power has no editable fields — click \"Edit JSON\" to configure it.",
+                "This power has no editable fields — switch to JSON to configure it.",
                 x + w / 2, y + 12);
             return;
         }
 
         scroll.beginClip(g);
         int top = scroll.contentTop();
+        FieldRow hovered = null;
         for (int i = 0; i < rows.size(); i++) {
             int rowTop = top + i * ROW_H;
             if (!scroll.rowVisible(rowTop, ROW_H)) continue;
             rows.get(i).drawLabel(g, font, x + LABEL_DX, rowTop + 4);
+            if (mouseX >= x && mouseX <= x + w
+                    && mouseY >= rowTop && mouseY < rowTop + ROW_H) {
+                hovered = rows.get(i);
+            }
         }
         scroll.endClip(g);
         scroll.renderScrollbar(g);
+
+        if (hovered != null) {
+            com.cyberday1.neoorigins.screen.creator.CreatorStyle.tooltip(
+                g, font, hovered.tooltip(), mouseX, mouseY,
+                parent.width, parent.height);
+        }
     }
 
     public boolean onScroll(double mx, double my, double sy) {

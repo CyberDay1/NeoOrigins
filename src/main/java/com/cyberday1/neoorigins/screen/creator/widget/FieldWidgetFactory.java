@@ -45,6 +45,8 @@ public final class FieldWidgetFactory {
         /** Current value as JSON, or {@code null} to omit the field entirely. */
         JsonElement toJson();
         void fromJson(JsonElement el);
+        /** Hover help: name/required, schema description, type/range/values. */
+        default List<String> tooltip() { return List.of(); }
     }
 
     public static FieldRow create(FormFieldSpec spec) {
@@ -67,6 +69,48 @@ public final class FieldWidgetFactory {
         @Override public void drawLabel(GuiGraphicsExtractor g, Font font, int labelX, int y) {
             com.cyberday1.neoorigins.screen.creator.CreatorStyle.label(
                 g, font, spec.name(), labelX, y, spec.required());
+        }
+        @Override public List<String> tooltip() {
+            List<String> t = new java.util.ArrayList<>();
+            t.add(spec.name() + (spec.required() ? "  (required)" : "  (optional)"));
+            if (spec.description() != null && !spec.description().isBlank()) {
+                t.add(spec.description());
+            }
+            String kind = switch (spec.kind()) {
+                case STRING  -> "text";
+                case INTEGER -> "whole number";
+                case NUMBER  -> "decimal number";
+                case BOOLEAN -> "true / false";
+                case ENUM    -> "pick one";
+                case ARRAY   -> "list (JSON)";
+                case OBJECT  -> "object (JSON)";
+                case REF     -> "DSL reference (JSON)";
+                case MIXED   -> "value or object (JSON)";
+                case UNKNOWN -> "JSON";
+            };
+            StringBuilder meta = new StringBuilder("type: ").append(kind);
+            if (spec.hasRange()) {
+                meta.append("   range ").append(fmt(spec.min()))
+                    .append(" .. ").append(fmt(spec.max()));
+            }
+            if (spec.defaultValue() != null) {
+                meta.append("   default ").append(spec.defaultValue());
+            }
+            t.add(meta.toString());
+            if (!spec.enumValues().isEmpty()) {
+                t.add("one of: " + String.join(", ", spec.enumValues()));
+            }
+            if (spec.ref() != null) t.add("references: " + spec.ref());
+            switch (spec.kind()) {
+                case REF, OBJECT, ARRAY, MIXED, UNKNOWN ->
+                    t.add("No guided sub-form yet — edit this as JSON.");
+                default -> { }
+            }
+            return t;
+        }
+        private static String fmt(Double d) {
+            if (d == null) return "?";
+            return d == Math.rint(d) ? Long.toString(d.longValue()) : d.toString();
         }
     }
 
