@@ -2,7 +2,7 @@ package com.cyberday1.neoorigins.screen.creator.widget;
 
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
 import com.cyberday1.neoorigins.power.schemaform.FormModel;
-import com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen;
+import com.cyberday1.neoorigins.screen.creator.CreatorHost;
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft.PowerDraft;
 import com.cyberday1.neoorigins.screen.creator.widget.FieldWidgetFactory.FieldRow;
 import com.google.gson.JsonElement;
@@ -31,7 +31,7 @@ public final class PowerFormPanel {
 
     private static final int ROW_H = 22, LABEL_DX = 6, FIELD_DX = 140;
 
-    private OriginCreatorScreen parent;
+    private CreatorHost parent;
     private PowerDraft target;
     private boolean rawMode;
     private int x, y, w, h;
@@ -56,7 +56,7 @@ public final class PowerFormPanel {
      * the field widgets (or the raw box) with the screen. {@code target} may be
      * {@code null} — the panel then renders nothing editable.
      */
-    public void init(OriginCreatorScreen parent, PowerDraft target, boolean rawMode,
+    public void init(CreatorHost parent, PowerDraft target, boolean rawMode,
                      int x, int y, int w, int h) {
         this.parent = parent;
         this.target = target;
