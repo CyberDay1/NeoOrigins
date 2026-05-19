@@ -104,17 +104,35 @@ public final class PowerFormPanel {
         scroll.setContentHeight(rows.size() * ROW_H + 4);
     }
 
-    /** Open the condition/action picker for {@code field}; on pick, write a
-     *  {@code {"type":"<id>"}} skeleton into the power body and rebuild. */
+    /**
+     * Open the picker for {@code field}. condition/action insert a
+     * {@code {"type":"<id>"}} skeleton; a registry kind (particle, item, …)
+     * inserts the plain id string. Then rebuild so the form reflects it.
+     */
     private void openRefPicker(String kind, String field) {
         push(); // keep edits to the other fields
-        java.util.List<String> src = new ArrayList<>("action".equals(kind)
-            ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
-            : com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES);
-        java.util.Collections.sort(src);
-        refPicker.open("pick " + kind + " type", () -> src,
-            picked -> applyRef(field, picked), parent::requestRebuild);
+        boolean dsl = "condition".equals(kind) || "action".equals(kind);
+        java.util.List<String> src;
+        if (dsl) {
+            src = new ArrayList<>("action".equals(kind)
+                ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
+                : com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES);
+            java.util.Collections.sort(src);
+        } else {
+            src = com.cyberday1.neoorigins.screen.creator.CreatorAssets
+                .registryList(kind); // already sorted
+        }
+        refPicker.open("pick " + kind, () -> src,
+            picked -> { if (dsl) applyRef(field, picked); else applyString(field, picked); },
+            parent::requestRebuild);
         parent.requestRebuild();
+    }
+
+    private void applyString(String field, String value) {
+        if (target == null) return;
+        JsonObject body = parseObject(target.rawJson);
+        body.addProperty(field, value);
+        target.rawJson = body.toString();
     }
 
     private void applyRef(String field, String typeId) {

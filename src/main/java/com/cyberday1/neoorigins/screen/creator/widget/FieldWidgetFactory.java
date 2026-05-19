@@ -63,19 +63,29 @@ public final class FieldWidgetFactory {
             case BOOLEAN -> new BoolRow(spec);
             case ENUM    -> new EnumRow(spec);
             case INTEGER, NUMBER -> new NumericRow(spec);
-            case STRING  -> new TextRow(spec, false, null);
+            case STRING  -> new TextRow(spec, false, refOpener);
             case REF     -> new TextRow(spec, true, refOpener);
             // ARRAY/OBJECT/MIXED/UNKNOWN → raw-JSON escape
             default      -> new TextRow(spec, true, null);
         };
     }
 
-    /** condition vs action source for a REF spec, or null if not pickable. */
-    private static String refSourceKind(FormFieldSpec spec) {
-        String hay = ((spec.ref() == null ? "" : spec.ref()) + " " + spec.name())
-            .toLowerCase(java.util.Locale.ROOT);
-        if (hay.contains("action")) return "action";
-        if (hay.contains("condition")) return "condition";
+    /**
+     * What a row's "pick" button browses, or null if none:
+     * REF → "condition"/"action"; STRING → a registry kind (particle, item, …).
+     */
+    private static String pickKind(FormFieldSpec spec) {
+        if (spec.kind() == FormFieldSpec.Kind.REF) {
+            String hay = ((spec.ref() == null ? "" : spec.ref()) + " " + spec.name())
+                .toLowerCase(java.util.Locale.ROOT);
+            if (hay.contains("action")) return "action";
+            if (hay.contains("condition")) return "condition";
+            return null;
+        }
+        if (spec.kind() == FormFieldSpec.Kind.STRING) {
+            return com.cyberday1.neoorigins.screen.creator.CreatorAssets
+                .registryKind(spec.name());
+        }
         return null;
     }
 
@@ -91,9 +101,14 @@ public final class FieldWidgetFactory {
         }
         @Override public List<String> tooltip() {
             List<String> t = new java.util.ArrayList<>();
-            t.add(spec.name() + (spec.required() ? "  (required)" : "  (optional)"));
+            t.add(com.cyberday1.neoorigins.screen.creator.CreatorStyle.title(spec.name())
+                + (spec.required() ? "  (required)" : "  (optional)"));
             if (spec.description() != null && !spec.description().isBlank()) {
                 t.add(spec.description());
+            } else {
+                String doc = com.cyberday1.neoorigins.screen.creator.CreatorAssets
+                    .DOC.get(spec.name());
+                if (doc != null) t.add(doc);
             }
             String kind = switch (spec.kind()) {
                 case STRING  -> "text";
@@ -145,8 +160,7 @@ public final class FieldWidgetFactory {
             super(spec);
             this.rawJson = rawJson;
             this.refOpener = refOpener;
-            this.refKind = (refOpener != null && spec.kind() == FormFieldSpec.Kind.REF)
-                ? refSourceKind(spec) : null;
+            this.refKind = refOpener != null ? pickKind(spec) : null;
         }
 
         @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {

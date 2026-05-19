@@ -54,10 +54,25 @@ public final class CreatorStyle {
         divider(g, x, y + 11, w);
     }
 
-    /** Field label, brighter when the field is required. */
-    public static void label(GuiGraphics g, Font font, String text,
+    /** {@code snake_case} / {@code camelCase} JSON key → "Title Case" for display. */
+    public static String title(String key) {
+        if (key == null || key.isEmpty()) return "";
+        StringBuilder b = new StringBuilder(key.length() + 4);
+        boolean cap = true;
+        for (int i = 0; i < key.length(); i++) {
+            char c = key.charAt(i);
+            if (c == '_' || c == '-' || c == ' ') { b.append(' '); cap = true; }
+            else if (Character.isUpperCase(c) && i > 0 && !cap) { b.append(' ').append(c); }
+            else { b.append(cap ? Character.toUpperCase(c) : c); cap = false; }
+        }
+        return b.toString();
+    }
+
+    /** Field label (humanised), brighter when the field is required. */
+    public static void label(GuiGraphics g, Font font, String key,
                              int x, int y, boolean required) {
-        g.drawString(font, required ? text + " *" : text, x, y,
+        String t = title(key);
+        g.drawString(font, required ? t + " *" : t, x, y,
             required ? LABEL_REQ : LABEL, false);
     }
 

@@ -107,13 +107,15 @@ public final class AppearanceTab implements CreatorTab {
         }
 
         parent.register(Button.builder(
-                Component.literal("◀ " + visual().label() + " ▶"), b -> cycleVisual())
+                Component.literal("◀ " + CreatorStyle.title(visual().label()) + " ▶"),
+                b -> cycleVisual())
             .bounds(x + LABEL_DX, y, 150, HDR_H).build());
 
         PowerDraft p = match();
         if (p == null) {
             parent.register(Button.builder(
-                    Component.literal("+ add " + visual().label()), b -> addVisual())
+                    Component.literal("+ add " + CreatorStyle.title(visual().label())),
+                    b -> addVisual())
                 .bounds(x + LABEL_DX + 158, y, 110, HDR_H).build());
             form.init(parent, null, false, x, y, w, 0);
             return;
@@ -213,7 +215,8 @@ public final class AppearanceTab implements CreatorTab {
         Visual v = visual();
         if (p == null) {
             int hy = y + HDR_H + 10;
-            CreatorStyle.sectionHeader(g, font, v.label(), x + LABEL_DX, hy,
+            CreatorStyle.sectionHeader(g, font, CreatorStyle.title(v.label()),
+                x + LABEL_DX, hy,
                 w - LABEL_DX * 2);
             g.drawString(font, DESC.getOrDefault(v.label(), ""),
                 x + LABEL_DX, hy + 16, CreatorStyle.TEXT_DIM, false);
@@ -221,7 +224,8 @@ public final class AppearanceTab implements CreatorTab {
                 g.drawString(font, v.assetHint(), x + LABEL_DX, hy + 30,
                     CreatorStyle.HINT, false);
             }
-            g.drawString(font, "Not added yet — click \"+ add " + v.label() + "\".",
+            g.drawString(font,
+                "Not added yet — click \"+ add " + CreatorStyle.title(v.label()) + "\".",
                 x + LABEL_DX, hy + 46, CreatorStyle.TEXT_DIM, false);
             return;
         }
