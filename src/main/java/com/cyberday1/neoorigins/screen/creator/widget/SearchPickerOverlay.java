@@ -39,7 +39,12 @@ public final class SearchPickerOverlay {
     private int bottomReserve = 24;
 
     private List<String> all = List.of();
+    /** {@link #all} pre-lowercased once at build() so each keystroke doesn't
+     *  re-lowercase the whole (potentially huge, modded) source list. */
+    private List<String> allLower = List.of();
     private List<String> filtered = List.of();
+    private List<String> filteredLower = List.of();
+    private String prevQuery = "";
 
     private OriginCreatorScreen parent;
     private int x, y, w, h, listTop, listH;
@@ -70,6 +75,10 @@ public final class SearchPickerOverlay {
         rows.clear();
         rowVal.clear();
         all = source.get();
+        allLower = all.stream().map(s -> s.toLowerCase(Locale.ROOT)).toList();
+        filtered = all;
+        filteredLower = allLower;
+        prevQuery = "";
 
         Font font = parent.font();
         search = new EditBox(font, x + 10, y + SEARCH_TOP, w - 20, SEARCH_H,
@@ -99,8 +108,24 @@ public final class SearchPickerOverlay {
 
     private void recompute() {
         String q = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
-        filtered = q.isEmpty() ? all
-            : all.stream().filter(s -> s.toLowerCase(Locale.ROOT).contains(q)).toList();
+        if (q.isEmpty()) {
+            filtered = all;
+            filteredLower = allLower;
+        } else {
+            // When the query only grew (typing forward), narrow the previous
+            // result instead of rescanning the full source — O(prev) not O(N).
+            boolean narrow = !prevQuery.isEmpty() && q.startsWith(prevQuery);
+            List<String> baseV = narrow ? filtered : all;
+            List<String> baseL = narrow ? filteredLower : allLower;
+            List<String> fv = new ArrayList<>();
+            List<String> fl = new ArrayList<>();
+            for (int i = 0; i < baseV.size(); i++) {
+                if (baseL.get(i).contains(q)) { fv.add(baseV.get(i)); fl.add(baseL.get(i)); }
+            }
+            filtered = fv;
+            filteredLower = fl;
+        }
+        prevQuery = q;
         scroll.setContentHeight(filtered.size() * ROW_H);
         refreshRows();
     }

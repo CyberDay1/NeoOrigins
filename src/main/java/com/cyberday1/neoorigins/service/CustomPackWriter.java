@@ -59,11 +59,21 @@ public final class CustomPackWriter {
             ResourceLocation originId = draft.originId();
             java.util.LinkedHashMap<Path, JsonObject> plan = new java.util.LinkedHashMap<>();
 
+            // Re-validate pack.mcmeta rather than blindly trusting any
+            // existing file: rewrite it when missing, unreadable, or its
+            // pack_format no longer matches what we'd emit (a stale or
+            // hand-edited mcmeta would otherwise silently break loading).
             Path meta = root.resolve("pack.mcmeta");
-            if (!Files.exists(meta)) plan.put(meta, packMetaJson()); // first-time only
+            if (needsPackMeta(meta)) plan.put(meta, packMetaJson());
 
-            plan.put(dataFile(root, originId.getNamespace(), "origins/origins",
-                originId.getPath()), CustomPackSerializer.originJson(draft));
+            Path originFile = dataFile(root, originId.getNamespace(),
+                "origins/origins", originId.getPath());
+            if (Files.exists(originFile)) {
+                NeoOrigins.LOGGER.warn("[creator] overwriting existing custom origin '{}' "
+                    + "— there is no author/ownership tracking, so on a shared "
+                    + "server this replaces whoever saved it last", originId);
+            }
+            plan.put(originFile, CustomPackSerializer.originJson(draft));
 
             // Powers — type carried in the body. Namespace pinned to our own
             // (never trust a client-supplied powerId namespace); the path is
@@ -138,6 +148,20 @@ public final class CustomPackWriter {
                 "refusing to write outside the pack directory: " + name);
         }
         return target;
+    }
+
+    /** True when pack.mcmeta is missing, unreadable, or its pack_format no
+     *  longer matches what we would write (so we replace it with a correct
+     *  one rather than trusting a stale/hostile file). */
+    private static boolean needsPackMeta(Path meta) {
+        if (!Files.isRegularFile(meta)) return true;
+        try {
+            JsonObject o = readJsonIfPresent(meta);
+            if (o == null || !o.has("pack")) return true;
+            return o.getAsJsonObject("pack").get("pack_format").getAsInt() != packFormat();
+        } catch (IOException | RuntimeException e) {
+            return true; // garbled — overwrite with a valid one
+        }
     }
 
     private static JsonObject packMetaJson() {

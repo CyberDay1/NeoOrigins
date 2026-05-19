@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ public final class CreatorValidator {
         public String message() { return String.join("; ", errors); }
     }
 
-    public static Result validate(OriginDraft draft) {
+    public static Result validate(RegistryAccess registries, OriginDraft draft) {
         List<String> errors = new ArrayList<>();
 
         // 1. id path must form a valid ResourceLocation path.
@@ -104,7 +105,7 @@ public final class CreatorValidator {
         // 4. every power: registered type, real codec parse, required fields,
         //    and unknown registry/condition/action ids (shared with the client
         //    problems panel so both report identically).
-        errors.addAll(DraftSanity.powerProblems(draft));
+        errors.addAll(DraftSanity.powerProblems(registries, draft));
 
         // 5. target layer exists, or is an auto-merge origin/class path.
         ResourceLocation layer = draft.layerId;
