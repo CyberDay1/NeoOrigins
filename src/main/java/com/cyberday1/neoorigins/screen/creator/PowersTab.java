@@ -75,12 +75,13 @@ public final class PowersTab implements CreatorTab {
         parent.register(Button.builder(
                 Component.literal("Type: " + shortType(p.typeId) + "  (change)"),
                 b -> openTypePicker())
-            .bounds(x + LABEL_DX, r2, Math.min(w - 70, 300), HDR_H).build());
+            .bounds(x + LABEL_DX, r2, w - 124, HDR_H).build());
         parent.register(Button.builder(
-                Component.literal(rawMode ? "Use form" : "Edit JSON"), b -> toggleRaw())
-            .bounds(x + w - 78, r2, 74, HDR_H).build());
+                Component.literal(rawMode ? "Switch to form" : "Switch to JSON"),
+                b -> toggleRaw())
+            .bounds(x + w - 110, r2, 104, HDR_H).build());
 
-        int formTop = r2 + HDR_H + 14;
+        int formTop = y + HDR_H * 2 + 26;
         form.init(parent, p, rawMode, x, formTop, w, (y + h) - formTop);
     }
 
@@ -179,15 +180,17 @@ public final class PowersTab implements CreatorTab {
             return;
         }
 
-        g.drawString(font, "power " + (sel + 1) + "/" + ps.size(),
-            x + FIELD_DX, y + 6, CreatorStyle.TEXT_DIM, false);
+        g.drawString(font, "Power " + (sel + 1) + " / " + ps.size(),
+            x + 140, y + 6, CreatorStyle.TEXT_DIM, false);
         PowerDraft p = current();
+        int idY = y + HDR_H * 2 + 8;
         if (p != null && p.powerId != null) {
-            g.drawString(font, "id: " + p.powerId,
-                x + LABEL_DX, y + HDR_H + 4, CreatorStyle.TEXT_DIM, false);
+            g.drawString(font, "id: " + p.powerId + "    "
+                    + (rawMode ? "(editing JSON)" : "(editing form)"),
+                x + LABEL_DX, idY, CreatorStyle.TEXT_DIM, false);
         }
-        CreatorStyle.divider(g, x + 4, y + HDR_H * 2 + 2, w - 8);
-        form.render(g);
+        CreatorStyle.divider(g, x + 4, idY + 12, w - 8);
+        form.render(g, mouseX, mouseY);
     }
 
     @Override

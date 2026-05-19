@@ -54,6 +54,14 @@ public final class AppearanceTab implements CreatorTab {
             "{\"effect\":\"minecraft:glowing\",\"amplifier\":0}", null,
             "minecraft:glowing", "effect", Browse.EFFECT));
 
+    private static final java.util.Map<String, String> DESC = java.util.Map.of(
+        "overlay", "Full-screen texture over the player's view (tint, vignette…).",
+        "model_color", "Tints the player model. RGBA only — no asset needed.",
+        "shader", "A post-process screen shader while the origin is active.",
+        "size_scaling", "Scales the player up or down. Numeric only.",
+        "invisibility", "Permanent invisibility (vanilla minecraft:invisibility).",
+        "glow", "Permanent glowing outline (vanilla minecraft:glowing).");
+
     private final PowerFormPanel form = new PowerFormPanel();
     private final SearchPickerOverlay assetPicker = new SearchPickerOverlay();
 
@@ -197,26 +205,30 @@ public final class AppearanceTab implements CreatorTab {
         Font font = parent.font();
         PowerDraft p = match();
 
+        Visual v = visual();
         if (p == null) {
-            // "What's available by default" reference.
-            CreatorStyle.sectionHeader(g, font, "What you can do here",
-                x + LABEL_DX, y + HDR_H + 6, w - LABEL_DX * 2);
-            int ly = y + HDR_H + 20;
-            for (String line : CreatorAssets.DEFAULTS_REFERENCE) {
-                g.drawString(font, line, x + LABEL_DX, ly, CreatorStyle.TEXT_DIM, false);
-                ly += 11;
+            int hy = y + HDR_H + 10;
+            CreatorStyle.sectionHeader(g, font, v.label(), x + LABEL_DX, hy,
+                w - LABEL_DX * 2);
+            g.drawString(font, DESC.getOrDefault(v.label(), ""),
+                x + LABEL_DX, hy + 16, CreatorStyle.TEXT_DIM, false);
+            if (v.assetHint() != null) {
+                g.drawString(font, v.assetHint(), x + LABEL_DX, hy + 30,
+                    CreatorStyle.HINT, false);
             }
+            g.drawString(font, "Not added yet — click \"+ add " + v.label() + "\".",
+                x + LABEL_DX, hy + 46, CreatorStyle.TEXT_DIM, false);
             return;
         }
         if (p.powerId != null) {
             g.drawString(font, "id: " + p.powerId,
                 x + LABEL_DX, y + HDR_H + 2, CreatorStyle.TEXT_DIM, false);
         }
-        String hint = visual().assetHint();
-        if (hint != null) {
-            g.drawString(font, hint, x + LABEL_DX, y + HDR_H + 12, CreatorStyle.HINT, false);
+        if (v.assetHint() != null) {
+            g.drawString(font, v.assetHint(), x + LABEL_DX, y + HDR_H + 12,
+                CreatorStyle.HINT, false);
         }
-        form.render(g);
+        form.render(g, mouseX, mouseY);
     }
 
     @Override
