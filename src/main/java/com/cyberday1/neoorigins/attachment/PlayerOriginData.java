@@ -54,6 +54,13 @@ public class PlayerOriginData {
      *  been committed yet. The first successful ChooseOrigin after this flag is set
      *  performs the actual revoke/XP/stack-shrink; picker-close clears it. */
     private transient boolean pendingOrbCommit = false;
+    /** Session-only — true while an OP-initiated re-selection picker is open
+     *  ({@code /origin gui <player>}). Authorizes the target (a non-OP player)
+     *  to change an already-chosen origin for the duration of that picker
+     *  session; cleared when the picker is abandoned or selection re-completes.
+     *  Without it, a non-OP could reset their own origin for free via the
+     *  picker or a crafted ChooseOrigin packet. */
+    private transient boolean pendingAdminReselect = false;
     /** Set when the player closes the origin picker without committing any
      *  origin. Disables first-pick invulnerability so they can't stay
      *  immortal forever by dismissing the picker. Persisted so the flag
@@ -240,6 +247,9 @@ public class PlayerOriginData {
     public boolean isPendingOrbCommit() { return pendingOrbCommit; }
     public void setPendingOrbCommit(boolean pending) { this.pendingOrbCommit = pending; }
 
+    public boolean isPendingAdminReselect() { return pendingAdminReselect; }
+    public void setPendingAdminReselect(boolean pending) { this.pendingAdminReselect = pending; }
+
     public boolean isPickerAbandoned() { return pickerAbandoned; }
     public void setPickerAbandoned(boolean abandoned) { this.pickerAbandoned = abandoned; }
 
@@ -337,6 +347,7 @@ public class PlayerOriginData {
     public void clear() {
         origins.clear();
         hadAllOrigins = false;
+        pendingAdminReselect = false;
         grantedEquipmentPowers.clear();
         shadowOrbs.clear();
         toggledOffPowers.clear();
