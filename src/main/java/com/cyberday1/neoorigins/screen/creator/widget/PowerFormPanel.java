@@ -39,9 +39,17 @@ public final class PowerFormPanel {
     private final ScrollPanel scroll = new ScrollPanel();
     private final List<FieldRow> rows = new ArrayList<>();
     private EditBox rawBox;
+    private final SearchPickerOverlay refPicker = new SearchPickerOverlay();
 
     /** True when this panel is showing the raw-JSON escape instead of fields. */
     public boolean isRaw() { return rawMode; }
+
+    /** True while the condition/action picker overlay owns input. */
+    public boolean overlayOpen() { return refPicker.isOpen(); }
+    public void refBackdrop(GuiGraphicsExtractor g) { refPicker.renderBackdrop(g); }
+    public boolean refScroll(double mx, double my, double sy) {
+        return refPicker.onScroll(mx, my, sy);
+    }
 
     /**
      * (Re)build for {@code target} in the rectangle {@code (x,y,w,h)}. Registers
@@ -56,6 +64,12 @@ public final class PowerFormPanel {
         this.x = x; this.y = y; this.w = w; this.h = h;
         rows.clear();
         rawBox = null;
+
+        if (refPicker.isOpen()) {                 // overlay owns input
+            int pw = Math.min(w - 20, 360), ph = h - 16;
+            refPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
+            return;
+        }
         scroll.setViewport(x, y, w, h);
 
         if (target == null) { scroll.setContentHeight(0); return; }
@@ -83,11 +97,33 @@ public final class PowerFormPanel {
         }
         int fieldW = Math.min(w - FIELD_DX - 12, 240);
         for (FormFieldSpec spec : specs) {
-            FieldRow row = FieldWidgetFactory.create(spec);
+            FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker);
             row.build(parent, font, fieldW, 16);
             rows.add(row);
         }
         scroll.setContentHeight(rows.size() * ROW_H + 4);
+    }
+
+    /** Open the condition/action picker for {@code field}; on pick, write a
+     *  {@code {"type":"<id>"}} skeleton into the power body and rebuild. */
+    private void openRefPicker(String kind, String field) {
+        push(); // keep edits to the other fields
+        java.util.List<String> src = new ArrayList<>("action".equals(kind)
+            ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
+            : com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES);
+        java.util.Collections.sort(src);
+        refPicker.open("pick " + kind + " type", () -> src,
+            picked -> applyRef(field, picked), parent::requestRebuild);
+        parent.requestRebuild();
+    }
+
+    private void applyRef(String field, String typeId) {
+        if (target == null) return;
+        JsonObject body = parseObject(target.rawJson);
+        JsonObject ref = new JsonObject();
+        ref.addProperty("type", typeId);
+        body.add(field, ref);
+        target.rawJson = body.toString();
     }
 
     /** Re-place field widgets against the scroll offset; hide off-view rows. */

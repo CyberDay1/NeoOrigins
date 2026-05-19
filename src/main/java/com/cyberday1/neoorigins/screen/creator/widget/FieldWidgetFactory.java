@@ -49,15 +49,34 @@ public final class FieldWidgetFactory {
         default List<String> tooltip() { return List.of(); }
     }
 
-    public static FieldRow create(FormFieldSpec spec) {
+    /**
+     * Lets a REF field open a searchable picker over the condition/action
+     * vocabulary. {@code sourceKind} is {@code "condition"} or {@code "action"};
+     * {@code field} is the JSON key being filled.
+     */
+    public interface RefOpener { void open(String sourceKind, String field); }
+
+    public static FieldRow create(FormFieldSpec spec) { return create(spec, null); }
+
+    public static FieldRow create(FormFieldSpec spec, RefOpener refOpener) {
         return switch (spec.kind()) {
             case BOOLEAN -> new BoolRow(spec);
             case ENUM    -> new EnumRow(spec);
             case INTEGER, NUMBER -> new NumericRow(spec);
-            case STRING  -> new TextRow(spec, false);
-            // ARRAY/OBJECT/REF/MIXED/UNKNOWN → raw-JSON escape
-            default      -> new TextRow(spec, true);
+            case STRING  -> new TextRow(spec, false, null);
+            case REF     -> new TextRow(spec, true, refOpener);
+            // ARRAY/OBJECT/MIXED/UNKNOWN → raw-JSON escape
+            default      -> new TextRow(spec, true, null);
         };
+    }
+
+    /** condition vs action source for a REF spec, or null if not pickable. */
+    private static String refSourceKind(FormFieldSpec spec) {
+        String hay = ((spec.ref() == null ? "" : spec.ref()) + " " + spec.name())
+            .toLowerCase(java.util.Locale.ROOT);
+        if (hay.contains("action")) return "action";
+        if (hay.contains("condition")) return "condition";
+        return null;
     }
 
     // ── shared base ─────────────────────────────────────────────────────────
@@ -118,17 +137,39 @@ public final class FieldWidgetFactory {
 
     private static final class TextRow extends Base {
         private final boolean rawJson;
+        private final RefOpener refOpener;
+        private final String refKind; // non-null → show a "pick" button
         private EditBox box;
-        TextRow(FormFieldSpec spec, boolean rawJson) { super(spec); this.rawJson = rawJson; }
+        private Button pick;
+        TextRow(FormFieldSpec spec, boolean rawJson, RefOpener refOpener) {
+            super(spec);
+            this.rawJson = rawJson;
+            this.refOpener = refOpener;
+            this.refKind = (refOpener != null && spec.kind() == FormFieldSpec.Kind.REF)
+                ? refSourceKind(spec) : null;
+        }
 
         @Override public void build(OriginCreatorScreen parent, Font font, int fieldW, int h) {
-            box = new EditBox(font, 0, 0, fieldW, h, Component.literal(spec.name()));
+            int boxW = refKind != null ? Math.max(40, fieldW - 42) : fieldW;
+            box = new EditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));
             box.setMaxLength(32767);
             if (spec.defaultValue() != null && !rawJson) box.setValue(String.valueOf(spec.defaultValue()));
             parent.register(box);
+            if (refKind != null) {
+                pick = Button.builder(Component.literal("pick"),
+                        b -> refOpener.open(refKind, spec.name()))
+                    .bounds(0, 0, 38, h).build();
+                parent.register(pick);
+            }
         }
-        @Override public void reposition(int fieldX, int y) { box.setPosition(fieldX, y); }
-        @Override public void setVisible(boolean v) { box.visible = v; box.active = v; }
+        @Override public void reposition(int fieldX, int y) {
+            box.setPosition(fieldX, y);
+            if (pick != null) pick.setPosition(fieldX + box.getWidth() + 4, y);
+        }
+        @Override public void setVisible(boolean v) {
+            box.visible = v; box.active = v;
+            if (pick != null) { pick.visible = v; pick.active = v; }
+        }
 
         @Override public JsonElement toJson() {
             String s = box.getValue().trim();
