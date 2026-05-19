@@ -99,6 +99,15 @@
     "interval": "Ticks between condition checks (min 1; default 20).",
     "interval_ticks": "Ticks between condition checks (20 = 1s); same as interval."
   },
+  "neoorigins:mob_behavior": {
+    "aggression": "neutral = vanilla AI unchanged (only retaliate applies); hostile = always target the target type on sight; conditional = target a player only while every hostile_when condition holds. Default neutral.",
+    "hostile_when": "List of conditions (AND-ed) tested against the PROSPECTIVE PLAYER TARGET (piglin-style, e.g. 'player not wearing gold'), not the mob. Only used when aggression = conditional; empty list behaves like hostile.",
+    "retaliate": "Also fight back against whatever damaged the mob (vanilla hurt-by-target). Default true.",
+    "anger_linger_ticks": "Keep the target this many ticks after the trigger stops holding, so the mob calms down gradually instead of instantly (default 200 = 10s).",
+    "aggro_range": "Max distance to acquire a target (default 16.0).",
+    "target_type": "Entity type id to be hostile toward; omitted = players. Conditions only apply to player targets.",
+    "call_for_help": "When retaliating, alert nearby same-type mobs (vanilla pack aggro). Default false."
+  },
   "neoorigins:conditional": {
     "inner_power": "Resource id of another power that is only active while this condition holds."
   },
