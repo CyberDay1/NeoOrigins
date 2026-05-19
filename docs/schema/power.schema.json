@@ -167,8 +167,7 @@
       "properties": {
         "type": { "const": "neoorigins:size_scaling" },
         "scale": { "type": "number", "exclusiveMinimum": 0 },
-        "modify_reach": { "type": "boolean" },
-        "reach_scale": { "type": "number", "exclusiveMinimum": 0, "description": "Explicit reach multiplier when modify_reach is true (1.0 = unchanged); if unset, reach scales with scale." }
+        "modify_reach": { "type": "boolean" }
       },
       "required": ["type", "scale"]
     },

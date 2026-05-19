@@ -67,7 +67,7 @@
   },
   "neoorigins:attribute_modifier": {
     "amount": "Numeric value applied to the attribute under the chosen operation; required.",
-    "attribute": "Attribute id to modify (e.g. minecraft:generic.movement_speed); required.",
+    "attribute": "Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.",
     "equipment_condition": "Optional gate matching a worn item by id/tag in a slot; active only while worn.",
     "location_condition": "Optional gate on dimension/biome/structure; active only while there.",
     "operation": "How amount applies: add_value, add_multiplied_base, or add_multiplied_total."
@@ -321,9 +321,8 @@
     "tick_interval": "Ticks between each darkness pulse from orbs (20 = 1s; default 20)."
   },
   "neoorigins:size_scaling": {
-    "modify_reach": "If true, also adjust block/entity interaction reach (default true).",
-    "scale": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0).",
-    "reach_scale": "Explicit reach multiplier when modify_reach is on (1.0 = unchanged); unset = scales with scale."
+    "modify_reach": "If true, reach scales with body size too (default true). For independent reach use attribute_modifier.",
+    "scale": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."
   },
   "neoorigins:slime_death_save": {
     "moisture_threshold": "Min slime moisture (0-1) to split instead of dying (default 0.75).",
