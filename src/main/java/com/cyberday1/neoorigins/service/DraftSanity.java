@@ -13,8 +13,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,21 +37,36 @@ public final class DraftSanity {
 
     private DraftSanity() {}
 
-    /** JSON field name → BuiltInRegistries lookup for unknown-id checks. */
-    private static boolean idExists(String field, String value) {
+    /** JSON field name → registry lookup for unknown-id checks. Resolves
+     *  against the live {@link RegistryAccess} (composes built-in + modded +
+     *  datapack/dynamic registries) rather than vanilla-only
+     *  {@code BuiltInRegistries}, so a valid modded/datapack id is not
+     *  false-flagged as a hard Save error. If the registry isn't available
+     *  (e.g. {@code RegistryAccess.EMPTY}), degrade to "don't flag". */
+    private static boolean idExists(RegistryAccess ra, String field, String value) {
         Identifier rl;
         try { rl = Identifier.parse(value); } catch (RuntimeException e) { return false; }
-        return switch (field) {
-            case "particle", "particle_type" -> BuiltInRegistries.PARTICLE_TYPE.containsKey(rl);
-            case "sound", "sound_event"      -> BuiltInRegistries.SOUND_EVENT.containsKey(rl);
-            case "block"                     -> BuiltInRegistries.BLOCK.containsKey(rl);
-            case "item"                      -> BuiltInRegistries.ITEM.containsKey(rl);
-            case "entity", "entity_type"     -> BuiltInRegistries.ENTITY_TYPE.containsKey(rl);
-            case "attribute"                 -> BuiltInRegistries.ATTRIBUTE.containsKey(rl);
-            case "effect", "status_effect", "mob_effect"
-                                             -> BuiltInRegistries.MOB_EFFECT.containsKey(rl);
-            default -> true; // not an id field we check
-        };
+        try {
+            return switch (field) {
+                case "particle", "particle_type" -> ra.lookupOrThrow(Registries.PARTICLE_TYPE)
+                    .get(ResourceKey.create(Registries.PARTICLE_TYPE, rl)).isPresent();
+                case "sound", "sound_event" -> ra.lookupOrThrow(Registries.SOUND_EVENT)
+                    .get(ResourceKey.create(Registries.SOUND_EVENT, rl)).isPresent();
+                case "block" -> ra.lookupOrThrow(Registries.BLOCK)
+                    .get(ResourceKey.create(Registries.BLOCK, rl)).isPresent();
+                case "item" -> ra.lookupOrThrow(Registries.ITEM)
+                    .get(ResourceKey.create(Registries.ITEM, rl)).isPresent();
+                case "entity", "entity_type" -> ra.lookupOrThrow(Registries.ENTITY_TYPE)
+                    .get(ResourceKey.create(Registries.ENTITY_TYPE, rl)).isPresent();
+                case "attribute" -> ra.lookupOrThrow(Registries.ATTRIBUTE)
+                    .get(ResourceKey.create(Registries.ATTRIBUTE, rl)).isPresent();
+                case "effect", "status_effect", "mob_effect" -> ra.lookupOrThrow(Registries.MOB_EFFECT)
+                    .get(ResourceKey.create(Registries.MOB_EFFECT, rl)).isPresent();
+                default -> true; // not an id field we check
+            };
+        } catch (RuntimeException e) {
+            return true; // registry unavailable (e.g. RegistryAccess.EMPTY) — don't false-flag
+        }
     }
 
     private static boolean isCheckedIdField(String field) {
@@ -62,7 +79,7 @@ public final class DraftSanity {
     }
 
     /** Per-power deep checks (used by both the server gate and client panel). */
-    public static List<String> powerProblems(OriginDraft draft) {
+    public static List<String> powerProblems(RegistryAccess ra, OriginDraft draft) {
         List<String> out = new ArrayList<>();
         int i = 0;
         for (PowerDraft p : draft.powers) {
@@ -105,20 +122,20 @@ public final class DraftSanity {
             } catch (RuntimeException ignored) { /* form model unavailable — skip */ }
 
             // Unknown ids: registry-backed string fields + neoorigins: type refs.
-            scanIds(body, tag, out);
+            scanIds(ra, body, tag, out);
         }
         return out;
     }
 
     /** Recursively flag unknown registry ids and unknown neoorigins: type refs. */
-    private static void scanIds(JsonElement el, String tag, List<String> out) {
+    private static void scanIds(RegistryAccess ra, JsonElement el, String tag, List<String> out) {
         if (el.isJsonObject()) {
             for (Map.Entry<String, JsonElement> e : el.getAsJsonObject().entrySet()) {
                 String k = e.getKey();
                 JsonElement v = e.getValue();
                 if (v.isJsonPrimitive() && v.getAsJsonPrimitive().isString()) {
                     String val = v.getAsString();
-                    if (isCheckedIdField(k) && !idExists(k, val)) {
+                    if (isCheckedIdField(k) && !idExists(ra, k, val)) {
                         out.add(tag + ": " + k + " \"" + val + "\" is not a registered id");
                     }
                     if (k.equals("type") && val.startsWith("neoorigins:")
@@ -127,11 +144,11 @@ public final class DraftSanity {
                             + "condition/action)");
                     }
                 } else {
-                    scanIds(v, tag, out);
+                    scanIds(ra, v, tag, out);
                 }
             }
         } else if (el.isJsonArray()) {
-            for (JsonElement c : (JsonArray) el) scanIds(c, tag, out);
+            for (JsonElement c : (JsonArray) el) scanIds(ra, c, tag, out);
         }
     }
 
@@ -143,7 +160,7 @@ public final class DraftSanity {
     }
 
     /** Full client-side pre-save check: id path + layer + per-power. */
-    public static List<String> draftProblems(OriginDraft draft) {
+    public static List<String> draftProblems(RegistryAccess ra, OriginDraft draft) {
         List<String> out = new ArrayList<>();
         try {
             draft.originId();
@@ -153,7 +170,7 @@ public final class DraftSanity {
         }
         if (draft.layerId == null) out.add("no target layer set");
         if (draft.powers.isEmpty()) out.add("origin has no powers (it will do nothing)");
-        out.addAll(powerProblems(draft));
+        out.addAll(powerProblems(ra, draft));
         return out;
     }
 }

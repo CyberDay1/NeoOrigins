@@ -56,8 +56,13 @@ public final class JsonPreviewTab implements CreatorTab {
         OriginDraft d = parent.draft();
 
         // Sanity panel first — same checks the server gate runs on Save.
+        // Use the client connection's registry access so modded/datapack ids
+        // resolve the same way the server validator sees them.
+        var conn = net.minecraft.client.Minecraft.getInstance().getConnection();
+        net.minecraft.core.RegistryAccess ra = conn != null
+            ? conn.registryAccess() : net.minecraft.core.RegistryAccess.EMPTY;
         java.util.List<String> probs =
-            com.cyberday1.neoorigins.service.DraftSanity.draftProblems(d);
+            com.cyberday1.neoorigins.service.DraftSanity.draftProblems(ra, d);
         if (probs.isEmpty()) {
             lines.add("> No problems detected — safe to Save.");
         } else {

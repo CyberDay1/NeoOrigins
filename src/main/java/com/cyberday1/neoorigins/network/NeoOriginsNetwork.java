@@ -404,7 +404,8 @@ public class NeoOriginsNetwork {
             // load inside the validator) still sends a result — otherwise the
             // exception escapes enqueueWork and the player's button looks dead.
             try {
-                var validation = com.cyberday1.neoorigins.service.CreatorValidator.validate(draft);
+                var validation = com.cyberday1.neoorigins.service.CreatorValidator.validate(
+                    sp.level().getServer().registryAccess(), draft);
                 if (!validation.ok()) {
                     NeoOrigins.LOGGER.warn("Player {} submitted an invalid custom origin: {}",
                         sp.getName().getString(), validation.message());

@@ -34,6 +34,11 @@ public final class CustomPackReloadService {
      */
     public static CompletableFuture<Void> reload(MinecraftServer server) {
         PackRepository repo = server.getPackRepository();
+        // Synchronous filesystem rescan on the server thread. This is a
+        // deliberate, bounded hitch: it is the explicit author-driven "Apply"
+        // action (same cost/behavior as a manual /reload), throttled and
+        // single-flighted by NeoOriginsNetwork's RELOAD_IN_FLIGHT guard, so a
+        // brief stall here is acceptable and intended — not a per-tick path.
         repo.reload(); // rediscover world/datapacks/* incl. our freshly-written pack
 
         List<String> ids = new ArrayList<>(repo.getSelectedIds());
