@@ -13,7 +13,12 @@ import net.minecraft.server.permissions.Permissions;
  *
  * <p>Game-master permission (the {@code REQUIRE_GM} gate every admin command in
  * this codebase uses — 26.1 {@code Permissions.COMMANDS_GAMEMASTER}) OR
- * creative mode (covers singleplayer/builders without an explicit op level).
+ * creative mode — but creative is honored ONLY on an integrated
+ * (singleplayer / LAN-host) server. Creative is a gameplay state, not an
+ * authorization level: on a dedicated server any player may be creative
+ * (build/minigame servers, other plugins' {@code /gamemode}), so honoring it
+ * there would hand the shared-datapack creator to non-admins. Singleplayer /
+ * LAN keeps the "builder without an explicit op level" convenience.
  */
 public final class CreatorAccess {
 
@@ -23,6 +28,8 @@ public final class CreatorAccess {
     private CreatorAccess() {}
 
     public static boolean canUse(ServerPlayer sp) {
-        return sp.isCreative() || GM.test(sp.createCommandSourceStack());
+        if (GM.test(sp.createCommandSourceStack())) return true;
+        var server = sp.level().getServer();
+        return sp.isCreative() && server != null && server.isSingleplayer();
     }
 }

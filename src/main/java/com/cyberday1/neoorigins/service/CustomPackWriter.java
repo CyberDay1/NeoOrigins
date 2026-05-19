@@ -62,9 +62,11 @@ public final class CustomPackWriter {
             atomicWriteJson(originFile, CustomPackSerializer.originJson(draft));
             written.add(rel(root, originFile));
 
-            // Powers — each carries its type.
+            // Powers — each carries its type. Namespace is pinned to our own
+            // (never trust a client-supplied powerId namespace); the path is
+            // still containment-checked in dataFile().
             for (OriginDraft.PowerDraft p : draft.powers) {
-                Path pf = dataFile(root, p.powerId.getNamespace(),
+                Path pf = dataFile(root, OriginDraft.CUSTOM_NAMESPACE,
                     "origins/powers", p.powerId.getPath());
                 atomicWriteJson(pf, CustomPackSerializer.powerJson(p));
                 written.add(rel(root, pf));
@@ -95,8 +97,22 @@ public final class CustomPackWriter {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
+    /**
+     * Resolve a pack-relative data file and hard-guarantee it stays inside the
+     * pack root. {@link CreatorValidator} already rejects unsafe id paths, but
+     * this is the last line of defense (and protects any future caller that
+     * doesn't run the validator): {@code Path.resolve} does NOT collapse
+     * {@code ..}, so a traversal id would otherwise escape {@code root}.
+     */
     private static Path dataFile(Path root, String namespace, String category, String name) {
-        return root.resolve("data").resolve(namespace).resolve(category).resolve(name + ".json");
+        Path normalizedRoot = root.normalize();
+        Path target = normalizedRoot.resolve("data").resolve(namespace)
+            .resolve(category).resolve(name + ".json").normalize();
+        if (!target.startsWith(normalizedRoot)) {
+            throw new IllegalArgumentException(
+                "refusing to write outside the pack directory: " + name);
+        }
+        return target;
     }
 
     private static void writePackMeta(Path root, List<String> written) throws IOException {
