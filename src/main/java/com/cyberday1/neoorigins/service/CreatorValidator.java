@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Server-side gate run before {@link CustomPackWriter#write} so a malformed
@@ -31,6 +32,17 @@ public final class CreatorValidator {
     /** Layer paths that always resolve via LayerDataManager's auto-merge. */
     private static final Set<String> AUTO_MERGE_PATHS = Set.of("origin", "class");
 
+    /**
+     * Conservative datapack-path grammar: one or more {@code [a-z0-9_-]}
+     * segments joined by single {@code /}. Deliberately stricter than
+     * {@link ResourceLocation}'s own path validation, which permits {@code .}
+     * (and therefore {@code ..}) and odd slashes. {@link CustomPackWriter}
+     * resolves these id paths into real filesystem paths, so anything that
+     * isn't this grammar (a {@code .}, {@code ..}, leading/trailing/double
+     * slash, empty segment) is rejected here before a single file is written.
+     */
+    private static final Pattern SAFE_ID_PATH = Pattern.compile("[a-z0-9_-]+(?:/[a-z0-9_-]+)*");
+
     private CreatorValidator() {}
 
     public record Result(boolean ok, List<String> errors) {
@@ -47,6 +59,29 @@ public final class CreatorValidator {
         } catch (RuntimeException e) {
             return new Result(false, List.of(
                 "id path \"" + draft.idPath + "\" is not valid (use lowercase a-z, 0-9, _, /, -)"));
+        }
+
+        // 1b. id paths become filesystem paths in CustomPackWriter — enforce a
+        //     strict grammar so a crafted idPath/powerId/layer cannot escape the
+        //     pack directory (path traversal). ResourceLocation alone is not
+        //     enough: it accepts '.' and '..'.
+        if (!SAFE_ID_PATH.matcher(originId.getPath()).matches()) {
+            return new Result(false, List.of(
+                "id path \"" + draft.idPath + "\" is not allowed "
+                + "(lowercase a-z, 0-9, _, - and single / only — no '.', no '..')"));
+        }
+        if (draft.layerId != null
+                && !SAFE_ID_PATH.matcher(draft.layerId.getPath()).matches()) {
+            return new Result(false, List.of(
+                "target layer path \"" + draft.layerId + "\" is not allowed"));
+        }
+        for (OriginDraft.PowerDraft p : draft.powers) {
+            if (p.powerId == null
+                    || !SAFE_ID_PATH.matcher(p.powerId.getPath()).matches()) {
+                return new Result(false, List.of(
+                    "power id \"" + (p.powerId == null ? "(none)" : p.powerId)
+                    + "\" is not allowed (lowercase a-z, 0-9, _, - and single / only)"));
+            }
         }
 
         // 2. collision with a shipped built-in origin (neoorigins:<idPath>).

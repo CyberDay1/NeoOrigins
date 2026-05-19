@@ -52,6 +52,18 @@ public class NeoOriginsNetwork {
     /** Key: "uuid:slot" → last tick that slot was activated. */
     private static final Map<String, Integer> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
 
+    /** Key: "uuid:action" → last epoch-ms a creator Save/Apply was accepted.
+     *  Throttles the expensive creator write/reload payloads (a malicious or
+     *  modified client can send them in a tight loop; the legitimate UX is a
+     *  human clicking a button). Swept on logout in {@link #clearDebounce}. */
+    private static final Map<String, Long> LAST_CREATOR_ACTION = new ConcurrentHashMap<>();
+    private static final long SAVE_COOLDOWN_MS  = 1_500L;
+    private static final long APPLY_COOLDOWN_MS = 3_000L;
+    /** A datapack reload re-syncs every player and stalls the server thread —
+     *  never run two concurrently, regardless of how many Apply packets land. */
+    private static final java.util.concurrent.atomic.AtomicBoolean RELOAD_IN_FLIGHT =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
+
     public static void register(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar(NeoOrigins.MOD_ID).versioned(PROTOCOL_VERSION);
 
@@ -321,6 +333,27 @@ public class NeoOriginsNetwork {
             new com.cyberday1.neoorigins.network.payload.CreatorResultPayload(ok, message));
     }
 
+    /** True (and replies with a notice) if {@code sp} performed {@code action}
+     *  more recently than {@code cooldownMs} ago — caller should abort. */
+    private static boolean creatorRateLimited(ServerPlayer sp, String action, long cooldownMs) {
+        String key = sp.getUUID() + ":" + action;
+        long now = System.currentTimeMillis();
+        Long last = LAST_CREATOR_ACTION.get(key);
+        if (last != null && now - last < cooldownMs) {
+            sendCreatorResult(sp, false, "Slow down — please wait a moment before you "
+                + action + " again.");
+            return true;
+        }
+        LAST_CREATOR_ACTION.put(key, now);
+        return false;
+    }
+
+    /** Throwable message that is never literally {@code "null"}. */
+    private static String msgOf(Throwable t) {
+        String m = t.getMessage();
+        return m != null ? m : t.getClass().getSimpleName();
+    }
+
     private static void handleRequestOpenCreator(
             com.cyberday1.neoorigins.network.payload.RequestOpenCreatorPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
@@ -345,6 +378,7 @@ public class NeoOriginsNetwork {
                 sendCreatorResult(sp, false, "You don't have permission to use the origin creator.");
                 return;
             }
+            if (creatorRateLimited(sp, "save", SAVE_COOLDOWN_MS)) return;
             com.cyberday1.neoorigins.screen.creator.model.OriginDraft draft;
             try {
                 draft = com.cyberday1.neoorigins.service.OriginDraftJson.fromJson(payload.draftJson());
@@ -376,10 +410,28 @@ public class NeoOriginsNetwork {
                 sendCreatorResult(sp, false, "You don't have permission to use the origin creator.");
                 return;
             }
-            com.cyberday1.neoorigins.service.CustomPackReloadService.reload(sp.getServer())
-                .whenComplete((v, err) -> sendCreatorResult(sp, err == null,
+            if (creatorRateLimited(sp, "apply", APPLY_COOLDOWN_MS)) return;
+            if (!RELOAD_IN_FLIGHT.compareAndSet(false, true)) {
+                sendCreatorResult(sp, false, "A datapack reload is already in progress — please wait.");
+                return;
+            }
+            java.util.concurrent.CompletableFuture<Void> fut;
+            try {
+                fut = com.cyberday1.neoorigins.service.CustomPackReloadService.reload(sp.getServer());
+            } catch (RuntimeException e) {
+                RELOAD_IN_FLIGHT.set(false);
+                NeoOrigins.LOGGER.error("[creator] reload failed to start", e);
+                sendCreatorResult(sp, false, "Reload failed: " + msgOf(e));
+                return;
+            }
+            // Result must go back on the server thread (the future may complete
+            // on a reload-worker / common-pool thread).
+            fut.whenCompleteAsync((v, err) -> {
+                RELOAD_IN_FLIGHT.set(false);
+                sendCreatorResult(sp, err == null,
                     err == null ? "Datapack reloaded — custom origins are live."
-                                 : "Reload failed: " + err.getMessage()));
+                                 : "Reload failed: " + msgOf(err));
+            }, sp.getServer());
         });
     }
 
@@ -641,6 +693,7 @@ public class NeoOriginsNetwork {
     public static void clearDebounce(java.util.UUID playerUuid) {
         String prefix = playerUuid + ":";
         LAST_ACTIVATE_TICK.keySet().removeIf(key -> key.startsWith(prefix));
+        LAST_CREATOR_ACTION.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
     /**

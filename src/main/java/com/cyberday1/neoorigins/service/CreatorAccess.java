@@ -9,7 +9,12 @@ import net.minecraft.server.level.ServerPlayer;
  * datapacks.
  *
  * <p>Permission level ≥2 (the established command idiom in this codebase) OR
- * creative mode (covers singleplayer/builders without an explicit op level).
+ * creative mode — but creative is honored ONLY on an integrated
+ * (singleplayer / LAN-host) server. Creative is a gameplay state, not an
+ * authorization level: on a dedicated server any player may be creative
+ * (build/minigame servers, other plugins' {@code /gamemode}), so honoring it
+ * there would hand the shared-datapack creator to non-admins. Singleplayer /
+ * LAN keeps the "builder without an explicit op level" convenience.
  */
 public final class CreatorAccess {
 
@@ -19,6 +24,8 @@ public final class CreatorAccess {
     private CreatorAccess() {}
 
     public static boolean canUse(ServerPlayer sp) {
-        return sp.hasPermissions(LEVEL) || sp.isCreative();
+        if (sp.hasPermissions(LEVEL)) return true;
+        var server = sp.level().getServer();
+        return sp.isCreative() && server != null && server.isSingleplayer();
     }
 }
