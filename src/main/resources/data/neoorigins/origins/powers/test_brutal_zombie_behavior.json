@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "hostile",
+  "retaliate": true,
+  "call_for_help": true,
+  "aggro_range": 24.0,
+  "anger_linger_ticks": 200
+}

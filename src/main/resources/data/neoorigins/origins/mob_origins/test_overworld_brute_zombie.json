@@ -1,0 +1,17 @@
+{
+  "name": "Overworld Brute Zombie",
+  "description": "Test mob origin (spawn-gated): rolls onto a fraction of naturally-spawned overworld zombies at night.",
+  "icon": "minecraft:zombie_head",
+  "target": { "entity_type": "minecraft:zombie" },
+  "powers": [
+    "neoorigins:test_brutal_zombie_behavior",
+    "neoorigins:test_brutal_zombie_buffs"
+  ],
+  "spawn_rules": {
+    "weight": 0.25,
+    "location": { "dimension": "minecraft:overworld" },
+    "time_of_day": "night",
+    "spawn_reasons": ["natural"],
+    "mutex_group": "test_zombie"
+  }
+}
