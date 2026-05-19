@@ -321,8 +321,9 @@
     "tick_interval": "Ticks between each darkness pulse from orbs (20 = 1s; default 20)."
   },
   "neoorigins:size_scaling": {
-    "modify_reach": "If true, scale block/entity interaction reach with size (default true).",
-    "scale": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."
+    "modify_reach": "If true, also adjust block/entity interaction reach (default true).",
+    "scale": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0).",
+    "reach_scale": "Explicit reach multiplier when modify_reach is on (1.0 = unchanged); unset = scales with scale."
   },
   "neoorigins:slime_death_save": {
     "moisture_threshold": "Min slime moisture (0-1) to split instead of dying (default 0.75).",

@@ -17,7 +17,9 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  *
  * JSON fields:
  *   "scale"         (float, default 1.0) — target scale multiplier (0.5 = half size, 2.0 = double)
- *   "modify_reach"  (boolean, default true) — also adjust reach proportionally
+ *   "modify_reach"  (boolean, default true) — also adjust reach
+ *   "reach_scale"   (float, optional) — explicit reach multiplier when modify_reach
+ *                    is true; if omitted, reach scales with "scale" as before
  */
 public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
@@ -30,10 +32,13 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
         return ResourceLocation.fromNamespaceAndPath("neoorigins", "size_" + key + "_" + suffix);
     }
 
-    public record Config(float scale, boolean modifyReach, String type) implements PowerConfiguration {
+    public record Config(float scale, boolean modifyReach,
+                         java.util.Optional<Float> reachScale, String type)
+            implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("scale", 1.0f).forGetter(Config::scale),
             Codec.BOOL.optionalFieldOf("modify_reach", true).forGetter(Config::modifyReach),
+            Codec.FLOAT.optionalFieldOf("reach_scale").forGetter(Config::reachScale),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -89,9 +94,13 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
         applyMod(player, Attributes.SCALE, scaleId, scaleDelta, AttributeModifier.Operation.ADD_VALUE, add);
 
         if (config.modifyReach()) {
-            // reach attributes use ADD_MULTIPLIED_BASE so reach scales proportionally
-            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  reachBlockId,  scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
-            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, reachEntityId, scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+            // reach attributes use ADD_MULTIPLIED_BASE. By default reach tracks
+            // body scale; an explicit reach_scale overrides just the reach
+            // amount (1.0 = unchanged) so reach can differ from body size.
+            double reachDelta = config.reachScale()
+                .map(r -> (double) (r - 1.0f)).orElse(scaleDelta);
+            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  reachBlockId,  reachDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, reachEntityId, reachDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
         }
     }
 
