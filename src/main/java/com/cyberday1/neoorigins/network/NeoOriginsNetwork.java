@@ -49,8 +49,12 @@ public class NeoOriginsNetwork {
     private static final String PROTOCOL_VERSION = "1";
     /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
     private static final int SLOT_DEBOUNCE_TICKS = 5;
-    /** Key: "uuid:slot" → last tick that slot was activated. */
-    private static final Map<String, Integer> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
+    /** Key: "uuid:slot" → server game-time tick that slot was last activated.
+     *  Uses level game-time (monotonic, shared, never resets) — NOT
+     *  {@code ServerPlayer.tickCount}, which resets to 0 on relog/respawn and
+     *  would otherwise make {@code now - last} negative and silently swallow
+     *  every activation for the rest of the session. */
+    private static final Map<String, Long> LAST_ACTIVATE_TICK = new ConcurrentHashMap<>();
 
     /** Key: "uuid:action" → last epoch-ms a creator Save/Apply was accepted.
      *  Throttles the expensive creator write/reload payloads (a malicious or
@@ -581,12 +585,13 @@ public class NeoOriginsNetwork {
             int slot = payload.slot();
             if (slot < 0 || slot >= 6) return;
 
-            // Per-slot debounce — prevents key-spam without blocking adjacent slots.
-            int currentTick = sp.tickCount;
+            // Per-slot debounce — prevents key-spam without blocking adjacent
+            // slots. Keyed on monotonic level game-time so it survives relog.
+            long now = sp.level().getGameTime();
             String debounceKey = sp.getUUID() + ":" + slot;
-            Integer lastTick = LAST_ACTIVATE_TICK.get(debounceKey);
-            if (lastTick != null && (currentTick - lastTick) < SLOT_DEBOUNCE_TICKS) return;
-            LAST_ACTIVATE_TICK.put(debounceKey, currentTick);
+            Long lastTick = LAST_ACTIVATE_TICK.get(debounceKey);
+            if (lastTick != null && (now - lastTick) < SLOT_DEBOUNCE_TICKS) return;
+            LAST_ACTIVATE_TICK.put(debounceKey, now);
 
             List<PowerHolder<?>> actives = ActiveOriginService.activePowers(sp);
             if (slot >= actives.size()) return;
