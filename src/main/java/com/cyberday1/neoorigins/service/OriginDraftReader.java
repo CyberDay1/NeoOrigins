@@ -20,7 +20,11 @@ import java.util.Map;
  *                the data manager injects it from the file path, so it is
  *                supplied here by the caller).
  * @param layerId the layer the origin belongs to (membership lives in the
- *                layer file, not the origin body — supplied by the caller).
+ *                layer file, not the origin body, so the caller MUST resolve
+ *                and supply it — required, non-null. Passing null would
+ *                silently retarget e.g. a {@code neoorigins:class} to
+ *                {@code origins:origin} and the next Save would move it to the
+ *                wrong layer file).
  */
 public final class OriginDraftReader {
 
@@ -29,9 +33,16 @@ public final class OriginDraftReader {
     public static OriginDraft fromJson(String idPath, ResourceLocation layerId,
                                        JsonObject originJson,
                                        Map<String, JsonObject> powerBodies) {
+        if (layerId == null) {
+            throw new IllegalArgumentException(
+                "layerId is required — the caller must resolve the origin's "
+                + "layer membership (it lives in the layer file, not the "
+                + "origin body); null would silently retarget the draft to "
+                + "origins:origin");
+        }
         OriginDraft d = new OriginDraft();
         d.idPath = idPath;
-        if (layerId != null) d.layerId = layerId;
+        d.layerId = layerId;
         d.name = plainText(originJson.get("name"));
         d.description = plainText(originJson.get("description"));
         if (originJson.has("icon")) {

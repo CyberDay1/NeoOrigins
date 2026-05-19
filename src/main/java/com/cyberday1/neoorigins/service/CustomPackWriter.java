@@ -49,49 +49,74 @@ public final class CustomPackWriter {
     }
 
     public static WriteResult write(MinecraftServer server, OriginDraft draft) {
-        Path root = packDir(server);
-        List<String> written = new ArrayList<>();
+        Path root = packDir(server).normalize();
         try {
             Files.createDirectories(root);
-            writePackMeta(root, written);
 
-            // Origin body — no id, no type (OriginDataManager injects id from path).
+            // Phase 1 — build the full file plan (final path → JSON). No
+            // filesystem writes yet, so a serialization/containment failure
+            // here leaves the pack completely untouched.
             ResourceLocation originId = draft.originId();
-            Path originFile = dataFile(root, originId.getNamespace(),
-                "origins/origins", originId.getPath());
-            atomicWriteJson(originFile, CustomPackSerializer.originJson(draft));
-            written.add(rel(root, originFile));
+            java.util.LinkedHashMap<Path, JsonObject> plan = new java.util.LinkedHashMap<>();
 
-            // Powers — each carries its type. Namespace is pinned to our own
+            Path meta = root.resolve("pack.mcmeta");
+            if (!Files.exists(meta)) plan.put(meta, packMetaJson()); // first-time only
+
+            plan.put(dataFile(root, originId.getNamespace(), "origins/origins",
+                originId.getPath()), CustomPackSerializer.originJson(draft));
+
+            // Powers — type carried in the body. Namespace pinned to our own
             // (never trust a client-supplied powerId namespace); the path is
             // still containment-checked in dataFile().
             for (OriginDraft.PowerDraft p : draft.powers) {
-                Path pf = dataFile(root, OriginDraft.CUSTOM_NAMESPACE,
-                    "origins/powers", p.powerId.getPath());
-                atomicWriteJson(pf, CustomPackSerializer.powerJson(p));
-                written.add(rel(root, pf));
+                plan.put(dataFile(root, OriginDraft.CUSTOM_NAMESPACE, "origins/powers",
+                    p.powerId.getPath()), CustomPackSerializer.powerJson(p));
             }
 
-            // Layer — additive merge. Written under our own namespace (keeping
-            // the target layer's path) so every file the creator emits lives
-            // under data/<CUSTOM_NAMESPACE>/. LayerDataManager#mergeForeignSamePathLayers
-            // then folds neoorigins_custom:origin → origins:origin (and
-            // neoorigins_custom:class → neoorigins:class) so the origin still
-            // appears in the canonical picker.
-            ResourceLocation layerId = draft.layerId;
+            // Layer — additive merge, written under our own namespace so every
+            // emitted file lives under data/<CUSTOM_NAMESPACE>/;
+            // LayerDataManager folds it into the canonical picker.
             Path layerFile = dataFile(root, OriginDraft.CUSTOM_NAMESPACE,
-                "origins/origin_layers", layerId.getPath());
-            JsonObject existing = readJsonIfPresent(layerFile);
-            JsonObject merged = CustomPackSerializer.layerPatch(existing, originId.toString());
-            atomicWriteJson(layerFile, merged);
-            written.add(rel(root, layerFile));
+                "origins/origin_layers", draft.layerId.getPath());
+            plan.put(layerFile, CustomPackSerializer.layerPatch(
+                readJsonIfPresent(layerFile), originId.toString()));
 
+            // Phase 2 — stage every file to a .tmp sibling. If any stage fails,
+            // delete all temps and abort: no final file has been touched, so a
+            // failed Save can no longer leave a half-written, non-loadable
+            // origin (origin referencing powers whose files were never written).
+            java.util.LinkedHashMap<Path, Path> staged = new java.util.LinkedHashMap<>();
+            try {
+                for (var e : plan.entrySet()) {
+                    Path f = e.getKey();
+                    Files.createDirectories(f.getParent());
+                    Path tmp = f.resolveSibling(f.getFileName() + ".tmp");
+                    Files.writeString(tmp, GSON.toJson(e.getValue()), StandardCharsets.UTF_8);
+                    staged.put(f, tmp);
+                }
+            } catch (IOException | RuntimeException e) {
+                for (Path tmp : staged.values()) {
+                    try { Files.deleteIfExists(tmp); } catch (IOException ignored) { /* best effort */ }
+                }
+                throw e;
+            }
+
+            // Phase 3 — commit: same-directory renames of already-written
+            // temps. The only remaining inconsistency window is this tight
+            // rename loop (no serialization/validation interleaved).
+            List<String> written = new ArrayList<>();
+            for (var e : staged.entrySet()) {
+                commitMove(e.getValue(), e.getKey());
+                written.add(rel(root, e.getKey()));
+            }
             NeoOrigins.LOGGER.info("[creator] wrote custom origin '{}' ({} files)",
                 originId, written.size());
             return new WriteResult(true, written, null);
         } catch (IOException | RuntimeException e) {
             NeoOrigins.LOGGER.error("[creator] failed writing custom origin to {}", root, e);
-            return WriteResult.fail(e.getClass().getSimpleName() + ": " + e.getMessage());
+            String m = e.getMessage();
+            return WriteResult.fail(e.getClass().getSimpleName() + ": "
+                + (m != null ? m : "(no detail)"));
         }
     }
 
@@ -115,9 +140,7 @@ public final class CustomPackWriter {
         return target;
     }
 
-    private static void writePackMeta(Path root, List<String> written) throws IOException {
-        Path meta = root.resolve("pack.mcmeta");
-        if (Files.exists(meta)) return; // keep an existing one (idempotent)
+    private static JsonObject packMetaJson() {
         int fmt = packFormat();
         JsonObject pack = new JsonObject();
         JsonObject inner = new JsonObject();
@@ -126,8 +149,7 @@ public final class CustomPackWriter {
         inner.addProperty("min_format", fmt);
         inner.addProperty("max_format", fmt);
         pack.add("pack", inner);
-        atomicWriteJson(meta, pack);
-        written.add("pack.mcmeta");
+        return pack;
     }
 
     /** Read pack_format from the mod's own packaged pack.mcmeta (zero drift). */
@@ -151,10 +173,9 @@ public final class CustomPackWriter {
         return el.isJsonObject() ? el.getAsJsonObject() : null;
     }
 
-    private static void atomicWriteJson(Path file, JsonObject json) throws IOException {
-        Files.createDirectories(file.getParent());
-        Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
-        Files.writeString(tmp, GSON.toJson(json), StandardCharsets.UTF_8);
+    /** Move a staged temp into place atomically (falling back to a plain
+     *  replace where the filesystem can't do an atomic rename). */
+    private static void commitMove(Path tmp, Path file) throws IOException {
         try {
             Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING,
                 StandardCopyOption.ATOMIC_MOVE);

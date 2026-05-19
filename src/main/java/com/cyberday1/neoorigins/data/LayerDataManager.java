@@ -163,6 +163,19 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 continue;
             }
 
+            // A layer file from our own in-game-creator pack must never use
+            // "replace": true to wipe the canonical origin/class list when it
+            // folds in — creator output is only ever additive
+            // (CustomPackSerializer never emits "replace"). This defends
+            // against a hand-placed or hostile file dropped into
+            // world/datapacks/neoorigins_custom. Scoped to that namespace so
+            // every other pack's fold behavior is unchanged.
+            if ("neoorigins_custom".equals(id.getNamespace()) // OriginDraft.CUSTOM_NAMESPACE
+                    && sourceObj.has("replace")) {
+                NeoOrigins.LOGGER.warn("Ignoring \"replace\" on creator-pack layer {} "
+                    + "— folded layers from this pack are additive only", id);
+                sourceObj.remove("replace");
+            }
             int added = countOriginEntries(sourceObj);
             mergeOrigins(destObj, sourceObj);
             NeoOrigins.LOGGER.info("Folded foreign layer {} ({} origins) into {}", id, added, dest);
