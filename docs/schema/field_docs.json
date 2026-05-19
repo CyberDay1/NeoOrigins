@@ -1,0 +1,431 @@
+{
+  "*": {
+    "name": "Display name for this power (optional; overrides the default).",
+    "description": "Tooltip/description text for this power (optional).",
+    "hidden": "If true, this power is not listed on the origin screen.",
+    "condition": "Only applies while this condition passes (a DSL condition object — use pick)."
+  },
+  "neoorigins:action_on_event": {
+    "entity_action": "EntityAction run on the player as a side-effect when the configured event fires.",
+    "modifier": "FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen)."
+  },
+  "neoorigins:action_on_hit": {
+    "action": "Effect on dealing damage: restore_health, restore_hunger, grant_effect, or target_effect.",
+    "amount": "Half-hearts healed (restore_health) or food points fed (restore_hunger); default 2.0.",
+    "amplifier": "Potion amplifier for grant_effect/target_effect (0 = level I); default 0.",
+    "chance": "Probability 0.0-1.0 the action triggers per qualifying hit; default 1.0.",
+    "damage_type": "Optional damage-type id filter; the action only fires for matching sources.",
+    "duration": "Effect duration in ticks for grant/target_effect (20 = 1s); default 100.",
+    "effect": "Mob effect id applied to self (grant_effect) or the victim (target_effect).",
+    "min_damage": "Minimum incoming damage required before the action triggers; default 0.0.",
+    "target_group": "Optional entity-group filter (undead, arthropod, ...) restricting which victims trigger it.",
+    "target_type": "Optional specific entity-type id filter for the victim."
+  },
+  "neoorigins:active_ability": {
+    "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s); default 60.",
+    "entity_action": "EntityAction tree executed on the player when the keybind fires.",
+    "hunger_cost": "Food/exhaustion points consumed per successful activation; default 0.",
+    "key": "Active keybind slot that triggers the ability."
+  },
+  "neoorigins:active_bolt": {
+    "cooldown_ticks": "Cooldown between casts in ticks (20 = 1s); default 80.",
+    "speed": "Velocity of the launched wind charge along the look direction; default 1.2."
+  },
+  "neoorigins:active_dash": {
+    "allow_vertical": "If true the dash follows look pitch; if false it stays horizontal; default false.",
+    "cooldown_ticks": "Cooldown between dashes in ticks (20 = 1s); default 40.",
+    "power": "Magnitude of the dash velocity vector; default 1.5.",
+    "set_velocity": "If true replace the player's velocity; if false add to it; default false."
+  },
+  "neoorigins:active_fireball": {
+    "cooldown_ticks": "Cooldown between casts in ticks (20 = 1s); default 100.",
+    "speed": "Velocity applied to each of the spread small fireballs; default 1.5."
+  },
+  "neoorigins:active_phase": {
+    "cooldown_ticks": "Cooldown between phases in ticks (20 = 1s); default 40.",
+    "hunger_cost": "Food/exhaustion points consumed on a successful phase; default 0.",
+    "max_depth": "Maximum wall thickness in blocks the phase can pass through; default 16."
+  },
+  "neoorigins:active_place_block": {
+    "block_id": "Block id placed at the targeted face; default minecraft:glowstone.",
+    "cooldown_ticks": "Cooldown between placements in ticks (20 = 1s); default 100.",
+    "hunger_cost": "Food/exhaustion points consumed on a successful placement; default 0.",
+    "max_distance": "Maximum ray-pick reach in blocks for the placement surface; default 5.0."
+  },
+  "neoorigins:active_recall": {
+    "cooldown_ticks": "Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600."
+  },
+  "neoorigins:active_swap": {
+    "cooldown_ticks": "Cooldown between swaps in ticks (20 = 1s); default 80.",
+    "range": "Max distance in blocks to find the looked-at entity to swap with; default 20.0."
+  },
+  "neoorigins:active_teleport": {
+    "cooldown_ticks": "Cooldown between teleports in ticks (20 = 1s); default 60.",
+    "hunger_cost": "Food/exhaustion points consumed on a successful teleport; default 0.",
+    "mode": "\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target.",
+    "range": "Maximum teleport distance in blocks; default 32.0."
+  },
+  "neoorigins:attribute_modifier": {
+    "amount": "Numeric value applied to the attribute under the chosen operation; required.",
+    "attribute": "Attribute id to modify (e.g. minecraft:generic.movement_speed); required.",
+    "equipment_condition": "Optional gate matching a worn item by id/tag in a slot; active only while worn.",
+    "location_condition": "Optional gate on dimension/biome/structure; active only while there.",
+    "operation": "How amount applies: add_value, add_multiplied_base, or add_multiplied_total."
+  },
+  "neoorigins:bare_hand_tool": {
+    "tool": "Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe."
+  },
+  "neoorigins:break_speed_modifier": {
+    "multiplier": "Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0."
+  },
+  "neoorigins:breath_in_fluid": {
+    "drain_rate": "Ticks between each 1-point air drain while submerged (20 = 1s).",
+    "fluid": "Fluid that suffocates the player, \"water\" or \"lava\"; default water."
+  },
+  "neoorigins:breath_out_of_fluid": {
+    "drain_rate": "Ticks between each air drain while out of the fluid (20 = 1s).",
+    "fluid": "Fluid the player must stay in to breathe; drying on land drains air."
+  },
+  "neoorigins:burn": {
+    "burn_duration": "Ticks of fire set on the player each application (20 = 1s; default 100).",
+    "interval": "Ticks between each fire application; <=0 disables (default 20)."
+  },
+  "neoorigins:command_pack": {
+    "cooldown_ticks": "Ticks before this ability can be triggered again (default 40).",
+    "range": "Max block distance of the look-targeted entity your tamed mobs attack (default 32)."
+  },
+  "neoorigins:condition_passive": {
+    "entity_action": "EntityAction run on the player each interval when the condition passes.",
+    "interval": "Ticks between condition checks (min 1; default 20).",
+    "interval_ticks": "Ticks between condition checks (20 = 1s); same as interval."
+  },
+  "neoorigins:conditional": {
+    "inner_power": "Resource id of another power that is only active while this condition holds."
+  },
+  "neoorigins:craft_amount_bonus": {
+    "bonus_count": "Extra copies of the output added per craft (default 4; skipped if <=0).",
+    "output_item": "Item id whose crafting triggers the bonus (default oak_planks)."
+  },
+  "neoorigins:crop_growth_accelerator": {
+    "growths_per_interval": "Number of random nearby crops bone-mealed each interval (default 1).",
+    "radius": "Cubic block radius around the player scanned for crops (default 4).",
+    "tick_interval": "Ticks between growth passes; <=0 disables (default 40)."
+  },
+  "neoorigins:crop_harvest_bonus": {
+    "extra_drops": "Extra copies of the block's own loot when breaking crops/logs (default 1)."
+  },
+  "neoorigins:dodge_chance": {
+    "chance": "Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15)."
+  },
+  "neoorigins:edible_item": {
+    "always_edible": "If true the item can be eaten even at full hunger (default true).",
+    "fast": "If true the item is consumed with the quick eat animation.",
+    "item_condition": "Optional condition an item must match (in addition to items/tags) to be edible.",
+    "items": "List of item ids that become edible (matches items OR tags).",
+    "meat": "If true the food counts as meat for diet/wolf interactions.",
+    "nutrition": "Hunger points restored when consumed (default 4).",
+    "saturation": "Saturation modifier applied on consumption (default 0.3).",
+    "tags": "List of item-tag ids that become edible (matches items OR tags)."
+  },
+  "neoorigins:effect_immunity": {
+    "effects": "List of mob-effect ids whose application to the player is cancelled."
+  },
+  "neoorigins:elytra_boost": {
+    "cooldown_ticks": "Ticks before the boost can be triggered again (default 40).",
+    "strength": "Multiplier on the forward impulse applied while elytra gliding (default 1.5)."
+  },
+  "neoorigins:enhanced_vision": {
+    "exposure": "Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7)."
+  },
+  "neoorigins:entity_group": {
+    "group": "Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions)."
+  },
+  "neoorigins:exhaustion_filter": {
+    "sources": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint])."
+  },
+  "neoorigins:extra_inventory": {
+    "drop_on_death": "If true the extra inventory drops on death instead of persisting (default false).",
+    "size": "Slot count, rounded to a multiple of 9 (min 9, max 54; default 9)."
+  },
+  "neoorigins:fortune_when_effect": {
+    "effect": "Mob effect that must be active on the player for the Fortune bonus.",
+    "level": "Virtual Fortune level rolled via the vanilla ore-drops formula.",
+    "target": "Block tag the bonus applies to (default #c:ores; ancient debris excluded)."
+  },
+  "neoorigins:ground_slam": {
+    "cooldown_ticks": "Ticks before the slam can be reused (default 120 = 6s).",
+    "damage": "Damage dealt to each entity caught in the slam (default 6.0).",
+    "knockback_strength": "Outward knockback pushing hit entities away (default 1.5).",
+    "radius": "Blocks around the player whose entities are hit (default 6.0)."
+  },
+  "neoorigins:hide_hud_bar": {
+    "bar": "Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger)."
+  },
+  "neoorigins:horde_regen": {
+    "combat_cooldown_ticks": "Ticks a tamed mob must avoid damage before it can heal (default 100).",
+    "heal_amount": "Health restored to each eligible tamed mob per interval (default 1.0).",
+    "interval_ticks": "Ticks between each horde-healing pass (default 120 = 6s)."
+  },
+  "neoorigins:invulnerability": {
+    "damage_tags": "Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled.",
+    "damage_types": "Damage-type ids (e.g. minecraft:fall) whose damage is cancelled.",
+    "msg_ids": "Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled."
+  },
+  "neoorigins:item_magnetism": {
+    "radius": "Blocks around the player within which dropped items are pulled in (default 4.0)."
+  },
+  "neoorigins:keep_inventory": {
+    "items": "Item ids to keep on death; empty (with empty tags) keeps everything.",
+    "slots": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *).",
+    "tags": "Item tag ids whose matching items are kept on death."
+  },
+  "neoorigins:lava_vision": {
+    "strength": "Lava fog distance multiplier; higher sees farther in lava (default 3.0)."
+  },
+  "neoorigins:less_item_use_slowdown": {
+    "item_type": "Item being used that gets reduced slowdown: any, bow, shield, or an id substring.",
+    "speed_multiplier": "Movement-speed bonus while using the item, as a fraction of base (default 0.5)."
+  },
+  "neoorigins:light_level_effect": {
+    "ambient": "Whether the applied effect is ambient (fainter particles; default true).",
+    "amplifier": "Effect amplifier level, 0 = level I (default 0).",
+    "effect": "Mob effect id applied at/below the light threshold (required).",
+    "max_light_level": "Highest light level at which the effect still applies (default 4).",
+    "show_icon": "Whether the effect's HUD icon is shown (default false).",
+    "show_particles": "Whether the effect's ambient particles are shown (default false)."
+  },
+  "neoorigins:low_hp_threshold": {
+    "effects": "List of {effect, amplifier} entries applied while below the threshold.",
+    "threshold": "Health fraction below which the effects activate (0.5 = 50%; default 0.5)."
+  },
+  "neoorigins:mobs_ignore_player": {
+    "entity_types": "Entity ids or #tags of mobs that never aggro or target this player."
+  },
+  "neoorigins:model_color": {
+    "alpha": "Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).",
+    "blue": "Blue channel of the player model tint, 0.0 to 1.0 (default 1.0).",
+    "green": "Green channel of the player model tint, 0.0 to 1.0 (default 1.0).",
+    "red": "Red channel of the player model tint, 0.0 to 1.0 (default 1.0)."
+  },
+  "neoorigins:modify_damage": {
+    "direction": "\"in\" scales damage taken, \"out\" scales damage dealt (default in).",
+    "multiplier": "Factor applied to the damage; 0.5 halves, 2.0 doubles (default 1.0).",
+    "target_group": "Optional entity-group filter limiting which targets/attackers apply."
+  },
+  "neoorigins:modify_food_nutrition": {
+    "food_item": "Optional item id; only this food's nutrition is overridden.",
+    "food_tag": "Optional item tag; only matching foods are overridden.",
+    "nutrition": "Hunger points matching food gives, saturation scaled with it (default 1)."
+  },
+  "neoorigins:modify_lava_speed": {
+    "operation": "How value combines with the vanilla lava factor: addition, multiply_base, multiply_total.",
+    "value": "Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava)."
+  },
+  "neoorigins:modify_player_spawn": {
+    "bed_override": "If true also overrides the player's bed/anchor spawn, not just respawns.",
+    "biome": "Biome the resolved respawn location must be in.",
+    "dimension": "Dimension the player respawns into when spawn is overridden.",
+    "spawn_strategy": "How the respawn position is chosen within the dimension/biome."
+  },
+  "neoorigins:more_smoker_xp": {
+    "multiplier": "Multiplier for smoker-cooking XP (default 2.0)."
+  },
+  "neoorigins:no_mob_spawns_nearby": {
+    "categories": "Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).",
+    "radius": "Block radius around the player where natural spawning is suppressed (default 48)."
+  },
+  "neoorigins:no_slowdown": {
+    "block_tag": "Block tag to limit slowdown immunity to; omit for immunity to all slowdown."
+  },
+  "neoorigins:overlay": {
+    "strength": "Overlay opacity, 0.0 invisible to 1.0 opaque (default 1.0).",
+    "texture": "Resource location of the full-screen texture rendered over the view."
+  },
+  "neoorigins:particle": {
+    "count": "Particles spawned each emission (default 1, min 0).",
+    "frequency": "Emit every N ticks (20 = 1s; default 8, min 1).",
+    "offset": "[x,y,z] offset in blocks from the player to spawn at (default [0,1,0]).",
+    "particle": "Particle id, or object form like {type:minecraft:dust,color,scale}.",
+    "speed": "Particle motion speed passed to the spawn call (default 0.0 = still).",
+    "spread": "[x,y,z] random spread radius in blocks (default [0.25,0.5,0.25])."
+  },
+  "neoorigins:persistent_effect": {
+    "ambient": "If true the effect is ambient (fainter HUD swirl; default true).",
+    "amplifier": "Effect level, 0 = level I.",
+    "duration": "Refresh duration in ticks (20 = 1s); reapplied while active.",
+    "effect": "Status effect id to apply for a single-effect entry.",
+    "effects": "List of effect entries (effect, amplifier, ambient, show_particles, show_icon).",
+    "show_icon": "If true the effect icon shows in the HUD (default true).",
+    "show_particles": "If true the effect emits ambient particles (default false)."
+  },
+  "neoorigins:phantom_form": {
+    "invisibility": "If true the player gains Invisibility while in phantom form (default true).",
+    "no_gravity": "If true gravity is disabled so the player can free-fly (default true)."
+  },
+  "neoorigins:prevent_action": {
+    "action": "Action blocked: fall_damage, fire, drown, freeze, sprint_food, armor_equip, swim, sleep, elytra...",
+    "active_when": "When it applies: always, sneaking, not_sneaking, on_ground, not_on_ground."
+  },
+  "neoorigins:prevent_death": {
+    "action": "Entity action run on the player each time a lethal hit is prevented.",
+    "cooldown_ticks": "Ticks the power goes inert after a save (20 = 1s; default 0).",
+    "damage_types": "Comma-separated damage-type filter; only matching killing blows are prevented.",
+    "invert": "If true treat damage_types as a blacklist (prevent all except those).",
+    "set_health": "Health the player is left at after a save (default 1.0, min 1)."
+  },
+  "neoorigins:projectile_immunity": {
+    "chance": "Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0).",
+    "projectile_types": "Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow).",
+    "teleport": "If true a successful dodge triggers a short random teleport (default false).",
+    "teleport_range": "Max teleport distance in blocks on a dodge when enabled (default 16)."
+  },
+  "neoorigins:quality_equipment": {
+    "bonus_armor_toughness": "Flat armor toughness added to crafted/smithed armor (default 1.0).",
+    "bonus_attack_damage": "Fraction of base attack damage added to crafted weapons (default 0.20).",
+    "bonus_mining_speed": "Fraction of base mining speed added to crafted tools (default 0.25).",
+    "durability_multiplier": "Fraction of base durability added to crafted items (default 0.10)."
+  },
+  "neoorigins:rare_wandering_loot": {
+    "master_slots": "Random master-tier villager trades added to wandering traders (default 3).",
+    "treasure_chance": "Probability 0.0-1.0 a rare treasure trade is also offered (default 0.25)."
+  },
+  "neoorigins:resource": {
+    "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill.",
+    "label": "Display name shown on the HUD resource bar (e.g. \"Mana\").",
+    "max": "Maximum value the resource can hold (default 100).",
+    "max_action": "EntityAction run once when the resource rises to its max.",
+    "min": "Minimum value the resource can drop to (default 0).",
+    "min_action": "EntityAction run once when the resource falls to its min.",
+    "regen_condition": "EntityCondition that must pass for regen to apply (default always).",
+    "regen_interval": "Ticks between regen ticks (20 = 1s; default 20, min 1).",
+    "regen_rate": "Amount added each regen interval; 0 disables regen (default 0).",
+    "start_value": "Value the resource starts at when first granted (default max)."
+  },
+  "neoorigins:restrict_armor": {
+    "chest": "Item or tag id barred from the chest slot; equipping it ejects the item.",
+    "feet": "Item or tag id barred from the feet slot; equipping it ejects the item.",
+    "head": "Item or tag id barred from the head slot; equipping it ejects the item.",
+    "legs": "Item or tag id barred from the legs slot; equipping it ejects the item."
+  },
+  "neoorigins:scare_entities": {
+    "entity_types": "Entity ids or #tags that flee the player within 8 blocks."
+  },
+  "neoorigins:shader": {
+    "shader": "Resource location of the post shader to apply (e.g. minecraft:spider)."
+  },
+  "neoorigins:shadow_orb": {
+    "cooldown_ticks": "Ticks before the orb ability can be reused (20 = 1s; default 100).",
+    "hunger_cost": "Hunger points consumed per activation (default 0).",
+    "max_orbs": "Max simultaneous orbs; placing past this removes the oldest (default 4).",
+    "radius": "Block radius around each orb given Darkness+Blindness (default 28).",
+    "tick_interval": "Ticks between each darkness pulse from orbs (20 = 1s; default 20)."
+  },
+  "neoorigins:size_scaling": {
+    "modify_reach": "If true, scale block/entity interaction reach with size (default true).",
+    "scale": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."
+  },
+  "neoorigins:slime_death_save": {
+    "moisture_threshold": "Min slime moisture (0-1) to split instead of dying (default 0.75).",
+    "recovery_ticks": "Ticks for reduced max HP to ease back to normal (20 = 1s; default 2400).",
+    "split_max_h_p": "Max HP set right after splitting, in half-hearts (default 4.0).",
+    "teleport_distance": "Blocks teleported in a random direction on split (default 50).",
+    "teleport_y_range": "Max +/- Y offset applied to the split teleport (default 10)."
+  },
+  "neoorigins:slime_level_hp": {
+    "levels_per_h_p": "Experience levels needed per +1 max HP half-heart (default 10).",
+    "max_bonus_h_p": "Cap on total bonus max HP granted, in half-hearts (default 20)."
+  },
+  "neoorigins:slime_moisture": {
+    "armor_penalty_threshold": "Moisture (0-1) below which the player loses 4 armor (default 0.10).",
+    "dot_damage": "Magic damage dealt per interval when moisture is too low (default 1.0).",
+    "dot_interval": "Ticks between drying-out damage ticks (20 = 1s; default 40).",
+    "dot_threshold": "Moisture (0-1) at/below which damage-over-time starts (default 0.0).",
+    "drain_per_tick": "Moisture lost per tick when not in water/rain (default 0.0004).",
+    "dry_biome_drain_multiplier": "Drain multiplier in desert/savanna/badlands (default 3.0).",
+    "fire_drain_multiplier": "Drain multiplier while the player is on fire (default 10.0).",
+    "regen_threshold": "Moisture (0-1) above which the player gets Regeneration (default 0.75).",
+    "water_refill_per_tick": "Moisture regained per tick while in water or rain (default 0.005)."
+  },
+  "neoorigins:sneaky": {
+    "detection_multiplier": "Mob detection range multiplier; lower = sneakier (default 0.3)."
+  },
+  "neoorigins:starting_equipment": {
+    "components": "SNBT data-component patch applied to the granted item.",
+    "count": "Stack size of the granted item (default 1).",
+    "enchantments": "List of {id, level} enchantments applied to the granted item.",
+    "grant_id": "Unique id tracked so the item is granted only once per player.",
+    "item": "Item id granted once after the player commits their origin.",
+    "legacy_tag": "Apoli-style flat SNBT translated into data components on the item."
+  },
+  "neoorigins:stealth": {
+    "activation_ticks": "Ticks of continuous sneaking before invisibility kicks in (200 = 10s)."
+  },
+  "neoorigins:summon_minion": {
+    "chest": "Item id for the summoned mob's chest slot (optional).",
+    "cooldown_ticks": "Ticks before the summon ability can be reused (200 = 10s).",
+    "death_damage": "Damage dealt to the player when a minion dies (half-hearts).",
+    "despawn_ticks": "Ticks a minion lasts before despawning (18000 = 15 min).",
+    "feet": "Item id for the summoned mob's boots slot (optional).",
+    "head": "Item id for the summoned mob's helmet slot (defaults to iron helmet).",
+    "hunger_cost": "Hunger consumed each time a minion is summoned.",
+    "legs": "Item id for the summoned mob's leggings slot (optional).",
+    "mainhand": "Item id placed in the summoned mob's main hand (optional).",
+    "max_count": "Max minions of this type alive at once before summoning is blocked.",
+    "mob_type": "Entity type id to summon, e.g. minecraft:zombie.",
+    "offhand": "Item id placed in the summoned mob's off hand (optional)."
+  },
+  "neoorigins:tame_mob": {
+    "cooldown_ticks": "Ticks before the tame ability can be reused (200 = 10s).",
+    "death_damage": "Damage dealt to the player when a tamed mob dies (half-hearts).",
+    "despawn_ticks": "Ticks a tamed mob lasts before despawning (36000 = 30 min).",
+    "hunger_cost": "Hunger consumed each time a mob is tamed.",
+    "max_tamed": "Max tamed mobs alive at once before taming is blocked.",
+    "range": "Max distance in blocks to raycast for the mob to tame (default 16)."
+  },
+  "neoorigins:tamed_animal_boost": {
+    "health_bonus": "Flat max-health added to your tamed animals (half-hearts; default 4).",
+    "radius": "Block radius around the player scanned for tamed animals (default 32).",
+    "speed_bonus": "Flat movement-speed added to your tamed animals (default 0.1)."
+  },
+  "neoorigins:tamed_potion_diffusal": {
+    "radius": "Block radius for sharing positive potion effects with tamed animals."
+  },
+  "neoorigins:thorns_on_hit": {
+    "damage": "Damage reflected to a melee attacker when you are hit (half-hearts; default 2).",
+    "fire_ticks": "Ticks the attacker is set on fire on reflect (0 = none; 20 = 1s)."
+  },
+  "neoorigins:tick_action": {
+    "action_type": "Periodic action: teleport_on_damage or none (default none).",
+    "interval": "Ticks between each action run (20 = 1s; default 20)."
+  },
+  "neoorigins:tidal_wave": {
+    "cone_angle": "Total width in degrees of the forward damage cone (default 60).",
+    "cooldown_ticks": "Ticks before the wave can be reused (100 = 5s).",
+    "damage": "Damage dealt to each entity in the cone (half-hearts; default 4).",
+    "hunger_cost": "Hunger consumed per use (default 0).",
+    "knockback_strength": "Forward push applied to hit entities (default 2).",
+    "range": "Max reach of the water cone in blocks (default 8)."
+  },
+  "neoorigins:toggle": {
+    "default_value": "Initial boolean value before the toggle is first flipped (default false).",
+    "key": "Identifier other powers read/flip this named boolean by."
+  },
+  "neoorigins:trade_availability": {
+    "radius": "Block radius around the player whose villager trades refresh (default 8).",
+    "scan_interval": "Ticks between villager-trade refresh scans (40 = 2s)."
+  },
+  "neoorigins:tree_felling": {
+    "max_blocks": "Maximum connected log blocks broken in one chop (default 64)."
+  },
+  "neoorigins:twin_breeding": {
+    "chance": "Probability 0.0-1.0 of an extra baby when animals breed (default 1.0)."
+  },
+  "neoorigins:walk_on_fluid": {
+    "fluid": "Which fluid surface you can walk on: water, lava, or both (default both)."
+  },
+  "neoorigins:wraith_phase": {
+    "always_on": "If true phasing is always-active instead of a toggle key (default false).",
+    "blocked_blocks": "Block ids that cannot be phased through (default obsidian/bedrock).",
+    "exhaustion_per_tick": "Food exhaustion added each tick while phasing in solids (default 0.15)."
+  }
+}

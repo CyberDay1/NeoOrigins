@@ -214,9 +214,7 @@ public final class PowerFormPanel {
         scroll.renderScrollbar(g);
 
         if (hovered != null) {
-            com.cyberday1.neoorigins.screen.creator.CreatorStyle.tooltip(
-                g, font, hovered.tooltip(), mouseX, mouseY,
-                parent.width, parent.height);
+            parent.queueTooltip(hovered.tooltip(), mouseX, mouseY);
         }
     }
 
