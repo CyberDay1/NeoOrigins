@@ -33,6 +33,8 @@ reference/
 # Scratch / local-only artifacts at repo root
 /*.zip
 /stuff.txt
+# Local-only planning docs (never shipped; deleted once implemented)
+/planning/
 
 # Claude
 CLAUDE.md
