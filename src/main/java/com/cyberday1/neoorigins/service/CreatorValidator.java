@@ -3,11 +3,8 @@ package com.cyberday1.neoorigins.service;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
-import com.cyberday1.neoorigins.power.registry.PowerTypes;
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft;
-import com.cyberday1.neoorigins.screen.creator.model.OriginDraft.PowerDraft;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.ResourceLocation;
 
@@ -69,27 +66,10 @@ public final class CreatorValidator {
         Origin.CODEC.parse(JsonOps.INSTANCE, originJson).error().ifPresent(err ->
             errors.add("origin JSON invalid: " + err.message()));
 
-        // 4. every power: registered type + well-formed body.
-        int i = 0;
-        for (PowerDraft p : draft.powers) {
-            i++;
-            ResourceLocation type;
-            try {
-                type = ResourceLocation.parse(p.typeId);
-            } catch (RuntimeException e) {
-                errors.add("power #" + i + ": invalid type id \"" + p.typeId + "\"");
-                continue;
-            }
-            if (PowerTypes.get(type) == null) {
-                errors.add("power #" + i + ": unknown power type " + type);
-            }
-            try {
-                JsonParser.parseString(p.rawJson == null || p.rawJson.isBlank()
-                    ? "{}" : p.rawJson);
-            } catch (RuntimeException e) {
-                errors.add("power #" + i + " (" + type + "): body is not valid JSON");
-            }
-        }
+        // 4. every power: registered type, real codec parse, required fields,
+        //    and unknown registry/condition/action ids (shared with the client
+        //    problems panel so both report identically).
+        errors.addAll(DraftSanity.powerProblems(draft));
 
         // 5. target layer exists, or is an auto-merge origin/class path.
         ResourceLocation layer = draft.layerId;
