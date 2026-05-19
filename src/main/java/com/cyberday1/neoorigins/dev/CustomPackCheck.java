@@ -75,6 +75,27 @@ public final class CustomPackCheck {
             fail("OriginDraftJson round-trip lost data"); failures++;
         }
 
+        // 5. CustomPackSerializer → OriginDraftReader round-trip (re-open path).
+        JsonObject originJson = CustomPackSerializer.originJson(d);
+        java.util.Map<String, JsonObject> bodies = new java.util.HashMap<>();
+        for (OriginDraft.PowerDraft pp : d.powers) {
+            bodies.put(pp.powerId.toString(), CustomPackSerializer.powerJson(pp));
+        }
+        OriginDraft back = com.cyberday1.neoorigins.service.OriginDraftReader.fromJson(
+            d.idPath, d.layerId, originJson, bodies);
+        boolean rtOk = back.idPath.equals(d.idPath) && back.name.equals(d.name)
+            && back.description.equals(d.description) && back.icon.equals(d.icon)
+            && back.impact == d.impact && back.order == d.order
+            && back.layerId.equals(d.layerId)
+            && back.powers.size() == d.powers.size();
+        for (int k = 0; rtOk && k < d.powers.size(); k++) {
+            OriginDraft.PowerDraft a = d.powers.get(k), b = back.powers.get(k);
+            rtOk = a.powerId.equals(b.powerId) && a.typeId.equals(b.typeId)
+                && com.google.gson.JsonParser.parseString(a.rawJson)
+                    .equals(com.google.gson.JsonParser.parseString(b.rawJson));
+        }
+        if (!rtOk) { fail("serializer→OriginDraftReader round-trip lost data"); failures++; }
+
         System.out.printf("[custompack-check] %d failures%n", failures);
         if (failures > 0) System.exit(1);
         System.out.println("[custompack-check] OK");
