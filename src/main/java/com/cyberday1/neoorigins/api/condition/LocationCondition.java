@@ -70,9 +70,15 @@ public record LocationCondition(
 
     /** Tests the player's current server-side location against this condition. */
     public boolean test(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
-        BlockPos pos = player.blockPosition();
+        return test(player.serverLevel(), player.blockPosition());
+    }
 
+    /**
+     * Position-based variant — same dimension/biome/structure logic as
+     * {@link #test(ServerPlayer)} but for an arbitrary level + position
+     * (used by mob-origin spawn rules, which have no player context).
+     */
+    public boolean test(ServerLevel level, BlockPos pos) {
         if (dimension.isPresent() && !level.dimension().location().equals(dimension.get())) return false;
 
         if (hasBiomeFilter()) {
