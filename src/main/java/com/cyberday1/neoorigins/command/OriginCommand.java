@@ -1,14 +1,17 @@
 package com.cyberday1.neoorigins.command;
 
 import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.data.MobOriginDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.MobOriginService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -23,6 +26,7 @@ import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 
 import java.util.TreeMap;
 
@@ -48,6 +52,10 @@ public class OriginCommand {
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_POWERS =
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
             PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_MOB_ORIGINS =
+        (ctx, builder) -> SharedSuggestionProvider.suggestResource(
+            MobOriginDataManager.INSTANCE.getMobOrigins().keySet(), builder);
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         // Register under both namespaces independently — Brigadier's redirect()
@@ -124,6 +132,20 @@ public class OriginCommand {
                 .requires(cs -> cs.hasPermission(
                     com.cyberday1.neoorigins.service.CreatorAccess.LEVEL))
                 .executes(OriginCommand::executeEditor))
+            // ── Mob-origin testing commands (Phase 1; GUI lands Phase 3) ──
+            .then(Commands.literal("mob")
+                .requires(cs -> cs.hasPermission(2))
+                .then(Commands.literal("apply")
+                    .then(Commands.argument("targets", EntityArgument.entities())
+                        .then(Commands.argument("origin", ResourceLocationArgument.id())
+                            .suggests(SUGGEST_MOB_ORIGINS)
+                            .executes(OriginCommand::executeMobApply))))
+                .then(Commands.literal("clear")
+                    .then(Commands.argument("targets", EntityArgument.entities())
+                        .executes(OriginCommand::executeMobClear)))
+                .then(Commands.literal("get")
+                    .then(Commands.argument("targets", EntityArgument.entities())
+                        .executes(OriginCommand::executeMobGet))))
             .then(Commands.literal("reload")
                 .requires(cs -> cs.hasPermission(2))
                 .executes(OriginCommand::executeReload));
@@ -357,5 +379,62 @@ public class OriginCommand {
         ctx.getSource().sendSuccess(() -> Component.literal(
             "Use /reload to reload datapacks (origins reload automatically)."), false);
         return 1;
+    }
+
+    // ── Mob-origin testing handlers ─────────────────────────────────────────
+    // Players are skipped (they have their own origin system). Operates on
+    // non-player LivingEntity targets only.
+
+    private static int executeMobApply(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ResourceLocation originId = ResourceLocationArgument.getId(ctx, "origin");
+        if (!MobOriginDataManager.INSTANCE.hasMobOrigin(originId)) {
+            ctx.getSource().sendFailure(Component.literal("Unknown mob origin: " + originId));
+            return 0;
+        }
+        int count = 0;
+        for (var entity : EntityArgument.getEntities(ctx, "targets")) {
+            if (!(entity instanceof LivingEntity mob) || entity instanceof ServerPlayer) continue;
+            var data = mob.getData(EntityAttachments.mobOriginData());
+            ResourceLocation old = data.getOriginId().orElse(null);
+            data.setOriginId(originId);
+            MobOriginService.applyMobOriginPowers(mob, old, originId);
+            count++;
+        }
+        final int n = count;
+        ctx.getSource().sendSuccess(() -> Component.literal(
+            "Applied mob origin " + originId + " to " + n + " entit" + (n == 1 ? "y" : "ies")), true);
+        return count;
+    }
+
+    private static int executeMobClear(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        int count = 0;
+        for (var entity : EntityArgument.getEntities(ctx, "targets")) {
+            if (!(entity instanceof LivingEntity mob) || entity instanceof ServerPlayer) continue;
+            var data = mob.getData(EntityAttachments.mobOriginData());
+            if (!data.hasOrigin()) continue;
+            MobOriginService.applyMobOriginPowers(mob, data.getOriginId().orElse(null), null);
+            data.clear();
+            count++;
+        }
+        final int n = count;
+        ctx.getSource().sendSuccess(() -> Component.literal(
+            "Cleared mob origin from " + n + " entit" + (n == 1 ? "y" : "ies")), true);
+        return count;
+    }
+
+    private static int executeMobGet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        StringBuilder sb = new StringBuilder();
+        int count = 0;
+        for (var entity : EntityArgument.getEntities(ctx, "targets")) {
+            if (!(entity instanceof LivingEntity mob) || entity instanceof ServerPlayer) continue;
+            var data = mob.getData(EntityAttachments.mobOriginData());
+            sb.append("\n  ")
+              .append(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()))
+              .append(" → ").append(data.getOriginId().map(ResourceLocation::toString).orElse("(none)"));
+            count++;
+        }
+        final String report = count == 0 ? "No non-player entities matched." : sb.toString();
+        ctx.getSource().sendSuccess(() -> Component.literal(report), false);
+        return count;
     }
 }

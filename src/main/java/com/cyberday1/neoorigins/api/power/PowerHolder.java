@@ -91,6 +91,12 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public void onLogin(ServerPlayer player)            { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onLogin(player, config);   } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onRespawn(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRespawn(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
 
+    // Mob-origin application — only meaningful when the type opts in via
+    // appliesToMobs(); the caller (MobOriginService) checks that first.
+    public boolean appliesToMobs()                      { return type.appliesToMobs(config); }
+    public void applyToMob(LivingEntity mob)            { type.applyToMob(mob, config); }
+    public void removeFromMob(LivingEntity mob)         { type.removeFromMob(mob, config); }
+
     // Condition-gated methods — skipped when the top-level condition is not satisfied:
     public void onTick(ServerPlayer player)             { if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onTick(player, config);    } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onActivated(ServerPlayer player)        { if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }

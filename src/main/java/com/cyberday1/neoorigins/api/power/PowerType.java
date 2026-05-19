@@ -90,4 +90,25 @@ public abstract class PowerType<C extends PowerConfiguration> {
      */
     public Set<String> capabilities(ServerPlayer player, C config) { return capabilities(config); }
 
+    // ── Mob-origin support ──────────────────────────────────────────────────
+    //
+    // The lifecycle methods above are hard-typed to ServerPlayer and cannot be
+    // used for a non-player mob. Mob support is therefore an explicit, opt-in
+    // capability: a power that can meaningfully affect an arbitrary
+    // LivingEntity overrides appliesToMobs() → true and implements
+    // applyToMob/removeFromMob directly against the entity (attributes, mob
+    // effects, etc.), instead of reusing onGranted/onRevoked.
+
+    /** True if this power can be applied to a non-player {@link LivingEntity}
+     *  via {@link #applyToMob}/{@link #removeFromMob}. Default: false. */
+    public boolean appliesToMobs(C config) { return false; }
+
+    /** Apply this power's effect directly to a mob. Only called when
+     *  {@link #appliesToMobs} is true. Default: no-op. */
+    public void applyToMob(LivingEntity mob, C config) {}
+
+    /** Remove this power's effect from a mob. Only called when
+     *  {@link #appliesToMobs} is true. Default: no-op. */
+    public void removeFromMob(LivingEntity mob, C config) {}
+
 }

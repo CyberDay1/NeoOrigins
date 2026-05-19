@@ -139,10 +139,12 @@ public class NeoOrigins {
         //   2. origins_compat_b   — Route B powers injected into PowerDataManager
         //   3. origin_data        — reads MULTIPLE_EXPANSION_MAP (now includes Route B IDs); closes log
         //   4. layer_data
+        //   5. mob_origin_data   — NeoOrigins-native; only needs powers (above)
         event.addListener(PowerDataManager.INSTANCE);
         event.addListener(OriginsCompatPowerLoader.INSTANCE);
         event.addListener(OriginDataManager.INSTANCE);
         event.addListener(LayerDataManager.INSTANCE);
+        event.addListener(com.cyberday1.neoorigins.data.MobOriginDataManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {
