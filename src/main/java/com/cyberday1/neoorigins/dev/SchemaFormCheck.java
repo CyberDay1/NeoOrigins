@@ -2,7 +2,10 @@ package com.cyberday1.neoorigins.dev;
 
 import com.cyberday1.neoorigins.power.schemaform.CodecFieldSpecExtractor;
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
+import com.cyberday1.neoorigins.power.schemaform.FormModel;
+import com.cyberday1.neoorigins.power.schemaform.PowerConfigClassResolver;
 import com.cyberday1.neoorigins.power.schemaform.SchemaFormModel;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 
@@ -67,6 +70,52 @@ public final class SchemaFormCheck {
         } catch (ReflectiveOperationException e) {
             System.out.println("[schema-check] FAIL  cannot load SizeScalingPower$Config: "
                 + e);
+            failures++;
+        }
+
+        // 5. PowerConfigClassResolver walks direct + intermediate-base chains.
+        record ResolveCase(String powerClass, String expectConfig) {}
+        for (ResolveCase rc : List.of(
+                // direct: extends PowerType<C>
+                new ResolveCase("com.cyberday1.neoorigins.power.builtin.SizeScalingPower",
+                    "SizeScalingPower$Config"),
+                // intermediate: extends AbstractTogglePower<C>
+                new ResolveCase("com.cyberday1.neoorigins.power.builtin.FlightPower",
+                    "FlightPower$Config"),
+                // intermediate: extends AbstractActivePower<C> extends PowerType<C>
+                new ResolveCase("com.cyberday1.neoorigins.power.builtin.ActiveDashPower",
+                    "ActiveDashPower$Config"))) {
+            try {
+                Class<?> got = PowerConfigClassResolver.resolve(Class.forName(rc.powerClass()));
+                if (got == null || !got.getName().endsWith(rc.expectConfig())) {
+                    System.out.println("[schema-check] FAIL  resolver(" + rc.powerClass()
+                        + ") = " + got + ", expected …" + rc.expectConfig());
+                    failures++;
+                }
+            } catch (ReflectiveOperationException e) {
+                System.out.println("[schema-check] FAIL  cannot load " + rc.powerClass() + ": " + e);
+                failures++;
+            }
+        }
+
+        // 6. FormModel schema path + EnumHints enrich: attribute_modifier's
+        //    `operation` must render as an ENUM with the JSON token vocabulary.
+        try {
+            List<FormFieldSpec> form = FormModel.forPower(
+                ResourceLocation.fromNamespaceAndPath("neoorigins", "attribute_modifier"));
+            FormFieldSpec op = form.stream()
+                .filter(s -> s.name().equals("operation")).findFirst().orElse(null);
+            if (op == null) {
+                System.out.println("[schema-check] FAIL  attribute_modifier form missing 'operation'");
+                failures++;
+            } else if (op.kind() != FormFieldSpec.Kind.ENUM
+                    || !op.enumValues().contains("add_value")) {
+                System.out.println("[schema-check] FAIL  'operation' kind=" + op.kind()
+                    + " values=" + op.enumValues() + " (expected ENUM incl. add_value)");
+                failures++;
+            }
+        } catch (RuntimeException e) {
+            System.out.println("[schema-check] FAIL  FormModel.forPower threw: " + e);
             failures++;
         }
 

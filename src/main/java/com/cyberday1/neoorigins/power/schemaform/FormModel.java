@@ -1,0 +1,102 @@
+package com.cyberday1.neoorigins.power.schemaform;
+
+import com.cyberday1.neoorigins.NeoOriginsConfig;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * The hybrid field-spec source the 2.1 creator's Powers tab renders from.
+ * Resolves, per power type, the {@link FormFieldSpec} list by:
+ *
+ * <ol>
+ *   <li><b>Schema</b> — if {@code power.schema.json} has a structured branch for
+ *       the type, use it ({@link SchemaFormModel#formFor}); else</li>
+ *   <li><b>Codec reflection</b> — reflect the power's {@code Config} record via
+ *       {@link PowerConfigClassResolver} + {@link CodecFieldSpecExtractor}.</li>
+ * </ol>
+ *
+ * <p>The result is then enriched: {@link EnumHints} turns String-backed
+ * vocabularies into dropdowns, and {@link NeoOriginsConfig} supplies numeric
+ * (min,max) ranges and effective defaults that record reflection / the schema
+ * can't see (codec {@code optionalFieldOf} hides them). This makes the schema
+ * authoritative where it exists and reflection the safety net everywhere else
+ * — the permanent fix for the historical schema-coverage gap.
+ */
+public final class FormModel {
+
+    private static SchemaFormModel schema;
+
+    private FormModel() {}
+
+    private static synchronized SchemaFormModel schema() {
+        if (schema == null) schema = SchemaFormModel.loadFromClasspath();
+        return schema;
+    }
+
+    /** Every selectable power type id (the schema's {@code type} enum), sorted. */
+    public static List<String> allTypes() {
+        return new ArrayList<>(schema().allTypes());
+    }
+
+    /** True when the schema carries a structured (field-typed) branch for the type. */
+    public static boolean isSchemaBacked(ResourceLocation typeId) {
+        return schema().hasStructuredForm(typeId.toString());
+    }
+
+    /**
+     * The renderer-ready field list for {@code typeId}. Never null; an
+     * unresolvable/markerless power yields an empty list (the raw-JSON escape
+     * hatch still covers it).
+     */
+    public static List<FormFieldSpec> forPower(ResourceLocation typeId) {
+        String key = typeId.toString();
+        List<FormFieldSpec> base;
+
+        if (schema().hasStructuredForm(key)) {
+            base = schema().formFor(key);
+        } else {
+            Class<?> cfg = PowerConfigClassResolver.resolve(typeId);
+            base = (cfg != null && cfg.isRecord())
+                ? CodecFieldSpecExtractor.extract(cfg)
+                : List.of();
+        }
+
+        List<FormFieldSpec> out = new ArrayList<>(base.size());
+        for (FormFieldSpec s : base) out.add(enrich(key, s));
+        return out;
+    }
+
+    /** EnumHints overlay + config-range/default enrich for one field. */
+    private static FormFieldSpec enrich(String powerId, FormFieldSpec s) {
+        FormFieldSpec.Kind kind = s.kind();
+        List<String> enums = s.enumValues();
+        Double min = s.min(), max = s.max();
+        Object def = s.defaultValue();
+
+        List<String> hint = EnumHints.valuesFor(powerId, s.name());
+        if (!hint.isEmpty()) {
+            kind = FormFieldSpec.Kind.ENUM;
+            enums = hint;
+        }
+
+        if (kind == FormFieldSpec.Kind.NUMBER || kind == FormFieldSpec.Kind.INTEGER) {
+            if (min == null || max == null) {
+                NeoOriginsConfig.NumericRange r = NeoOriginsConfig.getPowerRange(powerId, s.name());
+                if (r != null) { min = r.min(); max = r.max(); }
+            }
+            if (def == null) {
+                Object cd = NeoOriginsConfig.getPowerDefault(powerId, s.name());
+                if (cd != null) def = cd;
+            }
+        }
+
+        if (kind == s.kind() && enums == s.enumValues()
+                && min == s.min() && max == s.max() && def == s.defaultValue()) {
+            return s; // untouched — avoid a needless copy
+        }
+        return new FormFieldSpec(s.name(), kind, s.required(), def, enums,
+            min, max, s.description(), s.ref());
+    }
+}
