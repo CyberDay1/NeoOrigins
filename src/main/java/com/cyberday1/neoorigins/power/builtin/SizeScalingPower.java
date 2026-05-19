@@ -1,12 +1,12 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -17,30 +17,28 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  *
  * JSON fields:
  *   "scale"         (float, default 1.0) — target scale multiplier (0.5 = half size, 2.0 = double)
- *   "modify_reach"  (boolean, default true) — also adjust reach proportionally
+ *   "modify_reach"  (boolean, default true) — also adjust reach
+ *   "reach_scale"   (float, optional) — explicit reach multiplier when modify_reach
+ *                    is true; if omitted, reach scales with "scale" as before
  */
 public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
-    /**
-     * Generate a modifier ID incorporating the power's dispatch type to avoid
-     * collisions when multiple SizeScalingPower instances exist (e.g., from
-     * different origins/layers with different scale values).
-     */
-    private static Identifier modId(Config config, String suffix) {
-        // Use the power's type field (e.g. "origins:fairy_size") to namespace the modifier.
-        // Fall back to class name if type is empty.
-        String base = (config.type() != null && !config.type().isEmpty())
-            ? config.type().replace(':', '_')
-            : "size_scaling";
-        // Ensure valid Identifier path characters
-        String path = (base + "_" + suffix).replaceAll("[^a-z0-9_./\\-]", "_");
-        return Identifier.fromNamespaceAndPath("neoorigins", path);
+    /** Generates a per-power modifier ID so multiple size_scaling powers don't collide. */
+    private static Identifier modId(String suffix) {
+        Identifier powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return Identifier.fromNamespaceAndPath("neoorigins", "size_" + key + "_" + suffix);
     }
 
-    public record Config(float scale, boolean modifyReach, String type) implements PowerConfiguration {
+    public record Config(float scale, boolean modifyReach,
+                         java.util.Optional<Float> reachScale, String type)
+            implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("scale", 1.0f).forGetter(Config::scale),
             Codec.BOOL.optionalFieldOf("modify_reach", true).forGetter(Config::modifyReach),
+            Codec.FLOAT.optionalFieldOf("reach_scale").forGetter(Config::reachScale),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -58,25 +56,30 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        applyModifiers(player, config, false);
-        // Defensively clear any drifted size modifier (e.g. the power's
-        // `type` string changed across a mod update, so the deterministic
-        // id no longer matches) — otherwise the player is left permanently
-        // rescaled after an origin change. The `_scale` / `_reach_block` /
-        // `_reach_entity` suffixes are SizeScaling-exclusive, so this never
-        // touches other neoorigins reach powers. GitHub #90.
-        clearBySuffix(player, Attributes.SCALE, "_scale");
-        clearBySuffix(player, Attributes.BLOCK_INTERACTION_RANGE, "_reach_block");
-        clearBySuffix(player, Attributes.ENTITY_INTERACTION_RANGE, "_reach_entity");
+        clearSizeModifiers(player);
     }
 
-    private static void clearBySuffix(ServerPlayer player,
-            net.minecraft.core.Holder<Attribute> attr, String suffix) {
+    /**
+     * Remove every {@code neoorigins:size_*} modifier from the scale and
+     * interaction-range attributes. We clear by id prefix rather than the
+     * per-power computed id because {@link PowerHolder#currentDispatchId()}
+     * is not guaranteed to resolve to the same value during revoke as during
+     * grant (origin change / orb reroll), which previously left the player
+     * permanently rescaled after switching origins — GitHub #90.
+     */
+    private static void clearSizeModifiers(ServerPlayer player) {
+        clearPrefixed(player, Attributes.SCALE);
+        clearPrefixed(player, Attributes.BLOCK_INTERACTION_RANGE);
+        clearPrefixed(player, Attributes.ENTITY_INTERACTION_RANGE);
+    }
+
+    private static void clearPrefixed(ServerPlayer player,
+            net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr) {
         AttributeInstance inst = player.getAttribute(attr);
         if (inst == null) return;
         for (AttributeModifier mod : new java.util.ArrayList<>(inst.getModifiers())) {
             Identifier id = mod.id();
-            if ("neoorigins".equals(id.getNamespace()) && id.getPath().endsWith(suffix)) {
+            if ("neoorigins".equals(id.getNamespace()) && id.getPath().startsWith("size_")) {
                 inst.removeModifier(id);
             }
         }
@@ -85,16 +88,23 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
     private void applyModifiers(ServerPlayer player, Config config, boolean add) {
         // scale attribute uses ADD_VALUE: base is 1.0, so delta = (scale - 1.0)
         double scaleDelta = config.scale() - 1.0;
-        applyMod(player, Attributes.SCALE, modId(config, "scale"), scaleDelta, AttributeModifier.Operation.ADD_VALUE, add);
+        Identifier scaleId = modId("scale");
+        Identifier reachBlockId = modId("reach_block");
+        Identifier reachEntityId = modId("reach_entity");
+        applyMod(player, Attributes.SCALE, scaleId, scaleDelta, AttributeModifier.Operation.ADD_VALUE, add);
 
         if (config.modifyReach()) {
-            // reach attributes use ADD_MULTIPLIED_BASE so reach scales proportionally
-            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  modId(config, "reach_block"),  scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
-            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, modId(config, "reach_entity"), scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+            // reach attributes use ADD_MULTIPLIED_BASE. By default reach tracks
+            // body scale; an explicit reach_scale overrides just the reach
+            // amount (1.0 = unchanged) so reach can differ from body size.
+            double reachDelta = config.reachScale()
+                .map(r -> (double) (r - 1.0f)).orElse(scaleDelta);
+            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  reachBlockId,  reachDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, reachEntityId, reachDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
         }
     }
 
-    private static void applyMod(ServerPlayer player, net.minecraft.core.Holder<Attribute> attr,
+    private static void applyMod(ServerPlayer player, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr,
                                   Identifier modId, double amount, AttributeModifier.Operation op, boolean add) {
         AttributeInstance inst = player.getAttribute(attr);
         if (inst == null) return;
