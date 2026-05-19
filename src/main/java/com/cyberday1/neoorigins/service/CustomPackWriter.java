@@ -70,9 +70,14 @@ public final class CustomPackWriter {
                 written.add(rel(root, pf));
             }
 
-            // Layer — additive merge into the target layer's file within our pack.
+            // Layer — additive merge. Written under our own namespace (keeping
+            // the target layer's path) so every file the creator emits lives
+            // under data/<CUSTOM_NAMESPACE>/. LayerDataManager#mergeForeignSamePathLayers
+            // then folds neoorigins_custom:origin → origins:origin (and
+            // neoorigins_custom:class → neoorigins:class) so the origin still
+            // appears in the canonical picker.
             ResourceLocation layerId = draft.layerId;
-            Path layerFile = dataFile(root, layerId.getNamespace(),
+            Path layerFile = dataFile(root, OriginDraft.CUSTOM_NAMESPACE,
                 "origins/origin_layers", layerId.getPath());
             JsonObject existing = readJsonIfPresent(layerFile);
             JsonObject merged = CustomPackSerializer.layerPatch(existing, originId.toString());
