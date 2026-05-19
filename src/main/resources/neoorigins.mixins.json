@@ -27,6 +27,7 @@
     "client.GuiHudBarsMixin",
     "client.PlayerWaterVisionMixin",
     "client.LocalPlayerNaturalGlideMixin",
+    "client.LocalPlayerElytraSoundMixin",
     "client.LocalPlayerNoPhysicsMixin",
     "client.MerchantScreenTreasureGlowMixin"
   ],
