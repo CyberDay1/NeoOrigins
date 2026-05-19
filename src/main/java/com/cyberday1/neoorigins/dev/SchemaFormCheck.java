@@ -119,9 +119,86 @@ public final class SchemaFormCheck {
             failures++;
         }
 
+        // 7. Full per-power form coverage: every builtin power must resolve a
+        //    Config and either expose fields or be a genuine marker-only power.
+        failures += auditPowerFormCoverage(model);
+
         System.out.printf("[schema-check] %d power types, %d structured branches, %d failures%n",
             types, model.structuredTypes().size(), failures);
         if (failures > 0) System.exit(1);
         System.out.println("[schema-check] OK");
+    }
+
+    /**
+     * Enumerates every concrete {@code *Power} class in {@code power.builtin},
+     * resolves its {@code Config} the way the creator does, and proves the form
+     * is thorough: a missing/unresolvable Config is a hard failure; a power
+     * with zero fields is reported as marker-only (its empty form is correct
+     * and intentional — nothing to configure). Origins and classes share this
+     * exact path (a class is just an origin in the class layer), so this
+     * covers both. Returns the failure count.
+     */
+    private static int auditPowerFormCoverage(SchemaFormModel model) {
+        int fails = 0;
+        java.io.File dir;
+        try {
+            java.io.File root = new java.io.File(SchemaFormCheck.class.getProtectionDomain()
+                .getCodeSource().getLocation().toURI());
+            dir = new java.io.File(root, "com/cyberday1/neoorigins/power/builtin");
+        } catch (Exception e) {
+            System.out.println("[schema-check] FAIL  cannot locate builtin classes: " + e);
+            return 1;
+        }
+        java.io.File[] files = dir.listFiles((d, n) ->
+            n.endsWith("Power.class") && !n.contains("$"));
+        if (files == null || files.length == 0) {
+            System.out.println("[schema-check] FAIL  no builtin power classes found at " + dir);
+            return 1;
+        }
+        java.util.Arrays.sort(files, java.util.Comparator.comparing(java.io.File::getName));
+
+        int total = 0, withFields = 0, schemaBacked = 0;
+        java.util.List<String> markerOnly = new java.util.ArrayList<>();
+        java.util.Set<String> structured = model.structuredTypes();
+
+        for (java.io.File f : files) {
+            String cn = "com.cyberday1.neoorigins.power.builtin."
+                + f.getName().substring(0, f.getName().length() - 6);
+            Class<?> pc;
+            try {
+                // initialize=false: reflection on structure/records doesn't need
+                // static init, and some powers' static fields touch MC bootstrap
+                // that isn't available headless (would be a false failure).
+                pc = Class.forName(cn, false, SchemaFormCheck.class.getClassLoader());
+            } catch (Throwable t) {
+                System.out.println("[schema-check] FAIL  load " + cn + ": " + t);
+                fails++;
+                continue;
+            }
+            if (java.lang.reflect.Modifier.isAbstract(pc.getModifiers())
+                    || !com.cyberday1.neoorigins.api.power.PowerType.class.isAssignableFrom(pc)) {
+                continue; // abstract base / non-power
+            }
+            total++;
+            Class<?> cfg = com.cyberday1.neoorigins.power.schemaform
+                .PowerConfigClassResolver.resolve(pc);
+            if (cfg == null || !cfg.isRecord()) {
+                System.out.println("[schema-check] FAIL  " + pc.getSimpleName()
+                    + ": no Config record resolved (form would be permanently empty)");
+                fails++;
+                continue;
+            }
+            int n = CodecFieldSpecExtractor.extract(cfg).size();
+            if (n > 0) withFields++;
+            else markerOnly.add(pc.getSimpleName());
+        }
+        for (String t : structured) if (t.startsWith("neoorigins:")) schemaBacked++;
+
+        System.out.printf(
+            "[schema-check] coverage: %d builtin powers - %d with fields, %d marker-only, "
+            + "%d schema-enriched%n", total, withFields, markerOnly.size(), schemaBacked);
+        System.out.println("[schema-check] marker-only (empty form is correct - no config): "
+            + String.join(", ", markerOnly));
+        return fails;
     }
 }
