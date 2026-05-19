@@ -1,6 +1,8 @@
 package com.cyberday1.neoorigins.screen.creator;
 
 import com.cyberday1.neoorigins.api.origin.Impact;
+import com.cyberday1.neoorigins.api.origin.OriginLayer;
+import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft;
 import com.cyberday1.neoorigins.screen.creator.widget.CycleSelector;
 import com.cyberday1.neoorigins.screen.creator.widget.ItemPickerOverlay;
@@ -11,17 +13,23 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Identity tab — id path / display name / description / icon / impact / order,
- * bound to the shared {@link OriginDraft}. The icon is editable as a parsed id
- * field or chosen from the registry-backed {@link ItemPickerOverlay}.
+ * Identity tab — id / name / description / icon / impact / order and the
+ * target layer, bound to the shared {@link OriginDraft}. Layer used to be its
+ * own tab but it is a single A/B-ish choice, so it lives here as one more
+ * field. Icon is editable as a parsed id or chosen from the registry-backed
+ * {@link ItemPickerOverlay}.
  */
 public final class IdentityTab implements CreatorTab {
 
     private static final Component TITLE =
         Component.translatable("gui.neoorigins.creator.tab.identity");
+    private static final ResourceLocation CLASS_LAYER =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
 
     private static final int LABEL_DX = 8, FIELD_DX = 100, ROW_H = 24, BOX_H = 16;
 
@@ -34,13 +42,16 @@ public final class IdentityTab implements CreatorTab {
         new CycleSelector<>(List.of(0, 1, 2, 3), i -> Impact.values()[i].name());
     private final ItemPickerOverlay itemPicker = new ItemPickerOverlay();
 
+    private final Map<ResourceLocation, String> layerNames = new LinkedHashMap<>();
+    private CycleSelector<ResourceLocation> layer;
+
     private OriginCreatorScreen parent;
-    private int rowY;
+    private int rowY, layerHdrY, layerRowY;
 
     @Override public Component title() { return TITLE; }
     @Override public Component help() {
         return Component.literal(
-            "Who is this origin: id, display name, description, icon and impact.");
+            "Name, icon, impact, and which picker (or class) this origin appears in.");
     }
 
     @Override
@@ -49,13 +60,13 @@ public final class IdentityTab implements CreatorTab {
 
         if (itemPicker.isOpen()) {
             // Overlay owns the screen's input while open — build only it.
-            int pw = Math.min(w - 20, 320), ph = h - 16;
+            int pw = Math.min(w - 20, 340), ph = h - 16;
             itemPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
 
         rowY = y + 14;
-        int fieldW = Math.min(w - FIELD_DX - 8, 220);
+        int fieldW = Math.min(w - FIELD_DX - 8, 240);
         Font font = parent.font();
         int fx = x + FIELD_DX;
 
@@ -67,6 +78,19 @@ public final class IdentityTab implements CreatorTab {
             .bounds(fx + fieldW - 40, rowY + ROW_H * 3 - 2, 40, BOX_H + 4).build());
         parent.register(impact.build(fx, rowY + ROW_H * 4, 90, 20));
         parent.register(order.build(font, fx, rowY + ROW_H * 5, 60, BOX_H));
+
+        // ── Layer (folded in from the old Layer tab) ──────────────────────
+        layerHdrY = rowY + ROW_H * 6 + 4;
+        layerRowY = layerHdrY + 16;
+        layerNames.clear();
+        List<OriginLayer> layers = LayerDataManager.INSTANCE.getSortedLayers();
+        for (OriginLayer l : layers) layerNames.put(l.id(), l.name().getString());
+        List<ResourceLocation> ids = layers.isEmpty()
+            ? List.of(parent.draft().layerId)
+            : List.copyOf(layerNames.keySet());
+        layer = new CycleSelector<>(ids,
+            id -> layerNames.getOrDefault(id, id.toString()) + "  (" + id + ")");
+        parent.register(layer.build(fx, layerRowY, Math.min(w - FIELD_DX - 8, 300), 20));
     }
 
     private void openPicker() {
@@ -90,6 +114,7 @@ public final class IdentityTab implements CreatorTab {
         icon.setValue(d.icon.toString());
         order.setValue(Integer.toString(d.order));
         impact.setValue(d.impact);
+        if (layer != null) layer.setValue(d.layerId);
     }
 
     @Override
@@ -104,6 +129,12 @@ public final class IdentityTab implements CreatorTab {
         catch (NumberFormatException ignored) { /* keep prior value */ }
         try { d.icon = ResourceLocation.parse(icon.value().trim()); }
         catch (RuntimeException ignored) { /* keep prior icon if unparseable */ }
+        if (layer != null) d.layerId = layer.value();
+    }
+
+    @Override
+    public void renderBackdrop(GuiGraphics g) {
+        if (itemPicker.isOpen()) itemPicker.renderBackdrop(g);
     }
 
     @Override
@@ -119,6 +150,14 @@ public final class IdentityTab implements CreatorTab {
         icon.drawLabel(g, font, lx, rowY + ROW_H * 3 + 4);
         g.drawString(font, "impact", lx, rowY + ROW_H * 4 + 6, CreatorStyle.LABEL, false);
         order.drawLabel(g, font, lx, rowY + ROW_H * 5 + 4);
+
+        CreatorStyle.sectionHeader(g, font, "Layer", lx, layerHdrY, w - LABEL_DX * 2);
+        g.drawString(font, "layer", lx, layerRowY + 6, CreatorStyle.LABEL, false);
+        boolean isClass = layer != null && CLASS_LAYER.equals(layer.value());
+        g.drawString(font,
+            isClass ? "This origin will be a CLASS (neoorigins:class layer)."
+                    : "Appears as a normal origin in the chosen picker.",
+            lx, layerRowY + 26, isClass ? CreatorStyle.ACCENT : CreatorStyle.TEXT_DIM, false);
     }
 
     @Override

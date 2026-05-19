@@ -61,14 +61,17 @@ public final class ItemPickerOverlay {
         }
     }
 
-    public void render(GuiGraphics g) {
+    public void renderBackdrop(GuiGraphics g) {
         if (!picker.isOpen() || parent == null) return;
-        picker.render(g);
+        picker.renderBackdrop(g);
         if (wantComponents) {
             g.drawString(parent.font(), "components (SNBT, optional)",
-                x + 6, y + h - 52, 0xFF8888AA, false);
+                x + 8, y + h - 52,
+                com.cyberday1.neoorigins.screen.creator.CreatorStyle.TEXT_DIM, false);
         }
     }
+
+    public void render(GuiGraphics g) { /* widgets draw on top; chrome is backdrop */ }
 
     public boolean onScroll(double mx, double my, double sy) {
         return picker.onScroll(mx, my, sy);

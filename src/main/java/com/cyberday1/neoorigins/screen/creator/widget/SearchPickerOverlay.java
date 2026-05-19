@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.screen.creator.widget;
 
+import com.cyberday1.neoorigins.screen.creator.CreatorStyle;
 import com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,27 +14,29 @@ import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
- * Reusable search-and-pick overlay: a title, a search box, and a scrollable,
- * virtualized list of strings filtered by substring. Selecting an entry runs
- * the sink and closes; cancelling just closes. The owning tab flips it open
- * and, while {@link #isOpen()}, builds <em>only</em> this overlay's widgets so
- * its row buttons get the screen's click routing.
+ * Reusable search-and-pick overlay: a titled panel, a prominent search box,
+ * and a scrollable, virtualized, zebra-striped list filtered by substring.
  *
- * <p>Backs both the power-type picker (Powers tab) and the item picker
- * ({@link ItemPickerOverlay} composes this and adds the SNBT components field).
+ * <p>The chrome is painted in {@link #renderBackdrop} (called by the screen
+ * <em>before</em> widgets render) so the search box and row buttons sit on top
+ * of the panel instead of being covered by it.
  */
 public final class SearchPickerOverlay {
 
     public interface Sink { void accept(String value); }
 
     private static final int ROW_H = 13;
+    private static final int HEADER_H = 18;
+    private static final int SEARCH_H = 18;
+    private static final int SEARCH_TOP = HEADER_H + 6;
+    private static final int LIST_TOP = SEARCH_TOP + SEARCH_H + 8;
 
     private boolean open;
     private String title = "pick";
     private Sink sink;
     private Runnable onClose;
     private Supplier<List<String>> source = List::of;
-    private int bottomReserve = 22; // space the cancel row needs
+    private int bottomReserve = 24;
 
     private List<String> all = List.of();
     private List<String> filtered = List.of();
@@ -47,10 +50,6 @@ public final class SearchPickerOverlay {
 
     public boolean isOpen() { return open; }
 
-    /**
-     * Open the picker. {@code source} is queried lazily on build (fresh each
-     * open); {@code onClose} runs after select or cancel so the tab rebuilds.
-     */
     public void open(String title, Supplier<List<String>> source, Sink sink, Runnable onClose) {
         this.open = true;
         this.title = title;
@@ -61,7 +60,6 @@ public final class SearchPickerOverlay {
 
     public void close() { open = false; }
 
-    /** Extra bottom space (px) the host overlay needs below the list. */
     public void setBottomReserve(int px) { this.bottomReserve = px; }
 
     public int listBottom() { return listTop + listH; }
@@ -74,25 +72,27 @@ public final class SearchPickerOverlay {
         all = source.get();
 
         Font font = parent.font();
-        search = new EditBox(font, x + 6, y + 6, w - 12, 16, Component.literal("search"));
+        search = new EditBox(font, x + 10, y + SEARCH_TOP, w - 20, SEARCH_H,
+            Component.literal("search"));
+        search.setHint(Component.literal("type to filter …"));
         search.setResponder(s -> recompute());
         parent.register(search);
 
-        listTop = y + 28;
-        listH = h - 28 - bottomReserve;
+        listTop = y + LIST_TOP;
+        listH = h - LIST_TOP - bottomReserve;
         int visRows = Math.max(1, listH / ROW_H);
-        scroll.setViewport(x + 4, listTop, w - 8, listH);
+        scroll.setViewport(x + 6, listTop, w - 12, listH);
 
         for (int i = 0; i < visRows; i++) {
             final int slot = i;
             Button b = Button.builder(Component.empty(), btn -> selectSlot(slot))
-                .bounds(x + 6, listTop + i * ROW_H, w - 14, ROW_H - 1).build();
+                .bounds(x + 8, listTop + i * ROW_H, w - 18, ROW_H - 1).build();
             rows.add(b);
             rowVal.add("");
             parent.register(b);
         }
-        parent.register(Button.builder(Component.literal("cancel"), b -> cancel())
-            .bounds(x + w - 60, y + h - 20, 54, 18).build());
+        parent.register(Button.builder(Component.literal("Cancel"), b -> cancel())
+            .bounds(x + w - 66, y + h - 21, 60, 18).build());
 
         recompute();
     }
@@ -141,16 +141,40 @@ public final class SearchPickerOverlay {
         if (oc != null) oc.run();
     }
 
-    public void render(GuiGraphics g) {
+    /** Panel + header + search frame + list zebra — drawn before the widgets. */
+    public void renderBackdrop(GuiGraphics g) {
         if (!open || parent == null) return;
         Font font = parent.font();
-        g.fill(0, 0, parent.width, parent.height, 0xCC000010);
-        g.fill(x, y, x + w, y + h, 0xFF0B0B1A);
-        g.renderOutline(x, y, w, h, 0xFF3A3A5A);
-        g.drawString(font, title + "  (" + filtered.size() + " — type to filter, Esc-free: click cancel)",
-            x + 6, y - 10, 0xFFBBBBCC, false);
+
+        g.fill(0, 0, parent.width, parent.height, CreatorStyle.SCRIM);
+        CreatorStyle.panel(g, x, y, w, h);
+
+        // Header strip + title.
+        g.fill(x + 1, y + 1, x + w - 1, y + HEADER_H, CreatorStyle.PANEL_BG);
+        g.drawCenteredString(font,
+            Component.literal(title + "  (" + filtered.size() + ")"),
+            x + w / 2, y + 5, CreatorStyle.SECTION);
+        CreatorStyle.divider(g, x + 1, y + HEADER_H, w - 2);
+
+        // Pronounced search box: accent frame behind the EditBox widget.
+        int sx = x + 8, sy = y + SEARCH_TOP - 2, sw = w - 16, sh = SEARCH_H + 4;
+        g.fill(sx, sy, sx + sw, sy + sh, 0xFF05050C);
+        g.renderOutline(sx, sy, sw, sh, CreatorStyle.ACCENT);
+
+        // List background + zebra rows.
+        g.fill(x + 4, listTop - 2, x + w - 4, listTop + listH + 2, CreatorStyle.PANEL_BG2);
+        for (int i = 0; i < rows.size(); i++) {
+            if (rowVal.get(i).isEmpty()) continue;
+            if ((i & 1) == 0) {
+                g.fill(x + 6, listTop + i * ROW_H, x + w - 12,
+                    listTop + (i + 1) * ROW_H - 1, 0x14FFFFFF);
+            }
+        }
         scroll.renderScrollbar(g);
     }
+
+    /** Foreground (above widgets) — nothing extra needed. */
+    public void render(GuiGraphics g) {}
 
     public boolean onScroll(double mx, double my, double sy) {
         if (!open) return false;

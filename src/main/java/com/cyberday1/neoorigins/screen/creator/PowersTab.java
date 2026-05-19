@@ -161,6 +161,11 @@ public final class PowersTab implements CreatorTab {
     // ── render ──────────────────────────────────────────────────────────────
 
     @Override
+    public void renderBackdrop(GuiGraphics g) {
+        if (typePicker.isOpen()) typePicker.renderBackdrop(g);
+    }
+
+    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial,
                        int x, int y, int w, int h) {
         if (typePicker.isOpen()) { typePicker.render(g); return; }
