@@ -61,4 +61,38 @@ public final class OriginDraft {
     public Identifier originId() {
         return Identifier.fromNamespaceAndPath(CUSTOM_NAMESPACE, idPath);
     }
+
+    /**
+     * Mint a unique power id under {@link #CUSTOM_NAMESPACE} as
+     * {@code <idPath>_<typeShortName>}, suffixing {@code _2}, {@code _3}, … when
+     * the same type repeats. Shared by the Powers and Appearance tabs so every
+     * power in the draft keeps a stable, collision-free id.
+     */
+    public Identifier mintPowerId(PowerDraft self, String typeId) {
+        String typeShort;
+        try { typeShort = Identifier.parse(typeId).getPath(); }
+        catch (RuntimeException e) { typeShort = "power"; }
+        String base = sanitize(idPath) + "_" + typeShort;
+        String candidate = base;
+        int n = 1;
+        boolean clash;
+        do {
+            clash = false;
+            for (PowerDraft o : powers) {
+                if (o == self) continue;
+                if (o.powerId != null && o.powerId.getPath().equals(candidate)) {
+                    clash = true;
+                    break;
+                }
+            }
+            if (clash) candidate = base + "_" + (++n);
+        } while (clash);
+        return Identifier.fromNamespaceAndPath(CUSTOM_NAMESPACE, candidate);
+    }
+
+    private static String sanitize(String s) {
+        String v = s == null ? "" : s.toLowerCase(java.util.Locale.ROOT)
+            .replaceAll("[^a-z0-9_]+", "_").replaceAll("_+", "_");
+        return v.isEmpty() ? "origin" : v;
+    }
 }
