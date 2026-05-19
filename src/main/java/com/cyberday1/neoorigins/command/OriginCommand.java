@@ -332,6 +332,13 @@ public class OriginCommand {
     private static int executeGui(CommandContext<CommandSourceStack> ctx, ServerPlayer player) throws CommandSyntaxException {
         ServerPlayer target = player != null ? player : ctx.getSource().getPlayerOrException();
         NeoOriginsNetwork.syncRegistryToPlayer(target);
+        if (player != null) {
+            // OP opened the picker for another player — authorize that
+            // (non-OP) player to re-select for this picker session. The
+            // self path (permission 0) intentionally gets no grant, so a
+            // normal player cannot reset their own origin for free.
+            target.getData(OriginAttachments.originData()).setPendingAdminReselect(true);
+        }
         NeoOriginsNetwork.openSelectionScreen(target, false, true);
         if (player != null) {
             ctx.getSource().sendSuccess(() -> Component.literal(

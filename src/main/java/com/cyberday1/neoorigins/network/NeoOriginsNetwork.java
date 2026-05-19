@@ -189,6 +189,8 @@ public class NeoOriginsNetwork {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
             data.setPickerAbandoned(true);
+            // Abandoning the picker also ends any OP-granted re-selection.
+            data.setPendingAdminReselect(false);
         });
     }
 
@@ -427,8 +429,29 @@ public class NeoOriginsNetwork {
 
             ResourceLocation oldOrigin = data.getOrigin(layerId);
 
-            // Allow re-selection only via /origin gui (forceReselect).
-            // Normal first-time selection always works; re-selection is blocked unless forced.
+            // Server-authoritative re-selection gate. Changing a layer that
+            // already holds an origin (once the player has completed initial
+            // selection) is only permitted via an Orb of Origin commit (the
+            // paid path — handled just above, which clears the layer so
+            // oldOrigin is null here), an OP-granted re-selection
+            // (/origin gui <player>, sets pendingAdminReselect on the target),
+            // or a sender who is themselves OP. First-time selection
+            // (oldOrigin == null) and the initial multi-layer walkthrough
+            // (hadAllOrigins still false, incl. back-button re-picks) are
+            // always allowed. Without this a non-OP player could reset their
+            // origin for free via /origin gui or a crafted ChooseOrigin packet.
+            boolean isReselection = oldOrigin != null
+                && data.isHadAllOrigins()
+                && !oldOrigin.equals(originId);
+            if (isReselection
+                    && !data.isPendingOrbCommit()
+                    && !data.isPendingAdminReselect()
+                    && !sp.hasPermissions(2)) {
+                NeoOrigins.LOGGER.warn(
+                    "Player {} attempted unauthorized origin re-selection in layer {} ({} -> {}); rejected",
+                    sp.getName().getString(), layerId, oldOrigin, originId);
+                return;
+            }
 
             OriginChangedEvent event = new OriginChangedEvent(sp, layerId, oldOrigin, originId);
             if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
@@ -476,6 +499,10 @@ public class NeoOriginsNetwork {
             boolean firstTimeAllFilled = allFilled && !data.isHadAllOrigins();
             if (allFilled) {
                 data.setHadAllOrigins(true);
+                // An OP-granted re-selection session ends once every layer is
+                // filled again — consume the grant so it can't be reused for
+                // a later free re-pick.
+                data.setPendingAdminReselect(false);
                 // Fire any StartingEquipmentPower grants that were deferred during
                 // the picker walk-through. The power's onGranted gates on
                 // hadAllOrigins to prevent back-button dupes (issue #22).
