@@ -148,11 +148,11 @@ public final class IdentityTab implements CreatorTab {
         name.drawLabel(g, font, lx, rowY + ROW_H + 4);
         description.drawLabel(g, font, lx, rowY + ROW_H * 2 + 4);
         icon.drawLabel(g, font, lx, rowY + ROW_H * 3 + 4);
-        g.drawString(font, "impact", lx, rowY + ROW_H * 4 + 6, CreatorStyle.LABEL, false);
+        g.drawString(font, "Impact", lx, rowY + ROW_H * 4 + 6, CreatorStyle.LABEL, false);
         order.drawLabel(g, font, lx, rowY + ROW_H * 5 + 4);
 
         CreatorStyle.sectionHeader(g, font, "Layer", lx, layerHdrY, w - LABEL_DX * 2);
-        g.drawString(font, "layer", lx, layerRowY + 6, CreatorStyle.LABEL, false);
+        g.drawString(font, "Layer", lx, layerRowY + 6, CreatorStyle.LABEL, false);
         boolean isClass = layer != null && CLASS_LAYER.equals(layer.value());
         g.drawString(font,
             isClass ? "This origin will be a CLASS (neoorigins:class layer)."
@@ -173,8 +173,7 @@ public final class IdentityTab implements CreatorTab {
             tip = "Which picker this appears in. neoorigins:class makes it a class.";
         }
         if (tip != null) {
-            CreatorStyle.tooltip(g, font, java.util.List.of(tip),
-                mouseX, mouseY, parent.width, parent.height);
+            parent.queueTooltip(java.util.List.of(tip), mouseX, mouseY);
         }
     }
 

@@ -131,6 +131,9 @@ public final class SchemaFormCheck {
             "src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java",
             "action");
 
+        // 9. Every form field of every power must have a description.
+        failures += auditFieldDocs(model);
+
         System.out.printf("[schema-check] %d power types, %d structured branches, %d failures%n",
             types, model.structuredTypes().size(), failures);
         if (failures > 0) System.exit(1);
@@ -267,5 +270,81 @@ public final class SchemaFormCheck {
         System.out.println("[schema-check] marker-only (empty form is correct - no config): "
             + String.join(", ", markerOnly));
         return fails;
+    }
+
+    /**
+     * Enforces that every form field of every registered power has a
+     * description — from the schema branch or from {@code field_docs.json}.
+     * Fails the build listing every undocumented {@code type.field} so the
+     * docs can never silently regress or stay incomplete.
+     */
+    private static int auditFieldDocs(SchemaFormModel model) {
+        String src;
+        try {
+            src = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/com/cyberday1/neoorigins/power/registry/PowerTypes.java"));
+        } catch (java.io.IOException e) {
+            System.out.println("[schema-check] FAIL  cannot read PowerTypes.java: " + e);
+            return 1;
+        }
+        com.cyberday1.neoorigins.power.schemaform.FieldDocs docs =
+            com.cyberday1.neoorigins.power.schemaform.FieldDocs.get();
+
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("reg\\(\\s*\"([a-z0-9_]+)\"\\s*,\\s*new\\s+([\\w.]+)\\s*\\(")
+            .matcher(src);
+        int totalFields = 0, documented = 0;
+        java.util.List<String> undoc = new java.util.ArrayList<>();
+
+        while (m.find()) {
+            String id = m.group(1);
+            String ref = m.group(2);
+            String simple = ref.substring(ref.lastIndexOf('.') + 1);
+            Class<?> pc = null;
+            for (String fqn : new String[]{
+                    ref.contains(".") ? ref : null,
+                    "com.cyberday1.neoorigins.power.builtin." + simple,
+                    "com.cyberday1.neoorigins.compat." + simple}) {
+                if (fqn == null) continue;
+                try { pc = Class.forName(fqn, false, SchemaFormCheck.class.getClassLoader()); break; }
+                catch (Throwable ignored) { }
+            }
+            if (pc == null
+                    || !com.cyberday1.neoorigins.api.power.PowerType.class.isAssignableFrom(pc)) {
+                continue;
+            }
+            String typeId = "neoorigins:" + id;
+
+            java.util.List<FormFieldSpec> specs;
+            boolean schemaBranch = model.hasStructuredForm(typeId);
+            if (schemaBranch) {
+                specs = model.formFor(typeId);
+            } else {
+                Class<?> cfg = com.cyberday1.neoorigins.power.schemaform
+                    .PowerConfigClassResolver.resolve(pc);
+                if (cfg == null || !cfg.isRecord()) continue; // marker-only
+                specs = CodecFieldSpecExtractor.extract(cfg);
+            }
+            for (FormFieldSpec s : specs) {
+                if (s.name().equals("type")) continue;
+                totalFields++;
+                boolean ok = (schemaBranch && s.description() != null
+                        && !s.description().isBlank())
+                    || (docs.describe(typeId, s.name()) != null
+                        && !docs.describe(typeId, s.name()).isBlank());
+                if (ok) documented++;
+                else undoc.add(typeId + "." + s.name());
+            }
+        }
+        java.util.Collections.sort(undoc);
+        System.out.printf("[schema-check] field docs: %d/%d documented%n",
+            documented, totalFields);
+        if (!undoc.isEmpty()) {
+            System.out.println("[schema-check] FAIL  " + undoc.size()
+                + " undocumented fields:");
+            for (String u : undoc) System.out.println("    " + u);
+            return 1;
+        }
+        return 0;
     }
 }

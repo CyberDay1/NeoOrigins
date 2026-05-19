@@ -82,12 +82,16 @@ public final class FormModel {
         return out;
     }
 
-    /** EnumHints overlay + config-range/default enrich for one field. */
+    /** EnumHints overlay + config-range/default enrich + doc fallback for one field. */
     private static FormFieldSpec enrich(String powerId, FormFieldSpec s) {
         FormFieldSpec.Kind kind = s.kind();
         List<String> enums = s.enumValues();
         Double min = s.min(), max = s.max();
         Object def = s.defaultValue();
+        String desc = s.description();
+        if (desc == null || desc.isBlank()) {
+            desc = FieldDocs.get().describe(powerId, s.name());
+        }
 
         List<String> hint = EnumHints.valuesFor(powerId, s.name());
         if (!hint.isEmpty()) {
@@ -107,10 +111,11 @@ public final class FormModel {
         }
 
         if (kind == s.kind() && enums == s.enumValues()
-                && min == s.min() && max == s.max() && def == s.defaultValue()) {
+                && min == s.min() && max == s.max() && def == s.defaultValue()
+                && java.util.Objects.equals(desc, s.description())) {
             return s; // untouched — avoid a needless copy
         }
         return new FormFieldSpec(s.name(), kind, s.required(), def, enums,
-            min, max, s.description(), s.ref());
+            min, max, desc, s.ref());
     }
 }

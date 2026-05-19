@@ -164,6 +164,7 @@ public class OriginCreatorScreen extends Screen {
         g.drawString(font, active.help(), contentX + CreatorStyle.PAD, contentY + 2,
             CreatorStyle.TEXT_DIM, false);
         CreatorStyle.divider(g, contentX + 4, contentY + HELP_H - 3, contentW - 8);
+        pendingTip = null; // tabs re-queue it during their render
         active.render(g, mouseX, mouseY, partial,
             contentX, contentY + HELP_H, contentW, contentH - HELP_H);
 
@@ -174,6 +175,21 @@ public class OriginCreatorScreen extends Screen {
                 ? CreatorStyle.OK : CreatorStyle.ERR;
             g.drawCenteredString(font, Component.literal(msg), width / 2, height - 42, color);
         }
+
+        // Hover tooltip drawn dead last so it sits over every widget/box.
+        if (pendingTip != null && !pendingTip.isEmpty()) {
+            CreatorStyle.tooltip(g, font, pendingTip, tipX, tipY, width, height);
+        }
+    }
+
+    private java.util.List<String> pendingTip;
+    private int tipX, tipY;
+
+    /** A tab requests its hover tooltip; the screen draws it last (topmost). */
+    public void queueTooltip(java.util.List<String> lines, int mx, int my) {
+        this.pendingTip = lines;
+        this.tipX = mx;
+        this.tipY = my;
     }
 
     @Override

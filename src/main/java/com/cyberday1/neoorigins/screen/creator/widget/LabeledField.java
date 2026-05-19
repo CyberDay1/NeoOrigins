@@ -39,7 +39,8 @@ public final class LabeledField {
 
     /** Draw the label to the left of the box (call from the tab's render). */
     public void drawLabel(GuiGraphics g, Font font, int x, int y) {
-        g.drawString(font, label, x, y,
+        g.drawString(font,
+            com.cyberday1.neoorigins.screen.creator.CreatorStyle.title(label), x, y,
             com.cyberday1.neoorigins.screen.creator.CreatorStyle.LABEL, false);
     }
 
