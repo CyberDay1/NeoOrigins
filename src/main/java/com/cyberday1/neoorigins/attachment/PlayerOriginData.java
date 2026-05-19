@@ -142,7 +142,14 @@ public class PlayerOriginData {
 
     public void setCustomFloat(String key, float value) {
         customFloats.put(key, value);
-        version++;
+        // Intentionally does NOT bump `version`. customFloats is per-tick
+        // scratch state (moisture, cooldown/recovery counters, key-edge
+        // flags) that never changes WHICH powers are granted/active — the
+        // only thing `version` keys (ActiveOriginService's resolved-power
+        // cache). Several powers write a custom float every tick; bumping
+        // here rebuilt that cache every tick for those players. Power
+        // conditions are evaluated live, not cached, so a float-driven
+        // condition still re-reads the new value.
     }
 
     // ── Essence evolution ──────────────────────────────────────────────
