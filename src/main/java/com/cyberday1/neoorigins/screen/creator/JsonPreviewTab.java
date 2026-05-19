@@ -36,6 +36,10 @@ public final class JsonPreviewTab implements CreatorTab {
     private int x, y, w, h;
 
     @Override public Component title() { return TITLE; }
+    @Override public Component help() {
+        return Component.literal(
+            "Read-only preview of the exact datapack files Save will write.");
+    }
 
     @Override
     public void init(OriginCreatorScreen parent, int x, int y, int w, int h) {

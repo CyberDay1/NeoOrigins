@@ -130,18 +130,15 @@ public final class PowerFormPanel {
         if (target == null) return;
         Font font = parent.font();
 
-        boolean schemaBacked = parseType(target.typeId) != null
-            && FormModel.isSchemaBacked(parseType(target.typeId));
-        g.drawString(font, schemaBacked ? "schema" : "codec",
-            x + w - 50, y - 10, 0xFF6E6E92, false);
-
         if (rawMode) {
-            g.drawString(font, "raw config JSON (no \"type\" key — injected on save)",
+            g.drawString(font,
+                "Editing this power's config as JSON — the \"type\" is added for you on save.",
                 x + LABEL_DX, y - 10, 0xFF8888AA, false);
             return;
         }
         if (rows.isEmpty()) {
-            g.drawCenteredString(font, Component.literal("no form fields — use \"raw\""),
+            g.drawCenteredString(font, Component.literal(
+                "This power has no editable fields — click \"Edit JSON\" to configure it."),
                 x + w / 2, y + 12, 0xFF8888AA);
             return;
         }

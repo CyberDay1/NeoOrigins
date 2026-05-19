@@ -35,9 +35,23 @@ public final class FormModel {
         return schema;
     }
 
-    /** Every selectable power type id (the schema's {@code type} enum), sorted. */
+    /** Every power type id in the schema's {@code type} enum, sorted. Includes
+     *  compat aliases — use for validation/tooling, NOT the authoring UI. */
     public static List<String> allTypes() {
         return new ArrayList<>(schema().allTypes());
+    }
+
+    /**
+     * Native {@code neoorigins:} power types only, for the creator's type
+     * picker. Foreign-namespace entries in the schema enum ({@code apugli:},
+     * {@code apoli:}, {@code apace:}, …) are compat-translation aliases for
+     * importing existing datapacks — never the right choice when authoring a
+     * brand-new power, so they're hidden from the creator.
+     */
+    public static List<String> creatorTypes() {
+        return schema().allTypes().stream()
+            .filter(t -> t.startsWith("neoorigins:"))
+            .toList();
     }
 
     /** True when the schema carries a structured (field-typed) branch for the type. */

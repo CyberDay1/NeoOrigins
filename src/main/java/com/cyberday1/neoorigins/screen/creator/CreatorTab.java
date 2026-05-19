@@ -22,6 +22,9 @@ public interface CreatorTab {
     /** Tab-strip label. */
     Component title();
 
+    /** One-line "what this tab is for" shown under the title by the screen. */
+    default Component help() { return Component.empty(); }
+
     /**
      * Register this tab's widgets. The content rectangle excludes the tab strip
      * and the bottom button bar.

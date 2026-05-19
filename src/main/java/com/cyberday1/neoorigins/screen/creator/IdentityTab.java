@@ -38,6 +38,10 @@ public final class IdentityTab implements CreatorTab {
     private int rowY;
 
     @Override public Component title() { return TITLE; }
+    @Override public Component help() {
+        return Component.literal(
+            "Who is this origin: id, display name, description, icon and impact.");
+    }
 
     @Override
     public void init(OriginCreatorScreen parent, int x, int y, int w, int h) {

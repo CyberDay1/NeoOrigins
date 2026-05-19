@@ -53,6 +53,10 @@ public final class AppearanceTab implements CreatorTab {
     private int visIdx;
 
     @Override public Component title() { return TITLE; }
+    @Override public Component help() {
+        return Component.literal(
+            "Optional visual powers (overlay, color, shader, size, invisibility, glow).");
+    }
 
     private Visual visual() { return VISUALS.get(visIdx); }
 
