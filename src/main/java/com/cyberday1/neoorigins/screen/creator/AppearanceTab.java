@@ -101,6 +101,10 @@ public final class AppearanceTab implements CreatorTab {
             assetPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
+        if (form.overlayOpen()) {            // REF condition/action picker
+            form.init(parent, match(), false, x, y, w, h);
+            return;
+        }
 
         parent.register(Button.builder(
                 Component.literal("◀ " + visual().label() + " ▶"), b -> cycleVisual())
@@ -196,12 +200,13 @@ public final class AppearanceTab implements CreatorTab {
     @Override
     public void renderBackdrop(GuiGraphics g) {
         if (assetPicker.isOpen()) assetPicker.renderBackdrop(g);
+        else if (form.overlayOpen()) form.refBackdrop(g);
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial,
                        int x, int y, int w, int h) {
-        if (assetPicker.isOpen()) return; // chrome drawn in renderBackdrop
+        if (assetPicker.isOpen() || form.overlayOpen()) return; // backdrop draws it
         Font font = parent.font();
         PowerDraft p = match();
 
@@ -234,6 +239,7 @@ public final class AppearanceTab implements CreatorTab {
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (assetPicker.isOpen()) return assetPicker.onScroll(mx, my, sy);
+        if (form.overlayOpen()) return form.refScroll(mx, my, sy);
         return form.onScroll(mx, my, sy);
     }
 }

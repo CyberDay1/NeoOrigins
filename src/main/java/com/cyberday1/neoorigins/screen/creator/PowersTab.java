@@ -54,6 +54,10 @@ public final class PowersTab implements CreatorTab {
             typePicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
+        if (form.overlayOpen()) {            // REF condition/action picker
+            form.init(parent, current(), rawMode, x, y, w, h);
+            return;
+        }
 
         List<PowerDraft> ps = powers();
         if (sel >= ps.size()) sel = Math.max(0, ps.size() - 1);
@@ -164,12 +168,14 @@ public final class PowersTab implements CreatorTab {
     @Override
     public void renderBackdrop(GuiGraphics g) {
         if (typePicker.isOpen()) typePicker.renderBackdrop(g);
+        else if (form.overlayOpen()) form.refBackdrop(g);
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial,
                        int x, int y, int w, int h) {
         if (typePicker.isOpen()) { typePicker.render(g); return; }
+        if (form.overlayOpen()) return; // backdrop draws the picker
 
         Font font = parent.font();
         List<PowerDraft> ps = powers();
@@ -196,6 +202,7 @@ public final class PowersTab implements CreatorTab {
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (typePicker.isOpen()) return typePicker.onScroll(mx, my, sy);
+        if (form.overlayOpen()) return form.refScroll(mx, my, sy);
         return form.onScroll(mx, my, sy);
     }
 }
