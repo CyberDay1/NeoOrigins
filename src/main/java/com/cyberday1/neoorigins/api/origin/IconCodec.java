@@ -30,7 +30,7 @@ import java.util.Optional;
  * <p>Encoding writes item id + SNBT tag (if components are present), which
  * doesn't require RegistryOps and survives plain JsonOps round-trips.
  */
-final class IconCodec {
+public final class IconCodec {
     private IconCodec() {}
 
     /**
@@ -99,7 +99,7 @@ final class IconCodec {
         stack -> BuiltInRegistries.ITEM.getKey(stack.getItem())
     );
 
-    static final Codec<ItemStack> CODEC = Codec.withAlternative(OBJECT_CODEC, STRING_CODEC);
+    public static final Codec<ItemStack> CODEC = Codec.withAlternative(OBJECT_CODEC, STRING_CODEC);
 
     /**
      * Extracts known data components from a stack back into SNBT for

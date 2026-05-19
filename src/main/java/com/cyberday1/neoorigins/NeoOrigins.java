@@ -139,10 +139,12 @@ public class NeoOrigins {
         //   2. origins_compat_b   — Route B powers injected into PowerDataManager
         //   3. origin_data        — reads MULTIPLE_EXPANSION_MAP (now includes Route B IDs); closes log
         //   4. layer_data
+        //   5. mob_origin_data   — NeoOrigins-native; only needs powers (above)
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "power_data"),       PowerDataManager.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origins_compat_b"), OriginsCompatPowerLoader.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"),      OriginDataManager.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"),       LayerDataManager.INSTANCE);
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "mob_origin_data"),  com.cyberday1.neoorigins.data.MobOriginDataManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

@@ -35,12 +35,24 @@ public class EntityAttachments {
                 .serialize(MinionOwner.MAP_CODEC)
                 .build());
 
+    /** Per-LivingEntity mob-origin state. No {@code copyOnDeath} on purpose —
+     *  a mob that dies and respawns re-rolls (mob death is final). */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<MobOriginData>> MOB_ORIGIN_DATA =
+        ATTACHMENT_TYPES.register("mob_origin_data", () ->
+            AttachmentType.builder(MobOriginData::new)
+                .serialize(MobOriginData.MAP_CODEC)
+                .build());
+
     public static void register(IEventBus modEventBus) {
         ATTACHMENT_TYPES.register(modEventBus);
     }
 
     public static AttachmentType<MinionOwner> minionOwner() {
         return MINION_OWNER.get();
+    }
+
+    public static AttachmentType<MobOriginData> mobOriginData() {
+        return MOB_ORIGIN_DATA.get();
     }
 
     public record MinionOwner(Optional<UUID> ownerUuid) {

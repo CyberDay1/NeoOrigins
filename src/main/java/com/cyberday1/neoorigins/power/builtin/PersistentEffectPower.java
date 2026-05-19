@@ -21,6 +21,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.LivingEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -231,6 +232,30 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     private void clearEffects(ServerPlayer player, Config config) {
         for (EffectSpec spec : config.effects()) {
             player.removeEffect(spec.effect());
+        }
+    }
+
+    // ── Mob-origin support (reference implementation) ───────────────────────
+    // Mobs have no keybind toggle and no per-player condition context, so the
+    // effects are applied unconditionally as infinite-duration. Condition-gated
+    // mob behavior arrives with neoorigins:mob_behavior (Phase 2b).
+
+    @Override
+    public boolean appliesToMobs(Config config) { return true; }
+
+    @Override
+    public void applyToMob(LivingEntity mob, Config config) {
+        for (EffectSpec spec : config.effects()) {
+            mob.addEffect(new MobEffectInstance(
+                spec.effect(), MobEffectInstance.INFINITE_DURATION, spec.amplifier(),
+                spec.ambient(), spec.showParticles(), spec.showIcon()));
+        }
+    }
+
+    @Override
+    public void removeFromMob(LivingEntity mob, Config config) {
+        for (EffectSpec spec : config.effects()) {
+            mob.removeEffect(spec.effect());
         }
     }
 }
