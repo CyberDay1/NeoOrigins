@@ -64,10 +64,10 @@ public final class LayerTab implements CreatorTab {
                        int x, int y, int w, int h) {
         Font font = parent.font();
         boolean isClass = CLASS_LAYER.equals(selector.value());
-        g.drawString(font, "Target layer:", x + 8, rowY - 12, 0xFFBBBBCC, false);
+        CreatorStyle.sectionHeader(g, font, "Target layer", x + 8, rowY - 14, w - 16);
         g.drawString(font,
             isClass ? "→ This origin will be a CLASS (neoorigins:class layer)."
                     : "→ This origin will be a normal ORIGIN in this layer.",
-            x + 8, rowY + 28, isClass ? 0xFF7FB0FF : 0xFF99AA99, false);
+            x + 8, rowY + 28, isClass ? CreatorStyle.ACCENT : CreatorStyle.TEXT_DIM, false);
     }
 }

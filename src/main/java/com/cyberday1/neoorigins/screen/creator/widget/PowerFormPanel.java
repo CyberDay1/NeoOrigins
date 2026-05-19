@@ -133,13 +133,14 @@ public final class PowerFormPanel {
         if (rawMode) {
             g.drawString(font,
                 "Editing this power's config as JSON — the \"type\" is added for you on save.",
-                x + LABEL_DX, y - 10, 0xFF8888AA, false);
+                x + LABEL_DX, y - 10,
+                com.cyberday1.neoorigins.screen.creator.CreatorStyle.TEXT_DIM, false);
             return;
         }
         if (rows.isEmpty()) {
-            g.drawCenteredString(font, Component.literal(
-                "This power has no editable fields — click \"Edit JSON\" to configure it."),
-                x + w / 2, y + 12, 0xFF8888AA);
+            com.cyberday1.neoorigins.screen.creator.CreatorStyle.emptyState(g, font,
+                "This power has no editable fields — click \"Edit JSON\" to configure it.",
+                x + w / 2, y + 12);
             return;
         }
 

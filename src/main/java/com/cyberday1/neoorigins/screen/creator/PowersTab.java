@@ -169,19 +169,19 @@ public final class PowersTab implements CreatorTab {
         List<PowerDraft> ps = powers();
 
         if (ps.isEmpty()) {
-            g.drawCenteredString(font,
-                Component.literal("No powers yet — click \"+ add\" to choose one"),
-                x + w / 2, y + h / 2 - 4, 0xFF8888AA);
+            CreatorStyle.emptyState(g, font,
+                "No powers yet — click \"+ add\" to choose one", x + w / 2, y + h / 2 - 4);
             return;
         }
 
         g.drawString(font, "power " + (sel + 1) + "/" + ps.size(),
-            x + FIELD_DX, y + 6, 0xFFBBBBCC, false);
+            x + FIELD_DX, y + 6, CreatorStyle.TEXT_DIM, false);
         PowerDraft p = current();
         if (p != null && p.powerId != null) {
             g.drawString(font, "id: " + p.powerId,
-                x + LABEL_DX, y + HDR_H + 4, 0xFF6E6E92, false);
+                x + LABEL_DX, y + HDR_H + 4, CreatorStyle.TEXT_DIM, false);
         }
+        CreatorStyle.divider(g, x + 4, y + HDR_H * 2 + 2, w - 8);
         form.render(g);
     }
 

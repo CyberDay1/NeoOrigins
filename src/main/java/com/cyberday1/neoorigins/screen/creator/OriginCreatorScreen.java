@@ -141,14 +141,12 @@ public class OriginCreatorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
-        g.fill(0, 0, width, height, 0xCC060610);
-        g.drawCenteredString(font, getTitle(), width / 2, TITLE_Y, 0xFFFFFFFF);
+        g.fill(0, 0, width, height, CreatorStyle.SCRIM);
+        g.drawCenteredString(font, getTitle(), width / 2, TITLE_Y, CreatorStyle.TEXT);
 
         // Content panel frame.
-        g.fill(contentX, contentY - CONTENT_TOP_GAP / 2,
-            contentX + contentW, contentY + contentH, 0xFF09091A);
-        g.renderOutline(contentX - 1, contentY - CONTENT_TOP_GAP / 2 - 1,
-            contentW + 2, contentH + CONTENT_TOP_GAP / 2 + 2, 0xFF252540);
+        CreatorStyle.panel(g, contentX - 1, contentY - CONTENT_TOP_GAP / 2 - 1,
+            contentW + 2, contentH + CONTENT_TOP_GAP / 2 + 2);
 
         super.render(g, mouseX, mouseY, partial); // tab-strip + close buttons
 
@@ -157,11 +155,14 @@ public class OriginCreatorScreen extends Screen {
         int tabW = panelW / n;
         int hx = panelX + activeTab * tabW;
         int hw = (activeTab == n - 1) ? panelW - activeTab * tabW : tabW;
-        g.fill(hx, TAB_STRIP_Y + TAB_H - 1, hx + hw - 2, TAB_STRIP_Y + TAB_H + 1, 0xFF4A90D9);
+        g.fill(hx, TAB_STRIP_Y + TAB_H - 1, hx + hw - 2, TAB_STRIP_Y + TAB_H + 1,
+            CreatorStyle.ACCENT);
 
-        // Per-tab one-line help, then the tab body below it.
+        // Per-tab one-line help + a divider, then the tab body below it.
         CreatorTab active = tabs.get(activeTab);
-        g.drawString(font, active.help(), contentX + 6, contentY + 2, 0xFF9A9AB8, false);
+        g.drawString(font, active.help(), contentX + CreatorStyle.PAD, contentY + 2,
+            CreatorStyle.TEXT_DIM, false);
+        CreatorStyle.divider(g, contentX + 4, contentY + HELP_H - 3, contentW - 8);
         active.render(g, mouseX, mouseY, partial,
             contentX, contentY + HELP_H, contentW, contentH - HELP_H);
 
@@ -169,7 +170,7 @@ public class OriginCreatorScreen extends Screen {
         String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
         if (!msg.isEmpty()) {
             int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
-                ? 0xFF55DD77 : 0xFFDD5555;
+                ? CreatorStyle.OK : CreatorStyle.ERR;
             g.drawCenteredString(font, Component.literal(msg), width / 2, height - 42, color);
         }
     }

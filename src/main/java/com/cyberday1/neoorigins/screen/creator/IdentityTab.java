@@ -112,11 +112,12 @@ public final class IdentityTab implements CreatorTab {
         if (itemPicker.isOpen()) { itemPicker.render(g); return; }
         Font font = parent.font();
         int lx = x + LABEL_DX;
+        CreatorStyle.sectionHeader(g, font, "Origin basics", lx, y, w - LABEL_DX * 2);
         idPath.drawLabel(g, font, lx, rowY + 4);
         name.drawLabel(g, font, lx, rowY + ROW_H + 4);
         description.drawLabel(g, font, lx, rowY + ROW_H * 2 + 4);
         icon.drawLabel(g, font, lx, rowY + ROW_H * 3 + 4);
-        g.drawString(font, "impact", lx, rowY + ROW_H * 4 + 6, 0xFFBBBBCC, false);
+        g.drawString(font, "impact", lx, rowY + ROW_H * 4 + 6, CreatorStyle.LABEL, false);
         order.drawLabel(g, font, lx, rowY + ROW_H * 5 + 4);
     }
 

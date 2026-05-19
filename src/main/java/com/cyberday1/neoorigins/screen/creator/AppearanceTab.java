@@ -140,16 +140,16 @@ public final class AppearanceTab implements CreatorTab {
 
         if (p == null) {
             g.drawString(font, "not added to this origin yet",
-                x + LABEL_DX, y + HDR_H + 8, 0xFF8888AA, false);
+                x + LABEL_DX, y + HDR_H + 8, CreatorStyle.TEXT_DIM, false);
             return;
         }
         if (p.powerId != null) {
-            g.drawString(font, p.powerId.toString(),
-                x + LABEL_DX, y + HDR_H + 2, 0xFF6E6E92, false);
+            g.drawString(font, "id: " + p.powerId,
+                x + LABEL_DX, y + HDR_H + 2, CreatorStyle.TEXT_DIM, false);
         }
         String hint = visual().assetHint();
         if (hint != null) {
-            g.drawString(font, hint, x + LABEL_DX, y + HDR_H + 12, 0xFFD9A94A, false);
+            g.drawString(font, hint, x + LABEL_DX, y + HDR_H + 12, CreatorStyle.HINT, false);
         }
         form.render(g);
     }
