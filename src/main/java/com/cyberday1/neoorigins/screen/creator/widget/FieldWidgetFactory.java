@@ -65,8 +65,8 @@ public final class FieldWidgetFactory {
         Base(FormFieldSpec spec) { this.spec = spec; }
         @Override public String fieldName() { return spec.name(); }
         @Override public void drawLabel(GuiGraphicsExtractor g, Font font, int labelX, int y) {
-            int color = spec.required() ? 0xFFE8E8F0 : 0xFFBBBBCC;
-            g.text(font, spec.name(), labelX, y, color, false);
+            com.cyberday1.neoorigins.screen.creator.CreatorStyle.label(
+                g, font, spec.name(), labelX, y, spec.required());
         }
     }
 

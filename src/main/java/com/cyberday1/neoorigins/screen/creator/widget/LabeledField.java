@@ -39,7 +39,8 @@ public final class LabeledField {
 
     /** Draw the label to the left of the box (call from the tab's render). */
     public void drawLabel(GuiGraphicsExtractor g, Font font, int x, int y) {
-        g.text(font, label, x, y, 0xFFBBBBCC, false);
+        g.text(font, label, x, y,
+            com.cyberday1.neoorigins.screen.creator.CreatorStyle.LABEL, false);
     }
 
     /** Integer-only filter (allows empty and leading '-'). */
