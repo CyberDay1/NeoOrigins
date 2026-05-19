@@ -38,7 +38,7 @@ public final class JsonPreviewTab implements CreatorTab {
     @Override public Component title() { return TITLE; }
     @Override public Component help() {
         return Component.literal(
-            "Read-only preview of the exact datapack files Save will write.");
+            "Problems check + read-only preview of the files Save will write.");
     }
 
     @Override
@@ -54,24 +54,38 @@ public final class JsonPreviewTab implements CreatorTab {
     private void rebuildLines() {
         lines.clear();
         OriginDraft d = parent.draft();
-        Identifier originId = d.originId();
 
-        section("data/" + originId.getNamespace() + "/origins/origins/"
-            + originId.getPath() + ".json");
-        JsonObject originJson = CustomPackSerializer.originJson(d);
-        originJson.addProperty("id", originId.toString());
-        emit(originJson);
-
-        for (PowerDraft p : d.powers) {
-            String path = p.powerId != null ? p.powerId.getPath() : "(unsaved)";
-            section("data/" + OriginDraft.CUSTOM_NAMESPACE
-                + "/origins/powers/" + path + ".json");
-            emit(CustomPackSerializer.powerJson(p));
+        // Sanity panel first — same checks the server gate runs on Save.
+        java.util.List<String> probs =
+            com.cyberday1.neoorigins.service.DraftSanity.draftProblems(d);
+        if (probs.isEmpty()) {
+            lines.add("> No problems detected — safe to Save.");
+        } else {
+            lines.add("# Problems (" + probs.size() + ") — fix before Save:");
+            for (String pr : probs) lines.add("! - " + pr);
         }
 
-        section("layer patch → origins:" + d.layerId.getPath()
-            + " (merged into the canonical picker)");
-        emit(CustomPackSerializer.layerPatch(null, originId.toString()));
+        try {
+            Identifier originId = d.originId();
+            section("data/" + originId.getNamespace() + "/origins/origins/"
+                + originId.getPath() + ".json");
+            JsonObject originJson = CustomPackSerializer.originJson(d);
+            originJson.addProperty("id", originId.toString());
+            emit(originJson);
+
+            for (PowerDraft p : d.powers) {
+                String path = p.powerId != null ? p.powerId.getPath() : "(unsaved)";
+                section("data/" + OriginDraft.CUSTOM_NAMESPACE
+                    + "/origins/powers/" + path + ".json");
+                emit(CustomPackSerializer.powerJson(p));
+            }
+
+            section("layer patch → origins:" + d.layerId.getPath()
+                + " (merged into the canonical picker)");
+            emit(CustomPackSerializer.layerPatch(null, originId.toString()));
+        } catch (RuntimeException e) {
+            section("(preview unavailable — fix the problems above)");
+        }
 
         scroll.setContentHeight(lines.size() * LINE_H + 4);
     }
@@ -95,7 +109,10 @@ public final class JsonPreviewTab implements CreatorTab {
             int ly = top + i * LINE_H;
             if (ly + LINE_H < scroll.viewTop() || ly > scroll.viewBottom()) continue;
             String line = lines.get(i);
-            int color = line.startsWith("# ") ? 0xFFD9A94A : 0xFFC8C8D8;
+            int color = line.startsWith("! ") ? CreatorStyle.ERR
+                : line.startsWith("# ") ? CreatorStyle.HINT
+                : line.startsWith("> ") ? CreatorStyle.OK
+                : 0xFFC8C8D8;
             g.text(font, line, x + 4, ly, color, false);
         }
         scroll.endClip(g);
