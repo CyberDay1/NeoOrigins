@@ -97,6 +97,7 @@ public class PowerTypes {
     // damage_in_biome/daylight/water, burn_at_health_threshold, mobs_ignore_player,
     // no_mob_spawns_nearby, item_magnetism — and supersedes tick_action.
     public static final DeferredHolder<PowerType<?>, ConditionPassivePower>    CONDITION_PASSIVE    = reg("condition_passive",    new ConditionPassivePower());
+    public static final DeferredHolder<PowerType<?>, MobBehaviorPower>         MOB_BEHAVIOR         = reg("mob_behavior",         new MobBehaviorPower());
     public static final DeferredHolder<PowerType<?>, TickActionPower>          TICK_ACTION          = reg("tick_action",          new TickActionPower());
     public static final DeferredHolder<PowerType<?>, ConditionalPower>         CONDITIONAL          = reg("conditional",          new ConditionalPower());
     public static final DeferredHolder<PowerType<?>, PhantomFormPower>         PHANTOM_FORM         = reg("phantom_form",         new PhantomFormPower());

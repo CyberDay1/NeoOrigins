@@ -22,7 +22,8 @@
         "neoorigins:entity_set", "neoorigins:exhaustion_filter", "neoorigins:flight",
         "neoorigins:ground_slam", "neoorigins:hide_hud_bar",
         "neoorigins:horde_regen", "neoorigins:invulnerability", "neoorigins:item_magnetism",
-        "neoorigins:keep_inventory", "neoorigins:less_item_use_slowdown", "neoorigins:mobs_ignore_player",
+        "neoorigins:keep_inventory", "neoorigins:less_item_use_slowdown",
+        "neoorigins:mob_behavior", "neoorigins:mobs_ignore_player",
         "neoorigins:modify_damage", "neoorigins:modify_player_spawn", "neoorigins:more_smoker_xp",
         "neoorigins:no_mob_spawns_nearby", "neoorigins:no_natural_regen", "neoorigins:no_projectile_divergence",
         "neoorigins:no_slowdown", "neoorigins:persistent_effect", "neoorigins:phantom_form",
@@ -74,6 +75,23 @@
         "interval_ticks": { "type": "integer", "minimum": 1 }
       },
       "required": ["type", "entity_action"]
+    },
+    {
+      "$comment": "neoorigins:mob_behavior",
+      "properties": {
+        "type": { "const": "neoorigins:mob_behavior" },
+        "aggression": { "type": "string", "enum": ["neutral", "hostile", "conditional"] },
+        "hostile_when": {
+          "type": "array",
+          "items": { "$ref": "condition.schema.json" }
+        },
+        "retaliate": { "type": "boolean" },
+        "anger_linger_ticks": { "type": "integer", "minimum": 0 },
+        "aggro_range": { "type": "number", "minimum": 0 },
+        "target_type": { "type": "string" },
+        "call_for_help": { "type": "boolean" }
+      },
+      "required": ["type", "aggression"]
     },
     {
       "$comment": "neoorigins:action_on_event",
