@@ -126,6 +126,23 @@ public final class MobOriginSpawnEggService {
         return null;
     }
 
+    /** Read the marker from a spawn-egg stack's ENTITY_DATA NBT. Used by the
+     *  in-hand right-click handler — vanilla gates the NBT-to-entity copy
+     *  behind {@code canUseGameMasterBlocks()} (creative+op), so the survival
+     *  path has to read the marker off the stack directly and spawn the
+     *  entity itself with the tag pre-applied. */
+    public static ResourceLocation markerFromNbt(net.minecraft.nbt.CompoundTag nbt) {
+        if (nbt == null || !nbt.contains("Tags", net.minecraft.nbt.Tag.TAG_LIST)) return null;
+        net.minecraft.nbt.ListTag tags = nbt.getList("Tags", net.minecraft.nbt.Tag.TAG_STRING);
+        for (int i = 0; i < tags.size(); i++) {
+            String tag = tags.getString(i);
+            if (tag.startsWith(MARKER_PREFIX)) {
+                return ResourceLocation.tryParse(tag.substring(MARKER_PREFIX.length()));
+            }
+        }
+        return null;
+    }
+
     /** Remove every {@link #MARKER_PREFIX}-prefixed tag from the entity (one
      *  egg = one origin, but be defensive in case multiple were ever set). */
     public static void stripMarkerTag(Entity entity) {

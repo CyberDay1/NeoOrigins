@@ -10,14 +10,24 @@ import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.MobOriginService;
 import com.cyberday1.neoorigins.service.MobOriginSpawnEggService;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LightLayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 import java.util.Comparator;
 import java.util.List;
@@ -99,5 +109,54 @@ public final class MobOriginEventHandler {
                 mob.getType(), mo.id(), reason);
             break; // one origin per mob
         }
+    }
+
+    /**
+     * In-hand egg use path. Vanilla's {@code EntityType.updateCustomEntityTag}
+     * (the spawn-egg NBT-to-entity copy) is gated by
+     * {@code Player.canUseGameMasterBlocks()}, which requires creative AND
+     * permission level ≥ 2. In survival the gate drops the marker tag
+     * silently → the FinalizeSpawn handler sees no marker → no origin attaches.
+     * Spawners are fine because they apply the NBT through a different path,
+     * but we have to route around the gate for the in-hand case.
+     *
+     * <p>Approach: catch the right-click on a marked spawn egg, read the
+     * marker off the stack directly, then call the consumer-taking overload
+     * of {@code EntityType.spawn} so we can add the marker tag to the entity
+     * BEFORE {@code finalizeSpawn} fires. That re-enters the same code path
+     * the spawner uses, so the existing origin-attachment logic stays the
+     * single source of truth.
+     */
+    @SubscribeEvent
+    public static void onSpawnEggRightClick(PlayerInteractEvent.RightClickBlock event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (!(event.getLevel() instanceof ServerLevel sl)) return;
+        ItemStack stack = event.getItemStack();
+        if (!(stack.getItem() instanceof SpawnEggItem)) return;
+
+        CustomData entityData = stack.get(DataComponents.ENTITY_DATA);
+        if (entityData == null) return;
+        var nbt = entityData.copyTag();
+        ResourceLocation eggOrigin = MobOriginSpawnEggService.markerFromNbt(nbt);
+        if (eggOrigin == null) return; // not one of ours; let vanilla handle it
+        if (!MobOriginDataManager.INSTANCE.hasMobOrigin(eggOrigin)) return;
+
+        String typeIdStr = nbt.getString("id");
+        ResourceLocation typeId = ResourceLocation.tryParse(typeIdStr);
+        if (typeId == null) return;
+        EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getOptional(typeId).orElse(null);
+        if (entityType == null) return;
+
+        BlockPos spawnPos = event.getPos().relative(event.getFace());
+        String markerTag = MobOriginSpawnEggService.MARKER_PREFIX + eggOrigin.toString();
+        // Consumer-overload runs BEFORE finalizeSpawn → marker tag is on the
+        // mob when our FinalizeSpawn handler reads it.
+        entityType.spawn(sl,
+            mob -> mob.addTag(markerTag),
+            spawnPos, MobSpawnType.SPAWN_EGG, true, false);
+
+        if (!sp.getAbilities().instabuild) stack.shrink(1);
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.CONSUME);
     }
 }
