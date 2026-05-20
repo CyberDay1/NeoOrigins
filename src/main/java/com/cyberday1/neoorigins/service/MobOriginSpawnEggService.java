@@ -95,6 +95,11 @@ public final class MobOriginSpawnEggService {
         ItemStack stack = new ItemStack(eggHolder.get(), count);
 
         CompoundTag entityNbt = new CompoundTag();
+        // Vanilla's ENTITY_DATA codec on 1.21.1 (CustomData.CODEC_WITH_ID) requires
+        // an `id` field at encode time, or the server crashes saving the inventory.
+        // On 26.1 TypedEntityData.of internally strips any incoming id, so this
+        // line is required on 2.1 and harmless here.
+        entityNbt.putString("id", typeId.toString());
         ListTag tagsList = new ListTag();
         tagsList.add(StringTag.valueOf(MARKER_PREFIX + originId.toString()));
         entityNbt.put("Tags", tagsList);
