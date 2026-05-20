@@ -64,6 +64,29 @@ public final class MobOriginDraft {
     public int locationMaxY = 320;
     public String locationCanSeeSky = "any"; // any | true | false
 
+    // ── Drops (Phase 5) ────────────────────────────────────────────────────
+    // Block is opt-in: when {@code dropsEnabled} is false the serializer omits
+    // {@code drops} so the codec falls back to {@link DropRules#NONE}.
+    public boolean dropsEnabled = false;
+    public String dropMode = "additive";              // additive | replace
+    public String dropStrategy = "independent_chance"; // independent_chance | weighted_pool
+    public int dropPoolRolls = 1;
+    public final java.util.List<DropRow> dropEntries = new java.util.ArrayList<>();
+
+    /** One drop row on the wire / in-creator. Same shape regardless of strategy;
+     *  irrelevant fields are simply ignored by whichever strategy is active. */
+    public static final class DropRow {
+        public String item = "minecraft:rotten_flesh";
+        public int countMin = 1;
+        public int countMax = 1;
+        public double chance = 1.0;
+        public int rolls = 1;
+        public int weight = 1;
+
+        public DropRow() {}
+        public DropRow(String item) { this.item = item; }
+    }
+
     public MobOriginDraft() {}
 
     public Identifier originId() {
