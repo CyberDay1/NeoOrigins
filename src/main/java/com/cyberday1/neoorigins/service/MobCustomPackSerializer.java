@@ -27,6 +27,7 @@ public final class MobCustomPackSerializer {
         }
         o.add("powers", powers);
         if (d.spawnRulesEnabled) o.add("spawn_rules", spawnRulesJson(d));
+        if (d.dropsEnabled && !d.dropEntries.isEmpty()) o.add("drops", dropsJson(d));
         return o;
     }
 
@@ -83,6 +84,42 @@ public final class MobCustomPackSerializer {
         JsonObject loc = locationJson(d);
         if (loc != null) s.add("location", loc);
         return s;
+    }
+
+    private static JsonObject dropsJson(MobOriginDraft d) {
+        JsonObject drops = new JsonObject();
+        if (!"additive".equals(d.dropMode)) drops.addProperty("mode", d.dropMode);
+        boolean weighted = "weighted_pool".equals(d.dropStrategy);
+        if (weighted) {
+            drops.addProperty("strategy", "weighted_pool");
+            drops.addProperty("pool_rolls", Math.max(0, d.dropPoolRolls));
+        }
+        JsonArray entries = new JsonArray();
+        for (MobOriginDraft.DropRow r : d.dropEntries) {
+            if (r.item == null || r.item.isBlank()) continue;
+            JsonObject e = new JsonObject();
+            e.addProperty("item", r.item.trim());
+
+            // {min,max} collapses to a bare number when equal.
+            if (r.countMin == r.countMax) {
+                e.addProperty("count", r.countMin);
+            } else {
+                JsonObject c = new JsonObject();
+                c.addProperty("min", Math.min(r.countMin, r.countMax));
+                c.addProperty("max", Math.max(r.countMin, r.countMax));
+                e.add("count", c);
+            }
+
+            if (weighted) {
+                if (r.weight != 1) e.addProperty("weight", r.weight);
+            } else {
+                if (r.chance != 1.0) e.addProperty("chance", r.chance);
+                if (r.rolls != 1)   e.addProperty("rolls", r.rolls);
+            }
+            entries.add(e);
+        }
+        drops.add("entries", entries);
+        return drops;
     }
 
     /** Returns null when no location sub-field is set (so the codec defaults

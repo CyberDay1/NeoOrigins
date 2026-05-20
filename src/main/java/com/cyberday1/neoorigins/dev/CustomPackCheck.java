@@ -171,6 +171,80 @@ public final class CustomPackCheck {
             fail("mob origin JSON must omit spawn_rules when disabled"); failures++;
         }
 
+        // 8. MobOriginDraftJson round-trip including Phase-5 drops fields
+        //    (independent_chance with a chance/rolls entry + weighted_pool
+        //     with a weight entry — both strategies on the wire).
+        com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft dd =
+            new com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft();
+        dd.idPath = "test_drops";
+        dd.targetEntityType = "minecraft:zombie";
+        dd.dropsEnabled = true;
+        dd.dropMode = "replace";
+        dd.dropStrategy = "weighted_pool";
+        dd.dropPoolRolls = 2;
+        var rA = new com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft.DropRow("minecraft:rotten_flesh");
+        rA.countMin = 1; rA.countMax = 3; rA.weight = 50;
+        var rB = new com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft.DropRow("minecraft:diamond");
+        rB.countMin = 1; rB.countMax = 1; rB.weight = 1;
+        dd.dropEntries.add(rA); dd.dropEntries.add(rB);
+
+        String dwire = com.cyberday1.neoorigins.service.MobOriginDraftJson.toJson(dd);
+        var ddrt = com.cyberday1.neoorigins.service.MobOriginDraftJson.fromJson(dwire);
+        boolean dOk = ddrt.dropsEnabled == dd.dropsEnabled
+            && ddrt.dropMode.equals(dd.dropMode)
+            && ddrt.dropStrategy.equals(dd.dropStrategy)
+            && ddrt.dropPoolRolls == dd.dropPoolRolls
+            && ddrt.dropEntries.size() == dd.dropEntries.size()
+            && ddrt.dropEntries.get(0).item.equals("minecraft:rotten_flesh")
+            && ddrt.dropEntries.get(0).countMax == 3
+            && ddrt.dropEntries.get(0).weight == 50
+            && ddrt.dropEntries.get(1).item.equals("minecraft:diamond")
+            && ddrt.dropEntries.get(1).weight == 1;
+        if (!dOk) { fail("MobOriginDraftJson round-trip lost drops data"); failures++; }
+
+        // 9. MobCustomPackSerializer emits a `drops` block when enabled and
+        //    parses through DropRules.CODEC; omits it when disabled.
+        JsonObject dOrigin = com.cyberday1.neoorigins.service.MobCustomPackSerializer.mobOriginJson(dd);
+        if (!dOrigin.has("drops")) {
+            fail("mob origin JSON missing drops when enabled"); failures++;
+        } else {
+            JsonObject drops = dOrigin.getAsJsonObject("drops");
+            if (!"replace".equals(drops.get("mode").getAsString())
+                || !"weighted_pool".equals(drops.get("strategy").getAsString())
+                || drops.get("pool_rolls").getAsInt() != 2
+                || drops.getAsJsonArray("entries").size() != 2) {
+                fail("drops JSON missing expected fields"); failures++;
+            }
+            var parsed = com.cyberday1.neoorigins.api.mob_origin.DropRules.CODEC
+                .parse(com.mojang.serialization.JsonOps.INSTANCE, drops);
+            if (parsed.error().isPresent()) {
+                fail("DropRules.CODEC rejected serialized drops: " + parsed.error().get().message());
+                failures++;
+            }
+        }
+        dd.dropsEnabled = false;
+        JsonObject dOriginOff = com.cyberday1.neoorigins.service.MobCustomPackSerializer.mobOriginJson(dd);
+        if (dOriginOff.has("drops")) {
+            fail("mob origin JSON must omit drops when disabled"); failures++;
+        }
+
+        // 10. Bare drops with one INDEPENDENT_CHANCE entry round-trips through
+        //     CODEC (the {min,max}-collapses-to-int IntRange branch).
+        dd.dropsEnabled = true;
+        dd.dropStrategy = "independent_chance";
+        dd.dropMode = "additive";
+        dd.dropEntries.clear();
+        var rC = new com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft.DropRow("minecraft:gold_ingot");
+        rC.countMin = 1; rC.countMax = 1; rC.chance = 0.25; rC.rolls = 2;
+        dd.dropEntries.add(rC);
+        JsonObject dOriginInd = com.cyberday1.neoorigins.service.MobCustomPackSerializer.mobOriginJson(dd);
+        var parsedInd = com.cyberday1.neoorigins.api.mob_origin.DropRules.CODEC.parse(
+            com.mojang.serialization.JsonOps.INSTANCE, dOriginInd.getAsJsonObject("drops"));
+        if (parsedInd.error().isPresent()) {
+            fail("independent_chance drops failed CODEC parse: " + parsedInd.error().get().message());
+            failures++;
+        }
+
         System.out.printf("[custompack-check] %d failures%n", failures);
         if (failures > 0) System.exit(1);
         System.out.println("[custompack-check] OK");

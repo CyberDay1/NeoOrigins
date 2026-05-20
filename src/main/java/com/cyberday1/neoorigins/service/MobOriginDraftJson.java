@@ -71,6 +71,25 @@ public final class MobOriginDraftJson {
         o.addProperty("locationMaxYEnabled", d.locationMaxYEnabled);
         o.addProperty("locationMaxY", d.locationMaxY);
         o.addProperty("locationCanSeeSky", d.locationCanSeeSky);
+
+        // Drops (Phase 5) — flat fields on the wire, gathered into a `drops`
+        // block at on-disk serialization time.
+        o.addProperty("dropsEnabled", d.dropsEnabled);
+        o.addProperty("dropMode", d.dropMode);
+        o.addProperty("dropStrategy", d.dropStrategy);
+        o.addProperty("dropPoolRolls", d.dropPoolRolls);
+        JsonArray dEntries = new JsonArray();
+        for (MobOriginDraft.DropRow r : d.dropEntries) {
+            JsonObject e = new JsonObject();
+            e.addProperty("item", r.item);
+            e.addProperty("countMin", r.countMin);
+            e.addProperty("countMax", r.countMax);
+            e.addProperty("chance", r.chance);
+            e.addProperty("rolls", r.rolls);
+            e.addProperty("weight", r.weight);
+            dEntries.add(e);
+        }
+        o.add("dropEntries", dEntries);
         return GSON.toJson(o);
     }
 
@@ -135,6 +154,26 @@ public final class MobOriginDraftJson {
             d.locationMaxYEnabled = bool(o, "locationMaxYEnabled", false);
             d.locationMaxY = i(o, "locationMaxY", d.locationMaxY);
             d.locationCanSeeSky = str(o, "locationCanSeeSky", "any");
+
+            // Drops (Phase 5)
+            d.dropsEnabled = bool(o, "dropsEnabled", false);
+            d.dropMode = str(o, "dropMode", "additive");
+            d.dropStrategy = str(o, "dropStrategy", "independent_chance");
+            d.dropPoolRolls = i(o, "dropPoolRolls", d.dropPoolRolls);
+            d.dropEntries.clear();
+            if (o.has("dropEntries") && o.get("dropEntries").isJsonArray()) {
+                for (var je : o.getAsJsonArray("dropEntries")) {
+                    JsonObject e = je.getAsJsonObject();
+                    var r = new MobOriginDraft.DropRow();
+                    r.item = str(e, "item", r.item);
+                    r.countMin = i(e, "countMin", r.countMin);
+                    r.countMax = i(e, "countMax", r.countMax);
+                    r.chance = dbl(e, "chance", r.chance);
+                    r.rolls = i(e, "rolls", r.rolls);
+                    r.weight = i(e, "weight", r.weight);
+                    d.dropEntries.add(r);
+                }
+            }
             return d;
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("malformed MobOriginDraft JSON: " + e.getMessage(), e);
