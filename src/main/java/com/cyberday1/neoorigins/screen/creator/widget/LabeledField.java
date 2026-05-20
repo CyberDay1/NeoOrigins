@@ -48,4 +48,10 @@ public final class LabeledField {
     public static Predicate<String> intFilter() {
         return s -> s.isEmpty() || s.equals("-") || s.matches("-?\\d+");
     }
+
+    /** Double filter — allows empty, leading '-', and any decimal-shaped prefix. */
+    public static Predicate<String> doubleFilter() {
+        return s -> s.isEmpty() || s.equals("-") || s.equals(".") || s.equals("-.")
+            || s.matches("-?\\d*\\.?\\d*");
+    }
 }
