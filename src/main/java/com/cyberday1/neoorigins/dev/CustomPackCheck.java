@@ -96,6 +96,81 @@ public final class CustomPackCheck {
         }
         if (!rtOk) { fail("serializer→OriginDraftReader round-trip lost data"); failures++; }
 
+        // 6. MobOriginDraftJson round-trip including Phase-4 SpawnRules fields.
+        com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft md =
+            new com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft();
+        md.idPath = "test_mob";
+        md.name = "Test Mob";
+        md.description = "round-trip";
+        md.icon = Identifier.fromNamespaceAndPath("minecraft", "rotten_flesh");
+        md.targetEntityType = "minecraft:zombie";
+        md.powers.add(new OriginDraft.PowerDraft(
+            Identifier.fromNamespaceAndPath(OriginDraft.CUSTOM_NAMESPACE, "test_mob_buffs"),
+            "neoorigins:persistent_effect"));
+        md.spawnRulesEnabled = true;
+        md.weight = 0.5;
+        md.timeOfDay = "night";
+        md.spawnReasons.add("natural");
+        md.spawnReasons.add("reinforcement");
+        md.mutexGroup = "test_group";
+        md.replace = true;
+        md.yRangeEnabled = true;
+        md.yRangeMin = 60;  md.yRangeMax = 100;
+        md.lightRangeEnabled = true;
+        md.lightRangeMin = 0;  md.lightRangeMax = 7;
+        md.locationDimension = "minecraft:overworld";
+        md.locationBiomeTag = "minecraft:is_overworld";
+        md.locationBiomes.add("minecraft:plains");
+        md.locationAllowWaterSurface = true;
+        md.locationMinYEnabled = true; md.locationMinY = 50;
+        md.locationCanSeeSky = "true";
+
+        String mwire = com.cyberday1.neoorigins.service.MobOriginDraftJson.toJson(md);
+        com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft mrt =
+            com.cyberday1.neoorigins.service.MobOriginDraftJson.fromJson(mwire);
+        boolean mOk = mrt.idPath.equals(md.idPath) && mrt.name.equals(md.name)
+            && mrt.description.equals(md.description) && mrt.icon.equals(md.icon)
+            && mrt.targetEntityType.equals(md.targetEntityType)
+            && mrt.powers.size() == md.powers.size()
+            && mrt.spawnRulesEnabled == md.spawnRulesEnabled
+            && Double.compare(mrt.weight, md.weight) == 0
+            && mrt.timeOfDay.equals(md.timeOfDay)
+            && mrt.spawnReasons.equals(md.spawnReasons)
+            && mrt.mutexGroup.equals(md.mutexGroup)
+            && mrt.replace == md.replace
+            && mrt.yRangeEnabled == md.yRangeEnabled
+            && mrt.yRangeMin == md.yRangeMin && mrt.yRangeMax == md.yRangeMax
+            && mrt.lightRangeEnabled == md.lightRangeEnabled
+            && mrt.lightRangeMin == md.lightRangeMin && mrt.lightRangeMax == md.lightRangeMax
+            && mrt.locationDimension.equals(md.locationDimension)
+            && mrt.locationBiomeTag.equals(md.locationBiomeTag)
+            && mrt.locationBiomes.equals(md.locationBiomes)
+            && mrt.locationAllowWaterSurface == md.locationAllowWaterSurface
+            && mrt.locationMinYEnabled == md.locationMinYEnabled
+            && mrt.locationMinY == md.locationMinY
+            && mrt.locationCanSeeSky.equals(md.locationCanSeeSky);
+        if (!mOk) { fail("MobOriginDraftJson round-trip lost SpawnRules data"); failures++; }
+
+        // 7. MobCustomPackSerializer emits spawn_rules + location when set,
+        //    and omits them when spawnRulesEnabled=false.
+        JsonObject mOrigin = com.cyberday1.neoorigins.service.MobCustomPackSerializer.mobOriginJson(md);
+        if (!mOrigin.has("spawn_rules")) {
+            fail("mob origin JSON missing spawn_rules when enabled"); failures++;
+        } else {
+            JsonObject sr = mOrigin.getAsJsonObject("spawn_rules");
+            if (!"night".equals(sr.get("time_of_day").getAsString())
+                || sr.get("weight").getAsDouble() != 0.5
+                || !sr.has("location")
+                || !"minecraft:overworld".equals(sr.getAsJsonObject("location").get("dimension").getAsString())) {
+                fail("spawn_rules JSON missing expected fields"); failures++;
+            }
+        }
+        md.spawnRulesEnabled = false;
+        JsonObject mOriginOff = com.cyberday1.neoorigins.service.MobCustomPackSerializer.mobOriginJson(md);
+        if (mOriginOff.has("spawn_rules")) {
+            fail("mob origin JSON must omit spawn_rules when disabled"); failures++;
+        }
+
         System.out.printf("[custompack-check] %d failures%n", failures);
         if (failures > 0) System.exit(1);
         System.out.println("[custompack-check] OK");

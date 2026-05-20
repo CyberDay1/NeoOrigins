@@ -30,6 +30,40 @@ public final class MobOriginDraft {
 
     public final List<OriginDraft.PowerDraft> powers = new ArrayList<>();
 
+    // ── Spawn rules (Phase 4) ──────────────────────────────────────────────
+    // Whole block is opt-in: when {@code spawnRulesEnabled} is false the
+    // serializer omits {@code spawn_rules} so the codec falls back to
+    // {@link com.cyberday1.neoorigins.api.mob_origin.SpawnRules#NEVER}.
+    public boolean spawnRulesEnabled = false;
+    public double weight = 0.25;
+    public String timeOfDay = "any"; // any | day | night
+    public final java.util.Set<String> spawnReasons = new java.util.LinkedHashSet<>(); // lowercase MobSpawnType names
+    public String mutexGroup = "";
+    public boolean replace = false;
+
+    public boolean yRangeEnabled = false;
+    public int yRangeMin = -64;
+    public int yRangeMax = 320;
+    public boolean lightRangeEnabled = false;
+    public int lightRangeMin = 0;
+    public int lightRangeMax = 15;
+
+    // Location sub-condition (Phase 4c wires the UI; 4a only round-trips).
+    // Empty strings → absent in JSON. tri-state can_see_sky encoded as any/true/false.
+    public String locationDimension = "";
+    public String locationBiome = "";
+    public String locationBiomeTag = "";
+    public final java.util.List<String> locationBiomes = new java.util.ArrayList<>();
+    public String locationStructure = "";
+    public String locationStructureTag = "";
+    public boolean locationAllowWaterSurface = false;
+    public boolean locationAllowOceanFloor = false;
+    public boolean locationMinYEnabled = false;
+    public int locationMinY = -64;
+    public boolean locationMaxYEnabled = false;
+    public int locationMaxY = 320;
+    public String locationCanSeeSky = "any"; // any | true | false
+
     public MobOriginDraft() {}
 
     public Identifier originId() {

@@ -27,7 +27,7 @@ public class MobOriginCreatorScreen extends Screen implements CreatorHost {
     private final Screen parent;
     private final MobOriginDraft draft;
     private final List<MobCreatorTab> tabs = List.of(
-        new MobIdentityTab(), new MobPowersTab(), new MobJsonPreviewTab());
+        new MobIdentityTab(), new MobPowersTab(), new MobSpawnRulesTab(), new MobJsonPreviewTab());
     private int activeTab = 0;
     private int panelX, panelW, contentX, contentY, contentW, contentH;
 
