@@ -55,6 +55,7 @@
   "gui.neoorigins.mob_creator.tab.identity": "Identity",
   "gui.neoorigins.mob_creator.tab.powers": "Powers",
   "gui.neoorigins.mob_creator.tab.spawn_rules": "Spawn Rules",
+  "gui.neoorigins.mob_creator.tab.drops": "Drops",
   "gui.neoorigins.mob_creator.tab.json": "JSON",
   "gui.neoorigins.mob_creator.save": "Save",
   "gui.neoorigins.mob_creator.apply": "Apply",
