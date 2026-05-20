@@ -43,6 +43,33 @@ See `docs/2_0_CHANGES.md` for the full Phase 1–8 architecture write-up.
 
 ---
 
+## Mob Origin System (2.1)
+
+Pack authors can author origins **for mobs** the same way they author origins for
+players. A mob origin is a JSON file under `data/<ns>/origins/mob_origins/<id>.json`
+that bundles powers, weighted spawn rules, drops, and behavior — applied to any
+non-player `LivingEntity`.
+
+- **Weighted spawn rules** — apply origins to natural mob spawns with biome,
+  structure, dimension, time-of-day, Y-range and light-range filters
+- **Per-origin drops** — additive or replace, with both per-item independent-chance
+  and weighted-pool strategies, layered onto vanilla loot via a global loot modifier
+- **`neoorigins:mob_behavior` power** — configurable, piglin-style aggression
+  (neutral / hostile / conditional) using the existing entity-condition DSL
+- **Spawn-egg minting** — `/neoorigins mob egg <origin>` produces a vanilla spawn
+  egg that spawns the mob with the origin pre-attached; right-clicking it on a
+  spawner reconfigures the spawner too
+- **Mob Origin Creator GUI** — tabbed in-game authoring tool (Identity / Powers /
+  Spawn Rules / Drops / JSON Preview). Open with `/neoorigins mob editor` _(Phase 6,
+  pending)_ or bind the *Open Mob Origin Creator* keybind in Controls → Key Binds →
+  NeoOrigins
+- **Portable output** — written to `<world>/datapacks/neoorigins_custom/`; copy the
+  folder to another instance with NeoOrigins installed and it keeps working
+
+See [`docs/MOB_ORIGINS.md`](docs/MOB_ORIGINS.md) for the pack-author reference.
+
+---
+
 ## Built-in Origins
 
 | Origin | Impact | Strengths | Weaknesses |
