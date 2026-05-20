@@ -157,24 +157,89 @@ public final class MobOriginEventHandler {
         EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getOptional(typeId).orElse(null);
         if (entityType == null) return;
 
-        BlockPos spawnPos = event.getPos().relative(event.getFace());
-        // Pass null stack → vanilla skips both updateCustomEntityTag and
-        // custom-name application; we own NBT injection from here on.
-        net.minecraft.world.entity.Entity entity = entityType.spawn(
-            sl, null, sp, spawnPos, MobSpawnType.SPAWN_EGG, true, false);
+        var targetState = sl.getBlockState(event.getPos());
+        var targetBE = sl.getBlockEntity(event.getPos());
+        if (targetState.is(net.minecraft.world.level.block.Blocks.SPAWNER)
+                && targetBE instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity sbe) {
+            // Spawner target — configure the spawner with type + marker so
+            // every spawn it produces carries the origin. Vanilla's egg-on-
+            // spawner path only sets entity type via setEntityId; we need to
+            // also inject Tags into the spawn data so FinalizeSpawnEvent picks
+            // up the marker for spawner-spawned mobs.
+            configureSpawnerWithMarker(sl, event.getPos(), sbe, entityType, eggOrigin);
+        } else {
+            // Adjacent-block target — spawn the entity ourselves. Pass null
+            // stack so vanilla skips updateCustomEntityTag (gated + late) and
+            // custom-name application; we own NBT injection from here on.
+            BlockPos spawnPos = event.getPos().relative(event.getFace());
+            net.minecraft.world.entity.Entity entity = entityType.spawn(
+                sl, null, sp, spawnPos, MobSpawnType.SPAWN_EGG, true, false);
 
-        if (entity instanceof Mob mob) {
-            MobOriginData data = mob.getData(EntityAttachments.mobOriginData());
-            ResourceLocation prev = data.getOriginId().orElse(null);
-            data.setOriginId(eggOrigin);
-            MobOriginService.applyMobOriginPowers(mob, prev, eggOrigin);
-            NeoOriginsNetwork.syncMobOriginToTrackers(mob, Optional.of(eggOrigin));
-            NeoOrigins.LOGGER.debug("[mob-origin] {} → {} (from in-hand spawn egg)",
-                mob.getType(), eggOrigin);
+            if (entity instanceof Mob mob) {
+                MobOriginData data = mob.getData(EntityAttachments.mobOriginData());
+                ResourceLocation prev = data.getOriginId().orElse(null);
+                data.setOriginId(eggOrigin);
+                MobOriginService.applyMobOriginPowers(mob, prev, eggOrigin);
+                NeoOriginsNetwork.syncMobOriginToTrackers(mob, Optional.of(eggOrigin));
+                NeoOrigins.LOGGER.debug("[mob-origin] {} → {} (from in-hand spawn egg)",
+                    mob.getType(), eggOrigin);
+            }
         }
 
         if (!sp.getAbilities().instabuild) stack.shrink(1);
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.CONSUME);
+    }
+
+    /** Cached reflective access to {@code BaseSpawner.nextSpawnData} —
+     *  vanilla keeps it private with no public setter on 26.1 (and only
+     *  protected on 1.21.1). Lazy-initialized; null on failure so we
+     *  degrade to vanilla's setEntityId-only behavior. */
+    private static volatile java.lang.reflect.Field NEXT_SPAWN_DATA_FIELD;
+    private static java.lang.reflect.Field nextSpawnDataField() {
+        var f = NEXT_SPAWN_DATA_FIELD;
+        if (f != null) return f;
+        try {
+            f = net.minecraft.world.level.BaseSpawner.class.getDeclaredField("nextSpawnData");
+            f.setAccessible(true);
+            NEXT_SPAWN_DATA_FIELD = f;
+            return f;
+        } catch (NoSuchFieldException e) {
+            NeoOrigins.LOGGER.error("[mob-origin] BaseSpawner.nextSpawnData not found — "
+                + "spawner integration will fall back to type-only (vanilla mappings changed?)", e);
+            return null;
+        }
+    }
+
+    private static void configureSpawnerWithMarker(ServerLevel level, BlockPos pos,
+            net.minecraft.world.level.block.entity.SpawnerBlockEntity sbe,
+            EntityType<?> type, ResourceLocation marker) {
+        // Build the SpawnData via the no-arg constructor (available on both
+        // 1.21.1 and 26.1) and mutate the live entityToSpawn CompoundTag —
+        // skips the branch-divergent SpawnData ctor signatures.
+        net.minecraft.world.level.SpawnData newData = new net.minecraft.world.level.SpawnData();
+        var entityNbt = newData.getEntityToSpawn();
+        entityNbt.putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
+        net.minecraft.nbt.ListTag tags = new net.minecraft.nbt.ListTag();
+        tags.add(net.minecraft.nbt.StringTag.valueOf(
+            MobOriginSpawnEggService.MARKER_PREFIX + marker.toString()));
+        entityNbt.put("Tags", tags);
+
+        var field = nextSpawnDataField();
+        if (field != null) {
+            try {
+                field.set(sbe.getSpawner(), newData);
+            } catch (IllegalAccessException e) {
+                NeoOrigins.LOGGER.error("[mob-origin] reflective set of nextSpawnData failed; "
+                    + "falling back to type-only setEntityId", e);
+                sbe.setEntityId(type, level.getRandom());
+            }
+        } else {
+            sbe.setEntityId(type, level.getRandom());
+        }
+        sbe.setChanged();
+        level.sendBlockUpdated(pos, level.getBlockState(pos), level.getBlockState(pos), 3);
+        NeoOrigins.LOGGER.debug("[mob-origin] spawner @ {} configured for {} with origin {}",
+            pos, type, marker);
     }
 }
