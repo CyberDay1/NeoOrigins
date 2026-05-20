@@ -46,6 +46,19 @@ public final class LegacyCommandRewriter {
         "modifier (add|remove) ([0-9a-fA-F-]+)");
 
     /**
+     * Matches a leading {@code origin} verb so we can rewrite it to
+     * {@code neoorigins}. We do this so existing mcfunctions / chat habits that
+     * use {@code /origin set @p ...} keep working transparently after the
+     * {@code /origin} command-tree alias was retired (v2.1.0).
+     *
+     * <p>The rewrite only fires when the original parse fails (see
+     * {@link com.cyberday1.neoorigins.command.OriginsCompatCommands#onCommand}),
+     * so if anyone else (Origins-mod itself, another mod) registers {@code /origin}
+     * we don't clobber their dispatch.
+     */
+    private static final Pattern LEADING_ORIGIN_VERB = Pattern.compile("^origin\\s");
+
+    /**
      * Rewrite a command string from 1.20 to 1.21 syntax.
      * Returns the original string if no changes are needed.
      */
@@ -53,6 +66,10 @@ public final class LegacyCommandRewriter {
         if (command == null || command.isEmpty()) return command;
 
         String result = command;
+
+        // 0. Leading `origin` verb: rewrite to `neoorigins` so retired-alias
+        //    mcfunctions keep working. See LEADING_ORIGIN_VERB.
+        result = LEADING_ORIGIN_VERB.matcher(result).replaceFirst("neoorigins ");
 
         // 1. Attribute name: minecraft:generic.X → minecraft:X
         result = GENERIC_ATTR.matcher(result).replaceAll("minecraft:$2");
@@ -93,6 +110,7 @@ public final class LegacyCommandRewriter {
                command.contains("Item.tag.") ||
                command.contains("{Name:\"") ||
                command.contains("modifier add ") ||
-               command.contains("modifier remove ");
+               command.contains("modifier remove ") ||
+               command.startsWith("origin ");
     }
 }
