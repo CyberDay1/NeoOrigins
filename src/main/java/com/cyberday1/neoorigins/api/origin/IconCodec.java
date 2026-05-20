@@ -63,15 +63,15 @@ public final class IconCodec {
                 var holder = BuiltInRegistries.ITEM.get(itemId);
                 if (holder.isEmpty()) {
                     NeoOrigins.LOGGER.warn("[Origin] Icon item not found: {} — using stone", itemId);
-                    return com.mojang.serialization.DataResult.success(com.mojang.datafixers.util.Pair.of(new ItemStack(Items.STONE), ops.empty()));
+                    return com.mojang.serialization.DataResult.success(com.mojang.datafixers.util.Pair.of(safeStack(Items.STONE), ops.empty()));
                 }
                 Item item = holder.get().value();
                 if (item == Items.AIR) {
-                    return com.mojang.serialization.DataResult.success(com.mojang.datafixers.util.Pair.of(new ItemStack(Items.STONE), ops.empty()));
+                    return com.mojang.serialization.DataResult.success(com.mojang.datafixers.util.Pair.of(safeStack(Items.STONE), ops.empty()));
                 }
-                ItemStack stack = new ItemStack(item);
+                ItemStack stack = safeStack(item);
                 T tagVal = mapLike.get("tag");
-                if (tagVal != null) {
+                if (tagVal != null && !stack.isEmpty()) {
                     var tagResult = Codec.STRING.parse(ops, tagVal);
                     tagResult.result().ifPresent(snbt -> LegacyTagToComponents.applySnbt(stack, snbt, null));
                 }
@@ -90,14 +90,35 @@ public final class IconCodec {
             var holder = BuiltInRegistries.ITEM.get(id);
             if (holder.isEmpty()) {
                 NeoOrigins.LOGGER.warn("[Origin] Icon item not found: {} — using stone", id);
-                return new ItemStack(Items.STONE);
+                return safeStack(Items.STONE);
             }
             Item item = holder.get().value();
-            if (item == Items.AIR) return new ItemStack(Items.STONE);
-            return new ItemStack(item);
+            if (item == Items.AIR) return safeStack(Items.STONE);
+            return safeStack(item);
         },
         stack -> BuiltInRegistries.ITEM.getKey(stack.getItem())
     );
+
+    /**
+     * 26.1 quirk: vanilla's {@code new ItemStack(Item)} constructor eagerly
+     * reads {@code holder.value().components()} to seed the stack's component
+     * map. During the integrated server's datapack reload at world-load time,
+     * items haven't had their components bound yet — {@code Holder.Reference
+     * .components()} throws "Components not bound yet" and every origin (and
+     * mob origin) fails to parse. The icon is only used by the creator UI;
+     * runtime power application + the mob-origin lookup that
+     * {@code /neoorigins mob egg} queries never touch it. Returning EMPTY
+     * here lets origins load with a placeholder icon — a subsequent
+     * {@code /reload} after world load (when items are bound) repopulates
+     * the icons properly.
+     */
+    private static ItemStack safeStack(Item item) {
+        try {
+            return new ItemStack(item);
+        } catch (NullPointerException e) {
+            return ItemStack.EMPTY;
+        }
+    }
 
     public static final Codec<ItemStack> CODEC = Codec.withAlternative(OBJECT_CODEC, STRING_CODEC);
 
