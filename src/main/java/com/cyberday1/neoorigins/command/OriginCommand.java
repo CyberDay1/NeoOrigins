@@ -61,11 +61,11 @@ public class OriginCommand {
         Commands.hasPermission(new PermissionCheck.Require(Permissions.COMMANDS_GAMEMASTER));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // Register under both namespaces independently — Brigadier's redirect()
-        // loses tab-complete suggestions on the aliased command, so we build
-        // the tree twice instead.
+        // NeoOrigins-specific commands live ONLY under `/neoorigins`. The
+        // `/origin` namespace belongs to the Origins mod — Origins-mod compat
+        // commands (`/resource`, `/power`) are registered by
+        // {@link OriginsCompatCommands} under their own literals.
         dispatcher.register(buildCommandTree("neoorigins"));
-        dispatcher.register(buildCommandTree("origin"));
         OriginsCompatCommands.register(dispatcher);
     }
 
