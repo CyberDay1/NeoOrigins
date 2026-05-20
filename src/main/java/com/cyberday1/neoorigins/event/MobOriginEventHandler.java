@@ -111,20 +111,30 @@ public final class MobOriginEventHandler {
     }
 
     /**
-     * In-hand egg use path. Vanilla's {@code EntityType.updateCustomEntityTag}
-     * (the spawn-egg NBT-to-entity copy) is gated by
-     * {@code Player.canUseGameMasterBlocks()}, which requires creative AND
-     * permission level ≥ 2. In survival the gate drops the marker tag
-     * silently → the FinalizeSpawn handler sees no marker → no origin attaches.
-     * Spawners are fine because they apply the NBT through a different path,
-     * but we have to route around the gate for the in-hand case.
+     * In-hand egg use path. The marker-tag mechanism in
+     * {@link MobOriginSpawnEggService} works for vanilla mob spawners (they
+     * apply ENTITY_DATA at construction time, before {@code finalizeSpawn}),
+     * but NOT for vanilla's in-hand spawn-egg flow on either branch. Two
+     * obstacles compounded the symptom:
      *
-     * <p>Approach: catch the right-click on a marked spawn egg, read the
-     * marker off the stack directly, then call the consumer-taking overload
-     * of {@code EntityType.spawn} so we can add the marker tag to the entity
-     * BEFORE {@code finalizeSpawn} fires. That re-enters the same code path
-     * the spawner uses, so the existing origin-attachment logic stays the
-     * single source of truth.
+     * <ol>
+     *   <li>Vanilla {@code EntityType.updateCustomEntityTag} (the NBT→entity
+     *       copy) is gated by {@code Player.canUseGameMasterBlocks()} =
+     *       creative AND permission level ≥ 2. Survival drops the marker
+     *       silently.</li>
+     *   <li>Even when the gate passes (creative + op), the NBT-apply happens
+     *       in a consumer that runs <em>after</em> {@code mob.finalizeSpawn}
+     *       inside {@code EntityType.create(level, consumer, …)}. By the time
+     *       the marker lands on the entity, our {@code FinalizeSpawnEvent}
+     *       handler has already inspected an unmarked mob.</li>
+     * </ol>
+     *
+     * <p>Approach: catch the right-click on a marked spawn egg, spawn the
+     * entity ourselves (without the stack so vanilla's gate-and-late-apply
+     * is fully bypassed), then attach the origin directly on the returned
+     * Mob. If the FinalizeSpawn SpawnRules roll happened to assign a
+     * different origin during {@code spawn()}, we override it cleanly via
+     * {@code applyMobOriginPowers(mob, prev, new)}.
      */
     @SubscribeEvent
     public static void onSpawnEggRightClick(PlayerInteractEvent.RightClickBlock event) {
@@ -146,14 +156,22 @@ public final class MobOriginEventHandler {
         EntityType<?> entityType = entityData.type();
 
         BlockPos spawnPos = event.getPos().relative(event.getFace());
-        String markerTag = MobOriginSpawnEggService.MARKER_PREFIX + eggOrigin.toString();
-        // Consumer-overload runs BEFORE finalizeSpawn → marker tag is on the
-        // mob when our FinalizeSpawn handler reads it.
-        entityType.spawn(sl,
-            mob -> mob.addTag(markerTag),
-            // 26.1 renamed SPAWN_EGG → SPAWN_ITEM_USE (broader: also covers
-            // buckets / boats / armor stands / etc spawn-from-item flows).
-            spawnPos, EntitySpawnReason.SPAWN_ITEM_USE, true, false);
+        // Pass null stack → vanilla skips both updateCustomEntityTag and
+        // custom-name application; we own NBT injection from here on.
+        // 26.1 renamed SPAWN_EGG → SPAWN_ITEM_USE (broader: also covers
+        // buckets / boats / armor stands / etc spawn-from-item flows).
+        net.minecraft.world.entity.Entity entity = entityType.spawn(
+            sl, null, sp, spawnPos, EntitySpawnReason.SPAWN_ITEM_USE, true, false);
+
+        if (entity instanceof Mob mob) {
+            MobOriginData data = mob.getData(EntityAttachments.mobOriginData());
+            Identifier prev = data.getOriginId().orElse(null);
+            data.setOriginId(eggOrigin);
+            MobOriginService.applyMobOriginPowers(mob, prev, eggOrigin);
+            NeoOriginsNetwork.syncMobOriginToTrackers(mob, Optional.of(eggOrigin));
+            NeoOrigins.LOGGER.debug("[mob-origin] {} → {} (from in-hand spawn egg)",
+                mob.getType(), eggOrigin);
+        }
 
         if (!sp.getAbilities().instabuild) stack.shrink(1);
         event.setCanceled(true);
