@@ -144,4 +144,11 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
     public Map<Identifier, Origin> getOrigins() { return origins; }
     public Origin getOrigin(Identifier id) { return origins.get(id); }
     public boolean hasOrigin(Identifier id) { return origins.containsKey(id); }
+
+    /** Public re-prepare+re-apply hook so {@code NeoOrigins.onServerStarting}
+     *  can refresh after the 26.1 item-component bind (initial reload happens
+     *  before components are bound; icons fall back to EMPTY until this runs). */
+    public void reloadFromResources(ResourceManager rm, ProfilerFiller profiler) {
+        apply(prepare(rm, profiler), rm, profiler);
+    }
 }

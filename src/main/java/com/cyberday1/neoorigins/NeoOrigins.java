@@ -152,6 +152,32 @@ public class NeoOrigins {
     }
 
     private static void onServerStarting(ServerStartingEvent event) {
+        // 26.1 quirk: the integrated client's initial ResourceManager reload
+        // runs at game/world launch time, before item data components are
+        // bound onto their Holder.References. Anything in our codecs that
+        // builds an ItemStack hits "Components not bound yet"; IconCodec
+        // catches it and substitutes ItemStack.EMPTY so origins still parse,
+        // but every icon ends up empty until a subsequent reload.
+        //
+        // By the time this event fires, registry freeze + component bind are
+        // done. Re-prepare+apply OriginDataManager and MobOriginDataManager
+        // here so icons populate with their real items before any player
+        // joins. No-op on dedicated servers (where the first reload already
+        // sees bound items), but harmless — runs once per server start.
+        var rm = event.getServer().getResourceManager();
+        // 26.1: vanilla removed ProfilerFiller.NOP; use the InactiveProfiler
+        // singleton instead (it implements ProfileCollector which extends
+        // ProfilerFiller).
+        var profiler = net.minecraft.util.profiling.InactiveProfiler.INSTANCE;
+        try {
+            OriginDataManager.INSTANCE.reloadFromResources(rm, profiler);
+            com.cyberday1.neoorigins.data.MobOriginDataManager.INSTANCE
+                .reloadFromResources(rm, profiler);
+        } catch (RuntimeException e) {
+            LOGGER.warn("NeoOrigins post-bind origin reload failed — icons may stay empty until /reload",
+                e);
+        }
+
         LOGGER.info("NeoOrigins server starting — origins: {}, layers: {}, powers: {}",
             OriginDataManager.INSTANCE.getOrigins().size(),
             LayerDataManager.INSTANCE.getLayers().size(),

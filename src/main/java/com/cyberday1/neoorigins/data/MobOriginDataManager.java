@@ -76,6 +76,13 @@ public class MobOriginDataManager extends SimplePreparableReloadListener<Map<Ide
         NeoOrigins.LOGGER.info("Loaded {} mob origins", loaded.size());
     }
 
+    /** Public re-prepare+re-apply hook so {@code NeoOrigins.onServerStarting}
+     *  can refresh after the 26.1 item-component bind (initial reload happens
+     *  before components are bound; icons fall back to EMPTY until this runs). */
+    public void reloadFromResources(ResourceManager rm, ProfilerFiller profiler) {
+        apply(prepare(rm, profiler), rm, profiler);
+    }
+
     public Map<Identifier, MobOrigin> getMobOrigins() { return mobOrigins; }
 
     public MobOrigin getMobOrigin(Identifier id) { return mobOrigins.get(id); }
