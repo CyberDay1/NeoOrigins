@@ -135,6 +135,10 @@ public final class CustomPackWriter {
             }
 
             List<String> written = stageAndCommit(root, plan);
+            // Drops carrier files (Phase 5c). Written unconditionally — other
+            // mob origins in the pack may already have drops, and the modifier
+            // is a no-op when no mob has a resolvable origin with drops.
+            MobLootModifierGenerator.ensureCarriers(server);
             NeoOrigins.LOGGER.info("[creator] wrote custom mob origin '{}' ({} files)",
                 originId, written.size());
             return new WriteResult(true, written, null);

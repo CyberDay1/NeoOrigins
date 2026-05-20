@@ -99,6 +99,9 @@ public class NeoOrigins {
         CompatAttachments.register(modEventBus);
         EntityAttachments.register(modEventBus);
 
+        // Register the global-loot-modifier serializer for mob-origin drops.
+        com.cyberday1.neoorigins.event.MobOriginLootModifiers.register(modEventBus);
+
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
 
@@ -182,5 +185,12 @@ public class NeoOrigins {
             OriginDataManager.INSTANCE.getOrigins().size(),
             LayerDataManager.INSTANCE.getLayers().size(),
             PowerDataManager.INSTANCE.getPowers().size());
+        // Safety net: if any mob origin authored on disk has drops but the
+        // carrier files are missing (e.g. hand-edited JSON), write them now so
+        // the loot modifier activates on the next reload without requiring
+        // another Save trip through the creator.
+        if (com.cyberday1.neoorigins.service.MobLootModifierGenerator.anyMobOriginHasDrops()) {
+            com.cyberday1.neoorigins.service.MobLootModifierGenerator.ensureCarriers(event.getServer());
+        }
     }
 }
