@@ -134,6 +134,27 @@ public final class MobOriginSpawnEggService {
         return null;
     }
 
+    /** Read the marker from a spawn-egg stack's ENTITY_DATA NBT. Used by the
+     *  in-hand right-click handler — vanilla gates the NBT-to-entity copy
+     *  behind {@code canUseGameMasterBlocks()} (creative+op), so the survival
+     *  path has to read the marker off the stack directly and spawn the
+     *  entity itself with the tag pre-applied. */
+    public static Identifier markerFromNbt(net.minecraft.nbt.CompoundTag nbt) {
+        if (nbt == null) return null;
+        // 26.1: CompoundTag/ListTag accessors are Optional-typed
+        // (getList → Optional<ListTag>; ListTag.getString → Optional<String>),
+        // no type-arg `contains` overload. 1.21.1 used the raw int-typed API.
+        net.minecraft.nbt.ListTag tags = nbt.getList("Tags").orElse(null);
+        if (tags == null) return null;
+        for (int i = 0; i < tags.size(); i++) {
+            String tag = tags.getStringOr(i, "");
+            if (tag.startsWith(MARKER_PREFIX)) {
+                return Identifier.tryParse(tag.substring(MARKER_PREFIX.length()));
+            }
+        }
+        return null;
+    }
+
     /** Remove every {@link #MARKER_PREFIX}-prefixed tag from the entity (one
      *  egg = one origin, but be defensive in case multiple were ever set). */
     public static void stripMarkerTag(Entity entity) {
