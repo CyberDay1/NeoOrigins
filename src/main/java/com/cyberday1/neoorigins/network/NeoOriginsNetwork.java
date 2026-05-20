@@ -230,6 +230,12 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.ApplyMobPackPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleApplyMobPack
         );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.RequestMobOriginEggPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.RequestMobOriginEggPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleRequestMobOriginEgg
+        );
     }
 
     private static void handleCancelOrb(com.cyberday1.neoorigins.network.payload.CancelOrbPayload payload, IPayloadContext ctx) {
@@ -600,6 +606,32 @@ public class NeoOriginsNetwork {
                     err == null ? "Datapack reloaded — custom mob origins are live."
                                  : "Reload failed: " + msgOf(err));
             }, sp.level().getServer());
+        });
+    }
+
+    private static void handleRequestMobOriginEgg(
+            com.cyberday1.neoorigins.network.payload.RequestMobOriginEggPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
+                sendCreatorResult(sp, false, "You don't have permission to mint mob-origin spawn eggs.");
+                return;
+            }
+            Identifier originId = Identifier.tryParse(payload.originId());
+            if (originId == null) {
+                sendCreatorResult(sp, false, "Bad origin id."); return;
+            }
+            Identifier override = payload.entityTypeOverride().isBlank() ? null
+                : Identifier.tryParse(payload.entityTypeOverride());
+            int count = Math.max(1, Math.min(64, payload.count()));
+            var result = com.cyberday1.neoorigins.service.MobOriginSpawnEggService
+                .buildEgg(originId, override, count);
+            if (!result.ok()) {
+                sendCreatorResult(sp, false, result.error());
+                return;
+            }
+            if (!sp.getInventory().add(result.stack())) sp.drop(result.stack(), false);
+            sendCreatorResult(sp, true, "Gave " + count + " × " + originId + " spawn egg.");
         });
     }
 

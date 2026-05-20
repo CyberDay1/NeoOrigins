@@ -3,10 +3,12 @@ package com.cyberday1.neoorigins.screen.mobcreator;
 import com.cyberday1.neoorigins.screen.creator.CreatorStyle;
 import com.cyberday1.neoorigins.screen.creator.widget.ItemPickerOverlay;
 import com.cyberday1.neoorigins.screen.creator.widget.LabeledField;
+import com.cyberday1.neoorigins.screen.creator.widget.SearchPickerOverlay;
 import com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -26,6 +28,7 @@ public final class MobIdentityTab implements MobCreatorTab {
     private final LabeledField targetType = new LabeledField("target entity");
     private final LabeledField targetTag = new LabeledField("target tag");
     private final ItemPickerOverlay itemPicker = new ItemPickerOverlay();
+    private final SearchPickerOverlay entityPicker = new SearchPickerOverlay();
 
     private MobOriginCreatorScreen parent;
     private int rowY;
@@ -45,6 +48,11 @@ public final class MobIdentityTab implements MobCreatorTab {
             itemPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
+        if (entityPicker.isOpen()) {
+            int pw = Math.min(w - 20, 340), ph = h - 16;
+            entityPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
+            return;
+        }
         rowY = y + 14;
         int fieldW = Math.min(w - FIELD_DX - 8, 240);
         Font font = parent.font();
@@ -57,6 +65,35 @@ public final class MobIdentityTab implements MobCreatorTab {
             .bounds(fx + fieldW - 40, rowY + ROW_H * 3 - 2, 40, BOX_H + 4).build());
         parent.register(targetType.build(font, fx, rowY + ROW_H * 4, fieldW, BOX_H));
         parent.register(targetTag.build(font, fx, rowY + ROW_H * 5, fieldW, BOX_H));
+
+        // Spawn-egg button (Phase 4d). Operates on the SAVED origin (id =
+        // neoorigins_custom:<idPath>), so the user must Save first if new.
+        int eggY = rowY + ROW_H * 7 + 8;
+        parent.register(Button.builder(
+                Component.literal("Give Spawn Egg"), b -> requestEgg())
+            .bounds(fx, eggY, 120, BOX_H + 4).build());
+    }
+
+    private void requestEgg() {
+        pushToDraft();
+        MobOriginDraft d = parent.draft();
+        Identifier originId = d.originId();
+        if (!d.targetEntityType.isBlank()) {
+            sendEggRequest(originId, "");
+            return;
+        }
+        entityPicker.open("pick entity type",
+            () -> BuiltInRegistries.ENTITY_TYPE.keySet().stream()
+                .map(Object::toString).sorted().toList(),
+            id -> sendEggRequest(originId, id),
+            parent::requestRebuild);
+        parent.requestRebuild();
+    }
+
+    private void sendEggRequest(Identifier originId, String entityTypeOverride) {
+        net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(
+            new com.cyberday1.neoorigins.network.payload.RequestMobOriginEggPayload(
+                originId.toString(), entityTypeOverride, 1));
     }
 
     private void openPicker() {
@@ -98,12 +135,14 @@ public final class MobIdentityTab implements MobCreatorTab {
     @Override
     public void renderBackdrop(GuiGraphicsExtractor g) {
         if (itemPicker.isOpen()) itemPicker.renderBackdrop(g);
+        else if (entityPicker.isOpen()) entityPicker.renderBackdrop(g);
     }
 
     @Override
     public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial,
                        int x, int y, int w, int h) {
         if (itemPicker.isOpen()) { itemPicker.render(g); return; }
+        if (entityPicker.isOpen()) { entityPicker.render(g); return; }
         Font font = parent.font();
         int lx = x + LABEL_DX;
         CreatorStyle.sectionHeader(g, font, "Mob origin basics", lx, y, w - LABEL_DX * 2);
@@ -136,6 +175,8 @@ public final class MobIdentityTab implements MobCreatorTab {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        return itemPicker.isOpen() && itemPicker.onScroll(mx, my, sy);
+        if (itemPicker.isOpen())   return itemPicker.onScroll(mx, my, sy);
+        if (entityPicker.isOpen()) return entityPicker.onScroll(mx, my, sy);
+        return false;
     }
 }

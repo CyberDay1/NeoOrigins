@@ -8,7 +8,9 @@ import com.cyberday1.neoorigins.attachment.MobOriginData;
 import com.cyberday1.neoorigins.data.MobOriginDataManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.MobOriginService;
+import com.cyberday1.neoorigins.service.MobOriginSpawnEggService;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Mob;
@@ -43,6 +45,26 @@ public final class MobOriginEventHandler {
 
         MobOriginData data = mob.getData(EntityAttachments.mobOriginData());
         if (data.hasOrigin()) return; // already assigned (or restored from disk)
+
+        // Spawn-egg marker tag wins over the SpawnRules roll. Vanilla spawn eggs
+        // and mob spawners both propagate ENTITY_DATA NBT (including the Tags
+        // list) onto the spawned entity before finalizeSpawn fires, so the egg
+        // can pin which origin attaches without going through the weighted roll.
+        Identifier eggOrigin = MobOriginSpawnEggService.findMarkerTag(mob);
+        if (eggOrigin != null) {
+            MobOriginSpawnEggService.stripMarkerTag(mob);
+            if (MobOriginDataManager.INSTANCE.hasMobOrigin(eggOrigin)) {
+                data.setOriginId(eggOrigin);
+                MobOriginService.applyMobOriginPowers(mob, null, eggOrigin);
+                NeoOriginsNetwork.syncMobOriginToTrackers(mob, Optional.of(eggOrigin));
+                NeoOrigins.LOGGER.debug("[mob-origin] {} → {} (from spawn egg)",
+                    mob.getType(), eggOrigin);
+            } else {
+                NeoOrigins.LOGGER.warn("[mob-origin] spawn-egg marker references unknown origin {}",
+                    eggOrigin);
+            }
+            return;
+        }
 
         List<MobOrigin> candidates = MobOriginDataManager.INSTANCE.candidatesFor(mob.getType());
         if (candidates.isEmpty()) return;

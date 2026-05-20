@@ -13,6 +13,7 @@ import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.MobOriginService;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -144,7 +145,20 @@ public class OriginCommand {
                             .executes(OriginCommand::executeMobClear)))
                     .then(Commands.literal("get")
                         .then(Commands.argument("targets", EntityArgument.entities())
-                            .executes(OriginCommand::executeMobGet))))
+                            .executes(OriginCommand::executeMobGet)))
+                    .then(Commands.literal("egg")
+                        .then(Commands.argument("origin", IdentifierArgument.id())
+                            .suggests(SUGGEST_MOB_ORIGINS)
+                            .executes(ctx -> executeMobEgg(ctx, null, 1))
+                            .then(Commands.argument("entity_type", IdentifierArgument.id())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggestResource(
+                                    net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.keySet(), b))
+                                .executes(ctx -> executeMobEgg(ctx,
+                                    IdentifierArgument.getId(ctx, "entity_type"), 1))
+                                .then(Commands.argument("count", IntegerArgumentType.integer(1, 64))
+                                    .executes(ctx -> executeMobEgg(ctx,
+                                        IdentifierArgument.getId(ctx, "entity_type"),
+                                        IntegerArgumentType.getInteger(ctx, "count"))))))))
                 .then(Commands.literal("reload")
                     .requires(REQUIRE_GM)
                     .executes(ctx -> executeReload(ctx)));
@@ -414,6 +428,24 @@ public class OriginCommand {
         ctx.getSource().sendSuccess(() -> Component.literal(
             "Cleared mob origin from " + n + " entit" + (n == 1 ? "y" : "ies")), true);
         return count;
+    }
+
+    private static int executeMobEgg(CommandContext<CommandSourceStack> ctx,
+                                     Identifier entityOverride, int count) throws CommandSyntaxException {
+        ServerPlayer sp = ctx.getSource().getPlayerOrException();
+        Identifier originId = IdentifierArgument.getId(ctx, "origin");
+        var result = com.cyberday1.neoorigins.service.MobOriginSpawnEggService
+            .buildEgg(originId, entityOverride, count);
+        if (!result.ok()) {
+            ctx.getSource().sendFailure(Component.literal(result.error()));
+            return 0;
+        }
+        if (!sp.getInventory().add(result.stack())) {
+            sp.drop(result.stack(), false);
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal(
+            "Gave " + count + " × " + originId + " spawn egg"), false);
+        return 1;
     }
 
     private static int executeMobGet(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
