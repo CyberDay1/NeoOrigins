@@ -39,6 +39,38 @@ public final class MobOriginDraftJson {
             powers.add(pj);
         }
         o.add("powers", powers);
+
+        // Spawn rules (Phase 4) — flat fields on the wire, gathered into
+        // spawn_rules / location at on-disk serialization time.
+        o.addProperty("spawnRulesEnabled", d.spawnRulesEnabled);
+        o.addProperty("weight", d.weight);
+        o.addProperty("timeOfDay", d.timeOfDay);
+        JsonArray reasons = new JsonArray();
+        d.spawnReasons.forEach(reasons::add);
+        o.add("spawnReasons", reasons);
+        o.addProperty("mutexGroup", d.mutexGroup);
+        o.addProperty("replace", d.replace);
+        o.addProperty("yRangeEnabled", d.yRangeEnabled);
+        o.addProperty("yRangeMin", d.yRangeMin);
+        o.addProperty("yRangeMax", d.yRangeMax);
+        o.addProperty("lightRangeEnabled", d.lightRangeEnabled);
+        o.addProperty("lightRangeMin", d.lightRangeMin);
+        o.addProperty("lightRangeMax", d.lightRangeMax);
+        o.addProperty("locationDimension", d.locationDimension);
+        o.addProperty("locationBiome", d.locationBiome);
+        o.addProperty("locationBiomeTag", d.locationBiomeTag);
+        JsonArray locBiomes = new JsonArray();
+        d.locationBiomes.forEach(locBiomes::add);
+        o.add("locationBiomes", locBiomes);
+        o.addProperty("locationStructure", d.locationStructure);
+        o.addProperty("locationStructureTag", d.locationStructureTag);
+        o.addProperty("locationAllowWaterSurface", d.locationAllowWaterSurface);
+        o.addProperty("locationAllowOceanFloor", d.locationAllowOceanFloor);
+        o.addProperty("locationMinYEnabled", d.locationMinYEnabled);
+        o.addProperty("locationMinY", d.locationMinY);
+        o.addProperty("locationMaxYEnabled", d.locationMaxYEnabled);
+        o.addProperty("locationMaxY", d.locationMaxY);
+        o.addProperty("locationCanSeeSky", d.locationCanSeeSky);
         return GSON.toJson(o);
     }
 
@@ -70,6 +102,39 @@ public final class MobOriginDraftJson {
                     d.powers.add(pd);
                 }
             }
+
+            // Spawn rules (Phase 4) — flat-field wire shape.
+            d.spawnRulesEnabled = bool(o, "spawnRulesEnabled", false);
+            d.weight = dbl(o, "weight", d.weight);
+            d.timeOfDay = str(o, "timeOfDay", d.timeOfDay);
+            d.spawnReasons.clear();
+            if (o.has("spawnReasons") && o.get("spawnReasons").isJsonArray()) {
+                for (var e : o.getAsJsonArray("spawnReasons")) d.spawnReasons.add(e.getAsString());
+            }
+            d.mutexGroup = str(o, "mutexGroup", "");
+            d.replace = bool(o, "replace", false);
+            d.yRangeEnabled = bool(o, "yRangeEnabled", false);
+            d.yRangeMin = i(o, "yRangeMin", d.yRangeMin);
+            d.yRangeMax = i(o, "yRangeMax", d.yRangeMax);
+            d.lightRangeEnabled = bool(o, "lightRangeEnabled", false);
+            d.lightRangeMin = i(o, "lightRangeMin", d.lightRangeMin);
+            d.lightRangeMax = i(o, "lightRangeMax", d.lightRangeMax);
+            d.locationDimension = str(o, "locationDimension", "");
+            d.locationBiome = str(o, "locationBiome", "");
+            d.locationBiomeTag = str(o, "locationBiomeTag", "");
+            d.locationBiomes.clear();
+            if (o.has("locationBiomes") && o.get("locationBiomes").isJsonArray()) {
+                for (var e : o.getAsJsonArray("locationBiomes")) d.locationBiomes.add(e.getAsString());
+            }
+            d.locationStructure = str(o, "locationStructure", "");
+            d.locationStructureTag = str(o, "locationStructureTag", "");
+            d.locationAllowWaterSurface = bool(o, "locationAllowWaterSurface", false);
+            d.locationAllowOceanFloor = bool(o, "locationAllowOceanFloor", false);
+            d.locationMinYEnabled = bool(o, "locationMinYEnabled", false);
+            d.locationMinY = i(o, "locationMinY", d.locationMinY);
+            d.locationMaxYEnabled = bool(o, "locationMaxYEnabled", false);
+            d.locationMaxY = i(o, "locationMaxY", d.locationMaxY);
+            d.locationCanSeeSky = str(o, "locationCanSeeSky", "any");
             return d;
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("malformed MobOriginDraft JSON: " + e.getMessage(), e);
@@ -78,5 +143,14 @@ public final class MobOriginDraftJson {
 
     private static String str(JsonObject o, String k, String def) {
         return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsString() : def;
+    }
+    private static boolean bool(JsonObject o, String k, boolean def) {
+        return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsBoolean() : def;
+    }
+    private static int i(JsonObject o, String k, int def) {
+        return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsInt() : def;
+    }
+    private static double dbl(JsonObject o, String k, double def) {
+        return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsDouble() : def;
     }
 }
