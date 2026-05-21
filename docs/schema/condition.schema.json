@@ -539,13 +539,249 @@
             "neoorigins:using_item",
             "neoorigins:living",
             "neoorigins:exists",
-            "neoorigins:ticking"
+            "neoorigins:ticking",
+            "neoorigins:climbing",
+            "neoorigins:night",
+            "neoorigins:thundering",
+            "neoorigins:block_collision",
+            "neoorigins:from_explosion",
+            "neoorigins:from_fire",
+            "neoorigins:from_projectile",
+            "neoorigins:can_see",
+            "neoorigins:equal",
+            "neoorigins:replacable",
+            "neoorigins:replaceable"
           ]
         }
       },
       "required": [
         "type"
       ]
+    },
+    {
+      "$comment": "neoorigins:has_effect",
+      "properties": {
+        "type": {"const": "neoorigins:has_effect"},
+        "effect": {"type": "string", "description": "Effect id, e.g. minecraft:luck."}
+      },
+      "required": ["type", "effect"]
+    },
+    {
+      "$comment": "neoorigins:status_effect",
+      "properties": {
+        "type": {"const": "neoorigins:status_effect"},
+        "effect": {"type": "string", "description": "Effect id, e.g. minecraft:speed."},
+        "amplifier": {"type": "integer", "minimum": 0, "description": "Exact amplifier (0 = level I)."},
+        "min_amplifier": {"type": "integer", "minimum": 0, "description": "Inclusive minimum amplifier (use without amplifier)."},
+        "max_amplifier": {"type": "integer", "minimum": 0, "description": "Inclusive maximum amplifier (use without amplifier)."}
+      },
+      "required": ["type", "effect"]
+    },
+    {
+      "$comment": "neoorigins:block / on_block / in_block",
+      "properties": {
+        "type": {"enum": ["neoorigins:block", "neoorigins:on_block", "neoorigins:in_block"]},
+        "block_condition": {"type": "object", "description": "Block sub-condition: {block: <id>} or {tag: <#tag>} or {type: and/or, conditions: [...]}."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:near_block",
+      "properties": {
+        "type": {"const": "neoorigins:near_block"},
+        "radius": {"type": "integer", "minimum": 1, "maximum": 8, "description": "Cubic scan radius in blocks (default 4, capped at 8)."},
+        "block": {"type": "string", "description": "Single block id to match."},
+        "blocks": {"type": "array", "items": {"type": "string"}, "description": "List of block ids; any match counts."},
+        "tag": {"type": "string", "description": "Single block tag (with or without leading #)."},
+        "tags": {"type": "array", "items": {"type": "string"}, "description": "List of block tags."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:near_entity",
+      "properties": {
+        "type": {"const": "neoorigins:near_entity"},
+        "entity_type": {"type": "string", "description": "Entity-type id (e.g. minecraft:creeper) or #tag (e.g. #minecraft:undead)."},
+        "distance": {"type": "number", "minimum": 1, "maximum": 64, "description": "Search radius in blocks (default 8, capped at 64)."}
+      },
+      "required": ["type", "entity_type"]
+    },
+    {
+      "$comment": "neoorigins:damage_type",
+      "properties": {
+        "type": {"const": "neoorigins:damage_type"},
+        "damage_type": {"type": "string", "description": "DamageType id, e.g. minecraft:lava."}
+      },
+      "required": ["type", "damage_type"]
+    },
+    {
+      "$comment": "neoorigins:damage_tag",
+      "properties": {
+        "type": {"const": "neoorigins:damage_tag"},
+        "tag": {"type": "string", "description": "DamageType tag (with or without leading #), e.g. minecraft:is_fire."}
+      },
+      "required": ["type", "tag"]
+    },
+    {
+      "$comment": "neoorigins:damage_name",
+      "properties": {
+        "type": {"enum": ["neoorigins:damage_name", "neoorigins:name"]},
+        "name": {"type": "string", "description": "DamageSource msg-id (vanilla key like cactus, drown, sweetBerryBush)."}
+      },
+      "required": ["type", "name"]
+    },
+    {
+      "$comment": "neoorigins:in_tag",
+      "properties": {
+        "type": {"const": "neoorigins:in_tag"},
+        "tag": {"type": "string", "description": "Biome tag id to match at the player's position."}
+      },
+      "required": ["type", "tag"]
+    },
+    {
+      "$comment": "neoorigins:food_item_id",
+      "properties": {
+        "type": {"const": "neoorigins:food_item_id"},
+        "id": {"type": "string", "description": "Item id of the food being eaten in the current FOOD_EATEN context."}
+      },
+      "required": ["type", "id"]
+    },
+    {
+      "$comment": "neoorigins:food_item_in_tag",
+      "properties": {
+        "type": {"const": "neoorigins:food_item_in_tag"},
+        "tag": {"type": "string", "description": "Item tag (with or without leading #) the food must belong to."}
+      },
+      "required": ["type", "tag"]
+    },
+    {
+      "$comment": "neoorigins:air",
+      "properties": {
+        "type": {"const": "neoorigins:air"},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Comparison operator (default >=)."},
+        "compare_to": {"type": "number", "description": "Air-supply target (0..300 vanilla range)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:moon_phase",
+      "properties": {
+        "type": {"const": "neoorigins:moon_phase"},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Comparison operator (default ==)."},
+        "compare_to": {"type": "integer", "minimum": 0, "maximum": 7, "description": "Moon phase 0..7 (0 = full moon, 4 = new moon)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:nbt",
+      "properties": {
+        "type": {"const": "neoorigins:nbt"},
+        "nbt": {"type": "string", "description": "NBT key on the player's persistent data; true when present."}
+      },
+      "required": ["type", "nbt"]
+    },
+    {
+      "$comment": "neoorigins:scoreboard",
+      "properties": {
+        "type": {"const": "neoorigins:scoreboard"},
+        "objective": {"type": "string", "description": "Scoreboard objective name."},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
+        "compare_to": {"type": "integer", "description": "Score threshold."}
+      },
+      "required": ["type", "objective"]
+    },
+    {
+      "$comment": "neoorigins:command",
+      "properties": {
+        "type": {"const": "neoorigins:command"},
+        "command": {"type": "string", "description": "Server command to execute (leading '/' optional); runs at perm level 2."},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
+        "compare_to": {"type": "integer", "description": "Compared against the command's return value (default 1)."}
+      },
+      "required": ["type", "command"]
+    },
+    {
+      "$comment": "neoorigins:advancement",
+      "properties": {
+        "type": {"const": "neoorigins:advancement"},
+        "advancement": {"type": "string", "description": "Advancement id; true when player has completed it."}
+      },
+      "required": ["type", "advancement"]
+    },
+    {
+      "$comment": "neoorigins:weather",
+      "properties": {
+        "type": {"const": "neoorigins:weather"},
+        "state": {"enum": ["clear", "rain", "thunder"], "description": "Weather state to match (alias: value)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:cooldown",
+      "properties": {
+        "type": {"const": "neoorigins:cooldown"},
+        "power": {"type": "string", "description": "Power id to check cooldown for; true when the power is NOT on cooldown."}
+      },
+      "required": ["type", "power"]
+    },
+    {
+      "$comment": "neoorigins:resource / resource_level",
+      "properties": {
+        "type": {"enum": ["neoorigins:resource", "neoorigins:resource_level"]},
+        "resource": {"type": "string", "description": "Resource power id (matches the power that defines the bar)."},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
+        "compare_to": {"type": "integer", "description": "Resource value threshold."}
+      },
+      "required": ["type", "resource"]
+    },
+    {
+      "$comment": "neoorigins:power",
+      "properties": {
+        "type": {"const": "neoorigins:power"},
+        "power": {"type": "string", "description": "Power id; true when the player has it granted (origin or dynamic)."}
+      },
+      "required": ["type", "power"]
+    },
+    {
+      "$comment": "neoorigins:power_active",
+      "properties": {
+        "type": {"const": "neoorigins:power_active"},
+        "power": {"type": "string", "description": "Toggle power id; true when its current toggle state is on. Supports * wildcard for suffix matching."}
+      },
+      "required": ["type", "power"]
+    },
+    {
+      "$comment": "neoorigins:power_type",
+      "properties": {
+        "type": {"const": "neoorigins:power_type"},
+        "power_type": {"type": "string", "description": "Power-type id; true when the player has any granted power of this type (alias: id)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:predicate",
+      "properties": {
+        "type": {"const": "neoorigins:predicate"},
+        "predicate_type": {"enum": ["biome", "block_state", "entity_properties", "fluid_state", "item", "location"], "description": "Which vanilla predicate codec to compile against."},
+        "predicate": {"type": "object", "description": "Inner predicate JSON; shape depends on predicate_type."}
+      },
+      "required": ["type", "predicate_type", "predicate"]
+    },
+    {
+      "$comment": "neoorigins:actor_condition",
+      "properties": {
+        "type": {"const": "neoorigins:actor_condition"},
+        "condition": {"$ref": "#", "description": "Inner condition evaluated on the actor (the player in this codebase)."}
+      },
+      "required": ["type", "condition"]
+    },
+    {
+      "$comment": "neoorigins:config_flag",
+      "properties": {
+        "type": {"const": "neoorigins:config_flag"},
+        "key": {"type": "string", "description": "Config flag key, e.g. ocean_origins.fish_diet_required. Unknown keys default to true."}
+      },
+      "required": ["type", "key"]
     },
     {
       "$comment": "Fallback \u00e2\u20ac\u201d permissive for unlisted verbs.",

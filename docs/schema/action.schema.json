@@ -585,6 +585,363 @@
       ]
     },
     {
+      "$comment": "neoorigins:if_else_list",
+      "properties": {
+        "type": {"const": "neoorigins:if_else_list"},
+        "actions": {"type": "array", "items": {"type": "object"}, "description": "List of {condition, action} branches; first matching condition wins."}
+      },
+      "required": ["type", "actions"]
+    },
+    {
+      "$comment": "neoorigins:dash",
+      "properties": {
+        "type": {"const": "neoorigins:dash"},
+        "strength": {"type": "number", "description": "Impulse magnitude along player look vector (default 1.5)."},
+        "allow_vertical": {"type": "boolean", "description": "If false, dash is pinned to horizontal (default true)."},
+        "set_velocity": {"type": "boolean", "description": "If true, replaces delta movement instead of pushing additively."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:exhaust",
+      "properties": {
+        "type": {"const": "neoorigins:exhaust"},
+        "amount": {"type": "number", "minimum": 0, "description": "Exhaustion points added (default 1.0)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:change_resource / modify_resource",
+      "properties": {
+        "type": {"enum": ["neoorigins:change_resource", "neoorigins:modify_resource"]},
+        "resource": {"type": "string", "description": "Resource power id (matches the bar's defining power)."},
+        "operation": {"enum": ["add", "set"], "description": "add (default) clamps within bar bounds; set assigns directly."},
+        "change": {"type": "integer", "description": "Amount to add or value to set."}
+      },
+      "required": ["type", "resource"]
+    },
+    {
+      "$comment": "neoorigins:trigger_cooldown",
+      "properties": {
+        "type": {"const": "neoorigins:trigger_cooldown"},
+        "power": {"type": "string", "description": "Power id whose cooldown to start."},
+        "cooldown": {"type": "integer", "minimum": 0, "description": "Cooldown duration in ticks (20 = 1s; default 20)."}
+      },
+      "required": ["type", "power"]
+    },
+    {
+      "$comment": "neoorigins:gain_air",
+      "properties": {
+        "type": {"const": "neoorigins:gain_air"},
+        "amount": {"type": "integer", "description": "Air-supply ticks to add, clamped to max (default 10)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:set_fall_distance",
+      "properties": {
+        "type": {"const": "neoorigins:set_fall_distance"},
+        "fall_distance": {"type": "number", "description": "New fall distance value (default 0.0 \u2014 resets fall damage)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:extinguish",
+      "properties": {"type": {"const": "neoorigins:extinguish"}},
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:dismount",
+      "properties": {"type": {"const": "neoorigins:dismount"}},
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:explode",
+      "properties": {
+        "type": {"const": "neoorigins:explode"},
+        "power": {"type": "number", "minimum": 0, "description": "Explosion strength (default 3.0; TNT = 4)."},
+        "destruction_type": {"enum": ["none", "break", "destroy"], "description": "Block-interaction mode; 'none' is entity-only (default 'none')."},
+        "create_fire": {"type": "boolean", "description": "Spawn fire on affected blocks (default false)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:set_block",
+      "properties": {
+        "type": {"const": "neoorigins:set_block"},
+        "block": {"type": "string", "description": "Block id to place at the player's position."},
+        "keep": {"type": "boolean", "description": "If true, only place when current block is air (default false)."}
+      },
+      "required": ["type", "block"]
+    },
+    {
+      "$comment": "neoorigins:modify_food",
+      "properties": {
+        "type": {"const": "neoorigins:modify_food"},
+        "food": {"type": "integer", "description": "Food points delta (alias: food_component_food)."},
+        "saturation": {"type": "number", "description": "Saturation delta (alias: food_component_saturation)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:emit_game_event",
+      "properties": {
+        "type": {"const": "neoorigins:emit_game_event"},
+        "event": {"type": "string", "description": "GameEvent id, e.g. minecraft:hit_ground (alias: game_event)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:swing_hand",
+      "properties": {"type": {"const": "neoorigins:swing_hand"}},
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:drop_items",
+      "properties": {
+        "type": {"const": "neoorigins:drop_items"},
+        "mode": {"enum": ["each", "one_of", "single", "weighted"], "description": "'each' rolls every entry independently; 'one_of' picks one weighted by 'weight'."},
+        "rolls": {"type": "integer", "minimum": 1, "description": "Number of weighted picks in one_of mode (default 1; ignored in each mode)."},
+        "items": {"type": "array", "items": {"type": "object"}, "description": "Drop entries \u2014 each: {item, count (int|[min,max]), chance (each-mode), weight (one_of-mode)}."}
+      },
+      "required": ["type", "items"]
+    },
+    {
+      "$comment": "neoorigins:spawn_lingering_area",
+      "properties": {
+        "type": {"const": "neoorigins:spawn_lingering_area"},
+        "radius": {"type": "number", "description": "Effect cloud radius (default 3.0)."},
+        "duration_ticks": {"type": "integer", "minimum": 1, "description": "Lifetime in ticks (default 100)."},
+        "interval_ticks": {"type": "integer", "minimum": 1, "description": "Ticks between entity_action firings (default 20)."},
+        "effect_type": {"type": "string", "description": "Visual effect palette id (client-side; optional)."},
+        "particle_type": {"type": "string", "description": "Particle id rendered (default minecraft:witch)."},
+        "entity_action": {"$ref": "#", "description": "Action run every interval against caught entities."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:spawn_black_hole",
+      "properties": {
+        "type": {"const": "neoorigins:spawn_black_hole"},
+        "radius": {"type": "number", "description": "Pull radius (default 6.0)."},
+        "duration_ticks": {"type": "integer", "minimum": 1, "description": "Lifetime (default 100)."},
+        "pull_strength": {"type": "number", "description": "Per-tick pull magnitude (default 1.5)."},
+        "damage_per_tick": {"type": "number", "description": "Damage applied per tick to caught entities (default 2.0)."},
+        "effect_type": {"type": "string", "description": "Visual palette id (client-side; optional)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:spawn_tornado",
+      "properties": {
+        "type": {"const": "neoorigins:spawn_tornado"},
+        "radius": {"type": "number", "description": "Vortex radius (default 5.0)."},
+        "duration_ticks": {"type": "integer", "minimum": 1, "description": "Lifetime (default 100)."},
+        "pull_strength": {"type": "number", "description": "Horizontal pull magnitude (default 1.0)."},
+        "lift_strength": {"type": "number", "description": "Upward lift magnitude (default 0.5)."},
+        "spin_strength": {"type": "number", "description": "Tangential spin magnitude (default 0.5)."},
+        "damage_per_interval": {"type": "number", "description": "Damage per interval (default 2.0)."},
+        "damage_interval_ticks": {"type": "integer", "minimum": 1, "description": "Ticks between damage applications (default 10)."},
+        "effect_type": {"type": "string", "description": "Visual palette id (client-side; optional)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:chain_to_nearest",
+      "properties": {
+        "type": {"const": "neoorigins:chain_to_nearest"},
+        "radius": {"type": "number", "description": "Search radius (default 16)."},
+        "speed": {"type": "number", "description": "Pull speed (default 1.0)."},
+        "target_condition": {"$ref": "#", "description": "Optional filter \u2014 only entities matching are valid targets."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:pull_entities",
+      "properties": {
+        "type": {"const": "neoorigins:pull_entities"},
+        "radius": {"type": "number", "description": "Pull radius (default 8)."},
+        "strength": {"type": "number", "description": "Pull magnitude per entity (default 0.5)."},
+        "include_players": {"type": "boolean", "description": "Whether to pull other players (default true)."},
+        "entity_condition": {"$ref": "#", "description": "Optional filter on which entities to pull."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:throw_target",
+      "properties": {
+        "type": {"const": "neoorigins:throw_target"},
+        "force": {"type": "number", "description": "Horizontal throw magnitude (default 1.5)."},
+        "vertical_lift": {"type": "number", "description": "Upward push (default 0.5)."},
+        "max_distance": {"type": "number", "description": "Raycast distance to find target under crosshair (default 5.0)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:swap_with_entity",
+      "properties": {
+        "type": {"const": "neoorigins:swap_with_entity"},
+        "radius": {"type": "number", "description": "Search radius for nearest target (default 16)."},
+        "target_condition": {"$ref": "#", "description": "Optional filter on valid swap targets."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:teleport_to_marker",
+      "properties": {
+        "type": {"const": "neoorigins:teleport_to_marker"},
+        "dx": {"type": "number", "description": "Relative X offset (used when no 'position' object)."},
+        "dy": {"type": "number", "description": "Relative Y offset."},
+        "dz": {"type": "number", "description": "Relative Z offset."},
+        "position": {"type": "object", "description": "Absolute target \u2014 {x, y, z} object overrides dx/dy/dz."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:damage_attacker",
+      "properties": {
+        "type": {"const": "neoorigins:damage_attacker"},
+        "amount": {"type": "number", "description": "Flat damage (default 2.0; ignored if amount_ratio set)."},
+        "amount_ratio": {"type": "number", "description": "Ratio of incoming hit amount (e.g. 0.25 = 25% reflected)."},
+        "source": {"type": "object", "description": "Damage source \u2014 {name: fire|lava|magic|generic|...}."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:ignite_attacker",
+      "properties": {
+        "type": {"const": "neoorigins:ignite_attacker"},
+        "ticks": {"type": "integer", "minimum": 0, "description": "Fire duration on attacker (default 60)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:effect_on_attacker",
+      "properties": {
+        "type": {"const": "neoorigins:effect_on_attacker"},
+        "effect": {"type": "string", "description": "Mob-effect id to apply."},
+        "duration": {"type": "integer", "minimum": 1, "description": "Effect duration in ticks (default 100)."},
+        "amplifier": {"type": "integer", "minimum": 0, "description": "Effect amplifier (default 0 = level I)."}
+      },
+      "required": ["type", "effect"]
+    },
+    {
+      "$comment": "neoorigins:random_teleport",
+      "properties": {
+        "type": {"const": "neoorigins:random_teleport"},
+        "horizontal_range": {"type": "number", "minimum": 0, "description": "X/Z search radius (alias: range; default 16)."},
+        "vertical_range": {"type": "number", "minimum": 0, "description": "Y search radius (default 8)."},
+        "attempts": {"type": "integer", "minimum": 1, "description": "Random-pick attempts before giving up (default 16)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:cancel_event",
+      "properties": {"type": {"const": "neoorigins:cancel_event"}},
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:toggle",
+      "properties": {
+        "type": {"const": "neoorigins:toggle"},
+        "power": {"type": "string", "description": "Toggle power id to flip (or set if 'value' provided)."},
+        "value": {"type": "boolean", "description": "Optional explicit state \u2014 omit to flip current state."}
+      },
+      "required": ["type", "power"]
+    },
+    {
+      "$comment": "neoorigins:add_to_set / remove_from_set",
+      "properties": {
+        "type": {"enum": ["neoorigins:add_to_set", "neoorigins:remove_from_set"]},
+        "set": {"type": "string", "description": "Named entity-set key on the actor (namespace it, e.g. mypack:hit_streak)."}
+      },
+      "required": ["type", "set"]
+    },
+    {
+      "$comment": "neoorigins:target_action / actor_action",
+      "properties": {
+        "type": {"enum": ["neoorigins:target_action", "neoorigins:actor_action"]},
+        "action": {"$ref": "#", "description": "Inner action to delegate to (target or actor; bientity unwrappers)."}
+      },
+      "required": ["type", "action"]
+    },
+    {
+      "$comment": "neoorigins:block_action_at",
+      "properties": {
+        "type": {"const": "neoorigins:block_action_at"},
+        "block_action": {"type": "object", "description": "Block action run at the entity's block position; ~ ~ ~ resolves to that block."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:choice",
+      "properties": {
+        "type": {"const": "neoorigins:choice"},
+        "actions": {"type": "array", "items": {"type": "object"}, "description": "List of {action, weight} entries; one runs per dispatch, weighted."}
+      },
+      "required": ["type", "actions"]
+    },
+    {
+      "$comment": "neoorigins:mount",
+      "properties": {
+        "type": {"const": "neoorigins:mount"},
+        "entity_type": {"type": "string", "description": "Entity id to mount (e.g. minecraft:pig); falls back to any nearest mountable."},
+        "radius": {"type": "number", "minimum": 0, "description": "Search radius (default 5.0)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:passenger_action",
+      "properties": {
+        "type": {"const": "neoorigins:passenger_action"},
+        "action": {"$ref": "#", "description": "Action run on each player passenger (alias: entity_action)."},
+        "entity_action": {"$ref": "#", "description": "Same as 'action' \u2014 Apoli accepts both."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:spawn_effect_cloud",
+      "properties": {
+        "type": {"const": "neoorigins:spawn_effect_cloud"},
+        "effect": {"type": "string", "description": "Effect id to apply (or an object {effect, duration, amplifier})."},
+        "duration": {"type": "integer", "minimum": 1, "description": "Cloud lifetime + effect duration in ticks (default 200)."},
+        "amplifier": {"type": "integer", "minimum": 0, "description": "Effect amplifier (default 0)."},
+        "radius": {"type": "number", "minimum": 0, "description": "Cloud radius (default 3.0)."},
+        "wait_time": {"type": "integer", "minimum": 0, "description": "Ticks before the cloud starts applying effects (default 10)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:offset",
+      "properties": {
+        "type": {"const": "neoorigins:offset"},
+        "x": {"type": "number", "description": "X offset for the inner action's positional context."},
+        "y": {"type": "number", "description": "Y offset."},
+        "z": {"type": "number", "description": "Z offset."},
+        "action": {"$ref": "#", "description": "Inner action \u2014 typically a block_action that reads position from context."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:add_xp",
+      "properties": {
+        "type": {"const": "neoorigins:add_xp"},
+        "points": {"type": "integer", "description": "Raw experience points to grant (default 0)."},
+        "levels": {"type": "integer", "description": "Experience levels to grant (default 0)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:crafting_table",
+      "properties": {"type": {"const": "neoorigins:crafting_table"}},
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:invert",
+      "properties": {"type": {"const": "neoorigins:invert"}},
+      "required": ["type"]
+    },
+    {
       "$comment": "Fallback \u00e2\u20ac\u201d permissive for verbs not yet schema'd.",
       "properties": {
         "type": {
