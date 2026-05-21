@@ -115,6 +115,41 @@ the effect with the existing `neoorigins:cancel_event` action.
   modded items / attributes / entities or dynamic registry contents (biomes,
   dimensions) were incorrectly flagged as invalid on save. Validation now
   consults the live `RegistryAccess`.
+- **Blacksmith / Cook crafted equipment lost its base stats.** Quality
+  Equipment Power was seeding from the raw `ATTRIBUTE_MODIFIERS` data
+  component, which is usually empty on freshly-crafted vanilla items
+  (their base stats come from the item's default modifiers, not a
+  component patch). The subsequent component-set wiped the base armor
+  toughness, mining speed, or attack damage and left only the Blacksmith
+  bonus on top — so a crafted iron chestplate would show toughness 1
+  with no armor value. Now seeds from `ItemStack#getAttributeModifiers()`
+  (the resolved effective modifiers), so base stats are preserved and
+  the quality bonus stacks on top.
+- **`/attribute` commands targeting vanilla attribute ids returned
+  "Can't find element"** when this mod was loaded. The legacy-command
+  rewriter (which fixes 1.20-era Origins++ mcfunction syntax to 1.21+)
+  was running on every command, including modern ones, and silently
+  corrupting attribute references in the process. Now gates on whether
+  the original command already parses cleanly — if vanilla can resolve
+  it, the rewriter leaves it alone and only intervenes on commands
+  vanilla rejects.
+- **Size-scaling powers left the player permanently rescaled after an
+  origin change.** The clear-on-revoke step was using a per-power id
+  derived at dispatch time, which doesn't always resolve to the same
+  value during a revoke triggered by an origin swap or orb reroll —
+  the modifier we added and the one we tried to remove didn't match,
+  so the scale stuck. Now clears any `neoorigins:size_*` modifier by
+  prefix sweep across the scale and interaction-range attributes,
+  regardless of which power originally set it.
+- **`neoorigins:crop_harvest_bonus` duplicated logs from world-gen
+  trees, stripped logs, and player-placed log walls.** The bonus is
+  intended for chopping naturally-grown wood. It now skips stripped
+  logs entirely (registry-id prefix check on `stripped_`) and tracks
+  logs placed by hand in a per-chunk attachment so breaking your own
+  log walls back down doesn't dupe the materials. Naturally-generated
+  trees and player-grown trees from saplings still earn the bonus —
+  tree generation places logs via the feature system, not the player
+  place path.
 
 ### Commands & Config
 
