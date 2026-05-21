@@ -144,19 +144,15 @@
         "chance": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "Probability 0.0-1.0 (default 0.5)."
         },
-        "success_action": {
-          "$ref": "#"
-        },
-        "fail_action": {
-          "$ref": "#"
+        "action": {
+          "$ref": "#",
+          "description": "Action run when the roll succeeds."
         }
       },
-      "required": [
-        "type",
-        "chance"
-      ]
+      "required": ["type", "chance"]
     },
     {
       "$comment": "neoorigins:delay",
@@ -241,20 +237,14 @@
       ]
     },
     {
-      "$comment": "neoorigins:heal / origins:feed / origins:exhaust / origins:gain_air",
+      "$comment": "neoorigins:heal / origins:exhaust / origins:gain_air â€” amount only (feed has its own branch; reads food/saturation, not amount).",
       "properties": {
         "type": {
           "enum": [
             "neoorigins:heal",
-            "neoorigins:feed",
             "neoorigins:exhaust",
             "neoorigins:gain_air",
-            "apace:heal",
-            "apace:feed",
-            "neoorigins:heal",
-            "neoorigins:feed",
-            "neoorigins:exhaust",
-            "neoorigins:gain_air"
+            "apace:heal"
           ]
         },
         "amount": {
@@ -267,40 +257,27 @@
       ]
     },
     {
+      "$comment": "neoorigins:feed â€” reads food (int) + saturation (float), not amount.",
+      "properties": {
+        "type": {"enum": ["neoorigins:feed", "apace:feed"]},
+        "food": {"type": "integer", "minimum": 0, "description": "Food points added (default 1)."},
+        "saturation": {"type": "number", "minimum": 0, "description": "Saturation points added (default 0.0)."}
+      },
+      "required": ["type"]
+    },
+    {
       "$comment": "neoorigins:apply_effect",
       "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:apply_effect",
-            "apace:apply_effect",
-            "neoorigins:apply_effect"
-          ]
-        },
-        "effect": {
-          "type": "string"
-        },
-        "duration": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "amplifier": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "is_ambient": {
-          "type": "boolean"
-        },
-        "show_particles": {
-          "type": "boolean"
-        },
-        "show_icon": {
-          "type": "boolean"
-        }
+        "type": {"enum": ["neoorigins:apply_effect", "apace:apply_effect"]},
+        "effect": {"type": "string", "description": "Single effect id (use this OR effects[])."},
+        "effects": {"type": "array", "items": {"type": "object"}, "description": "Array of {effect, duration, amplifier, is_ambient, show_particles, show_icon} objects. First entry wins if both 'effect' and 'effects' are present."},
+        "duration": {"type": "integer", "minimum": 1, "description": "Effect duration in ticks (default 200; honoured when using 'effect' scalar)."},
+        "amplifier": {"type": "integer", "minimum": 0, "description": "Effect amplifier (default 0 = level I)."},
+        "is_ambient": {"type": "boolean", "description": "Reduced particle visibility (default false)."},
+        "show_particles": {"type": "boolean", "description": "Show effect particles (default true)."},
+        "show_icon": {"type": "boolean", "description": "Show HUD icon (default true)."}
       },
-      "required": [
-        "type",
-        "effect"
-      ]
+      "required": ["type"]
     },
     {
       "$comment": "neoorigins:clear_effect",
@@ -456,84 +433,42 @@
       ]
     },
     {
-      "$comment": "neoorigins:spawn_projectile",
+      "$comment": "neoorigins:spawn_projectile / fire_projectile",
       "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:spawn_projectile",
-            "apace:spawn_projectile",
-            "neoorigins:spawn_projectile"
-          ]
-        },
-        "entity_type": {
-          "type": "string"
-        },
-        "speed": {
-          "type": "number"
-        },
-        "divergence": {
-          "type": "number"
-        }
+        "type": {"enum": ["neoorigins:spawn_projectile", "neoorigins:fire_projectile", "apace:spawn_projectile"]},
+        "entity_type": {"type": "string", "description": "Projectile entity type id (e.g. minecraft:arrow)."},
+        "projectile": {"type": "string", "description": "Alias for entity_type."},
+        "speed": {"type": "number", "description": "Launch speed (default 1.5)."},
+        "inaccuracy": {"type": "number", "minimum": 0, "description": "Random spread; 0 = perfect aim (default 0)."},
+        "divergence": {"type": "number", "minimum": 0, "description": "Alias for inaccuracy."},
+        "vertical_offset": {"type": "number", "description": "Spawn-Y offset from eye height (default 0)."},
+        "on_hit_action": {"$ref": "#", "description": "Action run when the projectile hits something."},
+        "projectile_action": {"$ref": "#", "description": "Alias for on_hit_action."},
+        "effect_type": {"type": "string", "description": "Visual palette id for MagicOrb projectiles (client-side)."}
       },
-      "required": [
-        "type",
-        "entity_type"
-      ]
+      "required": ["type"]
     },
     {
       "$comment": "neoorigins:area_of_effect",
       "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:area_of_effect",
-            "apace:area_of_effect",
-            "neoorigins:area_of_effect"
-          ]
-        },
-        "radius": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "entity_action": {
-          "$ref": "#"
-        },
-        "include_source": {
-          "type": "boolean"
-        },
-        "duration": {
-          "type": "integer"
-        },
-        "duration_ticks": {
-          "type": "integer"
-        }
+        "type": {"enum": ["neoorigins:area_of_effect", "apace:area_of_effect"]},
+        "radius": {"type": "number", "exclusiveMinimum": 0, "description": "AoE radius in blocks."},
+        "entity_action": {"$ref": "#", "description": "Action run on every caught entity."},
+        "entity_condition": {"type": "object", "description": "Optional filter — only entities matching are hit."},
+        "shape": {"enum": ["sphere", "cube"], "description": "AoE shape (default sphere)."},
+        "include_source": {"type": "boolean", "description": "Include the caster in the AoE (default false)."}
       },
-      "required": [
-        "type",
-        "radius"
-      ]
+      "required": ["type", "radius"]
     },
     {
       "$comment": "neoorigins:grant_power / origins:revoke_power",
       "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:grant_power",
-            "neoorigins:revoke_power",
-            "neoorigins:grant_power",
-            "neoorigins:revoke_power"
-          ]
-        },
-        "power": {
-          "type": "string"
-        },
-        "source": {
-          "type": "string"
-        }
+        "type": {"enum": ["neoorigins:grant_power", "neoorigins:revoke_power"]},
+        "power": {"type": "string", "description": "Power id to grant or revoke."},
+        "power_id": {"type": "string", "description": "Alias for power."},
+        "source": {"type": "string", "description": "Apoli-style 'source' label; honoured for parser compat but ignored by this implementation."}
       },
-      "required": [
-        "type",
-        "power"
-      ]
+      "required": ["type"]
     },
     {
       "$comment": "neoorigins:toggle",
@@ -678,8 +613,10 @@
       "$comment": "neoorigins:modify_food",
       "properties": {
         "type": {"const": "neoorigins:modify_food"},
-        "food": {"type": "integer", "description": "Food points delta (alias: food_component_food)."},
-        "saturation": {"type": "number", "description": "Saturation delta (alias: food_component_saturation)."}
+        "food": {"type": "integer", "description": "Food points delta."},
+        "food_component_food": {"type": "integer", "description": "Alias for food."},
+        "saturation": {"type": "number", "description": "Saturation delta."},
+        "food_component_saturation": {"type": "number", "description": "Alias for saturation."}
       },
       "required": ["type"]
     },
@@ -687,7 +624,8 @@
       "$comment": "neoorigins:emit_game_event",
       "properties": {
         "type": {"const": "neoorigins:emit_game_event"},
-        "event": {"type": "string", "description": "GameEvent id, e.g. minecraft:hit_ground (alias: game_event)."}
+        "event": {"type": "string", "description": "GameEvent id, e.g. minecraft:hit_ground."},
+        "game_event": {"type": "string", "description": "Alias for event."}
       },
       "required": ["type"]
     },
@@ -829,7 +767,8 @@
       "$comment": "neoorigins:random_teleport",
       "properties": {
         "type": {"const": "neoorigins:random_teleport"},
-        "horizontal_range": {"type": "number", "minimum": 0, "description": "X/Z search radius (alias: range; default 16)."},
+        "horizontal_range": {"type": "number", "minimum": 0, "description": "X/Z search radius (default 16)."},
+        "range": {"type": "number", "minimum": 0, "description": "Alias for horizontal_range."},
         "vertical_range": {"type": "number", "minimum": 0, "description": "Y search radius (default 8)."},
         "attempts": {"type": "integer", "minimum": 1, "description": "Random-pick attempts before giving up (default 16)."}
       },
@@ -946,6 +885,40 @@
       "properties": {
         "type": {"const": "neoorigins:set_on_fire"},
         "ticks": {"type": "integer", "minimum": 0, "description": "Fire duration in ticks (default 20 = 1s)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:equipped_item_action",
+      "properties": {
+        "type": {"const": "neoorigins:equipped_item_action"},
+        "equipment_slot": {"enum": ["mainhand", "offhand", "head", "chest", "legs", "feet"], "description": "Equipment slot to read the stack from (default mainhand)."},
+        "action": {"type": "object", "description": "ItemAction to run on the stack (consume, damage, set-NBT, etc.)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:modify_inventory",
+      "properties": {
+        "type": {"const": "neoorigins:modify_inventory"},
+        "item_condition": {"type": "object", "description": "Optional ItemCondition filtering which stacks to process."},
+        "item_action": {"type": "object", "description": "ItemAction run on each matching stack."},
+        "process_mode": {"enum": ["items", "stacks"], "description": "items (default) counts individual items; stacks counts whole stacks toward the limit."},
+        "limit": {"type": "integer", "minimum": 0, "description": "Cap on items/stacks processed; 0 = no limit (default 0)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:raycast",
+      "properties": {
+        "type": {"const": "neoorigins:raycast"},
+        "distance": {"type": "number", "exclusiveMinimum": 0, "description": "Max ray length in blocks (default 10)."},
+        "block": {"type": "boolean", "description": "Test for block collisions (default true)."},
+        "entity": {"type": "boolean", "description": "Test for entity collisions (default false)."},
+        "fluid_handling": {"enum": ["none", "source_only", "any"], "description": "How fluids are treated (default none)."},
+        "block_action": {"$ref": "#", "description": "Action when a block is hit; ~ ~ ~ resolves to the hit block."},
+        "bientity_action": {"$ref": "#", "description": "Action when an entity is hit (with the hit entity as target context)."},
+        "miss_action": {"$ref": "#", "description": "Action when nothing is hit within range."}
       },
       "required": ["type"]
     },

@@ -394,23 +394,11 @@
     {
       "$comment": "neoorigins:entity_type / origins:target_type",
       "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:entity_type",
-            "apace:entity_type",
-            "neoorigins:target_type",
-            "neoorigins:entity_type",
-            "neoorigins:target_type"
-          ]
-        },
-        "entity_type": {
-          "type": "string"
-        }
+        "type": {"enum": ["neoorigins:entity_type", "apace:entity_type", "neoorigins:target_type"]},
+        "entity_type": {"type": "string", "description": "Entity type id, or #tag (target_type only)."},
+        "type_id": {"type": "string", "description": "Alias for entity_type (entity_type condition only)."}
       },
-      "required": [
-        "type",
-        "entity_type"
-      ]
+      "required": ["type"]
     },
     {
       "$comment": "neoorigins:target_group",
@@ -578,22 +566,23 @@
       "required": ["type", "effect"]
     },
     {
-      "$comment": "neoorigins:block / on_block / in_block",
+      "$comment": "neoorigins:block / on_block / in_block / in_block_anywhere",
       "properties": {
-        "type": {"enum": ["neoorigins:block", "neoorigins:on_block", "neoorigins:in_block"]},
+        "type": {"enum": ["neoorigins:block", "neoorigins:on_block", "neoorigins:in_block", "neoorigins:in_block_anywhere"]},
         "block_condition": {"type": "object", "description": "Block sub-condition: {block: <id>} or {tag: <#tag>} or {type: and/or, conditions: [...]}."}
       },
       "required": ["type"]
     },
     {
-      "$comment": "neoorigins:near_block",
+      "$comment": "neoorigins:near_block / block_in_radius",
       "properties": {
-        "type": {"const": "neoorigins:near_block"},
+        "type": {"enum": ["neoorigins:near_block", "neoorigins:block_in_radius"]},
         "radius": {"type": "integer", "minimum": 1, "maximum": 8, "description": "Cubic scan radius in blocks (default 4, capped at 8)."},
         "block": {"type": "string", "description": "Single block id to match."},
         "blocks": {"type": "array", "items": {"type": "string"}, "description": "List of block ids; any match counts."},
         "tag": {"type": "string", "description": "Single block tag (with or without leading #)."},
-        "tags": {"type": "array", "items": {"type": "string"}, "description": "List of block tags."}
+        "tags": {"type": "array", "items": {"type": "string"}, "description": "List of block tags."},
+        "block_condition": {"type": "object", "description": "Origins-style nested {type: in_tag, tag: X} or {type: block, block: X}."}
       },
       "required": ["type"]
     },
@@ -712,7 +701,8 @@
       "$comment": "neoorigins:weather",
       "properties": {
         "type": {"const": "neoorigins:weather"},
-        "state": {"enum": ["clear", "rain", "thunder"], "description": "Weather state to match (alias: value)."}
+        "state": {"enum": ["clear", "rain", "thunder"], "description": "Weather state to match."},
+        "value": {"enum": ["clear", "rain", "thunder"], "description": "Alias for state."}
       },
       "required": ["type"]
     },
@@ -754,7 +744,8 @@
       "$comment": "neoorigins:power_type",
       "properties": {
         "type": {"const": "neoorigins:power_type"},
-        "power_type": {"type": "string", "description": "Power-type id; true when the player has any granted power of this type (alias: id)."}
+        "power_type": {"type": "string", "description": "Power-type id; true when the player has any granted power of this type."},
+        "id": {"type": "string", "description": "Alias for power_type."}
       },
       "required": ["type"]
     },
@@ -788,6 +779,26 @@
       "properties": {
         "type": {"const": "neoorigins:out_of_combat"},
         "ticks": {"type": "integer", "minimum": 0, "description": "Min ticks since last damage to count as out of combat (default 100 = 5s)."}
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:fluid_height â€” numeric comparison + which fluid.",
+      "properties": {
+        "type": {"const": "neoorigins:fluid_height"},
+        "fluid": {"enum": ["minecraft:water", "minecraft:lava"], "description": "Which fluid's submerged-depth to measure."},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
+        "compare_to": {"type": "number", "description": "Threshold in blocks."}
+      },
+      "required": ["type", "fluid"]
+    },
+    {
+      "$comment": "neoorigins:light_level / brightness â€” numeric comparison + which light source.",
+      "properties": {
+        "type": {"enum": ["neoorigins:light_level", "neoorigins:brightness"]},
+        "light_type": {"enum": ["sky", "block", "any"], "description": "sky = canSeeSky light; block = block-emitted light; any (default) = max raw brightness."},
+        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
+        "compare_to": {"type": "integer", "minimum": 0, "maximum": 15, "description": "Light level 0..15."}
       },
       "required": ["type"]
     },
