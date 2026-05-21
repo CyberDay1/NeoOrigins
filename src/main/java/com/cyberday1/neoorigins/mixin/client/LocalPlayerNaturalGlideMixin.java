@@ -76,6 +76,14 @@ public abstract class LocalPlayerNaturalGlideMixin {
             || self.hasEffect(MobEffects.LEVITATION)) {
             return false;
         }
+        // Fall-distance gate (GitHub #94): aiStep runs every tick, so without
+        // a threshold a Phantom player sprinting over uneven terrain hits
+        // brief sub-tick airborne frames each of which would start a one-tick
+        // fall-fly cycle — visible as a rapid screen bounce. Requiring real
+        // fall distance filters those out without disturbing the
+        // walk-off-cliff or jump-then-glide gestures (both accumulate
+        // fallDistance within the first tick or two of being airborne).
+        if (self.fallDistance < 1.0F) return false;
         self.startFallFlying();
         return true;
     }

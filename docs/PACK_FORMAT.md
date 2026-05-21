@@ -134,7 +134,29 @@ To add your origins to the default NeoOrigins origin selector, list them under t
 data/neoorigins/origins/origin_layers/origin.json
 ```
 
-This overwrites the built-in layer entirely, so be sure to include all existing origins you want to keep. Alternatively, create your own layer with a different namespace and ID.
+By default this **merges additively** into the built-in layer — your `origins` array is appended (deduplicated by ID) to the shipped one. You don't have to re-list every built-in origin.
+
+Alternatively, create your own layer with a different namespace and ID. Same-path layers (e.g. `mypack:origin`) auto-fold into `neoorigins:origin` unless you opt out with `"standalone": true`.
+
+### Replacing or editing the built-in layer
+
+To **fully replace** the built-in `neoorigins:origin` layer (e.g. you want to remove some of the shipped origins, or curate the list from scratch), add `"replace": true` to your override file. Every field present in your file then overwrites the built-in's corresponding field, including the `origins` array:
+
+```json
+{
+  "replace": true,
+  "order": 1,
+  "name": "origins.layer.origin",
+  "origins": [
+    "mypack:merling",
+    "mypack:pyromancer"
+  ]
+}
+```
+
+The same applies to `neoorigins:class` and any other layer ID you target. Without `"replace": true`, your file's fields are merged additively with the existing layer — useful for adding origins, but it means the built-in `origins` list is never removed.
+
+> ⚠️ **Common pitfall**: dropping a `data/neoorigins/origins/origin_layers/origin.json` file with only your origins and expecting the built-in origins to disappear. Without `"replace": true` the built-ins stay because the merge is additive.
 
 ### Adding a class
 
