@@ -132,9 +132,13 @@ public class OriginCommand {
                 .requires(cs -> cs.hasPermission(
                     com.cyberday1.neoorigins.service.CreatorAccess.LEVEL))
                 .executes(OriginCommand::executeEditor))
-            // ── Mob-origin testing commands (Phase 1; GUI lands Phase 3) ──
+            // ── Mob-origin commands ───────────────────────────────────────
             .then(Commands.literal("mob")
                 .requires(cs -> cs.hasPermission(2))
+                .then(Commands.literal("editor")
+                    .requires(cs -> cs.hasPermission(
+                        com.cyberday1.neoorigins.service.CreatorAccess.LEVEL))
+                    .executes(OriginCommand::executeMobEditor))
                 .then(Commands.literal("apply")
                     .then(Commands.argument("targets", EntityArgument.entities())
                         .then(Commands.argument("origin", ResourceLocationArgument.id())
@@ -385,6 +389,12 @@ public class OriginCommand {
     private static int executeEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer target = ctx.getSource().getPlayerOrException();
         NeoOriginsNetwork.openCreatorFor(target);
+        return 1;
+    }
+
+    private static int executeMobEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer target = ctx.getSource().getPlayerOrException();
+        NeoOriginsNetwork.openMobCreatorFor(target);
         return 1;
     }
 
