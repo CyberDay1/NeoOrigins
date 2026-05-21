@@ -63,6 +63,20 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         // expect filtering — without this field it was silently dropped at
         // codec time so the action ran on every block break.
         java.util.Optional<java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>> blockCondition,
+        // Optional mob-effect filter for the EFFECT_APPLIED event. `effect` is
+        // a single registry id (e.g. "spore:mycelium_ef"); `effectTag` is a
+        // TagKey<MobEffect> (e.g. "#minecraft:harmful" or a mod-defined tag).
+        // Either or both may be set — match if the about-to-be-applied effect
+        // equals `effect` OR is in `effectTag`. Ignored on all other events.
+        java.util.Optional<net.minecraft.resources.ResourceLocation> effect,
+        java.util.Optional<net.minecraft.tags.TagKey<net.minecraft.world.effect.MobEffect>> effectTag,
+        // Post-cleanse grace window in level ticks. When >0 AND the action
+        // successfully cancels an EFFECT_APPLIED event (sets DO_NOT_APPLY),
+        // grant `immunityTicks` ticks of full immunity to the same effect id
+        // before the next dispatch can fire. Lets pack authors smooth out
+        // probabilistic cancels (random_chance gates) so a successful "cleanse"
+        // sticks for a beat instead of re-rolling on every bite.
+        int immunityTicks,
         String type
     ) implements PowerConfiguration {
 
@@ -106,7 +120,36 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                             .compileBlockPredicate(obj.getAsJsonObject("block_condition")))
                         : java.util.Optional.empty();
 
-                return DataResult.success(Pair.of(new Config(ev, cond, action, modifier, blockCond, t), ops.empty()));
+                // Optional EFFECT_APPLIED filter: `effect` is a single id,
+                // `effect_tag` is a TagKey<MobEffect> (the leading '#' is
+                // optional in JSON for symmetry with vanilla item-tag syntax).
+                java.util.Optional<net.minecraft.resources.ResourceLocation> effectFilter =
+                    (obj.has("effect") && obj.get("effect").isJsonPrimitive())
+                        ? java.util.Optional.ofNullable(net.minecraft.resources.ResourceLocation
+                            .tryParse(obj.get("effect").getAsString()))
+                        : java.util.Optional.empty();
+                java.util.Optional<net.minecraft.tags.TagKey<net.minecraft.world.effect.MobEffect>> effectTagFilter;
+                if (obj.has("effect_tag") && obj.get("effect_tag").isJsonPrimitive()) {
+                    String raw = obj.get("effect_tag").getAsString();
+                    if (raw.startsWith("#")) raw = raw.substring(1);
+                    net.minecraft.resources.ResourceLocation tagId =
+                        net.minecraft.resources.ResourceLocation.tryParse(raw);
+                    effectTagFilter = (tagId == null)
+                        ? java.util.Optional.empty()
+                        : java.util.Optional.of(net.minecraft.tags.TagKey.create(
+                            net.minecraft.core.registries.Registries.MOB_EFFECT, tagId));
+                } else {
+                    effectTagFilter = java.util.Optional.empty();
+                }
+
+                int immunity = (obj.has("immunity_ticks") && obj.get("immunity_ticks").isJsonPrimitive())
+                    ? Math.max(0, obj.get("immunity_ticks").getAsInt())
+                    : 0;
+
+                return DataResult.success(Pair.of(
+                    new Config(ev, cond, action, modifier, blockCond,
+                        effectFilter, effectTagFilter, immunity, t),
+                    ops.empty()));
             }
 
             @Override
@@ -148,6 +191,23 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         if (config.action() != EntityAction.noop()) {
             EventPowerIndex.Handler handler = (sp, ctx) -> {
                 try {
+                    // EFFECT_APPLIED filter gate: only runs for that event; for
+                    // other events the optionals are simply unread. Match if
+                    // either `effect` or `effect_tag` matches (OR semantics).
+                    // If neither is set, the action fires for any effect — the
+                    // documented "catch-all" shape.
+                    if (config.event() == EventPowerIndex.Event.EFFECT_APPLIED
+                            && (config.effect().isPresent() || config.effectTag().isPresent())) {
+                        if (!(ctx instanceof EventPowerIndex.EffectAppliedContext ec)) return;
+                        boolean match = false;
+                        if (config.effect().isPresent() && config.effect().get().equals(ec.effectId())) {
+                            match = true;
+                        }
+                        if (!match && config.effectTag().isPresent()) {
+                            match = ec.effectInstance().getEffect().is(config.effectTag().get());
+                        }
+                        if (!match) return;
+                    }
                     if (!config.condition().test(sp)) return;
                     // block_condition gate: extract the BlockPos from a known
                     // block-event context shape and run the predicate. Skips
@@ -161,6 +221,20 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                         if (!config.blockCondition().get().test(sp, pos)) return;
                     }
                     config.action().execute(sp);
+                    // Post-action grace: if this is an EFFECT_APPLIED dispatch
+                    // AND the action actually cancelled it (setResult = DO_NOT_APPLY)
+                    // AND the author asked for immunity_ticks, open the window so
+                    // subsequent dispatches for the same effect short-circuit
+                    // without re-rolling.
+                    if (config.immunityTicks() > 0
+                            && config.event() == EventPowerIndex.Event.EFFECT_APPLIED
+                            && ctx instanceof EventPowerIndex.EffectAppliedContext ec
+                            && ec.event() != null
+                            && ec.event().getResult() == net.neoforged.neoforge.event.entity.living
+                                .MobEffectEvent.Applicable.Result.DO_NOT_APPLY) {
+                        EventPowerIndex.setEffectGrace(sp.getUUID(), ec.effectId(),
+                            sp.level().getGameTime() + config.immunityTicks());
+                    }
                 } catch (Exception e) {
                     NeoOrigins.LOGGER.warn("action_on_event handler error ({}): {}",
                         config.event(), e.getMessage());

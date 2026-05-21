@@ -105,6 +105,7 @@
             "item_use", "respawn", "tick", "dimension_change", "jump", "projectile_hit",
             "food_eaten", "gained", "lost", "chosen", "wake_up", "land",
             "block_use", "entity_use", "item_pickup", "item_use_finish",
+            "effect_applied",
             "mod_exhaustion", "mod_natural_regen", "mod_enchant_level", "mod_harvest_drops",
             "mod_teleport_range", "mod_knockback", "mod_potion_duration", "mod_anvil_cost",
             "mod_crafted_food_saturation", "mod_bonemeal_extra",
@@ -112,6 +113,7 @@
             "ITEM_USE", "RESPAWN", "TICK", "DIMENSION_CHANGE", "JUMP", "PROJECTILE_HIT",
             "FOOD_EATEN", "GAINED", "LOST", "CHOSEN", "WAKE_UP", "LAND",
             "BLOCK_USE", "ENTITY_USE", "ITEM_PICKUP", "ITEM_USE_FINISH",
+            "EFFECT_APPLIED",
             "MOD_EXHAUSTION", "MOD_NATURAL_REGEN", "MOD_ENCHANT_LEVEL", "MOD_HARVEST_DROPS",
             "MOD_TELEPORT_RANGE", "MOD_KNOCKBACK", "MOD_POTION_DURATION", "MOD_ANVIL_COST",
             "MOD_CRAFTED_FOOD_SATURATION", "MOD_BONEMEAL_EXTRA"
@@ -119,7 +121,11 @@
         },
         "condition": { "$ref": "condition.schema.json" },
         "entity_action": { "$ref": "action.schema.json" },
-        "modifier": { "oneOf": [{ "type": "object" }, { "type": "array" }] }
+        "modifier": { "oneOf": [{ "type": "object" }, { "type": "array" }] },
+        "block_condition": { "type": "object" },
+        "effect": { "type": "string" },
+        "effect_tag": { "type": "string" },
+        "immunity_ticks": { "type": "integer", "minimum": 0 }
       },
       "required": ["type", "event"]
     },

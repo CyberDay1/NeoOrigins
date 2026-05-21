@@ -588,7 +588,26 @@ public class CombatPowerEvents {
         if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
             if (effectId.equals("minecraft:poison") || effectId.equals("minecraft:regeneration")) {
                 event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+                return;
             }
         }
+        // Post-cleanse grace window: if a prior action_on_event cleanse opened
+        // a per-effect immunity window via `immunity_ticks`, short-circuit
+        // here so the user's condition (e.g. random_chance) doesn't roll again
+        // until the window closes. Keeps probabilistic resistance from feeling
+        // like a per-tick coin-flip.
+        long now = sp.level().getGameTime();
+        if (com.cyberday1.neoorigins.service.EventPowerIndex.hasEffectGrace(
+                sp.getUUID(), effectKey, now)) {
+            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            return;
+        }
+        // Generic action_on_event hook — fires AFTER hard-coded immunity rules
+        // above so pack authors only see effects those rules let through, and
+        // can apply probabilistic or conditional cancellation via cancel_event.
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.EFFECT_APPLIED,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.EffectAppliedContext(
+                effectInstance, effectKey, event));
     }
 }

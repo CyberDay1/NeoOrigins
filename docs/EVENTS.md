@@ -389,6 +389,44 @@ which fires at use-start). Also synthetically fired by
 
 ---
 
+## `effect_applied`
+
+Fires when a `MobEffect` is about to be added to the player, after vanilla
+`EffectImmunityPower` / `EntityGroupPower` immunity rules but before the
+effect lands. Cancelling with `neoorigins:cancel_event` denies the
+application (calls `setResult(DO_NOT_APPLY)` on the underlying
+`MobEffectEvent.Applicable`).
+
+**Context:** `EventPowerIndex.EffectAppliedContext` — carries the
+`MobEffectInstance`, its registry id, and the cancellable event.
+
+**Dispatch site:** `CombatPowerEvents.onMobEffectApplicable`
+(`MobEffectEvent.Applicable`).
+
+**Filters:** the `action_on_event` config accepts two optional pre-dispatch
+filters that work only on this event:
+- `effect` — a single registry id (e.g. `spore:mycelium_ef`)
+- `effect_tag` — a `TagKey<MobEffect>` (e.g. `#minecraft:harmful`; leading `#` optional)
+
+If both are set they OR-match. If neither is set the action fires for every
+effect that reaches dispatch.
+
+**Post-cleanse grace (`immunity_ticks`, optional, default 0):** when the
+action successfully cancels an EFFECT_APPLIED event AND `immunity_ticks > 0`,
+opens a per-effect-id grace window. Subsequent EFFECT_APPLIED dispatches for
+the same effect short-circuit to `DO_NOT_APPLY` until the window closes,
+skipping the user's condition entirely. Lets pack authors smooth out
+probabilistic cancels — a successful 50% `random_chance` cleanse with
+`immunity_ticks: 40` means the player is fully immune for 2 seconds before
+the next re-roll. The window max-merges across powers (multiple cleanses
+take the longest expiry, not the latest) and is cleared on logout.
+
+**Typical use:** infection resistance (probabilistic cancel via
+`random_chance` + `cancel_event` + grace window); class-specific antidote
+behaviour; sound/particle reactions to incoming buffs.
+
+---
+
 # Modifier-style events (return a float)
 
 These chain modifiers on a vanilla float value. Base value enters, each
