@@ -5,6 +5,25 @@
 
 ---
 
+## v2.1.1
+
+### Bug Fixes
+
+- **Origin Creator name/description rejected on save as "Not a string"** —
+  the creator writes `name` / `description` as `{"text": "..."}` component
+  JSON so author-entered text renders literally rather than as a
+  translation key, but the field codec accepted only raw strings and
+  validation failed on every save with
+  `Not a string: {"text": "..."}`. The codec now accepts either form:
+  raw strings continue to wrap as translatable components (so every
+  shipped origin still resolves through the language file), and any
+  vanilla component-JSON object decodes through
+  `ComponentSerialization.CODEC`. Same helper is shared by the player
+  Origin Creator, the Mob Origin Creator, and any custom
+  `origin_layer` JSON.
+
+---
+
 ## v2.1.0
 
 ### In-Game Origin Creator
