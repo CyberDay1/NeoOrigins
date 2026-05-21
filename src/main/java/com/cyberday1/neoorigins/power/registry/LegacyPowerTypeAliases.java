@@ -100,6 +100,15 @@ public final class LegacyPowerTypeAliases {
         return ALIASES.size();
     }
 
+    /**
+     * Immutable view of every type id that's been registered as a legacy alias
+     * source. Used by the creator's type picker to hide retired types from new
+     * authoring (existing on-disk JSON keeps loading via {@link #apply}).
+     */
+    public static Set<Identifier> aliasedTypeIds() {
+        return java.util.Collections.unmodifiableSet(ALIASES.keySet());
+    }
+
     // ── Bootstrap ──────────────────────────────────────────────────────────
     //
     // One working alias as an infrastructure test. Phase 1+ will register many more.
