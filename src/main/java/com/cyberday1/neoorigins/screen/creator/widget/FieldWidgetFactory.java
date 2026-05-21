@@ -150,7 +150,17 @@ public final class FieldWidgetFactory {
             }
             t.add(meta.toString());
             if (!spec.enumValues().isEmpty()) {
-                t.add("one of: " + String.join(", ", spec.enumValues()));
+                List<String> vals = spec.enumValues();
+                // For small enums (cycle-button-sized), show the full list.
+                // For larger ones, cap so the tooltip doesn't run off-screen —
+                // the search picker shows the rest interactively.
+                if (vals.size() <= ENUM_PICKER_THRESHOLD) {
+                    t.add("one of: " + String.join(", ", vals));
+                } else {
+                    t.add("one of " + vals.size() + ": "
+                        + String.join(", ", vals.subList(0, 5))
+                        + ", … (click field to pick)");
+                }
             }
             if (spec.ref() != null) t.add("references: " + spec.ref());
             switch (spec.kind()) {

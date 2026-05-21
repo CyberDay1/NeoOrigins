@@ -94,7 +94,11 @@ public final class CreatorStyle {
         int bw = wMax + 8, bh = lines.size() * 10 + 4;
         int bx = Math.min(mx + 12, screenW - bw - 6);
         int by = Math.min(Math.max(my - 6, 4), screenH - bh - 6);
-        g.fill(bx - 3, by - 3, bx + bw + 3, by + bh + 3, 0xF0060612);
+        // Fully opaque (0xFF) so the EditBox placeholder text and cycle-button
+        // labels underneath don't bleed through; the box is drawn after a
+        // g.flush() in OriginCreatorScreen, but a non-opaque fill still lets
+        // pixels behind show.
+        g.fill(bx - 3, by - 3, bx + bw + 3, by + bh + 3, 0xFF060612);
         g.outline(bx - 3, by - 3, bw + 6, bh + 6, ACCENT);
         int ly = by + 2;
         for (int i = 0; i < lines.size(); i++) {
