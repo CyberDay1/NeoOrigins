@@ -1643,6 +1643,10 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `condition` | EntityCondition | no | always-true | DSL gate — the event only fires when this is true |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
 | `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events) |
+| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`). Ignored on other events. |
+| `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
+| `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
+| `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
@@ -1652,6 +1656,7 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 - Mining / crafting: `BLOCK_BREAK`, `CRAFT_ITEM`, `ITEM_USE_FINISH`, `MOD_BREAK_SPEED`, `MOD_CRAFT_COUNT`
 - XP / economy: `XP_GAINED`, `MOD_XP_GAIN`, `TRADE_COMPLETE`, `MOD_BONEMEAL_GROWTH`
 - Interaction: `BLOCK_INTERACT`, `ENTITY_INTERACT`, `RIGHT_CLICK_ITEM`
+- Status effects: `EFFECT_APPLIED`
 
 For action-style events set `entity_action`; for modifier-style events set `modifier`. A single power may declare both — the action path fires on `dispatch` sites and the modifier path chains on `dispatchModifier` sites.
 
@@ -1683,6 +1688,18 @@ For action-style events set `entity_action`; for modifier-style events set `modi
     "operation": "multiply_base",
     "value": 1.3
   }
+}
+```
+
+**Example — 90% probabilistic resistance to a third-party infection effect, with 2s of full immunity after each cleanse:**
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "effect_applied",
+  "effect": "spore:mycelium_ef",
+  "condition": { "type": "neoorigins:random_chance", "chance": 0.9 },
+  "entity_action": { "type": "neoorigins:cancel_event" },
+  "immunity_ticks": 40
 }
 ```
 
