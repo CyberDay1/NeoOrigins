@@ -97,11 +97,14 @@ public final class PowerFormPanel {
         }
         int fieldW = Math.min(w - FIELD_DX - 12, 240);
         // Parse the current body once so each row can seed its initial value
-        // during build. Crucial for RefRow: its sub-form is built from the
-        // current type, so the type must be known before layout() runs.
+        // during build. Crucial for RefRow / ArrayRefRow: their sub-form / item
+        // list is built from the current type / array, so the JSON must be
+        // known before layout() runs.
         JsonObject body = parseObject(target.rawJson);
+        Runnable rebuildCb = () -> { push(); parent.requestRebuild(); };
         for (FormFieldSpec spec : specs) {
-            FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker, this::openEnumPicker);
+            FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker, this::openEnumPicker,
+                this::openTypePicker, rebuildCb);
             row.build(parent, font, fieldW, 16);
             row.fromJson(body.get(spec.name()));
             rows.add(row);
@@ -109,6 +112,28 @@ public final class PowerFormPanel {
         int total = 4;
         for (FieldRow row : rows) total += row.height();
         scroll.setContentHeight(total);
+    }
+
+    /**
+     * Open the shared picker for a RefRow / ArrayRefRow type pick. The {@code sink}
+     * (provided by the calling row) just mutates the row's local state; this
+     * method takes care of pushing the row tree into {@code target.rawJson}
+     * before the picker (so the picker's overlay sees a stable snapshot) and
+     * pushing + rebuilding again after — the post-pick push captures the new
+     * type, the rebuild creates a fresh row tree seeded from the new JSON.
+     */
+    private void openTypePicker(String kind, java.util.function.Consumer<String> sink) {
+        push();
+        java.util.List<String> src = new ArrayList<>("action".equals(kind)
+            ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
+            : "condition".equals(kind)
+                ? com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES
+                : java.util.Collections.emptyList());
+        java.util.Collections.sort(src);
+        refPicker.open("pick " + kind, () -> src,
+            sink::accept,
+            () -> { push(); parent.requestRebuild(); });
+        parent.requestRebuild();
     }
 
     /**

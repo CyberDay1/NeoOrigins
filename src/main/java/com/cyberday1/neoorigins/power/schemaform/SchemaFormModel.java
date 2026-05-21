@@ -190,7 +190,15 @@ public final class SchemaFormModel {
         } else {
             kind = FormFieldSpec.Kind.UNKNOWN;
         }
-        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref);
+
+        // For an array of REFs, capture items.$ref so the creator can render
+        // an ArrayRefRow list editor instead of a raw-JSON textbox.
+        String itemsRef = null;
+        if (kind == FormFieldSpec.Kind.ARRAY && p.has("items")) {
+            JsonObject items = p.getAsJsonObject("items");
+            if (items.has("$ref")) itemsRef = items.get("$ref").getAsString();
+        }
+        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef);
     }
 
     private static Object unwrap(JsonElement e) {
