@@ -942,6 +942,14 @@
       "required": ["type"]
     },
     {
+      "$comment": "neoorigins:set_on_fire",
+      "properties": {
+        "type": {"const": "neoorigins:set_on_fire"},
+        "ticks": {"type": "integer", "minimum": 0, "description": "Fire duration in ticks (default 20 = 1s)."}
+      },
+      "required": ["type"]
+    },
+    {
       "$comment": "Fallback \u00e2\u20ac\u201d permissive for verbs not yet schema'd.",
       "properties": {
         "type": {
