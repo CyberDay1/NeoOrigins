@@ -978,7 +978,7 @@ Grants periodic health regeneration while submerged in the specified fluid.
 
 ## `neoorigins:breath_in_fluid`
 
-Drains the player's air supply when submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Fully overrides vanilla's air management while in the target fluid (suppresses both vanilla drowning and water-breathing refill), so the configured `drain_rate` is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
+Drains the player's air supply when their eyes are submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Surfacing (head above water) restores air normally via vanilla breathing. While submerged, fully overrides vanilla's air management (suppresses both vanilla drowning and water-breathing refill), so the configured `drain_rate` is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1165,7 +1165,7 @@ Changes the player's entity group, making them treated as a different creature c
 
 ## `neoorigins:active_teleport`
 
-Active ability that teleports the player to the block they are looking at, up to a maximum distance.
+Active ability that teleports the player to the block they are looking at, up to a maximum distance. Plays enderman teleport sound and portal particles at departure and arrival.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1568,11 +1568,13 @@ Effects are re-applied every `refresh_interval` ticks (default 300 = 15 seconds)
 
 ## `neoorigins:modify_food_nutrition`
 
-Overrides the nutrition (hunger) value of all food the player eats. Every food item gives exactly the configured number of hunger points regardless of its original value. Saturation is scaled proportionally to the original food's saturation modifier.
+Overrides the nutrition (hunger) value of food the player eats. Matching food gives exactly the configured number of hunger points regardless of its original value. Saturation is scaled proportionally. Use `food_item` or `food_tag` to filter which foods are affected — if neither is set, ALL food is affected.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `nutrition` | int | no | `1` | Fixed hunger points all food gives |
+| `nutrition` | int | no | `1` | Fixed hunger points matching food gives |
+| `food_item` | Identifier | no | — | Only affect this specific item (e.g. `minecraft:sweet_berries`) |
+| `food_tag` | string | no | — | Only affect items in this tag (e.g. `#minecraft:meat`). Supports `#` prefix. |
 
 **Example — all food gives 1 hunger point:**
 ```json
@@ -1581,6 +1583,17 @@ Overrides the nutrition (hunger) value of all food the player eats. Every food i
   "nutrition": 1,
   "name": "Picky Eater",
   "description": "Gains almost no nutrition from food."
+}
+```
+
+**Example — meat gives 8 hunger points:**
+```json
+{
+  "type": "neoorigins:modify_food_nutrition",
+  "nutrition": 8,
+  "food_tag": "#minecraft:meat",
+  "name": "Carnivore",
+  "description": "Thrives on meat."
 }
 ```
 
@@ -1630,6 +1643,10 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `condition` | EntityCondition | no | always-true | DSL gate — the event only fires when this is true |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
 | `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events) |
+| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`). Ignored on other events. |
+| `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
+| `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
+| `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
@@ -1639,6 +1656,7 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 - Mining / crafting: `BLOCK_BREAK`, `CRAFT_ITEM`, `ITEM_USE_FINISH`, `MOD_BREAK_SPEED`, `MOD_CRAFT_COUNT`
 - XP / economy: `XP_GAINED`, `MOD_XP_GAIN`, `TRADE_COMPLETE`, `MOD_BONEMEAL_GROWTH`
 - Interaction: `BLOCK_INTERACT`, `ENTITY_INTERACT`, `RIGHT_CLICK_ITEM`
+- Status effects: `EFFECT_APPLIED`
 
 For action-style events set `entity_action`; for modifier-style events set `modifier`. A single power may declare both — the action path fires on `dispatch` sites and the modifier path chains on `dispatchModifier` sites.
 
@@ -1670,6 +1688,18 @@ For action-style events set `entity_action`; for modifier-style events set `modi
     "operation": "multiply_base",
     "value": 1.3
   }
+}
+```
+
+**Example — 90% probabilistic resistance to a third-party infection effect, with 2s of full immunity after each cleanse:**
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "effect_applied",
+  "effect": "spore:mycelium_ef",
+  "condition": { "type": "neoorigins:random_chance", "chance": 0.9 },
+  "entity_action": { "type": "neoorigins:cancel_event" },
+  "immunity_ticks": 40
 }
 ```
 
