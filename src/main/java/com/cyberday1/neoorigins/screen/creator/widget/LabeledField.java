@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -36,6 +37,12 @@ public final class LabeledField {
     public String value() { return box == null ? "" : box.getValue(); }
 
     public void setValue(String v) { if (box != null) box.setValue(v == null ? "" : v); }
+
+    public void setEditable(boolean editable) { if (box != null) box.setEditable(editable); }
+
+    public void setResponder(Consumer<String> responder) {
+        if (box != null) box.setResponder(responder);
+    }
 
     /** Draw the label to the left of the box (call from the tab's render). */
     public void drawLabel(GuiGraphicsExtractor g, Font font, int x, int y) {
