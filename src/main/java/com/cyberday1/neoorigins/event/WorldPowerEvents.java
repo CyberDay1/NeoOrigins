@@ -152,22 +152,38 @@ public class WorldPowerEvents {
         var state = event.getState();
         BlockPos pos = event.getPos().immutable();
 
-        // CropHarvestBonusPower
+        // CropHarvestBonusPower (GitHub #91 fix layered in here):
+        //   - Stripped logs are excluded entirely. The bonus is intended for
+        //     chopping naturally-grown wood, not for un-shrinking the same
+        //     block you stripped seconds ago.
+        //   - Player-placed logs are tracked per-chunk and excluded — a
+        //     builder placing a log wall and breaking it back down should not
+        //     dupe their materials. World-gen logs and sapling-grown trees
+        //     never get marked (TreeFeature places via FeaturePlaceContext,
+        //     not the Entity place path), so they still earn the bonus.
         if (ActiveOriginService.has(sp, CropHarvestBonusPower.class, c -> true)) {
             boolean isMatureCrop = state.getBlock() instanceof CropBlock cb && cb.isMaxAge(state);
-            boolean isLog = state.is(BlockTags.LOGS);
+            boolean isLog = state.is(BlockTags.LOGS) && !isStrippedBlock(state);
             if (isMatureCrop || isLog) {
-                ItemStack tool = sp.getMainHandItem().copy();
-                sl.getServer().execute(() -> {
-                    java.util.List<ItemStack> drops = Block.getDrops(state, sl, pos, null, sp, tool);
-                    ActiveOriginService.forEachOfType(sp, CropHarvestBonusPower.class, cfg -> {
-                        for (ItemStack drop : drops) {
-                            for (int i = 0; i < cfg.extraDrops(); i++) {
-                                Block.popResource(sl, pos, drop.copy());
+                boolean playerPlaced = isLog
+                    && com.cyberday1.neoorigins.service.PlayerPlacedLogTracker.isPlaced(sl, pos);
+                if (playerPlaced) {
+                    // Player-placed log: clear the mark on break (the block is
+                    // gone, no need to keep tracking) and skip the bonus.
+                    com.cyberday1.neoorigins.service.PlayerPlacedLogTracker.clear(sl, pos);
+                } else {
+                    ItemStack tool = sp.getMainHandItem().copy();
+                    sl.getServer().execute(() -> {
+                        java.util.List<ItemStack> drops = Block.getDrops(state, sl, pos, null, sp, tool);
+                        ActiveOriginService.forEachOfType(sp, CropHarvestBonusPower.class, cfg -> {
+                            for (ItemStack drop : drops) {
+                                for (int i = 0; i < cfg.extraDrops(); i++) {
+                                    Block.popResource(sl, pos, drop.copy());
+                                }
                             }
-                        }
+                        });
                     });
-                });
+                }
             }
         }
 
@@ -237,5 +253,34 @@ public class WorldPowerEvents {
                 }
             }
         });
+    }
+
+    /**
+     * Marks logs placed by a player in the per-chunk PlacedLogs attachment so
+     * {@link CropHarvestBonusPower} can exclude them from the harvest bonus
+     * later (GitHub #91). Sapling-grown trees and world-gen logs flow through
+     * {@code TreeFeature}/{@code FeaturePlaceContext} which doesn't fire
+     * {@code EntityPlaceEvent}, so they're never marked and still earn the
+     * bonus as expected.
+     */
+    @SubscribeEvent
+    public static void onPlayerPlaceLog(BlockEvent.EntityPlaceEvent event) {
+        if (!(event.getEntity() instanceof net.minecraft.world.entity.player.Player)) return;
+        if (event.getLevel().isClientSide()) return;
+        BlockState placed = event.getPlacedBlock();
+        if (!placed.is(BlockTags.LOGS) || isStrippedBlock(placed)) return;
+        // EntityPlaceEvent's level is a LevelAccessor on both branches; cast
+        // is safe at this dispatch site (player placement always happens on
+        // a real Level, never a ProtoChunk).
+        if (!(event.getLevel() instanceof net.minecraft.world.level.Level level)) return;
+        com.cyberday1.neoorigins.service.PlayerPlacedLogTracker.markPlaced(level, event.getPos().immutable());
+    }
+
+    /** True if the block's registry id starts with {@code stripped_} — covers
+     *  every vanilla stripped-log variant and most mods that follow the same
+     *  naming convention. Cheap registry lookup, no allocation. */
+    private static boolean isStrippedBlock(BlockState state) {
+        Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        return id != null && id.getPath().startsWith("stripped_");
     }
 }

@@ -43,6 +43,15 @@ public class EntityAttachments {
                 .serialize(MobOriginData.MAP_CODEC)
                 .build());
 
+    /** Per-chunk set of player-placed log positions. Attached to {@code ChunkAccess}
+     *  (registry is type-agnostic; the chunk holder reads it via {@code getData}).
+     *  Drives the player-placed-log exclusion in CropHarvestBonusPower (GitHub #91). */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<PlacedLogs>> PLACED_LOGS =
+        ATTACHMENT_TYPES.register("placed_logs", () ->
+            AttachmentType.builder(PlacedLogs::empty)
+                .serialize(PlacedLogs.MAP_CODEC)
+                .build());
+
     public static void register(IEventBus modEventBus) {
         ATTACHMENT_TYPES.register(modEventBus);
     }
@@ -53,6 +62,10 @@ public class EntityAttachments {
 
     public static AttachmentType<MobOriginData> mobOriginData() {
         return MOB_ORIGIN_DATA.get();
+    }
+
+    public static AttachmentType<PlacedLogs> placedLogs() {
+        return PLACED_LOGS.get();
     }
 
     public record MinionOwner(Optional<UUID> ownerUuid) {
