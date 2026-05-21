@@ -24,6 +24,10 @@ import java.util.List;
  * @param description  human help text from the schema; may be {@code null}.
  * @param ref          target of a schema {@code $ref} (e.g. condition.schema.json)
  *                     when {@link Kind#REF}; {@code null} otherwise.
+ * @param itemsRef     when {@link Kind#ARRAY}, the {@code items.$ref} target — the
+ *                     creator uses this to recognise arrays of actions/conditions
+ *                     and render an {@code ArrayRefRow} list editor. {@code null}
+ *                     for arrays of scalars (rendered as raw-JSON).
  */
 public record FormFieldSpec(
     String name,
@@ -34,8 +38,15 @@ public record FormFieldSpec(
     Double min,
     Double max,
     String description,
-    String ref
+    String ref,
+    String itemsRef
 ) {
+    /** Back-compat constructor — older call sites that don't track itemsRef. */
+    public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
+                         List<String> enumValues, Double min, Double max, String description,
+                         String ref) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null);
+    }
     public enum Kind {
         /** free text → text box */
         STRING,

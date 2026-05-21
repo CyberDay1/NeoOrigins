@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.screen.creator.widget;
 
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
 import com.cyberday1.neoorigins.screen.creator.CreatorHost;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -70,16 +71,34 @@ public final class FieldWidgetFactory {
      */
     public interface EnumOpener { void open(String field, List<String> values); }
 
+    /**
+     * Sink-based type picker for RefRow / ArrayRefRow. The caller provides the
+     * kind (action / condition) and a callback that runs with the picked id
+     * once the user selects from the picker overlay. Whoever implements this
+     * is responsible for committing the form state and triggering a rebuild
+     * so the new picked type's sub-form is created from scratch.
+     *
+     * <p>Decouples nested REF pickers from a JSON-path scheme — the row's own
+     * sink mutates ITS state, and a single tree-wide rebuild downstream re-
+     * serialises everything via {@code toJson()}, which is already recursive.
+     */
+    public interface TypePicker { void open(String kind, java.util.function.Consumer<String> sink); }
+
     /** ENUMs with more options than this open a search picker instead of a cycle. */
     public static final int ENUM_PICKER_THRESHOLD = 6;
 
-    public static FieldRow create(FormFieldSpec spec) { return create(spec, null, null); }
+    public static FieldRow create(FormFieldSpec spec) { return create(spec, null, null, null, null); }
 
     public static FieldRow create(FormFieldSpec spec, RefOpener refOpener) {
-        return create(spec, refOpener, null);
+        return create(spec, refOpener, null, null, null);
     }
 
     public static FieldRow create(FormFieldSpec spec, RefOpener refOpener, EnumOpener enumOpener) {
+        return create(spec, refOpener, enumOpener, null, null);
+    }
+
+    public static FieldRow create(FormFieldSpec spec, RefOpener refOpener, EnumOpener enumOpener,
+                                  TypePicker typePicker, Runnable rebuildCb) {
         return switch (spec.kind()) {
             case BOOLEAN -> new BoolRow(spec);
             case ENUM    -> (enumOpener != null && spec.enumValues().size() > ENUM_PICKER_THRESHOLD)
@@ -87,12 +106,30 @@ public final class FieldWidgetFactory {
                                 : new EnumRow(spec);
             case INTEGER, NUMBER -> new NumericRow(spec);
             case STRING  -> new TextRow(spec, false, refOpener);
-            case REF     -> (refOpener != null && pickKind(spec) != null)
-                                ? new RefRow(spec, refOpener, enumOpener)
+            case REF     -> (typePicker != null && rebuildCb != null && refTypeKind(spec) != null)
+                                ? new RefRow(spec, typePicker, rebuildCb)
                                 : new TextRow(spec, true, refOpener);
-            // ARRAY/OBJECT/MIXED/UNKNOWN → raw-JSON escape
+            case ARRAY   -> (typePicker != null && rebuildCb != null
+                            && spec.itemsRef() != null && refTypeKind(spec) != null)
+                                ? new ArrayRefRow(spec, typePicker, rebuildCb)
+                                : new TextRow(spec, true, null);
+            // OBJECT/MIXED/UNKNOWN → raw-JSON escape
             default      -> new TextRow(spec, true, null);
         };
+    }
+
+    /** "action" / "condition" / null based on a REF's $ref or an ARRAY's items.$ref. */
+    private static String refTypeKind(FormFieldSpec spec) {
+        String hay = null;
+        if (spec.kind() == FormFieldSpec.Kind.REF && spec.ref() != null) {
+            hay = (spec.ref() + " " + spec.name()).toLowerCase(java.util.Locale.ROOT);
+        } else if (spec.kind() == FormFieldSpec.Kind.ARRAY && spec.itemsRef() != null) {
+            hay = (spec.itemsRef() + " " + spec.name()).toLowerCase(java.util.Locale.ROOT);
+        }
+        if (hay == null) return null;
+        if (hay.contains("action")) return "action";
+        if (hay.contains("condition")) return "condition";
+        return null;
     }
 
     /**
@@ -371,8 +408,8 @@ public final class FieldWidgetFactory {
         private static final int INDENT = 12;
         private static final String EMPTY_LABEL = "(pick %s)";
 
-        private final RefOpener refOpener;
-        private final EnumOpener enumOpener;
+        private final TypePicker typePicker;
+        private final Runnable rebuildCb;
         private final String refKind; // "action" or "condition" or null
 
         private CreatorHost parent;
@@ -384,13 +421,12 @@ public final class FieldWidgetFactory {
         private final List<FieldRow> subRows = new ArrayList<>();
         /** Per-sub-row y offset inside this RefRow (relative to header top). */
         private final List<Integer> subYs = new ArrayList<>();
-        private int lastReposY;
 
-        RefRow(FormFieldSpec spec, RefOpener refOpener, EnumOpener enumOpener) {
+        RefRow(FormFieldSpec spec, TypePicker typePicker, Runnable rebuildCb) {
             super(spec);
-            this.refOpener = refOpener;
-            this.enumOpener = enumOpener;
-            this.refKind = pickKind(spec);
+            this.typePicker = typePicker;
+            this.rebuildCb = rebuildCb;
+            this.refKind = refTypeKind(spec);
         }
 
         @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
@@ -398,12 +434,18 @@ public final class FieldWidgetFactory {
             this.font = font;
             this.fieldW = fieldW;
             typeButton = Button.builder(typeLabel(),
-                    b -> { if (refOpener != null && refKind != null)
-                                refOpener.open(refKind, spec.name()); })
+                    b -> {
+                        if (typePicker != null && refKind != null) {
+                            typePicker.open(refKind, picked -> {
+                                currentType = picked;
+                                subRows.clear();
+                            });
+                        }
+                    })
                 .bounds(0, 0, Math.max(40, fieldW - 26), h).build();
             parent.register(typeButton);
             clearButton = Button.builder(Component.literal("x"),
-                    b -> { currentType = ""; subRows.clear(); parent.requestRebuild(); })
+                    b -> { currentType = ""; subRows.clear(); if (rebuildCb != null) rebuildCb.run(); })
                 .bounds(0, 0, 22, h).build();
             parent.register(clearButton);
             buildSubRows();
@@ -419,9 +461,7 @@ public final class FieldWidgetFactory {
                     : List.of();
             int subW = Math.max(40, fieldW - INDENT);
             for (FormFieldSpec sub : specs) {
-                // Phase B: pass null openers so nested REFs fall back to TextRow
-                // raw-JSON. Phase C extends with JSON-path-aware sub-openers.
-                FieldRow row = FieldWidgetFactory.create(sub, null, null);
+                FieldRow row = FieldWidgetFactory.create(sub, null, null, typePicker, rebuildCb);
                 row.build(parent, font, subW, 16);
                 subRows.add(row);
             }
@@ -434,7 +474,6 @@ public final class FieldWidgetFactory {
         }
 
         @Override public void reposition(int fieldX, int y) {
-            lastReposY = y;
             typeButton.setPosition(fieldX, y);
             clearButton.setPosition(fieldX + fieldW - 22, y);
             subYs.clear();
@@ -496,6 +535,124 @@ public final class FieldWidgetFactory {
                     refKind == null ? "type" : refKind));
             }
             return Component.literal(currentType);
+        }
+    }
+
+    // ── ARRAY of REFs (and.actions, if_else_list.actions, …) ────────────────
+
+    /**
+     * List editor for an array field whose items are action/condition REFs.
+     * Renders a header with an {@code add} button (opens the type picker for
+     * the new item's type) and N rows, each a {@link RefRow} for one item.
+     * Removing an item is just clicking the item RefRow's clear ("x") button —
+     * its {@code toJson} returns null on the next push, the array shrinks,
+     * and the rebuilt tree drops the row.
+     *
+     * <p>Adding works by appending a {@code {"type":"<picked>"}} object to a
+     * pending-additions list that {@link #toJson} flushes; the post-pick
+     * rebuild then re-instantiates this row from the larger array and the
+     * new RefRow gets built from scratch with the picked type.
+     */
+    private static final class ArrayRefRow extends Base {
+        private static final int HEADER_H = 22;
+        private static final int INDENT = 12;
+
+        private final TypePicker typePicker;
+        private final Runnable rebuildCb;
+        private final String itemKind; // "action" or "condition"
+        private final String itemsRef;
+
+        private CreatorHost parent;
+        private Font font;
+        private int fieldW;
+        private Button addButton;
+        private final List<RefRow> items = new ArrayList<>();
+        private final List<JsonObject> pendingAdds = new ArrayList<>();
+
+        ArrayRefRow(FormFieldSpec spec, TypePicker typePicker, Runnable rebuildCb) {
+            super(spec);
+            this.typePicker = typePicker;
+            this.rebuildCb = rebuildCb;
+            this.itemKind = refTypeKind(spec);
+            this.itemsRef = spec.itemsRef();
+        }
+
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
+            this.parent = parent;
+            this.font = font;
+            this.fieldW = fieldW;
+            addButton = Button.builder(Component.literal("+ add " + (itemKind == null ? "item" : itemKind)),
+                    b -> {
+                        if (typePicker != null && itemKind != null) {
+                            typePicker.open(itemKind, picked -> {
+                                JsonObject obj = new JsonObject();
+                                obj.addProperty("type", picked);
+                                pendingAdds.add(obj);
+                            });
+                        }
+                    })
+                .bounds(0, 0, Math.min(fieldW, 140), h).build();
+            parent.register(addButton);
+        }
+
+        private FormFieldSpec itemSpec() {
+            return new FormFieldSpec(spec.name() + "[]", FormFieldSpec.Kind.REF,
+                false, null, List.of(), null, null, null, itemsRef, null);
+        }
+
+        @Override public int height() {
+            int h = HEADER_H;
+            for (RefRow item : items) h += item.height();
+            return h;
+        }
+
+        @Override public void reposition(int fieldX, int y) {
+            addButton.setPosition(fieldX, y);
+            int rowY = y + HEADER_H;
+            for (RefRow item : items) {
+                item.reposition(fieldX + INDENT, rowY);
+                rowY += item.height();
+            }
+        }
+
+        @Override public void setVisible(boolean v) {
+            addButton.visible = v; addButton.active = v;
+            for (RefRow item : items) item.setVisible(v);
+        }
+
+        @Override public void drawLabel(GuiGraphicsExtractor g, Font font, int labelX, int y) {
+            super.drawLabel(g, font, labelX, y);
+            int rowY = y + HEADER_H;
+            for (RefRow item : items) {
+                item.drawLabel(g, font, labelX + INDENT, rowY);
+                rowY += item.height();
+            }
+        }
+
+        @Override public JsonElement toJson() {
+            JsonArray arr = new JsonArray();
+            for (RefRow item : items) {
+                JsonElement v = item.toJson();
+                if (v != null) arr.add(v);
+            }
+            for (JsonObject pending : pendingAdds) arr.add(pending);
+            pendingAdds.clear();
+            return arr.size() == 0 ? null : arr;
+        }
+
+        @Override public void fromJson(JsonElement el) {
+            items.clear();
+            if (parent == null) return;
+            if (el == null || !el.isJsonArray()) return;
+            JsonArray arr = el.getAsJsonArray();
+            int subW = Math.max(40, fieldW - INDENT);
+            FormFieldSpec is = itemSpec();
+            for (JsonElement itemEl : arr) {
+                RefRow row = new RefRow(is, typePicker, rebuildCb);
+                row.build(parent, font, subW, 16);
+                row.fromJson(itemEl);
+                items.add(row);
+            }
         }
     }
 
