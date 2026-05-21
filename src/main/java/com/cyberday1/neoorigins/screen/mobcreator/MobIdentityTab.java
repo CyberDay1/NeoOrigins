@@ -29,9 +29,14 @@ public final class MobIdentityTab implements MobCreatorTab {
     private final LabeledField targetTag = new LabeledField("target tag");
     private final ItemPickerOverlay itemPicker = new ItemPickerOverlay();
     private final SearchPickerOverlay entityPicker = new SearchPickerOverlay();
+    private final SearchPickerOverlay targetPicker = new SearchPickerOverlay();
 
     private MobOriginCreatorScreen parent;
     private int rowY;
+    private Button targetTypeBtn;
+    private Button targetTagBtn;
+    /** Guard so that {@code setValue} from inside a responder doesn't recurse. */
+    private boolean mutexSyncing;
 
     @Override public Component title() {
         return Component.translatable("gui.neoorigins.mob_creator.tab.identity");
@@ -53,6 +58,11 @@ public final class MobIdentityTab implements MobCreatorTab {
             entityPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
+        if (targetPicker.isOpen()) {
+            int pw = Math.min(w - 20, 340), ph = h - 16;
+            targetPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
+            return;
+        }
         rowY = y + 14;
         int fieldW = Math.min(w - FIELD_DX - 8, 240);
         Font font = parent.font();
@@ -63,8 +73,24 @@ public final class MobIdentityTab implements MobCreatorTab {
         parent.register(icon.build(font, fx, rowY + ROW_H * 3, fieldW - 44, BOX_H));
         parent.register(Button.builder(Component.literal("pick"), b -> openPicker())
             .bounds(fx + fieldW - 40, rowY + ROW_H * 3 - 2, 40, BOX_H + 4).build());
-        parent.register(targetType.build(font, fx, rowY + ROW_H * 4, fieldW, BOX_H));
-        parent.register(targetTag.build(font, fx, rowY + ROW_H * 5, fieldW, BOX_H));
+
+        // Target rows. Each row owns a dual-purpose button that opens the
+        // picker when its field is empty and clears the field (re-enabling
+        // the sibling) when it's populated. Mutual exclusion is also enforced
+        // on direct typing via setResponder → applyMutex.
+        parent.register(targetType.build(font, fx, rowY + ROW_H * 4, fieldW - 44, BOX_H));
+        targetTypeBtn = Button.builder(Component.literal("pick"), b -> toggleTargetEntity())
+            .bounds(fx + fieldW - 40, rowY + ROW_H * 4 - 2, 40, BOX_H + 4).build();
+        parent.register(targetTypeBtn);
+
+        parent.register(targetTag.build(font, fx, rowY + ROW_H * 5, fieldW - 44, BOX_H));
+        targetTagBtn = Button.builder(Component.literal("pick"), b -> toggleTargetTag())
+            .bounds(fx + fieldW - 40, rowY + ROW_H * 5 - 2, 40, BOX_H + 4).build();
+        parent.register(targetTagBtn);
+
+        targetType.setResponder(s -> onTargetChanged(true));
+        targetTag.setResponder(s -> onTargetChanged(false));
+        applyMutex();
 
         // Spawn-egg button (Phase 4d). Sits below the help line at the bottom
         // of the tab. Operates on the SAVED origin (id = neoorigins_custom:<idPath>),
@@ -73,6 +99,83 @@ public final class MobIdentityTab implements MobCreatorTab {
         parent.register(Button.builder(
                 Component.literal("Give Spawn Egg"), b -> requestEgg())
             .bounds(fx, eggY, 120, BOX_H + 4).build());
+    }
+
+    private void toggleTargetEntity() {
+        if (!targetType.value().trim().isEmpty()) {
+            targetType.setValue(""); // responder → applyMutex re-enables the tag row
+        } else {
+            openTargetEntityPicker();
+        }
+    }
+
+    private void toggleTargetTag() {
+        if (!targetTag.value().trim().isEmpty()) {
+            targetTag.setValue("");
+        } else {
+            openTargetTagPicker();
+        }
+    }
+
+    private void openTargetEntityPicker() {
+        pushToDraft();
+        targetPicker.open("pick target entity",
+            () -> BuiltInRegistries.ENTITY_TYPE.keySet().stream()
+                .map(Object::toString).sorted().toList(),
+            id -> {
+                parent.draft().targetEntityType = id;
+                parent.draft().targetEntityTag = "";
+            },
+            parent::requestRebuild);
+        parent.requestRebuild();
+    }
+
+    private void openTargetTagPicker() {
+        pushToDraft();
+        targetPicker.open("pick target tag",
+            () -> BuiltInRegistries.ENTITY_TYPE.getTagNames()
+                .map(tk -> tk.location().toString()).sorted().toList(),
+            id -> {
+                parent.draft().targetEntityTag = id;
+                parent.draft().targetEntityType = "";
+            },
+            parent::requestRebuild);
+        parent.requestRebuild();
+    }
+
+    /** Called by the EditBox responder on either target row. The {@code isEntity}
+     *  flag picks which sibling to clear when the just-edited row becomes
+     *  non-blank. The {@link #mutexSyncing} guard prevents the recursive
+     *  setValue("") from re-firing into this same handler. */
+    private void onTargetChanged(boolean isEntity) {
+        if (mutexSyncing) return;
+        mutexSyncing = true;
+        try {
+            if (isEntity && !targetType.value().trim().isEmpty()) {
+                targetTag.setValue("");
+            } else if (!isEntity && !targetTag.value().trim().isEmpty()) {
+                targetType.setValue("");
+            }
+            applyMutex();
+        } finally {
+            mutexSyncing = false;
+        }
+    }
+
+    private void applyMutex() {
+        boolean entityHas = !targetType.value().trim().isEmpty();
+        boolean tagHas = !targetTag.value().trim().isEmpty();
+        targetType.setEditable(!tagHas);
+        targetTag.setEditable(!entityHas);
+        if (targetTypeBtn != null) {
+            targetTypeBtn.setMessage(Component.literal(entityHas ? "clear" : "pick"));
+            // Disabled when the *other* row is set (so this row is locked empty).
+            targetTypeBtn.active = !tagHas;
+        }
+        if (targetTagBtn != null) {
+            targetTagBtn.setMessage(Component.literal(tagHas ? "clear" : "pick"));
+            targetTagBtn.active = !entityHas;
+        }
     }
 
     private void requestEgg() {
@@ -117,8 +220,16 @@ public final class MobIdentityTab implements MobCreatorTab {
         name.setValue(d.name);
         description.setValue(d.description);
         icon.setValue(d.icon.toString());
-        targetType.setValue(d.targetEntityType);
-        targetTag.setValue(d.targetEntityTag);
+        // Suppress the mutex responder during the bulk load so setting one
+        // value doesn't clobber the other before both have been assigned.
+        mutexSyncing = true;
+        try {
+            targetType.setValue(d.targetEntityType);
+            targetTag.setValue(d.targetEntityTag);
+        } finally {
+            mutexSyncing = false;
+        }
+        applyMutex();
     }
 
     @Override
@@ -138,6 +249,7 @@ public final class MobIdentityTab implements MobCreatorTab {
     public void renderBackdrop(GuiGraphics g) {
         if (itemPicker.isOpen()) itemPicker.renderBackdrop(g);
         else if (entityPicker.isOpen()) entityPicker.renderBackdrop(g);
+        else if (targetPicker.isOpen()) targetPicker.renderBackdrop(g);
     }
 
     @Override
@@ -145,6 +257,7 @@ public final class MobIdentityTab implements MobCreatorTab {
                        int x, int y, int w, int h) {
         if (itemPicker.isOpen()) { itemPicker.render(g); return; }
         if (entityPicker.isOpen()) { entityPicker.render(g); return; }
+        if (targetPicker.isOpen()) { targetPicker.render(g); return; }
         Font font = parent.font();
         int lx = x + LABEL_DX;
         CreatorStyle.sectionHeader(g, font, "Mob origin basics", lx, y, w - LABEL_DX * 2);
@@ -179,6 +292,7 @@ public final class MobIdentityTab implements MobCreatorTab {
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (itemPicker.isOpen())   return itemPicker.onScroll(mx, my, sy);
         if (entityPicker.isOpen()) return entityPicker.onScroll(mx, my, sy);
+        if (targetPicker.isOpen()) return targetPicker.onScroll(mx, my, sy);
         return false;
     }
 }

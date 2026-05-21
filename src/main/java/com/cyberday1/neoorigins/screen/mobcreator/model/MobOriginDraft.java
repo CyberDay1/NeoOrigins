@@ -23,8 +23,10 @@ public final class MobOriginDraft {
     public ResourceLocation icon = ResourceLocation.withDefaultNamespace("zombie_spawn_egg");
 
     /** Exactly one of these three forms should be set (validator enforces).
-     *  Authored as plain ids; serialized into {@code EntityTargetSpec}. */
-    public String targetEntityType = "minecraft:zombie";
+     *  Authored as plain ids; serialized into {@code EntityTargetSpec}.
+     *  Both single-value fields start empty so the creator forces the author
+     *  to make an explicit choice between an exact type and a tag. */
+    public String targetEntityType = "";
     public String targetEntityTag = "";
     public final List<String> targetEntityTypes = new ArrayList<>();
 
