@@ -156,7 +156,14 @@ public class InteractionPowerEvents {
         // shrink empties it and downstream conditions (food_item_in_tag) fail.
         ItemStack snapshot = stack.copy();
         sp.getFoodData().eat(cfg.nutrition(), cfg.saturation());
-        stack.shrink(1);
+        // Vanilla LivingEntity.completeUsingItem passes a *copy* of the used
+        // stack into the Finish event (LivingEntity.java:3203), and only
+        // replaces the player's hand if event.getResultStack() != useItem.
+        // Mutating event.getItem() therefore does nothing — the shrink has
+        // to go through setResultStack on a fresh copy. GitHub #93.
+        ItemStack result = event.getResultStack().copy();
+        result.shrink(1);
+        event.setResultStack(result);
         cfg.consumeSound().ifPresent(soundId -> {
             var snd = BuiltInRegistries.SOUND_EVENT.getOptional(soundId);
             snd.ifPresent(s -> sp.level().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
