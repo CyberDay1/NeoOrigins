@@ -132,9 +132,12 @@ public class OriginCommand {
                 .then(Commands.literal("editor")
                     .requires(REQUIRE_GM)
                     .executes(ctx -> executeEditor(ctx)))
-                // ── Mob-origin testing commands (Phase 1; GUI lands Phase 3) ──
+                // ── Mob-origin commands ───────────────────────────────────────
                 .then(Commands.literal("mob")
                     .requires(REQUIRE_GM)
+                    .then(Commands.literal("editor")
+                        .requires(REQUIRE_GM)
+                        .executes(ctx -> executeMobEditor(ctx)))
                     .then(Commands.literal("apply")
                         .then(Commands.argument("targets", EntityArgument.entities())
                             .then(Commands.argument("origin", IdentifierArgument.id())
@@ -380,6 +383,12 @@ public class OriginCommand {
     private static int executeEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer target = ctx.getSource().getPlayerOrException();
         NeoOriginsNetwork.openCreatorFor(target);
+        return 1;
+    }
+
+    private static int executeMobEditor(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerPlayer target = ctx.getSource().getPlayerOrException();
+        NeoOriginsNetwork.openMobCreatorFor(target);
         return 1;
     }
 
