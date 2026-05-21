@@ -67,6 +67,11 @@ public final class EventPowerIndex {
         ITEM_PICKUP,            // item entity picked up
         ITEM_USE_FINISH,        // finished using an item (distinct from ITEM_USE which fires at use-start)
 
+        // ----- Status-effect application -----
+        EFFECT_APPLIED,         // a mob effect is about to be applied (fires on MobEffectEvent.Applicable;
+                                // dispatched AFTER EffectImmunityPower/EntityGroupPower checks, so handlers
+                                // see only effects those rules let through. Cancel via neoorigins:cancel_event.)
+
         // ----- Origins-Classes hooks: modifiers (return a float) -----
         MOD_EXHAUSTION,         // hunger drain multiplier
         MOD_NATURAL_REGEN,      // natural heal amount multiplier
@@ -109,6 +114,36 @@ public final class EventPowerIndex {
 
     private static final Map<UUID, Map<Event, List<Handler>>> INDEX = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<Event, List<ModifierHandler>>> MOD_INDEX = new ConcurrentHashMap<>();
+
+    /** Per-player per-effect-id grace expiry (level game-time, monotonic).
+     *  Populated by {@code action_on_event} on a successful cleanse of an
+     *  {@link Event#EFFECT_APPLIED}; consulted by the dispatch site
+     *  ({@code CombatPowerEvents.onMobEffectApplicable}) which short-circuits
+     *  to {@code DO_NOT_APPLY} if the window is still open. Cleared on logout
+     *  via {@link #invalidate(UUID)}. */
+    private static final Map<UUID, Map<net.minecraft.resources.Identifier, Long>> EFFECT_GRACE =
+        new ConcurrentHashMap<>();
+
+    /** Extend (max-merge) the grace window for {@code effectId} on {@code uuid} to {@code expiryGameTime}. */
+    public static void setEffectGrace(UUID uuid, net.minecraft.resources.Identifier effectId,
+                                      long expiryGameTime) {
+        EFFECT_GRACE.computeIfAbsent(uuid, k -> new ConcurrentHashMap<>())
+            .merge(effectId, expiryGameTime, Math::max);
+    }
+
+    /** True if {@code uuid} currently has an active grace window for {@code effectId} at {@code nowGameTime}. */
+    public static boolean hasEffectGrace(UUID uuid, net.minecraft.resources.Identifier effectId,
+                                         long nowGameTime) {
+        var perEffect = EFFECT_GRACE.get(uuid);
+        if (perEffect == null) return false;
+        Long expiry = perEffect.get(effectId);
+        if (expiry == null) return false;
+        if (nowGameTime < expiry) return true;
+        // Expired — sweep so the map doesn't grow unbounded across many short-lived effects.
+        perEffect.remove(effectId);
+        if (perEffect.isEmpty()) EFFECT_GRACE.remove(uuid);
+        return false;
+    }
 
     /** Register a handler for a player+event. Typically called in {@code PowerType.onGranted}. */
     public static Token register(ServerPlayer player, Event event, Handler handler) {
@@ -158,6 +193,7 @@ public final class EventPowerIndex {
     public static void clearAll(UUID uuid) {
         INDEX.remove(uuid);
         MOD_INDEX.remove(uuid);
+        EFFECT_GRACE.remove(uuid);
     }
 
     /** Dispatch an event to all registered handlers. */
@@ -211,6 +247,7 @@ public final class EventPowerIndex {
     public static void invalidate(UUID uuid) {
         INDEX.remove(uuid);
         MOD_INDEX.remove(uuid);
+        EFFECT_GRACE.remove(uuid);
     }
 
     /** For regression tests: returns an immutable view of all events for a player. */
@@ -261,4 +298,16 @@ public final class EventPowerIndex {
 
     /** Context for advancement events. */
     public record AdvancementContext(net.minecraft.resources.Identifier advancementId) {}
+
+    /**
+     * Context for {@link Event#EFFECT_APPLIED}. Carries the about-to-be-applied
+     * effect instance, its registry id (pre-resolved so handlers don't repeat
+     * the lookup), and the cancellable NeoForge event so
+     * {@code neoorigins:cancel_event} can deny the application via
+     * {@code setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY)}.
+     */
+    public record EffectAppliedContext(
+        net.minecraft.world.effect.MobEffectInstance effectInstance,
+        net.minecraft.resources.Identifier effectId,
+        net.neoforged.neoforge.event.entity.living.MobEffectEvent.Applicable event) {}
 }

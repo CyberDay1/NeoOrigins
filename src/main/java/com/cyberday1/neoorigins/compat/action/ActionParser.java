@@ -1335,6 +1335,14 @@ public final class ActionParser {
                 fc.event().setCanceled(true);
                 return;
             }
+            // EFFECT_APPLIED uses NeoForge's Result enum, not ICancellableEvent:
+            // setting DO_NOT_APPLY is what blocks the effect from landing.
+            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.EffectAppliedContext ec
+                && ec.event() != null) {
+                ec.event().setResult(net.neoforged.neoforge.event.entity.living.MobEffectEvent
+                    .Applicable.Result.DO_NOT_APPLY);
+                return;
+            }
             if (ctx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
                 ce.setCanceled(true);
             }
