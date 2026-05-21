@@ -34,6 +34,9 @@ public final class FieldWidgetFactory {
 
     private FieldWidgetFactory() {}
 
+    /** Default height (in pixels) consumed by a single-line FieldRow. */
+    public static final int DEFAULT_ROW_H = 22;
+
     /** One labelled, value-bearing row in the form. */
     public interface FieldRow {
         String fieldName();
@@ -48,6 +51,8 @@ public final class FieldWidgetFactory {
         void fromJson(JsonElement el);
         /** Hover help: name/required, schema description, type/range/values. */
         default List<String> tooltip() { return List.of(); }
+        /** Vertical space (px) the row consumes; multi-row widgets override. */
+        default int height() { return DEFAULT_ROW_H; }
     }
 
     /**
@@ -82,7 +87,9 @@ public final class FieldWidgetFactory {
                                 : new EnumRow(spec);
             case INTEGER, NUMBER -> new NumericRow(spec);
             case STRING  -> new TextRow(spec, false, refOpener);
-            case REF     -> new TextRow(spec, true, refOpener);
+            case REF     -> (refOpener != null && pickKind(spec) != null)
+                                ? new RefRow(spec, refOpener, enumOpener)
+                                : new TextRow(spec, true, refOpener);
             // ARRAY/OBJECT/MIXED/UNKNOWN → raw-JSON escape
             default      -> new TextRow(spec, true, null);
         };
@@ -339,6 +346,158 @@ public final class FieldWidgetFactory {
         @Override public void fromJson(JsonElement el) {
             current = (el != null && el.isJsonPrimitive()) ? el.getAsString() : "";
             if (button != null) button.setMessage(label());
+        }
+    }
+
+    // ── REF (entity_action / condition with inline sub-form) ────────────────
+
+    /**
+     * Renders a REF field — entity_action / condition / etc. — as a type
+     * picker plus an inline sub-form of the picked type's fields, indented
+     * underneath. The type picker reuses {@code refPicker} via the
+     * {@link RefOpener} callback (same path TextRow's "pick" button uses);
+     * after selection, {@code PowerFormPanel.applyRef} writes
+     * {@code {"type":"<id>"}} to {@code target.rawJson} and requests a
+     * rebuild, which re-instantiates this RefRow with the new type.
+     *
+     * <p>Sub-rows are built by {@link com.cyberday1.neoorigins.power.schemaform.FormModel#forAction}
+     * / {@link com.cyberday1.neoorigins.power.schemaform.FormModel#forCondition}.
+     * Their REF/ENUM widgets receive {@code null} openers so nested REFs
+     * fall back to {@link TextRow} (raw-JSON) — Phase C extends this with
+     * proper JSON-path tracking so nested pickers route writes to the right
+     * sub-object instead of the top level.
+     */
+    private static final class RefRow extends Base {
+        private static final int HEADER_H = 22;
+        private static final int INDENT = 12;
+        private static final String EMPTY_LABEL = "(pick %s)";
+
+        private final RefOpener refOpener;
+        private final EnumOpener enumOpener;
+        private final String refKind; // "action" or "condition" or null
+
+        private CreatorHost parent;
+        private Font font;
+        private int fieldW;
+        private Button typeButton;
+        private Button clearButton;
+        private String currentType = "";
+        private final List<FieldRow> subRows = new ArrayList<>();
+        /** Per-sub-row y offset inside this RefRow (relative to header top). */
+        private final List<Integer> subYs = new ArrayList<>();
+        private int lastReposY;
+
+        RefRow(FormFieldSpec spec, RefOpener refOpener, EnumOpener enumOpener) {
+            super(spec);
+            this.refOpener = refOpener;
+            this.enumOpener = enumOpener;
+            this.refKind = pickKind(spec);
+        }
+
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
+            this.parent = parent;
+            this.font = font;
+            this.fieldW = fieldW;
+            typeButton = Button.builder(typeLabel(),
+                    b -> { if (refOpener != null && refKind != null)
+                                refOpener.open(refKind, spec.name()); })
+                .bounds(0, 0, Math.max(40, fieldW - 26), h).build();
+            parent.register(typeButton);
+            clearButton = Button.builder(Component.literal("x"),
+                    b -> { currentType = ""; subRows.clear(); parent.requestRebuild(); })
+                .bounds(0, 0, 22, h).build();
+            parent.register(clearButton);
+            buildSubRows();
+        }
+
+        private void buildSubRows() {
+            subRows.clear();
+            if (currentType.isEmpty() || refKind == null) return;
+            List<FormFieldSpec> specs = "action".equals(refKind)
+                ? com.cyberday1.neoorigins.power.schemaform.FormModel.forAction(currentType)
+                : "condition".equals(refKind)
+                    ? com.cyberday1.neoorigins.power.schemaform.FormModel.forCondition(currentType)
+                    : List.of();
+            int subW = Math.max(40, fieldW - INDENT);
+            for (FormFieldSpec sub : specs) {
+                // Phase B: pass null openers so nested REFs fall back to TextRow
+                // raw-JSON. Phase C extends with JSON-path-aware sub-openers.
+                FieldRow row = FieldWidgetFactory.create(sub, null, null);
+                row.build(parent, font, subW, 16);
+                subRows.add(row);
+            }
+        }
+
+        @Override public int height() {
+            int h = HEADER_H;
+            for (FieldRow sub : subRows) h += sub.height();
+            return h;
+        }
+
+        @Override public void reposition(int fieldX, int y) {
+            lastReposY = y;
+            typeButton.setPosition(fieldX, y);
+            clearButton.setPosition(fieldX + fieldW - 22, y);
+            subYs.clear();
+            int subY = y + HEADER_H;
+            for (FieldRow sub : subRows) {
+                subYs.add(subY);
+                sub.reposition(fieldX + INDENT, subY);
+                subY += sub.height();
+            }
+        }
+
+        @Override public void setVisible(boolean v) {
+            typeButton.visible = v; typeButton.active = v;
+            clearButton.visible = v; clearButton.active = v;
+            for (FieldRow sub : subRows) sub.setVisible(v);
+        }
+
+        @Override public void drawLabel(GuiGraphics g, Font font, int labelX, int y) {
+            super.drawLabel(g, font, labelX, y);
+            // Sub-row labels indented by INDENT under the type-picker header.
+            for (int i = 0; i < subRows.size() && i < subYs.size(); i++) {
+                subRows.get(i).drawLabel(g, font, labelX + INDENT, subYs.get(i));
+            }
+        }
+
+        @Override public JsonElement toJson() {
+            if (currentType.isEmpty()) return null;
+            JsonObject body = new JsonObject();
+            body.addProperty("type", currentType);
+            for (FieldRow sub : subRows) {
+                JsonElement v = sub.toJson();
+                if (v != null) body.add(sub.fieldName(), v);
+            }
+            return body;
+        }
+
+        @Override public void fromJson(JsonElement el) {
+            String newType = "";
+            if (el != null && el.isJsonObject()) {
+                JsonObject body = el.getAsJsonObject();
+                if (body.has("type") && body.get("type").isJsonPrimitive()) {
+                    newType = body.get("type").getAsString();
+                }
+            }
+            boolean typeChanged = !newType.equals(currentType);
+            currentType = newType;
+            if (typeChanged && parent != null) {
+                buildSubRows();
+            }
+            if (typeButton != null) typeButton.setMessage(typeLabel());
+            if (el != null && el.isJsonObject()) {
+                JsonObject body = el.getAsJsonObject();
+                for (FieldRow sub : subRows) sub.fromJson(body.get(sub.fieldName()));
+            }
+        }
+
+        private Component typeLabel() {
+            if (currentType.isEmpty()) {
+                return Component.literal(String.format(EMPTY_LABEL,
+                    refKind == null ? "type" : refKind));
+            }
+            return Component.literal(currentType);
         }
     }
 
