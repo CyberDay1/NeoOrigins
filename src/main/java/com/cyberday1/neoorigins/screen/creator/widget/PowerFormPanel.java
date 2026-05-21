@@ -97,11 +97,24 @@ public final class PowerFormPanel {
         }
         int fieldW = Math.min(w - FIELD_DX - 12, 240);
         for (FormFieldSpec spec : specs) {
-            FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker);
+            FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker, this::openEnumPicker);
             row.build(parent, font, fieldW, 16);
             rows.add(row);
         }
         scroll.setContentHeight(rows.size() * ROW_H + 4);
+    }
+
+    /**
+     * Open the shared picker showing a large ENUM field's allowed values.
+     * Selection writes directly into {@code target.rawJson} and triggers a
+     * rebuild so the row reflects the new value via {@link #pull()}.
+     */
+    private void openEnumPicker(String field, List<String> values) {
+        push();
+        refPicker.open("pick " + field, () -> values,
+            picked -> applyString(field, picked),
+            parent::requestRebuild);
+        parent.requestRebuild();
     }
 
     /**

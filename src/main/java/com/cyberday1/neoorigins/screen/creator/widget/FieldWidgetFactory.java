@@ -12,6 +12,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,12 +57,29 @@ public final class FieldWidgetFactory {
      */
     public interface RefOpener { void open(String sourceKind, String field); }
 
-    public static FieldRow create(FormFieldSpec spec) { return create(spec, null); }
+    /**
+     * Lets a large-enum field open a searchable picker over its allowed values
+     * instead of cycling through them. Used for any ENUM with more than
+     * {@link #ENUM_PICKER_THRESHOLD} options (e.g. {@code action_on_event.event},
+     * which has ~30 keys — cycling through them is painful).
+     */
+    public interface EnumOpener { void open(String field, List<String> values); }
+
+    /** ENUMs with more options than this open a search picker instead of a cycle. */
+    public static final int ENUM_PICKER_THRESHOLD = 6;
+
+    public static FieldRow create(FormFieldSpec spec) { return create(spec, null, null); }
 
     public static FieldRow create(FormFieldSpec spec, RefOpener refOpener) {
+        return create(spec, refOpener, null);
+    }
+
+    public static FieldRow create(FormFieldSpec spec, RefOpener refOpener, EnumOpener enumOpener) {
         return switch (spec.kind()) {
             case BOOLEAN -> new BoolRow(spec);
-            case ENUM    -> new EnumRow(spec);
+            case ENUM    -> (enumOpener != null && spec.enumValues().size() > ENUM_PICKER_THRESHOLD)
+                                ? new EnumPickerRow(spec, enumOpener)
+                                : new EnumRow(spec);
             case INTEGER, NUMBER -> new NumericRow(spec);
             case STRING  -> new TextRow(spec, false, refOpener);
             case REF     -> new TextRow(spec, true, refOpener);
@@ -257,6 +275,58 @@ public final class FieldWidgetFactory {
                 int i = values.indexOf(el.getAsString());
                 if (i >= 0) idx = i;
             }
+            if (button != null) button.setMessage(label());
+        }
+    }
+
+    // ── enum (search picker — for large enums) ──────────────────────────────
+
+    private static final class EnumPickerRow extends Base {
+        private final List<String> values;
+        private final EnumOpener opener;
+        private String current = "";
+        private Button button;
+
+        EnumPickerRow(FormFieldSpec spec, EnumOpener opener) {
+            super(spec);
+            // Drop case-insensitive duplicates while preserving order; prefer
+            // the lowercase variant when both exist (runtime is case-insensitive
+            // for events, equipment slots, etc.). Trims the ~62-entry event
+            // enum down to ~30 actual choices.
+            java.util.Set<String> seenLower = new java.util.HashSet<>();
+            List<String> dedup = new ArrayList<>(spec.enumValues().size());
+            java.util.Set<String> lowered = new java.util.HashSet<>();
+            for (String v : spec.enumValues()) {
+                lowered.add(v.toLowerCase(java.util.Locale.ROOT));
+            }
+            for (String v : spec.enumValues()) {
+                String lc = v.toLowerCase(java.util.Locale.ROOT);
+                if (!seenLower.add(lc)) continue;
+                dedup.add(lowered.contains(lc) ? lc : v);
+            }
+            this.values = java.util.Collections.unmodifiableList(dedup);
+            this.opener = opener;
+            if (spec.defaultValue() != null) {
+                String d = String.valueOf(spec.defaultValue()).toLowerCase(java.util.Locale.ROOT);
+                if (values.contains(d)) current = d;
+            }
+        }
+
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
+            button = Button.builder(label(), b -> opener.open(spec.name(), values))
+                .bounds(0, 0, fieldW, h).build();
+            parent.register(button);
+        }
+        private Component label() {
+            return Component.literal(current.isEmpty() ? "(click to pick)" : current);
+        }
+        @Override public void reposition(int fieldX, int y) { button.setPosition(fieldX, y); }
+        @Override public void setVisible(boolean v) { button.visible = v; button.active = v; }
+        @Override public JsonElement toJson() {
+            return current.isEmpty() ? null : new JsonPrimitive(current);
+        }
+        @Override public void fromJson(JsonElement el) {
+            current = (el != null && el.isJsonPrimitive()) ? el.getAsString() : "";
             if (button != null) button.setMessage(label());
         }
     }
