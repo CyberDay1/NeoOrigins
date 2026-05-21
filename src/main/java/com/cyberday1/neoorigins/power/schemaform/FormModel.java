@@ -43,14 +43,32 @@ public final class FormModel {
 
     /**
      * Native {@code neoorigins:} power types only, for the creator's type
-     * picker. Foreign-namespace entries in the schema enum ({@code apugli:},
-     * {@code apoli:}, {@code apace:}, …) are compat-translation aliases for
-     * importing existing datapacks — never the right choice when authoring a
-     * brand-new power, so they're hidden from the creator.
+     * picker. Two categories are hidden:
+     * <ul>
+     *   <li>Foreign-namespace entries in the schema enum ({@code apugli:},
+     *       {@code apoli:}, {@code apace:}, …) — compat-translation aliases
+     *       for importing existing datapacks; never the right choice when
+     *       authoring a brand-new power.</li>
+     *   <li>Native {@code neoorigins:} types that have been retired in 2.0
+     *       and aliased to a generic replacement (see {@link
+     *       com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases}).
+     *       Their Java class is gone, so the form has nothing to render
+     *       (empty-form footgun) and saving lands a power whose type the
+     *       loader rewrites on every reload (lossy round-trip).</li>
+     * </ul>
+     * Existing on-disk JSON using retired ids keeps loading transparently
+     * via the alias remap.
      */
     public static List<String> creatorTypes() {
+        java.util.Set<net.minecraft.resources.ResourceLocation> retired =
+            com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.aliasedTypeIds();
         return schema().allTypes().stream()
             .filter(t -> t.startsWith("neoorigins:"))
+            .filter(t -> {
+                net.minecraft.resources.ResourceLocation rl =
+                    net.minecraft.resources.ResourceLocation.tryParse(t);
+                return rl == null || !retired.contains(rl);
+            })
             .toList();
     }
 
