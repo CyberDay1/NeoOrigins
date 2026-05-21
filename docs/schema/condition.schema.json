@@ -784,6 +784,14 @@
       "required": ["type", "key"]
     },
     {
+      "$comment": "neoorigins:out_of_combat",
+      "properties": {
+        "type": {"const": "neoorigins:out_of_combat"},
+        "ticks": {"type": "integer", "minimum": 0, "description": "Min ticks since last damage to count as out of combat (default 100 = 5s)."}
+      },
+      "required": ["type"]
+    },
+    {
       "$comment": "Fallback \u00e2\u20ac\u201d permissive for unlisted verbs.",
       "properties": {
         "type": {
