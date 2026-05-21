@@ -96,12 +96,19 @@ public final class PowerFormPanel {
             specs = List.of(); // unresolvable — raw toggle still covers it
         }
         int fieldW = Math.min(w - FIELD_DX - 12, 240);
+        // Parse the current body once so each row can seed its initial value
+        // during build. Crucial for RefRow: its sub-form is built from the
+        // current type, so the type must be known before layout() runs.
+        JsonObject body = parseObject(target.rawJson);
         for (FormFieldSpec spec : specs) {
             FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker, this::openEnumPicker);
             row.build(parent, font, fieldW, 16);
+            row.fromJson(body.get(spec.name()));
             rows.add(row);
         }
-        scroll.setContentHeight(rows.size() * ROW_H + 4);
+        int total = 4;
+        for (FieldRow row : rows) total += row.height();
+        scroll.setContentHeight(total);
     }
 
     /**
@@ -157,15 +164,16 @@ public final class PowerFormPanel {
         target.rawJson = body.toString();
     }
 
-    /** Re-place field widgets against the scroll offset; hide off-view rows. */
+    /** Re-place field widgets against the scroll offset; hide off-view rows.
+     *  Variable-height aware — RefRow expands by its sub-form's row count. */
     public void layout() {
         int fieldX = x + FIELD_DX;
-        int top = scroll.contentTop();
-        for (int i = 0; i < rows.size(); i++) {
-            int rowTop = top + i * ROW_H;
-            FieldRow row = rows.get(i);
+        int rowTop = scroll.contentTop();
+        for (FieldRow row : rows) {
+            int rh = row.height();
             row.reposition(fieldX, rowTop);
-            row.setVisible(!rawMode && scroll.rowVisible(rowTop, ROW_H));
+            row.setVisible(!rawMode && scroll.rowVisible(rowTop, rh));
+            rowTop += rh;
         }
     }
 
@@ -212,16 +220,19 @@ public final class PowerFormPanel {
         }
 
         scroll.beginClip(g);
-        int top = scroll.contentTop();
+        int rowTop = scroll.contentTop();
         FieldRow hovered = null;
-        for (int i = 0; i < rows.size(); i++) {
-            int rowTop = top + i * ROW_H;
-            if (!scroll.rowVisible(rowTop, ROW_H)) continue;
-            rows.get(i).drawLabel(g, font, x + LABEL_DX, rowTop + 4);
-            if (mouseX >= x && mouseX <= x + w
-                    && mouseY >= rowTop && mouseY < rowTop + ROW_H) {
-                hovered = rows.get(i);
+        for (FieldRow row : rows) {
+            int rh = row.height();
+            if (scroll.rowVisible(rowTop, rh)) {
+                row.drawLabel(g, font, x + LABEL_DX, rowTop + 4);
+                int headerH = Math.min(rh, FieldWidgetFactory.DEFAULT_ROW_H);
+                if (mouseX >= x && mouseX <= x + w
+                        && mouseY >= rowTop && mouseY < rowTop + headerH) {
+                    hovered = row;
+                }
             }
+            rowTop += rh;
         }
         scroll.endClip(g);
         scroll.renderScrollbar(g);
