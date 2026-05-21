@@ -27,12 +27,30 @@ import java.util.List;
 public final class FormModel {
 
     private static SchemaFormModel schema;
+    private static SchemaFormModel actionSchema;
+    private static SchemaFormModel conditionSchema;
 
     private FormModel() {}
 
     private static synchronized SchemaFormModel schema() {
         if (schema == null) schema = SchemaFormModel.loadFromClasspath();
         return schema;
+    }
+
+    private static synchronized SchemaFormModel actionSchema() {
+        if (actionSchema == null) {
+            actionSchema = SchemaFormModel.loadFromClasspath(
+                SchemaFormModel.ACTION_RESOURCE_PATH);
+        }
+        return actionSchema;
+    }
+
+    private static synchronized SchemaFormModel conditionSchema() {
+        if (conditionSchema == null) {
+            conditionSchema = SchemaFormModel.loadFromClasspath(
+                SchemaFormModel.CONDITION_RESOURCE_PATH);
+        }
+        return conditionSchema;
     }
 
     /** Every power type id in the schema's {@code type} enum, sorted. Includes
@@ -97,6 +115,42 @@ public final class FormModel {
 
         List<FormFieldSpec> out = new ArrayList<>(base.size());
         for (FormFieldSpec s : base) out.add(enrich(key, s));
+        return out;
+    }
+
+    /**
+     * Renderer-ready field list for a DSL action ({@code entity_action} REF
+     * values like {@code neoorigins:add_velocity}). Empty when the action has
+     * no structured schema branch yet (~40 actions are still raw-JSON-only —
+     * the existing schema covers ~21 with declared fields).
+     */
+    public static List<FormFieldSpec> forAction(String typeId) {
+        return formForRef(actionSchema(), typeId);
+    }
+
+    /** Renderer-ready field list for a DSL condition ({@code condition} REF values). */
+    public static List<FormFieldSpec> forCondition(String typeId) {
+        return formForRef(conditionSchema(), typeId);
+    }
+
+    /** True when an action id has a structured schema branch (renderable as a sub-form). */
+    public static boolean hasActionForm(String typeId) {
+        return actionSchema().hasStructuredForm(typeId);
+    }
+
+    /** True when a condition id has a structured schema branch. */
+    public static boolean hasConditionForm(String typeId) {
+        return conditionSchema().hasStructuredForm(typeId);
+    }
+
+    private static List<FormFieldSpec> formForRef(SchemaFormModel s, String typeId) {
+        if (!s.hasStructuredForm(typeId)) return List.of();
+        // The schema's commonFields for action/condition are just {type},
+        // already discarded by SchemaFormModel during parse. formFor returns
+        // the branch's structured fields directly.
+        List<FormFieldSpec> base = s.formFor(typeId);
+        List<FormFieldSpec> out = new ArrayList<>(base.size());
+        for (FormFieldSpec spec : base) out.add(enrich(typeId, spec));
         return out;
     }
 

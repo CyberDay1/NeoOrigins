@@ -207,6 +207,12 @@ processResources {
     from('docs/schema/power.schema.json') {
         into 'data/neoorigins/schema'
     }
+    from('docs/schema/action.schema.json') {
+        into 'data/neoorigins/schema'
+    }
+    from('docs/schema/condition.schema.json') {
+        into 'data/neoorigins/schema'
+    }
     from('docs/schema/field_docs.json') {
         into 'data/neoorigins/schema'
     }

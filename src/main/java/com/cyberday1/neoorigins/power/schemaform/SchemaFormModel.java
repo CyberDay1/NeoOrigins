@@ -41,6 +41,10 @@ public final class SchemaFormModel {
     /** Classpath location the build's processResources copy writes the schema to. */
     public static final String RESOURCE_PATH = "/data/neoorigins/schema/power.schema.json";
 
+    /** Sibling classpath resources for the DSL action / condition schemas. */
+    public static final String ACTION_RESOURCE_PATH    = "/data/neoorigins/schema/action.schema.json";
+    public static final String CONDITION_RESOURCE_PATH = "/data/neoorigins/schema/condition.schema.json";
+
     /** Common fields every power shares (from root {@code properties}). */
     private final List<FormFieldSpec> commonFields = new ArrayList<>();
     /** powerId → its structured field list (common + branch), if it has a branch. */
@@ -66,10 +70,18 @@ public final class SchemaFormModel {
      * build's processResources copy step did not run, a hard packaging error.
      */
     public static SchemaFormModel loadFromClasspath() {
-        try (InputStream in = SchemaFormModel.class.getResourceAsStream(RESOURCE_PATH)) {
+        return loadFromClasspath(RESOURCE_PATH);
+    }
+
+    /**
+     * Load any packaged schema resource by classpath path. Used by the action /
+     * condition variants in addition to the default power schema.
+     */
+    public static SchemaFormModel loadFromClasspath(String resourcePath) {
+        try (InputStream in = SchemaFormModel.class.getResourceAsStream(resourcePath)) {
             if (in == null) {
                 throw new UncheckedIOException(new IOException(
-                    "power schema not on classpath at " + RESOURCE_PATH
+                    "schema not on classpath at " + resourcePath
                         + " — build processResources copy missing"));
             }
             return load(in);
@@ -100,14 +112,31 @@ public final class SchemaFormModel {
                 rootRequired.contains(e.getKey())));
         }
 
-        // Structured oneOf branches.
+        // Structured oneOf branches. `power.schema.json` uses {"type": {"const": "<id>"}};
+        // `action.schema.json` / `condition.schema.json` use {"type": {"enum": [<ids…>]}}
+        // where the same branch can apply to multiple ids (e.g. a "neoorigins:foo"
+        // entry alongside its "apace:foo" alias). Register the branch against
+        // every id listed.
+        if (!root.has("oneOf")) return;
         for (JsonElement be : root.getAsJsonArray("oneOf")) {
             JsonObject branch = be.getAsJsonObject();
             JsonObject bprops = branch.has("properties") ? branch.getAsJsonObject("properties") : null;
             if (bprops == null || !bprops.has("type")) continue;
             JsonObject typeProp = bprops.getAsJsonObject("type");
-            if (!typeProp.has("const")) continue; // fallback branch uses type.not.enum — skip
-            String powerId = typeProp.get("const").getAsString();
+
+            List<String> branchIds = new ArrayList<>(2);
+            if (typeProp.has("const")) {
+                branchIds.add(typeProp.get("const").getAsString());
+            } else if (typeProp.has("enum")) {
+                JsonArray ids = typeProp.getAsJsonArray("enum");
+                Set<String> seen = new TreeSet<>();
+                for (JsonElement idEl : ids) {
+                    if (!idEl.isJsonPrimitive()) continue;
+                    String id = idEl.getAsString();
+                    if (seen.add(id)) branchIds.add(id);
+                }
+            }
+            if (branchIds.isEmpty()) continue; // fallback branch uses type.not.enum — skip
 
             Set<String> req = readRequired(branch);
             List<FormFieldSpec> fields = new ArrayList<>(commonFields);
@@ -116,7 +145,7 @@ public final class SchemaFormModel {
                 fields.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
                     req.contains(e.getKey())));
             }
-            structured.put(powerId, fields);
+            for (String id : branchIds) structured.put(id, fields);
         }
     }
 

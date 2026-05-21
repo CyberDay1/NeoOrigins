@@ -134,10 +134,40 @@ public final class SchemaFormCheck {
         // 9. Every form field of every power must have a description.
         failures += auditFieldDocs(model);
 
+        // 10. Action / condition schemas must also be packaged + parse, so the
+        //     2.1 RefRow widget can render sub-forms when an entity_action /
+        //     condition REF is picked.
+        failures += auditAuxSchema(SchemaFormModel.ACTION_RESOURCE_PATH,
+            "action", "neoorigins:add_velocity");
+        failures += auditAuxSchema(SchemaFormModel.CONDITION_RESOURCE_PATH,
+            "condition", "neoorigins:in_water");
+
         System.out.printf("[schema-check] %d power types, %d structured branches, %d failures%n",
             types, model.structuredTypes().size(), failures);
         if (failures > 0) System.exit(1);
         System.out.println("[schema-check] OK");
+    }
+
+    private static int auditAuxSchema(String resource, String label, String sampleId) {
+        SchemaFormModel s;
+        try {
+            s = SchemaFormModel.loadFromClasspath(resource);
+        } catch (RuntimeException e) {
+            System.out.println("[schema-check] FAIL  " + label + " schema load: " + e.getMessage());
+            return 1;
+        }
+        int branches = s.structuredTypes().size();
+        if (branches == 0) {
+            System.out.println("[schema-check] FAIL  " + label + " schema parsed 0 structured branches");
+            return 1;
+        }
+        if (!s.hasStructuredForm(sampleId)) {
+            System.out.println("[schema-check] FAIL  " + label + " schema missing branch for " + sampleId);
+            return 1;
+        }
+        System.out.printf("[schema-check] %s schema: %d structured branches (sample %s OK)%n",
+            label, branches, sampleId);
+        return 0;
     }
 
     /**
