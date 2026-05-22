@@ -58,7 +58,7 @@ public final class ActionParser {
         "neoorigins:spawn_projectile", "neoorigins:spawn_tornado",
         "neoorigins:swap_with_entity", "neoorigins:swing_hand", "neoorigins:target_action",
         "neoorigins:teleport_to_marker", "neoorigins:throw_target", "neoorigins:toggle",
-        "neoorigins:trigger_cooldown");
+        "neoorigins:trigger_cooldown", "neoorigins:kubejs_callback");
 
     public static EntityAction parse(JsonObject json, String contextId) {
         if (json == null) {
@@ -171,6 +171,12 @@ public final class ActionParser {
                     (id, inv, p) -> new net.minecraft.world.inventory.CraftingMenu(id, inv, net.minecraft.world.inventory.ContainerLevelAccess.create(p.level(), p.blockPosition())),
                     net.minecraft.network.chat.Component.translatable("container.crafting")));
                 case "neoorigins:invert"                        -> EntityAction.noop(); // no-op: modifier inversion has no entity-action equivalent
+
+                // ---- KubeJS bridge ----
+                // Soft dep: when KubeJS is absent, no callback can be registered,
+                // so invoke() silently no-ops. Pack authors register callbacks
+                // from JS via NeoOrigins.registerCallback(id, fn).
+                case "neoorigins:kubejs_callback"               -> parseKubeJSCallback(json, contextId);
 
                 default -> failNoop(type, contextId, "unsupported action type");
             };
@@ -1627,6 +1633,14 @@ public final class ActionParser {
     }
 
     /** Cancel the current dispatch if its context is an ICancellableEvent. */
+    private static EntityAction parseKubeJSCallback(JsonObject json, String contextId) {
+        if (!json.has("id")) {
+            return failNoop("neoorigins:kubejs_callback", contextId, "missing 'id'");
+        }
+        String id = json.get("id").getAsString();
+        return player -> com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks.invoke(id, player);
+    }
+
     private static EntityAction parseCancelEvent() {
         return player -> {
             Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();

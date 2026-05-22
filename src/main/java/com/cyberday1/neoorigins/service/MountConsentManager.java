@@ -104,6 +104,7 @@ public final class MountConsentManager {
             return;
         }
 
+        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMountAccepted(requester, target);
         doMount(requester, target, request.mountPosition());
 
         target.sendSystemMessage(Component.translatable(
@@ -132,6 +133,7 @@ public final class MountConsentManager {
             requester.sendSystemMessage(Component.translatable(
                 "power.neoorigins.mount.declined_requester", target.getName())
                 .withStyle(ChatFormatting.RED));
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMountDeclined(requester, target);
         }
     }
 
@@ -143,12 +145,15 @@ public final class MountConsentManager {
         requester.sendSystemMessage(Component.translatable(
             "power.neoorigins.mount.success", target.getName())
             .withStyle(ChatFormatting.GREEN), true);
+        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMountStarted(requester, target, mountPosition);
     }
 
     private static void sendRequest(ServerPlayer requester, ServerPlayer target, String mountPosition) {
         long expireTick = requester.server.getTickCount()
             + (long) NeoOriginsConfig.mountRequestTimeoutSeconds() * 20L;
         PENDING.put(target.getUUID(), new MountRequest(requester.getUUID(), expireTick, mountPosition));
+
+        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMountRequested(requester, target);
 
         // Notify requester
         requester.sendSystemMessage(Component.translatable(

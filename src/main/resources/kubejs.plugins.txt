@@ -1,0 +1,1 @@
+com.cyberday1.neoorigins.compat.kubejs.plugin.NeoOriginsKubeJSPlugin

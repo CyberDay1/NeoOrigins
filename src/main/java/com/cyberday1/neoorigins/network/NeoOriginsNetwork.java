@@ -703,6 +703,13 @@ public class NeoOriginsNetwork {
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
+            // KubeJS: originChosen is UI-specific (first pick via the picker).
+            // originChanged is fired from inside applyOriginPowers so admin /set,
+            // /reset, and cascade invalidation all cover it.
+            if (oldOrigin == null) {
+                com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireOriginChosen(
+                    sp, layerId, event.getNewOrigin());
+            }
 
             // Cascade invalidation: if the player changed a parent layer,
             // sub-layer choices whose conditions no longer pass must be cleared.

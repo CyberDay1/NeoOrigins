@@ -44,7 +44,8 @@
         "neoorigins:efficient_repairs", "neoorigins:better_enchanting", "neoorigins:better_crafted_food",
         "neoorigins:better_bone_meal", "neoorigins:thorns_aura", "neoorigins:less_item_use_slowdown",
         "apace:status_effect", "apace:night_vision", "apace:water_breathing",
-        "apoli:edible_item", "apugli:edible_item", "apugli:action_on_jump", "apugli:action_on_target_death"
+        "apoli:edible_item", "apugli:edible_item", "apugli:action_on_jump", "apugli:action_on_target_death",
+        "neoorigins:js_custom", "neoorigins:js_active"
       ]
     },
     "name": { "description": "Display name. Plain string = translation key.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
@@ -240,6 +241,24 @@
         "mount_position": { "type": "string", "enum": ["centered", "shoulder"] }
       },
       "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:js_custom \u2014 passive power whose lifecycle hooks are supplied by a JS handler registered via NeoOrigins.registerPower(js_id, handler).",
+      "properties": {
+        "type": { "const": "neoorigins:js_custom" },
+        "js_id": { "type": "string", "description": "ID of the JS handler. Register from JS via NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick})." }
+      },
+      "required": ["type", "js_id"]
+    },
+    {
+      "$comment": "neoorigins:js_active \u2014 active (keybind) power whose onUse is supplied by a JS handler registered via NeoOrigins.registerActivePower(js_id, handler).",
+      "properties": {
+        "type": { "const": "neoorigins:js_active" },
+        "js_id": { "type": "string", "description": "ID of the JS handler. Register from JS via NeoOrigins.registerActivePower(id, {onUse, onGranted, onRevoked})." },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["type", "js_id"]
     },
     {
       "$comment": "neoorigins:edible_item",

@@ -44,6 +44,7 @@ repositories {
     maven { url = 'https://maven.blamejared.com' }      // JEI
     maven { url = 'https://maven.shedaniel.me' }         // REI
     maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
+    maven { url = 'https://maven.latvian.dev/releases' } // KubeJS
 }
 
 dependencies {
@@ -55,6 +56,10 @@ dependencies {
     compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${property('deps.rei')}"
     compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:${property('deps.rei')}"
     compileOnly "dev.architectury:architectury-neoforge:${property('deps.architectury')}"
+
+    // KubeJS – compile-only soft dep. Plugin entry + event group only
+    // classloaded when KubeJS is installed at runtime (KubeJSCompat.isLoaded()).
+    compileOnly "dev.latvian.mods:kubejs-neoforge:${property('deps.kubejs')}"
 }
 
 sourceSets {

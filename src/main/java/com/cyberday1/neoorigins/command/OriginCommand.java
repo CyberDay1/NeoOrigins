@@ -222,8 +222,13 @@ public class OriginCommand {
         }
 
         PlayerOriginData data = player.getData(OriginAttachments.originData());
+        int oldTier = data.getEvolutionTier();
         data.setEvolutionTier(tier);
         NeoOriginsNetwork.syncEvolutionToPlayer(player);
+        if (oldTier != tier) {
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireEvolutionTierChanged(
+                player, oldTier, tier);
+        }
 
         String tierName = tier > 0 ? EssenceEvolutionManager.TIER_NAMES[tier] : "Base";
         ctx.getSource().sendSuccess(() -> Component.literal(

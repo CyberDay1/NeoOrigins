@@ -59,6 +59,7 @@
         "neoorigins:effect_on_attacker",
         "neoorigins:random_teleport",
         "neoorigins:cancel_event",
+        "neoorigins:kubejs_callback",
         "apace:damage",
         "apace:heal",
         "apace:feed",
@@ -993,6 +994,14 @@
         }
       },
       "additionalProperties": true
+    },
+    {
+      "$comment": "neoorigins:kubejs_callback",
+      "properties": {
+        "type": {"const": "neoorigins:kubejs_callback"},
+        "id": {"type": "string", "description": "ID of the JS callback to invoke. Register from JS via NeoOrigins.registerCallback(id, fn)."}
+      },
+      "required": ["type", "id"]
     }
   ]
 }

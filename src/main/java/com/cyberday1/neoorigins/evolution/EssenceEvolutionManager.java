@@ -175,6 +175,9 @@ public final class EssenceEvolutionManager {
         // Sync updated evolution state + powers to client
         com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncEvolutionToPlayer(player);
         com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
+
+        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireEvolutionTierChanged(
+            player, currentTier, nextTier);
     }
 
     /**
@@ -184,6 +187,7 @@ public final class EssenceEvolutionManager {
         player.sendSystemMessage(Component.literal(
             "You resist the pull of essence... for now. The offer will return when you're ready.")
             .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
+        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireEvolutionDeclined(player);
     }
 
     /**

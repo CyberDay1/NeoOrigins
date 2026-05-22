@@ -42,6 +42,7 @@ public final class MobOriginService {
                     }
                 }
             }
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMobOriginCleared(mob, oldOriginId);
         }
         if (newOriginId != null) {
             MobOrigin neo = MobOriginDataManager.INSTANCE.getMobOrigin(newOriginId);
@@ -58,6 +59,7 @@ public final class MobOriginService {
                     }
                 }
             }
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMobOriginAssigned(mob, newOriginId);
         }
     }
 }

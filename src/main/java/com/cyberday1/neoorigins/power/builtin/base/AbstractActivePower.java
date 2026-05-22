@@ -86,6 +86,10 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
                 com.cyberday1.neoorigins.power.builtin.ResourcePower.deduct(player, resCostKey, resCostAmt);
             }
             data.setCooldown(key, player.tickCount, config.cooldownTicks());
+            ResourceLocation activatedId = PowerHolder.currentDispatchId();
+            if (activatedId != null) {
+                com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerActivated(player, activatedId);
+            }
         }
     }
 

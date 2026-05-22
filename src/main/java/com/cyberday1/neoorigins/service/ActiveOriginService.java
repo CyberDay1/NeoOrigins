@@ -281,6 +281,7 @@ public final class ActiveOriginService {
                         NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
                         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                             player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LOST, powerId);
+                        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerRevoked(player, powerId);
                     }
                 }
             }
@@ -297,6 +298,7 @@ public final class ActiveOriginService {
                     NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, powerId));
                     com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                         player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.GAINED, powerId);
+                    com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerGranted(player, powerId);
                 }
             }
         }
@@ -304,6 +306,13 @@ public final class ActiveOriginService {
         // max_health (e.g. swapping from a +HP origin to one without).
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
+        }
+        // KubeJS: centralized origin_changed fire — covers user picks, admin
+        // /set, /reset, and cascade invalidation. Fires whenever the layer's
+        // origin id transitions, including null↔value (first-pick / clear).
+        if (!java.util.Objects.equals(oldOriginId, newOriginId)) {
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireOriginChanged(
+                player, layerId, oldOriginId, newOriginId);
         }
     }
 }

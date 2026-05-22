@@ -51,7 +51,9 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
-        // Toggle off: if already riding, dismount
+        // Toggle off: if already riding, dismount.
+        // mountEnded is fired centrally by EntityMountEndMixin on
+        // removePassenger, which stopRiding triggers — no explicit fire here.
         if (player.isPassenger()) {
             player.stopRiding();
             player.setData(EntityAttachments.mountPosition(), "");
@@ -108,6 +110,8 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.mount.success", target.getName())
                 .withStyle(ChatFormatting.GREEN), true);
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireMountStarted(
+                player, living, config.mountPosition());
             return true;
         }
 
@@ -116,6 +120,8 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
+        // mountEnded is fired centrally by EntityMountEndMixin on
+        // removePassenger, which stopRiding triggers — no explicit fire here.
         if (player.isPassenger()) {
             player.stopRiding();
             player.setData(EntityAttachments.mountPosition(), "");

@@ -483,6 +483,11 @@ public final class NeoOriginsConfig {
         // ── Mount ──
         p("mount"); f("range", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); fi("hunger_cost", 0, 0, 100); fb("allow_players", true); fb("allow_mobs", true); fb("block_bosses", true); ep();
 
+        // ── KubeJS-defined custom powers ──
+        // Form-author fills in js_id (free text) to point at a JS-registered behavior.
+        p("js_custom"); ep();
+        p("js_active"); fi("cooldown_ticks", 20, 0, 72000); fi("hunger_cost", 0, 0, 100); ep();
+
         BUILDER.pop(); // power_overrides
     }
 

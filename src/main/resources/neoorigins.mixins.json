@@ -21,7 +21,8 @@
     "LivingEntityWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin",
     "LivingEntityUndeadPotionMixin",
-    "EntityMountPositionMixin"
+    "EntityMountPositionMixin",
+    "EntityMountEndMixin"
   ],
   "client": [
     "client.LightTextureMixin",

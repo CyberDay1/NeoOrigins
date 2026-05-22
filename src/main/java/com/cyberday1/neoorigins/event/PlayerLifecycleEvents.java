@@ -69,7 +69,17 @@ public class PlayerLifecycleEvents {
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
-        ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
+        // KubeJS power_tick: opt-in via hasListeners() — skip the per-power
+        // closure allocation entirely when nothing's listening to the
+        // high-frequency event.
+        boolean fireKubePowerTick =
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.powerTickHasListeners();
+        ActiveOriginService.forEach(sp, holder -> {
+            holder.onTick(sp);
+            if (fireKubePowerTick) {
+                com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerTick(sp, holder.id());
+            }
+        });
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
     }
