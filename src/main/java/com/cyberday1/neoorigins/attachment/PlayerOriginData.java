@@ -114,6 +114,16 @@ public class PlayerOriginData {
     ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats, kills, tier, abandoned) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
+        // Pre-v2.1.2 stored the canonical origin layer as "origins:origin".
+        // Forward-migrate to the new canonical "neoorigins:origin" so saved
+        // selections survive the rename; if both keys exist (re-pick on the
+        // new build before this load), the canonical entry wins.
+        ResourceLocation legacy = ResourceLocation.fromNamespaceAndPath("origins", "origin");
+        ResourceLocation canonical = ResourceLocation.fromNamespaceAndPath("neoorigins", "origin");
+        ResourceLocation legacyValue = data.origins.remove(legacy);
+        if (legacyValue != null && !data.origins.containsKey(canonical)) {
+            data.origins.put(canonical, legacyValue);
+        }
         data.hadAllOrigins = hadAll;
         data.grantedEquipmentPowers.addAll(equipment);
         data.shadowOrbs.addAll(orbs);

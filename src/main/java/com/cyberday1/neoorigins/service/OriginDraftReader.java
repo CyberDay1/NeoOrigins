@@ -23,8 +23,8 @@ import java.util.Map;
  *                layer file, not the origin body, so the caller MUST resolve
  *                and supply it — required, non-null. Passing null would
  *                silently retarget e.g. a {@code neoorigins:class} to
- *                {@code origins:origin} and the next Save would move it to the
- *                wrong layer file).
+ *                {@code neoorigins:origin} and the next Save would move it to
+ *                the wrong layer file).
  */
 public final class OriginDraftReader {
 
@@ -38,7 +38,7 @@ public final class OriginDraftReader {
                 "layerId is required — the caller must resolve the origin's "
                 + "layer membership (it lives in the layer file, not the "
                 + "origin body); null would silently retarget the draft to "
-                + "origins:origin");
+                + "neoorigins:origin");
         }
         OriginDraft d = new OriginDraft();
         d.idPath = idPath;

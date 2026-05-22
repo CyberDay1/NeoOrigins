@@ -304,7 +304,7 @@ public class PlayerLifecycleEvents {
 
     private static void assignAutoHuman(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
-        ResourceLocation originLayer = ResourceLocation.parse("origins:origin");
+        ResourceLocation originLayer = ResourceLocation.parse("neoorigins:origin");
         ResourceLocation humanOrigin = ResourceLocation.parse("neoorigins:human");
 
         if (!data.hasOriginForLayer(originLayer) && OriginDataManager.INSTANCE.hasOrigin(humanOrigin)) {
