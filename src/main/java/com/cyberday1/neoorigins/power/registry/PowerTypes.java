@@ -146,6 +146,9 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, CommandPackPower> COMMAND_PACK = reg("command_pack",  new CommandPackPower());
     public static final DeferredHolder<PowerType<?>, HordeRegenPower>  HORDE_REGEN  = reg("horde_regen",   new HordeRegenPower());
 
+    // --- Mounting ---
+    public static final DeferredHolder<PowerType<?>, MountPower>       MOUNT        = reg("mount",         new MountPower());
+
     // --- Active abilities ---
     // 2.0 consolidation: generic action-driven active ability. Legacy types below stay
     // registered during the deprecation window (see LegacyPowerTypeAliases).

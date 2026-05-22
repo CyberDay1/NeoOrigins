@@ -480,6 +480,9 @@ public final class NeoOriginsConfig {
         p("class_paladin_turn_undead"); fi("duration", 80, 0, 72000); fi("amplifier", 0, 0, 255); ep();
         p("class_paladin_beacon_regen");f("radius", 8.0, 0, 128); ep();
 
+        // ── Mount ──
+        p("mount"); f("range", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); fi("hunger_cost", 0, 0, 100); fb("allow_players", true); fb("allow_mobs", true); fb("block_bosses", true); ep();
+
         BUILDER.pop(); // power_overrides
     }
 
@@ -862,6 +865,37 @@ public final class NeoOriginsConfig {
     public static float oceanOriginsDrownDamage() {
         return OCEAN_ORIGINS_DROWN_DAMAGE.get().floatValue();
     }
+
+    // ── Mount Power ───────────────────────────────────────────────────────
+    // Consent mode for player-to-player mounting.
+
+    public enum ConsentMode { ALWAYS, PROMPT, TEAM }
+
+    public static final ModConfigSpec.EnumValue<ConsentMode> MOUNT_CONSENT_MODE;
+    public static final ModConfigSpec.IntValue MOUNT_REQUEST_TIMEOUT_SECONDS;
+
+    static {
+        BUILDER.comment(
+            "Mount power settings. Controls how player-to-player mounting",
+            "consent works. ALWAYS: mount any player without consent.",
+            "PROMPT: target must click [ACCEPT] or run /neoorigins mount accept.",
+            "TEAM: auto-allow if both players share a team (FTB Teams or",
+            "Open Parties and Claims); falls back to ALWAYS if no team mod is loaded."
+        ).push("mount");
+
+        MOUNT_CONSENT_MODE = BUILDER
+            .comment("Consent mode for mounting other players.")
+            .defineEnum("consent_mode", ConsentMode.ALWAYS);
+
+        MOUNT_REQUEST_TIMEOUT_SECONDS = BUILDER
+            .comment("Seconds before a mount request expires (only used in PROMPT mode).")
+            .defineInRange("request_timeout_seconds", 30, 5, 300);
+
+        BUILDER.pop();
+    }
+
+    public static ConsentMode mountConsentMode() { return MOUNT_CONSENT_MODE.get(); }
+    public static int mountRequestTimeoutSeconds() { return MOUNT_REQUEST_TIMEOUT_SECONDS.get(); }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
 
