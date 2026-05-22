@@ -55,7 +55,7 @@ public sealed interface OriginCondition {
             case "origins:origin", "apace:origin", "neoorigins:origin" -> {
                 Identifier layer = json.has("layer")
                     ? Identifier.parse(json.get("layer").getAsString())
-                    : Identifier.fromNamespaceAndPath("origins", "origin");
+                    : Identifier.fromNamespaceAndPath("neoorigins", "origin");
                 Identifier origin = json.has("origin")
                     ? Identifier.parse(json.get("origin").getAsString())
                     : null;

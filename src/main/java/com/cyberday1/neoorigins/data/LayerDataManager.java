@@ -48,8 +48,9 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
         scanConverterStacks(FILE_CONVERTER, resourceManager, map, false);
         // Compat format second — merges into existing layers
         scanConverterStacks(COMPAT_CONVERTER, resourceManager, map, true);
-        // Fold neoorigins:origin into origins:origin so all origins appear in one layer
-        mergeNeoOriginsIntoCompat(map);
+        // Fold origins:origin (Origins-mod compat packs) into our canonical
+        // neoorigins:origin so all origins appear in one layer.
+        mergeCompatOriginIntoNeo(map);
         // Fold any other <ns>:origin / <ns>:class layer into the canonical
         // destination, so a datapack that ships its own e.g. erin:origin layer
         // shows up in the main origin picker rather than as a third screen.
@@ -135,9 +136,9 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
      * a second screen for it. Pack authors set {@code "standalone": true}
      * on their layer JSON to opt out of this fold.
      *
-     * <p>Runs after {@link #mergeNeoOriginsIntoCompat}, so by this point
-     * {@code neoorigins:origin} has already been renamed to
-     * {@code origins:origin} (the canonical destination for "origin").
+     * <p>Runs after {@link #mergeCompatOriginIntoNeo}, so by this point any
+     * {@code origins:origin} compat-pack layer has already been folded into
+     * {@code neoorigins:origin} (the canonical destination for "origin").
      * The class layer stays at {@code neoorigins:class}.
      */
     private static void mergeForeignSamePathLayers(Map<Identifier, JsonObject> map) {
@@ -145,7 +146,7 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
         for (var entry : map.entrySet()) {
             Identifier id = entry.getKey();
             // Don't try to fold a canonical destination into itself
-            if (id.equals(ORIGINS_ORIGIN) || id.equals(NEO_CLASS)) continue;
+            if (id.equals(NEO_ORIGIN) || id.equals(NEO_CLASS)) continue;
             if (!AUTO_MERGE_PATHS.contains(id.getPath())) continue;
 
             JsonObject sourceObj = entry.getValue();
@@ -154,7 +155,7 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
                 continue;
             }
 
-            Identifier dest = "origin".equals(id.getPath()) ? ORIGINS_ORIGIN : NEO_CLASS;
+            Identifier dest = "origin".equals(id.getPath()) ? NEO_ORIGIN : NEO_CLASS;
             JsonObject destObj = map.get(dest);
             if (destObj == null) {
                 // No canonical destination — leave the foreign layer as-is so
@@ -191,20 +192,24 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
     }
 
     /**
-     * If both neoorigins:origin and origins:origin exist, merge the NeoOrigins
-     * base origins into the origins:origin layer so everything appears in one tab.
-     * If only neoorigins:origin exists (no compat packs), rename it to origins:origin.
+     * Canonical origin layer is {@code neoorigins:origin}; {@code origins:origin}
+     * is the legacy Origins-mod-format compat path. Fold any compat-pack
+     * {@code origins:origin} layer into our canonical {@code neoorigins:origin}
+     * so the merged content lives under one runtime layer id and the picker
+     * shows a single tab. If only the compat layer exists (e.g. a pack-only
+     * world with our own layer file missing), rename it to the canonical id
+     * so commands and tab-complete still surface a {@code neoorigins:origin}.
      */
-    private static void mergeNeoOriginsIntoCompat(Map<Identifier, JsonObject> map) {
-        JsonObject neo = map.get(NEO_ORIGIN);
-        if (neo == null) return;
+    private static void mergeCompatOriginIntoNeo(Map<Identifier, JsonObject> map) {
+        JsonObject compat = map.get(ORIGINS_ORIGIN);
+        if (compat == null) return;
 
-        if (map.containsKey(ORIGINS_ORIGIN)) {
-            mergeOrigins(map.get(ORIGINS_ORIGIN), neo);
+        if (map.containsKey(NEO_ORIGIN)) {
+            mergeOrigins(map.get(NEO_ORIGIN), compat);
         } else {
-            map.put(ORIGINS_ORIGIN, neo);
+            map.put(NEO_ORIGIN, compat);
         }
-        map.remove(NEO_ORIGIN);
+        map.remove(ORIGINS_ORIGIN);
     }
 
     @Override

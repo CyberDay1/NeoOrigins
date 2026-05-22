@@ -47,7 +47,7 @@ public final class OriginDraft {
 
     // ── Layer ───────────────────────────────────────────────────────────────
     /** Target layer; a class = an origin in the {@code neoorigins:class} layer. */
-    public Identifier layerId = Identifier.fromNamespaceAndPath("origins", "origin");
+    public Identifier layerId = Identifier.fromNamespaceAndPath("neoorigins", "origin");
 
     // ── Powers ──────────────────────────────────────────────────────────────
     public final List<PowerDraft> powers = new ArrayList<>();
