@@ -5,6 +5,79 @@
 
 ---
 
+## v2.1.2
+
+### KubeJS Integration
+
+Soft dependency on KubeJS 2101.7.x — when KubeJS is installed, pack
+authors can hook into origin and power lifecycle from JavaScript and
+register their own power behaviors without writing Java. When KubeJS
+is absent the mod runs unchanged (every fire site short-circuits on a
+single cached load check; no reflection, no class-not-found risk).
+
+> ℹ️ **1.21.1 build only for this release.** KubeJS hasn't published a
+> Minecraft 26.1 build yet, so the 26.1 jar ships without the
+> integration. It'll land on 26.1 the release after KubeJS cuts a
+> 2601.x build.
+
+- **15 events** covering origin lifecycle (chosen / changed),
+  power lifecycle (granted / revoked / activated / tick), evolution
+  (tier_changed / declined), mob origin (assigned / cleared), and
+  mount (requested / accepted / declined / started / ended). Fired from
+  central choke points so admin commands and cascade invalidations are
+  covered, not just user-driven paths. `power_tick` is gated by
+  `hasListeners()` so zero overhead when no script subscribes.
+- **`neoorigins:kubejs_callback` entity action** — JS-registered
+  `Consumer<ServerPlayer>` invokable by id from any action slot the DSL
+  already supports (`active_ability.on_use`, `action_on_event`,
+  `condition_passive`, `chance`, `choice`, …). Register via
+  `NeoOrigins.registerCallback('mypack:foo', player => { ... })`.
+- **JS-defined power types** — `neoorigins:js_custom` (passive,
+  `onGranted` / `onRevoked` / `onTick`) and `neoorigins:js_active`
+  (extends the AbstractActivePower contract, `onUse` returning a
+  boolean to consume cooldown/hunger). Register a handler object
+  literal — Rhino auto-adapts to the Java interface, missing hooks
+  default to no-ops.
+- **`mount_ended` covers all dismount paths** — vanilla sneak-dismount,
+  vehicle death, server stop, and force-mount swap all fire via an
+  `Entity#removePassenger` mixin, scoped to mounts created by our power
+  (non-empty `mountPosition` attachment) so vanilla horses don't trip
+  the event.
+- **Hot-reload safe** — `/kubejs reload` wipes registered callbacks
+  and JS power handlers via the plugin's `clearCaches` hook.
+
+### Mount Power
+
+New `neoorigins:mount` active power — ride any living entity, with a
+consent system for player-to-player mounts.
+
+- Raycast pickup with configurable range; press the keybind a second
+  time while riding to dismount.
+- **Player consent** with three modes: `ALWAYS` (immediate),
+  `TEAM` (immediate if same FTB Teams team or Open Parties & Claims
+  party — falls through to prompt otherwise), and `PROMPT` (chat
+  request with clickable `[ACCEPT]` / `[DECLINE]`, configurable
+  timeout). Configured under `[mount]` in `neoorigins-common.toml`.
+- **Mob mounts** — `allow_mobs` toggle, `block_bosses` flag to refuse
+  Wither / Ender Dragon, and a check that the target isn't already
+  carrying a passenger.
+- **`mount_position`** field — `centered` (default) or `shoulder`,
+  offsetting the passenger ~0.4 blocks to one side.
+- `/neoorigins mount accept` and `/neoorigins mount decline` resolve
+  pending prompts. Soft compat: FTB Teams and Open Parties & Claims
+  detection is gated behind the same load-check pattern as our other
+  compats, so neither mod is required.
+
+### Internal
+
+- **Origin layer canonicalized on `neoorigins:origin`.** The layer id
+  emitted for built-in origins is now namespaced under our mod
+  consistently instead of straddling `origins:origin` and
+  `neoorigins:origin`. Existing user packs that pin the old layer
+  continue to load through the compat translator.
+
+---
+
 ## v2.1.1
 
 ### Bug Fixes
