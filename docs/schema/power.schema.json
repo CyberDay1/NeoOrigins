@@ -228,6 +228,20 @@
       "required": ["type"]
     },
     {
+      "$comment": "neoorigins:mount",
+      "properties": {
+        "type": { "const": "neoorigins:mount" },
+        "range": { "type": "number", "exclusiveMinimum": 0 },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "allow_players": { "type": "boolean" },
+        "allow_mobs": { "type": "boolean" },
+        "block_bosses": { "type": "boolean" },
+        "mount_position": { "type": "string", "enum": ["centered", "shoulder"] }
+      },
+      "required": ["type"]
+    },
+    {
       "$comment": "neoorigins:edible_item",
       "properties": {
         "type": { "const": "neoorigins:edible_item" },

@@ -42,6 +42,14 @@ public class EntityAttachments {
                 .serialize(MobOriginData.CODEC)
                 .build());
 
+    /** Transient mount position for the mount power ("centered" or "shoulder").
+     *  Not serialized — cleared on dismount or server restart. Attached to the
+     *  passenger (rider) entity to inform the positionRider mixin. */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<String>> MOUNT_POSITION =
+        ATTACHMENT_TYPES.register("mount_position", () ->
+            AttachmentType.builder(() -> "")
+                .build());
+
     /** Per-chunk set of player-placed log positions. Attached to {@code ChunkAccess}
      *  (registry is type-agnostic; the chunk holder reads it via {@code getData}).
      *  Drives the player-placed-log exclusion in CropHarvestBonusPower (GitHub #91). */
@@ -65,6 +73,10 @@ public class EntityAttachments {
 
     public static AttachmentType<PlacedLogs> placedLogs() {
         return PLACED_LOGS.get();
+    }
+
+    public static AttachmentType<String> mountPosition() {
+        return MOUNT_POSITION.get();
     }
 
     public record MinionOwner(Optional<UUID> ownerUuid) {

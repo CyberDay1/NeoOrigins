@@ -395,6 +395,15 @@
     "max_tamed": "Max tamed mobs alive at once before taming is blocked.",
     "range": "Max distance in blocks to raycast for the mob to tame (default 16)."
   },
+  "neoorigins:mount": {
+    "range": "Max distance in blocks to raycast for the entity to mount (default 5).",
+    "cooldown_ticks": "Ticks before the mount ability can be reused (100 = 5s).",
+    "hunger_cost": "Hunger consumed each time an entity is mounted.",
+    "allow_players": "Whether this power can mount other players (default true).",
+    "allow_mobs": "Whether this power can mount mobs (default true).",
+    "block_bosses": "Prevent mounting boss mobs like the Ender Dragon or Wither (default true).",
+    "mount_position": "Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side)."
+  },
   "neoorigins:tamed_animal_boost": {
     "health_bonus": "Flat max-health added to your tamed animals (half-hearts; default 4).",
     "radius": "Block radius around the player scanned for tamed animals (default 32).",
