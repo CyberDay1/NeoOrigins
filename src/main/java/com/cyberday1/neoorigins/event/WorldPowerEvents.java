@@ -99,7 +99,7 @@ public class WorldPowerEvents {
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
         Mob mob = event.getEntity();
         for (ServerPlayer sp : sl.players()) {
-            ActiveOriginService.forEachOfType(sp, NoMobSpawnsNearbyPower.class, cfg -> {
+            ActiveOriginService.forEachOfTypeActive(sp, NoMobSpawnsNearbyPower.class, cfg -> {
                 if (sp.distanceTo(mob) <= cfg.radius() && matchesSpawnCategory(cfg, mob)) {
                     event.setSpawnCancelled(true);
                 }
