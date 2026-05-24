@@ -60,7 +60,7 @@ public class OriginInfoScreen extends Screen {
             if (originId == null) continue;
             Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
             if (origin == null) continue;
-            String layerName = getLayerDisplayName(layer.id());
+            String layerName = getLayerDisplayName(layer);
             tabs.add(new TabEntry(layer.id(), layerName, OriginDetailViewModel.compute(originId)));
         }
 
@@ -75,7 +75,14 @@ public class OriginInfoScreen extends Screen {
         updateDetail();
     }
 
-    private String getLayerDisplayName(ResourceLocation layerId) {
+    private String getLayerDisplayName(com.cyberday1.neoorigins.api.origin.OriginLayer layer) {
+        // Prefer the explicit "name" field from the layer JSON — this is what
+        // pack authors set as the user-facing label. Only fall back to the
+        // translation key / capitalized path if the layer somehow has a blank
+        // name (defensive — codec marks name mandatory).
+        String fromField = layer.name().getString();
+        if (fromField != null && !fromField.isBlank()) return fromField;
+        ResourceLocation layerId = layer.id();
         String key = "origins.layer." + layerId.getPath();
         Component c = Component.translatable(key);
         String resolved = c.getString();

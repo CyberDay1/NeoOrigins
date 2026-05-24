@@ -161,7 +161,11 @@ public class OriginEditorScreen extends Screen {
             if (layer.hidden()) continue;
             if (y + ROW_H > layersBottom) break;
             ResourceLocation layerId = layer.id();
-            String layerName = layerId.getPath();
+            // Prefer the explicit "name" field from layer JSON (the pack-author
+            // label) over the raw path. Falls back to the path if name is blank.
+            String fromField = layer.name().getString();
+            String layerName = (fromField != null && !fromField.isBlank())
+                ? fromField : layerId.getPath();
             String originName;
             ResourceLocation originId = origins.get(layerId);
             if (originId != null) {
