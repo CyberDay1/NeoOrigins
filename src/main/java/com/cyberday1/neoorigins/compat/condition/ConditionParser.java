@@ -57,6 +57,7 @@ public final class ConditionParser {
         "neoorigins:fall_distance", "neoorigins:fall_flying", "neoorigins:fluid_height",
         "neoorigins:food_item_id", "neoorigins:food_item_in_tag", "neoorigins:food_level",
         "neoorigins:from_explosion", "neoorigins:from_fire", "neoorigins:from_projectile",
+        "neoorigins:saturation_level",
         "neoorigins:has_effect", "neoorigins:health", "neoorigins:height",
         "neoorigins:hit_taken_amount", "neoorigins:in_block", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
@@ -74,7 +75,7 @@ public final class ConditionParser {
         "neoorigins:target_type", "neoorigins:temperature", "neoorigins:thundering",
         "neoorigins:ticking", "neoorigins:time_of_day", "neoorigins:using_item",
         "neoorigins:water", "neoorigins:weather", "neoorigins:xp_level",
-        "neoorigins:xp_points");
+        "neoorigins:xp_levels", "neoorigins:xp_points");
 
     private static final EquipmentSlot[] EQUIPMENT_SLOTS = EquipmentSlot.values();
 
@@ -191,6 +192,7 @@ public final class ConditionParser {
                 case "neoorigins:biome"                         -> parseBiome(json);
                 case "neoorigins:in_tag"                        -> parseInTag(json);
                 case "neoorigins:food_level", "neoorigins:food" -> parseFoodLevel(json);
+                case "neoorigins:saturation_level"              -> parseSaturationLevel(json);
                 case "neoorigins:submerged_in"                  -> parseSubmergedIn(json);
                 case "neoorigins:on_fire", "neoorigins:fire"    -> p -> p.isOnFire();
                 case "neoorigins:equipped_item"                 -> parseEquippedItem(json, contextId);
@@ -225,7 +227,8 @@ public final class ConditionParser {
                 // ---- Phase 0 consolidation: new verbs ----
                 case "neoorigins:time_of_day"                   -> parseTimeOfDay(json);
                 case "neoorigins:weather"                       -> parseWeather(json);
-                case "neoorigins:xp_level"                      -> parseXpLevel(json);
+                case "neoorigins:xp_level",
+                     "neoorigins:xp_levels"                     -> parseXpLevel(json);
                 case "neoorigins:xp_points"                     -> parseXpPoints(json);
                 case "neoorigins:moon_phase"                    -> parseMoonPhase(json);
 
@@ -541,6 +544,17 @@ public final class ConditionParser {
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> comparison.test(player.getFoodData().getFoodLevel(), target);
+    }
+
+    /**
+     * Apoli's {@code origins:saturation_level} — tests against the float
+     * saturation value (vanilla range 0..20, soft-capped to the hunger level).
+     */
+    private static EntityCondition parseSaturationLevel(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return player -> comparison.test(player.getFoodData().getSaturationLevel(), target);
     }
 
     private static EntityCondition parseSubmergedIn(JsonObject json) {
