@@ -1,9 +1,0 @@
-{
-  "type": "neoorigins:persistent_effect",
-  "effects": [
-    { "effect": "minecraft:strength",        "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": true },
-    { "effect": "minecraft:speed",           "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": true },
-    { "effect": "minecraft:fire_resistance", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": true },
-    { "effect": "minecraft:glowing",         "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": true }
-  ]
-}
