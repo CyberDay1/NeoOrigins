@@ -1737,8 +1737,8 @@ public final class ActionParser {
     }
 
     private static EntityAction failNoop(String type, String contextId, String detail) {
-        NeoOrigins.LOGGER.warn("[CompatB] action '{}' in {} defaulted to no-op: {}",
-            type, contextId, detail);
+        com.cyberday1.neoorigins.compat.CompatWarningCollector
+            .recordUnsupportedAction(type, contextId, detail);
         final String finalType = type;
         final String finalContextId = contextId;
         return player -> {

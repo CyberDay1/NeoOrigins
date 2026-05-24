@@ -50,12 +50,14 @@ public final class ItemActionParser {
                 case "neoorigins:damage"     -> parseDamage(json);
                 case "neoorigins:set_count"  -> parseSetCount(json);
                 default -> {
-                    NeoOrigins.LOGGER.debug("[CompatB] item_action unsupported type '{}' — no-op", type);
+                    com.cyberday1.neoorigins.compat.CompatWarningCollector
+                        .recordItemActionUnsupported(type);
                     yield ItemAction.noop();
                 }
             };
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] item_action parse error ({}): {}", type, e.getMessage());
+            com.cyberday1.neoorigins.compat.CompatWarningCollector
+                .recordItemActionParseError(type, e.getMessage());
             return ItemAction.noop();
         }
     }
@@ -112,7 +114,8 @@ public final class ItemActionParser {
             // 26.1: TagParser.parseTag is gone; use parseCompoundFully.
             tagToMerge = TagParser.parseCompoundFully(snbt);
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] merge_nbt: malformed SNBT '{}' — no-op", snbt);
+            com.cyberday1.neoorigins.compat.CompatWarningCollector
+                .recordSnbtMalformed("merge_nbt", snbt);
             return ItemAction.noop();
         }
         return stack -> {

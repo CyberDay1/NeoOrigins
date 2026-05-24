@@ -46,13 +46,14 @@ public final class ModifierParser {
                 case "min_total"                                 -> base -> Math.min(base, value);
                 case "max_total"                                 -> base -> Math.max(base, value);
                 default -> {
-                    NeoOrigins.LOGGER.warn("[CompatB] modifier '{}' in {} defaulted to identity",
-                        op, contextId);
+                    com.cyberday1.neoorigins.compat.CompatWarningCollector
+                        .recordModifierDefault(op, contextId);
                     yield FloatModifier.identity();
                 }
             };
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] modifier parse error in {}: {}", contextId, e.getMessage());
+            com.cyberday1.neoorigins.compat.CompatWarningCollector
+                .recordModifierParseError(contextId, e.getMessage());
             return FloatModifier.identity();
         }
     }
