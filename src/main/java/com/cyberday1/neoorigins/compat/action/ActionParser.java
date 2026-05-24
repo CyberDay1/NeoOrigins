@@ -53,7 +53,7 @@ public final class ActionParser {
         "neoorigins:play_sound", "neoorigins:pull_entities", "neoorigins:random_teleport",
         "neoorigins:raycast", "neoorigins:remove_from_set", "neoorigins:revoke_power",
         "neoorigins:set_block", "neoorigins:set_fall_distance", "neoorigins:set_on_fire",
-        "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
+        "neoorigins:set_resource", "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
         "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",
         "neoorigins:spawn_projectile", "neoorigins:spawn_tornado",
         "neoorigins:swap_with_entity", "neoorigins:swing_hand", "neoorigins:target_action",
@@ -93,6 +93,7 @@ public final class ActionParser {
                 case "neoorigins:exhaust"                       -> parseExhaust(json);
                 case "neoorigins:change_resource",
                      "neoorigins:modify_resource"               -> parseChangeResource(json);
+                case "neoorigins:set_resource"                  -> parseSetResource(json);
                 case "neoorigins:nothing"                       -> EntityAction.noop();
 
                 // ---- Phase 2: New actions ----
@@ -804,6 +805,15 @@ public final class ActionParser {
                 player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
             };
         };
+    }
+
+    private static EntityAction parseSetResource(JsonObject json) {
+        String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
+        if (resourceId == null) return EntityAction.noop();
+        int value = json.has("value") ? json.get("value").getAsInt()
+                   : json.has("change") ? json.get("change").getAsInt() : 0;
+        final String key = resourceId;
+        return player -> player.getData(CompatAttachments.resourceState()).set(key, value);
     }
 
     // ---- Phase 2: New action parsers ----
