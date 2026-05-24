@@ -1486,8 +1486,8 @@ public final class ConditionParser {
     }
 
     private static EntityCondition failClosed(String type, String contextId, String detail) {
-        NeoOrigins.LOGGER.warn("[CompatB] condition '{}' in {} failed closed: {}",
-            type, contextId, detail);
+        com.cyberday1.neoorigins.compat.CompatWarningCollector
+            .recordUnsupportedCondition(type, contextId, detail);
         CompatPolicy.recordFailClosed();
         return CompatPolicy.FALSE_CONDITION;
     }

@@ -136,6 +136,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> data, ResourceManager rm, ProfilerFiller profiler) {
+        // Open a warning-collection session so parser failures dedupe into a
+        // single summary block instead of one WARN per occurrence. Closed
+        // (and the summary emitted) at the bottom of this method, with a
+        // try/finally fallback so a mid-loop throw can't leak the session.
+        CompatWarningCollector.beginSession();
+        try {
+
         // Clear event power state from the previous reload cycle
         CompatPlayerState.clearAll();
         ModifyCraftingRegistry.clearAll();
@@ -189,7 +196,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             } catch (Exception e) {
                 String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                NeoOrigins.LOGGER.warn("[CompatB] Failed to load {} ({}): {}", id, type, reason);
+                CompatWarningCollector.recordPowerCompileFailure(id.toString(), type, reason);
                 CompatTranslationLog.fail(id, type + ": " + reason);
             }
         }
@@ -213,7 +220,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         injectWellKnownPowers(injected);
 
         PowerDataManager.INSTANCE.injectExternalPowers(injected);
+        // Flush the deduplicated parser-warning summary (if anything was
+        // collected) before the final injection-count line so the summary
+        // appears immediately above it in the log.
+        CompatWarningCollector.emitSummaryAndEndSession();
         NeoOrigins.LOGGER.info("[CompatB] Injected {} Route B powers", injected.size());
+        } finally {
+            // Defensive: if anything above threw, the session is still open
+            // and would silently swallow warnings for the rest of the JVM.
+            // Close it (no-op if already closed by the normal path).
+            if (CompatWarningCollector.isSessionActive()) {
+                CompatWarningCollector.emitSummaryAndEndSession();
+            }
+        }
     }
 
     /**

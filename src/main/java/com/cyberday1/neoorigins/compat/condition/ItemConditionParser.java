@@ -82,12 +82,14 @@ public final class ItemConditionParser {
                         TagKey<Item> tag = TagKey.create(Registries.ITEM, ResourceLocation.parse(json.get("tag").getAsString()));
                         yield s -> !s.isEmpty() && s.is(tag);
                     }
-                    NeoOrigins.LOGGER.debug("[CompatB] item_condition unsupported type '{}' — defaults to true", type);
+                    com.cyberday1.neoorigins.compat.CompatWarningCollector
+                        .recordItemConditionUnsupported(type);
                     yield ItemCondition.alwaysTrue();
                 }
             };
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] item_condition parse error ({}): {}", type, e.getMessage());
+            com.cyberday1.neoorigins.compat.CompatWarningCollector
+                .recordItemConditionParseError(type, e.getMessage());
             return ItemCondition.alwaysFalse();
         }
     }
@@ -131,7 +133,8 @@ public final class ItemConditionParser {
         try {
             expected = TagParser.parseTag(snbt);
         } catch (Exception e) {
-            NeoOrigins.LOGGER.warn("[CompatB] item_condition.nbt: malformed SNBT '{}' — fails closed", snbt);
+            com.cyberday1.neoorigins.compat.CompatWarningCollector
+                .recordSnbtMalformed("item_condition.nbt", snbt);
             return ItemCondition.alwaysFalse();
         }
         return s -> {
