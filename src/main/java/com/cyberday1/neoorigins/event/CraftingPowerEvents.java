@@ -93,11 +93,9 @@ public class CraftingPowerEvents {
 
         // Add +1 nutrition (hunger bar) alongside the saturation bonus
         int bonusNutrition = 1;
-        FoodProperties.Builder builder = new FoodProperties.Builder()
-            .nutrition(food.nutrition() + bonusNutrition)
-            .saturationModifier(food.saturation() + satBonus);
-        if (food.canAlwaysEat()) builder.alwaysEdible();
-        result.set(DataComponents.FOOD, builder.build());
+        result.set(DataComponents.FOOD, rebuildFood(food,
+            food.nutrition() + bonusNutrition,
+            food.saturation() + satBonus));
     }
 
     /**
@@ -111,12 +109,40 @@ public class CraftingPowerEvents {
         ActiveOriginService.forEachOfType(sp, MoreSmokerXpPower.class, config -> {
             int bonusNutrition = Math.round(config.multiplier());
             if (bonusNutrition <= 0) return;
-            FoodProperties.Builder builder = new FoodProperties.Builder()
-                .nutrition(food.nutrition() + bonusNutrition)
-                .saturationModifier(food.saturation() + config.multiplier() * 0.25f);
-            if (food.canAlwaysEat()) builder.alwaysEdible();
-            result.set(DataComponents.FOOD, builder.build());
+            // forEachOfType iterates the current food snapshot — re-read in case
+            // boostFoodIfCook already rebuilt FOOD on this stack.
+            FoodProperties current = result.get(DataComponents.FOOD);
+            if (current == null) return;
+            result.set(DataComponents.FOOD, rebuildFood(current,
+                current.nutrition() + bonusNutrition,
+                current.saturation() + config.multiplier() * 0.25f));
         });
+    }
+
+    /**
+     * Rebuild {@link FoodProperties} with a new nutrition/saturation pair while
+     * preserving every other field on the source (eatSeconds, usingConvertsTo,
+     * effects, canAlwaysEat). The builder starts blank so each field must be
+     * copied explicitly — otherwise eaten food forgets its potion effects
+     * (suspicious stew, golden apple), eats at the wrong speed, etc.
+     */
+    private static FoodProperties rebuildFood(FoodProperties source, int nutrition, float saturation) {
+        // Builder only exposes a subset of fields and would otherwise drop
+        // eatSeconds / usingConvertsTo / effects. Build a baseline, then
+        // copy through the remaining fields via direct record construction.
+        FoodProperties.Builder b = new FoodProperties.Builder()
+            .nutrition(nutrition)
+            .saturationModifier(saturation);
+        if (source.canAlwaysEat()) b.alwaysEdible();
+        FoodProperties built = b.build();
+        return new FoodProperties(
+            built.nutrition(),
+            built.saturation(),
+            built.canAlwaysEat(),
+            source.eatSeconds(),
+            source.usingConvertsTo(),
+            source.effects()
+        );
     }
 
     /**
