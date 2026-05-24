@@ -246,7 +246,7 @@
   },
   "neoorigins:no_mob_spawns_nearby": {
     "categories": "Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).",
-    "radius": "Block radius around the player where natural spawning is suppressed (default 48)."
+    "radius": "Block radius around the player where natural spawning is suppressed (default 24). Vanilla already blocks MONSTER-category natural spawns within 24 blocks of any player, so use a value above 24 to extend the safe zone meaningfully."
   },
   "neoorigins:no_slowdown": {
     "block_tag": "Block tag to limit slowdown immunity to; omit for immunity to all slowdown."
