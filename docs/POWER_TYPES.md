@@ -1141,17 +1141,17 @@ Suppresses mob spawns within a radius of the player. Toggleable — the player c
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `radius` | int | no | `48` | Radius in blocks within which spawns are suppressed |
+| `radius` | int | no | `24` | Radius in blocks within which spawns are suppressed. Note: vanilla already blocks `MONSTER`-category natural spawns within 24 blocks of any player (`NaturalSpawner`); use a value above 24 to extend the safe zone meaningfully. |
 | `categories` | list of string | no | `["monster"]` | Spawn categories to suppress: `monster`, `creature`, `ambient`, `water_creature`, or `all` |
 
-**Example — suppress hostile spawns in a 48-block radius:**
+**Example — suppress hostile spawns in a 36-block radius:**
 ```json
 {
   "type": "neoorigins:no_mob_spawns_nearby",
-  "radius": 48,
+  "radius": 36,
   "categories": ["monster"],
   "name": "Warding Presence",
-  "description": "Hostile mobs don't spawn within 48 blocks. Toggle with skill key."
+  "description": "Hostile mobs don't spawn within 36 blocks. Toggle with skill key."
 }
 ```
 
