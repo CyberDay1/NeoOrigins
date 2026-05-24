@@ -99,7 +99,7 @@ public class WorldPowerEvents {
         Mob mob = event.getEntity();
         if (mob.getType().getCategory() != MobCategory.MONSTER) return;
         for (ServerPlayer sp : sl.players()) {
-            ActiveOriginService.forEachOfType(sp, NoMobSpawnsNearbyPower.class, cfg -> {
+            ActiveOriginService.forEachOfTypeActive(sp, NoMobSpawnsNearbyPower.class, cfg -> {
                 if (sp.distanceTo(mob) <= cfg.radius() && matchesSpawnCategory(cfg, mob)) {
                     event.setSpawnCancelled(true);
                 }

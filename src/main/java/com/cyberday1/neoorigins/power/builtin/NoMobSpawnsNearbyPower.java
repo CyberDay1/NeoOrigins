@@ -18,7 +18,7 @@ public class NoMobSpawnsNearbyPower extends AbstractTogglePower<NoMobSpawnsNearb
 
     public record Config(int radius, List<String> categories, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.INT.optionalFieldOf("radius", 48).forGetter(Config::radius),
+            Codec.INT.optionalFieldOf("radius", 24).forGetter(Config::radius),
             Codec.STRING.listOf().optionalFieldOf("categories", List.of("monster")).forGetter(Config::categories),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));

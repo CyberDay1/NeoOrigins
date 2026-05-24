@@ -163,6 +163,31 @@ public final class ActiveOriginService {
         }
     }
 
+    /**
+     * Like {@link #forEachOfType}, but skips holders whose type extends
+     * {@link com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower}
+     * and is currently toggled off for this player.
+     *
+     * <p>Event handlers (e.g. spawn cancellation, hit modifiers) reading
+     * toggleable powers must use this variant — only {@code onTick} honors the
+     * toggle automatically; everywhere else has to gate itself. Without this,
+     * the player toggles "off", the keybind says "Power disabled", but the
+     * event handler keeps applying the effect.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static <C extends PowerConfiguration, T extends PowerType<C>>
+    void forEachOfTypeActive(ServerPlayer player, Class<T> typeClass, Consumer<C> action) {
+        for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
+            if (!typeClass.isInstance(holder.type())) continue;
+            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
+                    && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
+                            .isToggledOff(player, holder.config())) {
+                continue;
+            }
+            action.accept((C) holder.config());
+        }
+    }
+
     /** Returns true if the player has a power of the given type satisfying the predicate. */
     @SuppressWarnings("unchecked")
     public static <C extends PowerConfiguration, T extends PowerType<C>>
