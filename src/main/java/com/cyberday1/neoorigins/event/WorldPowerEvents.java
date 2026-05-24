@@ -59,14 +59,25 @@ public class WorldPowerEvents {
             return;
         }
 
-        if (ActiveOriginService.has(sp, MobsIgnorePlayerPower.class,
-                cfg -> cfg.entityTypes().isEmpty()
-                    || cfg.entityTypes().stream().anyMatch(id ->
-                        com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
+        // MobsIgnorePlayer matches when (a) the mob type is in entity_types
+        // (or entity_types is empty = match-all) and (b) either passive=true
+        // OR the player hasn't recently hit this mob. We capture whether any
+        // matching config is passive so the retaliation-window decision below
+        // can honor it.
+        boolean[] passiveMatch = {false};
+        boolean matched = ActiveOriginService.has(sp, MobsIgnorePlayerPower.class, cfg -> {
+            boolean typeMatch = cfg.entityTypes().isEmpty()
+                || cfg.entityTypes().stream().anyMatch(id ->
+                    com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id));
+            if (typeMatch && cfg.passive()) passiveMatch[0] = true;
+            return typeMatch;
+        });
+        if (matched) {
             // Retaliation window: if the player recently hit this mob, allow
-            // targeting so the mob can fight back. Vanilla clears
-            // getLastHurtByMob() on its own timer; we just defer to it.
-            if (event.getEntity().getLastHurtByMob() == sp) return;
+            // targeting so the mob can fight back — UNLESS the matching
+            // config has passive=true, which makes the ignore unconditional.
+            // Vanilla clears getLastHurtByMob() on its own timer.
+            if (!passiveMatch[0] && event.getEntity().getLastHurtByMob() == sp) return;
             event.setCanceled(true);
             return;
         }
