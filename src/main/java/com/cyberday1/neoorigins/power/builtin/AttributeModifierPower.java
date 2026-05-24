@@ -358,6 +358,23 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
                 return new ResolvedAttribute(stripped, BuiltInRegistries.ATTRIBUTE.wrapAsHolder(holder.get()));
             }
         }
+
+        // NeoForge-added attributes (entity_reach, block_reach, ...) live under
+        // the `neoforge:` namespace, but legacy Forge-era packs still write
+        // `forge:`. Re-try the same prefix combinations under neoforge: before
+        // giving up.
+        if ("forge".equals(raw.getNamespace())) {
+            String basePath = path.startsWith("generic.") || path.startsWith("player.")
+                ? path.substring(path.indexOf('.') + 1)
+                : path;
+            for (String candidatePath : new String[] { basePath, "generic." + basePath, "player." + basePath }) {
+                ResourceLocation rebrand = ResourceLocation.fromNamespaceAndPath("neoforge", candidatePath);
+                holder = BuiltInRegistries.ATTRIBUTE.getOptional(rebrand);
+                if (holder.isPresent()) {
+                    return new ResolvedAttribute(rebrand, BuiltInRegistries.ATTRIBUTE.wrapAsHolder(holder.get()));
+                }
+            }
+        }
         return null;
     }
 
