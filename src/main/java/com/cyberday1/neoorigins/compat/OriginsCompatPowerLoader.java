@@ -273,7 +273,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:pumpkin_hate",         () -> json("neoorigins:restrict_armor", "armor_class", "pumpkin")),
             Map.entry("origins:hotblooded",           () -> json("neoorigins:effect_immunity")),
             Map.entry("origins:water_vulnerability",  () -> json("neoorigins:condition_passive")),
-            Map.entry("origins:flame_particles",      () -> json("neoorigins:particle")),
+            Map.entry("origins:flame_particles",      () -> json("neoorigins:particle", "particle", "minecraft:flame")),
             Map.entry("origins:nether_spawn",         () -> json("neoorigins:spawn_location"))
         );
 
