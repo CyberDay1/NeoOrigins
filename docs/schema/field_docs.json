@@ -212,7 +212,8 @@
     "threshold": "Health fraction below which the effects activate (0.5 = 50%; default 0.5)."
   },
   "neoorigins:mobs_ignore_player": {
-    "entity_types": "Entity ids or #tags of mobs that never aggro or target this player."
+    "entity_types": "Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob.",
+    "passive": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit)."
   },
   "neoorigins:model_color": {
     "alpha": "Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).",

@@ -1101,19 +1101,33 @@ Ignites the player when their HP drops below a percentage of their maximum healt
 
 ## `neoorigins:mobs_ignore_player`
 
-Causes specific mob types to passively ignore the player unless provoked.
+Causes specific mob types to ignore the player. By default a retaliation
+window applies — once the player hits the mob, the mob may target back
+briefly. Set `passive: true` to make the ignore unconditional.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_types` | list of Identifier | no | `[]` | Entity types that will ignore the player. When empty, all hostile mobs ignore. |
+| `entity_types` | list of Identifier or `#tag` | no | `[]` | Entity types that will ignore the player. Accepts raw ids (`"minecraft:zombie"`) and tag references (`"#minecraft:skeletons"`). When empty, every mob ignores. |
+| `passive` | bool | no | `false` | When true, the ignore is unconditional — even attacking the mob does not provoke retaliation. |
 
-**Example — only creepers ignore:**
+**Example — only creepers ignore (with retaliation):**
 ```json
 {
   "type": "neoorigins:mobs_ignore_player",
   "entity_types": ["minecraft:creeper"],
   "name": "Creeper Affinity",
   "description": "Creepers ignore you unless attacked."
+}
+```
+
+**Example — unprovokable peace with every skeleton (tag + passive):**
+```json
+{
+  "type": "neoorigins:mobs_ignore_player",
+  "entity_types": ["#minecraft:skeletons"],
+  "passive": true,
+  "name": "Bonewalker",
+  "description": "Skeletons never see you as a threat, no matter what you do."
 }
 ```
 
