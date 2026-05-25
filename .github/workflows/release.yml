@@ -17,6 +17,11 @@ on:
         description: 'Release changelog (markdown)'
         required: true
         default: 'No changelog provided.'
+      skip_26_1_publish:
+        description: 'Skip the 26.1 platform publish (for 1.21.1-only re-runs after a partial release)'
+        required: false
+        type: boolean
+        default: false
 
 # Post-Stonecutter layout (2026-04):
 #   - `master` branch builds a single jar at `build/libs/` for MC
@@ -177,11 +182,18 @@ jobs:
       # changelog fields (CurseForge, Modrinth, the GitHub Release body).
       - name: Determine changelog
         id: notes
+        # Pass the workflow_dispatch changelog input through an env var so
+        # bash never reparses it. Inlining `${{ inputs.changelog }}` directly
+        # in the run block injects raw markdown into the shell script —
+        # backticks in code spans (`foo()`) get treated as command
+        # substitution and exit 127 (caught at v2.1.3 re-trigger).
+        env:
+          INPUT_CHANGELOG: ${{ github.event.inputs.changelog }}
         run: |
           TAG="${{ steps.version.outputs.tag }}"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            CHANGELOG="${{ github.event.inputs.changelog }}"
+            CHANGELOG="$INPUT_CHANGELOG"
           else
             # Make sure the tag ref is available locally even if
             # fetch-depth didn't grab it for some reason.
@@ -254,7 +266,7 @@ jobs:
       # both platforms in a single step.
 
       - name: Publish MC 26.1.x jar (CurseForge + Modrinth)
-        if: vars.CURSEFORGE_PROJECT_ID != '' || vars.MODRINTH_PROJECT_ID != ''
+        if: (vars.CURSEFORGE_PROJECT_ID != '' || vars.MODRINTH_PROJECT_ID != '') && inputs.skip_26_1_publish != true
         continue-on-error: true
         uses: Kir-Antipov/mc-publish@v3.3
         with:
