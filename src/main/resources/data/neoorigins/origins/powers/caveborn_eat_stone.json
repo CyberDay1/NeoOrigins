@@ -14,5 +14,5 @@
   ],
   "nutrition": 2,
   "saturation": 0.4,
-  "always_edible": true
+  "always_edible": false
 }
