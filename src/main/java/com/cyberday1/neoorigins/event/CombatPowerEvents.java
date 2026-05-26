@@ -237,11 +237,20 @@ public class CombatPowerEvents {
 
         if (!event.isCanceled()) {
             float amount = event.getAmount();
-            ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
+            // Publish the HitTakenContext to ActionContextHolder so any
+            // bi-entity actions parsed in OriginsCompatPowerLoader.parseSelfActionWhenHit
+            // can read source.getEntity() back from inside CompatPower.onHit.
+            var hitCtx = new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource());
+            Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(hitCtx);
+            try {
+                ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
+            } finally {
+                com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
+            }
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.HIT_TAKEN,
-                new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource()));
+                hitCtx);
             // thorns_aura moved to action_on_event with a damage_attacker
             // entity_action (reads HitTakenContext.amount × amount_ratio).
             // The HIT_TAKEN dispatch above runs any such powers.
