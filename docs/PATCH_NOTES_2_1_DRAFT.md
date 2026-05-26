@@ -5,6 +5,82 @@
 
 ---
 
+## v2.1.4
+
+### Bug Fixes
+
+- **`origins:exhaust` drained hunger ~268× the intended amount.** The
+  legacy compat translator routed `origins:exhaust` to a Route A food
+  modifier with `op: "set"`, and `ModifyFoodRegistry` re-applies that
+  modifier on every food refill — so each bite of food re-stamped the
+  exhaustion value instead of ticking it once per interval. Moved to
+  Route B (`parseExhaust`): ticks `player.causeFoodExhaustion(amount)`
+  on a hashed offset of the configured `interval` so the cost lands
+  exactly once per period regardless of food intake. `condition` block
+  honored. Accepts both `exhaustion` and `amount` for the field name.
+- **`effect_immunity` ids without a namespace silently mismatched the
+  effect registry.** Pack authors writing `"wither"` (Apoli-style
+  unqualified id) didn't equal `MobEffect`'s registered
+  `"minecraft:wither"`, so the immunity check looked up the wrong key
+  and the player still took the effect. `translateEffectImmunity` now
+  routes every id through a `canonicalizeEffectId` helper that prepends
+  `minecraft:` when the namespace is missing.
+- **`origins:self_action_when_hit` ignored `bientity_action`, `cooldown`,
+  and `condition`.** The Route B parser only parsed `entity_action`,
+  so packs porting Apoli's `bientity_action` shape (where the action
+  needs the attacker reference) silently lost their behavior, and the
+  cooldown/condition gates were dropped. New
+  `BiEntityAction` + `BiEntityActionParser` covers `damage`,
+  `add_velocity`, `apply_mob_effect`, `set_on_fire`, and `invert`.
+  `parseSelfActionWhenHit` now wires cooldown + condition;
+  `CombatPowerEvents` publishes the active `HitTakenContext` to
+  `ActionContextHolder` around the `onHit` dispatch so the bi-entity
+  lambda can resolve `target = source.getEntity()` without re-traversing
+  the event.
+- **`origins:modify_jump`'s `entity_action` was parsed but never fired.**
+  The field was read into a local variable and immediately thrown
+  away — so Apoli-style jump-velocity boosts, "explode on jump", or
+  any other configured action silently no-op'd, leaving the power as
+  a plain attribute modifier. New `JumpActionRegistry` stores the
+  parsed action on grant; `JumpEventHandler` fires it from
+  `LivingJumpEvent` (server players only). Cleaned up on logout and
+  on power revoke.
+- **`origins:recipe` couldn't carry an inline recipe body** (1.21.1 only).
+  Pack authors had to ship a separate `data/<ns>/recipe/...json` file
+  even when the recipe was Origins-specific and only used by one
+  power. `parseRecipe` now also accepts an inline JSON object in
+  the `recipe` field; `InlineRecipeRegistry` collects pending bodies
+  during the datapack reload and injects them via
+  `RecipeManager#replaceRecipes` on `OnDatapackSyncEvent`. Caveat:
+  the resulting recipe is globally craftable — the inline form only
+  controls recipe-book visibility, not the craft gate. The 26.1 jar
+  doesn't ship this: `RecipeManager` on 26.1 stores recipes in an
+  immutable `RecipeMap` with no `replaceRecipes` hook, so inline
+  bodies log a one-shot warning and are skipped there. String-id
+  pointers in the `recipe` field continue to work on both branches.
+- **`PreventActionPower`'s SWIM and ELYTRA enforcement was a no-op.**
+  Holder dispatch fires from `PlayerLifecycleEvents.onPlayerTick` on
+  the `.Pre` phase, but vanilla's `LivingEntity#travel()` and
+  swim-flag update run *after* the .Pre tick the same frame and
+  overwrite anything we reset — so Earth Mage's "can't swim" ability
+  was setting `swimming = false` only to have vanilla immediately set
+  it back to true. Moved SWIM/ELYTRA enforcement out of `onTick` into
+  a new `PreventActionPostTickHandler` subscribed to
+  `PlayerTickEvent.Post`, which runs after vanilla physics. FIRE
+  fire-tick clearing stays on `onTick` since it's not state vanilla
+  touches the same tick.
+- **Compat raycast lacked `shape_type` and along-ray actions** (1.21.1
+  only). `parseRaycast` only supported a point-hit `command`/
+  `entity_action`/`block_action` triple — packs that wanted to scan
+  voxel space (e.g. fire-along-ray, glow-trace) had no way to express
+  it. Added `shape_type` (`collider` / `visual` / `outline`) to
+  control the clip mode, plus `command_along_ray` + `command_step`
+  that walks the ray in `command_step`-block increments executing the
+  command at each step, breaking on the first command exception.
+  Master/26.1 doesn't have `parseRaycast` at all and isn't a hotfix
+  scope — the along-ray feature will land there as part of the next
+  raycast backport.
+
 ## v2.1.3
 
 ### Bug Fixes
