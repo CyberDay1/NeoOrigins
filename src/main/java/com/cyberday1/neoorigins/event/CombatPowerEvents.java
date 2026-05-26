@@ -239,11 +239,22 @@ public class CombatPowerEvents {
 
         if (!event.isCanceled()) {
             float amount = event.getAmount();
-            ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
+            // Publish HitTakenContext to ActionContextHolder around the legacy
+            // CompatPower.onHit dispatch path so Route B action_on_being_hit /
+            // attacker_action_when_hit lambdas can resolve the attacker via
+            // their parsed bientity_action — that path doesn't go through
+            // EventPowerIndex.dispatch and previously had no context wiring.
+            var hitCtx = new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource());
+            Object prevCtx = com.cyberday1.neoorigins.service.ActionContextHolder.set(hitCtx);
+            try {
+                ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
+            } finally {
+                com.cyberday1.neoorigins.service.ActionContextHolder.restore(prevCtx);
+            }
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.HIT_TAKEN,
-                new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource()));
+                hitCtx);
             // thorns_aura moved to action_on_event with a damage_attacker
             // entity_action (reads HitTakenContext.amount × amount_ratio).
             // The HIT_TAKEN dispatch above runs any such powers.

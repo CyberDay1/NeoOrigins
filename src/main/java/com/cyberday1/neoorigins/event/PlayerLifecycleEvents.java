@@ -195,6 +195,7 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.StealthPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.clearAmplifierModifiers(uuid);
+        com.cyberday1.neoorigins.service.JumpActionRegistry.clearPlayer(uuid);
     }
 
     /**

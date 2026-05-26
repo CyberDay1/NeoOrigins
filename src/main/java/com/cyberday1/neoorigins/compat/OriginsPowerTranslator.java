@@ -515,27 +515,19 @@ public final class OriginsPowerTranslator {
     }
 
     /**
-     * Translates {@code origins:exhaust} to
-     * {@code neoorigins:action_on_event} with event {@code mod_exhaustion}
-     * and a modifier that multiplies the exhaustion rate.
+     * Apoli's {@code origins:exhaust} is a tick-based action — it applies
+     * a fixed {@code exhaustion} amount every {@code interval} ticks. The
+     * previous translation routed it to {@code mod_exhaustion} (an event
+     * modifier on vanilla's per-event exhaustion calls), which produces
+     * completely different semantics: instead of "add exhaustion every
+     * 30 ticks", the modifier inflated every vanilla exhaustion event by
+     * the configured amount, draining hunger ~268x faster. Returning empty
+     * here defers to Route B's {@code parseExhaust}, which ticks the
+     * exhaustion correctly via {@code player.causeFoodExhaustion()}.
+     * Reported by Hop's pack tester (2026-05-25).
      */
     private static Optional<JsonObject> translateExhaust(JsonObject src) {
-        JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:action_on_event");
-        out.addProperty("event", "mod_exhaustion");
-
-        // Extract the exhaustion interval/amount and convert to a modifier
-        float interval = src.has("interval") ? src.get("interval").getAsFloat() : 20f;
-        // origins:exhaust applies exhaustion every N ticks — translate to a multiplier
-        // Default vanilla exhaustion rate is 1x; origins:exhaust adds extra drain
-        JsonObject modifier = new JsonObject();
-        modifier.addProperty("operation", "add_base");
-        // Normalized: default interval is 20 ticks, lower = faster drain
-        modifier.addProperty("value", 20f / Math.max(1, interval));
-        out.add("modifier", modifier);
-
-        if (src.has("condition"))       out.add("condition", src.get("condition"));
-        return Optional.of(out);
+        return Optional.empty();
     }
 
     /**
@@ -789,22 +781,35 @@ public final class OriginsPowerTranslator {
         if (src.has("effects")) {
             for (JsonElement el : src.getAsJsonArray("effects")) {
                 if (el.isJsonPrimitive()) {
-                    effects.add(el.getAsString());
+                    effects.add(canonicalizeEffectId(el.getAsString()));
                 } else if (el.isJsonObject()) {
                     JsonObject obj = el.getAsJsonObject();
                     // Origins uses {"effect": "minecraft:poison"} in some formats
-                    if (obj.has("effect")) effects.add(obj.get("effect").getAsString());
-                    else if (obj.has("id")) effects.add(obj.get("id").getAsString());
+                    if (obj.has("effect")) effects.add(canonicalizeEffectId(obj.get("effect").getAsString()));
+                    else if (obj.has("id")) effects.add(canonicalizeEffectId(obj.get("id").getAsString()));
                 }
             }
         } else if (src.has("effect")) {
-            effects.add(src.get("effect").getAsString());
+            effects.add(canonicalizeEffectId(src.get("effect").getAsString()));
         }
 
         if (effects.isEmpty()) throw new IllegalArgumentException("origins:effect_immunity: no effects specified");
 
         out.add("effects", effects);
         return Optional.of(out);
+    }
+
+    /**
+     * Pack-author shorthand: {@code "effect": "mining_fatigue"} expands to
+     * {@code "minecraft:mining_fatigue"}. The {@code EffectImmunityPower}
+     * runtime check compares the active effect's full ResourceLocation
+     * string against this list, so a bare id never matched. Apoli accepts
+     * the bare form because its effect registry lookup is namespace-fallback;
+     * we preserve that ergonomics here at translation time.
+     */
+    private static String canonicalizeEffectId(String raw) {
+        if (raw == null || raw.isEmpty() || raw.contains(":")) return raw;
+        return "minecraft:" + raw;
     }
 
     private static Optional<JsonObject> translateModifyDamage(JsonObject src, String direction) {

@@ -541,16 +541,60 @@ public final class ActionParser {
             case "source_only"  -> net.minecraft.world.level.ClipContext.Fluid.SOURCE_ONLY;
             default             -> net.minecraft.world.level.ClipContext.Fluid.NONE;
         };
+        // Apoli {@code shape_type}: {@code visual} (default) uses the visual
+        // outline shape — same as vanilla's eye-trace and what
+        // PlayerInteractionManager uses for break/place targeting. {@code collider}
+        // uses the collision shape, which is tighter than visual for
+        // non-cube blocks (stairs, slabs, fences) — pack authors choose
+        // collider when they want "what the hitbox sees" semantics.
+        String shapeType = json.has("shape_type") ? json.get("shape_type").getAsString() : "visual";
+        net.minecraft.world.level.ClipContext.Block blockShape = switch (shapeType.toLowerCase()) {
+            case "collider"  -> net.minecraft.world.level.ClipContext.Block.COLLIDER;
+            case "visual"    -> net.minecraft.world.level.ClipContext.Block.VISUAL;
+            default          -> net.minecraft.world.level.ClipContext.Block.OUTLINE;
+        };
         EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
             ? parse(json.getAsJsonObject("block_action"), contextId) : EntityAction.noop();
         EntityAction bientityAction = json.has("bientity_action") && json.get("bientity_action").isJsonObject()
             ? parse(json.getAsJsonObject("bientity_action"), contextId) : EntityAction.noop();
         EntityAction missAction = json.has("miss_action") && json.get("miss_action").isJsonObject()
             ? parse(json.getAsJsonObject("miss_action"), contextId) : EntityAction.noop();
+        // {@code command_along_ray} + {@code command_step}: execute a command
+        // at each {@code command_step}-block increment along the ray. Used by
+        // packs for "trail of particles", "place a torch every N blocks",
+        // etc. Step defaults to 1 block.
+        String commandAlongRay = json.has("command_along_ray") ? json.get("command_along_ray").getAsString() : null;
+        double commandStep = json.has("command_step") ? json.get("command_step").getAsDouble() : 1.0;
+        if (commandStep <= 0) commandStep = 1.0; // guard against infinite loops on bad config
+        final double finalStep = commandStep;
         return player -> {
             Vec3 from = player.getEyePosition(1.0F);
             Vec3 look = player.getViewVector(1.0F);
             Vec3 to = from.add(look.x * distance, look.y * distance, look.z * distance);
+
+            // Run the along-ray command (if any) before bail-out so it fires
+            // regardless of whether a block / entity is hit. Pack authors who
+            // want hit-gated trails use block_action with execute_command.
+            if (commandAlongRay != null && !commandAlongRay.isEmpty() && player.getServer() != null) {
+                int steps = (int) Math.floor(distance / finalStep);
+                var server = player.getServer();
+                var commands = server.getCommands();
+                for (int i = 1; i <= steps; i++) {
+                    Vec3 stepPos = from.add(look.x * finalStep * i, look.y * finalStep * i, look.z * finalStep * i);
+                    var src = player.createCommandSourceStack()
+                        .withPosition(stepPos)
+                        .withSuppressedOutput()
+                        .withPermission(2);
+                    try {
+                        commands.performPrefixedCommand(src, commandAlongRay);
+                    } catch (Exception e) {
+                        com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                            "[CompatB] raycast {} command_along_ray step {} failed: {}",
+                            contextId, i, e.getMessage());
+                        break; // don't repeat the same failure for every remaining step
+                    }
+                }
+            }
 
             if (checkEntity) {
                 // Entity raycast: walk the AABB along the ray and find the
@@ -573,7 +617,7 @@ public final class ActionParser {
 
             if (checkBlock) {
                 var clipCtx = new net.minecraft.world.level.ClipContext(from, to,
-                    net.minecraft.world.level.ClipContext.Block.OUTLINE, fluidMode, player);
+                    blockShape, fluidMode, player);
                 var hit = player.level().clip(clipCtx);
                 if (hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
                     BlockPos pos = hit.getBlockPos();

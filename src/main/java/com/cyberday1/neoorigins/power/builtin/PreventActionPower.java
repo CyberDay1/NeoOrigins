@@ -111,30 +111,42 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
                 && player.getRemainingFireTicks() > 0) {
             player.setRemainingFireTicks(0);
         }
-        // Earth Mage can't swim — three things to enforce:
-        //   1. Constant strong downward velocity so vanilla buoyancy can't
-        //      push the player up between our resets.
-        //   2. Clear the swimming flag every tick. Vanilla sets it true
-        //      whenever sprint + (underwater or canStartSwimming) holds —
-        //      and once true, vanilla's travel() applies horizontal swim
-        //      physics that overpower a tiny downward delta. Without this
-        //      reset the player keeps "trying to swim" (the tester report).
-        //   3. Hurt-mark so the position update syncs immediately.
-        // Power.onTick runs on PlayerTickEvent.Post (after vanilla physics +
-        // swim-flag update), so our reset is authoritative for the next
-        // tick's render. The client may briefly predict a swim frame on its
-        // own input — that's a single-frame visual glitch, not behaviour;
-        // a client-side mixin would close it but isn't required for the
-        // gameplay fix.
+        // SWIM and ELYTRA enforcement moved to {@link
+        // com.cyberday1.neoorigins.event.PreventActionPostTickHandler}
+        // (subscribed to PlayerTickEvent.Post). The .Pre path here runs
+        // *before* vanilla's travel() and swim-flag update, so a reset
+        // applied here gets overwritten the same tick — Earth Mage's
+        // can't-swim ability was a no-op for that reason. .Post fires
+        // after the physics, so the reset is authoritative.
+    }
+
+    /**
+     * Apply SWIM / ELYTRA enforcement. Called from
+     * {@link com.cyberday1.neoorigins.event.PreventActionPostTickHandler}
+     * after vanilla physics has run. Public so the post-tick handler can
+     * call this without duplicating the gate / state logic.
+     */
+    public static void enforceMovementBlock(ServerPlayer player, Config config) {
         if (config.action() == Action.ELYTRA && isGateOpen(player, config)
                 && player.isFallFlying()) {
             player.stopFallFlying();
         }
         if (config.action() == Action.SWIM && isGateOpen(player, config)
                 && player.isInWater()) {
+            // Three things to enforce so vanilla can't put the player back
+            // into a swim state mid-tick:
+            //   1. Constant strong downward velocity so buoyancy can't push
+            //      them up between our resets.
+            //   2. Clear the swimming flag — vanilla sets it true whenever
+            //      sprint + (underwater or canStartSwimming) holds, and
+            //      once true, travel() applies horizontal swim physics
+            //      that overpower a tiny downward delta.
+            //   3. hurtMarked so the position update syncs immediately.
+            // The client may briefly predict a swim frame on its own input —
+            // that's a single-frame visual glitch, not behaviour; a
+            // client-side mixin would close it but isn't required.
             var v = player.getDeltaMovement();
             double clampedY = Math.min(v.y, -0.16);
-            // Only sync velocity when we actually changed it
             if (clampedY != v.y || player.isSwimming()) {
                 player.setDeltaMovement(v.x, clampedY, v.z);
                 if (player.isSwimming()) player.setSwimming(false);
