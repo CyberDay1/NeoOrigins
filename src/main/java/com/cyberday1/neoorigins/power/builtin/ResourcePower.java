@@ -165,7 +165,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
     public void onLogin(ServerPlayer player, Config config) {
         if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
-        // Restore resource meta on relog WITHOUT touching the stored value.
+        // Restore resource meta on relog WITHOUT touching a stored value.
         // The base PowerType.onLogin default delegates to onGranted, but
         // onGranted resets the stored resource to config.startValue() — so a
         // returning player's energy/stamina was being wiped back to start on
@@ -174,6 +174,17 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         // the attachment untouched. GitHub #90.
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(), config.hidden()));
+        // Seed the state attachment if it has no entry for this key. Hits two
+        // cases: (a) players granted this power before resource_state shipped,
+        // who never had their state seeded by onGranted; (b) a state map that
+        // failed to round-trip a particular key. Without a state entry,
+        // syncResourcesToClient iterates state.getAll() and skips the bar
+        // entirely — symptom is "energy bar disappeared, abilities won't fire
+        // because cur=0". GitHub #90 follow-up to f1c492fe.
+        var state = player.getData(CompatAttachments.resourceState());
+        if (!state.has(key)) {
+            state.set(key, config.startValue());
+        }
         CompatAttachments.syncResourcesToClient(player);
     }
 

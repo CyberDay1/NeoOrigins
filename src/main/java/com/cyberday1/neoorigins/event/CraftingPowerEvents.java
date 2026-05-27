@@ -122,23 +122,24 @@ public class CraftingPowerEvents {
     /**
      * Rebuild {@link FoodProperties} with a new nutrition/saturation pair while
      * preserving every other field on the source (eatSeconds, usingConvertsTo,
-     * effects, canAlwaysEat). The builder starts blank so each field must be
-     * copied explicitly — otherwise eaten food forgets its potion effects
-     * (suspicious stew, golden apple), eats at the wrong speed, etc.
+     * effects, canAlwaysEat).
+     *
+     * <p>Constructs the {@link FoodProperties} record directly rather than going
+     * through {@link FoodProperties.Builder}. The builder's
+     * {@code saturationModifier(float)} is misleadingly named: it stores a
+     * <em>multiplier</em>, and {@code build()} runs it through
+     * {@code FoodConstants.saturationByModifier(nutrition, modifier)} which
+     * returns {@code nutrition * modifier * 2.0}. Mollan-reported: cooked steak
+     * came out with 2639 saturation because each Cook+SmokingExpert pass fed
+     * the previous (already-blown-up) saturation back through the multiplier.
+     * Constructing the record directly lets the {@code saturation} parameter
+     * remain a literal absolute value, matching the Apoli/Origins semantics.
      */
     private static FoodProperties rebuildFood(FoodProperties source, int nutrition, float saturation) {
-        // Builder only exposes a subset of fields and would otherwise drop
-        // eatSeconds / usingConvertsTo / effects. Build a baseline, then
-        // copy through the remaining fields via direct record construction.
-        FoodProperties.Builder b = new FoodProperties.Builder()
-            .nutrition(nutrition)
-            .saturationModifier(saturation);
-        if (source.canAlwaysEat()) b.alwaysEdible();
-        FoodProperties built = b.build();
         return new FoodProperties(
-            built.nutrition(),
-            built.saturation(),
-            built.canAlwaysEat(),
+            nutrition,
+            saturation,
+            source.canAlwaysEat(),
             source.eatSeconds(),
             source.usingConvertsTo(),
             source.effects()

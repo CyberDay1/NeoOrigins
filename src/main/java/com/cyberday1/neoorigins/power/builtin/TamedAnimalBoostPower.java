@@ -47,9 +47,14 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
             var owner = ownable.getOwner();
             if (owner == null || !player.getUUID().equals(owner.getUUID())) continue;
 
+            // Permanent (not transient) modifiers — transient modifiers aren't
+            // serialized with the entity, so the boost evaporates on chunk/world
+            // reload. Mollan-reported: boosted wolves came back at base HP after
+            // every relog. onRevoked() still removes these by id, so the cleanup
+            // path is unchanged.
             AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
             if (healthAttr != null && healthAttr.getModifier(HEALTH_MOD_ID) == null) {
-                healthAttr.addTransientModifier(new AttributeModifier(
+                healthAttr.addPermanentModifier(new AttributeModifier(
                     HEALTH_MOD_ID, config.healthBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
                 animal.setHealth(animal.getMaxHealth());
@@ -57,7 +62,7 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
 
             AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
             if (speedAttr != null && speedAttr.getModifier(SPEED_MOD_ID) == null) {
-                speedAttr.addTransientModifier(new AttributeModifier(
+                speedAttr.addPermanentModifier(new AttributeModifier(
                     SPEED_MOD_ID, config.speedBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
             }

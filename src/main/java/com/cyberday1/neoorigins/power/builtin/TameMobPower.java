@@ -46,6 +46,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         int hungerCost,
         int despawnTicks,
         float deathDamage,
+        boolean hostileOnly,
         String type
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -55,6 +56,10 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             Codec.INT.optionalFieldOf("hunger_cost", 3).forGetter(Config::hungerCost),
             Codec.INT.optionalFieldOf("despawn_ticks", 36000).forGetter(Config::despawnTicks),
             Codec.FLOAT.optionalFieldOf("death_damage", 0.5f).forGetter(Config::deathDamage),
+            // Default true preserves the Monster Tamer feel (hostile mobs only).
+            // Packs that want to tame any non-player Mob (animals, golems,
+            // villagers, etc.) can set "hostile_only": false in their power JSON.
+            Codec.BOOL.optionalFieldOf("hostile_only", true).forGetter(Config::hostileOnly),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -81,19 +86,37 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // Raycast for an entity
         Entity target = getTargetEntity(player, config.range());
         if (target == null) {
+            NeoOrigins.LOGGER.debug("[tame_mob] {}: raycast within {} blocks found no LivingEntity",
+                player.getName().getString(), config.range());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.no_target").withStyle(ChatFormatting.YELLOW), true);
             return false;
         }
 
-        // Must be a hostile Mob, not a boss
-        if (!(target instanceof Mob mob) || !(target instanceof Enemy)) {
+        // Must be a non-player Mob. Hostile-only gate is configurable: defaults
+        // to true (Monster Tamer style), but packs can set hostile_only=false
+        // to tame any non-player Mob (animals, golems, villagers, etc.).
+        if (!(target instanceof Mob mob)) {
+            NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} is not a Mob ({})",
+                player.getName().getString(), target.getName().getString(),
+                target.getClass().getSimpleName());
+            player.sendSystemMessage(Component.translatable(
+                "power.neoorigins.tame_mob.not_hostile").withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+        if (config.hostileOnly() && !(target instanceof Enemy)) {
+            NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} ({}) is not hostile (Enemy); set hostile_only=false to allow",
+                player.getName().getString(), target.getName().getString(),
+                target.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.not_hostile").withStyle(ChatFormatting.RED), true);
             return false;
         }
         if (!mob.canUsePortal(false)) {
             // Boss mobs (Ender Dragon, Wither) cannot use portals
+            NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} ({}) failed canUsePortal — boss or leashed",
+                player.getName().getString(), mob.getName().getString(),
+                mob.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.boss").withStyle(ChatFormatting.RED), true);
             return false;

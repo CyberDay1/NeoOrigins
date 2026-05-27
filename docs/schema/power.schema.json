@@ -224,7 +224,8 @@
         "cooldown_ticks": { "type": "integer", "minimum": 0 },
         "hunger_cost": { "type": "integer", "minimum": 0 },
         "despawn_ticks": { "type": "integer", "minimum": 1 },
-        "death_damage": { "type": "number", "minimum": 0 }
+        "death_damage": { "type": "number", "minimum": 0 },
+        "hostile_only": { "description": "When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, etc.) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).", "type": "boolean", "default": true }
       },
       "required": ["type"]
     },

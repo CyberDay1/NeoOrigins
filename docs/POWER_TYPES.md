@@ -978,19 +978,21 @@ Grants periodic health regeneration while submerged in the specified fluid.
 
 ## `neoorigins:breath_in_fluid`
 
-Drains the player's air supply when their eyes are submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Surfacing (head above water) restores air normally via vanilla breathing. While submerged, fully overrides vanilla's air management (suppresses both vanilla drowning and water-breathing refill), so the configured `drain_rate` is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
+Drains the player's air supply when their eyes are submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Surfacing (head above water) restores air normally via vanilla breathing. While submerged, fully overrides vanilla's air management (suppresses both vanilla drowning and water-breathing refill), so the configured drain rate is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid: `water` or `lava` |
-| `drain_rate` | int | no | `20` | Ticks between each air drain (1 air point lost every N ticks; lower = faster drain) |
+| `air_loss_per_second` | int | no | — | Intuitive form: how many air points are lost per second. Higher = faster drain. Internally converted to ticks via `20 / value`. |
+| `drain_interval_ticks` | int | no | — | Ticks between each air drain. Higher = slower drain. Equivalent to the legacy `drain_rate`. |
+| `drain_rate` | int | no | `20` | Legacy alias for `drain_interval_ticks`. Resolution priority: `air_loss_per_second` > `drain_interval_ticks` > `drain_rate` > default 20 (one decrement per second). |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:breath_in_fluid",
   "fluid": "water",
-  "drain_rate": 20,
+  "air_loss_per_second": 1,
   "name": "Hydrophobic",
   "description": "Cannot breathe in water."
 }
@@ -1548,6 +1550,8 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 | `ambient` | bool | no | `true` | Ambient particles (low visibility) |
 | `show_particles` | bool | no | `false` | Whether to show particles |
 | `show_icon` | bool | no | `true` | Whether to show the HUD icon |
+
+> **Root cascade:** `show_icon`, `show_particles`, and `ambient` placed at the power root (alongside `type`/`effects`) cascade as defaults onto every nested `EffectSpec` that does not declare its own value. This lets you set HUD/particle visibility once for the whole stack instead of repeating it per effect.
 
 **Example — permanent always-on Weakness II:**
 ```json
@@ -2143,8 +2147,9 @@ Active power that tames a hostile mob the player is looking at. The mob's AI is 
 | `hunger_cost` | int | no | `3` | Food points consumed per tame |
 | `despawn_ticks` | int | no | `36000` | Lifespan of each tamed mob (30 min default) |
 | `death_damage` | float | no | `0.5` | Damage taken by owner when a tamed mob dies |
+| `hostile_only` | bool | no | `true` | If `true`, only hostile mobs (implementing `Enemy`) can be tamed — the Monster Tamer default. Set to `false` to allow taming any non-player `Mob` (animals, golems, villagers, etc.). |
 
-Target must be a hostile `Mob` that implements `Enemy` (so villagers, animals, and passive mobs won't qualify). Bosses are rejected via a `canUsePortal` check.
+Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Bosses are always rejected via a `canUsePortal` check.
 
 **Example:**
 ```json

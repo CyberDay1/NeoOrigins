@@ -97,15 +97,26 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     ? obj.get("amplifier").getAsInt()
                     : null;
 
+                // Top-level show_icon / show_particles / ambient cascade to
+                // every nested spec that doesn't set the same field locally.
+                // Mollan-reported: setting show_icon at the power root was
+                // silently ignored because parseSpec only reads the nested
+                // object. With a root value present, it now becomes the
+                // default for any nested effect that omits the field.
+                Boolean rootShowIcon = readBool(obj, "show_icon");
+                Boolean rootShowParticles = readBool(obj, "show_particles");
+                Boolean rootAmbient = readBool(obj, "ambient");
+
                 List<EffectSpec> specs = new ArrayList<>();
                 if (obj.has("effects") && obj.get("effects").isJsonArray()) {
                     for (var el : obj.getAsJsonArray("effects")) {
                         if (!el.isJsonObject()) continue;
-                        EffectSpec spec = parseSpec(el.getAsJsonObject());
+                        EffectSpec spec = parseSpec(el.getAsJsonObject(),
+                            rootShowIcon, rootShowParticles, rootAmbient);
                         if (spec != null) specs.add(spec);
                     }
                 } else {
-                    EffectSpec spec = parseSpec(obj);
+                    EffectSpec spec = parseSpec(obj, rootShowIcon, rootShowParticles, rootAmbient);
                     if (spec != null) specs.add(spec);
                 }
                 if (rootAmpOverride != null && !specs.isEmpty()) {
@@ -124,7 +135,10 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     ops.empty()));
             }
 
-            private static EffectSpec parseSpec(JsonObject eff) {
+            private static EffectSpec parseSpec(JsonObject eff,
+                                                Boolean rootShowIcon,
+                                                Boolean rootShowParticles,
+                                                Boolean rootAmbient) {
                 String effectId = eff.has("effect") ? eff.get("effect").getAsString()
                                : eff.has("id") ? eff.get("id").getAsString() : null;
                 if (effectId == null) return null;
@@ -132,10 +146,22 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 if (effectOpt.isEmpty()) return null;
                 var holder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
                 int amp = eff.has("amplifier") ? eff.get("amplifier").getAsInt() : 0;
-                boolean ambient = !eff.has("ambient") || eff.get("ambient").getAsBoolean();
-                boolean particles = eff.has("show_particles") && eff.get("show_particles").getAsBoolean();
-                boolean icon = !eff.has("show_icon") || eff.get("show_icon").getAsBoolean();
+                // Local field wins; otherwise inherit root override; otherwise use the original default.
+                boolean ambient = eff.has("ambient")
+                    ? eff.get("ambient").getAsBoolean()
+                    : rootAmbient != null ? rootAmbient : true;
+                boolean particles = eff.has("show_particles")
+                    ? eff.get("show_particles").getAsBoolean()
+                    : rootShowParticles != null ? rootShowParticles : false;
+                boolean icon = eff.has("show_icon")
+                    ? eff.get("show_icon").getAsBoolean()
+                    : rootShowIcon != null ? rootShowIcon : true;
                 return new EffectSpec(holder, amp, ambient, particles, icon);
+            }
+
+            private static Boolean readBool(JsonObject obj, String key) {
+                if (!obj.has(key) || !obj.get(key).isJsonPrimitive()) return null;
+                try { return obj.get(key).getAsBoolean(); } catch (Exception e) { return null; }
             }
 
             @Override

@@ -26,6 +26,11 @@ public class CompatAttachments {
         ATTACHMENT_TYPES.register("resource_state", () ->
             AttachmentType.builder(ResourceState::new)
                 .serialize(ResourceState.CODEC)
+                // Carry resource values across death — otherwise the entire map
+                // is wiped on respawn and syncResourcesToClient skips the bar
+                // because state.getAll() has no entry. Reported as part of
+                // GitHub #90 (Voidwalker energy bar disappears).
+                .copyOnDeath()
                 .build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<ToggleState>> TOGGLE_STATE =
@@ -58,6 +63,7 @@ public class CompatAttachments {
         }));
 
         public int get(String key, int defaultValue) { return values.getOrDefault(key, defaultValue); }
+        public boolean has(String key)               { return values.containsKey(key); }
         public void set(String key, int value)       { values.put(key, value); dirty = true; }
         public void remove(String key)               { values.remove(key); dirty = true; }
 
