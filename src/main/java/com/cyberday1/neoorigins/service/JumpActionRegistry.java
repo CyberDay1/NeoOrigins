@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.compat.action.EntityAction;
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
@@ -18,19 +19,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *
  * <p>Multiple powers can register for the same player. Each entry is keyed
  * by the power id so revoke/regrant cycles don't leak duplicates.
+ *
+ * <p>An optional {@link EntityCondition} may be supplied at registration;
+ * the action only fires when the condition tests true. A null condition
+ * means always-fire.
  */
 public final class JumpActionRegistry {
 
     private JumpActionRegistry() {}
 
-    public record Entry(String powerId, EntityAction action) {}
+    public record Entry(String powerId, EntityAction action, EntityCondition condition) {}
 
     private static final Map<UUID, List<Entry>> REGISTRY = new ConcurrentHashMap<>();
 
-    public static void register(ServerPlayer player, String powerId, EntityAction action) {
+    public static void register(ServerPlayer player, String powerId, EntityAction action, EntityCondition condition) {
         if (action == null || action == EntityAction.NOOP) return;
         REGISTRY.computeIfAbsent(player.getUUID(), k -> new CopyOnWriteArrayList<>())
-            .add(new Entry(powerId, action));
+            .add(new Entry(powerId, action, condition));
     }
 
     public static void unregister(ServerPlayer player, String powerId) {
@@ -43,7 +48,10 @@ public final class JumpActionRegistry {
     public static void fire(ServerPlayer player) {
         List<Entry> entries = REGISTRY.get(player.getUUID());
         if (entries == null || entries.isEmpty()) return;
-        for (Entry e : entries) e.action.execute(player);
+        for (Entry e : entries) {
+            if (e.condition != null && !e.condition.test(player)) continue;
+            e.action.execute(player);
+        }
     }
 
     public static void clearPlayer(UUID uuid) {

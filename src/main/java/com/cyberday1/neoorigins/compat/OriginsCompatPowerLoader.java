@@ -1859,7 +1859,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 })
                 .onGranted(player -> {
                     if (hasJumpAction) com.cyberday1.neoorigins.service.JumpActionRegistry
-                        .register(player, idStr, jumpAction);
+                        .register(player, idStr, jumpAction, condition);
                 })
                 .onRevoked(player -> {
                     AttributeInstance inst = player.getAttribute(jumpHolder);
@@ -1879,7 +1879,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                         modifierId, finalValue, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
                 }
                 if (hasJumpAction) com.cyberday1.neoorigins.service.JumpActionRegistry
-                    .register(player, idStr, jumpAction);
+                    .register(player, idStr, jumpAction, null);
             })
             .onRevoked(player -> {
                 AttributeInstance inst = player.getAttribute(jumpHolder);
