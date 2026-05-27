@@ -4,8 +4,13 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -36,12 +41,58 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
 
-    public record Config(String fluid, int drainRate, String type) implements PowerConfiguration {
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.optionalFieldOf("fluid", "water").forGetter(Config::fluid),
-            Codec.INT.optionalFieldOf("drain_rate", 20).forGetter(Config::drainRate),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
-        ).apply(inst, Config::new));
+    /**
+     * @param drainIntervalTicks ticks between air-bubble decrements. Higher
+     *     value = slower drain. Default 20 = one decrement per second (full
+     *     air → 0 in 5 minutes). Authors who think in "units lost per second"
+     *     can instead set {@code air_loss_per_second}, which is converted to
+     *     this internally via {@code 20 / air_loss_per_second}.
+     */
+    public record Config(String fluid, int drainIntervalTicks, String type) implements PowerConfiguration {
+        public static final Codec<Config> CODEC = new Codec<>() {
+            @Override
+            public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
+                JsonElement json;
+                try {
+                    json = ops.convertTo(JsonOps.INSTANCE, input);
+                } catch (Exception e) {
+                    return DataResult.error(() -> "breath_in_fluid: could not convert to JSON: " + e.getMessage());
+                }
+                if (!json.isJsonObject()) {
+                    return DataResult.error(() -> "breath_in_fluid: expected JSON object");
+                }
+                JsonObject obj = json.getAsJsonObject();
+                String fluid = obj.has("fluid") ? obj.get("fluid").getAsString() : "water";
+                String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:breath_in_fluid";
+
+                // Field resolution, in priority order:
+                //   1. air_loss_per_second (intuitive — higher = faster drain)
+                //   2. drain_interval_ticks (clearer alias for drain_rate)
+                //   3. drain_rate (legacy)
+                //   4. default 20 (one decrement per second)
+                // Mollan-reported confusion: "drain_rate" reads like
+                // "units per second" but historically meant "ticks between
+                // drains". The two newer fields make intent explicit.
+                int intervalTicks;
+                if (obj.has("air_loss_per_second") && obj.get("air_loss_per_second").isJsonPrimitive()) {
+                    int perSec = Math.max(1, obj.get("air_loss_per_second").getAsInt());
+                    intervalTicks = Math.max(1, 20 / perSec);
+                } else if (obj.has("drain_interval_ticks") && obj.get("drain_interval_ticks").isJsonPrimitive()) {
+                    intervalTicks = Math.max(1, obj.get("drain_interval_ticks").getAsInt());
+                } else if (obj.has("drain_rate") && obj.get("drain_rate").isJsonPrimitive()) {
+                    intervalTicks = Math.max(1, obj.get("drain_rate").getAsInt());
+                } else {
+                    intervalTicks = 20;
+                }
+
+                return DataResult.success(Pair.of(new Config(fluid, intervalTicks, t), ops.empty()));
+            }
+
+            @Override
+            public <T> DataResult<T> encode(Config input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(prefix);
+            }
+        };
     }
 
     @Override
@@ -60,7 +111,7 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
 
         /** Scratch holder for collecting the active config. */
         private static final class Chosen {
-            int drainRate = -1;
+            int drainIntervalTicks = -1;
             String fluid = "water";
         }
 
@@ -97,12 +148,12 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
 
             Chosen chosen = new Chosen();
             ActiveOriginService.forEachOfType(sp, BreathInFluidPower.class, cfg -> {
-                if (chosen.drainRate < 0) {
-                    chosen.drainRate = cfg.drainRate();
+                if (chosen.drainIntervalTicks < 0) {
+                    chosen.drainIntervalTicks = cfg.drainIntervalTicks();
                     chosen.fluid = cfg.fluid();
                 }
             });
-            if (chosen.drainRate <= 0) {
+            if (chosen.drainIntervalTicks <= 0) {
                 VIRTUAL_AIR.remove(sp.getUUID());
                 return;
             }
@@ -124,7 +175,7 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
                 return;
             }
 
-            // Decrement once per drainRate ticks. Floor of -20 matches vanilla's
+            // Decrement once per drainIntervalTicks. Floor of -20 matches vanilla's
             // drown-supply lower bound.
             //
             // Respiration enchantment (OXYGEN_BONUS attribute) extends survival
@@ -132,7 +183,7 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
             // each drain tick has a 1/(oxygenBonus+1) chance to actually
             // decrement, so Resp III gives ~4x the survival time.
             int tracked = VIRTUAL_AIR.getOrDefault(sp.getUUID(), maxAir);
-            if (sp.tickCount % chosen.drainRate == 0 && tracked > -20) {
+            if (sp.tickCount % chosen.drainIntervalTicks == 0 && tracked > -20) {
                 AttributeInstance oxygenAttr = sp.getAttribute(Attributes.OXYGEN_BONUS);
                 double oxygenBonus = oxygenAttr != null ? oxygenAttr.getValue() : 0.0;
                 if (oxygenBonus <= 0.0 || sp.getRandom().nextDouble() < 1.0 / (oxygenBonus + 1.0)) {

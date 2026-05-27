@@ -96,11 +96,9 @@ public class CraftingPowerEvents {
 
         // Add +1 nutrition (hunger bar) alongside the saturation bonus
         int bonusNutrition = 1;
-        FoodProperties.Builder builder = new FoodProperties.Builder()
-            .nutrition(food.nutrition() + bonusNutrition)
-            .saturationModifier(food.saturation() + satBonus);
-        if (food.canAlwaysEat()) builder.alwaysEdible();
-        result.set(DataComponents.FOOD, builder.build());
+        result.set(DataComponents.FOOD, rebuildFood(food,
+            food.nutrition() + bonusNutrition,
+            food.saturation() + satBonus));
     }
 
     /**
@@ -114,12 +112,35 @@ public class CraftingPowerEvents {
         ActiveOriginService.forEachOfType(sp, MoreSmokerXpPower.class, config -> {
             int bonusNutrition = Math.round(config.multiplier());
             if (bonusNutrition <= 0) return;
-            FoodProperties.Builder builder = new FoodProperties.Builder()
-                .nutrition(food.nutrition() + bonusNutrition)
-                .saturationModifier(food.saturation() + config.multiplier() * 0.25f);
-            if (food.canAlwaysEat()) builder.alwaysEdible();
-            result.set(DataComponents.FOOD, builder.build());
+            // Re-read FOOD in case boostFoodIfCook already rebuilt this stack.
+            FoodProperties current = result.get(DataComponents.FOOD);
+            if (current == null) return;
+            result.set(DataComponents.FOOD, rebuildFood(current,
+                current.nutrition() + bonusNutrition,
+                current.saturation() + config.multiplier() * 0.25f));
         });
+    }
+
+    /**
+     * Rebuild {@link FoodProperties} with a new nutrition/saturation pair while
+     * preserving {@code canAlwaysEat}. In 26.1, FoodProperties is just
+     * (nutrition, saturation, canAlwaysEat) — eat duration and consumable
+     * effects moved out to the {@code Consumable} data component, which we
+     * don't touch here so vanilla preserves it untouched on the stack.
+     *
+     * <p>Constructs the {@link FoodProperties} record directly rather than going
+     * through {@link FoodProperties.Builder}. The builder's
+     * {@code saturationModifier(float)} is misleadingly named: it stores a
+     * <em>multiplier</em>, and {@code build()} runs it through
+     * {@code FoodConstants.saturationByModifier(nutrition, modifier)} which
+     * returns {@code nutrition * modifier * 2.0}. Mollan-reported: cooked steak
+     * came out with 2639 saturation because each Cook+SmokingExpert pass fed
+     * the previous (already-blown-up) saturation back through the multiplier.
+     * Constructing the record directly lets the {@code saturation} parameter
+     * remain a literal absolute value, matching the Apoli/Origins semantics.
+     */
+    private static FoodProperties rebuildFood(FoodProperties source, int nutrition, float saturation) {
+        return new FoodProperties(nutrition, saturation, source.canAlwaysEat());
     }
 
     /**

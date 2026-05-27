@@ -83,6 +83,7 @@ public class CompatAttachments {
         }));
 
         public int get(String key, int defaultValue) { return values.getOrDefault(key, defaultValue); }
+        public boolean has(String key)               { return values.containsKey(key); }
         public void set(String key, int value)       { values.put(key, value); dirty = true; }
         public void remove(String key)               { values.remove(key); dirty = true; }
 

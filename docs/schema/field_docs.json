@@ -83,7 +83,9 @@
     "multiplier": "Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0."
   },
   "neoorigins:breath_in_fluid": {
-    "drain_rate": "Ticks between each 1-point air drain while submerged (20 = 1s).",
+    "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
+    "drain_interval_ticks": "Ticks between each 1-point air drain while submerged; clearer alias of drain_rate. Higher = slower drain (20 = 1s).",
+    "air_loss_per_second": "Air points lost per second while submerged. Higher = faster drain. Overrides drain_interval_ticks / drain_rate when set.",
     "fluid": "Fluid that suffocates the player, \"water\" or \"lava\"; default water."
   },
   "neoorigins:breath_out_of_fluid": {
@@ -392,6 +394,7 @@
     "cooldown_ticks": "Ticks before the tame ability can be reused (200 = 10s).",
     "death_damage": "Damage dealt to the player when a tamed mob dies (half-hearts).",
     "despawn_ticks": "Ticks a tamed mob lasts before despawning (36000 = 30 min).",
+    "hostile_only": "When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).",
     "hunger_cost": "Hunger consumed each time a mob is tamed.",
     "max_tamed": "Max tamed mobs alive at once before taming is blocked.",
     "range": "Max distance in blocks to raycast for the mob to tame (default 16)."
