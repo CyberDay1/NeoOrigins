@@ -5,6 +5,80 @@
 
 ---
 
+## v2.1.5
+
+### Bug Fixes
+
+- **Cook crafted/smelted food spiraled to absurd saturation values.**
+  `rebuildFood` was calling `FoodProperties.Builder#saturationModifier(float)`
+  with what it thought was an absolute saturation value, but that
+  setter stores a *multiplier* — `build()` then ran it through
+  `FoodConstants.saturationByModifier(nutrition, modifier)` which
+  returns `nutrition * modifier * 2.0`. Each Cook (and Smoking Expert)
+  pass fed the previous already-blown-up saturation back through the
+  multiplier; Mollan reported cooked steak coming out with 2639
+  saturation. The helper now constructs the `FoodProperties` record
+  directly so the `saturation` parameter remains a literal absolute
+  value, matching Apoli/Origins semantics. On 26.1 the rebuild also
+  drops `eatSeconds`/`usingConvertsTo`/`effects` overrides — those
+  moved out of `FoodProperties` to the `Consumable` data component
+  in 26.1, and leaving the original `Consumable` untouched on the
+  stack is the correct preservation path. Resolves GitHub #95.
+
+- **Voidwalker (and other Route B resource bars) vanished on relog,
+  blocking abilities that gate on `cur > 0`.** `f1c492fe` already
+  fixed `onLogin` so it no longer reset the stored value back to
+  `start_value` — but two residual problems remained:
+  (1) On 1.21.1 the `RESOURCE_STATE` attachment was missing
+  `.copyOnDeath()`, so any respawn wiped the saved value entirely
+  (master had it; 2.1 didn't).
+  (2) `onLogin` re-registered the resource *meta* but didn't seed the
+  *state* entry when none existed, so `syncResourcesToClient`
+  iterates `state.getAll()` and skipped the bar entirely — symptom
+  was "energy bar disappeared, abilities won't fire because cur=0".
+  Added `.copyOnDeath()` to the 1.21.1 attachment and a state-seed
+  step in `ResourcePower#onLogin` that writes `start_value` only when
+  no entry is present (existing values are preserved). Resolves
+  GitHub #90.
+
+- **`tamed_animal_boost` granted a permanent attribute modifier that
+  outlived the source mob.** The boost modifier was applied once on
+  tame and never cleaned up, so once a player tamed enough mobs they
+  effectively kept the stacked bonus forever — even after every
+  tamed mob died or despawned. The modifier is now recomputed each
+  tick against the current owned-mob count and removed when that
+  count drops to zero.
+
+- **`persistent_effect` `show_icon` / `show_particles` / `ambient`
+  were ignored when set at the power root.** Pack authors writing
+  the convenience top-level form `{ "type":
+  "neoorigins:persistent_effect", "effect": "...", "show_icon":
+  false }` got the HUD icon anyway, because those fields were only
+  read off each `EffectSpec` and the root-level values were dropped.
+  Top-level `show_icon`, `show_particles`, and `ambient` now cascade
+  as defaults onto every nested `EffectSpec` that doesn't declare
+  its own value.
+
+- **`tame_mob` couldn't tame non-hostile mobs.** The target check
+  required `Enemy`, so packs that wanted a generalized "tame any
+  creature" power (animals, golems, villagers) had no JSON knob.
+  Added `hostile_only` (default `true`, preserving the existing
+  Monster Tamer feel); set `hostile_only: false` to allow taming
+  any non-player `Mob`. Boss rejection via `canUsePortal` is
+  unchanged.
+
+- **`breath_in_fluid`'s only drain knob (`drain_rate`) read as
+  "speed" but was actually "ticks between decrements", confusing
+  pack authors.** Added two more intuitive aliases:
+  `air_loss_per_second` (higher = faster drain, internally converted
+  to `20 / value` ticks) and `drain_interval_ticks` (the literal
+  meaning of the original field). Resolution priority is
+  `air_loss_per_second` > `drain_interval_ticks` > `drain_rate` >
+  default `20`. Existing packs using `drain_rate` keep working
+  unchanged.
+
+---
+
 ## v2.1.4
 
 ### Bug Fixes
