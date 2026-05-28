@@ -53,6 +53,17 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
             if (map.containsKey(id)) continue; // native format wins
             // Skip neoorigins namespace in the compat converter — FILE_CONVERTER already handles it
             if (converter == COMPAT_CONVERTER && NeoOrigins.MOD_ID.equals(id.getNamespace())) continue;
+            // Skip files under native data-type sub-folders — the native FILE_CONVERTER handles those.
+            // Without this filter, the compat path tries to parse `data/<ns>/origins/powers/foo.json`
+            // as a flat-layout origin and emits spurious "No key description; No key name" errors.
+            // Verified 2026-05-28 via headless server boot with a class-type datapack.
+            if (converter == COMPAT_CONVERTER) {
+                String path = id.getPath();
+                if (path.startsWith("powers/") || path.startsWith("origin_layers/")
+                        || path.startsWith("origins/") || path.startsWith("mob_origins/")) {
+                    continue;
+                }
+            }
             try (Reader reader = entry.getValue().openAsReader()) {
                 map.put(id, JsonParser.parseReader(reader));
             } catch (Exception e) {
