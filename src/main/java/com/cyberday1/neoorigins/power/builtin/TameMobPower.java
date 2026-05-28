@@ -159,12 +159,28 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // Re-add HurtByTargetGoal so it fights back when hit (requires PathfinderMob).
         // Owner-aware subclass: accidental owner hits (collision, AoE, thorns
         // reflection) don't flip the mob hostile against the owner.
+        // Priority 0 — must beat the defend/aggro goals so a direct hit on the
+        // pet always takes precedence over "owner is busy elsewhere."
         if (mob instanceof PathfinderMob pathfinder) {
-            mob.targetSelector.addGoal(1, new OwnerAwareHurtByTargetGoal(pathfinder, owner));
+            mob.targetSelector.addGoal(0, new OwnerAwareHurtByTargetGoal(pathfinder, owner));
         }
 
-        // Add a goal to defend the owner — target anything that recently hurt them
-        mob.targetSelector.addGoal(2, new DefendOwnerGoal(mob, owner));
+        // DEFEND: target whoever last attacked the owner. Reads
+        // owner.getLastHurtByMob() directly (no spatial gate) so attackers
+        // outside the pet's follow-distance still trigger defense.
+        // Priority 1 (matches vanilla OwnerHurtByTargetGoal).
+        mob.targetSelector.addGoal(1, new DefendOwnerGoal(mob, owner));
+
+        // AGGRO: target whatever the owner is currently attacking. Modeled on
+        // vanilla OwnerHurtTargetGoal — reads owner.getLastHurtMob(). Priority
+        // 2 (matches vanilla; below defend so the pet prefers to peel attackers
+        // off the owner over chasing the owner's chosen target).
+        //
+        // Previously this slot held a NearestAttackableTargetGoal whose
+        // predicate was actually checking getLastHurtByMob (defend logic) — so
+        // aggro was missing entirely and defend was duplicated with a buggy
+        // spatial gate. See v2.1.6 backlog #6.
+        mob.targetSelector.addGoal(2, new AggroWithOwnerGoal(mob, owner));
 
         // Remove any existing AvoidEntityGoal targeting players, then add follow-owner
         mob.goalSelector.getAvailableGoals().removeIf(
@@ -312,6 +328,55 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             LivingEntity attacker = owner.getLastHurtByMob();
             if (attacker != null && attacker.isAlive()) {
                 mob.setTarget(attacker);
+            }
+        }
+
+        @Override
+        public boolean canContinueToUse() {
+            return mob.getTarget() != null && mob.getTarget().isAlive();
+        }
+
+        @Override
+        public void stop() {
+            mob.setTarget(null);
+        }
+    }
+
+    /**
+     * Aggro goal: targets whatever the owner is currently attacking. Vanilla
+     * parallel is {@code OwnerHurtTargetGoal}. Reads {@code owner.getLastHurtMob()}
+     * and gates on {@code getLastHurtMobTimestamp()} so the pet doesn't keep
+     * re-targeting the same dead enemy. Mirrors the structure of DefendOwnerGoal
+     * (master's existing direct-Goal subclass design).
+     */
+    public static class AggroWithOwnerGoal extends Goal {
+        private final Mob mob;
+        private final ServerPlayer owner;
+        private int lastSeenTimestamp;
+
+        public AggroWithOwnerGoal(Mob mob, ServerPlayer owner) {
+            this.mob = mob;
+            this.owner = owner;
+        }
+
+        @Override
+        public boolean canUse() {
+            if (!owner.isAlive()) return false;
+            int t = owner.getLastHurtMobTimestamp();
+            if (t == this.lastSeenTimestamp) return false;
+            LivingEntity target = owner.getLastHurtMob();
+            if (target == null || !target.isAlive()) return false;
+            if (target == owner) return false;
+            if (target.getUUID().equals(owner.getUUID())) return false;
+            return true;
+        }
+
+        @Override
+        public void start() {
+            LivingEntity target = owner.getLastHurtMob();
+            if (target != null && target.isAlive()) {
+                mob.setTarget(target);
+                this.lastSeenTimestamp = owner.getLastHurtMobTimestamp();
             }
         }
 
