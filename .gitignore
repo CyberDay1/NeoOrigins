@@ -42,3 +42,8 @@ CLAUDE.md
 
 # Agent instructions (local only)
 AGENTS.md
+
+# Planning / contributor-internal docs — kept locally, not published.
+docs/compat-cleanup-handoff.md
+docs/2_0_CHANGES.md
+docs/2_1_CHANGES.md

@@ -20,8 +20,6 @@ Highlights this release:
 - **New `throw_target` action** — raycast the entity under your crosshair and hurl them away + upward.
 - **80 power types, 75 conditions, 45 actions, 33 events** — `near_entity` condition, 6 new visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), and near-complete Origins compat coverage are new in 2.0.11.
 
-See `docs/2_0_CHANGES.md` for the full Phase 1–8 architecture write-up.
-
 ---
 
 ## Features
