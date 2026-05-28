@@ -20,6 +20,7 @@ import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncEvolutionConfigPayload;
+import com.cyberday1.neoorigins.network.payload.SyncEvolutionProgressPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMoisturePayload;
 import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
@@ -122,6 +123,12 @@ public class NeoOriginsNetwork {
             SyncEvolutionConfigPayload.TYPE,
             SyncEvolutionConfigPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncEvolutionConfig
+        );
+
+        registrar.playToClient(
+            SyncEvolutionProgressPayload.TYPE,
+            SyncEvolutionProgressPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncEvolutionProgress
         );
 
         registrar.playToClient(
@@ -348,6 +355,24 @@ public class NeoOriginsNetwork {
                 payload.tier3Kills(), payload.messageInterval(),
                 payload.currentKills(), payload.currentTier())
         );
+    }
+
+    private static void handleSyncEvolutionProgress(SyncEvolutionProgressPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientEvolutionConfig.updateProgress(
+                payload.kills(), payload.tier())
+        );
+    }
+
+    /**
+     * Lightweight live-progress packet sent on every kill. Carries only the
+     * mutable (kills, tier) pair -- the static config travels via
+     * {@link #syncEvolutionToPlayer(ServerPlayer)} on login and reload.
+     */
+    public static void syncEvolutionProgressToPlayer(ServerPlayer sp) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        PacketDistributor.sendToPlayer(sp,
+            new SyncEvolutionProgressPayload(data.getEssenceKills(), data.getEvolutionTier()));
     }
 
     /**

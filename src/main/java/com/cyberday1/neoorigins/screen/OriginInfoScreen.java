@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.screen;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.origin.OriginTierOverlay;
+import com.cyberday1.neoorigins.client.ClientEvolutionConfig;
 import com.cyberday1.neoorigins.client.ClientOriginState;
 import com.cyberday1.neoorigins.client.theme.PanelRenderer;
 import com.cyberday1.neoorigins.client.theme.UITheme;
@@ -192,9 +193,19 @@ public class OriginInfoScreen extends Screen {
     private int evolutionSectionHeight(OriginDetailViewModel vm) {
         if (vm.origin() == null || vm.origin().tierPowers().isEmpty()) return 0;
         int h = 8;                  // gap before section
+        // Optional "Next Evolution: X / Y" (or "Apex reached") summary line above the header.
+        // Hidden entirely when evolution is disabled server-side.
+        if (ClientEvolutionConfig.isEnabled()) {
+            h += LINE_H;
+        }
         h += 9 + 4;                 // "Evolution Path" header
         for (OriginTierOverlay overlay : vm.origin().tierPowers()) {
             h += 11;                // tier subheader ("Evolved" / "Ascended" / "Apex")
+            // Per-tier progress annotation ("23 / 1000 kills" / "Achieved").
+            // Only emitted when evolution is enabled.
+            if (ClientEvolutionConfig.isEnabled()) {
+                h += LINE_H;
+            }
             h += overlay.add().size() * LINE_H;
             h += overlay.remove().size() * LINE_H;
         }
@@ -295,6 +306,26 @@ public class OriginInfoScreen extends Screen {
         // origin has no tier overlays.
         if (!origin.tierPowers().isEmpty()) {
             sy += 8;
+            // Live progress summary line. Hidden entirely when the server
+            // has evolution disabled -- the static Evolution Path section
+            // still renders so players can see what *would* unlock.
+            boolean evoOn = ClientEvolutionConfig.isEnabled();
+            if (evoOn) {
+                int curTier = ClientEvolutionConfig.getCurrentTier();
+                int curKills = ClientEvolutionConfig.getCurrentKills();
+                Component summary;
+                if (curTier >= 3) {
+                    summary = Component.translatable("gui.neoorigins.info.evolution_apex");
+                } else {
+                    int need = ClientEvolutionConfig.killsForTier(curTier + 1);
+                    summary = Component.translatable(
+                        "gui.neoorigins.info.evolution_progress",
+                        String.valueOf(curKills), String.valueOf(need));
+                }
+                g.drawString(font, themed(summary),
+                    panelX + DETAIL_PAD, sy, theme.accentColor(), false);
+                sy += LINE_H;
+            }
             g.drawString(font, themed(Component.translatable("gui.neoorigins.info.evolution_path")),
                 panelX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
@@ -302,11 +333,35 @@ public class OriginInfoScreen extends Screen {
             // even if the JSON listed them in a different order.
             var sortedTiers = new java.util.ArrayList<>(origin.tierPowers());
             sortedTiers.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
+            int curTier = evoOn ? ClientEvolutionConfig.getCurrentTier() : -1;
+            int curKills = evoOn ? ClientEvolutionConfig.getCurrentKills() : 0;
             for (OriginTierOverlay overlay : sortedTiers) {
                 String name = tierName(overlay.tier());
                 g.drawString(font, themed(Component.literal(name)),
                     panelX + DETAIL_PAD, sy, theme.powerNameColor(), false);
                 sy += 11;
+                if (evoOn) {
+                    // Per-tier annotation: progress on the next-up tier,
+                    // "Achieved" for tiers already reached, "Apex reached"
+                    // for the top tier once attained.
+                    Component annotation;
+                    if (overlay.tier() <= curTier) {
+                        annotation = Component.translatable("gui.neoorigins.info.evolution_tier_achieved");
+                    } else if (overlay.tier() == curTier + 1) {
+                        int need = ClientEvolutionConfig.killsForTier(overlay.tier());
+                        annotation = Component.translatable(
+                            "gui.neoorigins.info.evolution_tier_progress",
+                            String.valueOf(curKills), String.valueOf(need));
+                    } else {
+                        int need = ClientEvolutionConfig.killsForTier(overlay.tier());
+                        annotation = Component.translatable(
+                            "gui.neoorigins.info.evolution_tier_progress",
+                            String.valueOf(curKills), String.valueOf(need));
+                    }
+                    g.drawString(font, themed(annotation),
+                        panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
+                    sy += LINE_H;
+                }
                 for (ResourceLocation pid : overlay.add()) {
                     g.drawString(font,
                         Component.literal("+ " + powerDisplayName(pid)),
