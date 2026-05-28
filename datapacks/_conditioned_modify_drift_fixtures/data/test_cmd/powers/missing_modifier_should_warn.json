@@ -1,0 +1,9 @@
+{
+  "type": "origins:modify_damage_taken",
+  "name": "Broken — no modifier/modifiers field (conditioned)",
+  "description": "Negative test: harness should produce a WARN/structural complaint. Runtime parser leaves multiplier = 1.0 (no-op power), so this is intentionally a dead power that should be flagged at lint time. A `condition` is present so the harness routes through the Route B conditioned-modify fallback path where the structural check fires.",
+  "condition": {
+    "type": "origins:in_block",
+    "block_condition": { "type": "origins:in_tag", "tag": "minecraft:water" }
+  }
+}
