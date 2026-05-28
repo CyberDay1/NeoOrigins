@@ -196,6 +196,11 @@ public final class CompatTestHarness {
             return;
         }
 
+        // Entity-action lint runs over every power JSON regardless of namespace,
+        // because nested entity_action trees can reach into Apoli/Apace power
+        // shapes (e.g. action_on_hit) just as much as into native ones.
+        validateEntityActions(json, path, findings);
+
         // Native NeoOrigins types — structurally validated, then pass.
         // Previously these auto-PASSed; v2.1.6 added per-type structural hooks
         // (see validateNativeStructure) so authoring mistakes in native packs
@@ -458,6 +463,59 @@ public final class CompatTestHarness {
             }
             default -> null; // Unknown Route B — can't validate
         };
+    }
+
+    // ── Entity-Action Lint (recursive) ──────────────────────────────────────
+
+    /**
+     * Walk the entire power JSON tree looking for entity-action objects (any
+     * sub-object whose {@code type} matches an entity-action id we care about)
+     * and apply parser-canonical structural checks. Currently covers
+     * {@code neoorigins:spawn_entity} / {@code apace:spawn_entity}'s
+     * {@code quantity} field (v2.1.6); future entity-action lints hook here.
+     */
+    private static void validateEntityActions(JsonElement el, String path, List<Finding> findings) {
+        if (el == null) return;
+        if (el.isJsonObject()) {
+            JsonObject obj = el.getAsJsonObject();
+            String t = getNestedType(obj);
+            if (t != null) {
+                if (t.equals("neoorigins:spawn_entity") || t.equals("apace:spawn_entity")
+                    || t.equals("origins:spawn_entity") || t.equals("spawn_entity")) {
+                    String issue = validateSpawnEntityQuantity(obj);
+                    if (issue != null) {
+                        findings.add(new Finding(Result.WARN, path, t, "spawn_entity: " + issue));
+                    }
+                }
+            }
+            for (var entry : obj.entrySet()) {
+                validateEntityActions(entry.getValue(), path, findings);
+            }
+        } else if (el.isJsonArray()) {
+            for (JsonElement child : el.getAsJsonArray()) {
+                validateEntityActions(child, path, findings);
+            }
+        }
+    }
+
+    private static String validateSpawnEntityQuantity(JsonObject obj) {
+        if (!obj.has("quantity")) return null;
+        JsonElement q = obj.get("quantity");
+        if (!q.isJsonPrimitive() || !q.getAsJsonPrimitive().isNumber()) {
+            return "'quantity' must be an integer (got " + q + ") - parser will clamp to 1";
+        }
+        // Reject non-integer numbers (1.5) and negatives/zero.
+        try {
+            double dv = q.getAsDouble();
+            if (dv != Math.floor(dv)) {
+                return "'quantity' must be an integer (got " + dv + ") - parser will truncate";
+            }
+            int iv = q.getAsInt();
+            if (iv < 1) return "'quantity' must be >=1 (got " + iv + ") - parser will clamp to 1";
+        } catch (NumberFormatException e) {
+            return "'quantity' must be an integer (got " + q + ")";
+        }
+        return null;
     }
 
     // ── Native Structural Validation ────────────────────────────────────────

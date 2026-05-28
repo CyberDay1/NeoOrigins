@@ -425,6 +425,11 @@
         },
         "entity_type": {
           "type": "string"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of entities to spawn per trigger (default 1). When >1 each spawn gets a small +/-0.5 block horizontal jitter so they don't visually stack."
         }
       },
       "required": [
