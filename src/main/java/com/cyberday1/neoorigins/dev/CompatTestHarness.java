@@ -421,6 +421,14 @@ public final class CompatTestHarness {
                     yield "missing 'modifier'/'modifiers'";
                 yield null;
             }
+            // modify_xp_gain / modify_lava_speed: parseNumericModifier accepts both
+            // singular "modifier" and plural "modifiers", and per-entry either
+            // "value" or "amount". Mirror the parser's tolerance here.
+            case "modify_xp_gain", "modify_lava_speed" -> {
+                if (!json.has("modifier") && !json.has("modifiers"))
+                    yield "missing 'modifier'/'modifiers'";
+                yield null;
+            }
             default -> null; // Unknown Route B — can't validate
         };
     }

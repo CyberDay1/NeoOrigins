@@ -1,0 +1,9 @@
+{
+  "type": "origins:modify_xp_gain",
+  "name": "Quick Learner (Apoli shape: plural modifiers + amount)",
+  "description": "Verifies parser accepts Apoli-canonical `modifiers` array with `amount` per entry. Was a silent no-op before the schema-vs-parser fix.",
+  "modifiers": [
+    { "operation": "multiply_base", "amount": 0.5 },
+    { "operation": "addition",      "amount": 1.0 }
+  ]
+}

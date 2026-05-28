@@ -1,0 +1,5 @@
+{
+  "type": "origins:modify_xp_gain",
+  "name": "Broken — no modifier/modifiers field",
+  "description": "Negative test: harness should produce a WARN/structural complaint, runtime parser should skip with a warn log."
+}

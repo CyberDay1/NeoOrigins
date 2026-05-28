@@ -39,6 +39,22 @@ public final class NumericModifierRegistry {
             .add(new Entry(powerId, new OriginsModifierMath.Modifier(operation, value)));
     }
 
+    /**
+     * Bulk register variant for Apoli's plural {@code modifiers} array form.
+     * Each entry shares the same {@code powerId}, so a single
+     * {@link #unregister(ServerPlayer, Kind, String)} call removes them all
+     * — {@code removeIf} already matches by powerId equality.
+     */
+    public static void register(ServerPlayer player, Kind kind, String powerId,
+                                 List<OriginsModifierMath.Modifier> modifiers) {
+        if (modifiers == null || modifiers.isEmpty()) return;
+        var list = ACTIVE.computeIfAbsent(player.getUUID(), k -> new EnumMap<>(Kind.class))
+            .computeIfAbsent(kind, k -> Collections.synchronizedList(new ArrayList<>()));
+        for (OriginsModifierMath.Modifier m : modifiers) {
+            list.add(new Entry(powerId, m));
+        }
+    }
+
     public static void unregister(ServerPlayer player, Kind kind, String powerId) {
         var byKind = ACTIVE.get(player.getUUID());
         if (byKind == null) return;

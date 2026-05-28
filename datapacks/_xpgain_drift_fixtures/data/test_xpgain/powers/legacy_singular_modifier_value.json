@@ -1,0 +1,6 @@
+{
+  "type": "origins:modify_xp_gain",
+  "name": "Quick Learner (legacy NeoOrigins shape: singular modifier + value)",
+  "description": "Pre-existing shape the old parser already accepted; must keep working post-fix (backwards-compatible).",
+  "modifier": { "operation": "multiply_base", "value": 0.5 }
+}
