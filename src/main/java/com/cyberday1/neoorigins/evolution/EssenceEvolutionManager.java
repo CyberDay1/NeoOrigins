@@ -39,6 +39,12 @@ public final class EssenceEvolutionManager {
         int currentTier = data.getEvolutionTier();
         int interval = NeoOriginsConfig.evolutionMessageInterval();
 
+        // Live progress sync for the Origin Info (O-key) menu. Packet is
+        // ~3 bytes payload + frame -- cheap enough to send every kill so the
+        // GUI updates instantly without polling. The full config payload
+        // (thresholds, enabled, interval) stays login/reload-only.
+        com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncEvolutionProgressToPlayer(player);
+
         // ── Milestone chat messages ────────────────────────────────────
         if (kills % interval == 0) {
             int nextTier = currentTier + 1;
