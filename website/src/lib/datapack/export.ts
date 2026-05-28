@@ -7,7 +7,13 @@
 //
 //   pack.mcmeta
 //   data/<ns>/origins/origins/<localId>.json
-//   data/<ns>/origins/powers/<powerLocalId>.json   (one per power)
+//   data/<ns>/origins/origin_layers/<layerPath>.json   (layer-extension)
+//   data/<ns>/origins/powers/<powerLocalId>.json       (one per power)
+//
+// The layer-extension file is REQUIRED for the origin to appear in any
+// picker — without it, the loader's `LayerDataManager` merger has
+// nothing to fold onto the canonical layer. We ship one for both layer
+// choices (origin and class).
 //
 // `fflate.zipSync` is fine here — the payloads are a handful of small
 // JSON files (KB-range), so the sync cost is negligible and we dodge
@@ -69,7 +75,10 @@ export async function exportDatapack(draft: OriginDraft): Promise<Blob> {
 	const enc = new TextEncoder();
 	const entries: Zippable = {
 		'pack.mcmeta': enc.encode(JSON.stringify(mcmeta, null, 2)),
-		[bundle.originPath]: enc.encode(JSON.stringify(bundle.origin, null, 2))
+		[bundle.originPath]: enc.encode(JSON.stringify(bundle.origin, null, 2)),
+		[bundle.layerExtensionPath]: enc.encode(
+			JSON.stringify(bundle.layerExtension, null, 2)
+		)
 	};
 	for (const power of bundle.powers) {
 		entries[power.path] = enc.encode(JSON.stringify(power.json, null, 2));

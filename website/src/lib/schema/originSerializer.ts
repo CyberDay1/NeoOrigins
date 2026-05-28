@@ -41,6 +41,11 @@ export interface SerializedOrigin {
 	hidden?: boolean;
 	/** Fully-qualified power IDs (e.g. `mypack:flight`). */
 	powers?: string[];
+	/**
+	 * Optional progression chain. Emitted only when the draft has a
+	 * non-empty `upgrades` array. Shape matches `origin.schema.json`.
+	 */
+	upgrades?: Array<{ advancement: string; origin: string; announcement?: string }>;
 }
 
 export interface SerializedPower {
@@ -67,6 +72,23 @@ export interface SerializedDatapackBundle {
 	/** `data/<namespace>/origins/origins/<localId>.json`. */
 	originPath: string;
 	powers: SerializedPowerEntry[];
+	/**
+	 * Layer-extension file path, e.g.
+	 * `data/<userNamespace>/origins/origin_layers/<layerPath>.json`.
+	 *
+	 * The layer-extension file lives under the USER'S pack namespace,
+	 * not `neoorigins:` — the loader's `LayerDataManager` merges
+	 * same-path layer files across namespaces back onto the canonical
+	 * layer (see `LayerDataManager.mergeForeignSamePathLayers`). This
+	 * matches what `examples/custom_class/` ships.
+	 */
+	layerExtensionPath: string;
+	/**
+	 * Contents of the layer-extension file. `replace: false` is the
+	 * additive default — without it, the user's pack would wipe the
+	 * vanilla layer entries instead of adding to them.
+	 */
+	layerExtension: { replace: boolean; origins: string[] };
 }
 
 // ── implementation ──────────────────────────────────────────────────────────
@@ -128,11 +150,38 @@ export function serializeOrigin(draft: OriginDraft): SerializedDatapackBundle {
 	// empty (the schema allows an empty array, the mod tolerates it).
 	origin.powers = powers.map((p) => p.fullId);
 
+	// `upgrades` is optional in the schema — emit only when authored.
+	if (draft.upgrades && draft.upgrades.length > 0) {
+		origin.upgrades = draft.upgrades.map((u) => {
+			const entry: { advancement: string; origin: string; announcement?: string } = {
+				advancement: u.advancement,
+				origin: u.origin
+			};
+			if (u.announcement && u.announcement !== '') {
+				entry.announcement = u.announcement;
+			}
+			return entry;
+		});
+	}
+
+	// Layer-extension file path uses the path-portion of the layer id
+	// (e.g. `neoorigins:class` → `class.json`). The file itself lives
+	// under the USER'S namespace so the loader's same-path merger folds
+	// it onto the canonical layer.
+	const layerPath = draft.layerId.includes(':')
+		? draft.layerId.split(':', 2)[1]
+		: draft.layerId;
+
 	return {
 		namespace,
 		localId,
 		origin,
 		originPath: `data/${namespace}/origins/origins/${localId}.json`,
-		powers
+		powers,
+		layerExtensionPath: `data/${namespace}/origins/origin_layers/${layerPath}.json`,
+		layerExtension: {
+			replace: false,
+			origins: [`${namespace}:${localId}`]
+		}
 	};
 }

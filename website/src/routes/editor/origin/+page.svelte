@@ -3,9 +3,10 @@
 	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
 	import IdentityTab from '$lib/components/IdentityTab.svelte';
 	import PowersTab from '$lib/components/PowersTab.svelte';
+	import UpgradesTab from '$lib/components/UpgradesTab.svelte';
 	import JsonPreviewTab from '$lib/components/JsonPreviewTab.svelte';
 
-	type Tab = 'identity' | 'powers' | 'json';
+	type Tab = 'identity' | 'powers' | 'upgrades' | 'json';
 	let active = $state<Tab>('identity');
 
 	let downloadMessage = $state<string>('');
@@ -64,6 +65,15 @@
 	<button
 		type="button"
 		role="tab"
+		aria-selected={active === 'upgrades'}
+		class:active={active === 'upgrades'}
+		onclick={() => (active = 'upgrades')}
+	>
+		Upgrades
+	</button>
+	<button
+		type="button"
+		role="tab"
 		aria-selected={active === 'json'}
 		class:active={active === 'json'}
 		onclick={() => (active = 'json')}
@@ -77,6 +87,8 @@
 		<IdentityTab />
 	{:else if active === 'powers'}
 		<PowersTab />
+	{:else if active === 'upgrades'}
+		<UpgradesTab />
 	{:else}
 		<JsonPreviewTab />
 	{/if}

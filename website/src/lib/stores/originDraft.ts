@@ -29,6 +29,22 @@ export interface OriginDraft {
 	namespace: string;
 	/** Path segment of the id (everything after `:`), e.g. `wizard`. */
 	path: string;
+	/**
+	 * Layer this origin lives in. Defaults to `'neoorigins:origin'`
+	 * (a normal origin). Set to `'neoorigins:class'` to author a class.
+	 *
+	 * Field is `string` to leave the door open for custom layers in
+	 * other namespaces — the UI just defaults to a `<select>` over the
+	 * two built-ins (see {@link KNOWN_LAYERS}). The layer-extension file
+	 * `data/<userNs>/origins/origin_layers/<layerPath>.json` is emitted
+	 * unconditionally by the exporter — without it, the loader's layer
+	 * merger (`LayerDataManager.mergeForeignSamePathLayers`) never picks
+	 * the origin up, regardless of which layer was chosen.
+	 *
+	 * IMPORTANT: layer ids use the `neoorigins:` namespace, NOT
+	 * `origins:` — `origins:*` is reserved for the Apoli compat layer.
+	 */
+	layerId: string;
 	name: string;
 	description: string;
 	/** Text glyph for MVP, e.g. "✦" or "@". No item picker yet. */
@@ -41,6 +57,17 @@ export interface OriginDraft {
 	hidden: boolean;
 	/** Empty for MVP; Powers tab (task #13) will populate. */
 	powers: PowerDraft[];
+	/**
+	 * Optional progression entries — when the player meets the
+	 * advancement, they're upgraded into the named origin (with optional
+	 * chat announcement). Shared between origin- and class-layer
+	 * authoring (`examples/class_tier_up/` is the canonical class case,
+	 * but normal origins are allowed upgrades by the schema too).
+	 *
+	 * Kept `undefined` rather than `[]` until the user actually adds an
+	 * entry, so the serializer can cleanly omit the field.
+	 */
+	upgrades?: Array<{ advancement: string; origin: string; announcement?: string }>;
 }
 
 export interface PowerDraft {
@@ -55,15 +82,38 @@ export interface PowerDraft {
 /** Default namespace for new drafts — mirrors `CUSTOM_NAMESPACE` on the Java side. */
 export const DEFAULT_NAMESPACE = 'neoorigins';
 
+/** Default layer id for new drafts — a normal origin in the vanilla picker. */
+export const DEFAULT_LAYER_ID = 'neoorigins:origin';
+
+/**
+ * Built-in layer ids the UI surfaces in a `<select>`. Custom layers in
+ * other namespaces are NOT blocked at the type level (the field is
+ * `string`); they're just not in the dropdown for MVP.
+ *
+ * The `neoorigins:` namespace is deliberate — `origins:*` is reserved
+ * for the Apoli compat layer and is NOT a valid choice for authored
+ * NeoOrigins content.
+ */
+export const KNOWN_LAYERS = [
+	{ id: 'neoorigins:origin', label: 'Origin' },
+	{ id: 'neoorigins:class', label: 'Class' }
+] as const;
+
 /** Valid Minecraft namespace characters. */
 export const NAMESPACE_PATTERN = /^[a-z0-9_.-]+$/;
 /** Valid Minecraft resource-path characters (allows `/` for subfolders). */
 export const PATH_PATTERN = /^[a-z0-9_/.-]+$/;
+/**
+ * Standard Minecraft ResourceLocation regex — `<namespace>:<path>`.
+ * Used to validate `upgrades[].advancement` and `upgrades[].origin`.
+ */
+export const RESOURCE_LOCATION_PATTERN = /^[a-z0-9_.-]+:[a-z0-9_/.-]+$/;
 
 export function createDraft(): OriginDraft {
 	return {
 		namespace: DEFAULT_NAMESPACE,
 		path: '',
+		layerId: DEFAULT_LAYER_ID,
 		name: '',
 		description: '',
 		icon: '',

@@ -39,6 +39,7 @@ function makeDraft(): OriginDraft {
 	return {
 		namespace: 'mypack',
 		path: 'wizard',
+		layerId: 'neoorigins:origin',
 		name: 'Wizard',
 		description: 'A spellcaster of arcane power.',
 		icon: 'minecraft:enchanted_book',
@@ -58,6 +59,15 @@ function makeDraft(): OriginDraft {
 			}
 		]
 	};
+}
+
+function makeClassDraft(): OriginDraft {
+	const d = makeDraft();
+	d.namespace = 'mypack';
+	d.path = 'archmage';
+	d.layerId = 'neoorigins:class';
+	d.name = 'Archmage';
+	return d;
 }
 
 console.log('exportDatapack');
@@ -121,11 +131,12 @@ await check('power JSON lives at data/mypack/origins/powers/starter_robes.json',
 	assert(power.count === 1, `expected count 1, got ${power.count}`);
 });
 
-await check('zip contains exactly the expected 3 files', async () => {
+await check('zip contains exactly the expected 4 files (origin-layer draft)', async () => {
 	const blob = await exportDatapack(makeDraft());
 	const files = unzipSync(new Uint8Array(await blob.arrayBuffer()));
 	const keys = Object.keys(files).sort();
 	const expected = [
+		'data/mypack/origins/origin_layers/origin.json',
 		'data/mypack/origins/origins/wizard.json',
 		'data/mypack/origins/powers/starter_robes.json',
 		'pack.mcmeta'
@@ -136,6 +147,96 @@ await check('zip contains exactly the expected 3 files', async () => {
 		`zip contents mismatch.\n  expected: ${expected.join(', ')}\n  got:      ${keys.join(', ')}`
 	);
 });
+
+await check(
+	'layer-extension at data/mypack/origins/origin_layers/origin.json (origin draft)',
+	async () => {
+		const blob = await exportDatapack(makeDraft());
+		const files = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+		const path = 'data/mypack/origins/origin_layers/origin.json';
+		assert(path in files, `${path} missing from zip`);
+		const ext = JSON.parse(new TextDecoder().decode(files[path]));
+		assert(ext.replace === false, `expected replace=false, got ${ext.replace}`);
+		assert(
+			Array.isArray(ext.origins) && ext.origins[0] === 'mypack:wizard',
+			`expected origins[0]="mypack:wizard", got ${JSON.stringify(ext.origins)}`
+		);
+	}
+);
+
+await check(
+	'class-type draft produces the four expected zip entries',
+	async () => {
+		const blob = await exportDatapack(makeClassDraft());
+		const files = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+		const keys = Object.keys(files).sort();
+		const expected = [
+			'data/mypack/origins/origin_layers/class.json',
+			'data/mypack/origins/origins/archmage.json',
+			'data/mypack/origins/powers/starter_robes.json',
+			'pack.mcmeta'
+		].sort();
+		assert(
+			keys.length === expected.length &&
+				keys.every((k, i) => k === expected[i]),
+			`zip contents mismatch.\n  expected: ${expected.join(', ')}\n  got:      ${keys.join(', ')}`
+		);
+		const ext = JSON.parse(
+			new TextDecoder().decode(files['data/mypack/origins/origin_layers/class.json'])
+		);
+		assert(ext.replace === false, `expected replace=false on class draft, got ${ext.replace}`);
+		assert(
+			Array.isArray(ext.origins) && ext.origins[0] === 'mypack:archmage',
+			`expected class-layer origins[0]="mypack:archmage", got ${JSON.stringify(ext.origins)}`
+		);
+	}
+);
+
+await check(
+	'upgrades emitted only when non-empty, with announcement passthrough',
+	async () => {
+		const d = makeDraft();
+		d.upgrades = [
+			{
+				advancement: 'mypack:wizard/tier_1',
+				origin: 'mypack:archmage',
+				announcement: 'Ascended!'
+			},
+			{
+				advancement: 'mypack:wizard/tier_2',
+				origin: 'mypack:lich'
+			}
+		];
+		const blob = await exportDatapack(d);
+		const files = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+		const origin = JSON.parse(
+			new TextDecoder().decode(files['data/mypack/origins/origins/wizard.json'])
+		);
+		assert(
+			Array.isArray(origin.upgrades) && origin.upgrades.length === 2,
+			`expected 2 upgrades, got ${JSON.stringify(origin.upgrades)}`
+		);
+		assert(
+			origin.upgrades[0].announcement === 'Ascended!',
+			`expected announcement passthrough, got ${origin.upgrades[0].announcement}`
+		);
+		assert(
+			!('announcement' in origin.upgrades[1]),
+			`expected announcement omitted on entry 2, got ${JSON.stringify(origin.upgrades[1])}`
+		);
+
+		// And confirm an empty/undefined upgrades does NOT emit the field.
+		const blob2 = await exportDatapack(makeDraft());
+		const files2 = unzipSync(new Uint8Array(await blob2.arrayBuffer()));
+		const origin2 = JSON.parse(
+			new TextDecoder().decode(files2['data/mypack/origins/origins/wizard.json'])
+		);
+		assert(
+			!('upgrades' in origin2),
+			`expected no upgrades on default draft, got ${JSON.stringify(origin2.upgrades)}`
+		);
+	}
+);
 
 await check('suggestedFilename — populated id', () => {
 	const name = suggestedFilename(makeDraft());

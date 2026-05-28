@@ -2,9 +2,12 @@
 	import {
 		draft,
 		fullId,
+		KNOWN_LAYERS,
 		NAMESPACE_PATTERN,
 		PATH_PATTERN
 	} from '$lib/stores/originDraft';
+
+	const CLASS_LAYER_ID = 'neoorigins:class';
 
 	// Two-field id model, mirroring the in-game Java editor
 	// (`OriginDraft.idPath` + a separately-managed `CUSTOM_NAMESPACE`).
@@ -54,10 +57,31 @@
 	function setHidden(v: boolean) {
 		draft.update((d) => ({ ...d, hidden: v }));
 	}
+	function setLayerId(v: string) {
+		draft.update((d) => ({ ...d, layerId: v }));
+	}
 </script>
 
 <section aria-labelledby="identity-heading" class="tab">
 	<h2 id="identity-heading">Identity</h2>
+
+	<div class="row">
+		<label class="lbl" for="origin-layer">Layer</label>
+		<select
+			id="origin-layer"
+			value={$draft.layerId}
+			onchange={(e) => setLayerId((e.currentTarget as HTMLSelectElement).value)}
+		>
+			{#each KNOWN_LAYERS as l (l.id)}
+				<option value={l.id}>{l.label} ({l.id})</option>
+			{/each}
+		</select>
+		{#if $draft.layerId === CLASS_LAYER_ID}
+			<small class="accent">This origin will be a CLASS (neoorigins:class layer).</small>
+		{:else}
+			<small class="hint">Appears as a normal origin in the chosen picker.</small>
+		{/if}
+	</div>
 
 	<div class="row">
 		<span class="lbl">Id</span>
@@ -220,6 +244,10 @@
 	}
 	.preview {
 		color: #999;
+		font-size: 0.78rem;
+	}
+	.accent {
+		color: #4a90e2;
 		font-size: 0.78rem;
 	}
 	.id-fields {
