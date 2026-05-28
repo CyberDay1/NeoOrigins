@@ -80,8 +80,8 @@ await check('zip contains pack.mcmeta at root with correct pack_format', async (
 	assert('pack.mcmeta' in files, 'pack.mcmeta missing from zip root');
 	const meta = JSON.parse(new TextDecoder().decode(files['pack.mcmeta']));
 	assert(
-		meta?.pack?.pack_format === 84,
-		`expected pack_format 84, got ${meta?.pack?.pack_format}`
+		meta?.pack?.pack_format === 48,
+		`expected pack_format 48, got ${meta?.pack?.pack_format}`
 	);
 	assert(
 		typeof meta?.pack?.description === 'string' &&

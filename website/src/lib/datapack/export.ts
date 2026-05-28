@@ -19,12 +19,14 @@ import { serializeOrigin } from '$lib/schema/originSerializer';
 import type { OriginDraft } from '$lib/stores/originDraft';
 
 /**
- * Datapack `pack_format` for MC 1.21.1. Mirrors the value the mod
- * itself ships with — see `src/main/resources/pack.mcmeta` at the repo
- * root (`pack_format: 84` as of v2.1.x). If the mod bumps this value
- * for a new MC version, bump it here too.
+ * Datapack `pack_format` for MC 1.21.1 — the vanilla value is `48`,
+ * and that's what user datapacks dropped into `world/datapacks/` must
+ * declare or the game refuses to load them. The mod jar's own
+ * `pack.mcmeta` uses `84` only because it pairs that with
+ * `supported_formats: [0, 2147483647]` to bypass MC's version gate;
+ * regular datapacks don't get that escape hatch, so we ship `48` here.
  */
-const PACK_FORMAT = 84;
+const PACK_FORMAT = 48;
 
 /**
  * Default filename used when the draft has no namespaced id yet.
