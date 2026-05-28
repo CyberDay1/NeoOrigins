@@ -1,23 +1,77 @@
+// Datapack `.zip` export.
+//
+// Lowers the in-memory `OriginDraft` to disk via `serializeOrigin`
+// (see `src/lib/schema/originSerializer.ts`) and packs the resulting
+// JSON files into a zip with `fflate`. Layout, locked in
+// `planning/web_editor_scope.md` §3:
+//
+//   pack.mcmeta
+//   data/<ns>/origins/origins/<localId>.json
+//   data/<ns>/origins/powers/<powerLocalId>.json   (one per power)
+//
+// `fflate.zipSync` is fine here — the payloads are a handful of small
+// JSON files (KB-range), so the sync cost is negligible and we dodge
+// async-callback shape juggling.
+
+import { zipSync, type Zippable } from 'fflate';
+
+import { serializeOrigin } from '$lib/schema/originSerializer';
 import type { OriginDraft } from '$lib/stores/originDraft';
 
 /**
- * Build a complete datapack `.zip` Blob from the current draft.
- *
- * Planned output layout (see `planning/web_editor_scope.md` §3 MVP scope):
- *
- *   pack.mcmeta
- *   data/<ns>/origins/origins/<id>.json
- *   data/<ns>/origins/powers/<power_id>.json   (one per draft.powers entry)
- *
- * Namespace + path id are split from `draft.id` on the first `:`.
- * The origin JSON shape conforms to `docs/schema/origin.schema.json`;
- * power JSONs conform to `docs/schema/power.schema.json`. Zipping is
- * done via `fflate` (already a dependency) — no JSZip.
- *
- * TODO(backlog #15): implement. Until then this stub throws so the
- * editor shell can wire the "Download datapack" button and toast a
- * "Coming soon" message without a separate feature flag.
+ * Datapack `pack_format` for MC 1.21.1. Mirrors the value the mod
+ * itself ships with — see `src/main/resources/pack.mcmeta` at the repo
+ * root (`pack_format: 84` as of v2.1.x). If the mod bumps this value
+ * for a new MC version, bump it here too.
  */
-export function exportDatapack(_draft: OriginDraft): Promise<Blob> {
-	throw new Error('datapack export not yet implemented');
+const PACK_FORMAT = 84;
+
+/**
+ * Default filename used when the draft has no namespaced id yet.
+ * Matches the prose style of the mod's own `pack.mcmeta` description.
+ */
+const FALLBACK_FILENAME = 'neoorigins_custom_datapack.zip';
+
+/**
+ * Compute a suggested filename for the download. The shell wires this
+ * into the `<a download>` attribute. Falls back to a neutral name when
+ * the user hasn't filled in a namespaced id yet.
+ */
+export function suggestedFilename(draft: OriginDraft): string {
+	const raw = draft.id?.trim() ?? '';
+	if (!raw) return FALLBACK_FILENAME;
+	// Treat malformed ids (no `:`, empty halves) the same as empty.
+	const [ns, local] = raw.split(':');
+	if (!ns || !local) return FALLBACK_FILENAME;
+	return `${ns}_${local}_datapack.zip`;
+}
+
+/**
+ * Build a complete datapack `.zip` Blob from the current draft.
+ * Throws if the serializer rejects the draft.
+ */
+export async function exportDatapack(draft: OriginDraft): Promise<Blob> {
+	const bundle = serializeOrigin(draft);
+
+	const description = (draft.name?.trim() || 'Custom NeoOrigins datapack') +
+		' — built with NeoOrigins Web Editor';
+
+	const mcmeta = {
+		pack: {
+			pack_format: PACK_FORMAT,
+			description
+		}
+	};
+
+	const enc = new TextEncoder();
+	const entries: Zippable = {
+		'pack.mcmeta': enc.encode(JSON.stringify(mcmeta, null, 2)),
+		[bundle.originPath]: enc.encode(JSON.stringify(bundle.origin, null, 2))
+	};
+	for (const power of bundle.powers) {
+		entries[power.path] = enc.encode(JSON.stringify(power.json, null, 2));
+	}
+
+	const bytes = zipSync(entries);
+	return new Blob([bytes], { type: 'application/zip' });
 }

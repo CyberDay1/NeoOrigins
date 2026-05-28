@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { draft, resetDraft } from '$lib/stores/originDraft';
-	import { exportDatapack } from '$lib/datapack/export';
+	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
 	import IdentityTab from '$lib/components/IdentityTab.svelte';
 	import PowersTab from '$lib/components/PowersTab.svelte';
 	import JsonPreviewTab from '$lib/components/JsonPreviewTab.svelte';
@@ -28,7 +28,7 @@
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `${$draft.id.replace(':', '_') || 'origin'}.zip`;
+			a.download = suggestedFilename($draft);
 			a.click();
 			URL.revokeObjectURL(url);
 		} catch {
