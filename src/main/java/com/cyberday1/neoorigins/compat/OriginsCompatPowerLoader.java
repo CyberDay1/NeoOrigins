@@ -1608,22 +1608,33 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     /**
      * Shared parser for {@code modify_lava_speed} and {@code modify_xp_gain}
      * — both shape-identical Apoli verbs of the form
-     * {@code { "modifier": { "operation": ..., "value": ... } }}. Registers
-     * the resolved numeric entry against the player's UUID so the consumer
-     * (mixin for lava-speed, event handler for xp-gain) can apply it.
+     * {@code { "modifier": { "operation": ..., "value": ... } }}.
+     *
+     * <p>Accepts all four Apoli-author conventions, matching the precedent
+     * set by {@link #parseModifyFood} and {@link #parseConditionedModifyDamageTaken}:
+     * <ul>
+     *   <li>singular {@code "modifier"} object or plural {@code "modifiers"} array</li>
+     *   <li>per-modifier value field {@code "value"} or {@code "amount"}</li>
+     * </ul>
+     * The schema-vs-parser drift here previously caused real Apoli packs (which
+     * commonly emit {@code amount} and {@code modifiers}) to silently no-op.
+     *
+     * <p>Registers the resolved numeric entries against the player's UUID so
+     * the consumer (mixin for lava-speed, event handler for xp-gain) can
+     * apply them.
      */
     private CompatPower.Config parseNumericModifier(ResourceLocation id, JsonObject json,
                                                      NumericModifierRegistry.Kind kind) {
         String idStr = id.toString();
-        if (!json.has("modifier") || !json.get("modifier").isJsonObject()) {
-            NeoOrigins.LOGGER.warn("[CompatB] {} '{}' missing modifier object — skipped", kind, id);
+        // parseModifierList accepts both singular "modifier" and plural "modifiers",
+        // and parseSingleModifier accepts both "value" and "amount" inside each entry.
+        java.util.List<OriginsModifierMath.Modifier> mods = parseModifierList(json, "modifier");
+        if (mods.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {} '{}' missing modifier/modifiers — skipped", kind, id);
             return null;
         }
-        JsonObject mod = json.getAsJsonObject("modifier");
-        String operation = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
-        double value = mod.has("value") ? mod.get("value").getAsDouble() : 0.0;
         return CompatPower.Config.builder()
-            .onGranted(player -> NumericModifierRegistry.register(player, kind, idStr, operation, value))
+            .onGranted(player -> NumericModifierRegistry.register(player, kind, idStr, mods))
             .onRevoked(player -> NumericModifierRegistry.unregister(player, kind, idStr))
             .build();
     }

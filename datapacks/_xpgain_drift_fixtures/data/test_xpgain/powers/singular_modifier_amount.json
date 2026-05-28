@@ -1,0 +1,6 @@
+{
+  "type": "origins:modify_xp_gain",
+  "name": "Quick Learner (Apoli shape: singular modifier + amount)",
+  "description": "Verifies singular `modifier` with `amount` (not `value`) still parses.",
+  "modifier": { "operation": "multiply_base", "amount": 0.5 }
+}
