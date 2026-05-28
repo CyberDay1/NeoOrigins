@@ -36,14 +36,14 @@
         "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle", "neoorigins:particle",
         "neoorigins:trade_availability", "neoorigins:tree_felling", "neoorigins:twin_breeding",
         "neoorigins:underwater_mining_speed", "neoorigins:wall_climbing", "neoorigins:water_breathing",
-        "neoorigins:status_effect", "neoorigins:night_vision", "neoorigins:glow", "neoorigins:water_breathing",
+        "neoorigins:status_effect", "neoorigins:night_vision", "neoorigins:glow",
         "neoorigins:biome_buff", "neoorigins:damage_in_biome", "neoorigins:damage_in_daylight",
         "neoorigins:damage_in_water", "neoorigins:burn_at_health_threshold", "neoorigins:regen_in_fluid",
         "neoorigins:food_restriction", "neoorigins:action_on_kill", "neoorigins:action_on_hit_taken",
         "neoorigins:hunger_drain_modifier", "neoorigins:natural_regen_modifier", "neoorigins:knockback_modifier",
         "neoorigins:longer_potions", "neoorigins:teleport_range_modifier", "neoorigins:more_animal_loot",
         "neoorigins:efficient_repairs", "neoorigins:better_enchanting", "neoorigins:better_crafted_food",
-        "neoorigins:better_bone_meal", "neoorigins:thorns_aura", "neoorigins:less_item_use_slowdown",
+        "neoorigins:better_bone_meal", "neoorigins:thorns_aura",
         "apace:status_effect", "apace:night_vision", "apace:water_breathing",
         "apoli:edible_item", "apugli:edible_item", "apugli:action_on_jump", "apugli:action_on_target_death"
       ]
