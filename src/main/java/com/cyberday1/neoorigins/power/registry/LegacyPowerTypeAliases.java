@@ -260,9 +260,30 @@ public final class LegacyPowerTypeAliases {
 
         // damage_in_water: damage while in water, or while exposed to rain
         // (when include_rain is true). Compose via origins:or + origins:and.
+        //
+        //   damage_per_second  (float, default 1.0) — damage each interval.
+        //                                             Set to 0 to disable entirely
+        //                                             (substitutes a no-op action so
+        //                                             player.hurt is never called).
+        //   multiplier         (float) — alias for damage_per_second. Several
+        //                                origins (vampire, draconic, strider,
+        //                                blazeling, voidwalker, enderite,
+        //                                cinderborn, fire_mage) register the
+        //                                config field as "multiplier" for
+        //                                consistency with other weakness powers;
+        //                                accept it here so config overrides reach
+        //                                the damage value. damage_per_second wins
+        //                                if both are present.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "damage_in_water"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
-                    float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    float dps;
+                    if (json.has("damage_per_second")) {
+                        dps = json.get("damage_per_second").getAsFloat();
+                    } else if (json.has("multiplier")) {
+                        dps = json.get("multiplier").getAsFloat();
+                    } else {
+                        dps = 1.0f;
+                    }
                     boolean includeRain = !json.has("include_rain") || json.get("include_rain").getAsBoolean();
 
                     com.google.gson.JsonObject inWater = simpleCondition("neoorigins:in_water");
@@ -272,9 +293,19 @@ public final class LegacyPowerTypeAliases {
                     } else {
                         json.add("condition", inWater);
                     }
-                    json.add("entity_action", damageAction("drown", dps));
+                    // dps <= 0 → substitute a no-op so the power loads but never
+                    // invokes player.hurt (which would still trigger hurt sound /
+                    // animation / break invisibility at amount=0).
+                    if (dps > 0) {
+                        json.add("entity_action", damageAction("drown", dps));
+                    } else {
+                        com.google.gson.JsonObject nothing = new com.google.gson.JsonObject();
+                        nothing.addProperty("type", "neoorigins:nothing");
+                        json.add("entity_action", nothing);
+                    }
                     json.addProperty("interval", 20);
                     json.remove("damage_per_second");
+                    json.remove("multiplier");
                     json.remove("include_rain");
                 });
 
