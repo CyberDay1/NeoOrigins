@@ -85,7 +85,7 @@ public final class JsonPreviewTab implements CreatorTab {
                 emit(CustomPackSerializer.powerJson(p));
             }
 
-            section("layer patch → origins:" + d.layerId.getPath()
+            section("layer patch → " + d.layerId.toString()
                 + " (merged into the canonical picker)");
             emit(CustomPackSerializer.layerPatch(null, originId.toString()));
         } catch (RuntimeException e) {
