@@ -91,6 +91,9 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, CropGrowthAcceleratorPower> CROP_GROWTH_ACCELERATOR = reg("crop_growth_accelerator", new CropGrowthAcceleratorPower());
     public static final DeferredHolder<PowerType<?>, CropHarvestBonusPower>    CROP_HARVEST_BONUS   = reg("crop_harvest_bonus",   new CropHarvestBonusPower());
     public static final DeferredHolder<PowerType<?>, StartingEquipmentPower>   STARTING_EQUIPMENT   = reg("starting_equipment",   new StartingEquipmentPower());
+    // v2.1.6 backlog #3 — loot-table-driven active grant (FTBQ soft-compat
+    // available via FtbQuestsCompat when ftbquests is on the mod list).
+    public static final DeferredHolder<PowerType<?>, LootPoolGrantPower>       LOOT_POOL_GRANT      = reg("loot_pool_grant",      new LootPoolGrantPower());
 
     // --- Tick-driven & conditional ---
     // 2.0 Phase 4 consolidation target: condition_passive collapses biome_buff,

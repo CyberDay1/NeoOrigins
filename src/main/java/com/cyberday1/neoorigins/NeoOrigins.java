@@ -126,6 +126,14 @@ public class NeoOrigins {
         if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
             com.cyberday1.neoorigins.compat.ArsNouveauCompat.register();
         }
+        // FTB Quests soft-compat (v2.1.6 backlog #3) — wires the
+        // `neoorigins_loot_pool_grant:<table_id>` quest tag to the
+        // loot_pool_grant power's grant pipeline. Tag-marker path is the
+        // chosen integration; a future Provider-API-based RewardType is
+        // stubbed in FtbQuestsCompat#registerRewardType.
+        if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
+            com.cyberday1.neoorigins.compat.FtbQuestsCompat.register();
+        }
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {

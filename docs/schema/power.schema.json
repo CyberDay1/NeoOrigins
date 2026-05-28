@@ -30,6 +30,7 @@
         "neoorigins:prevent_action", "neoorigins:prevent_death", "neoorigins:projectile_immunity", "neoorigins:quality_equipment",
         "neoorigins:rare_wandering_loot", "neoorigins:restrict_armor", "neoorigins:scare_entities",
         "neoorigins:shadow_orb", "neoorigins:size_scaling", "neoorigins:sneaky",
+        "neoorigins:loot_pool_grant",
         "neoorigins:starting_equipment", "neoorigins:stealth", "neoorigins:summon_minion",
         "neoorigins:tame_mob", "neoorigins:tamed_animal_boost", "neoorigins:tamed_potion_diffusal",
         "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle", "neoorigins:particle",
@@ -334,6 +335,19 @@
       "required": ["type"]
     },
     {
+      "$comment": "neoorigins:loot_pool_grant — v2.1.6 backlog #3. Active power that rolls a vanilla loot table and grants each rolled stack to the player. Gives pack authors the full vanilla loot infrastructure (weighted entries, conditions, functions) instead of a flat item list. `grant_id` dedups via the shared starting_equipment grant attachment. When the `ftbquests` mod is loaded, FTBQ quests tagged `neoorigins_loot_pool_grant:<loot_table_id>` route through the same grant pipeline on quest completion.",
+      "properties": {
+        "type": { "const": "neoorigins:loot_pool_grant" },
+        "grant_id": { "type": "string", "description": "Unique id tracked so the bundle is granted only once per player." },
+        "loot_table": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$", "description": "ResourceLocation of the vanilla loot table to roll on activation." },
+        "rolls": { "type": "integer", "minimum": 0, "description": "Number of times the table is rolled per activation; default 1." },
+        "bonus_rolls": { "type": "integer", "minimum": 0, "description": "Extra rolls added to `rolls`; default 0. Mirrors vanilla loot-pool naming." },
+        "active": { "type": "string", "description": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system." },
+        "cooldown": { "type": "integer", "minimum": 0, "description": "Cooldown in ticks between activations (20 = 1s); default 0." }
+      },
+      "required": ["type", "grant_id", "loot_table"]
+    },
+    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
@@ -344,7 +358,8 @@
               "neoorigins:modify_damage", "neoorigins:size_scaling", "neoorigins:summon_minion",
               "neoorigins:tame_mob", "neoorigins:edible_item", "neoorigins:enhanced_vision",
               "neoorigins:toggle", "neoorigins:entity_set", "neoorigins:modify_player_spawn",
-              "neoorigins:restrict_armor", "neoorigins:keep_inventory"
+              "neoorigins:restrict_armor", "neoorigins:keep_inventory",
+              "neoorigins:loot_pool_grant"
             ]
           }
         }

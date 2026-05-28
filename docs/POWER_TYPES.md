@@ -3170,3 +3170,73 @@ Individual 2.0 power types are intentionally narrow so they can be combined. For
 - `neoorigins:condition_passive` with `condition: { type: origins:target_in_set, set: mypack:kill_list }` and `entity_action: { type: neoorigins:heal, amount: 0.5 }` — heals when attacking a marked target
 
 Each piece is a separate power entry in the origin's `powers` array. The `entity_set` power carries no behaviour on its own — it's the shared name other powers read and write.
+
+---
+
+## `neoorigins:loot_pool_grant`
+
+Active power that rolls a vanilla loot table on activation and grants every rolled stack to the player. Lets pack authors deliver weighted, conditional, function-driven rewards through the full vanilla loot infrastructure instead of a flat item list — and (when FTB Quests is installed) reuse the same loot table as a quest reward via a tag-marker.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `grant_id` | string | yes | — | Unique id tracked so the bundle is granted only once per player. Shares the `starting_equipment` grant attachment so an Orb of Origin / `/origin reset` clears both. |
+| `loot_table` | resource-loc | yes | — | The vanilla loot table to roll. Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers). |
+| `rolls` | int | no | `1` | Times the table is rolled per activation. |
+| `bonus_rolls` | int | no | `0` | Extra rolls added to `rolls`. Mirrors vanilla loot-pool naming. |
+| `active` | string | no | `""` | Optional display-only translation key advertising which keybind slot the power expects (e.g. `key.use_skill_1`). |
+| `cooldown` | int | no | `0` | Cooldown in ticks between activations (`20` = 1s). |
+
+Overflow that does not fit in the inventory is dropped at the player's feet — no stacks are silently lost. Empty rolls (a table that returns no items) do not consume the `grant_id`, so the author can fix the table and the player can re-activate.
+
+### Worked example — wood starter pack
+
+`data/neoorigins/loot_tables/rewards/wood_starter.json`:
+```json
+{
+  "type": "minecraft:gift",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:oak_log", "weight": 3,
+          "functions": [{ "function": "minecraft:set_count", "count": { "min": 8, "max": 16 } }] },
+        { "type": "minecraft:item", "name": "minecraft:birch_log", "weight": 1,
+          "functions": [{ "function": "minecraft:set_count", "count": { "min": 8, "max": 16 } }] }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:stone_axe" }
+      ]
+    }
+  ]
+}
+```
+
+`data/neoorigins/origins/powers/lumberjack_starter_pack.json`:
+```json
+{
+  "type": "neoorigins:loot_pool_grant",
+  "name": "Starter Pack",
+  "description": "Rolls a weighted bundle of logs plus a stone axe on use.",
+  "grant_id": "lumberjack:starter_pack_v1",
+  "loot_table": "neoorigins:rewards/wood_starter",
+  "rolls": 1,
+  "bonus_rolls": 0,
+  "active": "key.use_skill_1",
+  "cooldown": 0
+}
+```
+
+### FTB Quests soft-compat
+
+When `ftbquests` is on the mod list, NeoOrigins listens for FTBQ's `QuestCompletedEvent`. Any quest tagged
+
+```
+neoorigins_loot_pool_grant:<loot_table_id>
+```
+
+routes through the same `LootPoolGrantPower#fireLootPoolGrant` pipeline on completion: the completing player receives the rolled stacks, with dedup keyed on `ftbq:<quest_id>:<table_id>`. Authors get vanilla loot-table reuse for both origin powers and quest rewards without any hard FTBQ dependency.
+
+This is a soft-compat layer — it is **not** an FTBQ `RewardType` registration (which would require Provider-API hooks that vary across FTBQ minor versions). The tag-marker path is the supported integration; a `RewardType` upgrade is reserved for v2.2 once that API stabilises.
