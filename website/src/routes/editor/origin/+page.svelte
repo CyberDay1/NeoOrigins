@@ -1,13 +1,50 @@
 <script lang="ts">
+	import { draft, resetDraft } from '$lib/stores/originDraft';
+	import { exportDatapack } from '$lib/datapack/export';
+	import IdentityTab from '$lib/components/IdentityTab.svelte';
+	import PowersTab from '$lib/components/PowersTab.svelte';
+	import JsonPreviewTab from '$lib/components/JsonPreviewTab.svelte';
+
 	type Tab = 'identity' | 'powers' | 'json';
 	let active = $state<Tab>('identity');
+
+	let downloadMessage = $state<string>('');
+
+	let displayId = $derived($draft.id || 'Untitled Origin');
+
+	function onReset() {
+		if (confirm('Reset the draft? Unsaved changes will be lost.')) {
+			resetDraft();
+			downloadMessage = '';
+		}
+	}
+
+	async function onDownload() {
+		downloadMessage = '';
+		try {
+			const blob = await exportDatapack($draft);
+			// Real download path — wired now so task #15 only has to remove the
+			// stub error. Currently unreachable because exportDatapack throws.
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${$draft.id.replace(':', '_') || 'origin'}.zip`;
+			a.click();
+			URL.revokeObjectURL(url);
+		} catch {
+			downloadMessage = 'Coming soon — datapack export is not yet implemented.';
+		}
+	}
 </script>
 
-<h1>Origin editor</h1>
-<p class="subtitle">MVP scaffold — tabs render but content is not yet wired.</p>
+<div class="topbar">
+	<div class="id-display" aria-live="polite">{displayId}</div>
+	<button type="button" class="reset" onclick={onReset}>Reset</button>
+</div>
 
 <div class="tabs" role="tablist">
 	<button
+		type="button"
 		role="tab"
 		aria-selected={active === 'identity'}
 		class:active={active === 'identity'}
@@ -16,6 +53,7 @@
 		Identity
 	</button>
 	<button
+		type="button"
 		role="tab"
 		aria-selected={active === 'powers'}
 		class:active={active === 'powers'}
@@ -24,6 +62,7 @@
 		Powers
 	</button>
 	<button
+		type="button"
 		role="tab"
 		aria-selected={active === 'json'}
 		class:active={active === 'json'}
@@ -33,40 +72,58 @@
 	</button>
 </div>
 
-{#if active === 'identity'}
-	<section aria-labelledby="identity-heading">
-		<h2 id="identity-heading">Identity</h2>
-		<!-- TODO: Identity tab — name, description, icon, impact, order.
-		     Plain inputs only for MVP; no item picker. -->
-		<p class="placeholder">Coming next.</p>
-	</section>
-{:else if active === 'powers'}
-	<section aria-labelledby="powers-heading">
-		<h2 id="powers-heading">Powers</h2>
-		<!-- TODO: Powers tab — add/remove, type picker over power.schema.json `type.enum`,
-		     schema-driven FieldRow rendering. Tier-A fields = BOOL/INT/NUMBER/ENUM/STRING.
-		     Everything else falls back to a raw-JSON <textarea>. -->
-		<p class="placeholder">Coming next.</p>
-	</section>
-{:else}
-	<section aria-labelledby="json-heading">
-		<h2 id="json-heading">JSON Preview</h2>
-		<!-- TODO: live origin JSON + per-power JSON; AJV-validated, errors inline.
-		     Hook into stores/draft.ts once it exists. -->
-		<p class="placeholder">Coming next.</p>
-	</section>
-{/if}
+<div class="tab-body">
+	{#if active === 'identity'}
+		<IdentityTab />
+	{:else if active === 'powers'}
+		<PowersTab />
+	{:else}
+		<JsonPreviewTab />
+	{/if}
+</div>
+
+<div class="bottombar">
+	<button type="button" class="download" onclick={onDownload}>Download datapack (.zip)</button>
+	{#if downloadMessage}
+		<p class="dl-msg">{downloadMessage}</p>
+	{/if}
+</div>
 
 <style>
-	.subtitle {
-		color: #888;
-		margin-top: -0.25rem;
+	.topbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.75rem 1rem;
+		background: #1a1a1a;
+		border: 1px solid #2a2a2a;
+		border-radius: 4px;
+		margin-bottom: 1rem;
+	}
+	.id-display {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		color: #e6e6e6;
+		font-size: 0.95rem;
+	}
+	.reset {
+		background: #222;
+		color: #e6e6e6;
+		border: 1px solid #333;
+		border-radius: 3px;
+		padding: 0.4rem 0.9rem;
+		cursor: pointer;
+		font: inherit;
+	}
+	.reset:hover {
+		border-color: #e25d4a;
+		color: #e25d4a;
 	}
 	.tabs {
 		display: flex;
 		gap: 0.25rem;
 		border-bottom: 1px solid #333;
-		margin: 1.5rem 0 1rem;
+		margin-bottom: 1rem;
 	}
 	.tabs button {
 		padding: 0.5rem 1rem;
@@ -77,12 +134,42 @@
 		cursor: pointer;
 		font: inherit;
 	}
+	.tabs button:hover {
+		color: #fff;
+	}
 	.tabs button.active {
 		color: #fff;
 		border-bottom-color: #4a90e2;
 	}
-	.placeholder {
-		color: #777;
+	.tab-body {
+		min-height: 12rem;
+		padding: 0.5rem 0 1.5rem;
+	}
+	.bottombar {
+		border-top: 1px solid #2a2a2a;
+		padding-top: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		align-items: flex-start;
+	}
+	.download {
+		background: #1a1a1a;
+		color: #e6e6e6;
+		border: 1px solid #4a90e2;
+		border-radius: 3px;
+		padding: 0.5rem 1rem;
+		cursor: pointer;
+		font: inherit;
+	}
+	.download:hover {
+		background: #4a90e2;
+		color: #fff;
+	}
+	.dl-msg {
+		margin: 0;
+		color: #b8b8b8;
+		font-size: 0.85rem;
 		font-style: italic;
 	}
 </style>
