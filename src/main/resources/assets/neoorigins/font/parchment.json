@@ -2,15 +2,17 @@
   "_comment": [
     "Font provider for the parchment UI theme.",
     "",
-    "Bundled font: Newsreader (variable TTF, opsz + wght axes)",
+    "Bundled font: Newsreader 16pt Regular (static TTF)",
     "  Source : https://github.com/productiontype/Newsreader",
+    "           fonts/static/ttf/Newsreader16pt-Regular.ttf",
     "  License: SIL Open Font License 1.1 (see OFL.txt in this directory).",
     "           Per the OFL, OFL.txt MUST ship alongside the TTF binary in",
     "           the same directory whenever the font is redistributed.",
     "",
-    "The Minecraft TTF provider rasterises whatever default instance the",
-    "TTF reports; the variable font's default is Regular @ 16pt, which is",
-    "the body-text weight we want for the parchment UI.",
+    "Note: the variable TTF (Newsreader[opsz,wght].ttf) was tried first but",
+    "MC 1.21.1's TTF provider returned .notdef for every glyph against it,",
+    "so we ship the static 16pt Regular cut here instead. 16pt matches the",
+    "optical size the body-text UI uses.",
     "",
     "If the type looks oversized/tiny, tune `size`, `shift`, and `oversample`",
     "below. The vanilla default is chained as a fallback so any glyph the",
@@ -20,7 +22,7 @@
     "swap in their own TTF or fall back to vanilla pixel text."
   ],
   "providers": [
-    { "type": "ttf", "file": "neoorigins:font/Newsreader.ttf", "shift": [0, 1], "size": 11, "oversample": 2, "skip": [] },
+    { "type": "ttf", "file": "neoorigins:font/Newsreader-Regular.ttf", "shift": [0, 1], "size": 11, "oversample": 2, "skip": [] },
     { "type": "reference", "id": "minecraft:default" }
   ]
 }

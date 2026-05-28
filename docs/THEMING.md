@@ -103,6 +103,7 @@ small "I just want different colours" packs.
 
 ## Bundled font license
 
-`Newsreader.ttf` is redistributed under the SIL Open Font License 1.1.
+`Newsreader-Regular.ttf` (Newsreader 16pt Regular, static cut) is
+redistributed under the SIL Open Font License 1.1.
 The licence text ships at `assets/neoorigins/font/OFL.txt`. If you rebundle
 the TTF in your own pack you must keep OFL.txt alongside it.
