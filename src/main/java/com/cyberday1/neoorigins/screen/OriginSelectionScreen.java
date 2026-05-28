@@ -10,6 +10,7 @@ import com.cyberday1.neoorigins.screen.model.OriginListEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -43,6 +44,13 @@ public class OriginSelectionScreen extends Screen {
     private final boolean forceReselect;
     private final OriginSelectionPresenter presenter = new OriginSelectionPresenter();
 
+    /**
+     * Sort choice survives screen close → reopen within the same session
+     * (per design: in-memory only, no config file). Reset on game restart.
+     */
+    private static OriginSelectionPresenter.SortMode lastSortMode =
+        OriginSelectionPresenter.SortMode.CLASS;
+
     // Computed layout geometry
     private int panelX, panelBottom, leftW, rightX, rightW, listTop, listVisibleCount;
     private int detailTextW; // usable text width inside the detail panel
@@ -75,6 +83,7 @@ public class OriginSelectionScreen extends Screen {
     @Override
     protected void init() {
         presenter.setForceReselect(forceReselect);
+        presenter.setSortMode(lastSortMode);
         if (!presenter.init()) { onClose(); return; }
         int totalW       = Math.max(280, width - 40);
         leftW            = Mth.clamp((int)(totalW * 0.30f), MIN_LEFT_W, MAX_LEFT_W);
@@ -164,6 +173,26 @@ public class OriginSelectionScreen extends Screen {
         originButtons.clear();
         visibleHeaders.clear();
 
+        // Sort dropdown — vanilla CycleButton in the top-right of the screen,
+        // mirroring Mojang's Options-screen widgets. Display-only mode so the
+        // current sort label fills the button width. Width/position chosen
+        // so it doesn't collide with the centred layer title or the
+        // right-aligned "n / total" progress text.
+        var sortCycle = CycleButton.<OriginSelectionPresenter.SortMode>builder(
+                this::sortModeLabel, presenter.sortMode())
+            .withValues(OriginSelectionPresenter.SortMode.values())
+            .displayOnlyValue()
+            .create(
+                width - 10 - 110, 8, 110, 16,
+                Component.translatable("gui.neoorigins.sort.label"),
+                (b, value) -> {
+                    lastSortMode = value;
+                    presenter.setSortMode(value);
+                    presenter.buildRows();
+                    refreshWidgets();
+                });
+        addRenderableWidget(sortCycle);
+
         var search = new EditBox(font, panelX, PANEL_TOP + 1, leftW, SEARCH_H,
             Component.translatable("gui.neoorigins.search.label"));
         search.setMaxLength(64);
@@ -216,6 +245,17 @@ public class OriginSelectionScreen extends Screen {
             .bounds(cx + 12, cy, 80, 20).build();
         confirmButton.active = presenter.selectedOriginId() != null;
         addRenderableWidget(confirmButton);
+    }
+
+    /** Translation-key label for a sort mode. */
+    private Component sortModeLabel(OriginSelectionPresenter.SortMode mode) {
+        String key = switch (mode) {
+            case NAME_ASC   -> "gui.neoorigins.sort.name_asc";
+            case NAME_DESC  -> "gui.neoorigins.sort.name_desc";
+            case CLASS      -> "gui.neoorigins.sort.class";
+            case IMPACT_ASC -> "gui.neoorigins.sort.impact";
+        };
+        return Component.translatable(key);
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
