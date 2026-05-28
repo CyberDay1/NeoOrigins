@@ -11,9 +11,8 @@ import { writable } from 'svelte/store';
  * The serializer pass (backlog task #14 / JSON Preview tab) will
  * lower this draft into the schema-conformant JSON.
  *
- * `impact` is stored uppercase here (matches the Java enum). The
- * serializer is responsible for emitting lowercase when writing the
- * datapack JSON.
+ * `impact` is stored lowercase to match the wire format directly —
+ * the serializer emits it as-is (omitting the default `'none'`).
  */
 export interface OriginDraft {
 	/** Namespaced id, e.g. "neoorigins:my_origin". */
@@ -22,8 +21,12 @@ export interface OriginDraft {
 	description: string;
 	/** Text glyph for MVP, e.g. "✦" or "@". No item picker yet. */
 	icon: string;
-	impact: 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
+	impact: 'none' | 'low' | 'medium' | 'high';
 	order: number;
+	/** Hidden from the in-game origin selection screen. */
+	unchoosable: boolean;
+	/** Excluded from listings entirely (developer/testing). */
+	hidden: boolean;
 	/** Empty for MVP; Powers tab (task #13) will populate. */
 	powers: PowerDraft[];
 }
@@ -43,8 +46,10 @@ export function createDraft(): OriginDraft {
 		name: '',
 		description: '',
 		icon: '',
-		impact: 'NONE',
+		impact: 'none',
 		order: 0,
+		unchoosable: false,
+		hidden: false,
 		powers: []
 	};
 }

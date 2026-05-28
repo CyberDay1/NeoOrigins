@@ -11,8 +11,8 @@
 //     raw strings, not `{translate, fallback}` components. Authors who
 //     want translations can post-process the JSON.
 //   - Empty-string fields are omitted entirely (not serialized as `""`).
-//   - `impact` is stored UPPERCASE in the draft (matches the Java enum)
-//     and lowered to lowercase here on the way out.
+//   - `impact` is stored lowercase in the draft (matches the wire
+//     format directly) and emitted as-is, omitting the default `'none'`.
 //   - Origin `id` is split on `:` for namespace + local id. If the user
 //     forgets the namespace half, we default to `neoorigins`.
 //   - Per-power JSON paths follow the schema description:
@@ -30,9 +30,13 @@ export interface SerializedOrigin {
 	description?: { translate?: string; fallback?: string } | string;
 	/** Item id (`minecraft:diamond`) or short text glyph. */
 	icon?: string;
-	/** LOWERCASE on the wire — the draft stores UPPERCASE. */
+	/** Lowercase on the wire (matches the draft). */
 	impact?: 'none' | 'low' | 'medium' | 'high';
 	order?: number;
+	/** Hidden from origin selection. Omitted when false. */
+	unchoosable?: boolean;
+	/** Excluded from listings (developer/testing). Omitted when false. */
+	hidden?: boolean;
 	/** Fully-qualified power IDs (e.g. `mypack:flight`). */
 	powers?: string[];
 }
@@ -66,13 +70,6 @@ export interface SerializedDatapackBundle {
 // ── implementation ──────────────────────────────────────────────────────────
 
 const DEFAULT_NAMESPACE = 'neoorigins';
-
-const IMPACT_LOWER: Record<OriginDraft['impact'], SerializedOrigin['impact']> = {
-	NONE: 'none',
-	LOW: 'low',
-	MEDIUM: 'medium',
-	HIGH: 'high'
-};
 
 /**
  * Split a namespaced id into `[namespace, localId]`. If no `:` is
@@ -125,13 +122,16 @@ export function serializeOrigin(draft: OriginDraft): SerializedDatapackBundle {
 	if (draft.name) origin.name = draft.name;
 	if (draft.description) origin.description = draft.description;
 	if (draft.icon) origin.icon = draft.icon;
-	// `impact === 'NONE'` is the default the in-game side assumes when
+	// `impact === 'none'` is the default the in-game side assumes when
 	// the field is absent; omit it to keep the JSON minimal. Anything
-	// non-default is emitted lowercase.
-	if (draft.impact && draft.impact !== 'NONE') {
-		origin.impact = IMPACT_LOWER[draft.impact];
+	// non-default is emitted as-is (already lowercase in the draft).
+	if (draft.impact && draft.impact !== 'none') {
+		origin.impact = draft.impact;
 	}
 	if (draft.order !== 0) origin.order = draft.order;
+	// Boolean flags: only emit when true (false is the schema default).
+	if (draft.unchoosable) origin.unchoosable = true;
+	if (draft.hidden) origin.hidden = true;
 	// `powers` is REQUIRED by origin.schema.json — always emit, even if
 	// empty (the schema allows an empty array, the mod tolerates it).
 	origin.powers = powers.map((p) => p.fullId);

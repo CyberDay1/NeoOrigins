@@ -41,8 +41,10 @@ function makeDraft(): OriginDraft {
 		name: 'Wizard',
 		description: 'A spellcaster of arcane power.',
 		icon: 'minecraft:enchanted_book',
-		impact: 'MEDIUM',
+		impact: 'medium',
 		order: 5,
+		unchoosable: false,
+		hidden: false,
 		powers: [
 			{
 				id: 'starter_robes',

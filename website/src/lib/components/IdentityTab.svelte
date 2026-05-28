@@ -7,8 +7,14 @@
 	// full schema regex is stricter and will be enforced at JSON export time.
 	const ID_PATTERN = /^[a-z0-9_]+:[a-z0-9_/.-]+$/;
 
-	const IMPACTS = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const;
+	const IMPACTS = ['none', 'low', 'medium', 'high'] as const;
 	type Impact = (typeof IMPACTS)[number];
+	const IMPACT_LABELS: Record<Impact, string> = {
+		none: 'None',
+		low: 'Low',
+		medium: 'Medium',
+		high: 'High'
+	};
 
 	let idInvalid = $derived($draft.id !== '' && !ID_PATTERN.test($draft.id));
 
@@ -29,6 +35,12 @@
 	}
 	function setOrder(v: number) {
 		draft.update((d) => ({ ...d, order: Number.isFinite(v) ? v : 0 }));
+	}
+	function setUnchoosable(v: boolean) {
+		draft.update((d) => ({ ...d, unchoosable: v }));
+	}
+	function setHidden(v: boolean) {
+		draft.update((d) => ({ ...d, hidden: v }));
 	}
 </script>
 
@@ -94,7 +106,7 @@
 			onchange={(e) => setImpact((e.currentTarget as HTMLSelectElement).value as Impact)}
 		>
 			{#each IMPACTS as i (i)}
-				<option value={i}>{i}</option>
+				<option value={i}>{IMPACT_LABELS[i]}</option>
 			{/each}
 		</select>
 	</div>
@@ -108,6 +120,30 @@
 			value={$draft.order}
 			oninput={(e) => setOrder(parseInt((e.currentTarget as HTMLInputElement).value, 10))}
 		/>
+	</div>
+
+	<div class="row">
+		<label class="check">
+			<input
+				type="checkbox"
+				checked={$draft.unchoosable}
+				onchange={(e) => setUnchoosable((e.currentTarget as HTMLInputElement).checked)}
+			/>
+			<span>Unchoosable</span>
+		</label>
+		<small class="hint">Hidden from origin selection screen</small>
+	</div>
+
+	<div class="row">
+		<label class="check">
+			<input
+				type="checkbox"
+				checked={$draft.hidden}
+				onchange={(e) => setHidden((e.currentTarget as HTMLInputElement).checked)}
+			/>
+			<span>Hidden</span>
+		</label>
+		<small class="hint">Excluded from listings (developer/testing)</small>
 	</div>
 </section>
 
@@ -127,6 +163,13 @@
 		gap: 0.25rem;
 	}
 	.lbl {
+		color: #e6e6e6;
+		font-size: 0.9rem;
+	}
+	.check {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
 		color: #e6e6e6;
 		font-size: 0.9rem;
 	}
