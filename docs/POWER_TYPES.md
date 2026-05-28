@@ -308,7 +308,7 @@ Cancels the lethal blow instead of letting the player die. Faithful to Origins' 
   "type": "neoorigins:prevent_death",
   "damage_types": "fell_out_of_world",
   "invert": true,
-  "condition": { "type": "origins:sneaking" },
+  "condition": { "type": "neoorigins:sneaking" },
   "name": "Guarded Stance",
   "description": "Death cannot touch a braced body — the void still can."
 }
