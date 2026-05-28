@@ -2026,6 +2026,13 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 
 Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter — triggering one ability does not block another.
 
+> **Named hotkey slots:** `neoorigins:active_ability` binds to one of the six
+> hardcoded `key.neoorigins.skill_1`..`skill_6` controls. To bind a power to
+> a labelled hotkey from a larger pool, author it as an Apoli-style
+> `origins:active_self` / `origins:toggle` with a `"key"` field — the compat
+> loader routes that through the named-keybind pool. See
+> [Named keybinds](API.md#named-keybinds).
+
 Actions and conditions are compiled once at power-load time via `ActionParser` / `ConditionParser`; runtime only dispatches through the compiled closures.
 
 Hunger gating is handled at the `AbstractActivePower` base class level — when `hunger_cost > 0`, the base checks and debits food before calling `execute`. Any power that extends `AbstractActivePower` and wires `hungerCost()` through its Codec inherits the behavior automatically.

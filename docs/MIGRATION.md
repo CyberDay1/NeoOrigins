@@ -528,6 +528,15 @@ When `"ignite": true`, `entity_action` becomes `{ "type": "neoorigins:set_on_fir
 
 ### `neoorigins:damage_in_water`
 
+> `damage_per_second: 0` (or any non-positive value) fully disables the
+> power — the alias remapper substitutes a `neoorigins:nothing` action so
+> `player.hurt(..., 0)` is never called (which would still trigger the hurt
+> sound / animation / break invisibility). `multiplier` is accepted as a
+> synonym for `damage_per_second`; `damage_per_second` wins if both are
+> present. Pack-config overrides for either field are applied before this
+> gate, so setting the configured damage to 0 in your `.toml` reliably
+> turns the power off.
+
 Before:
 ```json
 {

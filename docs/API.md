@@ -10,6 +10,8 @@ to the per-topic detail doc.
 - [Condition verbs](#condition-verbs) — 75 conditions
 - [Action verbs](#action-verbs) — 45 actions
 - [Event keys](#event-keys) — 33 events
+- [Named keybinds](#named-keybinds)
+- [Active theme datapack file](#active-theme-datapack-file)
 - [Namespaces & prefixes](#namespaces--prefixes)
 - [JSON schemas](#json-schemas)
 
@@ -320,6 +322,101 @@ Used in `action_on_event`'s `event` field. Case-insensitive.
 `MOD_BONEMEAL_EXTRA`
 
 See [EVENTS.md](EVENTS.md) for each event's context record.
+
+---
+
+## Named keybinds
+
+By default, active powers consume one of the six hardcoded skill slots
+(`key.neoorigins.skill_1` … `key.neoorigins.skill_6`). For packs that ship more
+than six active abilities, NeoOrigins exposes a **named-keybind pool** — the
+pack declares its own translation key on the power, and the client surfaces
+each declared key as a labelled hotkey in *Controls → Key Binds → NeoOrigins
+(Hotkeys)*.
+
+### Declaring on a power
+
+Add a `key` field to an Apoli-style `origins:active_self` or `origins:toggle`
+power JSON. The compat loader picks the field up and registers the binding:
+
+```json
+{
+  "type": "origins:active_self",
+  "key": "examplepack.key.origins.1",
+  "cooldown": 80,
+  "entity_action": { "type": "neoorigins:add_velocity", "y": 1.5 },
+  "name": "Leap"
+}
+```
+
+`key` can also be an object form that carries the `continuous` flag:
+
+```json
+"key": { "key": "examplepack.key.origins.channel", "continuous": true }
+```
+
+- `key` is a free-form translation key string. Ship the human label as the
+  matching entry in your pack's `lang/en_us.json` (e.g.
+  `"examplepack.key.origins.1": "Phase Step"`).
+- `continuous: false` (default) = the action fires once per press. `true` =
+  the action fires every tick while the key is held — appropriate for
+  hold-to-channel abilities; skip cooldowns for these.
+- Vanilla input keys (`key.sneak`, `key.use`, `key.attack`, `key.jump`,
+  `key.forward`, `key.back`, `key.left`, `key.right`) are *not* routed
+  through the pool — they keep firing from server-side input polling.
+- The native `neoorigins:active_ability` type does **not** use the pool —
+  it always binds to one of the six built-in `skill_1`..`skill_6` slots.
+  Use `origins:active_self` when you need a named hotkey.
+
+### How the pool works
+
+- At reload, the server collects every distinct `key` value from all loaded
+  powers and broadcasts the sorted list to each client. Pool size is capped
+  by `NeoOriginsConfig.HOTKEY_POOL_SIZE`.
+- Each declared key is assigned an anonymous `Hotkey 01` … `Hotkey N` slot in
+  stable order — a player who relogs sees the same key in the same slot as
+  long as the pack hasn't changed.
+- The player rebinds each slot to a physical key in vanilla controls. Press
+  routes via `ActivatePowerByKeyPayload` back to the server, which fires the
+  bound power's entity action under the original cooldown / condition gates.
+- If another mod (keybindjs etc.) has already claimed the same key, the
+  pool slot detects it and stands down to avoid double-binding.
+
+### Display labels
+
+The hotkey list in the controls menu shows your translation key's human
+label. Built-in `skill_5` and `skill_6` slots use the same `key.neoorigins.skill_N`
+naming as the original four; their labels are bundled in
+`assets/neoorigins/lang/en_us.json`.
+
+Source of truth: `power/keybind/PowerKeybindRegistry.java`,
+`client/HotkeyAssignments.java`.
+
+---
+
+## Active theme datapack file
+
+The UI theme used by the origin selection / info screens is selectable per
+world via a datapack file. Drop the following into any pack:
+
+```
+data/<namespace>/neoorigins/active_theme.json
+```
+
+```json
+{ "theme": "examplepack:dark_woods" }
+```
+
+The server reads every `active_theme.json` on world load + each `/reload`
+and broadcasts the selection to every client at login. When multiple packs
+each declare an `active_theme.json`, the one loaded **last** wins and a
+warning is logged listing every contributor. A per-client override lives
+at `config/neoorigins-client.toml` (`[ui] theme_override = "<ns>:<id>"`)
+and beats the datapack file when set to a loaded id.
+
+For the theme JSON schema (`assets/<ns>/ui_themes/<id>.json`) and the
+authoring quickstart, see [THEMING.md](THEMING.md). A copy-and-edit pack
+skeleton lives at [`docs/theme-template/`](theme-template).
 
 ---
 
