@@ -1,29 +1,32 @@
 <script lang="ts">
-	// TODO: schema-driven field row.
+	// Schema-driven field row — TS port of the in-game
+	// `FieldWidgetFactory.create()` dispatch (see
+	// src/main/java/com/cyberday1/neoorigins/screen/creator/widget/FieldWidgetFactory.java).
 	//
-	// Reads a FormFieldSpec entry and dispatches to the right concrete widget
-	// (BoolRow / NumericRow / EnumRow / TextRow / RefRow / ArrayRefRow).
-	// Tier-B kinds fall through to a raw-JSON <textarea>.
-	//
-	// 1:1 with the Java `FieldWidgetFactory` dispatch table.
+	// Reads one FormFieldSpec and dispatches to the matching Tier-A row, or
+	// the RawJsonRow escape hatch for OBJECT / ARRAY / REF / MIXED / UNKNOWN.
 
-	let { label = 'TODO' }: { label?: string } = $props();
+	import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
+	import BoolRow from './BoolRow.svelte';
+	import NumericRow from './NumericRow.svelte';
+	import EnumRow from './EnumRow.svelte';
+	import StringRow from './StringRow.svelte';
+	import RawJsonRow from './RawJsonRow.svelte';
+
+	let {
+		field,
+		value = $bindable()
+	}: { field: FormFieldSpec; value: unknown } = $props();
 </script>
 
-<div class="field-row">
-	<label>{label}</label>
-	<span class="todo">TODO: schema-driven field row</span>
-</div>
-
-<style>
-	.field-row {
-		display: flex;
-		gap: 0.5rem;
-		align-items: center;
-		padding: 0.25rem 0;
-	}
-	.todo {
-		color: #777;
-		font-style: italic;
-	}
-</style>
+{#if field.kind === 'BOOLEAN'}
+	<BoolRow {field} bind:value={value as boolean} />
+{:else if field.kind === 'INTEGER' || field.kind === 'NUMBER'}
+	<NumericRow {field} bind:value={value as number | null} />
+{:else if field.kind === 'ENUM'}
+	<EnumRow {field} bind:value={value as string} />
+{:else if field.kind === 'STRING'}
+	<StringRow {field} bind:value={value as string} />
+{:else}
+	<RawJsonRow {field} bind:value={value as string} />
+{/if}
