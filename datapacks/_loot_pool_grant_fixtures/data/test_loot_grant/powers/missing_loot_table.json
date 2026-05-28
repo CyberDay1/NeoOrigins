@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:loot_pool_grant",
+  "name": "Broken — missing loot_table",
+  "description": "Negative test: harness should produce a WARN (missing 'loot_table'); runtime logs a warn and skips the grant.",
+  "grant_id": "test:loot_pool_grant_missing_table",
+  "rolls": 1
+}

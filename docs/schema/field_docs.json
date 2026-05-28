@@ -209,6 +209,14 @@
     "show_icon": "Whether the effect's HUD icon is shown (default false).",
     "show_particles": "Whether the effect's ambient particles are shown (default false)."
   },
+  "neoorigins:loot_pool_grant": {
+    "active": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system.",
+    "bonus_rolls": "Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming.",
+    "cooldown": "Cooldown in ticks between activations (20 = 1s); default 0.",
+    "grant_id": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both.",
+    "loot_table": "ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).",
+    "rolls": "Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op."
+  },
   "neoorigins:low_hp_threshold": {
     "effects": "List of {effect, amplifier} entries applied while below the threshold.",
     "threshold": "Health fraction below which the effects activate (0.5 = 50%; default 0.5)."

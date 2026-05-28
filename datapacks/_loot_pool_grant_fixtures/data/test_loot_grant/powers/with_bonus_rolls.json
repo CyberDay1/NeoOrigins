@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:loot_pool_grant",
+  "name": "With bonus rolls + active slot + cooldown",
+  "description": "Verifies the full optional-field set (active/cooldown/bonus_rolls) parses cleanly. Harness should PASS.",
+  "grant_id": "test:loot_pool_grant_with_bonus",
+  "loot_table": "neoorigins:rewards/wood_starter",
+  "rolls": 2,
+  "bonus_rolls": 1,
+  "active": "key.use_skill_1",
+  "cooldown": 200
+}

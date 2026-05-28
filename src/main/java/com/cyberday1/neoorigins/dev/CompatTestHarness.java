@@ -546,6 +546,31 @@ public final class CompatTestHarness {
                 }
                 yield null;
             }
+            case "loot_pool_grant" -> {
+                // Mirrors LootPoolGrantPower.execute(): missing/blank loot_table
+                // → runtime WARN + skipped grant. Non-positive `rolls` (when set
+                // explicitly) collapses the effective roll count to bonus_rolls
+                // only — if both are unset/zero the power is a no-op.
+                boolean hasTable = json.has("loot_table")
+                    && json.get("loot_table").isJsonPrimitive()
+                    && !json.get("loot_table").getAsString().isBlank();
+                if (!hasTable) {
+                    yield "missing 'loot_table'";
+                }
+                if (json.has("rolls") && json.get("rolls").isJsonPrimitive()
+                        && json.get("rolls").getAsJsonPrimitive().isNumber()) {
+                    int rolls = json.get("rolls").getAsInt();
+                    int bonus = json.has("bonus_rolls")
+                            && json.get("bonus_rolls").isJsonPrimitive()
+                            && json.get("bonus_rolls").getAsJsonPrimitive().isNumber()
+                        ? json.get("bonus_rolls").getAsInt() : 0;
+                    if (rolls <= 0 && bonus <= 0) {
+                        yield "'rolls' must be positive (got " + rolls
+                            + ") — power will be a no-op";
+                    }
+                }
+                yield null;
+            }
             default -> null; // Unknown native type — no structural lint yet
         };
     }

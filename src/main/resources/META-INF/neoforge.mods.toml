@@ -37,6 +37,17 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "CLIENT"
 
+# FTB Quests soft-compat (v2.1.6 backlog #3): the loot_pool_grant power
+# accepts FTBQ quest tags of the form `neoorigins_loot_pool_grant:<table_id>`
+# and rolls that loot table for the completing player. Entirely reflective —
+# the mod runs unchanged when FTBQ is absent.
+[[dependencies.${mod_id}]]
+    modId = "ftbquests"
+    type = "optional"
+    versionRange = "[2000,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
 [[mixins]]
     config = "neoorigins.mixins.json"
 
