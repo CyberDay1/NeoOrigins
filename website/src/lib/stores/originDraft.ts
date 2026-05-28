@@ -15,8 +15,20 @@ import { writable } from 'svelte/store';
  * the serializer emits it as-is (omitting the default `'none'`).
  */
 export interface OriginDraft {
-	/** Namespaced id, e.g. "neoorigins:my_origin". */
-	id: string;
+	/**
+	 * Datapack namespace (the part before `:`). Defaults to `neoorigins`.
+	 * Mirrors the in-game Java editor's split-field model: the path
+	 * segment is stored separately from the namespace, and the two are
+	 * joined with `:` at serialize time (see {@link fullId}).
+	 *
+	 * Java parallel: {@code OriginDraft.idPath} + {@code CUSTOM_NAMESPACE}
+	 * in `src/main/java/com/cyberday1/neoorigins/screen/creator`. The
+	 * Java editor pins the namespace to a constant; the web editor is
+	 * intentionally more permissive (unknown user packs).
+	 */
+	namespace: string;
+	/** Path segment of the id (everything after `:`), e.g. `wizard`. */
+	path: string;
 	name: string;
 	description: string;
 	/** Text glyph for MVP, e.g. "✦" or "@". No item picker yet. */
@@ -40,9 +52,18 @@ export interface PowerDraft {
 	fields: Record<string, unknown>;
 }
 
+/** Default namespace for new drafts — mirrors `CUSTOM_NAMESPACE` on the Java side. */
+export const DEFAULT_NAMESPACE = 'neoorigins';
+
+/** Valid Minecraft namespace characters. */
+export const NAMESPACE_PATTERN = /^[a-z0-9_.-]+$/;
+/** Valid Minecraft resource-path characters (allows `/` for subfolders). */
+export const PATH_PATTERN = /^[a-z0-9_/.-]+$/;
+
 export function createDraft(): OriginDraft {
 	return {
-		id: '',
+		namespace: DEFAULT_NAMESPACE,
+		path: '',
 		name: '',
 		description: '',
 		icon: '',
@@ -52,6 +73,15 @@ export function createDraft(): OriginDraft {
 		hidden: false,
 		powers: []
 	};
+}
+
+/**
+ * Derived helper: join `namespace` + `path` into a full resource id
+ * (e.g. `neoorigins:wizard`). Not stored on the draft — recompute at
+ * read time so the two halves never disagree.
+ */
+export function fullId(draft: Pick<OriginDraft, 'namespace' | 'path'>): string {
+	return `${draft.namespace}:${draft.path}`;
 }
 
 export const draft = writable<OriginDraft>(createDraft());

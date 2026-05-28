@@ -13,8 +13,10 @@
 //   - Empty-string fields are omitted entirely (not serialized as `""`).
 //   - `impact` is stored lowercase in the draft (matches the wire
 //     format directly) and emitted as-is, omitting the default `'none'`.
-//   - Origin `id` is split on `:` for namespace + local id. If the user
-//     forgets the namespace half, we default to `neoorigins`.
+//   - Origin id is stored as two independent fields on the draft —
+//     `namespace` (defaults to `neoorigins`) and `path` — mirroring the
+//     in-game Java editor's `idPath` + `CUSTOM_NAMESPACE` split. We read
+//     each half directly; no `:` splitting needed.
 //   - Per-power JSON paths follow the schema description:
 //     `data/<namespace>/origins/powers/<powerLocalId>.json`.
 //     The origin's `powers[]` is the fully-qualified power id list
@@ -69,20 +71,6 @@ export interface SerializedDatapackBundle {
 
 // ── implementation ──────────────────────────────────────────────────────────
 
-const DEFAULT_NAMESPACE = 'neoorigins';
-
-/**
- * Split a namespaced id into `[namespace, localId]`. If no `:` is
- * present, returns `[DEFAULT_NAMESPACE, raw]`. Either half may end up
- * empty — callers should treat that as a draft-not-ready state, not
- * substitute a fake id.
- */
-export function splitId(raw: string): [string, string] {
-	const idx = raw.indexOf(':');
-	if (idx < 0) return [DEFAULT_NAMESPACE, raw];
-	return [raw.slice(0, idx), raw.slice(idx + 1)];
-}
-
 function serializePower(
 	power: PowerDraft,
 	namespace: string
@@ -114,7 +102,11 @@ function serializePower(
  * the locked MVP decisions.
  */
 export function serializeOrigin(draft: OriginDraft): SerializedDatapackBundle {
-	const [namespace, localId] = splitId(draft.id);
+	// Read the two halves directly off the draft — no `:` splitting. The
+	// draft model mirrors the in-game Java editor, which stores the path
+	// segment alongside a separately-managed namespace.
+	const namespace = draft.namespace;
+	const localId = draft.path;
 
 	const powers = draft.powers.map((p) => serializePower(p, namespace));
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { draft, resetDraft } from '$lib/stores/originDraft';
+	import { draft, fullId, resetDraft } from '$lib/stores/originDraft';
 	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
 	import IdentityTab from '$lib/components/IdentityTab.svelte';
 	import PowersTab from '$lib/components/PowersTab.svelte';
@@ -10,7 +10,7 @@
 
 	let downloadMessage = $state<string>('');
 
-	let displayId = $derived($draft.id || 'Untitled Origin');
+	let displayId = $derived($draft.path ? fullId($draft) : 'Untitled Origin');
 
 	function onReset() {
 		if (confirm('Reset the draft? Unsaved changes will be lost.')) {

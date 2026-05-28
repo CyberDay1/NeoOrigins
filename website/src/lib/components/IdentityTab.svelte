@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { draft } from '$lib/stores/originDraft';
+	import {
+		draft,
+		fullId,
+		NAMESPACE_PATTERN,
+		PATH_PATTERN
+	} from '$lib/stores/originDraft';
 
-	// Namespaced id pattern: <namespace>:<path>. Accepts a-z, 0-9, underscore
-	// in the namespace half; the path half additionally allows `/`, `.`, `-`.
-	// Matches the MVP scope of "looks like a valid resource location"; the
-	// full schema regex is stricter and will be enforced at JSON export time.
-	const ID_PATTERN = /^[a-z0-9_]+:[a-z0-9_/.-]+$/;
+	// Two-field id model, mirroring the in-game Java editor
+	// (`OriginDraft.idPath` + a separately-managed `CUSTOM_NAMESPACE`).
+	// `namespace` follows the Minecraft namespace rule; `path` additionally
+	// allows `/` for subfolders. The full schema regex is stricter and will
+	// be enforced at JSON export time.
 
 	const IMPACTS = ['none', 'low', 'medium', 'high'] as const;
 	type Impact = (typeof IMPACTS)[number];
@@ -16,10 +21,17 @@
 		high: 'High'
 	};
 
-	let idInvalid = $derived($draft.id !== '' && !ID_PATTERN.test($draft.id));
+	let namespaceInvalid = $derived(
+		$draft.namespace !== '' && !NAMESPACE_PATTERN.test($draft.namespace)
+	);
+	let pathInvalid = $derived($draft.path !== '' && !PATH_PATTERN.test($draft.path));
+	let previewFullId = $derived(fullId($draft));
 
-	function setId(v: string) {
-		draft.update((d) => ({ ...d, id: v }));
+	function setNamespace(v: string) {
+		draft.update((d) => ({ ...d, namespace: v }));
+	}
+	function setPath(v: string) {
+		draft.update((d) => ({ ...d, path: v }));
 	}
 	function setName(v: string) {
 		draft.update((d) => ({ ...d, name: v }));
@@ -48,21 +60,46 @@
 	<h2 id="identity-heading">Identity</h2>
 
 	<div class="row">
-		<label class="lbl" for="origin-id">Id</label>
-		<input
-			id="origin-id"
-			type="text"
-			class:invalid={idInvalid}
-			value={$draft.id}
-			oninput={(e) => setId((e.currentTarget as HTMLInputElement).value)}
-			placeholder="mypack:wizard"
-			autocomplete="off"
-			spellcheck="false"
-		/>
-		<small class="hint">namespaced, e.g. <code>mypack:wizard</code></small>
-		{#if idInvalid}
-			<small class="err">must match <code>{ID_PATTERN.source}</code></small>
+		<span class="lbl">Id</span>
+		<div class="id-fields">
+			<input
+				id="origin-namespace"
+				type="text"
+				class="mono ns"
+				class:invalid={namespaceInvalid}
+				value={$draft.namespace}
+				oninput={(e) => setNamespace((e.currentTarget as HTMLInputElement).value)}
+				placeholder="neoorigins"
+				autocomplete="off"
+				spellcheck="false"
+				aria-label="Namespace"
+			/>
+			<span class="colon" aria-hidden="true">:</span>
+			<input
+				id="origin-path"
+				type="text"
+				class="mono path"
+				class:invalid={pathInvalid}
+				value={$draft.path}
+				oninput={(e) => setPath((e.currentTarget as HTMLInputElement).value)}
+				placeholder="wizard"
+				autocomplete="off"
+				spellcheck="false"
+				aria-label="Path"
+			/>
+		</div>
+		<small class="hint">
+			<strong>Namespace</strong> defaults to <code>neoorigins</code>;
+			<strong>path</strong> is the origin's id within that namespace, e.g.
+			<code>wizard</code>.
+		</small>
+		{#if namespaceInvalid}
+			<small class="err">namespace must match <code>{NAMESPACE_PATTERN.source}</code></small>
 		{/if}
+		{#if pathInvalid}
+			<small class="err">path must match <code>{PATH_PATTERN.source}</code></small>
+		{/if}
+		<small class="preview">Full id: <code>{previewFullId}</code></small>
 	</div>
 
 	<div class="row">
@@ -180,6 +217,29 @@
 	.err {
 		color: #e25d4a;
 		font-size: 0.78rem;
+	}
+	.preview {
+		color: #999;
+		font-size: 0.78rem;
+	}
+	.id-fields {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		max-width: 32rem;
+	}
+	.id-fields .colon {
+		color: #999;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 0.95rem;
+	}
+	.id-fields input.ns {
+		flex: 0 0 9rem;
+		min-width: 6rem;
+	}
+	.id-fields input.path {
+		flex: 1 1 auto;
+		min-width: 6rem;
 	}
 	code {
 		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

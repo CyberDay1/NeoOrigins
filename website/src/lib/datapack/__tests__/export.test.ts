@@ -37,7 +37,8 @@ function assert(cond: unknown, msg: string): asserts cond {
 
 function makeDraft(): OriginDraft {
 	return {
-		id: 'mypack:wizard',
+		namespace: 'mypack',
+		path: 'wizard',
 		name: 'Wizard',
 		description: 'A spellcaster of arcane power.',
 		icon: 'minecraft:enchanted_book',
@@ -141,16 +142,16 @@ await check('suggestedFilename — populated id', () => {
 	assert(name === 'mypack_wizard_datapack.zip', `got ${name}`);
 });
 
-await check('suggestedFilename — empty id falls back', () => {
+await check('suggestedFilename — empty path falls back', () => {
 	const d = makeDraft();
-	d.id = '';
+	d.path = '';
 	const name = suggestedFilename(d);
 	assert(name === 'neoorigins_custom_datapack.zip', `got ${name}`);
 });
 
-await check('suggestedFilename — malformed id (no colon) falls back', () => {
+await check('suggestedFilename — empty namespace falls back', () => {
 	const d = makeDraft();
-	d.id = 'no_colon_here';
+	d.namespace = '';
 	const name = suggestedFilename(d);
 	assert(name === 'neoorigins_custom_datapack.zip', `got ${name}`);
 });

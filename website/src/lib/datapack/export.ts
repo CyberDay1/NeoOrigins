@@ -38,10 +38,11 @@ const FALLBACK_FILENAME = 'neoorigins_custom_datapack.zip';
  * the user hasn't filled in a namespaced id yet.
  */
 export function suggestedFilename(draft: OriginDraft): string {
-	const raw = draft.id?.trim() ?? '';
-	if (!raw) return FALLBACK_FILENAME;
-	// Treat malformed ids (no `:`, empty halves) the same as empty.
-	const [ns, local] = raw.split(':');
+	// Draft model stores namespace + path as independent fields (mirroring
+	// the in-game Java editor). Treat an empty path the same as an
+	// "id not filled in yet" state, even if the namespace has its default.
+	const ns = draft.namespace?.trim() ?? '';
+	const local = draft.path?.trim() ?? '';
 	if (!ns || !local) return FALLBACK_FILENAME;
 	return `${ns}_${local}_datapack.zip`;
 }
