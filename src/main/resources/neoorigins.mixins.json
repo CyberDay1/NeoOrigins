@@ -22,7 +22,8 @@
     "PlayerPhaseOverrideMixin",
     "LivingEntityUndeadPotionMixin",
     "EntityMountPositionMixin",
-    "EntityMountEndMixin"
+    "EntityMountEndMixin",
+    "recipe.CraftingMenuOriginContextMixin"
   ],
   "client": [
     "client.LightTextureMixin",

@@ -1,0 +1,23 @@
+{
+  "_comment": "Example: crafts only when the player's selection in the canonical origin layer is neoorigins:avian. Combine multiple gates by listing them — all must pass (AND semantics).",
+  "type": "neoorigins:origin_gated_crafting",
+  "gates": [
+    {
+      "type": "neoorigins:in_layer",
+      "layer": "neoorigins:origin",
+      "origin": "neoorigins:avian"
+    }
+  ],
+  "inner": {
+    "type": "minecraft:crafting_shapeless",
+    "category": "misc",
+    "ingredients": [
+      { "item": "minecraft:feather" },
+      { "item": "minecraft:feather" }
+    ],
+    "result": {
+      "id": "minecraft:feather",
+      "count": 3
+    }
+  }
+}

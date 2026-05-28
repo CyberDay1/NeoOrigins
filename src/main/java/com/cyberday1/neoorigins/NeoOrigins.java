@@ -104,6 +104,11 @@ public class NeoOrigins {
         // Register custom entities (cobweb projectile, etc.)
         com.cyberday1.neoorigins.content.ModEntities.register(modEventBus);
 
+        // Register origin-gated recipe serializer (2.1.6 backlog #2).
+        // Hooks BuiltInRegistries.RECIPE_SERIALIZER on both physical sides so the
+        // recipe-book sync packet deserializes correctly on clients.
+        com.cyberday1.neoorigins.recipe.OriginRecipeRegistry.register(modEventBus);
+
         // Register attachment types (origin data + Route B compat state + entity minion-owner)
         OriginAttachments.register(modEventBus);
         CompatAttachments.register(modEventBus);

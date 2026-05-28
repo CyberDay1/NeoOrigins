@@ -1,0 +1,20 @@
+{
+  "_comment": "Example: gated bread recipe — only crafts for players whose chosen origin is neoorigins:human. Copy into data/<ns>/recipe/ to activate.",
+  "type": "neoorigins:origin_gated_crafting",
+  "gates": [
+    { "type": "neoorigins:has_origin", "origin": "neoorigins:human" }
+  ],
+  "inner": {
+    "type": "minecraft:crafting_shapeless",
+    "category": "food",
+    "ingredients": [
+      { "item": "minecraft:wheat" },
+      { "item": "minecraft:wheat" },
+      { "item": "minecraft:wheat" }
+    ],
+    "result": {
+      "id": "minecraft:bread",
+      "count": 1
+    }
+  }
+}
