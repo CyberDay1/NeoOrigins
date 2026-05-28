@@ -201,12 +201,6 @@ public class OriginInfoScreen extends Screen {
         return h;
     }
 
-    /** Wraps a Component with the theme's font Style so a custom font provider can take effect. */
-    private static net.minecraft.network.chat.Component themed(net.minecraft.network.chat.Component c) {
-        ResourceLocation fid = UITheme.current().font();
-        return fid != null ? c.copy().withStyle(s -> s.withFont(fid)) : c;
-    }
-
     /** Best-effort human display name for a power id, using the same logic the detail view uses. */
     private static String powerDisplayName(ResourceLocation powerId) {
         var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(powerId);
@@ -295,7 +289,11 @@ public class OriginInfoScreen extends Screen {
         // origin has no tier overlays.
         if (!origin.tierPowers().isEmpty()) {
             sy += 8;
-            g.drawString(font, themed(Component.translatable("gui.neoorigins.info.evolution_path")),
+            // NOTE: rendered with the default font (no themed() wrap) — the parchment
+            // font provider's TTF doesn't expose glyphs for these headers via withFont(),
+            // which caused them to render as .notdef boxes. The rest of the panel uses
+            // the default font too, so this keeps the section visually consistent.
+            g.drawString(font, Component.translatable("gui.neoorigins.info.evolution_path"),
                 panelX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             // Sort by tier ascending so display order is Evolved → Ascended → Apex
@@ -304,7 +302,7 @@ public class OriginInfoScreen extends Screen {
             sortedTiers.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
             for (OriginTierOverlay overlay : sortedTiers) {
                 String name = tierName(overlay.tier());
-                g.drawString(font, themed(Component.literal(name)),
+                g.drawString(font, Component.literal(name),
                     panelX + DETAIL_PAD, sy, theme.powerNameColor(), false);
                 sy += 11;
                 for (ResourceLocation pid : overlay.add()) {
