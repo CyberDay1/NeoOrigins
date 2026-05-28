@@ -123,6 +123,12 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 }
 
                 ResourceLocation typeId = ResourceLocation.parse(json.get("type").getAsString());
+                // Apply config overrides BEFORE alias remap, so the remapper's
+                // value-dependent gates (e.g. damage_in_water's dps > 0 check
+                // that decides whether to bake a damage entity_action or a
+                // neoorigins:nothing no-op) and the field-strip step see the
+                // user's final values rather than the pack defaults.
+                applyConfigOverrides(id, json);
                 // 2.0 legacy alias remap — transparently rewrites old type IDs.
                 typeId = LegacyPowerTypeAliases.apply(typeId, json, id);
                 PowerType<?> type = PowerTypes.get(typeId);
@@ -159,8 +165,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     private <C extends PowerConfiguration> void parsePower(
             ResourceLocation id, PowerType<C> type, JsonObject json,
             Map<ResourceLocation, PowerHolder<?>> target) {
-        // Apply config overrides before parsing
-        applyConfigOverrides(id, json);
+        // Config overrides are applied upstream in loadPowers/apply() before the
+        // legacy alias remap so value-dependent gates see the user's values.
 
         Component name = extractComponentField(json, "name");
         Component desc = extractComponentField(json, "description");
