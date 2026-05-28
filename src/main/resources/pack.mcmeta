@@ -1,8 +1,8 @@
 {
     "pack": {
         "description": "NeoOrigins resources",
-        "pack_format": 84,
-        "min_format": 84,
-        "max_format": 84
+        "pack_format": 48,
+        "min_format": 48,
+        "max_format": 48
     }
 }
