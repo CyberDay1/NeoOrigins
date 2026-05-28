@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "Theme definition. Filename stem (here: 'my_theme') becomes part of the",
+    "theme id — this file is loaded as '_replace_:my_theme'. Rename both the",
+    "folder ('_replace_') AND this file's stem to whatever suits your pack;",
+    "then point data/_replace_/neoorigins/active_theme.json at the new id.",
+    "",
+    "Every field below is OPTIONAL. Missing fields keep the built-in",
+    "'neoorigins:parchment' defaults — you can ship a JSON containing just",
+    "the colours you want to tweak.",
+    "",
+    "Colour fields are ARGB hex strings (alpha first, then RGB). '#'-prefixed",
+    "and raw-int forms also parse.",
+    "",
+    "panel_background, font: resource locations into your own (or any) namespace.",
+    "  panel.png should be 256x256 with a transparent margin / 12 px border",
+    "  used by the 9-slice. If your texture is a different size, override",
+    "  texture_width / texture_height / inset_* below."
+  ],
+
+  "panel_background": "_replace_:textures/gui/themes/_replace_/panel.png",
+  "font":             "_replace_:my_theme_font",
+
+  "overlay_color":            "0xCC060610",
+  "name_color":               "0xFF2A1810",
+  "description_color":        "0xFF3A2410",
+  "power_name_color":         "0xFF6B3B10",
+  "power_description_color":  "0xFF4A2A10",
+  "header_color":             "0xFF2A1810",
+  "border_color":             "0xFF6B4A20",
+  "muted_color":              "0xFF4A2A10",
+  "accent_color":             "0xFFB87328",
+
+  "inset_left": 12,
+  "inset_top": 12,
+  "inset_right": 12,
+  "inset_bottom": 12,
+  "texture_width": 256,
+  "texture_height": 256
+}

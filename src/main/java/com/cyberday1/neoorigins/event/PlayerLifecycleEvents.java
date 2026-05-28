@@ -103,6 +103,7 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);
+        NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
 
         if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
             // Data hasn't loaded yet — defer the origin check to tick handler
@@ -177,6 +178,7 @@ public class PlayerLifecycleEvents {
         event.getRelevantPlayers().forEach(sp -> {
             NeoOriginsNetwork.syncRegistryToPlayer(sp);
             NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
+            NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
         });
     }
 

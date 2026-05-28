@@ -1,81 +1,108 @@
-# UI Theming (resource-pack overrides)
+# UI Theming
 
-NeoOrigins ships a single built-in UI theme — **parchment** — used by the
-origin-selection and origin-info screens. Everything about that theme
-(panel texture, font, text colours, 9-slice insets) is loaded from
-client resources, so resource packs can retheme the screens without code.
+NeoOrigins lets addon packs reskin the origin selection / info screens
+(panel texture, font, text colours, 9-slice insets) without code. As of the
+addon-pack rewrite the system is **multi-theme aware**: pack authors register
+themes by id, then declare which one is active from inside the pack itself.
+Players don't have to install separate resource packs and datapacks — a single
+addon (zip or mod jar) carries everything.
 
-All overrides are **client-side** (resource pack, not datapack) and take
-effect on the next `F3+T` / `/reload` or rejoin.
+## Quickstart: make your own theme
 
-## Override the panel background
+A copy-and-edit template lives in [`docs/theme-template/`](./theme-template).
+The short version:
 
-Drop a PNG at:
+1. Copy `docs/theme-template/` somewhere.
+2. Rename every `_replace_` folder + string to your pack's namespace
+   (e.g. `mymodpack`) and rename `my_theme.json` to whatever you want the id
+   to be.
+3. (Optional) drop a 256x256 `panel.png` into
+   `assets/<ns>/textures/gui/themes/<id>/`.
+4. (Optional) put a `.ttf` in `assets/<ns>/font/` and update
+   `<id>_font.json`.
+5. Zip it (or wrap it in a mod jar) and ship.
 
-```
-assets/neoorigins/textures/gui/themes/parchment/panel.png
-```
+The template's README walks through each step in more detail.
 
-The mod expects a 256×256 image with a 12 px burnt-edge border (used as a
-9-slice). If your texture uses a different size, override `texture_width`,
-`texture_height`, and the four `inset_*` fields in `ui_themes/parchment.json`
-(see below).
+## Theme discovery
 
-## Override the font
-
-The theme's font is `neoorigins:parchment`, resolved from:
-
-```
-assets/neoorigins/font/parchment.json
-```
-
-Standard Minecraft font-provider JSON. Ship that file (and any referenced
-TTF) in your pack and the screens will pick it up. The bundled default
-points at the included Newsreader variable TTF (SIL OFL 1.1).
-
-## Override / swap the theme JSON
-
-The active theme JSON lives at:
+The mod scans every loaded resource pack for files matching:
 
 ```
-assets/neoorigins/ui_themes/parchment.json
+assets/<any_ns>/ui_themes/<id>.json
 ```
 
-Drop a file at that path in your pack to change colours, panel texture,
-or font without touching the PNG/TTF.
+Each file is registered as the theme `<ns>:<id>`. The built-in
+`neoorigins:parchment` is always present even when no JSON ships for it, so
+themes that omit fields fall through to its defaults.
 
-### Schema
+## Theme selection (which theme is active)
 
-All fields are optional — missing fields keep the built-in parchment
-default. Colours are ARGB hex strings (`"0xFF2A1810"`) or raw ints.
+Two layers, applied in order — the first that resolves to a *loaded* theme
+wins:
 
-| Field                      | Type           | Default                                                     |
-|----------------------------|----------------|-------------------------------------------------------------|
-| `panel_background`         | ResourceLocation | `neoorigins:textures/gui/themes/parchment/panel.png`      |
-| `overlay_color`            | ARGB           | `0xCC060610` (full-screen scrim)                            |
-| `name_color`               | ARGB           | `0xFF2A1810` (origin display name)                          |
-| `description_color`        | ARGB           | `0xFF3A2410` (body description)                             |
-| `power_name_color`         | ARGB           | `0xFF6B3B10`                                                |
-| `power_description_color`  | ARGB           | `0xFF4A2A10`                                                |
-| `header_color`             | ARGB           | `0xFF2A1810` (section headers)                              |
-| `border_color`             | ARGB           | `0xFF6B4A20`                                                |
-| `muted_color`              | ARGB           | `0xFF4A2A10` (secondary text)                               |
-| `accent_color`             | ARGB           | `0xFFB87328` (bullets, dots)                                |
-| `font`                     | ResourceLocation | `neoorigins:parchment`                                    |
-| `inset_left`               | int (px)       | `12`                                                        |
-| `inset_top`                | int (px)       | `12`                                                        |
-| `inset_right`              | int (px)       | `12`                                                        |
-| `inset_bottom`             | int (px)       | `12`                                                        |
-| `texture_width`            | int (px)       | `256`                                                       |
-| `texture_height`           | int (px)       | `256`                                                       |
+1. **Player override** —
+   `config/neoorigins-client.toml`:
+   ```toml
+   [ui]
+   theme_override = "examplepack:dark_woods"
+   ```
+   Leave empty (the default) to defer to the server.
 
-Currently the screens load **only** `neoorigins:parchment`. Additional
-JSONs under `ui_themes/` are accepted by the reload listener but not yet
-selectable from the UI — treat `parchment.json` as the single override
-point.
+2. **Datapack-declared theme** — any pack can ship
+   `data/<ns>/neoorigins/active_theme.json`:
+   ```json
+   { "theme": "examplepack:dark_woods" }
+   ```
+   The server reads these on world load + each `/reload` and broadcasts the
+   selection to every client at login. Conflict rule: if multiple packs each
+   declare an `active_theme.json`, the one loaded **last** wins and a warning
+   is logged listing every contributor — adjust pack load order if you want
+   a different outcome.
+
+3. Falls back to `neoorigins:parchment` when neither resolves.
+
+## Theme JSON schema
+
+`assets/<ns>/ui_themes/<id>.json`. All fields optional — missing fields keep
+the parchment default. Colours are ARGB hex strings (`"0xFF2A1810"`) or raw
+ints.
+
+| Field                      | Type             | Default                                              |
+|----------------------------|------------------|------------------------------------------------------|
+| `panel_background`         | ResourceLocation | `neoorigins:textures/gui/themes/parchment/panel.png` |
+| `overlay_color`            | ARGB             | `0xCC060610` (full-screen scrim)                     |
+| `name_color`               | ARGB             | `0xFF2A1810` (origin display name)                   |
+| `description_color`        | ARGB             | `0xFF3A2410` (body description)                      |
+| `power_name_color`         | ARGB             | `0xFF6B3B10`                                         |
+| `power_description_color`  | ARGB             | `0xFF4A2A10`                                         |
+| `header_color`             | ARGB             | `0xFF2A1810` (section headers)                       |
+| `border_color`             | ARGB             | `0xFF6B4A20`                                         |
+| `muted_color`              | ARGB             | `0xFF4A2A10` (secondary text)                        |
+| `accent_color`             | ARGB             | `0xFFB87328` (bullets, dots)                         |
+| `font`                     | ResourceLocation | `neoorigins:parchment`                               |
+| `inset_left` / `top` / `right` / `bottom` | int (px) | `12` each                                  |
+| `texture_width` / `texture_height`        | int (px) | `256`                                      |
+
+## Direct resource-pack overrides
+
+You don't *have* to author a new theme — a resource pack can also swap the
+parchment texture or font in place:
+
+- **Panel PNG** — drop a file at
+  `assets/neoorigins/textures/gui/themes/parchment/panel.png`. 256x256 with a
+  12 px 9-slice border, or override the `inset_*` / `texture_*` fields.
+- **Font provider** — `assets/neoorigins/font/parchment.json` is a standard
+  Minecraft font-provider JSON; replace it to swap in your own TTF.
+- **Theme JSON** — `assets/neoorigins/ui_themes/parchment.json`. Same schema
+  as above; ships overrides for the built-in theme directly.
+
+The new-theme workflow is preferred (cleaner, doesn't collide with other
+packs touching the parchment assets), but the in-place overrides are kept for
+small "I just want different colours" packs.
 
 ## Bundled font license
 
 `Newsreader.ttf` is redistributed under the SIL Open Font License 1.1.
-The licence text ships at `assets/neoorigins/font/OFL.txt`. If you
-rebundle the TTF in your own pack you must keep OFL.txt alongside it.
+The licence text ships at `assets/neoorigins/font/OFL.txt`. If you rebundle
+the TTF in your own pack you must keep OFL.txt alongside it.

@@ -123,6 +123,14 @@ public class NeoOriginsClientEvents {
         }
     }
 
+    @SubscribeEvent
+    public static void onClientPlayerLoggingOut(
+            net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        // Drop any datapack-declared theme so leaving a server doesn't leak its
+        // selection into the next world / main-menu screens.
+        com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry.clearServerDeclared();
+    }
+
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.COBWEB_PROJECTILE.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.HOMING_PROJECTILE.get(), ThrownItemRenderer::new);

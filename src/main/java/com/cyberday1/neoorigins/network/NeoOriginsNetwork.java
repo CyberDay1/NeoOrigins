@@ -17,6 +17,7 @@ import com.cyberday1.neoorigins.network.payload.EditorTogglePowerPayload;
 import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
 import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
+import com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncEvolutionConfigPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMoisturePayload;
@@ -133,6 +134,12 @@ public class NeoOriginsNetwork {
             SyncKeybindRegistryPayload.TYPE,
             SyncKeybindRegistryPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncKeybindRegistry
+        );
+
+        registrar.playToClient(
+            SyncActiveThemePayload.TYPE,
+            SyncActiveThemePayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncActiveTheme
         );
 
         registrar.playToServer(
@@ -1048,6 +1055,25 @@ public class NeoOriginsNetwork {
 
             PowerKeybindRegistry.dispatch(sp, key, payload.held());
         });
+    }
+
+    private static void handleSyncActiveTheme(SyncActiveThemePayload payload, IPayloadContext ctx) {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() -> {
+            String raw = payload.themeId();
+            ResourceLocation id = (raw == null || raw.isEmpty()) ? null : ResourceLocation.tryParse(raw);
+            com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry.setServerDeclared(id);
+        });
+    }
+
+    /**
+     * Push the datapack-declared active UI theme to one player. {@code themeId}
+     * may be {@code null} to clear (server's stack has no declaration).
+     */
+    public static void syncActiveThemeToPlayer(ServerPlayer player) {
+        ResourceLocation id = com.cyberday1.neoorigins.data.ActiveThemeManager.INSTANCE.getSelected();
+        PacketDistributor.sendToPlayer(player,
+            new SyncActiveThemePayload(id == null ? "" : id.toString()));
     }
 
     /** Send the named-keybind registry snapshot to one player. */

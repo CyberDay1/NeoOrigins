@@ -64,6 +64,16 @@ public class NeoOrigins {
         // Register TOML config (config/neoorigins-common.toml)
         modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
 
+        // Client TOML config (config/neoorigins-client.toml) — currently just
+        // the UI theme override. Registered on physical-client side only so the
+        // dedicated server doesn't manage a useless file.
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            modContainer.registerConfig(ModConfig.Type.CLIENT,
+                com.cyberday1.neoorigins.client.NeoOriginsClientConfig.SPEC);
+            modEventBus.addListener(
+                com.cyberday1.neoorigins.client.NeoOriginsClientConfig::onConfigLoadOrReload);
+        }
+
         // Wire the auto-generated NeoForge config screen into the mod menu's
         // "Config" button. ConfigurationScreen + IConfigScreenFactory are
         // client-only types — load through a client-package trampoline so the
@@ -152,6 +162,10 @@ public class NeoOrigins {
         event.addListener(OriginDataManager.INSTANCE);
         event.addListener(LayerDataManager.INSTANCE);
         event.addListener(com.cyberday1.neoorigins.data.MobOriginDataManager.INSTANCE);
+        // UI theming — addon packs declare which theme to use via
+        // data/<ns>/neoorigins/active_theme.json. Listener resolves the winner;
+        // the result is broadcast to clients at login and on datapack sync.
+        event.addListener(com.cyberday1.neoorigins.data.ActiveThemeManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {
