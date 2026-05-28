@@ -102,6 +102,7 @@
   "gui.neoorigins.info.close": "Close",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Edit",
+  "gui.neoorigins.info.evolution_path": "Evolution Path",
   "screen.neoorigins.origin_editor": "Origin Editor",
   "gui.neoorigins.editor.layers_header": "Origin Layers",
   "gui.neoorigins.editor.powers_header": "Toggle Powers",

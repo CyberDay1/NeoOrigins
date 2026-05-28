@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Font provider for the parchment UI theme.",
+    "Currently chains to Minecraft's built-in default (vanilla pixel font) so",
+    "the mod ships with zero font dependencies.",
+    "",
+    "TO PLUG IN A REAL SERIF FONT (e.g. Cinzel, EB Garamond, IM Fell English",
+    "- all OFL/SIL licensed and parchment-appropriate):",
+    "  1. Drop the TTF at  assets/neoorigins/font/<name>.ttf",
+    "  2. Replace the providers array below with:",
+    "     [ { \"type\": \"ttf\",",
+    "         \"file\": \"neoorigins:font/<name>.ttf\",",
+    "         \"shift\": [0, 1], \"size\": 11, \"oversample\": 2,",
+    "         \"skip\": [] } ]",
+    "  3. Optionally chain the vanilla default as a fallback by appending",
+    "     { \"type\": \"reference\", \"id\": \"minecraft:default\" }",
+    "",
+    "Pack authors can also override this file entirely from a resource pack."
+  ],
+  "providers": [
+    { "type": "reference", "id": "minecraft:default" }
+  ]
+}

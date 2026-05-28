@@ -3,6 +3,8 @@ package com.cyberday1.neoorigins.screen;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.client.ClientOriginState;
+import com.cyberday1.neoorigins.client.theme.PanelRenderer;
+import com.cyberday1.neoorigins.client.theme.UITheme;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
@@ -226,41 +228,55 @@ public class OriginSelectionScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
-        g.fill(0, 0, width, height, 0xCC060610);
+        UITheme theme = UITheme.current();
+        // Full-screen scrim — kept dark behind the parchment panels.
+        g.fill(0, 0, width, height, theme.overlayColor());
         if (presenter.isDone()) return;
 
-        var layerTitle = Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name());
-        g.drawCenteredString(font, layerTitle, width / 2, 14, 0xFFFFFFFF);
+        var layerTitle = themed(Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name()));
+        g.drawCenteredString(font, layerTitle, width / 2, 14, theme.nameColor());
         String prog = (presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers();
-        g.drawString(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
+        g.drawString(font, prog, width - 10 - font.width(prog), 26, theme.mutedColor(), false);
 
-        g.fill(panelX - 1, PANEL_TOP - 1, panelX + leftW + 1, panelBottom + 1, 0xFF0E0E1C);
-        g.renderOutline(panelX - 1, PANEL_TOP - 1, leftW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        // Left list panel — parchment 9-slice.
+        PanelRenderer.drawPanel(g, theme, panelX - 1, PANEL_TOP - 1, leftW + 2, panelBottom - PANEL_TOP + 2);
 
         for (var vh : visibleHeaders) {
-            g.fill(panelX, vh.y(), panelX + leftW, vh.y() + LIST_BTN_H, 0xFF080818);
-            g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, 0xFF334488);
-            g.drawString(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
+            // Accent bar on the left edge of section headers.
+            g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, theme.accentColor());
+            g.drawString(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, theme.headerColor(), false);
         }
         // Scroll hint sits above the list panel so it doesn't collide with the
         // Random / Back / Confirm button row at the bottom.
         if (getMaxListScroll() > 0) {
-            var hint = Component.translatable("gui.neoorigins.hint.scroll");
+            var hint = themed(Component.translatable("gui.neoorigins.hint.scroll"));
             int hintY = PANEL_TOP - 10;
-            g.drawString(font, hint, panelX, hintY, 0xFF334466, false);
+            g.drawString(font, hint, panelX, hintY, theme.mutedColor(), false);
         }
 
         super.render(g, mouseX, mouseY, partial);
         renderDetailPanel(g);
     }
 
+    /**
+     * Wraps a Component with the theme's font Style so a custom font provider
+     * (e.g. a user-supplied TTF) can take effect. The renderer stays the
+     * vanilla {@link net.minecraft.client.gui.Font}; the {@link ResourceLocation}
+     * in the Style selects which font set is used.
+     */
+    private static Component themed(Component c) {
+        ResourceLocation fid = UITheme.current().font();
+        return fid != null ? c.copy().withStyle(s -> s.withFont(fid)) : c;
+    }
+
     private void renderDetailPanel(GuiGraphics g) {
-        g.fill(rightX, PANEL_TOP, rightX + rightW, panelBottom, 0xFF09091A);
-        g.renderOutline(rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        UITheme theme = UITheme.current();
+        // Right detail panel — parchment 9-slice.
+        PanelRenderer.drawPanel(g, theme, rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2);
 
         if (detailViewModel.origin() == null) {
             g.drawCenteredString(font, Component.translatable("gui.neoorigins.hint.select"),
-                rightX + rightW / 2, PANEL_TOP + (panelBottom - PANEL_TOP) / 2 - 4, 0xFF333355);
+                rightX + rightW / 2, PANEL_TOP + (panelBottom - PANEL_TOP) / 2 - 4, theme.mutedColor());
             return;
         }
 
@@ -268,11 +284,10 @@ public class OriginSelectionScreen extends Screen {
         int cx = rightX + rightW / 2;
         int y  = PANEL_TOP + DETAIL_PAD;
 
-        g.fill(cx - 16, y, cx + 16, y + 32, 0xFF0D1830);
-        g.renderOutline(cx - 16, y, 32, 32, 0xFF4A90D9);
+        g.renderOutline(cx - 16, y, 32, 32, theme.borderColor());
         OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
         y += 32 + 6;
-        g.drawCenteredString(font, origin.name(), cx, y, 0xFFFFFFFF);
+        g.drawCenteredString(font, origin.name(), cx, y, theme.nameColor());
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
 
@@ -284,32 +299,32 @@ public class OriginSelectionScreen extends Screen {
 
         g.enableScissor(rightX + 1, scrollTop, rightX + rightW - 5, scrollBottom);
         int sy = scrollTop - detailScrollOffset;
-        g.fill(rightX + DETAIL_PAD, sy + 3, rightX + rightW - DETAIL_PAD - 6, sy + 4, 0xFF252540);
+        g.fill(rightX + DETAIL_PAD, sy + 3, rightX + rightW - DETAIL_PAD - 6, sy + 4, theme.borderColor());
         sy += 8;
         for (FormattedCharSequence line : descLines) {
-            g.drawString(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
+            g.drawString(font, line, rightX + DETAIL_PAD, sy, theme.descriptionColor(), false);
             sy += LINE_H;
         }
         if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()) {
             String spawnSummary = detailViewModel.origin().spawnLocation().get().formatSummary();
             if (!spawnSummary.isEmpty()) {
                 g.drawString(font, Component.literal(spawnSummary),
-                    rightX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                    rightX + DETAIL_PAD, sy, theme.accentColor(), false);
                 sy += LINE_H;
             }
         }
         sy += 8;
         List<String> pNames = detailViewModel.powerNames();
         if (!pNames.isEmpty()) {
-            g.drawString(font, Component.translatable("gui.neoorigins.detail.powers_header"), rightX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
+            g.drawString(font, Component.translatable("gui.neoorigins.detail.powers_header"), rightX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
-                g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, 0xFF4A90D9);
-                g.drawString(font, pNames.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
+                g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
+                g.drawString(font, pNames.get(i), rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
-                        g.drawString(font, dLine, rightX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                        g.drawString(font, dLine, rightX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
                         sy += LINE_H;
                     }
                 }
@@ -321,17 +336,18 @@ public class OriginSelectionScreen extends Screen {
             int barX   = rightX + rightW - 4;
             int thumbH = Math.max(14, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
             int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
-            g.fill(barX, scrollTop, barX + 2, scrollBottom, 0xFF1A1A30);
-            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, 0xFF4A90D9);
+            g.fill(barX, scrollTop, barX + 2, scrollBottom, theme.borderColor());
+            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, theme.accentColor());
         }
     }
 
     private void drawImpactRow(GuiGraphics g, int cx, int y, Impact impact) {
+        UITheme theme = UITheme.current();
         int totalW = (DOT_COUNT - 1) * DOT_SPACING + DOT_SIZE;
         int x0     = cx - totalW / 2;
         for (int i = 0; i < DOT_COUNT; i++)
             g.fill(x0 + i * DOT_SPACING, y, x0 + i * DOT_SPACING + DOT_SIZE, y + DOT_SIZE,
-                i < impact.getDotCount() ? 0xFFFF8822 : 0xFF252540);
+                i < impact.getDotCount() ? theme.accentColor() : theme.borderColor());
         Component label = Component.translatable("origins.gui.impact.impact").append(": ")
             .append(switch (impact) {
                 case NONE   -> Component.translatable("origins.gui.impact.none");
@@ -339,7 +355,7 @@ public class OriginSelectionScreen extends Screen {
                 case MEDIUM -> Component.translatable("origins.gui.impact.medium");
                 case HIGH   -> Component.translatable("origins.gui.impact.high");
             });
-        g.drawString(font, label, cx + totalW / 2 + 6, y - 1, 0xFF666688, false);
+        g.drawString(font, label, cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
     }
 
     // ── Scrolling ─────────────────────────────────────────────────────────────

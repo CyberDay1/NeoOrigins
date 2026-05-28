@@ -2,8 +2,12 @@ package com.cyberday1.neoorigins.screen;
 
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.api.origin.OriginTierOverlay;
 import com.cyberday1.neoorigins.client.ClientOriginState;
+import com.cyberday1.neoorigins.client.theme.PanelRenderer;
+import com.cyberday1.neoorigins.client.theme.UITheme;
 import com.cyberday1.neoorigins.data.OriginDataManager;
+import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -170,6 +174,8 @@ public class OriginInfoScreen extends Screen {
             && !vm.origin().spawnLocation().get().formatSummary().isEmpty()) {
             h += LINE_H;
         }
+        // Evolution path section (inline, after spawn location, before powers).
+        h += evolutionSectionHeight(vm);
         if (!vm.powerNames().isEmpty()) {
             h += 9 + 4;
             for (int i = 0; i < vm.powerNames().size(); i++) {
@@ -182,19 +188,66 @@ public class OriginInfoScreen extends Screen {
         return h + 6;
     }
 
+    /** Pixel height of the evolution-path section. Returns 0 when there are no tier overlays. */
+    private int evolutionSectionHeight(OriginDetailViewModel vm) {
+        if (vm.origin() == null || vm.origin().tierPowers().isEmpty()) return 0;
+        int h = 8;                  // gap before section
+        h += 9 + 4;                 // "Evolution Path" header
+        for (OriginTierOverlay overlay : vm.origin().tierPowers()) {
+            h += 11;                // tier subheader ("Evolved" / "Ascended" / "Apex")
+            h += overlay.add().size() * LINE_H;
+            h += overlay.remove().size() * LINE_H;
+        }
+        return h;
+    }
+
+    /** Wraps a Component with the theme's font Style so a custom font provider can take effect. */
+    private static net.minecraft.network.chat.Component themed(net.minecraft.network.chat.Component c) {
+        ResourceLocation fid = UITheme.current().font();
+        return fid != null ? c.copy().withStyle(s -> s.withFont(fid)) : c;
+    }
+
+    /** Best-effort human display name for a power id, using the same logic the detail view uses. */
+    private static String powerDisplayName(ResourceLocation powerId) {
+        var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(powerId);
+        if (holder != null && holder.name() != null) {
+            String s = holder.name().getString();
+            if (!s.isEmpty()) return s;
+        }
+        var entry = com.cyberday1.neoorigins.client.ClientPowerCache.get(powerId);
+        if (entry != null && entry.name() != null) {
+            String s = entry.name().getString();
+            if (!s.isEmpty()) return s;
+        }
+        String key = "power." + powerId.getNamespace() + "." + powerId.getPath() + ".name";
+        net.minecraft.locale.Language lang = net.minecraft.locale.Language.getInstance();
+        if (lang.has(key)) return lang.getOrDefault(key, "");
+        return OriginDetailViewModel.formatPowerId(powerId);
+    }
+
+    private static String tierName(int tier) {
+        if (tier >= 0 && tier < EssenceEvolutionManager.TIER_NAMES.length) {
+            String n = EssenceEvolutionManager.TIER_NAMES[tier];
+            if (!n.isEmpty()) return n;
+        }
+        return "Tier " + tier;
+    }
+
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
-        g.fill(0, 0, width, height, 0xCC060610);
+        UITheme theme = UITheme.current();
+        // Full-screen scrim — kept dark behind the parchment panel.
+        g.fill(0, 0, width, height, theme.overlayColor());
 
         if (tabs.isEmpty()) {
             g.drawCenteredString(font, Component.translatable("gui.neoorigins.info.no_origin"),
-                width / 2, height / 2 - 10, 0xFF555577);
+                width / 2, height / 2 - 10, theme.mutedColor());
             super.render(g, mouseX, mouseY, partial);
             return;
         }
 
-        g.fill(panelX, PANEL_TOP, panelX + panelW, panelBottom, 0xFF09091A);
-        g.renderOutline(panelX - 1, PANEL_TOP - 1, panelW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        // Parchment panel.
+        PanelRenderer.drawPanel(g, theme, panelX - 1, PANEL_TOP - 1, panelW + 2, panelBottom - PANEL_TOP + 2);
 
         TabEntry tab = tabs.get(currentTab);
         OriginDetailViewModel vm = tab.viewModel();
@@ -207,11 +260,10 @@ public class OriginInfoScreen extends Screen {
         int cx = panelX + panelW / 2;
         int y = PANEL_TOP + DETAIL_PAD;
 
-        g.fill(cx - 16, y, cx + 16, y + 32, 0xFF0D1830);
-        g.renderOutline(cx - 16, y, 32, 32, 0xFF4A90D9);
+        g.renderOutline(cx - 16, y, 32, 32, theme.borderColor());
         OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
         y += 32 + 6;
-        g.drawCenteredString(font, origin.name(), cx, y, 0xFFFFFFFF);
+        g.drawCenteredString(font, origin.name(), cx, y, theme.nameColor());
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
 
@@ -223,33 +275,66 @@ public class OriginInfoScreen extends Screen {
 
         g.enableScissor(panelX + 1, scrollTop, panelX + panelW - 5, scrollBottom);
         int sy = scrollTop - detailScrollOffset;
-        g.fill(panelX + DETAIL_PAD, sy + 3, panelX + panelW - DETAIL_PAD - 6, sy + 4, 0xFF252540);
+        g.fill(panelX + DETAIL_PAD, sy + 3, panelX + panelW - DETAIL_PAD - 6, sy + 4, theme.borderColor());
         sy += 8;
         for (FormattedCharSequence line : descLines) {
-            g.drawString(font, line, panelX + DETAIL_PAD, sy, 0xFF9999BB, false);
+            g.drawString(font, line, panelX + DETAIL_PAD, sy, theme.descriptionColor(), false);
             sy += LINE_H;
         }
         if (origin.spawnLocation().isPresent()) {
             String spawnSummary = origin.spawnLocation().get().formatSummary();
             if (!spawnSummary.isEmpty()) {
                 g.drawString(font, Component.literal(spawnSummary),
-                    panelX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                    panelX + DETAIL_PAD, sy, theme.accentColor(), false);
                 sy += LINE_H;
             }
         }
+
+        // ── Evolution Path section ─────────────────────────────────────────
+        // Renders inline between spawn-location and powers. Skipped when the
+        // origin has no tier overlays.
+        if (!origin.tierPowers().isEmpty()) {
+            sy += 8;
+            g.drawString(font, themed(Component.translatable("gui.neoorigins.info.evolution_path")),
+                panelX + DETAIL_PAD, sy, theme.headerColor(), false);
+            sy += 9 + 4;
+            // Sort by tier ascending so display order is Evolved → Ascended → Apex
+            // even if the JSON listed them in a different order.
+            var sortedTiers = new java.util.ArrayList<>(origin.tierPowers());
+            sortedTiers.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
+            for (OriginTierOverlay overlay : sortedTiers) {
+                String name = tierName(overlay.tier());
+                g.drawString(font, themed(Component.literal(name)),
+                    panelX + DETAIL_PAD, sy, theme.powerNameColor(), false);
+                sy += 11;
+                for (ResourceLocation pid : overlay.add()) {
+                    g.drawString(font,
+                        Component.literal("+ " + powerDisplayName(pid)),
+                        panelX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
+                    sy += LINE_H;
+                }
+                for (ResourceLocation pid : overlay.remove()) {
+                    g.drawString(font,
+                        Component.literal("- " + powerDisplayName(pid)),
+                        panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
+                    sy += LINE_H;
+                }
+            }
+        }
+
         sy += 8;
         List<String> pNames = vm.powerNames();
         if (!pNames.isEmpty()) {
             g.drawString(font, Component.translatable("gui.neoorigins.detail.powers_header"),
-                panelX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
+                panelX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
-                g.fill(panelX + DETAIL_PAD, sy + 3, panelX + DETAIL_PAD + 3, sy + 6, 0xFF4A90D9);
-                g.drawString(font, pNames.get(i), panelX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
+                g.fill(panelX + DETAIL_PAD, sy + 3, panelX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
+                g.drawString(font, pNames.get(i), panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
-                        g.drawString(font, dLine, panelX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                        g.drawString(font, dLine, panelX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
                         sy += LINE_H;
                     }
                 }
@@ -261,19 +346,20 @@ public class OriginInfoScreen extends Screen {
             int barX = panelX + panelW - 4;
             int thumbH = Math.max(14, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
             int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
-            g.fill(barX, scrollTop, barX + 2, scrollBottom, 0xFF1A1A30);
-            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, 0xFF4A90D9);
+            g.fill(barX, scrollTop, barX + 2, scrollBottom, theme.borderColor());
+            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, theme.accentColor());
         }
 
         super.render(g, mouseX, mouseY, partial);
     }
 
     private void drawImpactRow(GuiGraphics g, int cx, int y, Impact impact) {
+        UITheme theme = UITheme.current();
         int totalW = (DOT_COUNT - 1) * DOT_SPACING + DOT_SIZE;
         int x0 = cx - totalW / 2;
         for (int i = 0; i < DOT_COUNT; i++)
             g.fill(x0 + i * DOT_SPACING, y, x0 + i * DOT_SPACING + DOT_SIZE, y + DOT_SIZE,
-                i < impact.getDotCount() ? 0xFFFF8822 : 0xFF252540);
+                i < impact.getDotCount() ? theme.accentColor() : theme.borderColor());
         Component label = Component.translatable("origins.gui.impact.impact").append(": ")
             .append(switch (impact) {
                 case NONE -> Component.translatable("origins.gui.impact.none");
@@ -281,7 +367,7 @@ public class OriginInfoScreen extends Screen {
                 case MEDIUM -> Component.translatable("origins.gui.impact.medium");
                 case HIGH -> Component.translatable("origins.gui.impact.high");
             });
-        g.drawString(font, label, cx + totalW / 2 + 6, y - 1, 0xFF666688, false);
+        g.drawString(font, label, cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
     }
 
     @Override

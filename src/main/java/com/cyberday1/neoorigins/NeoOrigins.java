@@ -109,6 +109,10 @@ public class NeoOrigins {
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onRegisterRenderers);
+            // UI theme reload listener — client resources only (NOT server-side).
+            modEventBus.addListener(
+                (net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent ev) ->
+                    ev.registerReloadListener(com.cyberday1.neoorigins.client.theme.UIThemeManager.INSTANCE));
         }
 
         // Auto-register items from originpacks/ before the registry freezes
