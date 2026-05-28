@@ -1,0 +1,438 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/power.schema.json",
+  "title": "NeoOrigins Power",
+  "description": "A power grants one mechanical effect to a player via the origins system. File path: data/<namespace>/origins/powers/<power>.json. The `type` field discriminates which fields are valid.",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Fully-qualified power type ID. See docs/API.md for the full catalogue.",
+      "enum": [
+        "neoorigins:action_on_event", "neoorigins:action_on_hit", "neoorigins:active_ability",
+        "neoorigins:active_bolt", "neoorigins:active_dash", "neoorigins:active_fireball",
+        "neoorigins:active_phase", "neoorigins:active_place_block", "neoorigins:active_recall",
+        "neoorigins:active_swap", "neoorigins:active_teleport", "neoorigins:attribute_modifier",
+        "neoorigins:break_speed_modifier", "neoorigins:breath_in_fluid", "neoorigins:cobweb_affinity",
+        "neoorigins:command_pack", "neoorigins:condition_passive", "neoorigins:conditional",
+        "neoorigins:craft_amount_bonus", "neoorigins:crop_growth_accelerator", "neoorigins:crop_harvest_bonus",
+        "neoorigins:edible_item", "neoorigins:effect_immunity", "neoorigins:elytra_boost",
+        "neoorigins:ender_gaze_immunity", "neoorigins:enhanced_vision", "neoorigins:entity_group",
+        "neoorigins:entity_set", "neoorigins:exhaustion_filter", "neoorigins:flight",
+        "neoorigins:ground_slam", "neoorigins:hide_hud_bar",
+        "neoorigins:horde_regen", "neoorigins:invulnerability", "neoorigins:item_magnetism",
+        "neoorigins:keep_inventory", "neoorigins:less_item_use_slowdown",
+        "neoorigins:mob_behavior", "neoorigins:mobs_ignore_player",
+        "neoorigins:modify_damage", "neoorigins:modify_player_spawn", "neoorigins:more_smoker_xp",
+        "neoorigins:no_mob_spawns_nearby", "neoorigins:no_natural_regen", "neoorigins:no_projectile_divergence",
+        "neoorigins:no_slowdown", "neoorigins:persistent_effect", "neoorigins:phantom_form",
+        "neoorigins:prevent_action", "neoorigins:prevent_death", "neoorigins:projectile_immunity", "neoorigins:quality_equipment",
+        "neoorigins:rare_wandering_loot", "neoorigins:restrict_armor", "neoorigins:scare_entities",
+        "neoorigins:shadow_orb", "neoorigins:size_scaling", "neoorigins:sneaky",
+        "neoorigins:loot_pool_grant",
+        "neoorigins:starting_equipment", "neoorigins:stealth", "neoorigins:summon_minion",
+        "neoorigins:tame_mob", "neoorigins:tamed_animal_boost", "neoorigins:tamed_potion_diffusal",
+        "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle", "neoorigins:particle",
+        "neoorigins:trade_availability", "neoorigins:tree_felling", "neoorigins:twin_breeding",
+        "neoorigins:underwater_mining_speed", "neoorigins:wall_climbing", "neoorigins:water_breathing",
+        "neoorigins:status_effect", "neoorigins:night_vision", "neoorigins:glow", "neoorigins:water_breathing",
+        "neoorigins:biome_buff", "neoorigins:damage_in_biome", "neoorigins:damage_in_daylight",
+        "neoorigins:damage_in_water", "neoorigins:burn_at_health_threshold", "neoorigins:regen_in_fluid",
+        "neoorigins:food_restriction", "neoorigins:action_on_kill", "neoorigins:action_on_hit_taken",
+        "neoorigins:hunger_drain_modifier", "neoorigins:natural_regen_modifier", "neoorigins:knockback_modifier",
+        "neoorigins:longer_potions", "neoorigins:teleport_range_modifier", "neoorigins:more_animal_loot",
+        "neoorigins:efficient_repairs", "neoorigins:better_enchanting", "neoorigins:better_crafted_food",
+        "neoorigins:better_bone_meal", "neoorigins:thorns_aura", "neoorigins:less_item_use_slowdown",
+        "apace:status_effect", "apace:night_vision", "apace:water_breathing",
+        "apoli:edible_item", "apugli:edible_item", "apugli:action_on_jump", "apugli:action_on_target_death",
+        "neoorigins:js_custom", "neoorigins:js_active"
+      ]
+    },
+    "name": { "description": "Display name. Plain string = translation key.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
+    "description": { "description": "Display description.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
+    "hidden": { "description": "When true, this power is excluded from the origin info panel. Useful for purely-internal flag/glue powers (e.g. neoorigins:toggle, action_on_hit setters under a multiple).", "type": "boolean", "default": false }
+  },
+  "oneOf": [
+    {
+      "$comment": "neoorigins:attribute_modifier",
+      "properties": {
+        "type": { "const": "neoorigins:attribute_modifier" },
+        "attribute": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "amount": { "type": "number" },
+        "operation": { "type": "string", "enum": ["add_value", "add_multiplied_base", "add_multiplied_total"] },
+        "condition": { "oneOf": [{ "type": "string" }, { "$ref": "condition.schema.json" }] },
+        "equipment_condition": { "type": "object" },
+        "location_condition": { "type": "object" }
+      },
+      "required": ["type", "attribute", "amount"]
+    },
+    {
+      "$comment": "neoorigins:condition_passive",
+      "properties": {
+        "type": { "const": "neoorigins:condition_passive" },
+        "condition": { "$ref": "condition.schema.json" },
+        "entity_action": { "$ref": "action.schema.json" },
+        "interval": { "type": "integer", "minimum": 1 },
+        "interval_ticks": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["type", "entity_action"]
+    },
+    {
+      "$comment": "neoorigins:mob_behavior",
+      "properties": {
+        "type": { "const": "neoorigins:mob_behavior" },
+        "aggression": { "type": "string", "enum": ["neutral", "hostile", "conditional"] },
+        "hostile_when": {
+          "type": "array",
+          "items": { "$ref": "condition.schema.json" }
+        },
+        "retaliate": { "type": "boolean" },
+        "anger_linger_ticks": { "type": "integer", "minimum": 0 },
+        "aggro_range": { "type": "number", "minimum": 0 },
+        "target_type": { "type": "string" },
+        "call_for_help": { "type": "boolean" }
+      },
+      "required": ["type", "aggression"]
+    },
+    {
+      "$comment": "neoorigins:action_on_event",
+      "properties": {
+        "type": { "const": "neoorigins:action_on_event" },
+        "event": {
+          "type": "string",
+          "description": "Case-insensitive event key. See docs/EVENTS.md for the full list.",
+          "enum": [
+            "attack", "hit_taken", "kill", "death", "block_break", "block_place",
+            "item_use", "respawn", "tick", "dimension_change", "jump", "projectile_hit",
+            "food_eaten", "gained", "lost", "chosen", "wake_up", "land",
+            "block_use", "entity_use", "item_pickup", "item_use_finish",
+            "effect_applied",
+            "mod_exhaustion", "mod_natural_regen", "mod_enchant_level", "mod_harvest_drops",
+            "mod_teleport_range", "mod_knockback", "mod_potion_duration", "mod_anvil_cost",
+            "mod_crafted_food_saturation", "mod_bonemeal_extra",
+            "ATTACK", "HIT_TAKEN", "KILL", "DEATH", "BLOCK_BREAK", "BLOCK_PLACE",
+            "ITEM_USE", "RESPAWN", "TICK", "DIMENSION_CHANGE", "JUMP", "PROJECTILE_HIT",
+            "FOOD_EATEN", "GAINED", "LOST", "CHOSEN", "WAKE_UP", "LAND",
+            "BLOCK_USE", "ENTITY_USE", "ITEM_PICKUP", "ITEM_USE_FINISH",
+            "EFFECT_APPLIED",
+            "MOD_EXHAUSTION", "MOD_NATURAL_REGEN", "MOD_ENCHANT_LEVEL", "MOD_HARVEST_DROPS",
+            "MOD_TELEPORT_RANGE", "MOD_KNOCKBACK", "MOD_POTION_DURATION", "MOD_ANVIL_COST",
+            "MOD_CRAFTED_FOOD_SATURATION", "MOD_BONEMEAL_EXTRA"
+          ]
+        },
+        "condition": { "$ref": "condition.schema.json" },
+        "entity_action": { "$ref": "action.schema.json" },
+        "modifier": { "oneOf": [{ "type": "object" }, { "type": "array" }] },
+        "block_condition": { "type": "object" },
+        "effect": { "type": "string" },
+        "effect_tag": { "type": "string" },
+        "immunity_ticks": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["type", "event"]
+    },
+    {
+      "$comment": "neoorigins:persistent_effect",
+      "properties": {
+        "type": { "const": "neoorigins:persistent_effect" },
+        "effect": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "effects": { "type": "array", "items": { "type": "object" } },
+        "amplifier": { "type": "integer", "minimum": 0 },
+        "duration": { "type": "integer", "minimum": 1 },
+        "show_icon": { "type": "boolean" },
+        "show_particles": { "type": "boolean" },
+        "ambient": { "type": "boolean" },
+        "condition": { "$ref": "condition.schema.json" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:active_ability",
+      "properties": {
+        "type": { "const": "neoorigins:active_ability" },
+        "entity_action": { "$ref": "action.schema.json" },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "key": { "type": "string", "enum": ["primary", "secondary"] }
+      },
+      "required": ["type", "entity_action"]
+    },
+    {
+      "$comment": "neoorigins:prevent_action",
+      "properties": {
+        "type": { "const": "neoorigins:prevent_action" },
+        "action": {
+          "type": "string",
+          "enum": ["FIRE", "FALL_DAMAGE", "DROWN", "SWIM", "FREEZE", "SPRINT_FOOD", "ARMOR_EQUIP", "CHESTPLATE_EQUIP"]
+        },
+        "active_when": {
+          "type": "string",
+          "enum": ["ALWAYS", "NOT_SNEAKING", "SNEAKING", "ON_GROUND", "NOT_ON_GROUND"]
+        },
+        "head":  { "type": "boolean", "description": "ARMOR_EQUIP only — block helmet slot." },
+        "chest": { "type": "boolean", "description": "ARMOR_EQUIP only — block chestplate slot." },
+        "legs":  { "type": "boolean", "description": "ARMOR_EQUIP only — block leggings slot." },
+        "feet":  { "type": "boolean", "description": "ARMOR_EQUIP only — block boots slot." }
+      },
+      "required": ["type", "action"]
+    },
+    {
+      "$comment": "neoorigins:modify_damage",
+      "properties": {
+        "type": { "const": "neoorigins:modify_damage" },
+        "direction": { "type": "string", "enum": ["in", "out"] },
+        "damage_type": { "type": "string", "description": "Either a vanilla msg ID (e.g. 'onFire') or a tag prefixed with #." },
+        "multiplier": { "type": "number" },
+        "target_group": { "type": "string" },
+        "condition": { "$ref": "condition.schema.json" }
+      },
+      "required": ["type", "multiplier"]
+    },
+    {
+      "$comment": "neoorigins:size_scaling",
+      "properties": {
+        "type": { "const": "neoorigins:size_scaling" },
+        "scale": { "type": "number", "exclusiveMinimum": 0 },
+        "modify_reach": { "type": "boolean" }
+      },
+      "required": ["type", "scale"]
+    },
+    {
+      "$comment": "neoorigins:summon_minion",
+      "properties": {
+        "type": { "const": "neoorigins:summon_minion" },
+        "mob_type": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "max_count": { "type": "integer", "minimum": 1 },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "despawn_ticks": { "type": "integer", "minimum": 1 },
+        "death_damage": { "type": "number", "minimum": 0 },
+        "head": { "type": "string" },
+        "chest": { "type": "string" },
+        "legs": { "type": "string" },
+        "feet": { "type": "string" },
+        "mainhand": { "type": "string" },
+        "offhand": { "type": "string" }
+      },
+      "required": ["type", "mob_type"]
+    },
+    {
+      "$comment": "neoorigins:tame_mob",
+      "properties": {
+        "type": { "const": "neoorigins:tame_mob" },
+        "range": { "type": "number", "exclusiveMinimum": 0 },
+        "max_tamed": { "type": "integer", "minimum": 1 },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "despawn_ticks": { "type": "integer", "minimum": 1 },
+        "death_damage": { "type": "number", "minimum": 0 },
+        "hostile_only": { "description": "When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, etc.) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).", "type": "boolean", "default": true }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:mount",
+      "properties": {
+        "type": { "const": "neoorigins:mount" },
+        "range": { "type": "number", "exclusiveMinimum": 0 },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 },
+        "allow_players": { "type": "boolean" },
+        "allow_mobs": { "type": "boolean" },
+        "block_bosses": { "type": "boolean" },
+        "mount_position": { "type": "string", "enum": ["centered", "shoulder"] }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:js_custom \u2014 passive power whose lifecycle hooks are supplied by a JS handler registered via NeoOrigins.registerPower(js_id, handler).",
+      "properties": {
+        "type": { "const": "neoorigins:js_custom" },
+        "js_id": { "type": "string", "description": "ID of the JS handler. Register from JS via NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick})." }
+      },
+      "required": ["type", "js_id"]
+    },
+    {
+      "$comment": "neoorigins:js_active \u2014 active (keybind) power whose onUse is supplied by a JS handler registered via NeoOrigins.registerActivePower(js_id, handler).",
+      "properties": {
+        "type": { "const": "neoorigins:js_active" },
+        "js_id": { "type": "string", "description": "ID of the JS handler. Register from JS via NeoOrigins.registerActivePower(id, {onUse, onGranted, onRevoked})." },
+        "cooldown_ticks": { "type": "integer", "minimum": 0 },
+        "hunger_cost": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["type", "js_id"]
+    },
+    {
+      "$comment": "neoorigins:edible_item",
+      "properties": {
+        "type": { "const": "neoorigins:edible_item" },
+        "items": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "item_condition": { "type": "object" },
+        "nutrition": { "type": "integer", "minimum": 0 },
+        "saturation": { "type": "number" },
+        "always_edible": { "type": "boolean" },
+        "fast": { "type": "boolean" },
+        "meat": { "type": "boolean" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:enhanced_vision",
+      "properties": {
+        "type": { "const": "neoorigins:enhanced_vision" },
+        "exposure": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:toggle",
+      "properties": {
+        "type": { "const": "neoorigins:toggle" },
+        "default_value": { "type": "boolean" },
+        "key": { "type": "string", "enum": ["primary", "secondary"] }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:particle",
+      "properties": {
+        "type": { "const": "neoorigins:particle" },
+        "particle": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "object", "properties": { "type": { "type": "string" }, "color": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "scale": { "type": "number" } }, "required": ["type"] }
+          ]
+        },
+        "frequency": { "type": "integer", "minimum": 1 },
+        "count": { "type": "integer", "minimum": 0 },
+        "spread": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "offset": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "speed": { "type": "number" },
+        "condition": { "type": "object" }
+      },
+      "required": ["type", "particle"]
+    },
+    {
+      "$comment": "neoorigins:entity_set",
+      "properties": {
+        "type": { "const": "neoorigins:entity_set" },
+        "name": { "type": "string" }
+      },
+      "required": ["type", "name"]
+    },
+    {
+      "$comment": "neoorigins:modify_player_spawn",
+      "properties": {
+        "type": { "const": "neoorigins:modify_player_spawn" },
+        "dimension": { "type": "string" },
+        "biome": { "type": "string" },
+        "spawn_strategy": { "type": "string" },
+        "bed_override": { "type": "boolean" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:restrict_armor",
+      "properties": {
+        "type": { "const": "neoorigins:restrict_armor" },
+        "head": { "type": "object" },
+        "chest": { "type": "object" },
+        "legs": { "type": "object" },
+        "feet": { "type": "object" }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:keep_inventory",
+      "properties": {
+        "type": { "const": "neoorigins:keep_inventory" },
+        "slots": { "type": "array", "items": { "type": "string" } },
+        "items": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["type"]
+    },
+    {
+      "$comment": "neoorigins:starting_equipment \u2014 grants one or more items the first time the power is applied after origin commit. Accepts BOTH a legacy singular shape (top-level item/count/enchantments/legacy_tag/components) and a plural shape (stacks: [ { item, count, enchantments, legacy_tag, components } ]). When `stacks` is non-empty it takes precedence over the singular root fields; otherwise the root `item` is wrapped as a one-entry list. `grant_id` dedups the whole bundle (not individual stacks) so retries via /origin reset re-grant everything.",
+      "properties": {
+        "type": { "const": "neoorigins:starting_equipment" },
+        "grant_id": { "type": "string", "description": "Unique id tracked so the bundle is granted only once per player." },
+        "item": { "type": "string", "description": "Legacy singular shape: item id granted once. Optional when `stacks` is provided." },
+        "count": { "type": "integer", "minimum": 1, "description": "Stack size for the singular shape (default 1)." },
+        "enchantments": {
+          "type": "array",
+          "description": "Singular-shape enchantments applied to the granted item.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "level": { "type": "integer", "minimum": 1 }
+            },
+            "required": ["id"]
+          }
+        },
+        "legacy_tag": { "type": "string", "description": "Singular-shape Apoli-style flat SNBT translated into data components at grant time." },
+        "components": { "type": "string", "description": "Singular-shape SNBT data-component patch applied to the granted item." },
+        "stacks": {
+          "type": "array",
+          "description": "Plural shape (v2.1.6). Each entry mirrors the singular root field names. When non-empty, takes precedence over the singular item/count/enchantments/legacy_tag/components fields.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item": { "type": "string" },
+              "count": { "type": "integer", "minimum": 1 },
+              "enchantments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "level": { "type": "integer", "minimum": 1 }
+                  },
+                  "required": ["id"]
+                }
+              },
+              "legacy_tag": { "type": "string" },
+              "components": { "type": "string" }
+            },
+            "required": ["item"]
+          }
+        }
+      },
+      "required": ["type", "grant_id"]
+    },
+    {
+      "$comment": "neoorigins:loot_pool_grant \u2014 v2.1.6 backlog #3. Active power that rolls a vanilla loot table and grants each rolled stack to the player. Gives pack authors the full vanilla loot infrastructure (weighted entries, conditions, functions) instead of a flat item list. `grant_id` dedups via the shared starting_equipment grant attachment. When the `ftbquests` mod is loaded, FTBQ quests tagged `neoorigins_loot_pool_grant:<loot_table_id>` route through the same grant pipeline on quest completion.",
+      "properties": {
+        "type": { "const": "neoorigins:loot_pool_grant" },
+        "grant_id": { "type": "string", "description": "Unique id tracked so the bundle is granted only once per player." },
+        "loot_table": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$", "description": "ResourceLocation of the vanilla loot table to roll on activation." },
+        "rolls": { "type": "integer", "minimum": 0, "description": "Number of times the table is rolled per activation; default 1." },
+        "bonus_rolls": { "type": "integer", "minimum": 0, "description": "Extra rolls added to `rolls`; default 0. Mirrors vanilla loot-pool naming." },
+        "active": { "type": "string", "description": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system." },
+        "cooldown": { "type": "integer", "minimum": 0, "description": "Cooldown in ticks between activations (20 = 1s); default 0." }
+      },
+      "required": ["type", "grant_id", "loot_table"]
+    },
+    {
+      "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "neoorigins:attribute_modifier", "neoorigins:condition_passive", "neoorigins:action_on_event",
+              "neoorigins:persistent_effect", "neoorigins:active_ability", "neoorigins:prevent_action",
+              "neoorigins:modify_damage", "neoorigins:size_scaling", "neoorigins:summon_minion",
+              "neoorigins:tame_mob", "neoorigins:edible_item", "neoorigins:enhanced_vision",
+              "neoorigins:toggle", "neoorigins:entity_set", "neoorigins:modify_player_spawn",
+              "neoorigins:restrict_armor", "neoorigins:keep_inventory", "neoorigins:starting_equipment",
+              "neoorigins:loot_pool_grant"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}
