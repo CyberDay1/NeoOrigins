@@ -1,23 +1,26 @@
 {
   "_comment": [
     "Font provider for the parchment UI theme.",
-    "Currently chains to Minecraft's built-in default (vanilla pixel font) so",
-    "the mod ships with zero font dependencies.",
     "",
-    "TO PLUG IN A REAL SERIF FONT (e.g. Cinzel, EB Garamond, IM Fell English",
-    "- all OFL/SIL licensed and parchment-appropriate):",
-    "  1. Drop the TTF at  assets/neoorigins/font/<name>.ttf",
-    "  2. Replace the providers array below with:",
-    "     [ { \"type\": \"ttf\",",
-    "         \"file\": \"neoorigins:font/<name>.ttf\",",
-    "         \"shift\": [0, 1], \"size\": 11, \"oversample\": 2,",
-    "         \"skip\": [] } ]",
-    "  3. Optionally chain the vanilla default as a fallback by appending",
-    "     { \"type\": \"reference\", \"id\": \"minecraft:default\" }",
+    "Bundled font: Newsreader (variable TTF, opsz + wght axes)",
+    "  Source : https://github.com/productiontype/Newsreader",
+    "  License: SIL Open Font License 1.1 (see OFL.txt in this directory).",
+    "           Per the OFL, OFL.txt MUST ship alongside the TTF binary in",
+    "           the same directory whenever the font is redistributed.",
     "",
-    "Pack authors can also override this file entirely from a resource pack."
+    "The Minecraft TTF provider rasterises whatever default instance the",
+    "TTF reports; the variable font's default is Regular @ 16pt, which is",
+    "the body-text weight we want for the parchment UI.",
+    "",
+    "If the type looks oversized/tiny, tune `size`, `shift`, and `oversample`",
+    "below. The vanilla default is chained as a fallback so any glyph the",
+    "TTF doesn't cover (e.g. some symbols) still draws.",
+    "",
+    "Pack authors can override this file entirely from a resource pack to",
+    "swap in their own TTF or fall back to vanilla pixel text."
   ],
   "providers": [
+    { "type": "ttf", "file": "neoorigins:font/Newsreader.ttf", "shift": [0, 1], "size": 11, "oversample": 2, "skip": [] },
     { "type": "reference", "id": "minecraft:default" }
   ]
 }
