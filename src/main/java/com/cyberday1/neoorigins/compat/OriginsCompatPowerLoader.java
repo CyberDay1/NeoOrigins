@@ -482,19 +482,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     private CompatPower.Config parseConditionedModifyDamageTaken(Identifier id, JsonObject json) {
         String idStr = id.toString();
 
-        // Extract the multiplier from the Origins modifier object. All operations
+        // Extract the multiplier from the Origins modifier(s). All operations
         // collapse to (1 + value) — same lossy mapping as Route A's translateModifyDamage.
-        // Origins packs use either "value" or "amount" for the modifier number.
-        float multiplier = 1.0f;
-        if (json.has("modifier") && json.get("modifier").isJsonObject()) {
-            JsonObject mod = json.getAsJsonObject("modifier");
-            double val = mod.has("value") ? mod.get("value").getAsDouble()
-                : mod.has("amount") ? mod.get("amount").getAsDouble() : Double.NaN;
-            if (!Double.isNaN(val)) {
-                String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
-                multiplier = "set_total".equals(op) ? (float) Math.max(0, 1.0 + val) : (float)(1.0 + val);
-            }
-        }
+        // parseModifierList accepts both singular "modifier" and plural "modifiers";
+        // parseSingleModifier accepts both "value" and "amount" per entry. Mirrors
+        // the precedent set by parseModifyFood / parseNumericModifier so real
+        // Apoli packs (which commonly emit `modifiers`/`amount`) don't silently no-op.
+        float multiplier = collapseDamageModifiers(parseModifierList(json, "modifier"));
 
         // Optional damage type filter — msgId-based, mirrors native ModifyDamagePower.
         String damageTypeFilter = null;
@@ -542,16 +536,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     private CompatPower.Config parseConditionedModifyDamageDealt(Identifier id, JsonObject json) {
         String idStr = id.toString();
 
-        float multiplier = 1.0f;
-        if (json.has("modifier") && json.get("modifier").isJsonObject()) {
-            JsonObject mod = json.getAsJsonObject("modifier");
-            double val = mod.has("value") ? mod.get("value").getAsDouble()
-                : mod.has("amount") ? mod.get("amount").getAsDouble() : Double.NaN;
-            if (!Double.isNaN(val)) {
-                String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
-                multiplier = "set_total".equals(op) ? (float) Math.max(0, 1.0 + val) : (float)(1.0 + val);
-            }
-        }
+        // See parseConditionedModifyDamageTaken — same singular/plural and value/amount
+        // tolerance for symmetry with Apoli.
+        float multiplier = collapseDamageModifiers(parseModifierList(json, "modifier"));
 
         String damageTypeFilter = null;
         Identifier damageTypeKeyFilter = null;
@@ -1583,6 +1570,32 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         double value = mod.has("value") ? mod.get("value").getAsDouble()
                      : mod.has("amount") ? mod.get("amount").getAsDouble() : 0.0;
         return new OriginsModifierMath.Modifier(operation, value);
+    }
+
+    /**
+     * Collapse a list of Apoli-shape modifier entries into a single damage
+     * multiplier, preserving the same lossy per-entry mapping the singular
+     * pre-v2.1.6 path used: {@code addition}/{@code multiply_*} contribute
+     * additively to {@code 1 + Σvalue}; {@code set_total} overrides to
+     * {@code max(0, 1 + value)} (clamped non-negative, last-write-wins among
+     * multiple set_total entries — matches the single-modifier behavior).
+     * Empty list ⇒ 1.0 (no-op), matching the previous "missing modifier"
+     * fall-through that left {@code multiplier = 1.0f}.
+     */
+    private static float collapseDamageModifiers(java.util.List<OriginsModifierMath.Modifier> mods) {
+        if (mods == null || mods.isEmpty()) return 1.0f;
+        double additive = 0.0;
+        Double setTotal = null;
+        for (OriginsModifierMath.Modifier m : mods) {
+            String op = m.operation() == null ? "addition" : m.operation();
+            if ("set_total".equals(op)) {
+                setTotal = m.value();
+            } else {
+                additive += m.value();
+            }
+        }
+        double result = setTotal != null ? Math.max(0.0, 1.0 + setTotal) : (1.0 + additive);
+        return (float) result;
     }
 
     // ---- Compile-time predicate builders for event powers ----

@@ -1,0 +1,7 @@
+{
+  "type": "origins:modify_damage_taken",
+  "name": "Stone Skin (legacy NeoOrigins shape: singular modifier + value)",
+  "description": "Pre-existing shape the old parser accepted; must keep working post-fix (backwards-compatible). `condition` present so this routes through parseConditionedModifyDamageTaken (Route B fallback).",
+  "condition": { "type": "origins:in_block", "block_condition": { "type": "origins:in_tag", "tag": "minecraft:water" } },
+  "modifier": { "operation": "multiply_base", "value": -0.25 }
+}

@@ -253,7 +253,15 @@ public final class CompatTestHarness {
                 boolean routeBFallback = (type.contains("modify_damage_taken") || type.contains("modify_damage_dealt"))
                     && json.has("condition");
                 if (routeBFallback) {
-                    findings.add(new Finding(Result.SKIP, path, type, "Route B fallback (conditioned)"));
+                    // Same parser-canonical structural check as the explicit Route B
+                    // path. parseConditionedModifyDamage* accepts singular `modifier`
+                    // or plural `modifiers`; missing both is a no-op power → WARN.
+                    String structIssue = validateRouteBStructure(type, json);
+                    if (structIssue != null) {
+                        findings.add(new Finding(Result.WARN, path, type, "Route B struct: " + structIssue));
+                    } else {
+                        findings.add(new Finding(Result.SKIP, path, type, "Route B fallback (conditioned)"));
+                    }
                 } else {
                     findings.add(new Finding(Result.FAIL, path, type, "translator returned empty"));
                 }
@@ -425,6 +433,17 @@ public final class CompatTestHarness {
             // singular "modifier" and plural "modifiers", and per-entry either
             // "value" or "amount". Mirror the parser's tolerance here.
             case "modify_xp_gain", "modify_lava_speed" -> {
+                if (!json.has("modifier") && !json.has("modifiers"))
+                    yield "missing 'modifier'/'modifiers'";
+                yield null;
+            }
+            // modify_damage_taken / modify_damage_dealt: parseConditionedModifyDamage*
+            // routes through parseModifierList, so both singular "modifier" and plural
+            // "modifiers" are accepted (and per-entry either "value" or "amount").
+            // An absent modifier no longer hard-fails — the multiplier just stays 1.0
+            // (effectively a no-op power), so flag missing-modifier as a WARN so authors
+            // notice the dead power without breaking load.
+            case "modify_damage_taken", "modify_damage_dealt" -> {
                 if (!json.has("modifier") && !json.has("modifiers"))
                     yield "missing 'modifier'/'modifiers'";
                 yield null;

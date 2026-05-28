@@ -1,0 +1,10 @@
+{
+  "type": "origins:modify_damage_dealt",
+  "name": "Strong Arm (Apoli shape: plural modifiers + amount)",
+  "description": "Verifies parser accepts Apoli-canonical `modifiers` array with `amount` per entry. Was a silent no-op before the v2.1.6 schema-vs-parser fix. `condition` present so this routes through parseConditionedModifyDamageDealt (Route B fallback).",
+  "condition": { "type": "origins:in_block", "block_condition": { "type": "origins:in_tag", "tag": "minecraft:water" } },
+  "modifiers": [
+    { "operation": "multiply_base", "amount": 0.25 },
+    { "operation": "addition",      "amount": 0.25 }
+  ]
+}
