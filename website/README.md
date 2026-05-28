@@ -40,3 +40,36 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+## NeoOrigins Web Editor
+
+Schema-driven, browser-based datapack generator for NeoOrigins — the same
+schemas that drive the in-game creator, ported to a static SvelteKit app.
+
+### Local dev
+
+```sh
+npm install
+npm run dev
+```
+
+### Local build
+
+```sh
+npm run build
+```
+
+Output goes to `build/` (SvelteKit `adapter-static`).
+
+### Deploy
+
+Deployed to `cyberday1.github.io/NeoOrigins/editor/` by
+`.github/workflows/editor-pages.yml` on every push to `1.21.1` that
+touches `website/**`, `docs/schema/**`, or the workflow itself.
+
+### Schemas
+
+The source of truth lives at `docs/schema/*.json` (alongside the
+mkdocs docs). CI copies those files into `static/schemas/` on every
+build — **do not hand-edit `static/schemas/`**; edit `docs/schema/`
+and let the workflow re-sync.
