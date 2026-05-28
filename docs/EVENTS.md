@@ -623,4 +623,3 @@ Partial substitutes that already work today:
 - [`EventPowerIndex.java`](../src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java) — enum declaration and context records.
 - [`ActionOnEventPower.java`](../src/main/java/com/cyberday1/neoorigins/power/builtin/ActionOnEventPower.java) — the power type that consumes these events.
 - [`POWER_TYPES.md`](POWER_TYPES.md) — full power-type catalogue including `action_on_event`.
-- [`2_0_CHANGES.md`](2_0_CHANGES.md) — architectural context for the 2.0 event-dispatcher consolidation.

@@ -64,4 +64,3 @@ exclude:
   - schema/
   - README.md
   - "*.bak"
-  - compat-cleanup-handoff.md
