@@ -196,9 +196,17 @@ public final class CompatTestHarness {
             return;
         }
 
-        // Native NeoOrigins types — always pass
+        // Native NeoOrigins types — structurally validated, then pass.
+        // Previously these auto-PASSed; v2.1.6 added per-type structural hooks
+        // (see validateNativeStructure) so authoring mistakes in native packs
+        // surface as WARN here instead of silently no-op'ing at runtime.
         if (type.startsWith(NEO_PREFIX)) {
-            findings.add(new Finding(Result.PASS, path, type, "native type"));
+            String nativeIssue = validateNativeStructure(type, json);
+            if (nativeIssue != null) {
+                findings.add(new Finding(Result.WARN, path, type, "native struct: " + nativeIssue));
+            } else {
+                findings.add(new Finding(Result.PASS, path, type, "native type"));
+            }
             return;
         }
 
@@ -449,6 +457,35 @@ public final class CompatTestHarness {
                 yield null;
             }
             default -> null; // Unknown Route B — can't validate
+        };
+    }
+
+    // ── Native Structural Validation ────────────────────────────────────────
+
+    /**
+     * Structural lint for {@code neoorigins:*} types. Returns a short reason
+     * string when a load-bearing field is missing/malformed, or {@code null}
+     * when the JSON is plausibly grantable. Mirrors the parser-canonical
+     * tolerance the runtime applies (the runtime logs a WARN and skips —
+     * we surface the same WARN at scan time so authoring mistakes don't
+     * silently no-op).
+     */
+    private static String validateNativeStructure(String type, JsonObject json) {
+        String base = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+        return switch (base) {
+            case "starting_equipment" -> {
+                boolean hasItem = json.has("item")
+                    && json.get("item").isJsonPrimitive()
+                    && !json.get("item").getAsString().isBlank();
+                boolean hasStacks = json.has("stacks")
+                    && json.get("stacks").isJsonArray()
+                    && json.getAsJsonArray("stacks").size() > 0;
+                if (!hasItem && !hasStacks) {
+                    yield "missing 'item' or non-empty 'stacks'";
+                }
+                yield null;
+            }
+            default -> null;
         };
     }
 
