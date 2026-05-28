@@ -19,7 +19,8 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.TargetGoal;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -27,6 +28,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -160,23 +162,32 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // Re-add HurtByTargetGoal so it fights back when hit (requires PathfinderMob).
         // Owner-aware subclass: accidental owner hits (collision, AoE, thorns
         // reflection) don't flip the mob hostile against the owner.
+        // Priority 0 — must beat the defend/aggro goals so a direct hit on the
+        // pet always takes precedence over "owner is busy elsewhere."
         if (mob instanceof PathfinderMob pathfinder) {
-            mob.targetSelector.addGoal(1, new OwnerAwareHurtByTargetGoal(pathfinder, owner));
+            mob.targetSelector.addGoal(0, new OwnerAwareHurtByTargetGoal(pathfinder, owner));
         }
 
-        // Add a goal to target whatever the owner is attacking
-        mob.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(
-            mob, LivingEntity.class, 5, false, false,
-            e -> {
-                // Attack anything that recently hurt the owner
-                if (e == owner) return false;
-                if (owner.getLastHurtByMob() != null && owner.getLastHurtByMob().is(e)
-                        && owner.tickCount - owner.getLastHurtByMobTimestamp() < 100) {
-                    return true;
-                }
-                return false;
-            }
-        ));
+        // DEFEND: target whoever last attacked the owner. Modeled on vanilla
+        // OwnerHurtByTargetGoal but does not require TamableAnimal — reads
+        // owner.getLastHurtByMob() directly. Priority 1 (matches vanilla).
+        //
+        // Why not NearestAttackableTargetGoal with a predicate? That goal scans
+        // a box around the *mob*, so an attacker hitting the owner from outside
+        // the pet's follow-distance is invisible to it. Reading the owner's
+        // own last-hurt-by reference avoids the spatial gate entirely.
+        mob.targetSelector.addGoal(1, new OwnerHurtByOwnerTargetGoal(mob, owner));
+
+        // AGGRO: target whatever the owner is currently attacking. Modeled on
+        // vanilla OwnerHurtTargetGoal — reads owner.getLastHurtMob(). Priority
+        // 2 (matches vanilla; below defend so the pet prefers to peel attackers
+        // off the owner over chasing the owner's chosen target).
+        //
+        // Previously this slot held a NearestAttackableTargetGoal whose
+        // predicate was actually checking getLastHurtByMob (defend logic) — so
+        // aggro was missing entirely and defend was duplicated with a buggy
+        // spatial gate. See v2.1.6 backlog #6.
+        mob.targetSelector.addGoal(2, new OwnerHurtTargetByOwnerGoal(mob, owner));
 
         // Remove any existing AvoidEntityGoal targeting players, then add follow-owner
         mob.goalSelector.getAvailableGoals().removeIf(
@@ -297,6 +308,87 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
                 return false;
             }
             return super.canUse();
+        }
+    }
+
+    /**
+     * Defend goal: targets whoever last attacked the owner. Vanilla parallel
+     * is {@link net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal},
+     * but vanilla requires {@code TamableAnimal}. We instead capture an explicit
+     * owner reference at tame-time, so this works for arbitrary {@link Mob}.
+     *
+     * <p>Reads {@code owner.getLastHurtByMob()} each tick and only fires when
+     * the owner's last-hurt-by timestamp advances — so we don't re-target the
+     * same attacker after the pet kills it (vanilla TargetGoal pattern).
+     */
+    public static class OwnerHurtByOwnerTargetGoal extends TargetGoal {
+        private final ServerPlayer owner;
+        private LivingEntity ownerLastHurtBy;
+        private int timestamp;
+
+        public OwnerHurtByOwnerTargetGoal(Mob mob, ServerPlayer owner) {
+            super(mob, false);
+            this.owner = owner;
+            this.setFlags(EnumSet.of(Goal.Flag.TARGET));
+        }
+
+        @Override
+        public boolean canUse() {
+            if (!owner.isAlive()) return false;
+            this.ownerLastHurtBy = owner.getLastHurtByMob();
+            int t = owner.getLastHurtByMobTimestamp();
+            if (t == this.timestamp) return false;
+            if (this.ownerLastHurtBy == null) return false;
+            // Don't target the owner themselves, other tamed pets of this
+            // owner, or the owner's own minions (friendly fire guard).
+            if (this.ownerLastHurtBy == owner) return false;
+            if (this.ownerLastHurtBy.getUUID().equals(owner.getUUID())) return false;
+            return this.canAttack(this.ownerLastHurtBy, TargetingConditions.DEFAULT);
+        }
+
+        @Override
+        public void start() {
+            this.mob.setTarget(this.ownerLastHurtBy);
+            this.timestamp = owner.getLastHurtByMobTimestamp();
+            super.start();
+        }
+    }
+
+    /**
+     * Aggro goal: targets whatever the owner is currently attacking. Vanilla
+     * parallel is {@link net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal}.
+     * Reads {@code owner.getLastHurtMob()} and gates on
+     * {@code getLastHurtMobTimestamp()} so the pet doesn't keep re-targeting
+     * the same dead enemy.
+     */
+    public static class OwnerHurtTargetByOwnerGoal extends TargetGoal {
+        private final ServerPlayer owner;
+        private LivingEntity ownerLastHurt;
+        private int timestamp;
+
+        public OwnerHurtTargetByOwnerGoal(Mob mob, ServerPlayer owner) {
+            super(mob, false);
+            this.owner = owner;
+            this.setFlags(EnumSet.of(Goal.Flag.TARGET));
+        }
+
+        @Override
+        public boolean canUse() {
+            if (!owner.isAlive()) return false;
+            this.ownerLastHurt = owner.getLastHurtMob();
+            int t = owner.getLastHurtMobTimestamp();
+            if (t == this.timestamp) return false;
+            if (this.ownerLastHurt == null) return false;
+            if (this.ownerLastHurt == owner) return false;
+            if (this.ownerLastHurt.getUUID().equals(owner.getUUID())) return false;
+            return this.canAttack(this.ownerLastHurt, TargetingConditions.DEFAULT);
+        }
+
+        @Override
+        public void start() {
+            this.mob.setTarget(this.ownerLastHurt);
+            this.timestamp = owner.getLastHurtMobTimestamp();
+            super.start();
         }
     }
 }

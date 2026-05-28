@@ -1,0 +1,7 @@
+{
+  "name": "Tame Mob Tester",
+  "description": "Has tame_mob bound; use to verify aggro + defend behaviors.",
+  "icon": "minecraft:bone",
+  "impact": "low",
+  "powers": ["test_tame:test_tame"]
+}
