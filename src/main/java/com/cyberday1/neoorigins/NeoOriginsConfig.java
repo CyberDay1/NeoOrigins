@@ -868,6 +868,34 @@ public final class NeoOriginsConfig {
         return OCEAN_ORIGINS_DROWN_DAMAGE.get().floatValue();
     }
 
+    // ── Hotkeys ─────────────────────────────────────────────────────────
+    // Pool of anonymous KeyMappings used to back pack-declared `"key": "..."`
+    // bindings on Apoli-style active powers. Each declared translation key
+    // claims one slot in this pool; if the pool runs out, additional powers
+    // log a warning and remain dormant. Increase if you run packs that
+    // declare many named hotkeys (e.g. Deano's pack uses 10).
+
+    public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
+
+    static {
+        BUILDER.comment(
+            "Hotkey pool. Each pack-declared `\"key\": \"translation.key.id\"` on an active",
+            "power consumes one slot. The Controls screen shows N unassigned \"Hotkey N\"",
+            "entries; assignments happen at login from the server-side registry, so",
+            "rebinding a slot affects whichever power currently occupies it.",
+            "Larger pool = more named hotkeys can coexist, but more rows in Controls."
+        ).push("hotkeys");
+
+        HOTKEY_POOL_SIZE = BUILDER
+            .comment("Number of named-keybind slots to register at client startup.",
+                     "Default 32. Increase if packs declare more than 32 distinct keys.")
+            .defineInRange("pool_size", 32, 1, 256);
+
+        BUILDER.pop();
+    }
+
+    public static int hotkeyPoolSize() { return HOTKEY_POOL_SIZE.get(); }
+
     // ── Mount Power ───────────────────────────────────────────────────────
     // Consent mode for player-to-player mounting.
 

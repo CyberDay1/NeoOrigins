@@ -154,6 +154,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         NumericModifierRegistry.clearAll();
         CompatAttachments.clearResourceMeta();
         com.cyberday1.neoorigins.service.InlineRecipeRegistry.resetPending();
+        com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.clear();
 
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
         Map<ResourceLocation, JsonObject> expanded = inlineExpand(data);
@@ -230,6 +231,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // appears immediately above it in the log.
         CompatWarningCollector.emitSummaryAndEndSession();
         NeoOrigins.LOGGER.info("[CompatB] Injected {} Route B powers", injected.size());
+        com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.logSummary();
         } finally {
             // Defensive: if anything above threw, the session is still open
             // and would silently swallow warnings for the rest of the JVM.
@@ -675,12 +677,35 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 .build();
         }
 
-        // Non-slot keys: fire from onTick when the corresponding input is held.
-        // When continuous=false, uses edge detection (fire once per press).
-        // When continuous=true, fires every tick while the key is held.
+        // Non-slot keys come in two flavors:
+        //   1. Vanilla input keys (sneak/use/attack/jump/movement) — polled from
+        //      onTick because the server knows the input state directly.
+        //   2. Pack-declared translation keys (e.g. "deanos_origins.key.origins.2")
+        //      — registered into PowerKeybindRegistry and fired by client press
+        //      via ActivatePowerByKeyPayload. The CompatPower itself becomes a
+        //      no-op so it doesn't tick uselessly.
         final String finalKey = key;
         final String finalIdStr = idStr;
         final boolean isContinuous = continuous;
+
+        boolean isVanillaInputKey = switch (finalKey) {
+            case "key.sneak", "key.use", "key.attack", "key.jump",
+                 "key.forward", "key.back", "key.left", "key.right" -> true;
+            default -> false;
+        };
+
+        if (!isVanillaInputKey) {
+            // Hotkey path: register into PowerKeybindRegistry so a client press
+            // routes here. The power itself is a marker (no onActivated, no
+            // onTick) so it doesn't double-fire from the slot system.
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(finalKey,
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    id, action, condition, cooldown, isContinuous));
+            return CompatPower.Config.builder()
+                .cooldownTicks(cooldown)
+                .build();
+        }
+
         return CompatPower.Config.builder()
             .onTick(player -> {
                 boolean pressed = switch (finalKey) {
@@ -693,6 +718,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     case "key.left"    -> player.xxa > 0;
                     case "key.right"   -> player.xxa < 0;
                     default -> {
+                        // Defensive: isVanillaInputKey above already excludes
+                        // anything that would land here, so this is unreachable
+                        // unless someone adds a new vanilla key without updating
+                        // both sites.
                         if (player.tickCount == 1) {
                             NeoOrigins.LOGGER.warn("[CompatB] active_self key '{}' has no server-side input state — power {} will not fire", finalKey, finalIdStr);
                         }

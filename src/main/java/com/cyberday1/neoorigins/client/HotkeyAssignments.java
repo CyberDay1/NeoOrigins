@@ -1,0 +1,167 @@
+package com.cyberday1.neoorigins.client;
+
+import com.cyberday1.neoorigins.NeoOrigins;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.loading.FMLEnvironment;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Client-side state for the named-hotkey system.
+ *
+ * <p>The server sends {@link com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload}
+ * on login and after every reload; this class consumes the snapshot and routes
+ * each declared translation key to either:
+ * <ul>
+ *   <li>An anonymous pool slot from {@link NeoOriginsKeybindings#HOTKEY_POOL} —
+ *       the default native path. The player rebinds it in Controls just like any
+ *       other key.</li>
+ *   <li>An <b>external</b> {@link KeyMapping} (e.g. one registered by
+ *       <i>keybindjs</i>) that already exists with the same translation key.
+ *       This avoids duplicate entries in the Controls screen when a pack ships
+ *       both a JSON {@code "key"} declaration and a keybindjs script.</li>
+ * </ul>
+ *
+ * <p>The poll loop in {@link NeoOriginsClientEvents} reads {@link #pollPress(int)}
+ * and {@link #pollHeld(int)} for each pool index, and walks {@link #externalAssignments}
+ * for keybindjs-owned bindings.
+ */
+public final class HotkeyAssignments {
+
+    private HotkeyAssignments() {}
+
+    /** Pool slot index → translation key currently assigned to that slot. -1 = empty. */
+    private static volatile String[] poolAssignments = new String[0];
+
+    /** Translation key → "continuous" flag (fire while held). */
+    private static volatile Map<String, Boolean> continuousByKey = Map.of();
+
+    /** Power id → translation key, for in-game UI hints (origin info screen, etc.). */
+    private static volatile Map<ResourceLocation, String> powerToKey = Map.of();
+
+    /** External (keybindjs-owned) mappings: their KeyMapping → translation key. */
+    private static volatile Map<KeyMapping, String> externalAssignments = Collections.emptyMap();
+
+    /**
+     * Apply a fresh registry snapshot. Runs on the client thread (enqueued by
+     * the payload handler), so it's safe to touch KeyMapping state.
+     *
+     * <p>Stable ordering: keys come sorted from the server, so a player who
+     * relogs sees the same key on the same slot — unless they're already in
+     * the Controls screen rebinding mid-session, which they'd notice anyway.
+     */
+    public static void set(List<String> declaredKeys,
+                           List<Boolean> continuousFlags,
+                           Map<ResourceLocation, String> p2k) {
+        if (FMLEnvironment.dist != Dist.CLIENT) return;
+
+        Map<String, Boolean> cmap = new HashMap<>(declaredKeys.size());
+        for (int i = 0; i < declaredKeys.size(); i++) {
+            cmap.put(declaredKeys.get(i), continuousFlags.get(i));
+        }
+        continuousByKey = Map.copyOf(cmap);
+        powerToKey = Map.copyOf(p2k);
+
+        KeyMapping[] pool = NeoOriginsKeybindings.HOTKEY_POOL;
+        String[] slots = new String[pool.length];
+        Map<KeyMapping, String> external = new HashMap<>();
+
+        // External-mapping lookup. Build a single (translationKey -> KeyMapping) view
+        // for keybindjs-registered keys so we don't burn pool slots on duplicates.
+        Map<String, KeyMapping> externalCandidates = collectExternalCandidates(pool);
+
+        int slotIdx = 0;
+        for (String key : declaredKeys) {
+            KeyMapping ext = externalCandidates.get(key);
+            if (ext != null) {
+                external.put(ext, key);
+                continue;
+            }
+            if (slotIdx >= pool.length) {
+                NeoOrigins.LOGGER.warn(
+                    "[Hotkeys] Pool exhausted ({} slots) — key '{}' will be dormant. "
+                        + "Increase neoorigins-common.toml [hotkeys] pool_size or assign via keybindjs.",
+                    pool.length, key);
+                continue;
+            }
+            slots[slotIdx++] = key;
+        }
+
+        poolAssignments = slots;
+        externalAssignments = Map.copyOf(external);
+
+        NeoOrigins.LOGGER.info(
+            "[Hotkeys] Assigned {} pool slots + {} external keybindjs slots (pool size: {})",
+            slotIdx, external.size(), pool.length);
+    }
+
+    /**
+     * Walk the client's current KeyMapping list and find any registered with one
+     * of our declared translation keys that ISN'T one of our pool slots. Those
+     * are externally registered (almost always by keybindjs) and we should
+     * defer to them instead of double-binding.
+     *
+     * <p>Gated on {@code keybindjs} being loaded — when it isn't, the array walk
+     * has no candidates anyway, so we skip the iteration cost entirely. (Other
+     * mods could conceivably also register here; the gate is a soft hint, not
+     * a correctness requirement.)
+     */
+    private static Map<String, KeyMapping> collectExternalCandidates(KeyMapping[] pool) {
+        if (!ModList.get().isLoaded("keybindjs")) return Map.of();
+
+        java.util.Set<KeyMapping> poolSet = new java.util.HashSet<>();
+        Collections.addAll(poolSet, pool);
+
+        Map<String, KeyMapping> out = new HashMap<>();
+        try {
+            for (KeyMapping km : Minecraft.getInstance().options.keyMappings) {
+                if (poolSet.contains(km)) continue;
+                String name = km.getName();
+                if (continuousByKey.containsKey(name)) {
+                    out.put(name, km);
+                }
+            }
+        } catch (RuntimeException e) {
+            // keyMappings is normally well-formed, but a misbehaving keybind
+            // mod could throw on iteration. Don't let it kill the assignment.
+            NeoOrigins.LOGGER.warn("[Hotkeys] Failed scanning keyMappings for external bindings", e);
+        }
+        return out;
+    }
+
+    /** Translation key bound to pool slot {@code i}, or null if the slot is empty. */
+    public static String poolKey(int i) {
+        String[] snap = poolAssignments;
+        return (i >= 0 && i < snap.length) ? snap[i] : null;
+    }
+
+    /** True if any binding for this translation key fires continuously while held. */
+    public static boolean isContinuous(String translationKey) {
+        return Boolean.TRUE.equals(continuousByKey.get(translationKey));
+    }
+
+    /** Snapshot of external (keybindjs-owned) mappings to poll alongside the pool. */
+    public static Map<KeyMapping, String> externalMappings() {
+        return externalAssignments;
+    }
+
+    /** Translation key bound to a granted power id (for UI tooltips). */
+    public static String keyForPower(ResourceLocation powerId) {
+        return powerToKey.get(powerId);
+    }
+
+    /** Clear assignments — call on world-disconnect so a stale map can't fire on a new server. */
+    public static void clear() {
+        poolAssignments = new String[0];
+        continuousByKey = Map.of();
+        powerToKey = Map.of();
+        externalAssignments = Map.of();
+    }
+}

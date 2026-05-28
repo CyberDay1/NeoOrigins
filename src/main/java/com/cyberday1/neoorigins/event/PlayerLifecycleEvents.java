@@ -100,6 +100,7 @@ public class PlayerLifecycleEvents {
         }
 
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
+        NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);
 
@@ -173,7 +174,10 @@ public class PlayerLifecycleEvents {
      */
     @SubscribeEvent
     public static void onDatapackSync(OnDatapackSyncEvent event) {
-        event.getRelevantPlayers().forEach(NeoOriginsNetwork::syncRegistryToPlayer);
+        event.getRelevantPlayers().forEach(sp -> {
+            NeoOriginsNetwork.syncRegistryToPlayer(sp);
+            NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
+        });
     }
 
     @SubscribeEvent

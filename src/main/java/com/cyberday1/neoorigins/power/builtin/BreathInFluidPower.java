@@ -167,10 +167,10 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
                 inFluid = sp.isUnderWater();
             }
 
-            int maxAir = sp.getMaxAirSupply();
             if (!inFluid) {
-                // Out of target fluid — reset tracker so re-entering starts
-                // from full air, and let vanilla manage air normally.
+                // Out of target fluid — drop the tracker and let vanilla refill
+                // air normally. On re-entry we seed from sp.getAirSupply() so
+                // the drain picks up from whatever air the player currently has.
                 VIRTUAL_AIR.remove(sp.getUUID());
                 return;
             }
@@ -182,7 +182,13 @@ public class BreathInFluidPower extends PowerType<BreathInFluidPower.Config> {
             // time using the same probability vanilla uses for underwater air:
             // each drain tick has a 1/(oxygenBonus+1) chance to actually
             // decrement, so Resp III gives ~4x the survival time.
-            int tracked = VIRTUAL_AIR.getOrDefault(sp.getUUID(), maxAir);
+            //
+            // Seed the tracker from the player's CURRENT air on first submerge
+            // (not maxAir). When the player breaches the surface, our tracker
+            // is removed (line 171) and vanilla's refill takes over; on re-entry
+            // we must pick up from whatever air the player actually has, or the
+            // drain visually "refreshes" to full on every bob.
+            int tracked = VIRTUAL_AIR.getOrDefault(sp.getUUID(), sp.getAirSupply());
             if (sp.tickCount % chosen.drainIntervalTicks == 0 && tracked > -20) {
                 AttributeInstance oxygenAttr = sp.getAttribute(Attributes.OXYGEN_BONUS);
                 double oxygenBonus = oxygenAttr != null ? oxygenAttr.getValue() : 0.0;

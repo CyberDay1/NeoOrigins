@@ -3,8 +3,10 @@ package com.cyberday1.neoorigins.client;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.content.ModEntities;
 import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
+import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
@@ -63,6 +65,49 @@ public class NeoOriginsClientEvents {
         if (NeoOriginsKeybindings.OPEN_MOB_CREATOR.consumeClick()) {
             PacketDistributor.sendToServer(
                 new com.cyberday1.neoorigins.network.payload.RequestOpenMobCreatorPayload());
+        }
+
+        // Named-hotkey pool: each pool slot is bound to a pack-declared translation
+        // key via HotkeyAssignments. For non-continuous bindings we send on edge
+        // (consumeClick); for continuous bindings we send every tick while held.
+        // Server enforces the actual edge/continuous semantics — sending both
+        // shapes here keeps the client dumb.
+        KeyMapping[] pool = NeoOriginsKeybindings.HOTKEY_POOL;
+        for (int i = 0; i < pool.length; i++) {
+            String key = com.cyberday1.neoorigins.client.HotkeyAssignments.poolKey(i);
+            if (key == null) continue;
+            KeyMapping km = pool[i];
+            boolean continuous = com.cyberday1.neoorigins.client.HotkeyAssignments.isContinuous(key);
+            if (continuous) {
+                // Drain any click events so consumeClick doesn't queue them for
+                // a separate single-fire path while we're in continuous mode.
+                while (km.consumeClick()) { /* discard */ }
+                if (km.isDown()) {
+                    PacketDistributor.sendToServer(new ActivatePowerByKeyPayload(key, true));
+                }
+            } else {
+                if (km.consumeClick()) {
+                    PacketDistributor.sendToServer(new ActivatePowerByKeyPayload(key, false));
+                }
+            }
+        }
+
+        // External (keybindjs-owned) mappings — same dispatch but using the
+        // foreign KeyMapping instance instead of our pool slot.
+        for (var entry : com.cyberday1.neoorigins.client.HotkeyAssignments.externalMappings().entrySet()) {
+            KeyMapping km = entry.getKey();
+            String key = entry.getValue();
+            boolean continuous = com.cyberday1.neoorigins.client.HotkeyAssignments.isContinuous(key);
+            if (continuous) {
+                while (km.consumeClick()) { /* discard */ }
+                if (km.isDown()) {
+                    PacketDistributor.sendToServer(new ActivatePowerByKeyPayload(key, true));
+                }
+            } else {
+                if (km.consumeClick()) {
+                    PacketDistributor.sendToServer(new ActivatePowerByKeyPayload(key, false));
+                }
+            }
         }
 
         // Detect jump press while airborne for flight power activation

@@ -24,6 +24,9 @@ import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload;
+import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
+import com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.NeoOriginsConfig;
@@ -124,6 +127,18 @@ public class NeoOriginsNetwork {
             SyncActivePowersPayload.TYPE,
             SyncActivePowersPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncActivePowers
+        );
+
+        registrar.playToClient(
+            SyncKeybindRegistryPayload.TYPE,
+            SyncKeybindRegistryPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncKeybindRegistry
+        );
+
+        registrar.playToServer(
+            ActivatePowerByKeyPayload.TYPE,
+            ActivatePowerByKeyPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleActivatePowerByKey
         );
 
         registrar.playToClient(
@@ -287,6 +302,11 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.client.ClientMoistureState.clear();
             com.cyberday1.neoorigins.client.ClientResourceState.clear();
             com.cyberday1.neoorigins.client.ClientCooldownState.clear();
+            // Clear stale hotkey assignments — the incoming SyncKeybindRegistryPayload
+            // (sent immediately after this on login / reload) will repopulate them.
+            // Without this, a relog into a server with fewer declared keys would
+            // leave high-index pool slots still firing the previous server's powers.
+            com.cyberday1.neoorigins.client.HotkeyAssignments.clear();
         });
     }
 
@@ -893,6 +913,7 @@ public class NeoOriginsNetwork {
         String prefix = playerUuid + ":";
         LAST_ACTIVATE_TICK.keySet().removeIf(key -> key.startsWith(prefix));
         LAST_CREATOR_ACTION.keySet().removeIf(key -> key.startsWith(prefix));
+        LAST_KEY_PRESS_TICK.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
     /**
@@ -984,6 +1005,58 @@ public class NeoOriginsNetwork {
     /** Open the origin selection screen, optionally forcing re-selection of filled layers. */
     public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect) {
         PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect));
+    }
+
+    private static void handleSyncKeybindRegistry(SyncKeybindRegistryPayload payload, IPayloadContext ctx) {
+        // Dist-safety: registered playToClient, but routing weirdness shouldn't
+        // classload Minecraft on a dedicated-server JVM.
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.HotkeyAssignments.set(
+                payload.declaredKeys(), payload.continuousFlags(), payload.powerToKey())
+        );
+    }
+
+    /** Per-(uuid:key) edge tracker — debounces continuous payload bursts so
+     *  edge-detection powers don't fire every tick when the client also sends
+     *  "still held" samples. Cleared on logout via {@link #clearDebounce}. */
+    private static final Map<String, Long> LAST_KEY_PRESS_TICK = new ConcurrentHashMap<>();
+    /** Minimum game-ticks between two non-continuous fires of the same translation key. */
+    private static final int KEY_PRESS_DEBOUNCE_TICKS = 5;
+
+    private static void handleActivatePowerByKey(ActivatePowerByKeyPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            String key = payload.translationKey();
+            if (key == null || key.isEmpty()) return;
+            if (!PowerKeybindRegistry.isDeclared(key)) {
+                // A client that's out of sync (e.g. just before SyncKeybindRegistryPayload
+                // lands after a /reload) can send a key we've already cleared. Drop silently.
+                return;
+            }
+
+            // Continuous samples skip the debounce — they're supposed to arrive
+            // every tick. Non-continuous (edge) presses use the debounce to
+            // collapse double-clicks from key-bounce / packet duplication.
+            if (!payload.held() || !PowerKeybindRegistry.isContinuous(key)) {
+                long now = sp.level().getGameTime();
+                String dKey = sp.getUUID() + ":" + key;
+                Long last = LAST_KEY_PRESS_TICK.get(dKey);
+                if (last != null && (now - last) < KEY_PRESS_DEBOUNCE_TICKS) return;
+                LAST_KEY_PRESS_TICK.put(dKey, now);
+            }
+
+            PowerKeybindRegistry.dispatch(sp, key, payload.held());
+        });
+    }
+
+    /** Send the named-keybind registry snapshot to one player. */
+    public static void syncKeybindRegistryToPlayer(ServerPlayer player) {
+        List<String> keys = PowerKeybindRegistry.declaredKeys();
+        List<Boolean> flags = new java.util.ArrayList<>(keys.size());
+        for (String k : keys) flags.add(PowerKeybindRegistry.isContinuous(k));
+        PacketDistributor.sendToPlayer(player,
+            new SyncKeybindRegistryPayload(keys, flags, PowerKeybindRegistry.powerToKey()));
     }
 
     /** Sync the full origin/layer/power registry to a player so their client can render the GUI. */

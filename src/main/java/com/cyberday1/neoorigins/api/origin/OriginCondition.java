@@ -54,7 +54,7 @@ public sealed interface OriginCondition {
         return switch (type) {
             case "origins:origin", "apace:origin", "neoorigins:origin" -> {
                 ResourceLocation layer = json.has("layer")
-                    ? ResourceLocation.parse(json.get("layer").getAsString())
+                    ? canonicalizeLayerId(ResourceLocation.parse(json.get("layer").getAsString()))
                     : ResourceLocation.fromNamespaceAndPath("neoorigins", "origin");
                 ResourceLocation origin = json.has("origin")
                     ? ResourceLocation.parse(json.get("origin").getAsString())
@@ -73,6 +73,24 @@ public sealed interface OriginCondition {
             }
             default -> null;
         };
+    }
+
+    /**
+     * Canonicalize a layer ID referenced in a condition so it matches the
+     * layer ID used by the chosen-origins map at runtime. {@code origins:origin}
+     * and {@code apace:origin} are always folded into {@code neoorigins:origin}
+     * by {@code LayerDataManager.mergeCompatOriginIntoNeo}, so a condition that
+     * references the compat ID must be rewritten to look up the canonical ID.
+     * Other namespaces are left as-is — foreign layers only fold when not marked
+     * standalone (see {@code LayerDataManager.mergeForeignSamePathLayers}), and
+     * we don't have that visibility at parse time.
+     */
+    private static ResourceLocation canonicalizeLayerId(ResourceLocation layer) {
+        String ns = layer.getNamespace();
+        if (("origins".equals(ns) || "apace".equals(ns)) && "origin".equals(layer.getPath())) {
+            return ResourceLocation.fromNamespaceAndPath("neoorigins", "origin");
+        }
+        return layer;
     }
 
     private static List<OriginCondition> parseSubConditions(JsonObject json) {

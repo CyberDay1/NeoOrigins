@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.client;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import net.minecraft.client.KeyMapping;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
@@ -7,6 +8,22 @@ import org.lwjgl.glfw.GLFW;
 public class NeoOriginsKeybindings {
 
     private static final String NEOORIGINS_CATEGORY = "key.category.neoorigins.neoorigins";
+
+    /** Separate category so a pool of 32+ "Hotkey N" rows doesn't crowd out
+     *  the main Skill 1..6 / View Info / Class Skill entries in Controls. */
+    private static final String HOTKEYS_CATEGORY = "key.category.neoorigins.hotkeys";
+
+    /**
+     * Anonymous KeyMappings backing pack-declared {@code "key": "..."} bindings.
+     * Sized at {@link #onRegisterKeyMappings} from {@link NeoOriginsConfig#hotkeyPoolSize()}
+     * — config is loaded by the time {@code RegisterKeyMappingsEvent} fires, so
+     * the read is stable for the lifetime of the client JVM.
+     *
+     * <p>Each entry is unbound by default; players assign them in Controls.
+     * {@link HotkeyAssignments} maps server-declared translation keys onto
+     * these slots at login (and on {@code /reload}).
+     */
+    public static KeyMapping[] HOTKEY_POOL = new KeyMapping[0];
 
     public static final KeyMapping SKILL_1 = new KeyMapping(
         "key.neoorigins.skill_1",
@@ -86,5 +103,20 @@ public class NeoOriginsKeybindings {
         event.register(EDIT_HUD);
         event.register(OPEN_CREATOR);
         event.register(OPEN_MOB_CREATOR);
+
+        // Build the named-hotkey pool from config. Each slot has translation key
+        // "key.neoorigins.hotkey.<n>" (1-indexed for player friendliness) — lang
+        // files supply human-readable names up to slot 64; beyond that the raw
+        // key shows in Controls but the slot still works.
+        int poolSize = NeoOriginsConfig.hotkeyPoolSize();
+        HOTKEY_POOL = new KeyMapping[poolSize];
+        for (int i = 0; i < poolSize; i++) {
+            HOTKEY_POOL[i] = new KeyMapping(
+                "key.neoorigins.hotkey." + (i + 1),
+                GLFW.GLFW_KEY_UNKNOWN,
+                HOTKEYS_CATEGORY
+            );
+            event.register(HOTKEY_POOL[i]);
+        }
     }
 }
