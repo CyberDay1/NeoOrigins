@@ -918,12 +918,42 @@ public final class ActionParser {
             return EntityAction.noop();
         }
         final EntityType<?> entityType = entityTypeOpt.get();
+        // v2.1.6: optional `quantity` (integer ≥1, default 1) — when >1 spawn N copies
+        // with a small horizontal jitter (±0.5 block) so they don't stack at the
+        // exact same point. Non-positive or non-integer values WARN and clamp to 1
+        // (parser-canonical tolerance: bad data must not no-op a power that worked).
+        int q = 1;
+        if (json.has("quantity")) {
+            JsonElement qEl = json.get("quantity");
+            if (qEl.isJsonPrimitive() && qEl.getAsJsonPrimitive().isNumber()) {
+                int requested = qEl.getAsInt();
+                if (requested < 1) {
+                    NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: 'quantity' must be ≥1 (got {}), clamping to 1", requested);
+                } else {
+                    q = requested;
+                }
+            } else {
+                NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: 'quantity' must be an integer (got {}), clamping to 1", qEl);
+            }
+        }
+        final int quantity = q;
         return player -> {
             if (!(player.level() instanceof ServerLevel sl)) return;
-            var entity = entityType.create(sl);
-            if (entity == null) return;
-            entity.setPos(player.getX(), player.getY(), player.getZ());
-            sl.addFreshEntity(entity);
+            for (int i = 0; i < quantity; i++) {
+                var entity = entityType.create(sl);
+                if (entity == null) continue;
+                double dx = 0.0, dz = 0.0;
+                if (quantity > 1) {
+                    // ±0.5 block horizontal jitter so a stack of N entities
+                    // doesn't visually merge into a single sprite at the spawn
+                    // point. RandomSource.nextDouble() is [0,1) → shift to [-0.5,0.5).
+                    var rng = sl.getRandom();
+                    dx = rng.nextDouble() - 0.5;
+                    dz = rng.nextDouble() - 0.5;
+                }
+                entity.setPos(player.getX() + dx, player.getY(), player.getZ() + dz);
+                sl.addFreshEntity(entity);
+            }
         };
     }
 

@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:active_self",
+  "name": "Broken — quantity=\"five\"",
+  "description": "Negative test: harness should WARN on non-integer quantity; runtime parser clamps to 1.",
+  "key": { "key": "key.origins.primary_active" },
+  "cooldown": 20,
+  "entity_action": {
+    "type": "neoorigins:spawn_entity",
+    "entity_type": "minecraft:wolf",
+    "quantity": "five"
+  }
+}
