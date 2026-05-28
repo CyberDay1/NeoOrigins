@@ -366,12 +366,13 @@
     "detection_multiplier": "Mob detection range multiplier; lower = sneakier (default 0.3)."
   },
   "neoorigins:starting_equipment": {
-    "components": "SNBT data-component patch applied to the granted item.",
-    "count": "Stack size of the granted item (default 1).",
-    "enchantments": "List of {id, level} enchantments applied to the granted item.",
-    "grant_id": "Unique id tracked so the item is granted only once per player.",
-    "item": "Item id granted once after the player commits their origin.",
-    "legacy_tag": "Apoli-style flat SNBT translated into data components on the item."
+    "components": "Singular shape: SNBT data-component patch applied to the granted item.",
+    "count": "Singular shape: stack size of the granted item (default 1).",
+    "enchantments": "Singular shape: list of {id, level} enchantments applied to the granted item.",
+    "grant_id": "Unique id tracked so the bundle is granted only once per player. Dedups the whole power, not individual stacks.",
+    "item": "Singular shape: item id granted once after the player commits their origin. Optional when `stacks` is provided.",
+    "legacy_tag": "Singular shape: Apoli-style flat SNBT translated into data components on the item.",
+    "stacks": "Plural shape (v2.1.6): array of stack entries, each with the same per-stack fields as the singular shape (item, count, enchantments, legacy_tag, components). When non-empty, takes precedence over the singular root fields and N items are granted in array order."
   },
   "neoorigins:stealth": {
     "activation_ticks": "Ticks of continuous sneaking before invisibility kicks in (200 = 10s)."
