@@ -1503,10 +1503,20 @@ public final class ConditionParser {
     // ── Vampires Need Umbrellas compat ──────────────────────────────────
 
     /** Cached result of mod-loaded check so we don't query ModList every tick. */
-    private static final boolean VNU_LOADED = net.neoforged.fml.ModList.get()
-        .isLoaded("vampiresneedumbrellas");
-    private static final boolean CURIOS_LOADED = net.neoforged.fml.ModList.get()
-        .isLoaded("curios");
+    private static final boolean VNU_LOADED = neoorigins$modLoaded("vampiresneedumbrellas");
+    private static final boolean CURIOS_LOADED = neoorigins$modLoaded("curios");
+
+    /**
+     * Null-safe mod-loaded check. {@code ModList.get()} returns null outside a
+     * loaded FML environment (e.g. the headless compat golden-master harness,
+     * which references {@link #KNOWN_TYPES} and so triggers this class's static
+     * init). In-game {@code ModList.get()} is never null, so this is behaviorally
+     * identical to the eager call at runtime.
+     */
+    private static boolean neoorigins$modLoaded(String modId) {
+        net.neoforged.fml.ModList list = net.neoforged.fml.ModList.get();
+        return list != null && list.isLoaded(modId);
+    }
 
     /**
      * Returns true if the player has an umbrella from Vampires Need Umbrellas
