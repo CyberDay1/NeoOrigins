@@ -126,10 +126,10 @@ public final class SchemaFormCheck {
         // 8. Condition/Action picker sources stay in sync with the parsers.
         failures += auditParserTypes(
             "src/main/java/com/cyberday1/neoorigins/compat/condition/ConditionParser.java",
-            "condition");
+            "condition", java.util.Set.of());
         failures += auditParserTypes(
             "src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java",
-            "action");
+            "action", actionDescriptorIds());
 
         // 9. Every form field of every power must have a description.
         failures += auditFieldDocs(model);
@@ -177,7 +177,7 @@ public final class SchemaFormCheck {
      * set — so the creator's picker can never silently drift from what the
      * parser actually accepts. Returns the failure count.
      */
-    private static int auditParserTypes(String src, String label) {
+    private static int auditParserTypes(String src, String label, java.util.Set<String> descriptorIds) {
         String text;
         try {
             text = java.nio.file.Files.readString(java.nio.file.Path.of(src));
@@ -185,8 +185,12 @@ public final class SchemaFormCheck {
             System.out.println("[schema-check] FAIL  cannot read " + src + ": " + e);
             return 1;
         }
-        // Switch arms — canonicalised to neoorigins:<name> like the parser does.
-        java.util.Set<String> fromSwitch = new java.util.TreeSet<>();
+        // Verbs the parser actually handles = remaining switch arms (canonicalised
+        // to neoorigins:<name> like the parser does) ∪ migrated descriptor ids.
+        // As the registry refactor moves verbs off the switch onto registered
+        // descriptors, KNOWN_TYPES stays put while the case arm disappears — the
+        // descriptor set restores that verb here so the parity assertion holds.
+        java.util.Set<String> fromSwitch = new java.util.TreeSet<>(descriptorIds);
         java.util.regex.Matcher m = java.util.regex.Pattern
             .compile("case \"[a-z_]+:([a-z_]+)\"").matcher(text);
         while (m.find()) fromSwitch.add("neoorigins:" + m.group(1));
@@ -223,10 +227,18 @@ public final class SchemaFormCheck {
             fails++;
         }
         if (fails == 0) {
-            System.out.printf("[schema-check] %s picker: %d types, in sync with switch%n",
+            System.out.printf("[schema-check] %s picker: %d types, in sync with switch+descriptors%n",
                 label, declared.size());
         }
         return fails;
+    }
+
+    /** Migrated built-in action verbs, as canonical {@code neoorigins:<verb>} ids. */
+    private static java.util.Set<String> actionDescriptorIds() {
+        java.util.Set<String> ids = new java.util.TreeSet<>();
+        com.cyberday1.neoorigins.compat.action.BuiltinActions.descriptors().keySet()
+            .forEach(rl -> ids.add(rl.toString()));
+        return ids;
     }
 
     /**
