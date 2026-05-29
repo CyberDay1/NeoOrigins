@@ -19,12 +19,6 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 public class NeoOriginsClientEvents {
 
     private static boolean wasJumping = false;
-    /** Monotonic timestamp (ms) when the last air jump packet was sent — prevents infinite re-activation.
-     *  Uses {@code Util.getMillis()} instead of {@code player.tickCount} because the client creates
-     *  a new LocalPlayer (with tickCount=0) on dimension change, while a static field keeps the old
-     *  value — making {@code (0 - oldTick) > 10} false and silently blocking all flight activation
-     *  until tickCount catches up (minutes). Monotonic ms never resets. */
-    private static long lastAirJumpMs = 0;
 
     @SubscribeEvent
     public static void onClientPlayerTick(PlayerTickEvent.Pre event) {
@@ -71,12 +65,23 @@ public class NeoOriginsClientEvents {
         boolean jumpPressed = jumpHeld && !wasJumping;
         wasJumping = jumpHeld;
 
+        // Rising-edge detection (jumpPressed = jumpHeld && !wasJumping) is the
+        // only debounce we need: a player physically cannot produce a fresh
+        // rising edge faster than they can release + re-press, and we sample
+        // once per tick. The previous ms-based self-cooldown (500 ms, later
+        // 100 ms) dropped the elytra-start press if it landed inside that
+        // window — felt as a "delay" before glide kicked in. Removed entirely.
         if (jumpPressed && !player.onGround() && !player.isInWater()
-                && !player.isFallFlying() && !player.isPassenger()
-                && (System.currentTimeMillis() - lastAirJumpMs) > 500) {
-            lastAirJumpMs = System.currentTimeMillis();
+                && !player.isFallFlying() && !player.isPassenger()) {
             ClientPacketDistributor.sendToServer(new AirJumpPayload());
         }
+    }
+
+    @SubscribeEvent
+    public static void onLoggingOut(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        // Drop the cached template bundle — it's keyed to the server's loaded
+        // origins, not to anything persistent on the client.
+        ClientTemplateCache.clear();
     }
 
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
