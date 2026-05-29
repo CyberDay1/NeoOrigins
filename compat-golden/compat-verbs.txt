@@ -3,10 +3,10 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 787   typed-objects: 1106   distinct-types: 114
+# files-scanned: 787   typed-objects: 1138   distinct-types: 115
 
 == RECOGNIZED VERBS ==
-[action] (68)
+[action] (64)
   neoorigins:actor_action
   neoorigins:add_to_set
   neoorigins:add_velocity
@@ -30,7 +30,6 @@
   neoorigins:drop_items
   neoorigins:effect_on_attacker
   neoorigins:emit_game_event
-  neoorigins:equipped_item_action
   neoorigins:execute_command
   neoorigins:exhaust
   neoorigins:explode
@@ -44,10 +43,8 @@
   neoorigins:if_else_list
   neoorigins:ignite_attacker
   neoorigins:invert
-  neoorigins:kubejs_callback
   neoorigins:launch
   neoorigins:modify_food
-  neoorigins:modify_inventory
   neoorigins:mount
   neoorigins:nothing
   neoorigins:offset
@@ -55,7 +52,6 @@
   neoorigins:play_sound
   neoorigins:pull_entities
   neoorigins:random_teleport
-  neoorigins:raycast
   neoorigins:remove_from_set
   neoorigins:revoke_power
   neoorigins:set_block
@@ -207,16 +203,16 @@ neoorigins:breath_out_of_fluid	x4	recognized=-	fields={fluid}
 neoorigins:cancel_event	x1	recognized=action	fields={}
 neoorigins:cobweb_affinity	x1	recognized=-	fields={description,name}
 neoorigins:command_pack	x1	recognized=-	fields={cooldown_ticks,range}
-neoorigins:condition_passive	x51	recognized=-	fields={condition,description,entity_action,interval,name}
+neoorigins:condition_passive	x59	recognized=-	fields={condition,description,entity_action,interval,name}
 neoorigins:conditional	x1	recognized=-	fields={condition,description,inner_power,name}
 neoorigins:config_flag	x1	recognized=condition	fields={key}
 neoorigins:constant	x2	recognized=condition	fields={value}
 neoorigins:craft_amount_bonus	x1	recognized=-	fields={bonus_count,item_id}
 neoorigins:crop_growth_accelerator	x4	recognized=-	fields={description,growths_per_interval,name,radius,tick_interval}
 neoorigins:crop_harvest_bonus	x2	recognized=-	fields={extra_drops,multiplier}
-neoorigins:damage	x29	recognized=action,item_action	fields={amount,source}
+neoorigins:damage	x37	recognized=action,item_action	fields={amount,source}
 neoorigins:damage_attacker	x4	recognized=action	fields={amount_ratio,source}
-neoorigins:damage_in_water	x10	recognized=-	fields={damage_per_second,description,include_rain,name}
+neoorigins:damage_in_water	x2	recognized=-	fields={damage_per_second,include_rain}
 neoorigins:dash	x3	recognized=action	fields={allow_vertical,set_velocity,strength}
 neoorigins:dodge_chance	x3	recognized=-	fields={chance}
 neoorigins:edible_item	x7	recognized=-	fields={always_edible,items,nutrition,saturation,tags}
@@ -239,7 +235,8 @@ neoorigins:horde_regen	x1	recognized=-	fields={combat_cooldown_ticks,heal_amount
 neoorigins:if_else	x6	recognized=action,item_action	fields={condition,else_action,if_action}
 neoorigins:if_else_list	x1	recognized=action	fields={actions}
 neoorigins:in_block	x1	recognized=condition	fields={block}
-neoorigins:in_water	x25	recognized=condition	fields={}
+neoorigins:in_rain	x8	recognized=condition	fields={}
+neoorigins:in_water	x33	recognized=condition	fields={}
 neoorigins:item_magnetism	x1	recognized=-	fields={}
 neoorigins:light_level_effect	x2	recognized=-	fields={ambient,amplifier,effect,max_light_level,show_icon,show_particles}
 neoorigins:low_hp_threshold	x3	recognized=-	fields={effects,threshold}
@@ -258,7 +255,7 @@ neoorigins:no_projectile_divergence	x1	recognized=-	fields={}
 neoorigins:no_slowdown	x1	recognized=-	fields={description,name}
 neoorigins:not	x20	recognized=condition,item_condition	fields={condition}
 neoorigins:nothing	x1	recognized=action	fields={}
-neoorigins:or	x1	recognized=condition,item_condition	fields={conditions}
+neoorigins:or	x9	recognized=condition,item_condition	fields={conditions}
 neoorigins:out_of_combat	x1	recognized=condition	fields={ticks}
 neoorigins:persistent_effect	x60	recognized=-	fields={ambient,amplifier,condition,default_off,description,effect,effects,name,show_icon,show_particles,toggleable}
 neoorigins:phantom_form	x2	recognized=-	fields={description,invisibility,name,no_gravity}
