@@ -1,0 +1,5 @@
+# The compat-verb golden master is byte-compared across the registry
+# migration (`./gradlew goldenMaster` then `git diff --exit-code compat-golden`).
+# The harness always writes LF; pin LF here so autocrlf can't normalize the
+# tracked blob to CRLF and make the byte-identical gate flap.
+compat-golden/compat-verbs.txt text eol=lf
