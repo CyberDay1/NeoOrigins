@@ -32,6 +32,18 @@ public final class ItemActionParser {
 
     private ItemActionParser() {}
 
+    /**
+     * Canonical {@code neoorigins:} ids the {@code parse} switch accepts —
+     * the item-action analogue of {@link ActionParser#KNOWN_TYPES}. Exposed
+     * so the compat golden-master harness can audit recognition over a corpus
+     * against real code rather than a private transcription. (Phase-1 registry
+     * refactor: this becomes {@code CompatRegistries.itemActionKeys()} once the
+     * switch retires.)
+     */
+    public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
+        "neoorigins:and", "neoorigins:if_else", "neoorigins:merge_nbt",
+        "neoorigins:consume", "neoorigins:damage", "neoorigins:set_count");
+
     public static ItemAction parse(JsonObject json) {
         if (json == null) return ItemAction.noop();
         String type = json.has("type") ? json.get("type").getAsString() : "";

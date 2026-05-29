@@ -201,6 +201,25 @@ tasks.register('compatTest', JavaExec) {
     args 'src/main/resources/data', 'example-pack/data'
 }
 
+// ── Compat-verb golden master (registry-refactor Layer-1 regression net) ─────
+// Emits a deterministic per-verb recognition + field-coverage dump over the
+// built-in corpus. Baselined against the parsers' KNOWN_TYPES; after the
+// registry migration (KNOWN_TYPES → CompatRegistries.*Keys()) the regenerated
+// artifact must stay byte-identical, proving the registry recognizes exactly
+// the same verb set in the same categories.
+//
+// Run: ./gradlew goldenMaster   (writes compat-golden/compat-verbs.txt — tracked,
+// so the byte-identical gate is enforceable via `git diff --exit-code compat-golden`)
+tasks.register('goldenMaster', JavaExec) {
+    group = 'neoorigins'
+    description = '[registry-refactor] Regenerate the compat-verb golden-master baseline.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.CompatTestHarness'
+    args '--golden-master', 'compat-golden/compat-verbs.txt',
+         'src/main/resources/data', 'example-pack/data'
+}
+
 // ── 2.1 creator: package the power schema onto the runtime classpath ────────
 //
 // docs/schema/power.schema.json is the human-facing source of truth. The

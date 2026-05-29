@@ -42,6 +42,20 @@ public final class ItemConditionParser {
 
     private ItemConditionParser() {}
 
+    /**
+     * Canonical {@code neoorigins:} ids the {@code parseInner} switch accepts —
+     * the item-condition analogue of {@link ConditionParser#KNOWN_TYPES}.
+     * Exposed so the compat golden-master harness can audit recognition over a
+     * corpus against real code. Note the untyped {@code id}/{@code item}/{@code tag}
+     * fallback (see {@code parseInner}'s {@code default} arm) is intentionally
+     * NOT a verb and not listed here. (Phase-1 registry refactor: this becomes
+     * {@code CompatRegistries.itemConditionKeys()} once the switch retires.)
+     */
+    public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
+        "neoorigins:and", "neoorigins:or", "neoorigins:not", "neoorigins:empty",
+        "neoorigins:nbt", "neoorigins:custom_data", "neoorigins:enchantment",
+        "neoorigins:ingredient");
+
     public static ItemCondition parse(JsonObject json) {
         if (json == null) return ItemCondition.alwaysTrue();
         boolean inverted = json.has("inverted") && json.get("inverted").getAsBoolean();
