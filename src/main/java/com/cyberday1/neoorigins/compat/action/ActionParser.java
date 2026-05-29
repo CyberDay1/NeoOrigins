@@ -100,8 +100,6 @@ public final class ActionParser {
                 // ---- Phase 2: New actions ----
                 case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
-                case "neoorigins:grant_power"                   -> parseGrantPower(json);
-                case "neoorigins:revoke_power"                  -> parseRevokePower(json);
                 case "neoorigins:drop_items"                    -> parseDropItems(json);
 
                 // ---- Item-state actions (interp expansion 2026-04-27) ----
@@ -124,13 +122,11 @@ public final class ActionParser {
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
                 case "neoorigins:throw_target"                  -> parseThrowTarget(json);
                 case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
-                case "neoorigins:teleport_to_marker"            -> parseTeleportToMarker(json);
 
                 // ---- Phase 6.5: context-aware verbs (read from ActionContextHolder) ----
                 case "neoorigins:damage_attacker"               -> parseDamageAttacker(json);
                 case "neoorigins:ignite_attacker"               -> parseIgniteAttacker(json);
                 case "neoorigins:effect_on_attacker"            -> parseEffectOnAttacker(json);
-                case "neoorigins:random_teleport"               -> parseRandomTeleport(json);
                 case "neoorigins:toggle"                        -> parseToggle(json);
 
                 // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
@@ -149,7 +145,6 @@ public final class ActionParser {
 
                 // ---- Origins++ compat expansion ----
                 case "neoorigins:choice"                        -> parseChoice(json, contextId);
-                case "neoorigins:mount"                         -> parseMount(json);
                 case "neoorigins:passenger_action"              -> parsePassengerAction(json, contextId);
                 case "neoorigins:spawn_effect_cloud"            -> parseSpawnEffectCloud(json);
                 case "neoorigins:offset"                        -> parseOffset(json, contextId);
@@ -964,71 +959,6 @@ public final class ActionParser {
     // ---- Phase 0: filled stubs ----
 
 
-    private static EntityAction parseGrantPower(JsonObject json) {
-        String powerId = json.has("power") ? json.get("power").getAsString()
-                       : json.has("power_id") ? json.get("power_id").getAsString() : null;
-        if (powerId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] grant_power: missing power id — action will no-op");
-            return EntityAction.noop();
-        }
-        final ResourceLocation pid = ResourceLocation.parse(powerId);
-        return player -> {
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            if (data.hasDynamicGrant(pid)) return;
-            var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
-            if (holder == null) {
-                NeoOrigins.LOGGER.warn("[CompatB] grant_power: unknown power '{}'", pid);
-                return;
-            }
-            // Skip onGranted callback if already granted via an origin (avoid double-grant);
-            // we still record the dynamic flag so revoke can clean up if the origin changes.
-            boolean fromOrigin = false;
-            for (var entry : data.getOrigins().entrySet()) {
-                var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
-                if (origin != null && origin.powers().contains(pid)) { fromOrigin = true; break; }
-            }
-            if (fromOrigin) {
-                data.addDynamicGrant(pid);
-                return;
-            }
-            if (data.addDynamicGrant(pid)) {
-                holder.onGranted(player);
-                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                    new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, pid));
-                com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
-            }
-        };
-    }
-
-    private static EntityAction parseRevokePower(JsonObject json) {
-        String powerId = json.has("power") ? json.get("power").getAsString()
-                       : json.has("power_id") ? json.get("power_id").getAsString() : null;
-        if (powerId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] revoke_power: missing power id — action will no-op");
-            return EntityAction.noop();
-        }
-        final ResourceLocation pid = ResourceLocation.parse(powerId);
-        return player -> {
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            if (!data.hasDynamicGrant(pid)) return;
-            var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
-            if (data.removeDynamicGrant(pid) && holder != null) {
-                // Only call onRevoked if the power isn't still granted by an origin.
-                boolean stillGranted = false;
-                for (var entry : data.getOrigins().entrySet()) {
-                    var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
-                    if (origin != null && origin.powers().contains(pid)) { stillGranted = true; break; }
-                }
-                if (!stillGranted) {
-                    holder.onRevoked(player);
-                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                        new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, pid));
-                }
-                com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
-            }
-        };
-    }
-
     // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
 
     private static EntityAction parseSpawnProjectile(JsonObject json, String contextId) {
@@ -1317,26 +1247,6 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parseTeleportToMarker(JsonObject json) {
-        // Teleport to a named marker stored on the player. Markers are keyed by a string
-        // and stored as session state on the player's PlayerOriginData shadowOrbs list analogue;
-        // for now, support absolute coordinates under "position" or named offset "dx"/"dy"/"dz".
-        final double dx = json.has("dx") ? json.get("dx").getAsDouble() : 0;
-        final double dy = json.has("dy") ? json.get("dy").getAsDouble() : 0;
-        final double dz = json.has("dz") ? json.get("dz").getAsDouble() : 0;
-        final boolean absolute = json.has("position");
-        final double px = absolute ? json.getAsJsonObject("position").get("x").getAsDouble() : 0;
-        final double py = absolute ? json.getAsJsonObject("position").get("y").getAsDouble() : 0;
-        final double pz = absolute ? json.getAsJsonObject("position").get("z").getAsDouble() : 0;
-        return player -> {
-            if (absolute) {
-                player.teleportTo(px, py, pz);
-            } else {
-                player.teleportTo(player.getX() + dx, player.getY() + dy, player.getZ() + dz);
-            }
-        };
-    }
-
     // ---- Phase 6.5: context-aware verbs ----
     //
     // These verbs read the currently-dispatched event context from
@@ -1415,30 +1325,6 @@ public final class ActionParser {
             var attacker = htc.source().getEntity();
             if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
             le.addEffect(new MobEffectInstance(effectHolder, duration, amplifier));
-        };
-    }
-
-    /** Random-teleport the player within a bounded box. */
-    private static EntityAction parseRandomTeleport(JsonObject json) {
-        final double hRange = json.has("horizontal_range") ? json.get("horizontal_range").getAsDouble()
-                            : json.has("range") ? json.get("range").getAsDouble() : 16.0;
-        final double vRange = json.has("vertical_range") ? json.get("vertical_range").getAsDouble() : 8.0;
-        final int attempts = json.has("attempts") ? json.get("attempts").getAsInt() : 16;
-        return player -> {
-            if (!(player.level() instanceof ServerLevel level)) return;
-            var rng = player.getRandom();
-            double px = player.getX(), py = player.getY(), pz = player.getZ();
-            for (int i = 0; i < attempts; i++) {
-                double tx = px + (rng.nextDouble() - 0.5) * hRange * 2;
-                double ty = py + (rng.nextDouble() - 0.5) * vRange * 2;
-                double tz = pz + (rng.nextDouble() - 0.5) * hRange * 2;
-                ty = Math.max(level.getMinBuildHeight(), Math.min(level.getMaxBuildHeight() - 2, ty));
-                BlockPos target = BlockPos.containing(tx, ty, tz);
-                if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {
-                    player.teleportTo(tx, ty, tz);
-                    return;
-                }
-            }
         };
     }
 
@@ -1603,24 +1489,6 @@ public final class ActionParser {
                 if (roll < cumulative) { fActions.get(i).execute(player); return; }
             }
             fActions.getLast().execute(player);
-        };
-    }
-
-    /** origins:mount — make the player ride the nearest entity of the given type. */
-    private static EntityAction parseMount(JsonObject json) {
-        String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
-        double radius = json.has("radius") ? json.get("radius").getAsDouble() : 5.0;
-        return player -> {
-            if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
-            net.minecraft.world.phys.AABB box = player.getBoundingBox().inflate(radius);
-            for (var entity : sl.getEntities(player, box)) {
-                if (entityId != null && !net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())
-                        .equals(ResourceLocation.parse(entityId))) continue;
-                if (entity.isAlive() && !entity.isPassenger()) {
-                    player.startRiding(entity, true);
-                    return;
-                }
-            }
         };
     }
 
