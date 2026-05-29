@@ -1,7 +1,6 @@
 package com.cyberday1.neoorigins.compat.action;
 
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.CompatPolicy;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
@@ -15,7 +14,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -88,9 +86,6 @@ public final class ActionParser {
             return switch (type) {
                 case "neoorigins:execute_command"               -> parseExecuteCommand(json);
                 case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
-                case "neoorigins:change_resource",
-                     "neoorigins:modify_resource"               -> parseChangeResource(json);
-                case "neoorigins:set_resource"                  -> parseSetResource(json);
 
                 // ---- Phase 2: New actions ----
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
@@ -107,8 +102,6 @@ public final class ActionParser {
                 case "neoorigins:raycast"                       -> parseRaycast(json, contextId);
 
                 // ---- Phase 0/1: new actions for consolidation (active_ability) ----
-                case "neoorigins:spawn_projectile",
-                     "neoorigins:fire_projectile"               -> parseSpawnProjectile(json, contextId);
                 case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
                 case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
                 case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
@@ -594,40 +587,6 @@ public final class ActionParser {
         return null;
     }
 
-    private static EntityAction parseChangeResource(JsonObject json) {
-        String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
-        if (resourceId == null) return EntityAction.noop();
-
-        String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
-        int change = json.has("change") ? json.get("change").getAsInt() : 0;
-
-        final String key = resourceId;
-        return switch (operation) {
-            case "add" -> player -> {
-                var meta = CompatAttachments.getResourceMeta(key);
-                int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
-                int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
-                player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
-            };
-            case "set" -> player -> player.getData(CompatAttachments.resourceState()).set(key, change);
-            default -> player -> {
-                var meta = CompatAttachments.getResourceMeta(key);
-                int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
-                int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
-                player.getData(CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
-            };
-        };
-    }
-
-    private static EntityAction parseSetResource(JsonObject json) {
-        String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
-        if (resourceId == null) return EntityAction.noop();
-        int value = json.has("value") ? json.get("value").getAsInt()
-                   : json.has("change") ? json.get("change").getAsInt() : 0;
-        final String key = resourceId;
-        return player -> player.getData(CompatAttachments.resourceState()).set(key, value);
-    }
-
     // ---- Phase 2: New action parsers ----
 
     private record FanoutEffect(net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> holder,
@@ -802,61 +761,6 @@ public final class ActionParser {
 
 
     // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
-
-    private static EntityAction parseSpawnProjectile(JsonObject json, String contextId) {
-        String entityId = json.has("entity_type") ? json.get("entity_type").getAsString()
-                        : json.has("projectile") ? json.get("projectile").getAsString() : null;
-        if (entityId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: missing entity_type/projectile — no-op");
-            return EntityAction.noop();
-        }
-        ResourceLocation eid = ResourceLocation.parse(entityId);
-        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(eid);
-        if (entityTypeOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: unknown entity '{}' — no-op", eid);
-            return EntityAction.noop();
-        }
-        final EntityType<?> entityType = entityTypeOpt.get();
-        final float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
-        // Apoli uses "divergence"; NeoOrigins uses "inaccuracy" — accept both.
-        final float inaccuracy = json.has("inaccuracy") ? json.get("inaccuracy").getAsFloat()
-            : json.has("divergence") ? json.get("divergence").getAsFloat() : 0f;
-        final float verticalOffset = json.has("vertical_offset") ? json.get("vertical_offset").getAsFloat() : 0f;
-        // Optional on_hit_action: stored on ProjectileActionRegistry keyed by the
-        // spawned projectile's UUID. Fires from CombatPowerEvents.onProjectileImpact
-        // with the ProjectileHitContext installed so area_of_effect can center on
-        // the impact point rather than the (by-then-stale) player position.
-        // Apoli uses "projectile_action"; NeoOrigins uses "on_hit_action" — accept both.
-        JsonObject hitActionJson = json.has("on_hit_action") ? json.getAsJsonObject("on_hit_action")
-            : json.has("projectile_action") ? json.getAsJsonObject("projectile_action") : null;
-        final EntityAction onHitAction = hitActionJson != null
-            ? parse(hitActionJson, contextId) : null;
-        // Optional effect_type: when spawning a MagicOrbProjectile, set the
-        // synched data so the client-side renderer picks the right palette.
-        final String effectType = json.has("effect_type")
-            ? json.get("effect_type").getAsString() : null;
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return;
-            var entity = entityType.create(sl);
-            if (entity == null) return;
-            entity.setPos(player.getX(), player.getEyeY() + verticalOffset, player.getZ());
-            if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb && effectType != null) {
-                orb.setEffectType(effectType);
-            }
-            if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
-                proj.setOwner(player);
-                proj.shootFromRotation(player, player.getXRot(), player.getYRot(), 0f, speed, inaccuracy);
-            } else {
-                var look = player.getLookAngle();
-                entity.setDeltaMovement(look.x * speed, look.y * speed, look.z * speed);
-            }
-            sl.addFreshEntity(entity);
-            if (onHitAction != null) {
-                com.cyberday1.neoorigins.service.ProjectileActionRegistry.register(
-                    entity.getUUID(), onHitAction, player.tickCount);
-            }
-        };
-    }
 
     /** Parse {@code neoorigins:spawn_lingering_area}. See the 26.1 variant for field docs. */
     private static EntityAction parseSpawnLingeringArea(JsonObject json, String contextId) {
