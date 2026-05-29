@@ -233,11 +233,21 @@ public final class SchemaFormCheck {
         return fails;
     }
 
-    /** Migrated built-in action verbs, as canonical {@code neoorigins:<verb>} ids. */
+    /**
+     * Migrated built-in action verbs the parser handles via descriptors, as
+     * {@code neoorigins:<verb>} ids — canonical ids plus their alias ids. An
+     * aliased descriptor (e.g. {@code change_resource} aliasing
+     * {@code modify_resource}) lifts a multi-label {@code case "a","b" ->} switch
+     * arm: both labels are still handled verbs, so both must appear here for the
+     * {@code KNOWN_TYPES} parity check to hold — even though only the canonical id
+     * is a distinct registry type. The "N types, in sync" total reported by
+     * {@link #auditParserTypes} is taken from {@code KNOWN_TYPES} itself, so this
+     * union does not inflate the type count.
+     */
     private static java.util.Set<String> actionDescriptorIds() {
-        java.util.Set<String> ids = new java.util.TreeSet<>();
-        com.cyberday1.neoorigins.compat.action.BuiltinActions.descriptors().keySet()
-            .forEach(rl -> ids.add(rl.toString()));
+        java.util.Set<String> ids = new java.util.TreeSet<>(
+            com.cyberday1.neoorigins.compat.action.BuiltinActions.canonicalIds());
+        ids.addAll(com.cyberday1.neoorigins.compat.action.BuiltinActions.aliasIds());
         return ids;
     }
 
