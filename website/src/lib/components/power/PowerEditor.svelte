@@ -80,21 +80,36 @@
 </script>
 
 <article class="card" aria-labelledby={headingId}>
-	<header class="card-head">
-		<button
-			type="button"
-			class="caret"
-			aria-expanded={!collapsed}
-			aria-controls={bodyId}
-			onclick={onToggleCollapsed}
-			title={collapsed ? 'Expand' : 'Collapse'}
-		>
+	<header
+		class="card-head"
+		role="button"
+		tabindex="0"
+		aria-expanded={!collapsed}
+		aria-controls={bodyId}
+		onclick={onToggleCollapsed}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				onToggleCollapsed();
+			}
+		}}
+		title={collapsed ? 'Click to expand' : 'Click to collapse'}
+	>
+		<span class="caret" aria-hidden="true">
 			{collapsed ? '▸' : '▾'}
-		</button>
+		</span>
 		<h3 id={headingId} class="card-title">
 			{power.id || '(unnamed power)'} <span class="ttype">{power.type}</span>
 		</h3>
-		<button type="button" class="remove" onclick={onRemove} aria-label="Remove power">
+		<button
+			type="button"
+			class="remove"
+			onclick={(e) => {
+				e.stopPropagation();
+				onRemove();
+			}}
+			aria-label="Remove power"
+		>
 			Remove
 		</button>
 	</header>
@@ -153,121 +168,151 @@
 
 <style>
 	.card {
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
-		border-radius: 4px;
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
 		overflow: hidden;
+		transition: border-color 120ms ease;
+	}
+	.card:hover {
+		border-color: var(--color-border-strong);
 	}
 	.card-head {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.4rem 0.6rem;
-		background: #1f1f1f;
-		border-bottom: 1px solid #2a2a2a;
+		gap: var(--space-2);
+		padding: 0.5rem 0.7rem;
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+		cursor: pointer;
+		user-select: none;
+		transition: background 120ms ease;
+	}
+	.card-head:hover {
+		background: var(--color-surface-hover);
+	}
+	.card-head:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: -2px;
 	}
 	.caret {
-		background: transparent;
-		border: none;
-		color: #b8b8b8;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 1rem;
+		color: var(--color-text-muted);
 		font-size: 0.9rem;
-		cursor: pointer;
-		padding: 0 0.25rem;
+		transition: color 120ms ease;
 	}
-	.caret:hover {
-		color: #fff;
+	.card-head:hover .caret {
+		color: var(--color-text);
 	}
 	.card-title {
 		flex: 1;
 		margin: 0;
-		color: #e6e6e6;
-		font-size: 0.95rem;
-		font-weight: 500;
+		color: var(--color-text);
+		font-size: 0.92rem;
+		font-weight: 600;
 		display: flex;
 		align-items: baseline;
-		gap: 0.5rem;
+		gap: var(--space-2);
+		min-width: 0;
 	}
 	.ttype {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-		font-size: 0.78rem;
-		color: #7a7a7a;
+		font-family: var(--font-mono);
+		font-size: 0.76rem;
+		font-weight: 400;
+		color: var(--color-text-subtle);
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.1rem 0.4rem;
+		overflow-wrap: anywhere;
 	}
 	.remove {
-		background: #222;
-		color: #b8b8b8;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.25rem 0.6rem;
+		background: transparent;
+		color: var(--color-text-muted);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.3rem 0.65rem;
 		cursor: pointer;
 		font: inherit;
-		font-size: 0.8rem;
+		font-size: 0.78rem;
+		font-weight: 500;
+		transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 	}
 	.remove:hover {
-		border-color: #e25d4a;
-		color: #e25d4a;
+		background: var(--color-danger-subtle);
+		border-color: var(--color-danger);
+		color: var(--color-danger);
 	}
 	.card-body {
-		padding: 0.6rem 0.8rem 0.9rem;
+		padding: var(--space-3) var(--space-4);
 		display: flex;
 		flex-direction: column;
-		gap: 0.6rem;
+		gap: var(--space-3);
 	}
 	.row {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--space-1);
 	}
 	.lbl {
-		color: #e6e6e6;
-		font-size: 0.9rem;
+		color: var(--color-text);
+		font-size: 0.85rem;
+		font-weight: 500;
 	}
 	.hint {
-		color: #999;
+		color: var(--color-text-subtle);
 		font-size: 0.78rem;
 	}
 	.toast {
-		color: #4ae278;
+		color: var(--color-success);
 		font-size: 0.78rem;
 		font-style: italic;
 	}
 	.warn {
 		margin: 0;
-		padding: 0.4rem 0.55rem;
-		background: #2a1f1a;
-		border: 1px solid #5a3a2a;
-		border-radius: 3px;
-		color: #e6c6a8;
+		padding: var(--space-2) var(--space-3);
+		background: var(--color-warning-subtle);
+		border: 1px solid color-mix(in srgb, var(--color-warning) 40%, var(--color-border));
+		border-radius: var(--radius-md);
+		color: var(--color-text);
 		font-size: 0.82rem;
 	}
 	.warn-detail {
 		display: block;
-		color: #a88a78;
+		color: var(--color-text-muted);
 		font-size: 0.72rem;
-		margin-top: 0.2rem;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		margin-top: 0.25rem;
+		font-family: var(--font-mono);
 	}
 	.note {
 		margin: 0;
-		color: #999;
+		color: var(--color-text-muted);
 		font-size: 0.82rem;
 		font-style: italic;
 	}
 	input[type='text'] {
-		background: #222;
-		color: #e6e6e6;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.4rem 0.55rem;
+		background: var(--color-bg);
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.45rem 0.6rem;
 		font: inherit;
-		max-width: 24rem;
+		font-size: 0.86rem;
+		max-width: 26rem;
+		transition: border-color 120ms ease, background 120ms ease;
+	}
+	input[type='text']:hover {
+		border-color: var(--color-border-strong);
 	}
 	input[type='text']:focus {
-		outline: none;
-		border-color: #4a90e2;
+		border-color: var(--color-accent);
 	}
 	.fields {
-		margin-top: 0.4rem;
-		padding-top: 0.4rem;
-		border-top: 1px solid #2a2a2a;
+		margin-top: var(--space-1);
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--color-border);
 	}
 </style>

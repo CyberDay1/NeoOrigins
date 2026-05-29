@@ -1,5 +1,7 @@
 <script lang="ts">
+	import '../app.css';
 	import { base } from '$app/paths';
+	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
@@ -8,6 +10,19 @@
 	// Hard-coded sibling URL so it points to the real docs in production
 	// without needing the editor's own base path.
 	const docsHref = 'https://cyberday1.github.io/NeoOrigins/';
+
+	// Active-nav highlighting — compare against the current pathname.
+	const homeHref = `${base}/`;
+	const editorHref = `${base}/editor/origin/`;
+
+	function isActive(href: string): boolean {
+		// page.url is set both client- and server-side under SvelteKit.
+		const path = page.url?.pathname ?? '';
+		if (href === homeHref) {
+			return path === homeHref || path === `${base}` || path === `${base}/`;
+		}
+		return path.startsWith(href);
+	}
 </script>
 
 <svelte:head>
@@ -15,55 +30,131 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<!--
-	TODO(branding): swap this nav skeleton for the in-game `CreatorStyle` palette
-	(dark panel + accent stripe) once the hex values are pulled from the
-	NeoOrigins Java source. Tracked in planning/web_editor_scope.md open questions.
--->
 <header class="nav">
-	<a class="brand" href="{base}/">NeoOrigins Editor</a>
-	<nav>
-		<a href="{base}/">Home</a>
-		<a href="{base}/editor/origin/">Origin editor</a>
-		<a href={docsHref} target="_blank" rel="noopener noreferrer">Docs</a>
-	</nav>
+	<div class="nav-inner">
+		<a class="brand" href={homeHref}>
+			<span class="brand-mark" aria-hidden="true"></span>
+			<span class="brand-name">NeoOrigins<span class="brand-suffix">Editor</span></span>
+		</a>
+		<nav aria-label="Primary">
+			<a class="nav-link" class:active={isActive(homeHref)} href={homeHref}>Home</a>
+			<a class="nav-link" class:active={isActive(editorHref)} href={editorHref}>Origin editor</a>
+			<a
+				class="nav-link external"
+				href={docsHref}
+				target="_blank"
+				rel="noopener noreferrer"
+			>
+				Docs
+				<span class="ext-icon" aria-hidden="true">↗</span>
+			</a>
+		</nav>
+	</div>
 </header>
 
 <main>
-	{@render children()}
+	<div class="container">
+		{@render children()}
+	</div>
 </main>
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-		background: #1a1a1a;
-		color: #e6e6e6;
-	}
 	.nav {
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+		backdrop-filter: saturate(140%) blur(10px);
+		-webkit-backdrop-filter: saturate(140%) blur(10px);
+		border-bottom: 1px solid var(--color-border);
+	}
+	.nav-inner {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.75rem 1.25rem;
-		background: #111;
-		border-bottom: 2px solid #4a90e2;
+		gap: var(--space-4);
+		padding: var(--space-3) var(--space-5);
+		max-width: 1180px;
+		margin: 0 auto;
 	}
 	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
 		font-weight: 600;
+		font-size: 0.95rem;
+		letter-spacing: -0.005em;
 		text-decoration: none;
-		color: #e6e6e6;
+		color: var(--color-text);
 	}
-	nav a {
-		margin-left: 1rem;
-		color: #b8b8b8;
+	.brand-mark {
+		width: 18px;
+		height: 18px;
+		border-radius: var(--radius-sm);
+		background: linear-gradient(
+			135deg,
+			var(--color-accent) 0%,
+			color-mix(in srgb, var(--color-accent) 60%, #ec4899) 100%
+		);
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, transparent),
+			0 0 12px color-mix(in srgb, var(--color-accent) 35%, transparent);
+	}
+	.brand-name {
+		display: inline-flex;
+		gap: 0.35rem;
+		align-items: baseline;
+	}
+	.brand-suffix {
+		color: var(--color-text-muted);
+		font-weight: 500;
+	}
+	nav {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+	.nav-link {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.5rem 0.85rem;
+		border-radius: var(--radius-md);
+		color: var(--color-text-muted);
+		font-size: 0.88rem;
+		font-weight: 500;
 		text-decoration: none;
+		transition: color 120ms ease, background 120ms ease;
 	}
-	nav a:hover {
-		color: #fff;
+	.nav-link:hover {
+		color: var(--color-text);
+		background: var(--color-surface-hover);
+	}
+	.nav-link.active {
+		color: var(--color-text);
+		background: var(--color-accent-subtle);
+	}
+	.ext-icon {
+		font-size: 0.75rem;
+		opacity: 0.7;
 	}
 	main {
-		padding: 1.5rem;
-		max-width: 960px;
+		min-height: calc(100vh - 56px);
+	}
+	.container {
+		max-width: 1180px;
 		margin: 0 auto;
+		padding: var(--space-5) var(--space-5) var(--space-7);
+	}
+	@media (max-width: 600px) {
+		.nav-inner {
+			padding: var(--space-3) var(--space-4);
+		}
+		.brand-suffix {
+			display: none;
+		}
+		.container {
+			padding: var(--space-4);
+		}
 	}
 </style>

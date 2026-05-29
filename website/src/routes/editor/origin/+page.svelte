@@ -1,17 +1,35 @@
 <script lang="ts">
-	import { draft, fullId, resetDraft } from '$lib/stores/originDraft';
+	import { onMount } from 'svelte';
+	import {
+		draft,
+		fullId,
+		resetDraft,
+		activeTab,
+		targetVersion,
+		packFormatFor,
+		initPersistence,
+		clearPersistedDraft,
+		type EditorTab
+	} from '$lib/stores/originDraft';
 	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
 	import IdentityTab from '$lib/components/IdentityTab.svelte';
 	import PowersTab from '$lib/components/PowersTab.svelte';
 	import UpgradesTab from '$lib/components/UpgradesTab.svelte';
 	import JsonPreviewTab from '$lib/components/JsonPreviewTab.svelte';
 
-	type Tab = 'identity' | 'powers' | 'upgrades' | 'json';
-	let active = $state<Tab>('identity');
+	// Restore draft + tab + target version from localStorage and start
+	// autosaving subsequent edits. Idempotent — safe under HMR.
+	onMount(() => {
+		initPersistence();
+	});
 
 	let downloadMessage = $state<string>('');
 
 	let displayId = $derived($draft.path ? fullId($draft) : 'Untitled Origin');
+
+	function setActive(t: EditorTab) {
+		activeTab.set(t);
+	}
 
 	function onReset() {
 		if (confirm('Reset the draft? Unsaved changes will be lost.')) {
@@ -20,10 +38,21 @@
 		}
 	}
 
+	function onClearPersisted() {
+		const ok = confirm(
+			'Reset draft and clear saved progress?\n\n' +
+				'This permanently deletes the autosaved draft from this browser ' +
+				'and reloads the page. This cannot be undone.'
+		);
+		if (ok) {
+			clearPersistedDraft();
+		}
+	}
+
 	async function onDownload() {
 		downloadMessage = '';
 		try {
-			const blob = await exportDatapack($draft);
+			const blob = await exportDatapack($draft, packFormatFor($targetVersion));
 			// Real download path — wired now so task #15 only has to remove the
 			// stub error. Currently unreachable because exportDatapack throws.
 			const url = URL.createObjectURL(blob);
@@ -39,55 +68,68 @@
 </script>
 
 <div class="topbar">
-	<div class="id-display" aria-live="polite">{displayId}</div>
-	<button type="button" class="reset" onclick={onReset}>Reset</button>
+	<div class="topbar-id">
+		<span class="topbar-label">Editing</span>
+		<span class="id-display" aria-live="polite">{displayId}</span>
+	</div>
+	<div class="topbar-actions">
+		<button type="button" class="btn-secondary" onclick={onReset}>Reset</button>
+		<button
+			type="button"
+			class="btn-danger"
+			onclick={onClearPersisted}
+			title="Delete autosaved draft from this browser and reload."
+		>
+			Reset draft (clear saved)
+		</button>
+	</div>
 </div>
 
-<div class="tabs" role="tablist">
+<div class="tabs" role="tablist" aria-label="Origin editor sections">
 	<button
 		type="button"
 		role="tab"
-		aria-selected={active === 'identity'}
-		class:active={active === 'identity'}
-		onclick={() => (active = 'identity')}
+		aria-selected={$activeTab === 'identity'}
+		class:active={$activeTab === 'identity'}
+		onclick={() => setActive('identity')}
 	>
 		Identity
 	</button>
 	<button
 		type="button"
 		role="tab"
-		aria-selected={active === 'powers'}
-		class:active={active === 'powers'}
-		onclick={() => (active = 'powers')}
+		aria-selected={$activeTab === 'powers'}
+		class:active={$activeTab === 'powers'}
+		onclick={() => setActive('powers')}
 	>
 		Powers
 	</button>
 	<button
 		type="button"
 		role="tab"
-		aria-selected={active === 'upgrades'}
-		class:active={active === 'upgrades'}
-		onclick={() => (active = 'upgrades')}
+		aria-selected={$activeTab === 'upgrades'}
+		class:active={$activeTab === 'upgrades'}
+		onclick={() => setActive('upgrades')}
 	>
 		Upgrades
 	</button>
 	<button
 		type="button"
 		role="tab"
-		aria-selected={active === 'json'}
-		class:active={active === 'json'}
-		onclick={() => (active = 'json')}
+		aria-selected={$activeTab === 'json'}
+		class:active={$activeTab === 'json'}
+		onclick={() => setActive('json')}
 	>
 		JSON Preview
 	</button>
 </div>
 
-<div class="tab-body">
-	{#if active === 'identity'}
+<div class="tab-card">
+	{#if $activeTab === 'identity'}
 		<IdentityTab />
-	{:else if active === 'powers'}
+	{:else if $activeTab === 'powers'}
 		<PowersTab />
-	{:else if active === 'upgrades'}
+	{:else if $activeTab === 'upgrades'}
 		<UpgradesTab />
 	{:else}
 		<JsonPreviewTab />
@@ -95,7 +137,9 @@
 </div>
 
 <div class="bottombar">
-	<button type="button" class="download" onclick={onDownload}>Download datapack (.zip)</button>
+	<button type="button" class="btn-primary download" onclick={onDownload}>
+		Download datapack (.zip)
+	</button>
 	{#if downloadMessage}
 		<p class="dl-msg">{downloadMessage}</p>
 	{/if}
@@ -106,81 +150,148 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
-		padding: 0.75rem 1rem;
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
-		border-radius: 4px;
-		margin-bottom: 1rem;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		margin-bottom: var(--space-4);
+		box-shadow: var(--shadow-sm);
 	}
-	.id-display {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-		color: #e6e6e6;
-		font-size: 0.95rem;
-	}
-	.reset {
-		background: #222;
-		color: #e6e6e6;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.4rem 0.9rem;
-		cursor: pointer;
-		font: inherit;
-	}
-	.reset:hover {
-		border-color: #e25d4a;
-		color: #e25d4a;
-	}
-	.tabs {
-		display: flex;
-		gap: 0.25rem;
-		border-bottom: 1px solid #333;
-		margin-bottom: 1rem;
-	}
-	.tabs button {
-		padding: 0.5rem 1rem;
-		background: transparent;
-		color: #b8b8b8;
-		border: none;
-		border-bottom: 2px solid transparent;
-		cursor: pointer;
-		font: inherit;
-	}
-	.tabs button:hover {
-		color: #fff;
-	}
-	.tabs button.active {
-		color: #fff;
-		border-bottom-color: #4a90e2;
-	}
-	.tab-body {
-		min-height: 12rem;
-		padding: 0.5rem 0 1.5rem;
-	}
-	.bottombar {
-		border-top: 1px solid #2a2a2a;
-		padding-top: 1rem;
+	.topbar-id {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		align-items: flex-start;
+		gap: 2px;
+		min-width: 0;
 	}
-	.download {
-		background: #1a1a1a;
-		color: #e6e6e6;
-		border: 1px solid #4a90e2;
-		border-radius: 3px;
-		padding: 0.5rem 1rem;
+	.topbar-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--color-text-subtle);
+	}
+	.id-display {
+		font-family: var(--font-mono);
+		color: var(--color-text);
+		font-size: 0.92rem;
+		font-weight: 500;
+		overflow-wrap: anywhere;
+	}
+	.topbar-actions {
+		display: flex;
+		gap: var(--space-2);
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	/* Shared button base — kept local to this file since the editor route
+	 * is where they appear; FieldRow/etc. tabs have their own variants. */
+	.btn-secondary,
+	.btn-danger,
+	.btn-primary {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.5rem 0.95rem;
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 500;
+		border-radius: var(--radius-md);
+		border: 1px solid transparent;
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease,
+			color 120ms ease;
+	}
+	.btn-secondary {
+		background: var(--color-bg-subtle);
+		color: var(--color-text);
+		border-color: var(--color-border);
+	}
+	.btn-secondary:hover {
+		background: var(--color-surface-hover);
+		border-color: var(--color-border-strong);
+	}
+	.btn-danger {
+		background: transparent;
+		color: var(--color-danger);
+		border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+	}
+	.btn-danger:hover {
+		background: var(--color-danger-subtle);
+		border-color: var(--color-danger);
+		color: var(--color-danger-hover);
+	}
+	.btn-primary {
+		background: var(--color-accent);
+		color: var(--color-accent-contrast);
+		border-color: var(--color-accent);
+	}
+	.btn-primary:hover {
+		background: var(--color-accent-hover);
+		border-color: var(--color-accent-hover);
+	}
+
+	/* Pill-style tab strip — modern dev-tool aesthetic, not browser default. */
+	.tabs {
+		display: inline-flex;
+		gap: 2px;
+		padding: 4px;
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		margin-bottom: var(--space-4);
+		max-width: 100%;
+		overflow-x: auto;
+	}
+	.tabs button {
+		padding: 0.45rem 0.95rem;
+		background: transparent;
+		color: var(--color-text-muted);
+		border: none;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 500;
+		white-space: nowrap;
+		transition: background 120ms ease, color 120ms ease;
 	}
-	.download:hover {
-		background: #4a90e2;
-		color: #fff;
+	.tabs button:hover {
+		color: var(--color-text);
+		background: var(--color-surface-hover);
+	}
+	.tabs button.active {
+		color: var(--color-text);
+		background: var(--color-surface);
+		box-shadow: var(--shadow-sm);
+	}
+
+	/* Card wrapping each tab's body. */
+	.tab-card {
+		min-height: 14rem;
+		padding: var(--space-5);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-sm);
+		margin-bottom: var(--space-4);
+	}
+
+	.bottombar {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		align-items: flex-start;
+		padding-top: var(--space-3);
+	}
+	.download {
+		padding: 0.6rem 1.1rem;
+		font-size: 0.92rem;
 	}
 	.dl-msg {
 		margin: 0;
-		color: #b8b8b8;
+		color: var(--color-text-muted);
 		font-size: 0.85rem;
 		font-style: italic;
 	}

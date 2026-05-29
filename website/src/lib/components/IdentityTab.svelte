@@ -4,7 +4,10 @@
 		fullId,
 		KNOWN_LAYERS,
 		NAMESPACE_PATTERN,
-		PATH_PATTERN
+		PATH_PATTERN,
+		targetVersion,
+		TARGET_VERSIONS,
+		type TargetMcVersion
 	} from '$lib/stores/originDraft';
 
 	const CLASS_LAYER_ID = 'neoorigins:class';
@@ -60,10 +63,37 @@
 	function setLayerId(v: string) {
 		draft.update((d) => ({ ...d, layerId: v }));
 	}
+	function setTargetVersion(v: TargetMcVersion) {
+		targetVersion.set(v);
+	}
 </script>
 
 <section aria-labelledby="identity-heading" class="tab">
 	<h2 id="identity-heading">Identity</h2>
+
+	<div class="row">
+		<span class="lbl">Target Minecraft version</span>
+		<div class="seg" role="radiogroup" aria-label="Target Minecraft version">
+			{#each TARGET_VERSIONS as v (v.id)}
+				<button
+					type="button"
+					role="radio"
+					aria-checked={$targetVersion === v.id}
+					class="seg-btn"
+					class:active={$targetVersion === v.id}
+					onclick={() => setTargetVersion(v.id)}
+				>
+					{v.label}
+					<small class="seg-pf">pack_format {v.packFormat}</small>
+				</button>
+			{/each}
+		</div>
+		<small class="hint">
+			Stamps <code>pack.mcmeta</code> at export. The editor does NOT translate
+			power types between versions — pick the line you're authoring for and
+			stick to power types that exist there.
+		</small>
+	</div>
 
 	<div class="row">
 		<label class="lbl" for="origin-layer">Layer</label>
@@ -212,57 +242,62 @@
 	.tab {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 	h2 {
-		margin: 0 0 0.25rem;
-		color: #e6e6e6;
+		margin: 0;
+		color: var(--color-text);
+		font-size: 1.05rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
 	}
 	.row {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--space-1);
 	}
 	.lbl {
-		color: #e6e6e6;
-		font-size: 0.9rem;
+		color: var(--color-text);
+		font-size: 0.85rem;
+		font-weight: 500;
 	}
 	.check {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		color: #e6e6e6;
-		font-size: 0.9rem;
+		gap: var(--space-2);
+		color: var(--color-text);
+		font-size: 0.88rem;
+		cursor: pointer;
 	}
 	.hint {
-		color: #999;
+		color: var(--color-text-subtle);
 		font-size: 0.78rem;
 	}
 	.err {
-		color: #e25d4a;
+		color: var(--color-danger);
 		font-size: 0.78rem;
 	}
 	.preview {
-		color: #999;
+		color: var(--color-text-muted);
 		font-size: 0.78rem;
 	}
 	.accent {
-		color: #4a90e2;
+		color: var(--color-accent);
 		font-size: 0.78rem;
 	}
 	.id-fields {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
-		max-width: 32rem;
+		gap: var(--space-1);
+		max-width: 36rem;
 	}
 	.id-fields .colon {
-		color: #999;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		color: var(--color-text-subtle);
+		font-family: var(--font-mono);
 		font-size: 0.95rem;
 	}
 	.id-fields input.ns {
-		flex: 0 0 9rem;
+		flex: 0 0 11rem;
 		min-width: 6rem;
 	}
 	.id-fields input.path {
@@ -270,36 +305,105 @@
 		min-width: 6rem;
 	}
 	code {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-family: var(--font-mono);
 		font-size: 0.78rem;
-		color: #b8b8b8;
+		color: var(--color-text-muted);
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.05rem 0.3rem;
 	}
 	input[type='text'],
 	input[type='number'],
 	textarea,
 	select {
-		background: #222;
-		color: #e6e6e6;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.4rem 0.55rem;
+		background: var(--color-bg-subtle);
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.5rem 0.65rem;
 		font: inherit;
-		max-width: 32rem;
+		font-size: 0.88rem;
+		max-width: 36rem;
+		transition: border-color 120ms ease, background 120ms ease;
 	}
 	textarea {
 		resize: vertical;
-		min-height: 4.5rem;
+		min-height: 5rem;
+		line-height: 1.5;
 	}
 	input.mono {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-family: var(--font-mono);
+	}
+	input:hover,
+	textarea:hover,
+	select:hover {
+		border-color: var(--color-border-strong);
 	}
 	input:focus,
 	textarea:focus,
 	select:focus {
-		outline: none;
-		border-color: #4a90e2;
+		border-color: var(--color-accent);
+		background: var(--color-surface);
 	}
 	input.invalid {
-		border-color: #e25d4a;
+		border-color: var(--color-danger);
+	}
+	input[type='checkbox'] {
+		accent-color: var(--color-accent);
+		width: 1rem;
+		height: 1rem;
+		cursor: pointer;
+	}
+
+	/* Segmented control — pill style. */
+	.seg {
+		display: inline-flex;
+		gap: 2px;
+		padding: 3px;
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		align-self: flex-start;
+		max-width: 100%;
+		overflow-x: auto;
+	}
+	.seg-btn {
+		background: transparent;
+		color: var(--color-text-muted);
+		border: none;
+		border-radius: var(--radius-sm);
+		padding: 0.45rem 0.85rem;
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		display: inline-flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.15rem;
+		line-height: 1.1;
+		white-space: nowrap;
+		transition: background 120ms ease, color 120ms ease;
+	}
+	.seg-btn:hover {
+		color: var(--color-text);
+		background: var(--color-surface-hover);
+	}
+	.seg-btn.active {
+		background: var(--color-surface);
+		color: var(--color-text);
+		box-shadow: var(--shadow-sm);
+	}
+	.seg-btn .seg-pf {
+		color: var(--color-text-subtle);
+		opacity: 0.85;
+		font-size: 0.7rem;
+		font-family: var(--font-mono);
+		font-weight: 400;
+	}
+	.seg-btn.active .seg-pf {
+		color: var(--color-accent);
+		opacity: 1;
 	}
 </style>

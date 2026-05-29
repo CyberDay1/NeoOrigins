@@ -1,0 +1,215 @@
+/*
+ * NeoOrigins web editor — design tokens.
+ *
+ * Portable shape: every token lives at :root so the same sheet can be
+ * lifted into a mkdocs-material extra_css later without restructuring.
+ * Dark mode is the default; a light variant kicks in via
+ * `prefers-color-scheme: light`. No manual toggle UI for now — OS pref
+ * is the contract.
+ *
+ * Accent: indigo/violet (#7c5cff). "Origins" reads as identity/lineage;
+ * the indigo-violet family is the modern dev-tool palette (Vercel,
+ * Linear, Radix) while still suggesting "magical / mystic" without
+ * leaning on cliché purple. Different enough from the in-game parchment
+ * + amber aesthetic that the two surfaces won't be confused.
+ *
+ * Typography: Inter for UI + JetBrains Mono for code, loaded via
+ * Google Fonts in app.html. System-font fallbacks cover offline / CSP
+ * cases without layout shift.
+ */
+
+/* Google Fonts is loaded via app.html <link>; this file holds tokens
+ * and base styles only. */
+
+:root {
+	/* Surface scale — bg is the page, surface is a card, elevated is a
+	 * popover / dropdown that sits over a card. */
+	--color-bg: #0c0d10;
+	--color-bg-subtle: #14161b;
+	--color-bg-elevated: #1a1d24;
+	--color-surface: #14161b;
+	--color-surface-hover: #1a1d24;
+
+	/* Borders — `strong` for focused / active states. */
+	--color-border: #2a2e38;
+	--color-border-strong: #3a3f4d;
+
+	/* Text — `subtle` is captions, `muted` is secondary labels. */
+	--color-text: #e6e8ee;
+	--color-text-muted: #a3a8b5;
+	--color-text-subtle: #6e7484;
+
+	/* Accent — indigo/violet. `subtle` is a tinted background for chips
+	 * / pill highlights. */
+	--color-accent: #7c5cff;
+	--color-accent-hover: #927aff;
+	--color-accent-subtle: rgba(124, 92, 255, 0.14);
+	--color-accent-contrast: #ffffff;
+
+	/* Semantic colors. */
+	--color-danger: #ef4444;
+	--color-danger-hover: #f87171;
+	--color-danger-subtle: rgba(239, 68, 68, 0.12);
+	--color-success: #22c55e;
+	--color-success-subtle: rgba(34, 197, 94, 0.12);
+	--color-warning: #f59e0b;
+	--color-warning-subtle: rgba(245, 158, 11, 0.12);
+
+	/* JSON syntax tokens — picked to harmonise with the accent. */
+	--color-syntax-key: #93c5fd;     /* soft blue */
+	--color-syntax-string: #fcd34d;  /* warm yellow */
+	--color-syntax-number: #c4b5fd;  /* lavender */
+	--color-syntax-bool: #f9a8d4;    /* pink */
+
+	/* Typography. */
+	--font-sans:
+		'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+		Arial, sans-serif;
+	--font-mono:
+		'JetBrains Mono', ui-monospace, SFMono-Regular, 'Cascadia Code',
+		Menlo, Consolas, monospace;
+
+	/* Radius scale. */
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 10px;
+	--radius-pill: 999px;
+
+	/* Spacing scale — 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64. */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 24px;
+	--space-6: 32px;
+	--space-7: 48px;
+	--space-8: 64px;
+
+	/* Shadows — subtle, no glow. */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.4);
+
+	/* Focus ring (used by component-level :focus-visible blocks). */
+	--ring-accent: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+}
+
+/* Light-mode overrides. Triggered by OS preference only — no JS toggle. */
+@media (prefers-color-scheme: light) {
+	:root {
+		--color-bg: #f8f9fb;
+		--color-bg-subtle: #eef0f4;
+		--color-bg-elevated: #ffffff;
+		--color-surface: #ffffff;
+		--color-surface-hover: #f4f5f9;
+
+		--color-border: #d8dbe3;
+		--color-border-strong: #b6bbc7;
+
+		--color-text: #15171c;
+		--color-text-muted: #525866;
+		--color-text-subtle: #80869a;
+
+		--color-accent: #6048e0;
+		--color-accent-hover: #4f3bc4;
+		--color-accent-subtle: rgba(96, 72, 224, 0.12);
+		--color-accent-contrast: #ffffff;
+
+		--color-danger: #dc2626;
+		--color-danger-hover: #b91c1c;
+		--color-danger-subtle: rgba(220, 38, 38, 0.1);
+		--color-success: #15803d;
+		--color-success-subtle: rgba(21, 128, 61, 0.1);
+		--color-warning: #b45309;
+		--color-warning-subtle: rgba(180, 83, 9, 0.1);
+
+		--color-syntax-key: #1d4ed8;
+		--color-syntax-string: #b45309;
+		--color-syntax-number: #6d28d9;
+		--color-syntax-bool: #be185d;
+
+		--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+		--shadow-md:
+			0 4px 14px rgba(15, 23, 42, 0.08),
+			0 1px 2px rgba(15, 23, 42, 0.04);
+	}
+}
+
+/* ─── base reset ──────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: var(--font-sans);
+	font-size: 14px;
+	line-height: 1.5;
+	background: var(--color-bg);
+	color: var(--color-text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+}
+
+/* Code is monospaced everywhere; pre defers to its own size in components. */
+code,
+kbd,
+samp,
+pre {
+	font-family: var(--font-mono);
+}
+
+/* Visible keyboard focus on every interactive element. Mouse clicks
+ * keep the default browser behavior (no ring on :focus-visible
+ * fallback). */
+:focus {
+	outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role='radio']:focus-visible,
+[role='tab']:focus-visible {
+	outline: none;
+	box-shadow: var(--ring-accent);
+	border-radius: var(--radius-sm);
+}
+
+/* Selection — accent-tinted. */
+::selection {
+	background: var(--color-accent-subtle);
+	color: var(--color-text);
+}
+
+/* Scrollbars (webkit only — Firefox uses scrollbar-color below). */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: var(--radius-pill);
+	border: 2px solid var(--color-bg);
+}
+*::-webkit-scrollbar-thumb:hover {
+	background: var(--color-border-strong);
+}

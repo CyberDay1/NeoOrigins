@@ -84,11 +84,14 @@
 	// the power's index slot so adding/removing rows behaves predictably.
 	let collapsedByIndex = $state<Record<number, boolean>>({});
 
-	function isCollapsed(i: number, total: number): boolean {
+	function isCollapsed(i: number, _total: number): boolean {
 		const explicit = collapsedByIndex[i];
 		if (typeof explicit === 'boolean') return explicit;
-		// Default: collapsed when there are more than 2 powers.
-		return total > 2;
+		// Default: ALWAYS expanded. The prior "collapse when >2" heuristic
+		// hid the form on new powers and made the editor look broken — the
+		// caret was the only click target and unclear. Users who want a
+		// compact view can collapse explicitly per row.
+		return false;
 	}
 
 	function toggleCollapsed(i: number, total: number) {
@@ -209,61 +212,71 @@
 	.tab {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 	.head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1rem;
+		gap: var(--space-3);
 	}
 	h2 {
 		margin: 0;
-		color: #e6e6e6;
+		color: var(--color-text);
+		font-size: 1.05rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
 	}
 	.add {
-		background: #1a1a1a;
-		color: #e6e6e6;
-		border: 1px solid #4a90e2;
-		border-radius: 3px;
-		padding: 0.4rem 0.9rem;
+		background: var(--color-accent);
+		color: var(--color-accent-contrast);
+		border: 1px solid var(--color-accent);
+		border-radius: var(--radius-md);
+		padding: 0.5rem 0.95rem;
 		cursor: pointer;
 		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 500;
+		transition: background 120ms ease, border-color 120ms ease;
 	}
 	.add:hover:not(:disabled) {
-		background: #4a90e2;
-		color: #fff;
+		background: var(--color-accent-hover);
+		border-color: var(--color-accent-hover);
 	}
 	.add:disabled {
-		opacity: 0.6;
+		opacity: 0.55;
 		cursor: not-allowed;
 	}
 	.status {
-		color: #999;
+		color: var(--color-text-muted);
 		font-style: italic;
 		margin: 0;
 	}
 	.status.err {
-		color: #e25d4a;
+		color: var(--color-danger);
 		font-style: normal;
 	}
 	.status code {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-family: var(--font-mono);
 		font-size: 0.85em;
-		color: #c8c8c8;
+		color: var(--color-text);
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.05rem 0.3rem;
 	}
 	.empty {
-		color: #999;
+		color: var(--color-text-muted);
 		font-style: italic;
 		margin: 0;
-		padding: 1rem;
-		border: 1px dashed #333;
-		border-radius: 4px;
+		padding: var(--space-5);
+		border: 1px dashed var(--color-border);
+		border-radius: var(--radius-md);
 		text-align: center;
 	}
 	.list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.8rem;
+		gap: var(--space-3);
 	}
 </style>

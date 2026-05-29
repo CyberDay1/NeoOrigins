@@ -23,27 +23,28 @@
 <style>
 	.row {
 		display: grid;
-		grid-template-columns: 12rem 1fr;
+		grid-template-columns: 13rem 1fr;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.4rem 0;
-		border-bottom: 1px solid #2a2a2a;
+		gap: var(--space-2);
+		padding: 0.5rem 0;
+		border-bottom: 1px solid var(--color-border);
 	}
 	.lbl {
-		color: #e6e6e6;
-		font-size: 0.9rem;
+		color: var(--color-text);
+		font-size: 0.85rem;
+		font-weight: 500;
 	}
 	.req {
-		color: #4a90e2;
-		margin-left: 0.25rem;
+		color: var(--color-accent);
+		margin-left: 0.2rem;
 	}
 	.desc {
 		grid-column: 2;
-		color: #999;
+		color: var(--color-text-subtle);
 		font-size: 0.78rem;
 	}
 	input[type='checkbox'] {
-		accent-color: #4a90e2;
+		accent-color: var(--color-accent);
 		width: 1rem;
 		height: 1rem;
 		cursor: pointer;

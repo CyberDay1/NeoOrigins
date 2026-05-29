@@ -33,22 +33,27 @@
 
 <style>
 	.picker {
-		background: #222;
-		color: #e6e6e6;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.35rem 0.5rem;
+		background: var(--color-bg);
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.45rem 0.6rem;
 		font: inherit;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-		font-size: 0.85rem;
-		min-width: 22rem;
+		font-family: var(--font-mono);
+		font-size: 0.84rem;
+		min-width: 24rem;
+		max-width: 100%;
+		transition: border-color 120ms ease, background 120ms ease;
+	}
+	.picker:hover {
+		border-color: var(--color-border-strong);
 	}
 	.picker:focus {
-		outline: none;
-		border-color: #4a90e2;
+		border-color: var(--color-accent);
+		background: var(--color-surface);
 	}
 	.picker:disabled {
-		opacity: 0.6;
+		opacity: 0.55;
 		cursor: not-allowed;
 	}
 </style>

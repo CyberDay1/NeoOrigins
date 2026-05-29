@@ -131,21 +131,29 @@
 	.tab {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 	h2 {
-		margin: 0 0 0.25rem;
-		color: #e6e6e6;
+		margin: 0;
+		color: var(--color-text);
+		font-size: 1.05rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
 	}
 	.hint {
-		color: #999;
+		color: var(--color-text-muted);
 		font-size: 0.85rem;
-		max-width: 48rem;
+		max-width: 56rem;
+		margin: 0;
 	}
 	.empty {
-		color: #999;
+		color: var(--color-text-muted);
 		font-style: italic;
 		margin: 0;
+		padding: var(--space-4);
+		border: 1px dashed var(--color-border);
+		border-radius: var(--radius-md);
+		text-align: center;
 	}
 	.rows {
 		list-style: none;
@@ -153,88 +161,106 @@
 		margin: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.upg-row {
 		display: flex;
-		gap: 0.75rem;
+		gap: var(--space-3);
 		align-items: flex-start;
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
-		border-radius: 4px;
-		padding: 0.75rem;
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--space-3);
 	}
 	.upg-fields {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.6rem 0.75rem;
+		gap: var(--space-2) var(--space-3);
 		flex: 1 1 auto;
+		min-width: 0;
 	}
 	.field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: var(--space-1);
+		min-width: 0;
 	}
 	.field:last-child {
 		grid-column: 1 / -1;
 	}
 	.lbl {
-		color: #e6e6e6;
-		font-size: 0.85rem;
+		color: var(--color-text);
+		font-size: 0.82rem;
+		font-weight: 500;
 	}
 	code {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-family: var(--font-mono);
 		font-size: 0.78rem;
-		color: #b8b8b8;
+		color: var(--color-text-muted);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.05rem 0.3rem;
 	}
 	input[type='text'] {
-		background: #222;
-		color: #e6e6e6;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.4rem 0.55rem;
+		background: var(--color-bg);
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.45rem 0.6rem;
 		font: inherit;
+		font-size: 0.86rem;
 		width: 100%;
 		box-sizing: border-box;
+		transition: border-color 120ms ease, background 120ms ease;
 	}
 	input.mono {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-family: var(--font-mono);
+	}
+	input:hover {
+		border-color: var(--color-border-strong);
 	}
 	input:focus {
-		outline: none;
-		border-color: #4a90e2;
+		border-color: var(--color-accent);
+		background: var(--color-surface);
 	}
 	input.invalid {
-		border-color: #e25d4a;
+		border-color: var(--color-danger);
 	}
 	.actions {
 		display: flex;
 	}
 	.add {
-		background: #1a1a1a;
-		color: #e6e6e6;
-		border: 1px solid #4a90e2;
-		border-radius: 3px;
-		padding: 0.4rem 0.9rem;
+		background: var(--color-accent);
+		color: var(--color-accent-contrast);
+		border: 1px solid var(--color-accent);
+		border-radius: var(--radius-md);
+		padding: 0.5rem 0.95rem;
 		cursor: pointer;
 		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 500;
+		transition: background 120ms ease;
 	}
 	.add:hover {
-		background: #4a90e2;
-		color: #fff;
+		background: var(--color-accent-hover);
+		border-color: var(--color-accent-hover);
 	}
 	.remove {
-		background: #222;
-		color: #e6e6e6;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 0.4rem 0.7rem;
+		background: transparent;
+		color: var(--color-text-muted);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.45rem 0.8rem;
 		cursor: pointer;
 		font: inherit;
+		font-size: 0.82rem;
 		flex: 0 0 auto;
+		transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 	}
 	.remove:hover {
-		border-color: #e25d4a;
-		color: #e25d4a;
+		background: var(--color-danger-subtle);
+		border-color: var(--color-danger);
+		color: var(--color-danger);
 	}
 </style>
