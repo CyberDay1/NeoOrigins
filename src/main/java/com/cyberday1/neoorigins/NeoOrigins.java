@@ -95,6 +95,11 @@ public class NeoOrigins {
         // Register custom power type registry
         PowerTypes.register(modEventBus);
 
+        // Register the compat-verb descriptor registries (action/condition/item).
+        // Behavior-neutral foundation for the registry refactor — empty until the
+        // parser switches are migrated verb-by-verb in a later step.
+        com.cyberday1.neoorigins.compat.registry.CompatRegistries.register(modEventBus);
+
         // 2.0 — bootstrap legacy power-type aliases so old JSON still loads.
         com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.bootstrap();
 
