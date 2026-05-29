@@ -244,9 +244,17 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onBabyEntitySpawn(BabyEntitySpawnEvent event) {
         if (!(event.getCausedByPlayer() instanceof ServerPlayer sp)) return;
-        if (!ActiveOriginService.has(sp, TwinBreedingPower.class, c -> true)) return;
 
         AgeableMob child = event.getChild();
+        // BREED fires whenever the player caused a baby to spawn, regardless of
+        // any TwinBreeding power — context is the child (may be null on cancel).
+        if (child != null) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.BREED,
+                new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(child));
+        }
+
+        if (!ActiveOriginService.has(sp, TwinBreedingPower.class, c -> true)) return;
         if (child == null) return;
 
         ActiveOriginService.forEachOfType(sp, TwinBreedingPower.class, cfg -> {
@@ -259,6 +267,14 @@ public class WorldPowerEvents {
                 }
             }
         });
+    }
+
+    @SubscribeEvent
+    public static void onAnimalTame(net.neoforged.neoforge.event.entity.living.AnimalTameEvent event) {
+        if (!(event.getTamer() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.TAME,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(event.getAnimal()));
     }
 
     /**

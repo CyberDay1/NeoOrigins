@@ -42,8 +42,8 @@ import java.util.List;
  * {
  *   "type": "neoorigins:persistent_effect",
  *   "toggleable": true,
- *   "refresh_interval": 300,
- *   "condition": { "type": "origins:in_water" },
+ *   "default_off": false,
+ *   "condition": { "type": "neoorigins:in_water" },
  *   "effects": [
  *     { "effect": "minecraft:water_breathing", "amplifier": 0,
  *       "ambient": true, "show_particles": false, "show_icon": true }

@@ -27,6 +27,14 @@ public class CraftingPowerEvents {
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
 
         BlockPos pos = event.getPos();
+        // BONEMEAL action trigger — distinct from MOD_BONEMEAL_EXTRA (which
+        // only scales the extra-application count). Fires the generic action
+        // with the bonemealed block as context so action_on_event powers can
+        // react to "player used bone meal here".
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.BONEMEAL,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.BlockInteractContext(
+                pos, sl.getBlockState(pos)));
         // better_bone_meal moved to action_on_event (MOD_BONEMEAL_EXTRA).
         float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_BONEMEAL_EXTRA,
@@ -63,11 +71,28 @@ public class CraftingPowerEvents {
         }
     }
 
+    /**
+     * ENCHANT_ITEM fires when the player applies enchantments at a table
+     * (PlayerEnchantItemEvent — post-apply). Context is the freshly-enchanted
+     * stack. Distinct from {@link #onEnchantmentLevelSet} which modifies the
+     * level offered (MOD_ENCHANT_LEVEL) before the player commits.
+     */
+    @SubscribeEvent
+    public static void onItemEnchanted(net.neoforged.neoforge.event.entity.player.PlayerEnchantItemEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.ENCHANT_ITEM,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.CraftContext(event.getEnchantedItem()));
+    }
+
     @SubscribeEvent
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         boostFoodIfCook(sp, event.getCrafting());
         applyQualityAttributes(sp, event.getCrafting());
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.CRAFT_ITEM,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.CraftContext(event.getCrafting()));
     }
 
     @SubscribeEvent
@@ -75,6 +100,9 @@ public class CraftingPowerEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         boostFoodIfCook(sp, event.getSmelting());
         applySmokingExpertBonus(sp, event.getSmelting());
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.SMELT_ITEM,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.CraftContext(event.getSmelting()));
     }
 
 
@@ -167,5 +195,19 @@ public class CraftingPowerEvents {
             int cost = Math.max(1, (int)(event.getCost() * mult));
             event.setCost(cost);
         }
+    }
+
+    /**
+     * ANVIL_REPAIR fires when a player actually takes the repaired/combined
+     * output from an anvil (AnvilRepairEvent), distinct from
+     * {@link #onAnvilUpdate} which only previews the cost. Context carries the
+     * finished output stack.
+     */
+    @SubscribeEvent
+    public static void onAnvilRepair(net.neoforged.neoforge.event.entity.player.AnvilRepairEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.ANVIL_REPAIR,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.CraftContext(event.getOutput()));
     }
 }

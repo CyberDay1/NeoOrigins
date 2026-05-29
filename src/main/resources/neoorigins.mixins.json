@@ -23,6 +23,7 @@
     "LivingEntityUndeadPotionMixin",
     "EntityMountPositionMixin",
     "EntityMountEndMixin",
+    "AbstractVillagerTradePriceMixin",
     "recipe.CraftingMenuOriginContextMixin"
   ],
   "client": [

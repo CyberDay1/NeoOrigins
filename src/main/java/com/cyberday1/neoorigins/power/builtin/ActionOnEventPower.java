@@ -214,7 +214,7 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     // silently if the context doesn't carry block info — same
                     // behaviour as if the gate evaluated false. Covers
                     // NeoForge BlockEvent (BLOCK_BREAK / BLOCK_PLACE) and
-                    // PlayerInteractEvent.RightClickBlock (BLOCK_USE).
+                    // EventPowerIndex.BlockInteractContext (BLOCK_USE).
                     if (config.blockCondition().isPresent()) {
                         net.minecraft.core.BlockPos pos = extractBlockPos(ctx);
                         if (pos == null) return;
@@ -274,6 +274,15 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         }
         if (ctx instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock rcb) {
             return rcb.getPos();
+        }
+        // BLOCK_USE now dispatches an EventPowerIndex.BlockInteractContext
+        // (pos + state) rather than the raw RightClickBlock event, so a
+        // block_condition on event=block_use needs this shape to resolve a
+        // BlockPos. Without it the gate extracted null and failed closed,
+        // silently dropping the filter (tester report: block_use powers ran
+        // on every right-click regardless of block_condition).
+        if (ctx instanceof EventPowerIndex.BlockInteractContext bic) {
+            return bic.pos();
         }
         return null;
     }

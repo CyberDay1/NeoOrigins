@@ -72,6 +72,20 @@ public class InteractionPowerEvents {
         if (!(event.getTarget() instanceof net.minecraft.world.entity.LivingEntity target)) return;
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ENTITY_USE,
             new EventPowerIndex.EntityInteractContext(target));
+        // VILLAGER_INTERACT is a narrower alias for right-clicking a villager
+        // or wandering trader (AbstractVillager covers both). Fired after the
+        // generic ENTITY_USE so a power can target either granularity.
+        if (target instanceof net.minecraft.world.entity.npc.AbstractVillager) {
+            EventPowerIndex.dispatch(sp, EventPowerIndex.Event.VILLAGER_INTERACT,
+                new EventPowerIndex.EntityInteractContext(target));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onTradeCompleted(net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.TRADE_COMPLETED,
+            new EventPowerIndex.TradeContext(event.getMerchantOffer()));
     }
 
     @SubscribeEvent

@@ -82,6 +82,23 @@ public class PlayerLifecycleEvents {
         });
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
+        // CLIMB fires once per tick while the player is on a climbable block
+        // (ladder/vine/scaffolding). No NeoForge event exists for this, so it
+        // rides the player tick — pack authors gate frequency with cooldown or
+        // conditions. Context is null (the player is the subject).
+        if (sp.onClimbable()) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CLIMB);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onAdvancementEarn(AdvancementEvent.AdvancementEarnEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.ADVANCEMENT_EARNED,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.AdvancementContext(
+                event.getAdvancement().id()));
     }
 
     @SubscribeEvent

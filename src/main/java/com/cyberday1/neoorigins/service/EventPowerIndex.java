@@ -81,9 +81,7 @@ public final class EventPowerIndex {
 
         // ----- Origins-Classes hooks: modifiers (return a float) -----
         MOD_EXHAUSTION,         // hunger drain multiplier
-        MOD_BREAK_SPEED,        // block break speed multiplier
         MOD_NATURAL_REGEN,      // natural heal amount multiplier
-        MOD_XP_GAIN,            // xp orb value multiplier
         MOD_TRADE_PRICE,        // villager trade cost multiplier
         MOD_CRAFT_AMOUNT,       // crafting output count multiplier
         MOD_ENCHANT_LEVEL,      // enchanting table level multiplier / bonus
