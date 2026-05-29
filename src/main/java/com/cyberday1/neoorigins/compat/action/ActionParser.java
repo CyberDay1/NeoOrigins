@@ -94,7 +94,6 @@ public final class ActionParser {
                 case "neoorigins:execute_command"               -> parseExecuteCommand(json);
                 case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
                 case "neoorigins:clear_effect"                  -> parseClearEffect(json);
-                case "neoorigins:heal"                          -> parseHeal(json);
                 case "neoorigins:play_sound"                    -> parsePlaySound(json);
                 case "neoorigins:add_velocity"                  -> parseAddVelocity(json);
                 case "neoorigins:dash"                          -> parseDash(json);
@@ -746,11 +745,6 @@ public final class ActionParser {
         }
         var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
         return player -> player.removeEffect(effectHolder);
-    }
-
-    private static EntityAction parseHeal(JsonObject json) {
-        float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
-        return player -> player.heal(amount);
     }
 
     private static EntityAction parsePlaySound(JsonObject json) {
