@@ -41,16 +41,20 @@ repositories {
 dependencies {
     // Compile against a stable minor release; runtime will use whatever
     // version of NeoOrigins the user has installed ≥ the declared version.
+    // Replace <VERSION> with the latest release for your MC version — see the
+    // releases page linked below.
     // For 26.1.x:
-    compileOnly "maven.modrinth:neo-origins:v2.0.25+26.1"
+    compileOnly "maven.modrinth:neo-origins:<VERSION>+26.1"
     // For 1.21.1:
-    // compileOnly "maven.modrinth:neo-origins:v2.0.25+1.21.1"
+    // compileOnly "maven.modrinth:neo-origins:<VERSION>+1.21.1"
 }
 ```
 
 > **Version format:** Modrinth Maven uses the exact version string from the
 > [releases page](https://modrinth.com/mod/neo-origins/versions).
-> The format is `v{version}+{mc_version}` (e.g. `v2.0.25+26.1`).
+> The format is `v{version}+{mc_version}` (e.g. `v{version}+26.1`). Always
+> pull the newest published string from the releases page rather than
+> hard-coding a value here, so this snippet doesn't go stale between releases.
 
 `neoforge.mods.toml`:
 

@@ -219,26 +219,30 @@ food and edible-item-promoted items).
 
 ### 3c. "Food restores more hunger and saturation"
 
-Use `action_on_event` with the `MOD_FOOD_NUTRITION` event to boost how
-much hunger and saturation every food item restores. The modifier
-multiplies the base nutrition value, so `2.0` doubles all food.
+Use the dedicated `neoorigins:modify_food_nutrition` power type. It
+**overrides** the nutrition of matching food to an absolute target value
+(it is not a multiplier), and rescales saturation proportionally to the
+food's original saturation-to-nutrition ratio. Filter to a single item with
+`food_item` or to a group with `food_tag`; omit both to retune every food.
 
 ```json
 {
-  "type": "neoorigins:action_on_event",
-  "name": "Iron Stomach",
-  "description": "All food restores 50% more hunger.",
-  "event": "MOD_FOOD_NUTRITION",
-  "modifier": {
-    "operation": "multiply",
-    "value": 1.5
-  }
+  "type": "neoorigins:modify_food_nutrition",
+  "name": "Hearty Bread",
+  "description": "Bread fills more hunger; saturation scales with it.",
+  "food_item": "minecraft:bread",
+  "nutrition": 8
 }
 ```
 
-To also boost saturation, add a second power with `MOD_FOOD_NUTRITION`
-targeting saturation, or pair with `neoorigins:modify_food` in a
-`FOOD_EATEN` action for a flat bonus on top:
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `nutrition` | int | no | `1` | Target hunger value matching food is set to. Saturation rescales proportionally. |
+| `food_item` | string | no | — | Restrict to this exact item id. |
+| `food_tag` | string | no | — | Restrict to this item tag (leading `#` optional). |
+
+To add a flat bonus on top of normal eating instead of overriding, pair
+`neoorigins:modify_food` with a `food_eaten` action:
 
 ```json
 {
@@ -1145,9 +1149,9 @@ drop the payload on the client side.
 
 - **[POWER_TYPES.md](POWER_TYPES.md)** — every power type with full field
   tables. When a recipe here mentions a type, the details live there.
-- **[CONDITIONS.md](CONDITIONS.md)** — the 80+ condition verbs you can
+- **[CONDITIONS.md](CONDITIONS.md)** — the 90+ condition verbs you can
   use in `condition` fields.
-- **[ACTIONS.md](ACTIONS.md)** — the 40+ action verbs you can use in
+- **[ACTIONS.md](ACTIONS.md)** — the 60+ action verbs you can use in
   `entity_action` fields.
 - **[EVENTS.md](EVENTS.md)** — the event keys for `action_on_event`.
 - **[MIGRATION.md](MIGRATION.md)** — if you're porting a pre-2.0 pack or

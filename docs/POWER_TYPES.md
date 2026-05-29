@@ -356,6 +356,8 @@ No additional fields beyond `name` and `description`.
 
 ## `neoorigins:water_breathing`
 
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:persistent_effect`. See [MIGRATION.md](MIGRATION.md).
+
 Grants permanent Water Breathing. The player never loses air while underwater.
 
 No additional fields beyond `name` and `description`.
@@ -1205,6 +1207,8 @@ Active ability that teleports the player to the block they are looking at, up to
 
 ## `neoorigins:active_dash`
 
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:active_ability`. See [MIGRATION.md](MIGRATION.md).
+
 Active ability that launches the player in their look direction.
 
 | Field | Type | Required | Default | Description |
@@ -1273,6 +1277,8 @@ Active ability that teleports the player to their bed or respawn point. Falls ba
 
 ## `neoorigins:active_swap`
 
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:active_ability`. See [MIGRATION.md](MIGRATION.md).
+
 Active ability that swaps positions with the entity the player is looking at.
 
 | Field | Type | Required | Default | Description |
@@ -1294,6 +1300,8 @@ Active ability that swaps positions with the entity the player is looking at.
 ---
 
 ## `neoorigins:active_fireball`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:active_ability`. See [MIGRATION.md](MIGRATION.md).
 
 Active ability that shoots a small fireball in the player's look direction. The fireball explodes on impact and ignites the area.
 
@@ -1394,6 +1402,8 @@ Active ability that phases the player through a solid wall in their look directi
 ---
 
 ## `neoorigins:active_bolt`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:active_ability`. See [MIGRATION.md](MIGRATION.md).
 
 Active ability that shoots a dragon-fire bolt (purple ender-breath projectile) in the player's look direction. On impact, creates an area of dragon's breath that deals damage over time.
 
@@ -2317,6 +2327,8 @@ On vanilla breeding, spawns a second baby with the configured probability.
 ---
 
 ## `neoorigins:less_item_use_slowdown`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:attribute_modifier`. See [MIGRATION.md](MIGRATION.md).
 
 Reduces movement slowdown while using items (bow, shield, etc.). Applies a transient `generic.movement_speed` modifier while `isUsingItem()` is true and the held item matches.
 

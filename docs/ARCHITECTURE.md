@@ -2,7 +2,7 @@
 
 ## Overview
 
-NeoOrigins is a NeoForge 1.21.11 mod that implements an Origins-style ability system.
+NeoOrigins is a NeoForge mod (MC 1.21.1 and 26.1) that implements an Origins-style ability system.
 Players choose an origin at first login; each origin grants a set of passive and active powers.
 The mod also loads `.origins`-format packs (Route A + Route B compat layer) so that existing
 Origins content packs work without modification.
