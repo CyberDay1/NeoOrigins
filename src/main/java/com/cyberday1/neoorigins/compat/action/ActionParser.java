@@ -111,8 +111,6 @@ public final class ActionParser {
                 case "neoorigins:gain_air"                      -> parseGainAir(json);
                 case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
                 case "neoorigins:set_fall_distance"             -> parseSetFallDistance(json);
-                case "neoorigins:extinguish"                    -> player -> player.clearFire();
-                case "neoorigins:dismount"                      -> player -> player.stopRiding();
                 case "neoorigins:give"                          -> parseGive(json);
                 case "neoorigins:explode"                       -> parseExplode(json);
                 case "neoorigins:launch"                        -> parseLaunch(json);
