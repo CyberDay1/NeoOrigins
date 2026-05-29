@@ -75,33 +75,18 @@ public final class ActionParser {
             // registered descriptor dispatch here; the switch below holds only
             // the not-yet-migrated arms. Behaviour is identical — the factory is
             // the lift-and-shift of the old case body.
+            // Registry-refactor migration complete (D1): every built-in action verb
+            // is now a registered descriptor (see BuiltinActions). The former
+            // type-switch is retired — dispatch is a single descriptor lookup, and
+            // an unknown verb falls through to the unsupported-action no-op (which
+            // records a CompatWarningCollector entry, preserving the old default
+            // arm's behaviour). Addon-contributed verbs resolve through the same
+            // BuiltinActions.get path once their descriptors are registered.
             ActionType descriptor = BuiltinActions.get(type);
             if (descriptor != null) {
                 return descriptor.factory().create(json, contextId);
             }
-            return switch (type) {
-                // ---- Phase 2: New actions ----
-                case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
-
-                // ---- Item-state actions (interp expansion 2026-04-27) ----
-                // Apoli's item-NBT machinery — required by advanced packs
-                // (misch transfer rifle, MoR pixie wing toggles, origins-
-                // plus-plus inventory mutations). Each operates on stacks
-                // already in the player's inventory rather than on the
-                // player directly.
-                case "neoorigins:equipped_item_action"          -> parseEquippedItemAction(json);
-                case "neoorigins:modify_inventory"              -> parseModifyInventory(json);
-                case "neoorigins:raycast"                       -> parseRaycast(json, contextId);
-
-                // ---- Phase 0/1: new actions for consolidation (active_ability) ----
-                case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
-                case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
-                case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
-                case "neoorigins:chain_to_nearest"              -> parseChainToNearest(json, contextId);
-                case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
-
-                default -> failNoop(type, contextId, "unsupported action type");
-            };
+            return failNoop(type, contextId, "unsupported action type");
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
@@ -118,7 +103,7 @@ public final class ActionParser {
      * {@link com.cyberday1.neoorigins.compat.action.ItemActionParser}; only
      * the slot lookup happens at dispatch.
      */
-    private static EntityAction parseEquippedItemAction(JsonObject json) {
+    static EntityAction parseEquippedItemAction(JsonObject json) {
         String slotName = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
         net.minecraft.world.entity.EquipmentSlot slot;
         try {
@@ -158,7 +143,7 @@ public final class ActionParser {
      * <p>{@code limit: 0} or unset means "no limit — apply to all matches".
      * Pack authors use {@code limit: 1} for "consume one bullet" patterns.
      */
-    private static EntityAction parseModifyInventory(JsonObject json) {
+    static EntityAction parseModifyInventory(JsonObject json) {
         var itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
             ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(json.getAsJsonObject("item_condition"))
             : com.cyberday1.neoorigins.compat.condition.ItemCondition.alwaysTrue();
@@ -211,7 +196,7 @@ public final class ActionParser {
      *   <li>{@code miss_action} — runs when nothing is hit within range</li>
      * </ul>
      */
-    private static EntityAction parseRaycast(JsonObject json, String contextId) {
+    static EntityAction parseRaycast(JsonObject json, String contextId) {
         double distance = json.has("distance") ? json.get("distance").getAsDouble() : 10.0;
         boolean checkBlock = !json.has("block") || json.get("block").getAsBoolean();
         boolean checkEntity = json.has("entity") && json.get("entity").getAsBoolean();
@@ -413,7 +398,7 @@ public final class ActionParser {
         }
     }
 
-    private static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
+    static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
         // AoE: run entity_action against every ServerPlayer within the radius,
         // and for any apply_effect / damage leaves found in the inner action tree
         // (recursing through and/or), ALSO apply the leaf to non-player mobs in
@@ -530,7 +515,7 @@ public final class ActionParser {
     // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
 
     /** Parse {@code neoorigins:spawn_lingering_area}. See the 26.1 variant for field docs. */
-    private static EntityAction parseSpawnLingeringArea(JsonObject json, String contextId) {
+    static EntityAction parseSpawnLingeringArea(JsonObject json, String contextId) {
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final int intervalTicks = json.has("interval_ticks") ? json.get("interval_ticks").getAsInt() : 20;
@@ -571,7 +556,7 @@ public final class ActionParser {
     /**
      * Parse {@code neoorigins:spawn_black_hole}. See 26.1 twin for field docs.
      */
-    private static EntityAction parseSpawnBlackHole(JsonObject json, String contextId) {
+    static EntityAction parseSpawnBlackHole(JsonObject json, String contextId) {
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 6.0f;
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final float pullStrength = json.has("pull_strength") ? json.get("pull_strength").getAsFloat() : 1.5f;
@@ -601,7 +586,7 @@ public final class ActionParser {
     /**
      * Parse {@code neoorigins:spawn_tornado}. See 26.1 twin for field docs.
      */
-    private static EntityAction parseSpawnTornado(JsonObject json, String contextId) {
+    static EntityAction parseSpawnTornado(JsonObject json, String contextId) {
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 5.0f;
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final float pullStrength = json.has("pull_strength") ? json.get("pull_strength").getAsFloat() : 1.0f;
@@ -634,7 +619,7 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parseChainToNearest(JsonObject json, String contextId) {
+    static EntityAction parseChainToNearest(JsonObject json, String contextId) {
         // Pull the player toward the nearest entity matching `entity_condition` (default: any living).
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
         final float speed  = json.has("speed")  ? json.get("speed").getAsFloat()  : 1.0f;
@@ -662,7 +647,7 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parsePullEntities(JsonObject json, String contextId) {
+    static EntityAction parsePullEntities(JsonObject json, String contextId) {
         // Pull nearby entities toward the caster.
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 8f;
         final float strength = json.has("strength") ? json.get("strength").getAsFloat() : 0.5f;
