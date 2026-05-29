@@ -35,6 +35,12 @@ public final class OriginDraft {
     }
 
     // ── Identity ────────────────────────────────────────────────────────────
+    /** Target namespace for the written origin file. Defaults to
+     *  {@link #CUSTOM_NAMESPACE} so brand-new drafts stay in their own pack;
+     *  templates of vanilla origins set this back to {@code "neoorigins"} so
+     *  the resulting datapack overrides the shipped origin in place. The
+     *  Identity tab surfaces it as part of the id field (namespace:idPath). */
+    public String namespace = CUSTOM_NAMESPACE;
     /** Datapack path segment, e.g. {@code "my_origin"} → origins/origins/my_origin.json. */
     public String idPath = "my_origin";
     public String name = "";
@@ -59,7 +65,8 @@ public final class OriginDraft {
     public static final String CUSTOM_NAMESPACE = "neoorigins_custom";
 
     public ResourceLocation originId() {
-        return ResourceLocation.fromNamespaceAndPath(CUSTOM_NAMESPACE, idPath);
+        String ns = (namespace == null || namespace.isBlank()) ? CUSTOM_NAMESPACE : namespace;
+        return ResourceLocation.fromNamespaceAndPath(ns, idPath);
     }
 
     /**

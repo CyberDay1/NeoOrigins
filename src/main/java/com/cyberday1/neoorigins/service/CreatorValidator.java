@@ -86,14 +86,19 @@ public final class CreatorValidator {
         }
 
         // 2. collision with a shipped built-in origin (neoorigins:<idPath>).
-        try {
-            ResourceLocation builtin =
-                ResourceLocation.fromNamespaceAndPath("neoorigins", originId.getPath());
-            if (OriginDataManager.INSTANCE.getOrigin(builtin) != null) {
-                errors.add("id collides with built-in origin " + builtin
-                    + " — pick a different id path");
-            }
-        } catch (RuntimeException ignored) { /* path already validated above */ }
+        //    Skipped when the draft itself targets the neoorigins namespace —
+        //    that is the "load a template and Save to override the vanilla
+        //    origin" path, where the collision is the entire point.
+        if (!"neoorigins".equals(originId.getNamespace())) {
+            try {
+                ResourceLocation builtin =
+                    ResourceLocation.fromNamespaceAndPath("neoorigins", originId.getPath());
+                if (OriginDataManager.INSTANCE.getOrigin(builtin) != null) {
+                    errors.add("id collides with built-in origin " + builtin
+                        + " — pick a different id path");
+                }
+            } catch (RuntimeException ignored) { /* path already validated above */ }
+        }
 
         // 3. assembled origin parses through Origin.CODEC (id injected as the
         //    data manager does at OriginDataManager#apply).

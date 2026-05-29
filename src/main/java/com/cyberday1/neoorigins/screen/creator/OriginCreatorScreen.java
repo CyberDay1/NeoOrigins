@@ -42,6 +42,12 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         new IdentityTab(), new PowersTab(), new AppearanceTab(),
         new JsonPreviewTab());
     private int activeTab = 0;
+    /** Template picker overlay; owns its own input/render while open and
+     *  suppresses tab interaction (same pattern as the Identity tab's icon
+     *  picker). Null until first opened, then reused so the cached source
+     *  list isn't re-fetched per click. */
+    private final com.cyberday1.neoorigins.screen.creator.widget.TemplatePickerOverlay
+        templatePicker = new com.cyberday1.neoorigins.screen.creator.widget.TemplatePickerOverlay();
 
     private int panelX, panelW;
     private int contentX, contentY, contentW, contentH;
@@ -93,6 +99,17 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     private void rebuild() {
         clearWidgets();
 
+        // Template picker takes over the screen when open — register only its
+        // widgets so clicks/keys land on the overlay, not the tabs underneath.
+        if (templatePicker.isOpen()) {
+            int pw = Math.min(panelW - 20, 380);
+            int ph = Math.min(height - 80, 280);
+            int px = (width - pw) / 2;
+            int py = (height - ph) / 2;
+            templatePicker.build(this, px, py, pw, ph);
+            return;
+        }
+
         // Tab strip — one button per tab, evenly split across the panel.
         int n = tabs.size();
         int tabW = panelW / n;
@@ -103,6 +120,15 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
             addRenderableWidget(Button.builder(tabs.get(i).title(), b -> switchTo(idx))
                 .bounds(tx, TAB_STRIP_Y, tw - 2, TAB_H).build());
         }
+
+        // "Load template" sits in the tab-strip header, right-aligned, so it
+        // is reachable from any tab without taking a tab slot. Picker fills
+        // the draft fresh — current edits are kept until the user confirms
+        // a template (overlay confirm wipes powers + identity in one shot).
+        int loadBtnW = 80;
+        addRenderableWidget(Button.builder(
+                Component.literal("Load template"), b -> openTemplatePicker())
+            .bounds(panelX + panelW - loadBtnW, TITLE_Y - 2, loadBtnW, 14).build());
 
         CreatorTab tab = tabs.get(activeTab);
         tab.init(this, contentX, contentY + HELP_H, contentW, contentH - HELP_H);
@@ -142,10 +168,32 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         rebuild();
     }
 
+    private void openTemplatePicker() {
+        // Commit whatever the active tab has so closing the picker WITHOUT
+        // selecting a template leaves prior edits intact.
+        tabs.get(activeTab).pushToDraft();
+        templatePicker.open(
+            t -> {
+                com.cyberday1.neoorigins.service.OriginTemplateLoader.load(t, draft);
+                // Snap to Identity so the templated id + override hint is
+                // the first thing the user sees.
+                activeTab = 0;
+            },
+            this::rebuild);
+        rebuild();
+    }
+
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
         g.fill(0, 0, width, height, CreatorStyle.SCRIM);
         g.drawCenteredString(font, getTitle(), width / 2, TITLE_Y, CreatorStyle.TEXT);
+
+        if (templatePicker.isOpen()) {
+            templatePicker.renderBackdrop(g);
+            super.render(g, mouseX, mouseY, partial); // overlay widgets
+            templatePicker.render(g);
+            return;
+        }
 
         // Content panel frame.
         CreatorStyle.panel(g, contentX - 1, contentY - CONTENT_TOP_GAP / 2 - 1,
@@ -198,6 +246,10 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
+        if (templatePicker.isOpen()) {
+            if (templatePicker.onScroll(mx, my, sy)) return true;
+            return super.mouseScrolled(mx, my, sx, sy);
+        }
         if (tabs.get(activeTab).mouseScrolled(mx, my, sx, sy)) return true;
         return super.mouseScrolled(mx, my, sx, sy);
     }
@@ -216,8 +268,21 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     @Override public boolean isPauseScreen() { return false; }
 
     @Override
+    public boolean keyPressed(int key, int scan, int mods) {
+        // ESC closes only the template picker when it's open — otherwise the
+        // user loses the whole creator on a single mis-press while browsing
+        // templates. Vanilla's default keyPressed calls onClose() for ESC.
+        if (key == 256 /* GLFW_KEY_ESCAPE */ && templatePicker.isOpen()) {
+            templatePicker.close();
+            rebuild();
+            return true;
+        }
+        return super.keyPressed(key, scan, mods);
+    }
+
+    @Override
     public void onClose() {
-        tabs.get(activeTab).pushToDraft();
+        if (!templatePicker.isOpen()) tabs.get(activeTab).pushToDraft();
         Minecraft.getInstance().setScreen(parent);
     }
 }
