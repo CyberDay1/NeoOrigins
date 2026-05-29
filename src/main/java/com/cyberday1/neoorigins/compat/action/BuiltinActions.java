@@ -1561,6 +1561,98 @@ public final class BuiltinActions {
                     .doc("Number of weighted picks in one_of mode (default 1; ignored in each mode)."),
                 new FieldSpec("items", FormFieldSpec.Kind.ARRAY, false)
                     .doc("Drop entries — each: {item, count (int|[min,max]), chance (each-mode), weight (one_of-mode)}.")));
+
+        // apply_effect — add a mob effect. DUAL-SHAPE (lift-and-shift of
+        // parseApplyEffect; NOT normalized — both shapes parse exactly as before):
+        //   (1) effects[] array  — first entry's {effect/id, duration, amplifier,
+        //                          is_ambient, show_particles, show_icon} is used.
+        //   (2) flat single-effect — effect/id + the same fields read off the root.
+        // First entry wins if both `effect` and `effects` are present. The
+        // FieldSpec list is the oneOf-style union of both shapes' fields, mirroring
+        // the hand-written schema branch; effect id is required-ish but the parser
+        // no-ops silently when absent → modelled optional.
+        define("apply_effect",
+            (json, ctx) -> {
+                String effectId = null;
+                int duration = 200;
+                int amplifier = 0;
+                boolean ambient = false;
+                boolean particles = true;
+                boolean icon = true;
+
+                if (json.has("effects") && json.get("effects").isJsonArray()) {
+                    com.google.gson.JsonArray arr = json.getAsJsonArray("effects");
+                    if (!arr.isEmpty() && arr.get(0).isJsonObject()) {
+                        com.google.gson.JsonObject eff = arr.get(0).getAsJsonObject();
+                        effectId = resolveEffectId(eff);
+                        duration = eff.has("duration") ? eff.get("duration").getAsInt() : duration;
+                        amplifier = eff.has("amplifier") ? eff.get("amplifier").getAsInt() : amplifier;
+                        ambient = eff.has("is_ambient") && eff.get("is_ambient").getAsBoolean();
+                        particles = !eff.has("show_particles") || eff.get("show_particles").getAsBoolean();
+                        icon = !eff.has("show_icon") || eff.get("show_icon").getAsBoolean();
+                    }
+                } else {
+                    effectId = resolveEffectId(json);
+                    duration = json.has("duration") ? json.get("duration").getAsInt() : duration;
+                    amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : amplifier;
+                    ambient = json.has("is_ambient") && json.get("is_ambient").getAsBoolean();
+                    particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
+                    icon = !json.has("show_icon") || json.get("show_icon").getAsBoolean();
+                }
+
+                if (effectId == null) return EntityAction.noop();
+                ResourceLocation effId = ResourceLocation.parse(effectId);
+                var effectOpt = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getOptional(effId);
+                if (effectOpt.isEmpty()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] apply_effect: unknown mob effect '{}' — action will no-op", effId);
+                    return EntityAction.noop();
+                }
+                var effectHolder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
+                final int fDur = duration;
+                final int fAmp = amplifier;
+                final boolean fAmb = ambient;
+                final boolean fPart = particles;
+                final boolean fIcon = icon;
+                return player -> player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                    effectHolder, fDur, fAmp, fAmb, fPart, fIcon));
+            },
+            List.of(
+                // Shape 1 (flat single-effect):
+                new FieldSpec("effect", FormFieldSpec.Kind.STRING, false)
+                    .doc("Single effect id (use this OR effects[]; `id` accepted as a synonym)."),
+                new FieldSpec("id", FormFieldSpec.Kind.STRING, false)
+                    .doc("Alias for effect (flat shape)."),
+                new FieldSpec("duration", FormFieldSpec.Kind.INTEGER, false).def(200).range(1.0, null)
+                    .doc("Effect duration in ticks (default 200; honoured when using the 'effect' scalar)."),
+                new FieldSpec("amplifier", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
+                    .doc("Effect amplifier (default 0 = level I)."),
+                new FieldSpec("is_ambient", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Reduced particle visibility (default false)."),
+                new FieldSpec("show_particles", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("Show effect particles (default true)."),
+                new FieldSpec("show_icon", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("Show HUD icon (default true)."),
+                // Shape 2 (effects[] array). First entry wins if both are present;
+                // each entry carries its own {effect/id, duration, amplifier,
+                // is_ambient, show_particles, show_icon}.
+                new FieldSpec("effects", FormFieldSpec.Kind.ARRAY, false)
+                    .doc("Array of {effect, duration, amplifier, is_ambient, show_particles, show_icon} objects. First entry wins if both 'effect' and 'effects' are present.")));
+    }
+
+    /**
+     * Resolve a mob-effect id from {@code effect} or the {@code id} synonym on the
+     * given object. Lift-and-shift of {@code ActionParser.resolveEffectId} — used
+     * by the dual-shape {@code apply_effect} descriptor for both the flat root and
+     * each {@code effects[]} entry.
+     */
+    private static String resolveEffectId(com.google.gson.JsonObject obj) {
+        if (obj.has("effect") && obj.get("effect").isJsonPrimitive()) {
+            return obj.get("effect").getAsString();
+        }
+        if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
+            return obj.get("id").getAsString();
+        }
+        return null;
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
