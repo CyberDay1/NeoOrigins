@@ -173,7 +173,9 @@ public class OriginCommand {
                                         IntegerArgumentType.getInteger(ctx, "count"))))))))
                 .then(Commands.literal("reload")
                     .requires(REQUIRE_GM)
-                    .executes(ctx -> executeReload(ctx)));
+                    .executes(ctx -> executeReload(ctx)))
+                // ── Developer harness (permission 2) ──────────────────────────
+                .then(DebugCommand.build());
     }
 
     // ── Evolution commands ──────────────────────────────────────────────
