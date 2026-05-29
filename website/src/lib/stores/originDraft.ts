@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { browser } from '$app/environment';
 
 /**
  * In-memory draft model for the Origin editor.
@@ -134,8 +135,205 @@ export function fullId(draft: Pick<OriginDraft, 'namespace' | 'path'>): string {
 	return `${draft.namespace}:${draft.path}`;
 }
 
+// ── target Minecraft version / pack_format ───────────────────────────────
+//
+// Phase 2 toggle: 1.21.1 → 48, 26.1 → 84. The editor is schema-driven and
+// does NOT translate power types between version lines — the user picks
+// their target version and is responsible for sticking to power types that
+// exist in that version. The choice is only used to stamp `pack.mcmeta`
+// in the export bundle (see `$lib/datapack/export.ts`).
+
+export type TargetMcVersion = '1.21.1' | '26.1';
+
+export interface TargetVersionOption {
+	id: TargetMcVersion;
+	label: string;
+	packFormat: number;
+}
+
+export const TARGET_VERSIONS: readonly TargetVersionOption[] = [
+	{ id: '1.21.1', label: 'MC 1.21.1', packFormat: 48 },
+	{ id: '26.1', label: 'MC 26.1', packFormat: 84 }
+] as const;
+
+export const DEFAULT_TARGET_VERSION: TargetMcVersion = '1.21.1';
+
+export function packFormatFor(version: TargetMcVersion): number {
+	return TARGET_VERSIONS.find((v) => v.id === version)?.packFormat ?? 48;
+}
+
+export const targetVersion = writable<TargetMcVersion>(DEFAULT_TARGET_VERSION);
+
+// ── persisted UI state (active tab) ──────────────────────────────────────
+//
+// Tab index is stored alongside the draft so a refresh lands the user back
+// on whichever tab they were editing. Kept as a writable so `+page.svelte`
+// can bind to it without an extra plumbing layer.
+
+export type EditorTab = 'identity' | 'powers' | 'upgrades' | 'json';
+export const KNOWN_TABS: readonly EditorTab[] = [
+	'identity',
+	'powers',
+	'upgrades',
+	'json'
+] as const;
+
+export const activeTab = writable<EditorTab>('identity');
+
+// ── draft store ──────────────────────────────────────────────────────────
+
 export const draft = writable<OriginDraft>(createDraft());
 
 export function resetDraft(): void {
 	draft.set(createDraft());
+	targetVersion.set(DEFAULT_TARGET_VERSION);
+	activeTab.set('identity');
+}
+
+// ── localStorage autosave ────────────────────────────────────────────────
+//
+// Single key, versioned suffix — bump the suffix if the persisted shape
+// ever stops being assignable to the current draft + target + tab.
+// Writes are debounced ~300 ms so per-keystroke churn doesn't hammer
+// storage. Reads happen once on `initPersistence()` (called from the
+// editor route's `onMount`). A corrupt or older payload is discarded
+// silently — the editor falls back to a fresh draft.
+//
+// We do NOT autosave anything sensitive: the draft is only namespace,
+// id, display strings, icon glyph, layer choice, and form-driven power
+// fields. No credentials, no PII.
+
+export const STORAGE_KEY = 'neoorigins.editor.draft.v1';
+const DEBOUNCE_MS = 300;
+
+interface PersistedShape {
+	draft: OriginDraft;
+	targetVersion: TargetMcVersion;
+	activeTab: EditorTab;
+}
+
+function isTargetVersion(v: unknown): v is TargetMcVersion {
+	return v === '1.21.1' || v === '26.1';
+}
+
+function isEditorTab(v: unknown): v is EditorTab {
+	return (
+		v === 'identity' || v === 'powers' || v === 'upgrades' || v === 'json'
+	);
+}
+
+function looksLikeDraft(d: unknown): d is OriginDraft {
+	if (!d || typeof d !== 'object') return false;
+	const o = d as Record<string, unknown>;
+	return (
+		typeof o.namespace === 'string' &&
+		typeof o.path === 'string' &&
+		typeof o.layerId === 'string' &&
+		typeof o.name === 'string' &&
+		typeof o.description === 'string' &&
+		typeof o.icon === 'string' &&
+		(o.impact === 'none' ||
+			o.impact === 'low' ||
+			o.impact === 'medium' ||
+			o.impact === 'high') &&
+		typeof o.order === 'number' &&
+		typeof o.unchoosable === 'boolean' &&
+		typeof o.hidden === 'boolean' &&
+		Array.isArray(o.powers)
+	);
+}
+
+let persistenceInitialized = false;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let suppressWrites = false;
+
+function scheduleSave(snapshot: PersistedShape): void {
+	if (!browser || suppressWrites) return;
+	if (saveTimer) clearTimeout(saveTimer);
+	saveTimer = setTimeout(() => {
+		saveTimer = null;
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+		} catch {
+			// QuotaExceeded / disabled storage — silently drop. The editor
+			// continues to work; the user just loses cross-session restore.
+		}
+	}, DEBOUNCE_MS);
+}
+
+/**
+ * Restore the persisted draft / target version / active tab from
+ * localStorage if a valid entry exists, then subscribe the three stores
+ * so subsequent writes are autosaved (debounced).
+ *
+ * Idempotent — safe to call from `onMount` even across HMR. Returns
+ * silently on the server (no `window`).
+ */
+export function initPersistence(): void {
+	if (!browser || persistenceInitialized) return;
+	persistenceInitialized = true;
+
+	suppressWrites = true;
+	try {
+		const raw = localStorage.getItem(STORAGE_KEY);
+		if (raw) {
+			const parsed = JSON.parse(raw) as unknown;
+			if (parsed && typeof parsed === 'object') {
+				const p = parsed as Record<string, unknown>;
+				if (looksLikeDraft(p.draft)) {
+					draft.set(p.draft);
+				}
+				if (isTargetVersion(p.targetVersion)) {
+					targetVersion.set(p.targetVersion);
+				}
+				if (isEditorTab(p.activeTab)) {
+					activeTab.set(p.activeTab);
+				}
+			}
+		}
+	} catch {
+		// Corrupt / older / non-JSON payload — discard silently and start
+		// fresh. The next write will overwrite the bad blob.
+	} finally {
+		suppressWrites = false;
+	}
+
+	// Snapshot reader — assembled from the three live store values so we
+	// don't need a derived store just for serialization. The subscribers
+	// below all funnel through here.
+	let currentDraft = createDraft();
+	let currentVersion: TargetMcVersion = DEFAULT_TARGET_VERSION;
+	let currentTab: EditorTab = 'identity';
+
+	draft.subscribe((v) => {
+		currentDraft = v;
+		scheduleSave({ draft: currentDraft, targetVersion: currentVersion, activeTab: currentTab });
+	});
+	targetVersion.subscribe((v) => {
+		currentVersion = v;
+		scheduleSave({ draft: currentDraft, targetVersion: currentVersion, activeTab: currentTab });
+	});
+	activeTab.subscribe((v) => {
+		currentTab = v;
+		scheduleSave({ draft: currentDraft, targetVersion: currentVersion, activeTab: currentTab });
+	});
+}
+
+/**
+ * Wipe the persisted draft from localStorage and reload the page so the
+ * editor reboots from defaults. Caller is responsible for `confirm()` —
+ * this is destructive.
+ */
+export function clearPersistedDraft(): void {
+	if (!browser) return;
+	if (saveTimer) {
+		clearTimeout(saveTimer);
+		saveTimer = null;
+	}
+	try {
+		localStorage.removeItem(STORAGE_KEY);
+	} catch {
+		// Ignore — we're about to reload anyway.
+	}
+	window.location.reload();
 }

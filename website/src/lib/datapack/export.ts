@@ -25,14 +25,19 @@ import { serializeOrigin } from '$lib/schema/originSerializer';
 import type { OriginDraft } from '$lib/stores/originDraft';
 
 /**
- * Datapack `pack_format` for MC 1.21.1 — the vanilla value is `48`,
- * and that's what user datapacks dropped into `world/datapacks/` must
- * declare or the game refuses to load them. The mod jar's own
+ * Default datapack `pack_format` for MC 1.21.1 — the vanilla value is
+ * `48`, and that's what user datapacks dropped into `world/datapacks/`
+ * must declare or the game refuses to load them. The mod jar's own
  * `pack.mcmeta` uses `84` only because it pairs that with
  * `supported_formats: [0, 2147483647]` to bypass MC's version gate;
  * regular datapacks don't get that escape hatch, so we ship `48` here.
+ *
+ * Phase 2 introduced a target-version toggle (1.21.1 → 48, 26.1 → 84);
+ * the UI passes the chosen value through to `exportDatapack`. This
+ * constant remains the fallback for callers that don't specify one
+ * (e.g. existing tests).
  */
-const PACK_FORMAT = 48;
+const DEFAULT_PACK_FORMAT = 48;
 
 /**
  * Default filename used when the draft has no namespaced id yet.
@@ -58,8 +63,16 @@ export function suggestedFilename(draft: OriginDraft): string {
 /**
  * Build a complete datapack `.zip` Blob from the current draft.
  * Throws if the serializer rejects the draft.
+ *
+ * `packFormat` defaults to {@link DEFAULT_PACK_FORMAT} (48, MC 1.21.1).
+ * Pass `84` for MC 26.1 — the UI's version toggle plumbs the user's
+ * choice through here (see `$lib/stores/originDraft.ts`'s
+ * `TARGET_VERSIONS`).
  */
-export async function exportDatapack(draft: OriginDraft): Promise<Blob> {
+export async function exportDatapack(
+	draft: OriginDraft,
+	packFormat: number = DEFAULT_PACK_FORMAT
+): Promise<Blob> {
 	const bundle = serializeOrigin(draft);
 
 	const description = (draft.name?.trim() || 'Custom NeoOrigins datapack') +
@@ -67,7 +80,7 @@ export async function exportDatapack(draft: OriginDraft): Promise<Blob> {
 
 	const mcmeta = {
 		pack: {
-			pack_format: PACK_FORMAT,
+			pack_format: packFormat,
 			description
 		}
 	};
