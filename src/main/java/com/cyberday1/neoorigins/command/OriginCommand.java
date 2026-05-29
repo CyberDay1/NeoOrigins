@@ -174,7 +174,9 @@ public class OriginCommand {
                                     IntegerArgumentType.getInteger(ctx, "count"))))))))
             .then(Commands.literal("reload")
                 .requires(cs -> cs.hasPermission(2))
-                .executes(OriginCommand::executeReload));
+                .executes(OriginCommand::executeReload))
+            // ── Developer harness (permission 2) ──────────────────────────
+            .then(DebugCommand.build());
     }
 
     // ── Evolution commands ──────────────────────────────────────────────
