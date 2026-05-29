@@ -76,14 +76,15 @@ public abstract class LocalPlayerNaturalGlideMixin {
             || self.hasEffect(MobEffects.LEVITATION)) {
             return false;
         }
-        // Fall-distance gate (GitHub #94): aiStep runs every tick, so without
-        // a threshold a Phantom player sprinting over uneven terrain hits
-        // brief sub-tick airborne frames each of which would start a one-tick
-        // fall-fly cycle — visible as a rapid screen bounce. Requiring real
-        // fall distance filters those out without disturbing the
-        // walk-off-cliff or jump-then-glide gestures (both accumulate
-        // fallDistance within the first tick or two of being airborne).
-        if (self.fallDistance < 1.0F) return false;
+        // Previously gated on fallDistance >= 1.0F (GitHub #94 Phantom jitter
+        // fix) — but fallDistance stays 0 during the upward portion of a jump,
+        // so jumping from flat ground to start glide would silently fail and
+        // require a SECOND jump press mid-fall. The aiStep call site already
+        // gates on rising-edge of the jump key (var2 && !var3), which is the
+        // real intent signal — terrain micro-bumps don't fire it unless the
+        // player actively taps jump. If Phantom-jitter resurfaces we'll add a
+        // narrower gate (e.g. "airborne for >= 1 full tick") rather than the
+        // half-second fall-distance window.
         self.startFallFlying();
         return true;
     }
