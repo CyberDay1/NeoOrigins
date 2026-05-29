@@ -93,8 +93,6 @@ public final class ActionParser {
                 case "neoorigins:delay"                         -> parseDelay(json, contextId);
                 case "neoorigins:execute_command"               -> parseExecuteCommand(json);
                 case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
-                case "neoorigins:clear_effect"                  -> parseClearEffect(json);
-                case "neoorigins:play_sound"                    -> parsePlaySound(json);
                 case "neoorigins:change_resource",
                      "neoorigins:modify_resource"               -> parseChangeResource(json);
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
@@ -104,7 +102,6 @@ public final class ActionParser {
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
                 case "neoorigins:grant_power"                   -> parseGrantPower(json);
                 case "neoorigins:revoke_power"                  -> parseRevokePower(json);
-                case "neoorigins:emit_game_event"               -> parseEmitGameEvent(json);
                 case "neoorigins:drop_items"                    -> parseDropItems(json);
 
                 // ---- Item-state actions (interp expansion 2026-04-27) ----
@@ -156,7 +153,6 @@ public final class ActionParser {
                 case "neoorigins:passenger_action"              -> parsePassengerAction(json, contextId);
                 case "neoorigins:spawn_effect_cloud"            -> parseSpawnEffectCloud(json);
                 case "neoorigins:offset"                        -> parseOffset(json, contextId);
-                case "neoorigins:add_xp"                        -> parseAddXp(json);
 
                 // ---- KubeJS bridge ----
                 // Soft dep: when KubeJS is absent, no callback can be registered,
@@ -711,43 +707,6 @@ public final class ActionParser {
         return null;
     }
 
-    private static EntityAction parseClearEffect(JsonObject json) {
-        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
-        if (effectId == null) {
-            return player -> player.removeAllEffects();
-        }
-        // Cache mob effect holder at parse time
-        ResourceLocation effId = ResourceLocation.parse(effectId);
-        var effectOpt = BuiltInRegistries.MOB_EFFECT.getOptional(effId);
-        if (effectOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] clear_effect: unknown mob effect '{}' — action will no-op", effId);
-            return EntityAction.noop();
-        }
-        var effectHolder = BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effectOpt.get());
-        return player -> player.removeEffect(effectHolder);
-    }
-
-    private static EntityAction parsePlaySound(JsonObject json) {
-        String soundId = json.has("sound") ? json.get("sound").getAsString() : null;
-        if (soundId == null) return EntityAction.noop();
-        float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
-        float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
-        // Cache sound at parse time
-        ResourceLocation sId = ResourceLocation.parse(soundId);
-        var soundOpt = BuiltInRegistries.SOUND_EVENT.getOptional(sId);
-        if (soundOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] play_sound: unknown sound event '{}' — action will no-op", sId);
-            return EntityAction.noop();
-        }
-        var sound = soundOpt.get();
-        return player -> {
-            if (player.level() instanceof ServerLevel sl) {
-                sl.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    sound, net.minecraft.sounds.SoundSource.PLAYERS, volume, pitch);
-            }
-        };
-    }
-
     private static EntityAction parseChangeResource(JsonObject json) {
         String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
         if (resourceId == null) return EntityAction.noop();
@@ -1068,24 +1027,6 @@ public final class ActionParser {
                 com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
             }
         };
-    }
-
-    private static EntityAction parseEmitGameEvent(JsonObject json) {
-        String eventId = json.has("event") ? json.get("event").getAsString()
-                       : json.has("game_event") ? json.get("game_event").getAsString() : null;
-        if (eventId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: missing event id — action will no-op");
-            return EntityAction.noop();
-        }
-        ResourceLocation eid = ResourceLocation.parse(eventId);
-        var evOpt = BuiltInRegistries.GAME_EVENT.getOptional(eid);
-        if (evOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: unknown event '{}' — action will no-op", eid);
-            return EntityAction.noop();
-        }
-        final var gameEvent = evOpt.get();
-        final var gameEventHolder = BuiltInRegistries.GAME_EVENT.wrapAsHolder(gameEvent);
-        return player -> player.level().gameEvent(player, gameEventHolder, player.position());
     }
 
     // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
@@ -1754,16 +1695,6 @@ public final class ActionParser {
         // by running the inner action as-is (it reads player.blockPosition() or similar).
         final EntityAction fInner = inner;
         return fInner; // Pass through — offset is architectural in Apoli, our actions already read position from context
-    }
-
-    /** origins:add_xp — grant experience points or levels. */
-    private static EntityAction parseAddXp(JsonObject json) {
-        int points = json.has("points") ? json.get("points").getAsInt() : 0;
-        int levels = json.has("levels") ? json.get("levels").getAsInt() : 0;
-        return player -> {
-            if (points != 0) player.giveExperiencePoints(points);
-            if (levels != 0) player.giveExperienceLevels(levels);
-        };
     }
 
     private static EntityAction failNoop(String type, String contextId, String detail) {
