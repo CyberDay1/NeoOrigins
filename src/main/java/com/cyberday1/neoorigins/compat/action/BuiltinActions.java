@@ -933,6 +933,73 @@ public final class BuiltinActions {
                     .doc("Effect duration in ticks (default 100)."),
                 new FieldSpec("amplifier", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
                     .doc("Effect amplifier level (default 0).")));
+
+        // toggle — flip (or set, if `value` is given) the toggle state for a power
+        // id. Lift-and-shift of parseToggle. `power` is the hard requirement; a
+        // missing/blank id records an unsupported-action warning (via
+        // ActionParser.failNoop, contextId "root" to match the original) and no-ops.
+        define("toggle",
+            (json, ctx) -> {
+                String powerId = json.has("power") ? json.get("power").getAsString() : null;
+                if (powerId == null || powerId.isBlank()) {
+                    return ActionParser.failNoop("neoorigins:toggle", "root", "missing 'power' field");
+                }
+                final Boolean explicit = json.has("value") ? json.get("value").getAsBoolean() : null;
+                final String key = powerId;
+                return player -> {
+                    if (explicit != null) com.cyberday1.neoorigins.compat.Toggles.setOn(player, key, explicit);
+                    else com.cyberday1.neoorigins.compat.Toggles.flip(player, key);
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
+                    .doc("Power id whose toggle state to flip (or set)."),
+                new FieldSpec("value", FormFieldSpec.Kind.BOOLEAN, false)
+                    .doc("If present, sets the toggle to this value instead of flipping it.")));
+
+        // add_to_set — add the current bientity target's UUID to a named entity-set
+        // on the actor. Lift-and-shift of parseAddToSet. `set` is the hard
+        // requirement; a missing/blank name records an unsupported-action warning
+        // (via failNoop, using the dispatch contextId) and no-ops. Also no-ops when
+        // no bientity context is active.
+        define("add_to_set",
+            (json, ctx) -> {
+                String setName = json.has("set") ? json.get("set").getAsString() : null;
+                if (setName == null || setName.isBlank()) {
+                    return ActionParser.failNoop("neoorigins:add_to_set", ctx, "missing required field 'set'");
+                }
+                final String key = setName;
+                return player -> {
+                    var le = ActionParser.extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    if (le == null) return;
+                    var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                    data.addToEntitySet(player, key, le.getUUID());
+                };
+            },
+            List.of(new FieldSpec("set", FormFieldSpec.Kind.STRING, true)
+                .doc("Name of the actor's entity-set to add the bientity target's UUID to.")));
+
+        // remove_from_set — remove the current bientity target's UUID from a named
+        // entity-set on the actor. Lift-and-shift of parseRemoveFromSet. `set` is the
+        // hard requirement; a missing/blank name records an unsupported-action
+        // warning (via failNoop, using the dispatch contextId) and no-ops. Also
+        // no-ops when no bientity context is active.
+        define("remove_from_set",
+            (json, ctx) -> {
+                String setName = json.has("set") ? json.get("set").getAsString() : null;
+                if (setName == null || setName.isBlank()) {
+                    return ActionParser.failNoop("neoorigins:remove_from_set", ctx, "missing required field 'set'");
+                }
+                final String key = setName;
+                return player -> {
+                    var le = ActionParser.extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    if (le == null) return;
+                    var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                    data.removeFromEntitySet(player, key, le.getUUID());
+                };
+            },
+            List.of(new FieldSpec("set", FormFieldSpec.Kind.STRING, true)
+                .doc("Name of the actor's entity-set to remove the bientity target's UUID from.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

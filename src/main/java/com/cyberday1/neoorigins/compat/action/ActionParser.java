@@ -121,13 +121,6 @@ public final class ActionParser {
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
                 case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
 
-                // ---- Phase 6.5: context-aware verbs (read from ActionContextHolder) ----
-                case "neoorigins:toggle"                        -> parseToggle(json);
-
-                // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
-                case "neoorigins:add_to_set"                    -> parseAddToSet(json, contextId);
-                case "neoorigins:remove_from_set"               -> parseRemoveFromSet(json, contextId);
-
                 // ---- Bientity→entity unwrappers ----
                 // In Apoli these operate on (actor, target) pairs; in our model
                 // the dispatch target is already the correct entity, so we just
@@ -1166,27 +1159,15 @@ public final class ActionParser {
         return player -> com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks.invoke(id, player);
     }
 
-    /** Flip (or set, if `value` is given) the toggle state for the named power id. */
-    private static EntityAction parseToggle(JsonObject json) {
-        String powerId = json.has("power") ? json.get("power").getAsString() : null;
-        if (powerId == null || powerId.isBlank()) {
-            return failNoop("neoorigins:toggle", "root", "missing 'power' field");
-        }
-        final Boolean explicit = json.has("value") ? json.get("value").getAsBoolean() : null;
-        final String key = powerId;
-        return player -> {
-            if (explicit != null) com.cyberday1.neoorigins.compat.Toggles.setOn(player, key, explicit);
-            else com.cyberday1.neoorigins.compat.Toggles.flip(player, key);
-        };
-    }
-
     /**
      * Extract the bientity "target" entity from the current dispatch context.
      * Returns null outside any bientity-relevant context, causing entity-set mutators
      * to no-op silently. Mirrors {@code ConditionParser.extractTarget} — any context
      * shape that carries a target LivingEntity is honoured.
      */
-    private static net.minecraft.world.entity.LivingEntity extractBientityTarget(Object ctx) {
+    // Package-private so the migrated add_to_set / remove_from_set descriptors in
+    // BuiltinActions can resolve the bientity target identically.
+    static net.minecraft.world.entity.LivingEntity extractBientityTarget(Object ctx) {
         if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc) {
             var e = htc.source().getEntity();
             return e instanceof net.minecraft.world.entity.LivingEntity le ? le : null;
@@ -1204,42 +1185,6 @@ public final class ActionParser {
             }
         }
         return null;
-    }
-
-    /**
-     * Add the current bientity target's UUID to the actor player's named entity-set.
-     * No-op if no bientity context is active or the {@code set} field is missing.
-     */
-    private static EntityAction parseAddToSet(JsonObject json, String contextId) {
-        String setName = json.has("set") ? json.get("set").getAsString() : null;
-        if (setName == null || setName.isBlank()) {
-            return failNoop("neoorigins:add_to_set", contextId, "missing required field 'set'");
-        }
-        final String key = setName;
-        return player -> {
-            var le = extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
-            if (le == null) return;
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            data.addToEntitySet(player, key, le.getUUID());
-        };
-    }
-
-    /**
-     * Remove the current bientity target's UUID from the actor player's named entity-set.
-     * No-op if no bientity context is active or the {@code set} field is missing.
-     */
-    private static EntityAction parseRemoveFromSet(JsonObject json, String contextId) {
-        String setName = json.has("set") ? json.get("set").getAsString() : null;
-        if (setName == null || setName.isBlank()) {
-            return failNoop("neoorigins:remove_from_set", contextId, "missing required field 'set'");
-        }
-        final String key = setName;
-        return player -> {
-            var le = extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
-            if (le == null) return;
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            data.removeFromEntitySet(player, key, le.getUUID());
-        };
     }
 
     /**
@@ -1354,7 +1299,11 @@ public final class ActionParser {
         return fInner; // Pass through — offset is architectural in Apoli, our actions already read position from context
     }
 
-    private static EntityAction failNoop(String type, String contextId, String detail) {
+    // Package-private so migrated descriptors in BuiltinActions can reproduce the
+    // exact missing-required-field behaviour (records to CompatWarningCollector +
+    // debug system message), rather than a bare EntityAction.noop() that would drop
+    // the warning side-effect.
+    static EntityAction failNoop(String type, String contextId, String detail) {
         com.cyberday1.neoorigins.compat.CompatWarningCollector
             .recordUnsupportedAction(type, contextId, detail);
         final String finalType = type;
