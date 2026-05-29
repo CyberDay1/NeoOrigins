@@ -100,11 +100,7 @@ public final class ActionParser {
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
 
                 // ---- Phase 2: New actions ----
-                case "neoorigins:damage"                        -> parseDamage(json);
                 case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
-                case "neoorigins:give"                          -> parseGive(json);
-                case "neoorigins:launch"                        -> parseLaunch(json);
-                case "neoorigins:set_block"                     -> parseSetBlock(json);
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
                 case "neoorigins:grant_power"                   -> parseGrantPower(json);
                 case "neoorigins:revoke_power"                  -> parseRevokePower(json);
@@ -788,30 +784,6 @@ public final class ActionParser {
 
     // ---- Phase 2: New action parsers ----
 
-    private static EntityAction parseDamage(JsonObject json) {
-        float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
-        // Determine damage source type
-        String sourceType = "";
-        if (json.has("source") && json.get("source").isJsonObject()) {
-            JsonObject src = json.getAsJsonObject("source");
-            sourceType = src.has("name") ? src.get("name").getAsString() : "";
-        }
-        final String fSrc = sourceType;
-        return player -> {
-            var dmgSrc = switch (fSrc) {
-                case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
-                case "lava"         -> player.level().damageSources().lava();
-                case "magic"        -> player.level().damageSources().magic();
-                case "starve"       -> player.level().damageSources().starve();
-                case "drown"        -> player.level().damageSources().drown();
-                case "freeze"       -> player.level().damageSources().freeze();
-                case "wither"       -> player.level().damageSources().wither();
-                default             -> player.level().damageSources().generic();
-            };
-            player.hurt(dmgSrc, amount);
-        };
-    }
-
     private static EntityAction parseSpawnEntity(JsonObject json) {
         String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
         if (entityId == null) return EntityAction.noop();
@@ -859,59 +831,6 @@ public final class ActionParser {
                 entity.setPos(player.getX() + dx, player.getY(), player.getZ() + dz);
                 sl.addFreshEntity(entity);
             }
-        };
-    }
-
-    private static EntityAction parseGive(JsonObject json) {
-        // Give an item stack to the player
-        JsonObject stack = json.has("stack") ? json.getAsJsonObject("stack") : json;
-        String itemId = stack.has("item") ? stack.get("item").getAsString() : null;
-        if (itemId == null) return EntityAction.noop();
-        int count = stack.has("count") ? stack.get("count").getAsInt() : 1;
-        // Cache item at parse time
-        ResourceLocation iid = ResourceLocation.parse(itemId);
-        var itemOpt = BuiltInRegistries.ITEM.getOptional(iid);
-        if (itemOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] give: unknown item '{}' — action will no-op", iid);
-            return EntityAction.noop();
-        }
-        var item = itemOpt.get();
-        return player -> {
-            ItemStack itemStack = new ItemStack(item, count);
-            if (!player.getInventory().add(itemStack)) {
-                // Drop on ground if inventory full
-                ItemEntity drop = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), itemStack);
-                player.level().addFreshEntity(drop);
-            }
-        };
-    }
-
-    private static EntityAction parseLaunch(JsonObject json) {
-        float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
-        return player -> {
-            player.push(0, speed, 0);
-            player.hurtMarked = true;
-        };
-    }
-
-    private static EntityAction parseSetBlock(JsonObject json) {
-        String blockId = json.has("block") ? json.get("block").getAsString() : null;
-        if (blockId == null) return EntityAction.noop();
-        // Substitute known missing blocks from other mods
-        if (blockId.equals("origins:temporary_cobweb")) blockId = "minecraft:cobweb";
-        // Cache block at parse time
-        ResourceLocation bid = ResourceLocation.parse(blockId);
-        var blockOpt = BuiltInRegistries.BLOCK.getOptional(bid);
-        if (blockOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] set_block: unknown block '{}' — action will no-op", bid);
-            return EntityAction.noop();
-        }
-        Block block = blockOpt.get();
-        boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
-        return player -> {
-            BlockPos pos = player.blockPosition();
-            if (keep && !player.level().getBlockState(pos).isAir()) return;
-            player.level().setBlock(pos, block.defaultBlockState(), 3);
         };
     }
 
