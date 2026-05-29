@@ -98,7 +98,6 @@ public final class ActionParser {
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
 
                 // ---- Phase 2: New actions ----
-                case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
                 case "neoorigins:drop_items"                    -> parseDropItems(json);
 
@@ -120,7 +119,6 @@ public final class ActionParser {
                 case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
                 case "neoorigins:chain_to_nearest"              -> parseChainToNearest(json, contextId);
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
-                case "neoorigins:throw_target"                  -> parseThrowTarget(json);
                 case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
 
                 // ---- Phase 6.5: context-aware verbs (read from ActionContextHolder) ----
@@ -146,7 +144,6 @@ public final class ActionParser {
                 // ---- Origins++ compat expansion ----
                 case "neoorigins:choice"                        -> parseChoice(json, contextId);
                 case "neoorigins:passenger_action"              -> parsePassengerAction(json, contextId);
-                case "neoorigins:spawn_effect_cloud"            -> parseSpawnEffectCloud(json);
                 case "neoorigins:offset"                        -> parseOffset(json, contextId);
 
                 // ---- KubeJS bridge ----
@@ -738,56 +735,6 @@ public final class ActionParser {
 
     // ---- Phase 2: New action parsers ----
 
-    private static EntityAction parseSpawnEntity(JsonObject json) {
-        String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
-        if (entityId == null) return EntityAction.noop();
-        ResourceLocation eid = ResourceLocation.parse(entityId);
-        // Resolve at parse time so a typo logs once at load, not NPEs on every activation.
-        var entityTypeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(eid);
-        if (entityTypeOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: unknown entity type '{}' — action will no-op", eid);
-            return EntityAction.noop();
-        }
-        final EntityType<?> entityType = entityTypeOpt.get();
-        // v2.1.6: optional `quantity` (integer ≥1, default 1) — when >1 spawn N copies
-        // with a small horizontal jitter (±0.5 block) so they don't stack at the
-        // exact same point. Non-positive or non-integer values WARN and clamp to 1
-        // (parser-canonical tolerance: bad data must not no-op a power that worked).
-        int q = 1;
-        if (json.has("quantity")) {
-            JsonElement qEl = json.get("quantity");
-            if (qEl.isJsonPrimitive() && qEl.getAsJsonPrimitive().isNumber()) {
-                int requested = qEl.getAsInt();
-                if (requested < 1) {
-                    NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: 'quantity' must be ≥1 (got {}), clamping to 1", requested);
-                } else {
-                    q = requested;
-                }
-            } else {
-                NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: 'quantity' must be an integer (got {}), clamping to 1", qEl);
-            }
-        }
-        final int quantity = q;
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return;
-            for (int i = 0; i < quantity; i++) {
-                var entity = entityType.create(sl);
-                if (entity == null) continue;
-                double dx = 0.0, dz = 0.0;
-                if (quantity > 1) {
-                    // ±0.5 block horizontal jitter so a stack of N entities
-                    // doesn't visually merge into a single sprite at the spawn
-                    // point. RandomSource.nextDouble() is [0,1) → shift to [-0.5,0.5).
-                    var rng = sl.getRandom();
-                    dx = rng.nextDouble() - 0.5;
-                    dz = rng.nextDouble() - 0.5;
-                }
-                entity.setPos(player.getX() + dx, player.getY(), player.getZ() + dz);
-                sl.addFreshEntity(entity);
-            }
-        };
-    }
-
     private record FanoutEffect(net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> holder,
                                 int duration, int amplifier, boolean ambient,
                                 boolean particles, boolean icon) {}
@@ -1181,40 +1128,6 @@ public final class ActionParser {
      * fallback). Force is split into a horizontal magnitude and a separate
      * vertical "lift" so packs can tune throw arc independently of distance.
      */
-    private static EntityAction parseThrowTarget(JsonObject json) {
-        final float force         = json.has("force")         ? json.get("force").getAsFloat()         : 1.5f;
-        final float verticalLift  = json.has("vertical_lift") ? json.get("vertical_lift").getAsFloat() : 0.5f;
-        final float maxDistance   = json.has("max_distance")  ? json.get("max_distance").getAsFloat()  : 5.0f;
-        return player -> {
-            var eye  = player.getEyePosition();
-            var look = player.getLookAngle();
-            var end  = eye.add(look.scale(maxDistance));
-            // Inflate the AABB along the look ray + a small lateral pad so a
-            // partially-occluded target still resolves under the crosshair.
-            var searchBox = player.getBoundingBox().expandTowards(look.scale(maxDistance)).inflate(1.0);
-            var hit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(
-                player.level(), player, eye, end, searchBox,
-                e -> e != player && e.isAlive() && e instanceof net.minecraft.world.entity.LivingEntity);
-            if (hit == null) return;
-            if (!(hit.getEntity() instanceof net.minecraft.world.entity.LivingEntity target)) return;
-            double dx = target.getX() - player.getX();
-            double dz = target.getZ() - player.getZ();
-            double horiz = Math.sqrt(dx * dx + dz * dz);
-            if (horiz < 1.0e-4) {
-                // Target sitting on top of caster — fall back to caster's
-                // facing yaw so the throw still has a horizontal direction.
-                dx = look.x;
-                dz = look.z;
-                horiz = Math.sqrt(dx * dx + dz * dz);
-                if (horiz < 1.0e-4) { dx = 1.0; dz = 0.0; horiz = 1.0; }
-            }
-            double ux = dx / horiz;
-            double uz = dz / horiz;
-            target.push(ux * force, verticalLift, uz * force);
-            target.hurtMarked = true;
-        };
-    }
-
     private static EntityAction parseSwapWithEntity(JsonObject json, String contextId) {
         // Swap positions with the nearest matching entity in radius.
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
@@ -1507,46 +1420,6 @@ public final class ActionParser {
                     fInner.execute(sp);
                 }
             }
-        };
-    }
-
-    /** origins:spawn_effect_cloud — spawn an AreaEffectCloud at the player's position. */
-    private static EntityAction parseSpawnEffectCloud(JsonObject json) {
-        // Effect can be a string ("minecraft:wither") or an object ({ "effect": "...", "duration": N })
-        String effectId = null;
-        int duration = json.has("duration") ? json.get("duration").getAsInt() : 200;
-        int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
-        if (json.has("effect")) {
-            JsonElement effectEl = json.get("effect");
-            if (effectEl.isJsonPrimitive()) {
-                effectId = effectEl.getAsString();
-            } else if (effectEl.isJsonObject()) {
-                JsonObject effectObj = effectEl.getAsJsonObject();
-                effectId = effectObj.has("effect") ? effectObj.get("effect").getAsString() : null;
-                if (effectObj.has("duration")) duration = effectObj.get("duration").getAsInt();
-                if (effectObj.has("amplifier")) amplifier = effectObj.get("amplifier").getAsInt();
-            }
-        }
-        float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
-        int waitTime = json.has("wait_time") ? json.get("wait_time").getAsInt() : 10;
-        final String fEffectId = effectId;
-        final int fDuration = duration;
-        final int fAmplifier = amplifier;
-        return player -> {
-            if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
-            var cloud = new net.minecraft.world.entity.AreaEffectCloud(sl, player.getX(), player.getY(), player.getZ());
-            cloud.setRadius(radius);
-            cloud.setDuration(fDuration);
-            cloud.setWaitTime(waitTime);
-            cloud.setOwner(player);
-            if (fEffectId != null) {
-                var eff = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getOptional(ResourceLocation.parse(fEffectId));
-                if (eff.isPresent()) {
-                    var holder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.wrapAsHolder(eff.get());
-                    cloud.addEffect(new net.minecraft.world.effect.MobEffectInstance(holder, fDuration, fAmplifier));
-                }
-            }
-            sl.addFreshEntity(cloud);
         };
     }
 
