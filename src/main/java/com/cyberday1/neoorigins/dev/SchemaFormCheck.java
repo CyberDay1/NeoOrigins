@@ -210,10 +210,37 @@ public final class SchemaFormCheck {
         // As the registry refactor moves verbs off the switch onto registered
         // descriptors, KNOWN_TYPES stays put while the case arm disappears — the
         // descriptor set restores that verb here so the parity assertion holds.
-        java.util.Set<String> fromSwitch = new java.util.TreeSet<>(descriptorIds);
-        java.util.regex.Matcher m = java.util.regex.Pattern
-            .compile("case \"[a-z_]+:([a-z_]+)\"").matcher(text);
-        while (m.find()) fromSwitch.add("neoorigins:" + m.group(1));
+        //
+        // A switch arm may carry MULTIPLE labels: `case "a",\n "b" -> …`, where the
+        // trailing labels are synonyms dispatching to the same handler (e.g.
+        // ConditionParser's `case "neoorigins:xp_level",\n "neoorigins:xp_levels"`).
+        // Two distinct sets matter for parity:
+        //   • `primary`  — the FIRST label of each arm, plus migrated descriptor
+        //     ids. Every primary verb is a distinct picker entry, so each MUST be
+        //     in KNOWN_TYPES (the `missing` check).
+        //   • `handled`  — every label of every arm (primaries + synonyms). Nothing
+        //     in KNOWN_TYPES may name an id no arm handles (the `extra` check), but
+        //     a synonym appearing here lets a KNOWN_TYPES entry like `xp_levels`
+        //     be recognised as handled without forcing every synonym into the set.
+        // Matching the whole `case … ->` span (DOTALL) — rather than `case "…"`
+        // alone — is what lets continuation labels register as handled; scoping to
+        // that span avoids scooping up unrelated quoted ids (KNOWN_TYPES literal,
+        // parse-helper string args), keeping the parity check strict.
+        java.util.Set<String> primary = new java.util.TreeSet<>(descriptorIds);
+        java.util.Set<String> handled = new java.util.TreeSet<>(descriptorIds);
+        java.util.regex.Matcher arm = java.util.regex.Pattern
+            .compile("case\\s+(\"[a-z_]+:[a-z_]+\"(?:\\s*,\\s*\"[a-z_]+:[a-z_]+\")*)\\s*->",
+                java.util.regex.Pattern.DOTALL).matcher(text);
+        java.util.regex.Pattern labelPat = java.util.regex.Pattern.compile("\"[a-z_]+:([a-z_]+)\"");
+        while (arm.find()) {
+            java.util.regex.Matcher lbl = labelPat.matcher(arm.group(1));
+            boolean first = true;
+            while (lbl.find()) {
+                String id = "neoorigins:" + lbl.group(1);
+                handled.add(id);
+                if (first) { primary.add(id); first = false; }
+            }
+        }
 
         // The declared KNOWN_TYPES = Set.of( … ) literal block.
         java.util.Set<String> declared = new java.util.TreeSet<>();
@@ -226,16 +253,20 @@ public final class SchemaFormCheck {
             while (dm.find()) declared.add(dm.group(1));
         }
 
-        // Alias ids are known synonyms, not separate types: drop them from both
-        // sides of the parity comparison so an alias never has to live in
-        // KNOWN_TYPES (and a leftover alias case label is not flagged as unhandled).
-        fromSwitch.removeAll(aliasIds);
+        // Alias ids are known synonyms, not separate types: drop them from every
+        // parity set so an alias never has to live in KNOWN_TYPES (and a leftover
+        // alias case label is not flagged as unhandled).
+        primary.removeAll(aliasIds);
+        handled.removeAll(aliasIds);
         declared.removeAll(aliasIds);
 
-        java.util.Set<String> missing = new java.util.TreeSet<>(fromSwitch);
+        // Every primary verb must be declared; nothing declared may be unhandled.
+        // (A KNOWN_TYPES synonym like xp_levels is in `handled` but not `primary`,
+        // so it satisfies the `extra` check without inflating `missing`.)
+        java.util.Set<String> missing = new java.util.TreeSet<>(primary);
         missing.removeAll(declared);
         java.util.Set<String> extra = new java.util.TreeSet<>(declared);
-        extra.removeAll(fromSwitch);
+        extra.removeAll(handled);
         int fails = 0;
         if (declared.isEmpty()) {
             System.out.println("[schema-check] FAIL  " + label

@@ -189,6 +189,10 @@
   "neoorigins:item_magnetism": {
     "radius": "Blocks around the player within which dropped items are pulled in (default 4.0)."
   },
+  "neoorigins:js_active": {
+    "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s), consumed only when the JS onUse returns true; default 20.",
+    "hunger_cost": "Food/exhaustion points consumed on a successful activation (JS onUse returns true); default 0."
+  },
   "neoorigins:keep_inventory": {
     "items": "Item ids to keep on death; empty (with empty tags) keeps everything.",
     "slots": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *).",
