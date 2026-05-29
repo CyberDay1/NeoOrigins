@@ -114,13 +114,6 @@ public final class ActionParser {
                 case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
                 case "neoorigins:chain_to_nearest"              -> parseChainToNearest(json, contextId);
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
-                case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
-
-                // ---- KubeJS bridge ----
-                // Soft dep: when KubeJS is absent, no callback can be registered,
-                // so invoke() silently no-ops. Pack authors register callbacks
-                // from JS via NeoOrigins.registerCallback(id, fn).
-                case "neoorigins:kubejs_callback"               -> parseKubeJSCallback(json, contextId);
 
                 default -> failNoop(type, contextId, "unsupported action type");
             };
@@ -1021,54 +1014,6 @@ public final class ActionParser {
                 e.hurtMarked = true;
             }
         };
-    }
-
-    /**
-     * Hurls the entity the caster is looking at away from the caster + upward.
-     * Horizontal direction is the XZ vector from caster to target (so a target
-     * directly overhead still gets thrown sideways via the caster's look-yaw
-     * fallback). Force is split into a horizontal magnitude and a separate
-     * vertical "lift" so packs can tune throw arc independently of distance.
-     */
-    private static EntityAction parseSwapWithEntity(JsonObject json, String contextId) {
-        // Swap positions with the nearest matching entity in radius.
-        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
-        EntityCondition tgtCond = json.has("target_condition")
-            ? ConditionParser.parse(json.getAsJsonObject("target_condition"), contextId)
-            : EntityCondition.alwaysTrue();
-        final EntityCondition fCond = tgtCond;
-        return player -> {
-            var level = player.level();
-            var aabb = player.getBoundingBox().inflate(radius);
-            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb,
-                e -> e != player && e.isAlive());
-            net.minecraft.world.entity.LivingEntity best = null;
-            double bestDist = Double.MAX_VALUE;
-            var origin = player.position();
-            for (var e : candidates) {
-                if (e instanceof net.minecraft.server.level.ServerPlayer sp && !fCond.test(sp)) continue;
-                double d = e.position().distanceToSqr(origin);
-                if (d < bestDist) { bestDist = d; best = e; }
-            }
-            if (best == null) return;
-            double px = player.getX(), py = player.getY(), pz = player.getZ();
-            float pyaw = player.getYRot(), ppitch = player.getXRot();
-            player.teleportTo(best.getX(), best.getY(), best.getZ());
-            player.setYRot(best.getYRot());
-            player.setXRot(best.getXRot());
-            best.teleportTo(px, py, pz);
-            best.setYRot(pyaw);
-            best.setXRot(ppitch);
-        };
-    }
-
-    /** Cancel the current dispatch if its context is an ICancellableEvent. */
-    private static EntityAction parseKubeJSCallback(JsonObject json, String contextId) {
-        if (!json.has("id")) {
-            return failNoop("neoorigins:kubejs_callback", contextId, "missing 'id'");
-        }
-        String id = json.get("id").getAsString();
-        return player -> com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks.invoke(id, player);
     }
 
     /**
