@@ -158,6 +158,101 @@ public final class BuiltinActions {
                     .def(20)
                     .range(0.0, null)
                     .doc("Cooldown duration in ticks (20 = 1s; default 20).")));
+
+        // add_velocity — push (or set) the player's delta movement. Lift-and-shift
+        // of parseAddVelocity. All fields optional (x/y/z default 0, set false).
+        // hurtMarked is set so the client doesn't discard the server velocity.
+        define("add_velocity",
+            (json, ctx) -> {
+                double x = json.has("x") ? json.get("x").getAsDouble() : 0;
+                double y = json.has("y") ? json.get("y").getAsDouble() : 0;
+                double z = json.has("z") ? json.get("z").getAsDouble() : 0;
+                boolean set = json.has("set") && json.get("set").getAsBoolean();
+                return player -> {
+                    if (set) player.setDeltaMovement(x, y, z);
+                    else player.push(x, y, z);
+                    player.hurtMarked = true;
+                };
+            },
+            List.of(
+                new FieldSpec("x", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("X velocity component (default 0)."),
+                new FieldSpec("y", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Y velocity component (default 0)."),
+                new FieldSpec("z", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Z velocity component (default 0)."),
+                new FieldSpec("set", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("If true, replaces delta movement instead of pushing additively.")));
+
+        // dash — impulse along the player's look vector. Lift-and-shift of
+        // parseDash. All fields optional (strength 1.5, allow_vertical true,
+        // set_velocity false).
+        define("dash",
+            (json, ctx) -> {
+                float strength = json.has("strength") ? json.get("strength").getAsFloat() : 1.5f;
+                boolean allowVertical = !json.has("allow_vertical") || json.get("allow_vertical").getAsBoolean();
+                boolean setVelocity = json.has("set_velocity") && json.get("set_velocity").getAsBoolean();
+                return player -> {
+                    net.minecraft.world.phys.Vec3 look = player.getLookAngle();
+                    double dx = look.x * strength;
+                    double dy = allowVertical ? look.y * strength : 0.0;
+                    double dz = look.z * strength;
+                    if (setVelocity) {
+                        player.setDeltaMovement(dx, dy, dz);
+                    } else {
+                        player.push(dx, dy, dz);
+                    }
+                    player.hurtMarked = true;
+                };
+            },
+            List.of(
+                new FieldSpec("strength", FormFieldSpec.Kind.NUMBER, false).def(1.5)
+                    .doc("Impulse magnitude along player look vector (default 1.5)."),
+                new FieldSpec("allow_vertical", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("If false, dash is pinned to horizontal (default true)."),
+                new FieldSpec("set_velocity", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("If true, replaces delta movement instead of pushing additively.")));
+
+        // swing_hand — animate the main-hand swing. Lift-and-shift of the inline
+        // case arm. No config fields.
+        define("swing_hand",
+            (json, ctx) -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND),
+            List.of());
+
+        // crafting_table — open a crafting menu at the player's position.
+        // Lift-and-shift of the inline case arm. No config fields.
+        define("crafting_table",
+            (json, ctx) -> player -> player.openMenu(new net.minecraft.world.SimpleMenuProvider(
+                (id, inv, p) -> new net.minecraft.world.inventory.CraftingMenu(
+                    id, inv, net.minecraft.world.inventory.ContainerLevelAccess.create(p.level(), p.blockPosition())),
+                net.minecraft.network.chat.Component.translatable("container.crafting"))),
+            List.of());
+
+        // invert — no-op: modifier inversion has no entity-action equivalent.
+        // Lift-and-shift of the inline case arm. No config fields.
+        define("invert", (json, ctx) -> EntityAction.noop(), List.of());
+
+        // cancel_event — cancel the current dispatch if its context is cancellable.
+        // Lift-and-shift of parseCancelEvent (reads ActionContextHolder, no JSON).
+        define("cancel_event",
+            (json, ctx) -> player -> {
+                Object actionCtx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc
+                    && fc.event() != null) {
+                    fc.event().setCanceled(true);
+                    return;
+                }
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.EffectAppliedContext ec
+                    && ec.event() != null) {
+                    ec.event().setResult(net.neoforged.neoforge.event.entity.living.MobEffectEvent
+                        .Applicable.Result.DO_NOT_APPLY);
+                    return;
+                }
+                if (actionCtx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
+                    ce.setCanceled(true);
+                }
+            },
+            List.of());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
