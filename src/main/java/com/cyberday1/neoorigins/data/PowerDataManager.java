@@ -37,6 +37,11 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("powers");
 
     private Map<Identifier, PowerHolder<?>> powers = new HashMap<>();
+    /** Post-translation raw JSON kept for the creator's template loader so a
+     *  cloned vanilla power lands in the draft as the same body the loader
+     *  saw, not a codec round-trip (which loses fields stripped before parse).
+     *  Only powers that successfully parse are recorded. */
+    private Map<Identifier, JsonObject> rawPowerJson = new HashMap<>();
     /** Route B powers injected by OriginsCompatPowerLoader after native loading. */
     private Map<Identifier, PowerHolder<?>> injectedPowers = new HashMap<>();
     /** Bumped on every datapack reload and Route-B injection so per-player power caches can invalidate. */
@@ -90,6 +95,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         }
 
         Map<Identifier, PowerHolder<?>> loaded = new HashMap<>();
+        Map<Identifier, JsonObject> rawSnapshot = new HashMap<>();
         for (Map.Entry<Identifier, JsonElement> entry : working.entrySet()) {
             Identifier id = entry.getKey();
             try {
@@ -120,12 +126,19 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                     }
                     continue;
                 }
+                int beforeSize = loaded.size();
                 parsePower(id, type, json, loaded);
+                if (loaded.size() > beforeSize) {
+                    // Power parsed cleanly — keep a deep copy of the post-
+                    // translation body for the creator's template loader.
+                    rawSnapshot.put(id, json.deepCopy());
+                }
             } catch (Exception e) {
                 NeoOrigins.LOGGER.error("Error loading power {}", id, e);
             }
         }
         this.powers = Collections.unmodifiableMap(loaded);
+        this.rawPowerJson = Collections.unmodifiableMap(rawSnapshot);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         this.version++;
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
@@ -241,5 +254,12 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
 
     public boolean hasPower(Identifier id) {
         return powers.containsKey(id) || injectedPowers.containsKey(id);
+    }
+
+    /** Post-translation raw power JSON for the creator's template loader.
+     *  Returns null when this power was only loaded on the client (powers
+     *  aren't synced with their bodies) or wasn't loaded at all. */
+    public JsonObject getRawPowerJson(Identifier id) {
+        return rawPowerJson.get(id);
     }
 }

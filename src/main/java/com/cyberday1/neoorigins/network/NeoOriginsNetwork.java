@@ -160,6 +160,12 @@ public class NeoOriginsNetwork {
             NeoOriginsNetwork::handleCreatorResult
         );
 
+        registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.OriginTemplatesPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.OriginTemplatesPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleOriginTemplates
+        );
+
         registrar.playToServer(
             ChooseOriginPayload.TYPE,
             ChooseOriginPayload.STREAM_CODEC,
@@ -404,6 +410,15 @@ public class NeoOriginsNetwork {
         );
     }
 
+    private static void handleOriginTemplates(
+            com.cyberday1.neoorigins.network.payload.OriginTemplatesPayload payload, IPayloadContext ctx) {
+        // Same dedicated-server dist-cleaner guard as handleOpenEditorScreen.
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientTemplateCache.setFromJson(payload.json())
+        );
+    }
+
     /**
      * Shared open path for the 2.1 creator (command + keybind). Gate-checked by
      * the caller; syncs registry/state then asks the client to open the screen
@@ -413,6 +428,13 @@ public class NeoOriginsNetwork {
     public static void openCreatorFor(ServerPlayer sp) {
         syncRegistryToPlayer(sp);
         syncToPlayer(sp);
+        // Ship the template bundle BEFORE OpenEditorScreenPayload so the
+        // picker's first render has data — payloads inside a single tick are
+        // ordered, so the client receives them in this order.
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp,
+            new com.cyberday1.neoorigins.network.payload.OriginTemplatesPayload(
+                com.cyberday1.neoorigins.service.OriginTemplates.toJson(
+                    com.cyberday1.neoorigins.service.OriginTemplates.collect())));
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new OpenEditorScreenPayload());
     }
 

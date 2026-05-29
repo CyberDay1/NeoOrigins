@@ -25,6 +25,7 @@ public final class OriginDraftJson {
 
     public static String toJson(OriginDraft d) {
         JsonObject o = new JsonObject();
+        o.addProperty("namespace", d.namespace);
         o.addProperty("idPath", d.idPath);
         o.addProperty("name", d.name);
         o.addProperty("description", d.description);
@@ -50,6 +51,7 @@ public final class OriginDraftJson {
         try {
             JsonObject o = JsonParser.parseString(json).getAsJsonObject();
             OriginDraft d = new OriginDraft();
+            d.namespace = str(o, "namespace", d.namespace);
             d.idPath = str(o, "idPath", d.idPath);
             d.name = str(o, "name", "");
             d.description = str(o, "description", "");
