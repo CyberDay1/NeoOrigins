@@ -27,12 +27,17 @@ public class OriginInfoScreen extends Screen {
 
     private static final int PANEL_TOP = 44;
     private static final int PANEL_BTM_MARGIN = 32;
+    /** Width of the 9-slice burnt-edge curl in the parchment panel — widgets
+     *  that touch the panel edge should inset by this amount. */
+    private static final int PANEL_INSET = 12;
     private static final int DETAIL_PAD = 10;
     private static final int HEADER_H = DETAIL_PAD + 32 + 6 + 9 + 4 + 5 + 10;
     private static final int DOT_SIZE = 5;
     private static final int DOT_SPACING = 8;
     private static final int DOT_COUNT = 4;
     private static final int LINE_H = 10;
+    /** Vertical gap between consecutive power entries in the detail panel. */
+    private static final int POWER_GAP = 5;
     private static final int TAB_H = 20;
     private static final int TAB_GAP = 4;
 
@@ -154,11 +159,14 @@ public class OriginInfoScreen extends Screen {
         TabEntry tab = tabs.get(currentTab);
         OriginDetailViewModel vm = tab.viewModel();
         if (vm.origin() != null) {
-            descLines = font.split(vm.origin().description(), detailTextW);
+            // Wrap with themed() BEFORE Font.split — the split bakes Style into
+            // the FormattedCharSequence so the font selector has to be on the
+            // Component before this point. See OriginSelectionScreen.updateDetail.
+            descLines = font.split(themed(vm.origin().description()), detailTextW);
             List<List<FormattedCharSequence>> wrapped = new ArrayList<>();
             int powerDescW = detailTextW - 8;
             for (String desc : vm.powerDescs()) {
-                wrapped.add(desc.isEmpty() ? List.of() : font.split(Component.literal(desc), powerDescW));
+                wrapped.add(desc.isEmpty() ? List.of() : font.split(themed(Component.literal(desc)), powerDescW));
             }
             wrappedPowerDescs = wrapped;
             detailContentH = computeContentHeight(vm);
@@ -184,6 +192,7 @@ public class OriginInfoScreen extends Screen {
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     h += wrappedPowerDescs.get(i).size() * LINE_H;
                 }
+                h += POWER_GAP;
             }
         }
         return h + 6;
@@ -216,6 +225,17 @@ public class OriginInfoScreen extends Screen {
     private static net.minecraft.network.chat.Component themed(net.minecraft.network.chat.Component c) {
         ResourceLocation fid = UITheme.current().font();
         return fid != null ? c.copy().withStyle(s -> s.withFont(fid)) : c;
+    }
+
+    /** Like {@link #themed} but also marks the Style as bold — used for the
+     *  origin-name header and per-power name lines so the TTF renderer picks
+     *  up its synthesized bold weight. */
+    private static net.minecraft.network.chat.Component themedBold(net.minecraft.network.chat.Component c) {
+        ResourceLocation fid = UITheme.current().font();
+        return c.copy().withStyle(s -> {
+            var styled = s.withBold(true);
+            return fid != null ? styled.withFont(fid) : styled;
+        });
     }
 
     /** Best-effort human display name for a power id, using the same logic the detail view uses. */
@@ -251,8 +271,9 @@ public class OriginInfoScreen extends Screen {
         g.fill(0, 0, width, height, theme.overlayColor());
 
         if (tabs.isEmpty()) {
-            g.drawCenteredString(font, Component.translatable("gui.neoorigins.info.no_origin"),
-                width / 2, height / 2 - 10, theme.mutedColor());
+            var msg = themed(Component.translatable("gui.neoorigins.info.no_origin"));
+            g.drawString(font, msg, width / 2 - font.width(msg) / 2,
+                height / 2 - 10, theme.mutedColor(), false);
             super.render(g, mouseX, mouseY, partial);
             return;
         }
@@ -274,12 +295,14 @@ public class OriginInfoScreen extends Screen {
         g.renderOutline(cx - 16, y, 32, 32, theme.borderColor());
         OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
         y += 32 + 6;
-        g.drawCenteredString(font, origin.name(), cx, y, theme.nameColor());
+        var nameC = themedBold(origin.name());
+        g.drawString(font, nameC, cx - font.width(nameC) / 2, y, theme.nameColor(), false);
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
 
         int scrollTop = PANEL_TOP + HEADER_H;
-        int scrollBottom = panelBottom - 2;
+        // Pull the bottom in so the rail clears the parchment burnt-edge curl.
+        int scrollBottom = panelBottom - PANEL_INSET;
         int scrollAreaH = scrollBottom - scrollTop;
         int maxScroll = Math.max(0, detailContentH - scrollAreaH);
         detailScrollOffset = Mth.clamp(detailScrollOffset, 0, maxScroll);
@@ -295,7 +318,7 @@ public class OriginInfoScreen extends Screen {
         if (origin.spawnLocation().isPresent()) {
             String spawnSummary = origin.spawnLocation().get().formatSummary();
             if (!spawnSummary.isEmpty()) {
-                g.drawString(font, Component.literal(spawnSummary),
+                g.drawString(font, themed(Component.literal(spawnSummary)),
                     panelX + DETAIL_PAD, sy, theme.accentColor(), false);
                 sy += LINE_H;
             }
@@ -364,13 +387,13 @@ public class OriginInfoScreen extends Screen {
                 }
                 for (ResourceLocation pid : overlay.add()) {
                     g.drawString(font,
-                        Component.literal("+ " + powerDisplayName(pid)),
+                        themed(Component.literal("+ " + powerDisplayName(pid))),
                         panelX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
                     sy += LINE_H;
                 }
                 for (ResourceLocation pid : overlay.remove()) {
                     g.drawString(font,
-                        Component.literal("- " + powerDisplayName(pid)),
+                        themed(Component.literal("- " + powerDisplayName(pid))),
                         panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
                     sy += LINE_H;
                 }
@@ -380,12 +403,12 @@ public class OriginInfoScreen extends Screen {
         sy += 8;
         List<String> pNames = vm.powerNames();
         if (!pNames.isEmpty()) {
-            g.drawString(font, Component.translatable("gui.neoorigins.detail.powers_header"),
+            g.drawString(font, themedBold(Component.translatable("gui.neoorigins.detail.powers_header")),
                 panelX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
                 g.fill(panelX + DETAIL_PAD, sy + 3, panelX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
-                g.drawString(font, pNames.get(i), panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                g.drawString(font, themedBold(Component.literal(pNames.get(i))), panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
@@ -393,16 +416,19 @@ public class OriginInfoScreen extends Screen {
                         sy += LINE_H;
                     }
                 }
+                sy += POWER_GAP;
             }
         }
         g.disableScissor();
 
         if (maxScroll > 0) {
-            int barX = panelX + panelW - 4;
-            int thumbH = Math.max(14, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
+            // Sit the scroll rail inside the parchment burnt-edge curl (12px)
+            // so it doesn't run off the curled paper border.
+            int barX = panelX + panelW - 12;
+            int thumbH = Math.max(10, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
             int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
-            g.fill(barX, scrollTop, barX + 2, scrollBottom, theme.borderColor());
-            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, theme.accentColor());
+            g.fill(barX, scrollTop, barX + 1, scrollBottom, theme.borderColor());
+            g.fill(barX, thumbY, barX + 1, thumbY + thumbH, theme.accentColor());
         }
 
         super.render(g, mouseX, mouseY, partial);
@@ -422,13 +448,13 @@ public class OriginInfoScreen extends Screen {
                 case MEDIUM -> Component.translatable("origins.gui.impact.medium");
                 case HIGH -> Component.translatable("origins.gui.impact.high");
             });
-        g.drawString(font, label, cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
+        g.drawString(font, themed(label), cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (mx >= panelX && mx <= panelX + panelW && my >= PANEL_TOP && my <= panelBottom) {
-            int scrollAreaH = (panelBottom - 2) - (PANEL_TOP + HEADER_H);
+            int scrollAreaH = (panelBottom - PANEL_INSET) - (PANEL_TOP + HEADER_H);
             int maxScroll = Math.max(0, detailContentH - scrollAreaH);
             detailScrollOffset = Mth.clamp(detailScrollOffset + (sy > 0 ? -14 : 14), 0, maxScroll);
             return true;

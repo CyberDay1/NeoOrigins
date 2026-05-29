@@ -1,10 +1,12 @@
 package com.cyberday1.neoorigins.screen;
 
 import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.client.theme.UITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 /**
@@ -27,22 +29,29 @@ public class OriginButton extends Button {
 
     @Override
     public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        // Background
-        int bg = isSelected() ? 0xFF1E3A6E : (isHovered() ? 0xFF1E1E32 : 0xFF14141F);
+        UITheme theme = UITheme.current();
+
+        // Background — warm parchment tones, slightly darker when selected,
+        // a hair lighter on hover. Alpha tuned so the underlying panel grain
+        // still bleeds through.
+        int bg = isSelected() ? 0xCCB58040 : (isHovered() ? 0x66B58040 : 0x33A88438);
         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
 
-        // Border — bright when selected, dim otherwise
-        int border = isSelected() ? 0xFF4A90D9 : 0xFF2A2A44;
+        // Burnt-edge border using the theme accent — full strength when
+        // selected, dimmed otherwise.
+        int border = isSelected() ? theme.accentColor() : (theme.borderColor() & 0x80FFFFFF);
         g.renderOutline(getX(), getY(), getWidth(), getHeight(), border);
 
         // 16×16 icon
         renderIcon(g, origin.icon(), getX() + 3, getY() + (getHeight() - 16) / 2);
 
-        // Name
-        int nameColor = isSelected() ? 0xFFFFFFFF : (isHovered() ? 0xFFDDDDDD : 0xFFAAAAAA);
+        // Name — themed font, theme text colors.
+        int nameColor = isSelected() ? theme.nameColor() : theme.descriptionColor();
         Minecraft mc = Minecraft.getInstance();
         int textY = getY() + (getHeight() - 8) / 2;
-        g.drawString(mc.font, origin.name(), getX() + 22, textY, nameColor, false);
+        ResourceLocation fid = theme.font();
+        Component label = fid != null ? origin.name().copy().withStyle(s -> s.withFont(fid)) : origin.name();
+        g.drawString(mc.font, label, getX() + 22, textY, nameColor, false);
     }
 
     /**
