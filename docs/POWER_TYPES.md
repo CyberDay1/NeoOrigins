@@ -1538,8 +1538,9 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 |---|---|---|---|---|
 | `effects` | list of EffectSpec | yes | — | Mob effects to apply. See below. May also be a single inline EffectSpec on the top-level object. |
 | `condition` | EntityCondition | no | always-true | DSL condition — effects only apply while it is true. Effects are cleared when it becomes false. |
-| `refresh_interval` | int | no | `300` | Ticks each applied effect is (re)granted for. Must be ≥ 1. |
 | `toggleable` | bool | no | `true` | When true, this is an active-keybind power: pressing the key toggles effects on/off. When false, effects are always applied while condition is true. |
+| `default_off` | bool | no | `false` | Toggleable powers only: when true, the power starts disabled, so effects stay off until the player first toggles it on. |
+| `amplifier` | int | no | — | Root-level override for the **first** effect's amplifier (lets server admins retune strength without editing the `effects` array). Per-effect amplifiers on later specs are unchanged. |
 
 **`EffectSpec` object:**
 
@@ -1580,7 +1581,7 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 }
 ```
 
-Effects are re-applied every `refresh_interval` ticks (default 300 = 15 seconds), so the effect never expires. When `toggleable` is true (the default), the player can press their skill key to toggle effects on/off — set `toggleable: false` for effects that should always be active. A single effect can be specified inline on the top-level object (`effect`, `amplifier`, etc.) instead of using the `effects` list.
+Effects are applied with **infinite duration** (`MobEffectInstance.INFINITE_DURATION`), so they never tick down or expire on their own. They are cleared when the `condition` becomes false, when the power is toggled off, or when the origin is revoked — and re-applied when the condition becomes true again. When `toggleable` is true (the default), the player can press their skill key to toggle effects on/off — set `toggleable: false` for effects that should always be active, or `default_off: true` to start a toggleable power in the off state. A single effect can be specified inline on the top-level object (`effect`, `amplifier`, etc.) instead of using the `effects` list.
 
 ---
 
@@ -1661,19 +1662,23 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `condition` | EntityCondition | no | always-true | DSL gate — the event only fires when this is true |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
 | `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events) |
-| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`). Ignored on other events. |
+| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Ignored on other events. |
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
-- Lifecycle: `GAINED`, `REVOKED`, `RESPAWN`, `GAMEMODE_CHANGE`
-- Combat: `KILL`, `HIT_TAKEN`, `DAMAGE_DEALT`, `MOD_KNOCKBACK`, `MOD_THORNS`
-- Food: `FOOD_EATEN`, `MOD_FOOD_NUTRITION`, `MOD_EXHAUSTION`, `MOD_NATURAL_REGEN`
-- Mining / crafting: `BLOCK_BREAK`, `CRAFT_ITEM`, `ITEM_USE_FINISH`, `MOD_BREAK_SPEED`, `MOD_CRAFT_COUNT`
-- XP / economy: `XP_GAINED`, `MOD_XP_GAIN`, `TRADE_COMPLETE`, `MOD_BONEMEAL_GROWTH`
-- Interaction: `BLOCK_INTERACT`, `ENTITY_INTERACT`, `RIGHT_CLICK_ITEM`
+- Lifecycle: `GAINED`, `LOST`, `CHOSEN`, `RESPAWN`, `DEATH`, `DIMENSION_CHANGE`, `ADVANCEMENT_EARNED`
+- Combat: `ATTACK`, `HIT_TAKEN`, `KILL`, `PROJECTILE_HIT`, `MOD_KNOCKBACK`
+- Food: `FOOD_EATEN`, `FOOD_FINISHED`, `MOD_EXHAUSTION`, `MOD_NATURAL_REGEN`, `MOD_CRAFTED_FOOD_SATURATION`
+- Mining / blocks: `BLOCK_BREAK`, `BLOCK_PLACE`, `BLOCK_USE`, `BONEMEAL`, `MOD_HARVEST_DROPS`, `MOD_BONEMEAL_EXTRA`
+- Crafting / stations: `CRAFT_ITEM`, `SMELT_ITEM`, `ENCHANT_ITEM`, `ANVIL_REPAIR`, `MOD_CRAFT_AMOUNT`, `MOD_ENCHANT_LEVEL`, `MOD_ANVIL_COST`
+- Trading: `TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_TRADE_PRICE`
+- Animals: `BREED`, `TAME`
+- Items / interaction: `ITEM_USE`, `ITEM_USE_FINISH`, `ITEM_PICKUP`, `ENTITY_USE`
+- Movement: `JUMP`, `LAND`, `CLIMB`, `WAKE_UP`, `TICK`, `MOD_TELEPORT_RANGE`, `MOD_FALL_DAMAGE`
+- Other modifiers: `MOD_POTION_DURATION`
 - Status effects: `EFFECT_APPLIED`
 
 For action-style events set `entity_action`; for modifier-style events set `modifier`. A single power may declare both — the action path fires on `dispatch` sites and the modifier path chains on `dispatchModifier` sites.
@@ -2205,6 +2210,67 @@ Passively regenerates health on all tamed mobs (via `tame_mob`) on an interval. 
   "interval_ticks": 120,
   "name": "Pack Mender",
   "description": "Your tamed mobs regenerate out of combat."
+}
+```
+
+---
+
+## `neoorigins:mount`
+
+Active keybind power. On activation, the player mounts (rides) a nearby
+eligible entity within `range`. Useful for "ride your tamed beast" or
+piggyback mechanics.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `range` | double | no | `5.0` | Max distance to an entity the player can mount |
+| `cooldown_ticks` | int | no | `100` | Cooldown after each use |
+| `hunger_cost` | int | no | `0` | Food points consumed per use |
+| `allow_players` | bool | no | `true` | Whether other players may be mounted |
+| `allow_mobs` | bool | no | `true` | Whether mobs may be mounted |
+| `block_bosses` | bool | no | `true` | If true, bosses cannot be mounted |
+| `mount_position` | string | no | `"centered"` | Seating placement on the ridden entity |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:mount",
+  "range": 5.0,
+  "cooldown_ticks": 100,
+  "name": "Saddle Up",
+  "description": "Mount the nearest creature."
+}
+```
+
+---
+
+## `neoorigins:mob_behavior`
+
+Mob-applied power (it returns true from `appliesToMobs`, so it takes effect
+when granted to a **mob** rather than a player — see
+[MOB_ORIGINS.md](MOB_ORIGINS.md)). Rewrites the mob's AI: targeting,
+retaliation, aggression mode, and "call for help" alerting.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `aggression` | string | no | `neutral` | One of `neutral`, `hostile`, `conditional`. `neutral` adds no targeting (only `retaliate` applies); `hostile` targets `target_type` on sight; `conditional` targets only players for whom every `hostile_when` condition holds. |
+| `hostile_when` | list of EntityCondition | no | `[]` | Conditions (DSL) gating `conditional` aggression. An empty list behaves like `hostile`. A single condition object is also accepted. |
+| `retaliate` | bool | no | `true` | Fight back against whatever recently damaged the mob. |
+| `anger_linger_ticks` | int ≥ 0 | no | `200` | How long retaliation anger persists after being hurt. |
+| `aggro_range` | double | no | `16.0` | Detection range for acquiring targets. |
+| `target_type` | entity type id | no | — | Entity type the mob targets when `hostile`/`conditional`. |
+| `call_for_help` | bool | no | `false` | When hurt, alert nearby mobs of the same type. |
+
+**Example — a wolf that only turns hostile to players at night:**
+```json
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "conditional",
+  "hostile_when": [ { "type": "neoorigins:night" } ],
+  "aggro_range": 16.0,
+  "call_for_help": true,
+  "name": "Nightstalker",
+  "description": "Hostile to players after dark."
 }
 ```
 
@@ -3240,3 +3306,68 @@ neoorigins_loot_pool_grant:<loot_table_id>
 routes through the same `LootPoolGrantPower#fireLootPoolGrant` pipeline on completion: the completing player receives the rolled stacks, with dedup keyed on `ftbq:<quest_id>:<table_id>`. Authors get vanilla loot-table reuse for both origin powers and quest rewards without any hard FTBQ dependency.
 
 This is a soft-compat layer — it is **not** an FTBQ `RewardType` registration (which would require Provider-API hooks that vary across FTBQ minor versions). The tag-marker path is the supported integration; a `RewardType` upgrade is reserved for v2.2 once that API stabilises.
+
+---
+
+## `neoorigins:mount`
+
+Active keybind power that lets the player ride the living entity they're looking at. Press the skill key with a target in range to mount; press again while riding to dismount. Mobs are mounted immediately; **player** targets require consent according to the server's configured consent mode (`MountConsentManager`). Boss mobs and already-ridden entities are rejected.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `range` | float | no | `5.0` | Raycast reach (blocks) used to pick the mount target |
+| `cooldown_ticks` | int | no | `100` | Cooldown between activations |
+| `hunger_cost` | int | no | `0` | Hunger/exhaustion cost per activation |
+| `allow_players` | bool | no | `true` | Whether other players may be mounted (subject to consent) |
+| `allow_mobs` | bool | no | `true` | Whether living mobs may be mounted |
+| `block_bosses` | bool | no | `true` | When true, entities that can't use portals (bosses) cannot be mounted |
+| `mount_position` | string | no | `"centered"` | Seat placement hint stored on the rider (e.g. `centered`) |
+
+Mounting is cleared on revoke (the player is dismounted if riding). The power takes a skill slot like other actives — bind it via the standard `active` keybind plumbing.
+
+**Example — ride any creature you look at:**
+```json
+{
+  "type": "neoorigins:mount",
+  "range": 6.0,
+  "cooldown_ticks": 40,
+  "allow_players": false,
+  "name": "Beast Rider",
+  "description": "Leap onto and ride the creature in your sights."
+}
+```
+
+---
+
+## `neoorigins:mob_behavior`
+
+Configurable, piglin-style aggression for **mob origins** — it shapes how a mob-bodied origin *acts* rather than its stats. On grant, a vanilla `NearestAttackableTargetGoal` (and, when `retaliate` is set, a `HurtByTargetGoal`) is added to the mob's target selector; both are stripped again on revoke, leaving the rest of the mob's vanilla AI intact.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `aggression` | string | no | `neutral` | `neutral` (no proactive targeting), `hostile` (always target on sight), or `conditional` (target only when `hostile_when` holds) |
+| `hostile_when` | list of EntityCondition | no | `[]` | `conditional` only — DSL conditions, **AND-ed**, evaluated against the *prospective player target* (not the mob). Empty list behaves like `hostile`. Also accepts a single inline condition object. |
+| `retaliate` | bool | no | `true` | Add a `HurtByTargetGoal` so the mob fights back when hit |
+| `anger_linger_ticks` | int | no | `200` | Grace period the target is kept after `hostile_when` stops holding, so the mob "calms down" gradually |
+| `aggro_range` | float | no | `16.0` | Target-acquisition range |
+| `target_type` | Identifier | no | _(players)_ | Entity-type ID to target. When omitted, only players are targeted. For a non-player target type, `hostile_when` conditions are ignored (no player to test). |
+| `call_for_help` | bool | no | `false` | When retaliating, alert nearby allies of the same type |
+
+> **Condition semantics:** `hostile_when` reuses the existing `EntityCondition` DSL verbatim and is evaluated against the candidate player, matching vanilla piglin logic ("hostile unless the player is wearing X"). Full goal-graph authoring is reserved for a later milestone.
+
+**Example — hostile to players not wearing gold (piglin-style):**
+```json
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "conditional",
+  "hostile_when": [
+    { "type": "neoorigins:not", "condition": {
+        "type": "neoorigins:equipped_item", "slot": "head", "tag": "minecraft:gold_armor" } }
+  ],
+  "retaliate": true,
+  "call_for_help": true,
+  "aggro_range": 16.0,
+  "name": "Piglin Temper",
+  "description": "Attacks players who aren't wearing gold."
+}
+```

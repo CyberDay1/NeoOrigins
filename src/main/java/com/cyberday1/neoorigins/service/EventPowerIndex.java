@@ -47,12 +47,23 @@ public final class EventPowerIndex {
         RESPAWN,
         TICK,
         DIMENSION_CHANGE,
+        CLIMB,
         JUMP,
         PROJECTILE_HIT,         // projectile owned by the player hit something
 
         // ----- Origins-Classes hooks: actions -----
+        CRAFT_ITEM,             // item crafted in a crafting table / inventory
+        SMELT_ITEM,             // item removed from furnace / smoker output
+        ENCHANT_ITEM,           // enchantment applied at enchanting table
+        ANVIL_REPAIR,           // anvil repair / combine
+        BONEMEAL,               // bonemeal applied
+        BREED,                  // breeding produced a baby
+        TAME,                   // entity was tamed
         FOOD_EATEN,             // (misnomer — fires at use START, cancellable; used for food_restriction)
         FOOD_FINISHED,          // player actually finished eating a food item (post-eat, non-cancellable)
+        ADVANCEMENT_EARNED,
+        TRADE_COMPLETED,        // villager trade finished
+        VILLAGER_INTERACT,      // right-click villager
 
         // ----- Origin / power lifecycle -----
         GAINED,                 // power was just granted to the player
@@ -75,9 +86,12 @@ public final class EventPowerIndex {
         // ----- Origins-Classes hooks: modifiers (return a float) -----
         MOD_EXHAUSTION,         // hunger drain multiplier
         MOD_NATURAL_REGEN,      // natural heal amount multiplier
+        MOD_TRADE_PRICE,        // villager trade cost multiplier
+        MOD_CRAFT_AMOUNT,       // crafting output count multiplier
         MOD_ENCHANT_LEVEL,      // enchanting table level multiplier / bonus
         MOD_HARVEST_DROPS,      // extra drops multiplier on break/drops
         MOD_TELEPORT_RANGE,     // ender pearl / teleport distance
+        MOD_FALL_DAMAGE,        // fall damage multiplier
         MOD_KNOCKBACK,          // incoming knockback strength multiplier
         MOD_POTION_DURATION,    // added-effect duration multiplier
         MOD_ANVIL_COST,         // anvil repair / combine XP cost multiplier

@@ -72,6 +72,12 @@ public class PlayerLifecycleEvents {
         ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
+        // CLIMB fires each tick the player is on a climbable (ladder/vine).
+        // Action powers gate further with their own conditions / cooldowns.
+        if (sp.onClimbable()) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CLIMB);
+        }
     }
 
     @SubscribeEvent
@@ -265,6 +271,13 @@ public class PlayerLifecycleEvents {
     public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         Identifier earnedId = event.getAdvancement().id();
+
+        // ADVANCEMENT_EARNED action — fires for every earned advancement so
+        // action_on_event powers can react. Folded into this existing handler
+        // (rather than a second subscriber) since earnedId is already resolved.
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.ADVANCEMENT_EARNED,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.AdvancementContext(earnedId));
 
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         // Snapshot before iteration — applyOriginPowers mutates the data map.

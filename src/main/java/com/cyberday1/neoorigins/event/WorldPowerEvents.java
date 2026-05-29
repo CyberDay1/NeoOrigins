@@ -249,9 +249,18 @@ public class WorldPowerEvents {
     @SubscribeEvent
     public static void onBabyEntitySpawn(BabyEntitySpawnEvent event) {
         if (!(event.getCausedByPlayer() instanceof ServerPlayer sp)) return;
-        if (!ActiveOriginService.has(sp, TwinBreedingPower.class, c -> true)) return;
 
         AgeableMob child = event.getChild();
+        // BREED action — fires for any player-caused breed, independent of the
+        // TwinBreeding power below. Dispatched first so action_on_event powers
+        // see every breed event, not just twin-eligible ones.
+        if (child != null) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.BREED,
+                new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(child));
+        }
+
+        if (!ActiveOriginService.has(sp, TwinBreedingPower.class, c -> true)) return;
         if (child == null) return;
 
         ActiveOriginService.forEachOfType(sp, TwinBreedingPower.class, cfg -> {
@@ -264,6 +273,19 @@ public class WorldPowerEvents {
                 }
             }
         });
+    }
+
+    /**
+     * TAME action — fires when a player successfully tames an animal
+     * (AnimalTameEvent). Context is the tamed animal so action_on_event powers
+     * can react to "player tamed X".
+     */
+    @SubscribeEvent
+    public static void onAnimalTame(net.neoforged.neoforge.event.entity.living.AnimalTameEvent event) {
+        if (!(event.getTamer() instanceof ServerPlayer sp)) return;
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.TAME,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(event.getAnimal()));
     }
 
     /**

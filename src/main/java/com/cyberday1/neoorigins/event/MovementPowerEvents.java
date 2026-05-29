@@ -33,6 +33,15 @@ public class MovementPowerEvents {
         }
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND, event.getDistance());
+        // MOD_FALL_DAMAGE scales the fall-damage multiplier. Chains on the
+        // event's current multiplier so it stacks with feather-falling etc.
+        float fallMult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_FALL_DAMAGE,
+            event, event.getDamageMultiplier());
+        if (fallMult != event.getDamageMultiplier()) {
+            if (!Float.isFinite(fallMult)) fallMult = 0f;
+            event.setDamageMultiplier(Math.max(0f, fallMult));
+        }
     }
 
     // BreakSpeedModifierPower used to be handled here via PlayerEvent.BreakSpeed,

@@ -6,9 +6,10 @@ event fires, the power's `entity_action` (for action-style events) or
 
 Source of truth for the key list:
 [`EventPowerIndex.Event`](../src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java).
-Events with no `EventPowerIndex.dispatch(...)` call site anywhere in the tree
-are flagged in the **Not yet wired** section at the bottom — pack-authored
-powers that reference them will parse and register but never fire.
+Every key in the enum has a live `EventPowerIndex.dispatch(...)` call site.
+Keys that earlier drafts exposed without a dispatch site have been removed
+rather than left as silent no-ops; see the **Removed keys** section at the
+bottom for the two that were dropped (and their replacements).
 
 ## Event shape
 
@@ -31,7 +32,7 @@ set on one power; the dispatcher only calls whichever matches the site's call
 shape.
 
 `block_condition` is an optional gate that only applies when the event is
-block-shaped (`block_break`, `block_place`, `block_use`). The dispatch
+block-shaped (`block_break`, `block_place`, `block_use`, `bonemeal`). The dispatch
 `BlockPos` is extracted from the event context and the predicate is evaluated
 before the action runs. Supports `block` / `id` / `tag` fields, e.g.
 `{ "type": "neoorigins:block", "id": "minecraft:stone" }`. On non-block events
@@ -205,6 +206,22 @@ starter gear on Nether entry.
 
 ---
 
+## `climb`
+
+Fires once per server tick **while** the player is on a climbable block
+(ladder, vine, scaffolding, ...).
+
+**Context:** none. Query `player` state inside the action for finer detail.
+
+**Dispatch site:** `PlayerLifecycleEvents.onPlayerTick` (gated on
+`player.onClimbable()`, fired right after the generic `tick`).
+
+**Typical use:** spider-class climb-speed buffs, wall-cling stamina drain,
+fall-immunity-while-climbing. Like `tick`, this runs every tick the gate is
+met — keep the action cheap and gate hard with `condition`.
+
+---
+
 ## `jump`
 
 Fires when the player jumps.
@@ -230,6 +247,112 @@ entity and the `HitResult`. Check `result.getType()` for
 
 **Typical use:** homing arrows, projectile-converts-to-lightning, ranged
 debuff application.
+
+---
+
+## `craft_item`
+
+Fires when the player crafts an item in a crafting grid (table or inventory).
+
+**Context:** `CraftContext(stack)` — the crafted result `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onItemCrafted`
+(`PlayerEvent.ItemCraftedEvent`).
+
+**Typical use:** artisan-class craft XP, recipe-discovery rewards,
+craft-and-enchant.
+
+---
+
+## `smelt_item`
+
+Fires when the player removes a smelted item from a furnace / smoker / blast
+furnace output.
+
+**Context:** `CraftContext(stack)` — the smelted result `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onItemSmelted`
+(`PlayerEvent.ItemSmeltedEvent`).
+
+**Typical use:** smelting XP bonus, auto-quench effects, cook-class progress.
+
+---
+
+## `enchant_item`
+
+Fires when the player applies enchantments at an enchanting table (post-apply).
+
+**Context:** `CraftContext(stack)` — the freshly-enchanted `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onItemEnchanted`
+(`PlayerEnchantItemEvent`).
+
+**Typical use:** arcane-class enchant rituals, lapis refund, bonus-curse
+application. Distinct from `mod_enchant_level`, which changes the *offered*
+level before the player commits.
+
+---
+
+## `anvil_repair`
+
+Fires when the player takes the repaired / combined output from an anvil.
+
+**Context:** `CraftContext(stack)` — the finished `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onAnvilRepair`
+(`AnvilCraftEvent.Post`). In 26.1 the legacy `AnvilRepairEvent` was removed;
+the post-craft hook is now `AnvilCraftEvent.Post`, whose `getOutput()` carries
+the result.
+
+**Typical use:** smith-class repair XP, durability bonus on repair,
+free-naming perks. Distinct from `mod_anvil_cost`, which only scales the XP
+cost preview.
+
+---
+
+## `bonemeal`
+
+Fires when the player applies bone meal to a block.
+
+**Context:** `BlockInteractContext(pos, state)` — the bonemealed block's
+position and state. `block_condition` filters by block type.
+
+**Dispatch site:** `CraftingPowerEvents.onBonemeal` (`BonemealEvent`).
+
+**Typical use:** druid-class growth particles, biome-spread effects,
+bonemeal-as-fertilizer-XP. Distinct from `mod_bonemeal_extra`, which scales the
+number of extra growth applications.
+
+---
+
+## `breed`
+
+Fires when two animals the player bred produce a baby.
+
+**Context:** `EntityInteractContext(child)` — the spawned baby
+`LivingEntity`.
+
+**Dispatch site:** `WorldPowerEvents.onBabyEntitySpawn`
+(`BabyEntitySpawnEvent`, gated on a causing `ServerPlayer`). Dispatched before
+the `twin_breeding` gate, so a `breed` power and `twin_breeding` can coexist.
+
+**Typical use:** rancher-class breeding rewards, bonus-baby chance hooks,
+breeding-streak counters.
+
+---
+
+## `tame`
+
+Fires when an animal is tamed by the player.
+
+**Context:** `EntityInteractContext(animal)` — the tamed `LivingEntity`.
+
+**Dispatch site:** `WorldPowerEvents.onAnimalTame` (`AnimalTameEvent`, gated on
+`getTamer() instanceof ServerPlayer`).
+
+**Typical use:** beastmaster-class taming buffs, minion registration, tame
+particle effects. For minion-tracking integration see the dedicated `tame_mob`
+power.
 
 ---
 
@@ -264,11 +387,58 @@ Also synthetically fired by `EdibleItemPower` after a successful bite, so custom
 
 ---
 
+## `advancement_earned`
+
+Fires when the player earns an advancement.
+
+**Context:** `AdvancementContext(id)` — the advancement's `Identifier`.
+
+**Dispatch site:** `PlayerLifecycleEvents.onAdvancementEarned`
+(`AdvancementEvent.AdvancementEarnEvent`). Folded into the existing
+advancement handler, so it fires for every earned advancement — gate with
+`condition` if you only care about specific ones.
+
+**Typical use:** milestone rewards, achievement-gated power unlocks,
+progression-tied buffs.
+
+---
+
+## `trade_completed`
+
+Fires when the player completes a trade with a villager or wandering trader.
+
+**Context:** `TradeContext(offer)` — the `MerchantOffer` that was traded.
+
+**Dispatch site:** `InteractionPowerEvents.onTradeCompleted`
+(`TradeWithVillagerEvent`).
+
+**Typical use:** merchant-class trade XP, haggle-streak counters,
+trade-completion sound / particle.
+
+---
+
+## `villager_interact`
+
+Fires when the player right-clicks a villager or wandering trader — a narrower
+alias for `entity_use` that only matches `AbstractVillager` targets. Fired
+*after* the generic `entity_use` so a power can target either granularity.
+
+**Context:** `EntityInteractContext(target)` — the villager / trader
+`LivingEntity`.
+
+**Dispatch site:** `InteractionPowerEvents.onEntityUse` (the
+`AbstractVillager` branch).
+
+**Typical use:** charisma discounts, villager-specific dialogue hooks,
+reputation gestures.
+
+---
+
 ## `gained`
 
 Fires when a power has just been granted to the player.
 
-**Context:** the power's `ResourceLocation` ID (as a raw `Object`).
+**Context:** the power's `Identifier` ID (as a raw `Object`).
 
 **Dispatch site:** `ActiveOriginService.applyOriginPowers` (after
 `onGranted` + `PowerGrantedEvent`).
@@ -283,7 +453,7 @@ origin-pick particle effect. Fires every origin change — use
 
 Fires when a power has just been revoked from the player.
 
-**Context:** the power's `ResourceLocation` ID.
+**Context:** the power's `Identifier` ID.
 
 **Dispatch site:** `ActiveOriginService.applyOriginPowers` (after
 `onRevoked` + `PowerRevokedEvent`).
@@ -297,7 +467,7 @@ Fires when a power has just been revoked from the player.
 Fires when the player picks an origin from the selection screen
 (`ChooseOriginPayload`).
 
-**Context:** the newly-chosen origin's `ResourceLocation`.
+**Context:** the newly-chosen origin's `Identifier`.
 
 **Dispatch site:** `NeoOriginsNetwork.ChooseOriginPayload` handler.
 
@@ -461,6 +631,47 @@ HP healing buff.
 
 ---
 
+## `mod_trade_price`
+
+Per-player adjustment of a merchant offer's cost-A count. The chained result is
+treated as the new absolute count (clamped to `[1, maxStackSize]`) and folded
+into vanilla's `specialPriceDiff` channel — the same knob Hero of the Village
+and villager reputation use — so it stacks on top of natural discounts and
+shows correctly on both client and server.
+
+**Context:** `TradeContext(offer)` — the `MerchantOffer`. Base value is the
+currently-displayed cost-A count.
+
+**Dispatch site:** `AbstractVillagerTradePriceMixin` (TAIL of
+`AbstractVillager.setTradingPlayer`, applied on trade-screen open). The mixin's
+HEAD inject resets the prior contribution on close so the delta never compounds
+across repeated opens of the same wandering trader.
+
+**Typical use:** charisma-class cheaper trades, cursed-class price hikes,
+faction-discount perks.
+
+---
+
+## `mod_craft_amount`
+
+Scales the count of the assembled crafting-grid result. The chained result is
+treated as the new count (clamped to `[1, maxStackSize]`) and written to the
+result slot in place, so vanilla's later `broadcastChanges` syncs it to the
+client.
+
+**Context:** the result `ItemStack`. Base value is the recipe's natural output
+count.
+
+**Dispatch site:** `CraftingMenuCraftAmountMixin` (RETURN of the static
+`CraftingMenu.slotChangedCraftingGrid`, which covers both the 3×3 table and the
+2×2 inventory grid). Server-only in 26.1 (the method's level parameter is a
+`ServerLevel`).
+
+**Typical use:** artisan-class double-output, efficient-crafting perks,
+resource-multiplier classes.
+
+---
+
 ## `mod_harvest_drops`
 
 Multiplies extra-drop count when the player kills an animal.
@@ -580,41 +791,38 @@ and mod teleports are not routed through this event.
 
 ---
 
-## `mod_xp_gain`
+## `mod_fall_damage`
 
-Scales experience points gained from any source (mob kills, ore drops,
-bottles, etc.).
+Scales the fall-damage multiplier when the player lands. Chains on the event's
+current multiplier so it stacks with feather-falling and similar effects. A
+result `≤ 0` (or non-finite) zeroes fall damage; the final value is clamped to
+`≥ 0`.
 
-**Context:** `null`. Base value is `event.getAmount()` from
-`PlayerXpEvent.XpChange`.
+**Context:** the `LivingFallEvent`. Base value is `event.getDamageMultiplier()`.
 
-**Dispatch site:** `CompatEventPowers.onXpChange`.
+**Dispatch site:** `MovementPowerEvents.onLivingFall` (runs after the `land`
+dispatch and the `prevent_action: FALL_DAMAGE` gate).
 
-**Typical use:** scholar class 1.5× XP, cursed class 0.5× XP. Uses
-Apoli modifier math (addition + multiply_base/multiply_total collapse
-via `NumericModifierRegistry`).
+**Typical use:** acrobat-class reduced fall damage, heavy-class increased
+impact, partial fall mitigation that stacks with vanilla effects. For a full
+no-fall immunity, prefer `prevent_action: FALL_DAMAGE`.
 
 ---
 
-# Previously unwired — now removed
+# Removed keys
 
-The earlier draft enum included 15 keys that were parseable in JSON but had
-**no runtime dispatch site**. Exposing a handler that never fires is worse
-for pack authors than not offering it, so they were removed from the enum
-rather than left as silent no-ops: `CLIMB`, `CRAFT_ITEM`, `SMELT_ITEM`,
-`ENCHANT_ITEM`, `ANVIL_REPAIR`, `BREED`, `TAME`, `ADVANCEMENT_EARNED`,
-`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`,
-`MOD_TRADE_PRICE`, `MOD_CRAFT_AMOUNT`, `MOD_FALL_DAMAGE`. Several of these
-remain useful and will be added back the same day their dispatch site
-lands. If you need one for a pack you're building, file an issue and the
-wiring is usually a few lines on the matching NeoForge event.
+Two keys that earlier drafts exposed were dropped because a better-fitting
+mechanism already covers them — exposing a second, redundant handler would
+only invite divergent behaviour:
 
-Partial substitutes that already work today:
-
-- `MOD_BREAK_SPEED` → use the `break_speed_modifier` power (attribute-backed).
-- `MOD_FALL_DAMAGE` cancellation → `prevent_action: FALL_DAMAGE`.
-- `BREED` → a dedicated `twin_breeding` power already covers the common case.
-- `TAME` → inspect `tame_mob`'s own `MinionTracker` integration.
+- `mod_break_speed` → use the `break_speed_modifier` power (backed by the
+  vanilla `player.block_break_speed` attribute, which auto-syncs to the
+  client; the event route silently no-op'd because `PlayerEvent.BreakSpeed`
+  fires client-side for the local player).
+- `mod_xp_gain` → use the native `neoorigins:xp_gain_modifier` power (or the
+  `origins:modify_xp_gain` alias inside the Apoli compat layer). Both feed the
+  same `NumericModifierRegistry` XP_GAIN path with full Apoli modifier math
+  (`addition` + `multiply_base` / `multiply_total`).
 
 ---
 

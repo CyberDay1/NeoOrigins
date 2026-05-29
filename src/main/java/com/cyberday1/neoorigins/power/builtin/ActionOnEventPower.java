@@ -272,6 +272,9 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         if (ctx instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock rcb) {
             return rcb.getPos();
         }
+        if (ctx instanceof EventPowerIndex.BlockInteractContext bic) {
+            return bic.pos();
+        }
         return null;
     }
 
