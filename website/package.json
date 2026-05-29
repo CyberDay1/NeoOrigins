@@ -11,7 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:schema": "tsx src/lib/schema/__tests__/parse.test.ts",
-		"check:export": "tsx src/lib/datapack/__tests__/export.test.ts"
+		"check:export": "tsx src/lib/datapack/__tests__/export.test.ts",
+		"check:import": "tsx src/lib/datapack/__tests__/import.test.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.10",

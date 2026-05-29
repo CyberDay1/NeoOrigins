@@ -1,0 +1,280 @@
+// Datapack `.zip` import — the inverse of `exportDatapack`.
+//
+// Reads a datapack zip produced by this editor (or a compatible
+// hand-authored pack) back into an in-memory `OriginDraft`, so a user
+// can round-trip: export, tweak the files by hand or share them, then
+// re-open them in the editor. The layout we parse is exactly the one
+// `$lib/datapack/export.ts` writes and `originSerializer.ts` documents:
+//
+//   pack.mcmeta
+//   data/<ns>/origins/origins/<localId>.json          (the origin)
+//   data/<ns>/origins/origin_layers/<layerPath>.json  (layer-extension)
+//   data/<ns>/origins/powers/<powerLocalId>.json       (one per power)
+//
+// Import is best-effort and lossy in the same places the serializer is
+// lossy: component-form `name`/`description` are flattened to plain
+// strings (the MVP editor has no translation UI), and a layer-extension
+// file only records the layer's *path* segment — so the reconstructed
+// `layerId` always uses the `neoorigins:` namespace. Anything we can't
+// faithfully reconstruct is reported via `warnings` rather than thrown,
+// so the user gets the draft plus a heads-up about what was approximated.
+//
+// Fatal problems (not a zip, or no origin file at all) throw `ImportError`.
+
+import { unzipSync, strFromU8 } from 'fflate';
+
+import type { OriginDraft, PowerDraft, TargetMcVersion } from '$lib/stores/originDraft';
+
+/** Thrown when the zip can't be parsed into a draft at all. */
+export class ImportError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ImportError';
+	}
+}
+
+export interface ImportResult {
+	draft: OriginDraft;
+	/** Inferred from `pack.mcmeta` (`pack_format` 84 → 26.1, else 1.21.1). */
+	targetVersion: TargetMcVersion;
+	/** Non-fatal approximations the caller should surface to the user. */
+	warnings: string[];
+}
+
+// Baseline draft defaults. Kept inline (rather than importing `createDraft`
+// from the store) so this module stays a pure data transform with no
+// dependency on `$lib/stores/originDraft`, which pulls in `$app/environment`
+// and therefore can't load outside SvelteKit (e.g. the tsx test runner).
+// Must mirror `createDraft()` in originDraft.ts.
+function blankDraft(): OriginDraft {
+	return {
+		namespace: 'neoorigins',
+		path: '',
+		layerId: 'neoorigins:origin',
+		name: '',
+		description: '',
+		icon: '',
+		impact: 'none',
+		order: 0,
+		unchoosable: false,
+		hidden: false,
+		powers: []
+	};
+}
+
+const ORIGIN_RE = /^data\/([^/]+)\/origins\/origins\/(.+)\.json$/;
+const LAYER_RE = /^data\/([^/]+)\/origins\/origin_layers\/(.+)\.json$/;
+
+const IMPACTS = ['none', 'low', 'medium', 'high'] as const;
+type Impact = (typeof IMPACTS)[number];
+
+function isImpact(v: unknown): v is Impact {
+	return typeof v === 'string' && (IMPACTS as readonly string[]).includes(v);
+}
+
+/**
+ * Flatten a `name`/`description` value into a plain string. The editor
+ * emits raw strings, but a hand-authored pack may use a translatable
+ * component (`{translate, fallback}`); we keep the fallback (or the
+ * translate key as a last resort) and let the caller warn about it.
+ */
+function flattenText(v: unknown): { value: string; flattened: boolean } {
+	if (typeof v === 'string') return { value: v, flattened: false };
+	if (v && typeof v === 'object') {
+		const o = v as Record<string, unknown>;
+		const fallback = typeof o.fallback === 'string' ? o.fallback : undefined;
+		const translate = typeof o.translate === 'string' ? o.translate : undefined;
+		return { value: fallback ?? translate ?? '', flattened: true };
+	}
+	return { value: '', flattened: false };
+}
+
+function parseJson(files: Record<string, Uint8Array>, key: string): unknown {
+	try {
+		return JSON.parse(strFromU8(files[key]));
+	} catch (e) {
+		throw new ImportError(
+			`Failed to parse ${key} as JSON: ${e instanceof Error ? e.message : String(e)}`
+		);
+	}
+}
+
+/**
+ * Decompress a datapack `.zip` and reconstruct an `OriginDraft`.
+ *
+ * @throws {ImportError} if the bytes aren't a readable zip, or contain no
+ *   `data/<ns>/origins/origins/<id>.json` origin file.
+ */
+export function importDatapack(bytes: Uint8Array): ImportResult {
+	const warnings: string[] = [];
+
+	let files: Record<string, Uint8Array>;
+	try {
+		files = unzipSync(bytes);
+	} catch (e) {
+		throw new ImportError(
+			`Not a readable .zip: ${e instanceof Error ? e.message : String(e)}`
+		);
+	}
+
+	// ── locate the origin file ───────────────────────────────────────────
+	const originKeys = Object.keys(files).filter((k) => ORIGIN_RE.test(k));
+	if (originKeys.length === 0) {
+		throw new ImportError(
+			'No origin file found (expected data/<namespace>/origins/origins/<id>.json).'
+		);
+	}
+	if (originKeys.length > 1) {
+		warnings.push(
+			`Datapack defines ${originKeys.length} origins; importing the first ` +
+				`(${originKeys[0]}). The editor edits one origin at a time.`
+		);
+	}
+	const originKey = originKeys[0];
+	const originMatch = originKey.match(ORIGIN_RE)!;
+	const namespace = originMatch[1];
+	const localId = originMatch[2];
+
+	// ── target version from pack.mcmeta ──────────────────────────────────
+	let targetVersion: TargetMcVersion = '1.21.1';
+	if ('pack.mcmeta' in files) {
+		const meta = parseJson(files, 'pack.mcmeta') as
+			| { pack?: { pack_format?: unknown } }
+			| undefined;
+		const fmt = meta?.pack?.pack_format;
+		if (fmt === 84) {
+			targetVersion = '26.1';
+		} else if (fmt === 48) {
+			targetVersion = '1.21.1';
+		} else {
+			warnings.push(
+				`Unrecognized pack_format ${JSON.stringify(fmt)}; defaulting target to MC 1.21.1.`
+			);
+		}
+	} else {
+		warnings.push('No pack.mcmeta found; defaulting target to MC 1.21.1.');
+	}
+
+	// ── origin body ──────────────────────────────────────────────────────
+	const originJson = parseJson(files, originKey) as Record<string, unknown>;
+	const draft: OriginDraft = blankDraft();
+	draft.namespace = namespace;
+	draft.path = localId;
+
+	const name = flattenText(originJson.name);
+	const description = flattenText(originJson.description);
+	draft.name = name.value;
+	draft.description = description.value;
+	if (name.flattened || description.flattened) {
+		warnings.push(
+			'Component-form text (translate/fallback) was flattened to a plain string.'
+		);
+	}
+
+	if (typeof originJson.icon === 'string') draft.icon = originJson.icon;
+
+	if (originJson.impact !== undefined) {
+		if (isImpact(originJson.impact)) {
+			draft.impact = originJson.impact;
+		} else {
+			warnings.push(
+				`Unknown impact ${JSON.stringify(originJson.impact)}; defaulting to "none".`
+			);
+		}
+	}
+
+	if (typeof originJson.order === 'number') draft.order = originJson.order;
+	draft.unchoosable = originJson.unchoosable === true;
+	draft.hidden = originJson.hidden === true;
+
+	// ── upgrades (optional) ──────────────────────────────────────────────
+	if (Array.isArray(originJson.upgrades) && originJson.upgrades.length > 0) {
+		const upgrades: NonNullable<OriginDraft['upgrades']> = [];
+		for (const u of originJson.upgrades) {
+			if (
+				u &&
+				typeof u === 'object' &&
+				typeof (u as Record<string, unknown>).advancement === 'string' &&
+				typeof (u as Record<string, unknown>).origin === 'string'
+			) {
+				const entry = u as { advancement: string; origin: string; announcement?: unknown };
+				upgrades.push({
+					advancement: entry.advancement,
+					origin: entry.origin,
+					...(typeof entry.announcement === 'string'
+						? { announcement: entry.announcement }
+						: {})
+				});
+			} else {
+				warnings.push('Skipped a malformed upgrades entry (missing advancement/origin).');
+			}
+		}
+		if (upgrades.length > 0) draft.upgrades = upgrades;
+	}
+
+	// ── powers ───────────────────────────────────────────────────────────
+	const powerRefs = Array.isArray(originJson.powers) ? originJson.powers : [];
+	const powers: PowerDraft[] = [];
+	for (const ref of powerRefs) {
+		if (typeof ref !== 'string' || !ref.includes(':')) {
+			warnings.push(`Skipped malformed power reference ${JSON.stringify(ref)}.`);
+			continue;
+		}
+		const colon = ref.indexOf(':');
+		const powerNs = ref.slice(0, colon);
+		const powerLocalId = ref.slice(colon + 1);
+		const powerKey = `data/${powerNs}/origins/powers/${powerLocalId}.json`;
+		if (!(powerKey in files)) {
+			warnings.push(
+				`Power "${ref}" has no power file in the datapack — skipped ` +
+					`(likely a built-in or external power the editor can't reconstruct).`
+			);
+			continue;
+		}
+		const powerJson = parseJson(files, powerKey) as Record<string, unknown>;
+		const type = typeof powerJson.type === 'string' ? powerJson.type : '';
+		if (!type) {
+			warnings.push(`Power "${ref}" has no "type" field — skipped.`);
+			continue;
+		}
+		if (powerNs !== namespace) {
+			warnings.push(
+				`Power "${ref}" lives in a different namespace than the origin; ` +
+					`it will be re-exported under "${namespace}:${powerLocalId}".`
+			);
+		}
+		const fields: Record<string, unknown> = {};
+		for (const [k, v] of Object.entries(powerJson)) {
+			if (k === 'type') continue;
+			fields[k] = v;
+		}
+		powers.push({ id: powerLocalId, type, fields });
+	}
+	draft.powers = powers;
+
+	// ── layer id (from the layer-extension that lists this origin) ───────
+	const fullOriginId = `${namespace}:${localId}`;
+	const layerKeys = Object.keys(files).filter((k) => LAYER_RE.test(k));
+	let matchedLayerPath: string | undefined;
+	for (const k of layerKeys) {
+		const ext = parseJson(files, k) as { origins?: unknown };
+		if (Array.isArray(ext.origins) && ext.origins.includes(fullOriginId)) {
+			matchedLayerPath = k.match(LAYER_RE)![2];
+			break;
+		}
+	}
+	if (matchedLayerPath) {
+		draft.layerId = `neoorigins:${matchedLayerPath}`;
+	} else if (layerKeys.length > 0) {
+		const guess = layerKeys[0].match(LAYER_RE)![2];
+		draft.layerId = `neoorigins:${guess}`;
+		warnings.push(
+			`No layer-extension file lists "${fullOriginId}"; assuming layer ` +
+				`"neoorigins:${guess}" from ${layerKeys[0]}.`
+		);
+	} else {
+		warnings.push('No layer-extension file found; defaulting layer to "neoorigins:origin".');
+	}
+
+	return { draft, targetVersion, warnings };
+}

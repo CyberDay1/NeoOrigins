@@ -12,6 +12,7 @@
 		type EditorTab
 	} from '$lib/stores/originDraft';
 	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
+	import { importDatapack, ImportError } from '$lib/datapack/import';
 	import IdentityTab from '$lib/components/IdentityTab.svelte';
 	import PowersTab from '$lib/components/PowersTab.svelte';
 	import UpgradesTab from '$lib/components/UpgradesTab.svelte';
@@ -24,6 +25,11 @@
 	});
 
 	let downloadMessage = $state<string>('');
+
+	// Import state: warnings (non-fatal approximations) and a fatal error.
+	let importWarnings = $state<string[]>([]);
+	let importError = $state<string>('');
+	let fileInput = $state<HTMLInputElement>();
 
 	let displayId = $derived($draft.path ? fullId($draft) : 'Untitled Origin');
 
@@ -62,7 +68,36 @@
 			a.click();
 			URL.revokeObjectURL(url);
 		} catch {
-			downloadMessage = 'Coming soon — datapack export is not yet implemented.';
+			downloadMessage = 'Export failed — see console for details.';
+		}
+	}
+
+	function onImportClick() {
+		fileInput?.click();
+	}
+
+	async function onImportFile(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		// Reset the input so picking the same file again re-fires `change`.
+		input.value = '';
+		if (!file) return;
+
+		importError = '';
+		importWarnings = [];
+		downloadMessage = '';
+		try {
+			const bytes = new Uint8Array(await file.arrayBuffer());
+			const res = importDatapack(bytes);
+			draft.set(res.draft);
+			targetVersion.set(res.targetVersion);
+			importWarnings = res.warnings;
+			activeTab.set('identity');
+		} catch (err) {
+			importError =
+				err instanceof ImportError
+					? err.message
+					: `Couldn't import that file: ${err instanceof Error ? err.message : String(err)}`;
 		}
 	}
 </script>
@@ -73,6 +108,16 @@
 		<span class="id-display" aria-live="polite">{displayId}</span>
 	</div>
 	<div class="topbar-actions">
+		<button type="button" class="btn-secondary" onclick={onImportClick}>
+			Import datapack (.zip)
+		</button>
+		<input
+			bind:this={fileInput}
+			type="file"
+			accept=".zip,application/zip"
+			class="visually-hidden"
+			onchange={onImportFile}
+		/>
 		<button type="button" class="btn-secondary" onclick={onReset}>Reset</button>
 		<button
 			type="button"
@@ -142,6 +187,22 @@
 	</button>
 	{#if downloadMessage}
 		<p class="dl-msg">{downloadMessage}</p>
+	{/if}
+	{#if importError}
+		<p class="import-error" role="alert">{importError}</p>
+	{/if}
+	{#if importWarnings.length > 0}
+		<div class="import-warnings" role="status">
+			<p class="import-warnings-title">
+				Imported with {importWarnings.length}
+				{importWarnings.length === 1 ? 'note' : 'notes'}:
+			</p>
+			<ul>
+				{#each importWarnings as warning}
+					<li>{warning}</li>
+				{/each}
+			</ul>
+		</div>
 	{/if}
 </div>
 
@@ -294,5 +355,49 @@
 		color: var(--color-text-muted);
 		font-size: 0.85rem;
 		font-style: italic;
+	}
+
+	/* Visually hide the file <input> but keep it focusable/clickable. */
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.import-error {
+		margin: 0;
+		color: var(--color-danger);
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+	.import-warnings {
+		width: 100%;
+		padding: var(--space-3);
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+	}
+	.import-warnings-title {
+		margin: 0 0 var(--space-2);
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+	.import-warnings ul {
+		margin: 0;
+		padding-left: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.import-warnings li {
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
 	}
 </style>
