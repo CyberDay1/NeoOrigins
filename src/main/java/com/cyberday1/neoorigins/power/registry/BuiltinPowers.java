@@ -547,6 +547,79 @@ public final class BuiltinPowers {
         define("active_recall", ActiveRecallPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(600).doc("Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600.")));
+
+        // ── Group N — batch 2 (more Active* powers + two clean JsonOps powers) ─
+        // active_swap/teleport/ground_slam/tidal_wave are the same all-optional
+        // RecordCodecBuilder shape as batch 1 (no schema branch to collapse).
+        // model_color and breath_in_fluid are hand-rolled JsonOps decoders with
+        // NO schema branch whose every authored field maps 1:1 to a record
+        // component (snake-case), so the spec is behavior-neutral:
+        //   • model_color.condition is Optional<EntityCondition> in the codec →
+        //     a nested condition REF (.ref("#"), required=false), mirroring how
+        //     the action combinators model an embedded condition.
+        //   • breath_in_fluid's codec ALSO accepts two alias input keys
+        //     (air_loss_per_second, drain_rate) that are not record components —
+        //     reflection never surfaced them as form fields and they keep their
+        //     field_docs.json entries as documented JSON aliases; the spec only
+        //     declares the two real components (fluid, drain_interval_ticks),
+        //     matching exactly what the form rendered before.
+        define("active_swap", ActiveSwapPower.class, List.of(
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(20.0).doc("Max distance in blocks to find the looked-at entity to swap with; default 20.0."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(80).doc("Cooldown between swaps in ticks (20 = 1s); default 80.")));
+        define("active_teleport", ActiveTeleportPower.class, List.of(
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(32.0).doc("Maximum teleport distance in blocks; default 32.0."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(60).doc("Cooldown between teleports in ticks (20 = 1s); default 60."),
+            new FieldSpec("mode", Kind.STRING, false)
+                .def("target").doc("\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Food/exhaustion points consumed on a successful teleport; default 0.")));
+        define("ground_slam", ActiveGroundSlamPower.class, List.of(
+            new FieldSpec("damage", Kind.NUMBER, false)
+                .def(6.0).doc("Damage dealt to each entity caught in the slam (default 6.0)."),
+            new FieldSpec("knockback_strength", Kind.NUMBER, false)
+                .def(1.5).doc("Outward knockback pushing hit entities away (default 1.5)."),
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(6.0).doc("Blocks around the player whose entities are hit (default 6.0)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(120).doc("Ticks before the slam can be reused (default 120 = 6s).")));
+        define("tidal_wave", ActiveTidalWavePower.class, List.of(
+            new FieldSpec("damage", Kind.NUMBER, false)
+                .def(4.0).doc("Damage dealt to each entity in the cone (half-hearts; default 4)."),
+            new FieldSpec("knockback_strength", Kind.NUMBER, false)
+                .def(2.0).doc("Forward push applied to hit entities (default 2)."),
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(8.0).doc("Max reach of the water cone in blocks (default 8)."),
+            new FieldSpec("cone_angle", Kind.NUMBER, false)
+                .def(60.0).doc("Total width in degrees of the forward damage cone (default 60)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(100).doc("Ticks before the wave can be reused (100 = 5s)."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Hunger consumed per use (default 0).")));
+        define("model_color", ModelColorPower.class, List.of(
+            new FieldSpec("red", Kind.NUMBER, false)
+                .def(1.0).range(0.0, 1.0).doc("Red channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
+            new FieldSpec("green", Kind.NUMBER, false)
+                .def(1.0).range(0.0, 1.0).doc("Green channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
+            new FieldSpec("blue", Kind.NUMBER, false)
+                .def(1.0).range(0.0, 1.0).doc("Blue channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
+            // NOTE (26.1 port): the 1.21.1 source declares a 5th field here, a
+            // nested `condition` (Optional<EntityCondition>) REF. The 26.1
+            // ModelColorPower.Config record has no `condition` component
+            // (red/green/blue/alpha/type only), so registering that field would
+            // fail auditPowerFieldSpecs (no matching Config component). The
+            // condition knob is a 26.1 feature-parity follow-up; this spec
+            // declares only what the 26.1 codec actually parses.
+            new FieldSpec("alpha", Kind.NUMBER, false)
+                .def(1.0).range(0.0, 1.0).doc("Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).")));
+        define("breath_in_fluid", BreathInFluidPower.class, List.of(
+            new FieldSpec("fluid", Kind.STRING, false)
+                .def("water").doc("Fluid that suffocates the player, \"water\" or \"lava\"; default water."),
+            new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
+                .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Aliases: drain_rate, air_loss_per_second.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

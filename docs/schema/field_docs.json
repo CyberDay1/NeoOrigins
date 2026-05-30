@@ -19,16 +19,6 @@
     "hunger_cost": "Food/exhaustion points consumed per successful activation; default 0.",
     "key": "Active keybind slot that triggers the ability."
   },
-  "neoorigins:active_swap": {
-    "cooldown_ticks": "Cooldown between swaps in ticks (20 = 1s); default 80.",
-    "range": "Max distance in blocks to find the looked-at entity to swap with; default 20.0."
-  },
-  "neoorigins:active_teleport": {
-    "cooldown_ticks": "Cooldown between teleports in ticks (20 = 1s); default 60.",
-    "hunger_cost": "Food/exhaustion points consumed on a successful teleport; default 0.",
-    "mode": "\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target.",
-    "range": "Maximum teleport distance in blocks; default 32.0."
-  },
   "neoorigins:attribute_modifier": {
     "amount": "Numeric value applied to the attribute under the chosen operation; required.",
     "attribute": "Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.",
@@ -72,12 +62,6 @@
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },
-  "neoorigins:ground_slam": {
-    "cooldown_ticks": "Ticks before the slam can be reused (default 120 = 6s).",
-    "damage": "Damage dealt to each entity caught in the slam (default 6.0).",
-    "knockback_strength": "Outward knockback pushing hit entities away (default 1.5).",
-    "radius": "Blocks around the player whose entities are hit (default 6.0)."
-  },
   "neoorigins:loot_pool_grant": {
     "active": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system.",
     "bonus_rolls": "Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming.",
@@ -85,12 +69,6 @@
     "grant_id": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both.",
     "loot_table": "ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).",
     "rolls": "Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op."
-  },
-  "neoorigins:model_color": {
-    "alpha": "Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).",
-    "blue": "Blue channel of the player model tint, 0.0 to 1.0 (default 1.0).",
-    "green": "Green channel of the player model tint, 0.0 to 1.0 (default 1.0).",
-    "red": "Red channel of the player model tint, 0.0 to 1.0 (default 1.0)."
   },
   "neoorigins:modify_damage": {
     "direction": "\"in\" scales damage taken, \"out\" scales damage dealt (default in).",
@@ -161,14 +139,6 @@
   "neoorigins:tick_action": {
     "action_type": "Periodic action: teleport_on_damage or none (default none).",
     "interval": "Ticks between each action run (20 = 1s; default 20)."
-  },
-  "neoorigins:tidal_wave": {
-    "cone_angle": "Total width in degrees of the forward damage cone (default 60).",
-    "cooldown_ticks": "Ticks before the wave can be reused (100 = 5s).",
-    "damage": "Damage dealt to each entity in the cone (half-hearts; default 4).",
-    "hunger_cost": "Hunger consumed per use (default 0).",
-    "knockback_strength": "Forward push applied to hit entities (default 2).",
-    "range": "Max reach of the water cone in blocks (default 8)."
   },
   "neoorigins:toggle": {
     "default_value": "Initial boolean value before the toggle is first flipped (default false).",
