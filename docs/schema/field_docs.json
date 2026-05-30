@@ -13,18 +13,6 @@
     "effect_tag": "EFFECT_APPLIED filter: only fire for effects in this tag (e.g. '#minecraft:harmful'). Combine with 'effect' (OR-matched). Ignored on other events.",
     "immunity_ticks": "EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace)."
   },
-  "neoorigins:action_on_hit": {
-    "action": "Effect on dealing damage: restore_health, restore_hunger, grant_effect, or target_effect.",
-    "amount": "Half-hearts healed (restore_health) or food points fed (restore_hunger); default 2.0.",
-    "amplifier": "Potion amplifier for grant_effect/target_effect (0 = level I); default 0.",
-    "chance": "Probability 0.0-1.0 the action triggers per qualifying hit; default 1.0.",
-    "damage_type": "Optional damage-type id filter; the action only fires for matching sources.",
-    "duration": "Effect duration in ticks for grant/target_effect (20 = 1s); default 100.",
-    "effect": "Mob effect id applied to self (grant_effect) or the victim (target_effect).",
-    "min_damage": "Minimum incoming damage required before the action triggers; default 0.0.",
-    "target_group": "Optional entity-group filter (undead, arthropod, ...) restricting which victims trigger it.",
-    "target_type": "Optional specific entity-type id filter for the victim."
-  },
   "neoorigins:active_ability": {
     "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s); default 60.",
     "entity_action": "EntityAction tree executed on the player when the keybind fires.",
@@ -192,10 +180,6 @@
     "feet": "Item or tag id barred from the feet slot; equipping it ejects the item.",
     "head": "Item or tag id barred from the head slot; equipping it ejects the item.",
     "legs": "Item or tag id barred from the legs slot; equipping it ejects the item."
-  },
-  "neoorigins:size_scaling": {
-    "modify_reach": "If true, reach scales with body size too (default true). For independent reach use attribute_modifier.",
-    "scale": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."
   },
   "neoorigins:starting_equipment": {
     "components": "Singular shape: SNBT data-component patch applied to the granted item.",
