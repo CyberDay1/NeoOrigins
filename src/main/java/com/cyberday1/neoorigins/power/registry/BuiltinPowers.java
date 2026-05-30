@@ -464,6 +464,41 @@ public final class BuiltinPowers {
                 .def(0.15).doc("Food exhaustion added each tick while phasing in solids (default 0.15)."),
             new FieldSpec("always_on", Kind.BOOLEAN, false)
                 .def(false).doc("If true phasing is always-active instead of a toggle key (default false).")));
+
+        // ── Group R (cont.) — batch D ───────────────────────────────────────
+        // Last two plain-record powers. action_on_hit's `action` is described
+        // as an enum-ish string but has no EnumHints vocabulary, so it stays
+        // Kind.STRING (free text) — promoting it to a dropdown would not be
+        // behavior-neutral. Its effect/target_group/target_type/damage_type are
+        // Optional<> → required=false. size_scaling keeps no schema branch (its
+        // scale/modify_reach branch is collapsed like the other registered
+        // powers, leaving only common wrapper fields the spec subsumes).
+        define("action_on_hit", ActionOnHitPower.class, List.of(
+            new FieldSpec("action", Kind.STRING, false)
+                .def("restore_health").doc("Effect on dealing damage: restore_health, restore_hunger, grant_effect, or target_effect."),
+            new FieldSpec("amount", Kind.NUMBER, false)
+                .def(2.0).doc("Half-hearts healed (restore_health) or food points fed (restore_hunger); default 2.0."),
+            new FieldSpec("effect", Kind.STRING, false)
+                .doc("Mob effect id applied to self (grant_effect) or the victim (target_effect)."),
+            new FieldSpec("duration", Kind.INTEGER, false)
+                .def(100).doc("Effect duration in ticks for grant/target_effect (20 = 1s); default 100."),
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .def(0).doc("Potion amplifier for grant_effect/target_effect (0 = level I); default 0."),
+            new FieldSpec("min_damage", Kind.NUMBER, false)
+                .def(0.0).doc("Minimum incoming damage required before the action triggers; default 0.0."),
+            new FieldSpec("chance", Kind.NUMBER, false)
+                .def(1.0).doc("Probability 0.0-1.0 the action triggers per qualifying hit; default 1.0."),
+            new FieldSpec("target_group", Kind.STRING, false)
+                .doc("Optional entity-group filter (undead, arthropod, ...) restricting which victims trigger it."),
+            new FieldSpec("target_type", Kind.STRING, false)
+                .doc("Optional specific entity-type id filter for the victim."),
+            new FieldSpec("damage_type", Kind.STRING, false)
+                .doc("Optional damage-type id filter; the action only fires for matching sources.")));
+        define("size_scaling", SizeScalingPower.class, List.of(
+            new FieldSpec("scale", Kind.NUMBER, false)
+                .def(1.0).doc("Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."),
+            new FieldSpec("modify_reach", Kind.BOOLEAN, false)
+                .def(true).doc("If true, reach scales with body size too (default true). For independent reach use attribute_modifier.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
