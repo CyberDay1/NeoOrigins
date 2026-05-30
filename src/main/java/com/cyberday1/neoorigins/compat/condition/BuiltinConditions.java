@@ -39,6 +39,19 @@ public final class BuiltinConditions {
 
     private BuiltinConditions() {}
 
+    /** Shared {@code comparison} ENUM field (vanilla operator vocabulary). */
+    private static FieldSpec comparison(String defaultOp, String doc) {
+        return new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+            .options("==", "!=", ">", ">=", "<", "<=")
+            .def(defaultOp)
+            .doc(doc);
+    }
+
+    /** Shared {@code compare_to} threshold field. */
+    private static FieldSpec compareTo(FormFieldSpec.Kind kind, Object def, String doc) {
+        return new FieldSpec("compare_to", kind, false).def(def).doc(doc);
+    }
+
     /** Insertion-ordered so registration/audit output is deterministic. */
     private static final Map<Identifier, ConditionType> DESCRIPTORS = new LinkedHashMap<>();
     /** Canonical {@code "neoorigins:<verb>"} string → descriptor, for hot-path dispatch. */
@@ -150,6 +163,99 @@ public final class BuiltinConditions {
             if (!(p.level() instanceof ServerLevel sl)) return false;
             return sl.isThundering() && sl.isRainingAt(p.blockPosition());
         }, List.of());
+
+        // ---- Numeric comparison conditions (delegate to ConditionParser helpers) ----
+        // Each delegates to the lifted package-private parse* helper so behaviour is
+        // byte-identical; the FieldSpec list is transcribed from the helper's reads
+        // and the hand-written schema (D2). All share the comparison/compare_to shape.
+        define("health",
+            (json, ctx) -> ConditionParser.parseHealth(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Health value threshold (default 0).")));
+        define("food_level", List.of("food"),
+            (json, ctx) -> ConditionParser.parseFoodLevel(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Food-level threshold (default 0).")));
+        define("saturation_level",
+            (json, ctx) -> ConditionParser.parseSaturationLevel(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Saturation threshold (default 0).")));
+        define("relative_health",
+            (json, ctx) -> ConditionParser.parseRelativeHealth(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Health ratio threshold 0..1 (default 0).")));
+        define("fall_distance",
+            (json, ctx) -> ConditionParser.parseFallDistance(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Fall-distance threshold (default 0).")));
+        // light_level and brightness share parseLightLevel but are BOTH first-class
+        // picker entries (both in KNOWN_TYPES), so each is its own canonical
+        // descriptor sharing the factory — not an alias-set (an alias would drop a
+        // counted picker type). Same rationale for xp_level / xp_levels below.
+        java.util.List<FieldSpec> lightFields = List.of(
+            comparison(">=", "Comparison operator (default >=)."),
+            compareTo(FormFieldSpec.Kind.INTEGER, 0, "Light-level threshold 0..15 (default 0)."),
+            new FieldSpec("light_type", FormFieldSpec.Kind.ENUM, false)
+                .options("sky", "block", "any").def("any")
+                .doc("Which light layer to sample (default any/max local brightness)."));
+        define("light_level", (json, ctx) -> ConditionParser.parseLightLevel(json), lightFields);
+        define("brightness", (json, ctx) -> ConditionParser.parseLightLevel(json), lightFields);
+        define("temperature",
+            (json, ctx) -> ConditionParser.parseTemperature(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Biome base-temperature threshold (default 0).")));
+        define("armor_value",
+            (json, ctx) -> ConditionParser.parseArmorValue(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Armor-value threshold (default 0).")));
+        define("amount",
+            (json, ctx) -> ConditionParser.parseAmount(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Threshold (standalone: compared against health; default 0).")));
+        define("height",
+            (json, ctx) -> ConditionParser.parseHeight(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "World Y-position threshold (default 0).")));
+        // xp_level / xp_levels — both in KNOWN_TYPES, so both canonical (see note above).
+        java.util.List<FieldSpec> xpLevelFields = List.of(
+            comparison(">=", "Comparison operator (default >=)."),
+            compareTo(FormFieldSpec.Kind.INTEGER, 0, "Experience-level threshold (default 0)."));
+        define("xp_level", (json, ctx) -> ConditionParser.parseXpLevel(json), xpLevelFields);
+        define("xp_levels", (json, ctx) -> ConditionParser.parseXpLevel(json), xpLevelFields);
+        define("xp_points",
+            (json, ctx) -> ConditionParser.parseXpPoints(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 0, "Total-experience threshold (default 0).")));
+        define("fluid_height",
+            (json, ctx) -> ConditionParser.parseFluidHeight(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Fluid-height threshold (default 0)."),
+                    new FieldSpec("fluid", FormFieldSpec.Kind.STRING, false)
+                        .doc("Fluid id to measure (minecraft:water / minecraft:lava).")));
+
+        // ---- Identifier / tag conditions (delegate to ConditionParser helpers) ----
+        define("dimension",
+            (json, ctx) -> ConditionParser.parseDimension(json),
+            List.of(new FieldSpec("dimension", FormFieldSpec.Kind.STRING, false)
+                .doc("Dimension id the player must be in (absent → always true).")));
+        define("in_tag",
+            (json, ctx) -> ConditionParser.parseInTag(json),
+            List.of(new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                .doc("Biome tag the player's biome must be in (absent → always true).")));
+        define("submerged_in",
+            (json, ctx) -> ConditionParser.parseSubmergedIn(json),
+            List.of(new FieldSpec("fluid", FormFieldSpec.Kind.STRING, false)
+                .doc("Fluid id whose submersion to test (minecraft:water / minecraft:lava).")));
+        define("entity_type",
+            (json, ctx) -> ConditionParser.parseEntityType(json),
+            List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
+                .doc("Entity-type id to match (player is always minecraft:player; absent → always true).")));
+        define("enchantment",
+            (json, ctx) -> ConditionParser.parseEnchantment(json),
+            List.of(new FieldSpec("enchantment", FormFieldSpec.Kind.STRING, false)
+                        .doc("Enchantment id to look for across equipped items (absent → always true)."),
+                    comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 1, "Enchantment-level threshold (default 1).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
