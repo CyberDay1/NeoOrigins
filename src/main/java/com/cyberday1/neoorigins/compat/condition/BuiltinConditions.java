@@ -351,6 +351,31 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parsePower(json, ctx),
             List.of(new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
                 .doc("Power id the player must have been granted.")));
+
+        // ---- Power / resource / cooldown conditions (delegate to ConditionParser) ----
+        // resource / resource_level — compares a power's stored resource value.
+        // `resource_level` is a true synonym (absent from KNOWN_TYPES) → alias.
+        define("resource", List.of("resource_level"),
+            (json, ctx) -> ConditionParser.parseResource(json, ctx),
+            List.of(new FieldSpec("resource", FormFieldSpec.Kind.STRING, true)
+                        .doc("Resource power id whose stored value to read."),
+                    comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 0, "Resource-value threshold (default 0).")));
+        // cooldown — true when the named power is NOT on cooldown (absent power → always true).
+        define("cooldown",
+            (json, ctx) -> ConditionParser.parseCooldown(json),
+            List.of(new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
+                .doc("Power id whose cooldown to test (absent → always true).")));
+        // power_active — true when the named (or wildcard) toggle power is on.
+        define("power_active",
+            (json, ctx) -> ConditionParser.parsePowerActive(json, ctx),
+            List.of(new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
+                .doc("Toggle power id to test; `*` wildcard suffix-matches toggle keys.")));
+        // power_type — true when any granted power's type matches the given id.
+        define("power_type",
+            (json, ctx) -> ConditionParser.parsePowerType(json, ctx),
+            List.of(new FieldSpec("power_type", FormFieldSpec.Kind.STRING, false)
+                .doc("Power-type id to match across granted powers (also accepts `id`; bare → origins: prefixed).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

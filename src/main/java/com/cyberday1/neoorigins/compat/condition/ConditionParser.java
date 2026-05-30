@@ -157,10 +157,6 @@ public final class ConditionParser {
                     }
                     return true;
                 };
-                case "neoorigins:cooldown"                      -> parseCooldown(json);
-                case "neoorigins:resource",
-                     "neoorigins:resource_level"                -> parseResource(json, contextId);
-                case "neoorigins:power_active"                  -> parsePowerActive(json, contextId);
                 case "neoorigins:on_block"                      -> parseOnBlock(json, contextId);
 
                 // ---- Phase 1: New conditions ----
@@ -169,7 +165,6 @@ public final class ConditionParser {
                 case "neoorigins:block"                         -> parseBlockCondition(json, contextId);
                 case "neoorigins:in_block",
                      "neoorigins:in_block_anywhere"             -> parseInBlock(json, contextId);
-                case "neoorigins:power_type"                    -> parsePowerType(json, contextId);
                 case "neoorigins:predicate"                     -> parsePredicate(json, contextId);
 
                 // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
@@ -269,7 +264,7 @@ public final class ConditionParser {
         return p -> supplier.getAsBoolean();
     }
 
-    private static EntityCondition parseCooldown(JsonObject json) {
+    static EntityCondition parseCooldown(JsonObject json) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
         if (powerId == null) return EntityCondition.alwaysTrue();
         return player -> {
@@ -285,7 +280,7 @@ public final class ConditionParser {
         return player -> comparison.test(player.getHealth(), target);
     }
 
-    private static EntityCondition parseResource(JsonObject json, String contextId) {
+    static EntityCondition parseResource(JsonObject json, String contextId) {
         String powerId = json.has("resource") ? json.get("resource").getAsString() : null;
         if (powerId == null || powerId.isBlank()) {
             return failClosed("origins:resource", contextId, "missing required field 'resource'");
@@ -299,7 +294,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parsePowerActive(JsonObject json, String contextId) {
+    static EntityCondition parsePowerActive(JsonObject json, String contextId) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
         if (powerId == null || powerId.isBlank()) {
             return failClosed("origins:power_active", contextId, "missing required field 'power'");
@@ -740,7 +735,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parsePowerType(JsonObject json, String contextId) {
+    static EntityCondition parsePowerType(JsonObject json, String contextId) {
         // Predicate: "does the player have any granted power whose type matches this id?"
         // Delegates to ActiveOriginService for the lookup.
         String expected = json.has("power_type") ? json.get("power_type").getAsString()
