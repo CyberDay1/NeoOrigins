@@ -387,6 +387,26 @@ public final class CompatTestHarness {
               .append("\trecognized=").append(recognizedCategories(raw))
               .append("\tfields={").append(String.join(",", vo.fields)).append("}\n");
         }
+        sb.append('\n');
+
+        // ── POWER COVERAGE (registry-refactor: power field-spec layer) ───────
+        // One line per power type registered in BuiltinPowers, dumping the
+        // spec-DECLARED field set (the metadata source of truth, NOT the codec
+        // parse path — powers still deserialize via their own Codec<Config>).
+        // This makes spec-vs-corpus drift a reviewable git diff: as powers are
+        // migrated into BuiltinPowers, their declared field set lands here and
+        // can be eyeballed against the CORPUS COVERAGE fields above. Empty when
+        // nothing is registered; marker-only powers list fields={}.
+        sb.append("== POWER COVERAGE ==\n");
+        sb.append("# <power-type>\tfields={...}  (spec-declared, from BuiltinPowers)\n");
+        var powerDescriptors =
+            com.cyberday1.neoorigins.power.registry.BuiltinPowers.descriptors();
+        for (var e : powerDescriptors.entrySet()) {
+            TreeSet<String> declared = new TreeSet<>();
+            for (var fs : e.getValue().fields()) declared.add(fs.name());
+            sb.append(e.getKey().toString())
+              .append("\tfields={").append(String.join(",", declared)).append("}\n");
+        }
 
         if (out.getParent() != null) Files.createDirectories(out.getParent());
         Files.writeString(out, sb.toString());

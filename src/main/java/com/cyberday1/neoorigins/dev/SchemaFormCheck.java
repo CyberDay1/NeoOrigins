@@ -138,6 +138,11 @@ public final class SchemaFormCheck {
         // 9. Every form field of every power must have a description.
         failures += auditFieldDocs(model);
 
+        // 9b. BuiltinPowers field-specs must not drift from the power's Config
+        //     codec (the power analogue of auditParserTypes). Vacuously green
+        //     until powers are registered.
+        failures += auditPowerFieldSpecs(model);
+
         // 10. Action / condition schemas must also be packaged + parse, so the
         //     2.1 RefRow widget can render sub-forms when an entity_action /
         //     condition REF is picked.
@@ -363,6 +368,134 @@ public final class SchemaFormCheck {
         System.out.println("[schema-check] marker-only (empty form is correct - no config): "
             + String.join(", ", markerOnly));
         return fails;
+    }
+
+    /**
+     * Drift guard for {@link com.cyberday1.neoorigins.power.registry.BuiltinPowers}
+     * — the power analogue of {@link #auditParserTypes}. Powers deserialize
+     * through their own {@code Codec<Config>} (untouched by the refactor); this
+     * proves the declarative {@code FieldSpec} metadata stays consistent with
+     * that codec's record shape, so the schema / doc / editor layer can never
+     * silently drift from what a power actually parses.
+     *
+     * <p>For every power registered in {@code BuiltinPowers}, resolves its
+     * {@code Config} record (via {@code PowerConfigClassResolver}, headless-safe
+     * off the carried {@code Class}) and asserts:
+     * <ol type="a">
+     *   <li>every {@code FieldSpec.name} maps to a record component
+     *       (camel→snake) — no spec for a field the codec doesn't have;</li>
+     *   <li>every non-internal record component has a spec OR is covered by the
+     *       reflection fallback (so dropping a field from the spec without a
+     *       reason is caught) — reported, not failed, since the fallback is a
+     *       legitimate safety net;</li>
+     *   <li>required-ness matches {@code Optional}-typedness wherever the codec
+     *       exposes it: an {@code Optional<>} component must not be modelled
+     *       {@code required(true)} (the only direction reflection can prove);</li>
+     *   <li>if a {@code power.schema.json} branch exists for the type, the spec
+     *       is consistent with it — every schema field name appears in the spec.</li>
+     * </ol>
+     *
+     * <p>Vacuously green with nothing registered. For marker-only powers (empty
+     * spec, {@code Config(String type)}) every clause holds trivially. Returns
+     * the failure count.
+     */
+    private static int auditPowerFieldSpecs(SchemaFormModel model) {
+        int fails = 0;
+        var descriptors = com.cyberday1.neoorigins.power.registry.BuiltinPowers.descriptors();
+        java.util.List<String> internal = List.of("type", "powerId");
+
+        for (var entry : descriptors.entrySet()) {
+            ResourceLocation id = entry.getKey();
+            var spec = entry.getValue();
+            String typeId = id.toString();
+
+            Class<?> cfg = com.cyberday1.neoorigins.power.schemaform
+                .PowerConfigClassResolver.resolve(spec.powerClass());
+            if (cfg == null || !cfg.isRecord()) {
+                System.out.println("[schema-check] FAIL  power-spec " + typeId
+                    + ": no Config record resolved from " + spec.powerClass().getSimpleName());
+                fails++;
+                continue;
+            }
+
+            // Map snake-case JSON key → record component, for the declared specs.
+            java.util.Map<String, java.lang.reflect.RecordComponent> byJson =
+                new java.util.LinkedHashMap<>();
+            for (java.lang.reflect.RecordComponent rc : cfg.getRecordComponents()) {
+                byJson.put(camelToSnake(rc.getName()), rc);
+            }
+
+            java.util.Set<String> declaredNames = new java.util.TreeSet<>();
+            for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : spec.fields()) {
+                declaredNames.add(fs.name());
+
+                // (a) the spec's field must be a real record component.
+                java.lang.reflect.RecordComponent rc = byJson.get(fs.name());
+                if (rc == null) {
+                    System.out.println("[schema-check] FAIL  power-spec " + typeId
+                        + ": field '" + fs.name() + "' has no matching Config component");
+                    fails++;
+                    continue;
+                }
+                // (c) Optional-typed component must not be modelled required.
+                boolean optionalTyped = rc.getType() == java.util.Optional.class;
+                if (optionalTyped && fs.required()) {
+                    System.out.println("[schema-check] FAIL  power-spec " + typeId
+                        + ": field '" + fs.name() + "' is Optional<> in the codec but"
+                        + " declared required(true)");
+                    fails++;
+                }
+            }
+
+            // (b) every non-internal component should have a spec OR rely on the
+            //     reflection fallback. Only meaningful once the power declares at
+            //     least one field (an all-empty spec IS the marker/fallback case).
+            if (!spec.fields().isEmpty()) {
+                for (var jc : byJson.entrySet()) {
+                    String compName = jc.getValue().getName();
+                    if (internal.contains(compName)) continue;
+                    if (!declaredNames.contains(jc.getKey())) {
+                        System.out.println("[schema-check] WARN  power-spec " + typeId
+                            + ": component '" + jc.getKey() + "' has no FieldSpec"
+                            + " (relying on codec-reflection fallback)");
+                    }
+                }
+            }
+
+            // (d) schema branch (when present) must be covered by the spec — but
+            //     only check this once the power declares fields (an empty spec is
+            //     the not-yet-migrated/marker case and falls back to the schema).
+            if (!spec.fields().isEmpty() && model.hasStructuredForm(typeId)) {
+                for (FormFieldSpec sf : model.formFor(typeId)) {
+                    if (sf.name().equals("type")) continue;
+                    if (!declaredNames.contains(sf.name())) {
+                        System.out.println("[schema-check] FAIL  power-spec " + typeId
+                            + ": schema branch field '" + sf.name()
+                            + "' is missing from the FieldSpec list");
+                        fails++;
+                    }
+                }
+            }
+        }
+
+        System.out.printf("[schema-check] power field-specs: %d registered powers, %d failures%n",
+            descriptors.size(), fails);
+        return fails;
+    }
+
+    /** camelCase → snake_case, mirroring {@code CodecFieldSpecExtractor.camelToSnake}. */
+    private static String camelToSnake(String s) {
+        StringBuilder b = new StringBuilder(s.length() + 4);
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (Character.isUpperCase(ch)) {
+                if (i > 0) b.append('_');
+                b.append(Character.toLowerCase(ch));
+            } else {
+                b.append(ch);
+            }
+        }
+        return b.toString();
     }
 
     /**

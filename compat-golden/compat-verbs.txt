@@ -302,3 +302,6 @@ neoorigins:underwater_mining_speed	x2	recognized=-	fields={}
 neoorigins:wall_climbing	x4	recognized=-	fields={description,name}
 neoorigins:water_breathing	x9	recognized=-	fields={description,name}
 neoorigins:wraith_phase	x3	recognized=-	fields={blocked_blocks,exhaustion_per_tick}
+
+== POWER COVERAGE ==
+# <power-type>	fields={...}  (spec-declared, from BuiltinPowers)

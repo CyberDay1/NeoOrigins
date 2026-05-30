@@ -104,7 +104,22 @@ public final class FormModel {
         String key = typeId.toString();
         List<FormFieldSpec> base;
 
-        if (schema().hasStructuredForm(key)) {
+        // Registry-refactor preference order (mirrors the verb migration): a
+        // power registered in BuiltinPowers declares its fields directly, so
+        // that spec is authoritative — project each FieldSpec onto the
+        // renderer-facing FormFieldSpec. A registered marker-only power yields
+        // an empty list (correct: nothing to author), which is byte-identical
+        // to the codec-reflection-empty result it replaced. When a power is NOT
+        // registered here yet (fieldsFor == null), fall back to the EXISTING
+        // path — schema branch, else Config-record reflection — unchanged.
+        java.util.List<com.cyberday1.neoorigins.compat.registry.FieldSpec> declared =
+            com.cyberday1.neoorigins.power.registry.BuiltinPowers.fieldsFor(typeId);
+        if (declared != null) {
+            base = new ArrayList<>(declared.size());
+            for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : declared) {
+                base.add(fs.toFormSpec());
+            }
+        } else if (schema().hasStructuredForm(key)) {
             base = schema().formFor(key);
         } else {
             Class<?> cfg = PowerConfigClassResolver.resolve(typeId);
