@@ -87,11 +87,6 @@ public final class ActionParser {
                 return descriptor.factory().create(json, contextId);
             }
             return switch (type) {
-                case "neoorigins:and"                           -> parseAnd(json, contextId);
-                case "neoorigins:if_else"                       -> parseIfElse(json, contextId);
-                case "neoorigins:if_else_list"                  -> parseIfElseList(json, contextId);
-                case "neoorigins:chance"                        -> parseChance(json, contextId);
-                case "neoorigins:delay"                         -> parseDelay(json, contextId);
                 case "neoorigins:execute_command"               -> parseExecuteCommand(json);
                 case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
                 case "neoorigins:change_resource",
@@ -113,94 +108,11 @@ public final class ActionParser {
                 case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
                 case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
                 case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
-
-                // ---- Bientity→entity unwrappers ----
-                // In Apoli these operate on (actor, target) pairs; in our model
-                // the dispatch target is already the correct entity, so we just
-                // unwrap the inner "action" field.
-                case "neoorigins:target_action"                 -> parseTargetAction(json, contextId);
-                case "neoorigins:actor_action"                  -> parseActorAction(json, contextId);
-
-                // ---- Block-position delegate ----
-                case "neoorigins:block_action_at"               -> parseBlockActionAt(json, contextId);
-
-                // ---- Origins++ compat expansion ----
-                case "neoorigins:choice"                        -> parseChoice(json, contextId);
-                case "neoorigins:passenger_action"              -> parsePassengerAction(json, contextId);
-                case "neoorigins:offset"                        -> parseOffset(json, contextId);
                 default -> failNoop(type, contextId, "unsupported action type");
             };
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
-    }
-
-    private static EntityAction parseAnd(JsonObject json, String ctx) {
-        JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new JsonArray();
-        List<EntityAction> actions = new ArrayList<>();
-        for (JsonElement el : arr) {
-            if (el.isJsonObject()) actions.add(parse(el.getAsJsonObject(), ctx));
-        }
-        return player -> { for (EntityAction a : actions) a.execute(player); };
-    }
-
-    private static EntityAction parseIfElse(JsonObject json, String ctx) {
-        EntityCondition cond = json.has("condition") && json.get("condition").isJsonObject()
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), ctx)
-            : CompatPolicy.FALSE_CONDITION;
-        EntityAction ifAction   = json.has("if_action")
-            ? parse(json.getAsJsonObject("if_action"), ctx) : EntityAction.noop();
-        EntityAction elseAction = json.has("else_action")
-            ? parse(json.getAsJsonObject("else_action"), ctx) : EntityAction.noop();
-        return player -> {
-            if (cond.test(player)) ifAction.execute(player);
-            else elseAction.execute(player);
-        };
-    }
-
-    private static EntityAction parseIfElseList(JsonObject json, String ctx) {
-        JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new JsonArray();
-        record Branch(EntityCondition cond, EntityAction action) {}
-        List<Branch> branches = new ArrayList<>();
-        for (JsonElement el : arr) {
-            if (!el.isJsonObject()) continue;
-            JsonObject obj = el.getAsJsonObject();
-            EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                ? ConditionParser.parse(obj.getAsJsonObject("condition"), ctx)
-                : CompatPolicy.FALSE_CONDITION;
-            EntityAction act = obj.has("action")
-                ? parse(obj.getAsJsonObject("action"), ctx) : EntityAction.noop();
-            branches.add(new Branch(cond, act));
-        }
-        return player -> {
-            for (var branch : branches) {
-                if (branch.cond().test(player)) {
-                    branch.action().execute(player);
-                    return;
-                }
-            }
-        };
-    }
-
-    private static EntityAction parseChance(JsonObject json, String ctx) {
-        float chance = json.has("chance") ? json.get("chance").getAsFloat() : 0.5f;
-        EntityAction action = json.has("action")
-            ? parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
-        return player -> {
-            if (player.getRandom().nextFloat() < chance) action.execute(player);
-        };
-    }
-
-    private static EntityAction parseDelay(JsonObject json, String ctx) {
-        int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 1;
-        EntityAction action = json.has("action")
-            ? parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
-        return player -> {
-            if (player.level().getServer() != null) {
-                long target = player.level().getServer().getTickCount() + ticks;
-                CompatTickScheduler.schedule(target, player, action::execute);
-            }
-        };
     }
 
     private static EntityAction parseExecuteCommand(JsonObject json) {
@@ -946,120 +858,6 @@ public final class ActionParser {
         return null;
     }
 
-    /**
-     * Bientity unwrapper: in Apoli {@code target_action} extracts the target
-     * from a (actor, target) pair and runs {@code action} on it. In our model
-     * the dispatch target is already the correct entity when called from
-     * {@code area_of_effect}'s bientity_action path, so we just delegate
-     * to the inner action.
-     */
-    private static EntityAction parseTargetAction(JsonObject json, String contextId) {
-        EntityAction inner = json.has("action") && json.get("action").isJsonObject()
-            ? parse(json.getAsJsonObject("action"), contextId) : EntityAction.noop();
-        return inner;
-    }
-
-    /**
-     * Bientity unwrapper: {@code actor_action} runs the inner {@code action}
-     * on the actor (source player). In our AoE dispatch the source is the
-     * player who invoked the power — we just run the action on them.
-     */
-    private static EntityAction parseActorAction(JsonObject json, String contextId) {
-        EntityAction inner = json.has("action") && json.get("action").isJsonObject()
-            ? parse(json.getAsJsonObject("action"), contextId) : EntityAction.noop();
-        return inner;
-    }
-
-    /**
-     * Runs a {@code block_action} at the entity's current block position.
-     * Publishes the block pos to {@link com.cyberday1.neoorigins.service.ActionContextHolder}
-     * so nested actions like {@code execute_command} can resolve {@code ~ ~ ~}
-     * to the block centre.
-     */
-    private static EntityAction parseBlockActionAt(JsonObject json, String contextId) {
-        EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
-            ? parse(json.getAsJsonObject("block_action"), contextId) : EntityAction.noop();
-        return player -> {
-            BlockPos pos = player.blockPosition();
-            Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
-                new RaycastBlockContext(pos));
-            try {
-                blockAction.execute(player);
-            } finally {
-                com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
-            }
-        };
-    }
-
-    // ── Origins++ compat actions ────────────────────────────────────────
-
-    /** origins:choice — randomly select and execute one action from a list based on weights. */
-    private static EntityAction parseChoice(JsonObject json, String ctx) {
-        if (!json.has("actions") || !json.get("actions").isJsonArray()) return EntityAction.noop();
-        JsonArray arr = json.getAsJsonArray("actions");
-        List<EntityAction> actions = new ArrayList<>();
-        List<Integer> weights = new ArrayList<>();
-        int totalWeight = 0;
-        for (JsonElement el : arr) {
-            if (!el.isJsonObject()) continue;
-            JsonObject entry = el.getAsJsonObject();
-            EntityAction action = entry.has("action") && entry.get("action").isJsonObject()
-                ? parse(entry.getAsJsonObject("action"), ctx) : EntityAction.noop();
-            int weight = entry.has("weight") ? entry.get("weight").getAsInt() : 1;
-            actions.add(action);
-            weights.add(weight);
-            totalWeight += weight;
-        }
-        if (actions.isEmpty()) return EntityAction.noop();
-        final int fTotal = totalWeight;
-        final List<EntityAction> fActions = List.copyOf(actions);
-        final List<Integer> fWeights = List.copyOf(weights);
-        return player -> {
-            int roll = player.getRandom().nextInt(fTotal);
-            int cumulative = 0;
-            for (int i = 0; i < fActions.size(); i++) {
-                cumulative += fWeights.get(i);
-                if (roll < cumulative) { fActions.get(i).execute(player); return; }
-            }
-            fActions.getLast().execute(player);
-        };
-    }
-
-    /** origins:mount — make the player ride the nearest entity of the given type. */
-    /** origins:passenger_action — execute an action on all passengers of the player. */
-    private static EntityAction parsePassengerAction(JsonObject json, String ctx) {
-        EntityAction inner = json.has("action") && json.get("action").isJsonObject()
-            ? parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
-        // Also check "entity_action" field (Apoli uses both names)
-        if (inner == EntityAction.noop() && json.has("entity_action") && json.get("entity_action").isJsonObject()) {
-            inner = parse(json.getAsJsonObject("entity_action"), ctx);
-        }
-        final EntityAction fInner = inner;
-        return player -> {
-            for (var passenger : player.getPassengers()) {
-                if (passenger instanceof net.minecraft.server.level.ServerPlayer sp) {
-                    fInner.execute(sp);
-                }
-            }
-        };
-    }
-
-    /** origins:offset — apply an action at an offset position from the player. */
-    private static EntityAction parseOffset(JsonObject json, String ctx) {
-        EntityAction inner = json.has("action") && json.get("action").isJsonObject()
-            ? parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
-        double x = json.has("x") ? json.get("x").getAsDouble() : 0;
-        double y = json.has("y") ? json.get("y").getAsDouble() : 0;
-        double z = json.has("z") ? json.get("z").getAsDouble() : 0;
-        // For block_action_at offsets, the "action" is typically a block action.
-        // We execute the inner entity action at the offset position by temporarily moving the player.
-        // In practice most uses just want to place/break a block at an offset — we handle it
-        // by running the inner action as-is (it reads player.blockPosition() or similar).
-        final EntityAction fInner = inner;
-        return fInner; // Pass through — offset is architectural in Apoli, our actions already read position from context
-    }
-
-    /** origins:add_xp — grant experience points or levels. */
     static EntityAction failNoop(String type, String contextId, String detail) {
         com.cyberday1.neoorigins.compat.CompatWarningCollector
             .recordUnsupportedAction(type, contextId, detail);

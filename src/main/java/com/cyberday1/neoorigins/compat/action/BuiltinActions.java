@@ -1,6 +1,8 @@
 package com.cyberday1.neoorigins.compat.action;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.compat.condition.ConditionParser;
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.compat.registry.ActionType;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
@@ -1005,6 +1007,232 @@ public final class BuiltinActions {
             },
             List.of(new FieldSpec("set", FormFieldSpec.Kind.STRING, true)
                 .doc("Name of the actor's entity-set to remove the bientity target's UUID from.")));
+
+        // and — run every action in `actions` in order. Lift-and-shift of parseAnd.
+        // The inner actions are parsed once at load via ActionParser.parse with the
+        // same dispatch contextId.
+        define("and",
+            (json, ctx) -> {
+                com.google.gson.JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new com.google.gson.JsonArray();
+                List<EntityAction> actions = new java.util.ArrayList<>();
+                for (com.google.gson.JsonElement el : arr) {
+                    if (el.isJsonObject()) actions.add(ActionParser.parse(el.getAsJsonObject(), ctx));
+                }
+                return player -> { for (EntityAction a : actions) a.execute(player); };
+            },
+            List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
+                .doc("List of entity actions to run in order.")));
+
+        // if_else — run `if_action` when `condition` passes, else `else_action`.
+        // Lift-and-shift of parseIfElse. A missing/invalid condition is fail-closed
+        // (CompatPolicy.FALSE_CONDITION); missing branches default to no-op.
+        define("if_else",
+            (json, ctx) -> {
+                EntityCondition cond = json.has("condition") && json.get("condition").isJsonObject()
+                    ? ConditionParser.parse(json.getAsJsonObject("condition"), ctx)
+                    : com.cyberday1.neoorigins.compat.CompatPolicy.FALSE_CONDITION;
+                EntityAction ifAction = json.has("if_action")
+                    ? ActionParser.parse(json.getAsJsonObject("if_action"), ctx) : EntityAction.noop();
+                EntityAction elseAction = json.has("else_action")
+                    ? ActionParser.parse(json.getAsJsonObject("else_action"), ctx) : EntityAction.noop();
+                return player -> {
+                    if (cond.test(player)) ifAction.execute(player);
+                    else elseAction.execute(player);
+                };
+            },
+            List.of(
+                new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Entity condition deciding which branch runs (fail-closed when absent)."),
+                new FieldSpec("if_action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Action run when the condition passes."),
+                new FieldSpec("else_action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Action run when the condition fails.")));
+
+        // if_else_list — run the action of the first branch whose condition passes.
+        // Lift-and-shift of parseIfElseList. Each branch's missing/invalid condition
+        // is fail-closed; missing actions default to no-op.
+        define("if_else_list",
+            (json, ctx) -> {
+                com.google.gson.JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new com.google.gson.JsonArray();
+                record Branch(EntityCondition cond, EntityAction action) {}
+                List<Branch> branches = new java.util.ArrayList<>();
+                for (com.google.gson.JsonElement el : arr) {
+                    if (!el.isJsonObject()) continue;
+                    com.google.gson.JsonObject obj = el.getAsJsonObject();
+                    EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
+                        ? ConditionParser.parse(obj.getAsJsonObject("condition"), ctx)
+                        : com.cyberday1.neoorigins.compat.CompatPolicy.FALSE_CONDITION;
+                    EntityAction act = obj.has("action")
+                        ? ActionParser.parse(obj.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                    branches.add(new Branch(cond, act));
+                }
+                return player -> {
+                    for (var branch : branches) {
+                        if (branch.cond().test(player)) {
+                            branch.action().execute(player);
+                            return;
+                        }
+                    }
+                };
+            },
+            List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
+                .doc("List of {condition, action} branches; the first passing branch runs.")));
+
+        // chance — run `action` with probability `chance`. Lift-and-shift of
+        // parseChance. `chance` optional (parser default 0.5); missing action no-ops.
+        define("chance",
+            (json, ctx) -> {
+                float chance = json.has("chance") ? json.get("chance").getAsFloat() : 0.5f;
+                EntityAction action = json.has("action")
+                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                return player -> {
+                    if (player.getRandom().nextFloat() < chance) action.execute(player);
+                };
+            },
+            List.of(
+                new FieldSpec("chance", FormFieldSpec.Kind.NUMBER, false).def(0.5).range(0.0, 1.0)
+                    .doc("Probability in [0,1] that the action runs (default 0.5)."),
+                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Action run when the chance roll succeeds.")));
+
+        // delay — schedule `action` to run `ticks` server-ticks later via the compat
+        // tick scheduler. Lift-and-shift of parseDelay. `ticks` optional (parser
+        // default 1); only schedules when a server is present.
+        define("delay",
+            (json, ctx) -> {
+                int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 1;
+                EntityAction action = json.has("action")
+                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                return player -> {
+                    if (player.level().getServer() != null) {
+                        long target = player.level().getServer().getTickCount() + ticks;
+                        com.cyberday1.neoorigins.compat.CompatTickScheduler.schedule(target, player, action::execute);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("ticks", FormFieldSpec.Kind.INTEGER, false).def(1).range(0.0, null)
+                    .doc("Server ticks to wait before running the action (default 1)."),
+                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Action run after the delay elapses.")));
+
+        // choice — randomly run one action from `actions`, weighted by each entry's
+        // `weight`. Lift-and-shift of parseChoice. Missing/empty list no-ops; each
+        // entry's `weight` optional (default 1).
+        define("choice",
+            (json, ctx) -> {
+                if (!json.has("actions") || !json.get("actions").isJsonArray()) return EntityAction.noop();
+                com.google.gson.JsonArray arr = json.getAsJsonArray("actions");
+                List<EntityAction> actions = new java.util.ArrayList<>();
+                List<Integer> weights = new java.util.ArrayList<>();
+                int totalWeight = 0;
+                for (com.google.gson.JsonElement el : arr) {
+                    if (!el.isJsonObject()) continue;
+                    com.google.gson.JsonObject entry = el.getAsJsonObject();
+                    EntityAction action = entry.has("action") && entry.get("action").isJsonObject()
+                        ? ActionParser.parse(entry.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                    int weight = entry.has("weight") ? entry.get("weight").getAsInt() : 1;
+                    actions.add(action);
+                    weights.add(weight);
+                    totalWeight += weight;
+                }
+                if (actions.isEmpty()) return EntityAction.noop();
+                final int fTotal = totalWeight;
+                final List<EntityAction> fActions = List.copyOf(actions);
+                final List<Integer> fWeights = List.copyOf(weights);
+                return player -> {
+                    int roll = player.getRandom().nextInt(fTotal);
+                    int cumulative = 0;
+                    for (int i = 0; i < fActions.size(); i++) {
+                        cumulative += fWeights.get(i);
+                        if (roll < cumulative) { fActions.get(i).execute(player); return; }
+                    }
+                    fActions.getLast().execute(player);
+                };
+            },
+            List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
+                .doc("List of {action, weight} entries; one is picked weighted-randomly.")));
+
+        // target_action — bientity unwrapper that runs the inner `action`. Lift-and-
+        // shift of parseTargetAction: in our model the dispatch target is already the
+        // correct entity, so this just delegates to the inner action.
+        define("target_action",
+            (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
+                ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                .doc("Inner action to run on the dispatch target.")));
+
+        // actor_action — bientity unwrapper that runs the inner `action` on the actor.
+        // Lift-and-shift of parseActorAction (delegates to the inner action).
+        define("actor_action",
+            (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
+                ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                .doc("Inner action to run on the actor (source player).")));
+
+        // passenger_action — run the inner action on every ServerPlayer passenger.
+        // Lift-and-shift of parsePassengerAction. Reads `action`, falling back to the
+        // `entity_action` alias only when `action` resolved to the shared noop.
+        define("passenger_action",
+            (json, ctx) -> {
+                EntityAction inner = json.has("action") && json.get("action").isJsonObject()
+                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                if (inner == EntityAction.noop() && json.has("entity_action") && json.get("entity_action").isJsonObject()) {
+                    inner = ActionParser.parse(json.getAsJsonObject("entity_action"), ctx);
+                }
+                final EntityAction fInner = inner;
+                return player -> {
+                    for (var passenger : player.getPassengers()) {
+                        if (passenger instanceof net.minecraft.server.level.ServerPlayer sp) {
+                            fInner.execute(sp);
+                        }
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Action run on each passenger (or use the `entity_action` alias)."),
+                new FieldSpec("entity_action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Alias for action.")));
+
+        // offset — Apoli-architectural offset wrapper. Lift-and-shift of parseOffset:
+        // our actions already read their position from the dispatch context, so the
+        // x/y/z offset is a no-op and the inner `action` is returned as-is. The x/y/z
+        // fields are kept on the descriptor for schema/editor fidelity.
+        define("offset",
+            (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
+                ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
+            List.of(
+                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Inner action to run (offset is architectural; position comes from context)."),
+                new FieldSpec("x", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("X offset (accepted for Apoli parity; no positional effect here)."),
+                new FieldSpec("y", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Y offset (accepted for Apoli parity; no positional effect here)."),
+                new FieldSpec("z", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Z offset (accepted for Apoli parity; no positional effect here).")));
+
+        // block_action_at — run `block_action` at the entity's current block position,
+        // publishing that BlockPos to ActionContextHolder so nested verbs (e.g.
+        // execute_command) resolve `~ ~ ~` to the block centre. Lift-and-shift of
+        // parseBlockActionAt.
+        define("block_action_at",
+            (json, ctx) -> {
+                EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
+                    ? ActionParser.parse(json.getAsJsonObject("block_action"), ctx) : EntityAction.noop();
+                return player -> {
+                    net.minecraft.core.BlockPos pos = player.blockPosition();
+                    Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                        new ActionParser.RaycastBlockContext(pos));
+                    try {
+                        blockAction.execute(player);
+                    } finally {
+                        com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
+                    }
+                };
+            },
+            List.of(new FieldSpec("block_action", FormFieldSpec.Kind.OBJECT, false)
+                .doc("Action run at the entity's block position (BlockPos published to context).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
