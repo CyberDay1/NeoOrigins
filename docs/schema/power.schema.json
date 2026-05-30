@@ -55,17 +55,6 @@
   },
   "oneOf": [
     {
-      "$comment": "neoorigins:condition_passive",
-      "properties": {
-        "type": { "const": "neoorigins:condition_passive" },
-        "condition": { "$ref": "condition.schema.json" },
-        "entity_action": { "$ref": "action.schema.json" },
-        "interval": { "type": "integer", "minimum": 1 },
-        "interval_ticks": { "type": "integer", "minimum": 1 }
-      },
-      "required": ["type", "entity_action"]
-    },
-    {
       "$comment": "neoorigins:prevent_action",
       "properties": {
         "type": { "const": "neoorigins:prevent_action" },
@@ -158,7 +147,7 @@
         "type": {
           "not": {
             "enum": [
-              "neoorigins:attribute_modifier", "neoorigins:condition_passive", "neoorigins:action_on_event",
+              "neoorigins:attribute_modifier", "neoorigins:action_on_event",
               "neoorigins:persistent_effect", "neoorigins:active_ability", "neoorigins:prevent_action",
               "neoorigins:modify_damage", "neoorigins:size_scaling", "neoorigins:summon_minion",
               "neoorigins:tame_mob", "neoorigins:edible_item", "neoorigins:enhanced_vision",

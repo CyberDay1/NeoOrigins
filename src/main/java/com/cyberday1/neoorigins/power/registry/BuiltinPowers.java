@@ -886,6 +886,92 @@ public final class BuiltinPowers {
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).")));
 
+        // ── Group D — key-alias batch 2 (condition_passive / prevent_death) ──────
+        // Both hand-rolled codecs read their `EntityAction action` component from
+        // the `entity_action` JSON key (ConditionPassivePower / PreventDeathPower
+        // .Config.CODEC.decode read `obj.getAsJsonObject("entity_action")` into
+        // `action`), the exact key-alias action_on_event already exercises — so the
+        // spec keeps the author-facing JSON name `entity_action` and `.boundTo`s it
+        // to the `action` component. Required-ness is read straight off each codec:
+        // every other field defaults, so nothing hard-fails on absence (required=
+        // false throughout).
+        //   • condition_passive: the codec reads interval (default 20), condition
+        //     (default alwaysTrue), entity_action→action (default noop) and
+        //     else_action→elseAction (default noop). else_action already camel→
+        //     snakes to its component, so only entity_action needs the alias. The
+        //     old schema branch named `interval_ticks` — a PHANTOM the codec never
+        //     reads (only `interval`) — and omitted `else_action` entirely; both
+        //     corrected here. The power.schema.json branch + field_docs entry
+        //     collapse onto this spec (the power still deserializes via its own
+        //     Codec<Config>, untouched).
+        define("condition_passive", ConditionPassivePower.class, List.of(
+            new FieldSpec("interval", Kind.INTEGER, false)
+                .def(20).range(1.0, null)
+                .doc("Ticks between condition checks (min 1; default 20 = 1s)."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gating the action: entity_action runs each interval only while it passes; else_action runs while it does not (default always-true)."),
+            new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
+                .doc("EntityAction run on the player each interval while the condition passes (defaults to noop)."),
+            new FieldSpec("else_action", Kind.REF, false).ref("action.schema.json")
+                .doc("EntityAction run on the player each interval while the condition does NOT pass (defaults to noop).")));
+
+        //   • prevent_death: NO schema branch (already on the permissive fallback),
+        //     so this is a pure register-to-codec + field_docs collapse. The codec
+        //     reads damage_types (Optional<String>), invert (default false),
+        //     set_health (default 1.0, clamped min 1), cooldown_ticks (default 0),
+        //     entity_action→action (default noop) and condition (Optional<
+        //     EntityCondition>). _power_id→powerId is injected internal plumbing
+        //     (audit INTERNAL), not authored. Only entity_action needs the alias;
+        //     every other JSON key already camel→snakes to its component. Nothing
+        //     required.
+        define("prevent_death", PreventDeathPower.class, List.of(
+            new FieldSpec("damage_types", Kind.STRING, false)
+                .doc("Comma-separated damage-type filter (msgIds, registry keys, or #tags); only matching killing blows are prevented. Omit to prevent every lethal hit."),
+            new FieldSpec("invert", Kind.BOOLEAN, false)
+                .def(false).doc("When true treat damage_types as a blacklist: prevent all deaths EXCEPT the listed types. Meaningless (ignored) without damage_types. Default false."),
+            new FieldSpec("set_health", Kind.NUMBER, false)
+                .def(1.0).range(1.0, null)
+                .doc("Health the player is left at after a save; clamped to at least 1 so they don't re-die next tick (default 1.0)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("Ticks the power goes inert after a save (20 = 1s); default 0 = no cooldown (Origins behaviour, every lethal hit saved)."),
+            new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
+                .doc("Optional EntityAction run on the player each time a lethal hit is prevented (defaults to noop)."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gating the save: the power only prevents death while it passes (default always-true).")));
+
+        // ── Group E — reflection-fallback enum + condition doc adds ──────────────
+        //   • tick_action: NO schema branch (permissive fallback). The codec reads
+        //     interval (default 20) and action_type→actionType. action_type is a
+        //     real Java ActionType enum, so the reflection extractor already sees
+        //     it as ENUM — but with UPPERCASE constant names (TELEPORT_ON_DAMAGE/
+        //     NONE), whereas the codec's xmap serializes LOWERCASE tokens. The spec
+        //     declares the correct lowercase vocabulary directly, and an EnumHints
+        //     `*|action_type` entry pins the same tokens for the reflection path the
+        //     editor still uses for any not-yet-registered enum. field_docs entry
+        //     collapses onto the spec. type is internal.
+        define("tick_action", TickActionPower.class, List.of(
+            new FieldSpec("interval", Kind.INTEGER, false)
+                .def(20).range(1.0, null)
+                .doc("Ticks between each action run (20 = 1s; default 20)."),
+            new FieldSpec("action_type", Kind.ENUM, false)
+                .options("teleport_on_damage", "none").def("none")
+                .doc("Periodic action dispatched by OriginEventHandler: teleport_on_damage or none (default none).")));
+
+        //   • conditional: NO schema branch (permissive fallback). The codec reads
+        //     condition (a Condition enum: climbing/in_water/on_ground/always,
+        //     default always) and inner_power→innerPower (ResourceLocation.fieldOf,
+        //     NO default → the only hard-fail, so required=true). condition gets a
+        //     spec doc (the existing field_docs only documented inner_power, leaning
+        //     on the `*` wildcard for condition); both move onto the spec and the
+        //     field_docs entry collapses. type is internal.
+        define("conditional", ConditionalPower.class, List.of(
+            new FieldSpec("condition", Kind.ENUM, false)
+                .options("climbing", "in_water", "on_ground", "always").def("always")
+                .doc("Built-in player-state gate the inner power is active under: climbing, in_water, on_ground, or always (default always). Unknown values fall back to always."),
+            new FieldSpec("inner_power", Kind.STRING, true)
+                .doc("Required resource id of another power that is only active while this condition holds (e.g. 'neoorigins:flight').")));
+
         // ── BOUNCED: neoorigins:resource (hud_render nested-shape mismatch) ──────
         // resource is deliberately NOT registered. Its hand-rolled Codec reads a
         // NESTED `hud_render` JSON object — { label, color, should_render } —

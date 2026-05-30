@@ -9,14 +9,6 @@
     "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
     "air_loss_per_second": "Air points lost per second while submerged. Higher = faster drain. Overrides drain_interval_ticks / drain_rate when set."
   },
-  "neoorigins:condition_passive": {
-    "entity_action": "EntityAction run on the player each interval when the condition passes.",
-    "interval": "Ticks between condition checks (min 1; default 20).",
-    "interval_ticks": "Ticks between condition checks (20 = 1s); same as interval."
-  },
-  "neoorigins:conditional": {
-    "inner_power": "Resource id of another power that is only active while this condition holds."
-  },
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },
@@ -31,13 +23,6 @@
   "neoorigins:prevent_action": {
     "action": "Action blocked: fall_damage, fire, drown, freeze, sprint_food, armor_equip, swim, sleep, elytra...",
     "active_when": "When it applies: always, sneaking, not_sneaking, on_ground, not_on_ground."
-  },
-  "neoorigins:prevent_death": {
-    "action": "Entity action run on the player each time a lethal hit is prevented.",
-    "cooldown_ticks": "Ticks the power goes inert after a save (20 = 1s; default 0).",
-    "damage_types": "Comma-separated damage-type filter; only matching killing blows are prevented.",
-    "invert": "If true treat damage_types as a blacklist (prevent all except those).",
-    "set_health": "Health the player is left at after a save (default 1.0, min 1)."
   },
   "neoorigins:resource": {
     "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill.",
@@ -59,9 +44,5 @@
     "item": "Singular shape: item id granted once after the player commits their origin. Optional when `stacks` is provided.",
     "legacy_tag": "Singular shape: Apoli-style flat SNBT translated into data components on the item.",
     "stacks": "Plural shape (v2.1.6): array of stack entries, each with the same per-stack fields as the singular shape (item, count, enchantments, legacy_tag, components). When non-empty, takes precedence over the singular root fields and N items are granted in array order."
-  },
-  "neoorigins:tick_action": {
-    "action_type": "Periodic action: teleport_on_damage or none (default none).",
-    "interval": "Ticks between each action run (20 = 1s; default 20)."
   }
 }
