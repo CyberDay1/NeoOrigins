@@ -6,7 +6,7 @@
 # files-scanned: 787   typed-objects: 1138   distinct-types: 115
 
 == RECOGNIZED VERBS ==
-[action] (64)
+[action] (67)
   neoorigins:actor_action
   neoorigins:add_to_set
   neoorigins:add_velocity
@@ -30,6 +30,7 @@
   neoorigins:drop_items
   neoorigins:effect_on_attacker
   neoorigins:emit_game_event
+  neoorigins:equipped_item_action
   neoorigins:execute_command
   neoorigins:exhaust
   neoorigins:explode
@@ -45,6 +46,7 @@
   neoorigins:invert
   neoorigins:launch
   neoorigins:modify_food
+  neoorigins:modify_inventory
   neoorigins:mount
   neoorigins:nothing
   neoorigins:offset
@@ -52,6 +54,7 @@
   neoorigins:play_sound
   neoorigins:pull_entities
   neoorigins:random_teleport
+  neoorigins:raycast
   neoorigins:remove_from_set
   neoorigins:revoke_power
   neoorigins:set_block

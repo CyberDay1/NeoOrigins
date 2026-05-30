@@ -39,15 +39,15 @@ public final class ActionParser {
         "neoorigins:damage", "neoorigins:damage_attacker", "neoorigins:dash",
         "neoorigins:delay", "neoorigins:dismount", "neoorigins:drop_items",
         "neoorigins:effect_on_attacker", "neoorigins:emit_game_event",
-        "neoorigins:execute_command", "neoorigins:exhaust",
+        "neoorigins:equipped_item_action", "neoorigins:execute_command", "neoorigins:exhaust",
         "neoorigins:explode", "neoorigins:extinguish", "neoorigins:feed",
         "neoorigins:gain_air", "neoorigins:give", "neoorigins:grant_power",
         "neoorigins:heal", "neoorigins:if_else", "neoorigins:if_else_list",
         "neoorigins:ignite_attacker", "neoorigins:invert", "neoorigins:launch",
-        "neoorigins:modify_food", "neoorigins:mount",
+        "neoorigins:modify_food", "neoorigins:modify_inventory", "neoorigins:mount",
         "neoorigins:nothing", "neoorigins:offset", "neoorigins:passenger_action",
         "neoorigins:play_sound", "neoorigins:pull_entities", "neoorigins:random_teleport",
-        "neoorigins:remove_from_set", "neoorigins:revoke_power",
+        "neoorigins:raycast", "neoorigins:remove_from_set", "neoorigins:revoke_power",
         "neoorigins:set_block", "neoorigins:set_fall_distance", "neoorigins:set_on_fire",
         "neoorigins:set_resource", "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
         "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",
@@ -91,6 +91,230 @@ public final class ActionParser {
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
+    }
+
+    /**
+     * {@code equipped_item_action}: read the stack in the named slot and run
+     * an item-action against it. Apoli pack authors use this to mutate the
+     * held weapon's NBT state — toggle modes, swap CustomModelData, etc. —
+     * without needing one-off Java actions per behaviour.
+     *
+     * <p>Slot defaults to {@code mainhand}. Unknown slot strings warn once
+     * and skip. The action is parsed once at load time via
+     * {@link com.cyberday1.neoorigins.compat.action.ItemActionParser}; only
+     * the slot lookup happens at dispatch.
+     */
+    static EntityAction parseEquippedItemAction(JsonObject json) {
+        String slotName = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
+        net.minecraft.world.entity.EquipmentSlot slot;
+        try {
+            slot = mapEquipmentSlot(slotName);
+        } catch (IllegalArgumentException ex) {
+            NeoOrigins.LOGGER.warn("[CompatB] equipped_item_action: unknown slot '{}' — no-op", slotName);
+            return EntityAction.noop();
+        }
+        ItemAction action = json.has("action") && json.get("action").isJsonObject()
+            ? ItemActionParser.parse(json.getAsJsonObject("action")) : ItemAction.noop();
+        return player -> {
+            ItemStack stack = player.getItemBySlot(slot);
+            if (stack.isEmpty()) return;
+            action.execute(stack);
+            // Mark slot dirty so vanilla resyncs the modified stack to the
+            // client. Without this, NBT/component changes are server-side
+            // only until something else triggers a refresh.
+            player.containerMenu.broadcastChanges();
+        };
+    }
+
+    /**
+     * {@code modify_inventory}: walk the player's inventory, filter by an
+     * optional item-condition, and run an item-action against each match
+     * up to the configured limit. Apoli's catch-all for "find items, do
+     * something to them" — used by the misch rifle to consume bullets,
+     * by MoR pixie wing toggles to swap CustomModelData on a stack
+     * already in inventory, etc.
+     *
+     * <p>Process modes:
+     * <ul>
+     *   <li>{@code "items"} (default) — count individual items (a stack of 5
+     *       counts as 5 toward the limit)</li>
+     *   <li>{@code "stacks"} — count stacks (a stack of 5 counts as 1)</li>
+     * </ul>
+     *
+     * <p>{@code limit: 0} or unset means "no limit — apply to all matches".
+     * Pack authors use {@code limit: 1} for "consume one bullet" patterns.
+     */
+    static EntityAction parseModifyInventory(JsonObject json) {
+        var itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
+            ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(json.getAsJsonObject("item_condition"))
+            : com.cyberday1.neoorigins.compat.condition.ItemCondition.alwaysTrue();
+        ItemAction itemAction = json.has("item_action") && json.get("item_action").isJsonObject()
+            ? ItemActionParser.parse(json.getAsJsonObject("item_action")) : ItemAction.noop();
+        String processMode = json.has("process_mode") ? json.get("process_mode").getAsString() : "items";
+        int limit = json.has("limit") ? json.get("limit").getAsInt() : 0;
+        boolean countByItems = !"stacks".equalsIgnoreCase(processMode);
+        // inventory_type is honoured loosely — vanilla only has one player
+        // inventory; modded sub-inventories aren't reachable from here.
+        // Pack authors generally pass "inventory" anyway, which is correct.
+        return player -> {
+            int applied = 0;
+            var inv = player.getInventory();
+            int total = inv.getContainerSize();
+            for (int i = 0; i < total; i++) {
+                if (limit > 0 && applied >= limit) break;
+                ItemStack stack = inv.getItem(i);
+                if (stack.isEmpty()) continue;
+                if (!itemCond.test(stack)) continue;
+                int weight = countByItems ? stack.getCount() : 1;
+                itemAction.execute(stack);
+                applied += weight;
+                if (stack.isEmpty()) inv.setItem(i, ItemStack.EMPTY);
+            }
+            if (applied > 0) player.containerMenu.broadcastChanges();
+        };
+    }
+
+    /**
+     * {@code raycast}: cast a ray from the player's eyes outward and run
+     * an action when something is hit. Apoli action used for "look-and-
+     * shoot" mechanics — misch rifle's cane-hit on block, ranged
+     * interactions, etc.
+     *
+     * <p>Fields:
+     * <ul>
+     *   <li>{@code distance} — max ray length in blocks (default 10)</li>
+     *   <li>{@code block} — whether to test for block collisions (default true)</li>
+     *   <li>{@code entity} — whether to test for entity collisions (default false)</li>
+     *   <li>{@code fluid_handling} — {@code none} / {@code source_only} / {@code any}
+     *       (default none)</li>
+     *   <li>{@code block_action} — entity_action run when a block is hit; the
+     *       hit BlockPos is published to ActionContextHolder so
+     *       sub-actions like execute_command can resolve {@code ~ ~ ~} to
+     *       the block centre</li>
+     *   <li>{@code bientity_action} — entity_action run when an entity is hit
+     *       (the actor is the player; the hit entity becomes the dispatch
+     *       target via ActionContextHolder)</li>
+     *   <li>{@code miss_action} — runs when nothing is hit within range</li>
+     * </ul>
+     */
+    static EntityAction parseRaycast(JsonObject json, String contextId) {
+        double distance = json.has("distance") ? json.get("distance").getAsDouble() : 10.0;
+        boolean checkBlock = !json.has("block") || json.get("block").getAsBoolean();
+        boolean checkEntity = json.has("entity") && json.get("entity").getAsBoolean();
+        String fluidHandling = json.has("fluid_handling") ? json.get("fluid_handling").getAsString() : "none";
+        net.minecraft.world.level.ClipContext.Fluid fluidMode = switch (fluidHandling.toLowerCase()) {
+            case "any"          -> net.minecraft.world.level.ClipContext.Fluid.ANY;
+            case "source_only"  -> net.minecraft.world.level.ClipContext.Fluid.SOURCE_ONLY;
+            default             -> net.minecraft.world.level.ClipContext.Fluid.NONE;
+        };
+        // Apoli {@code shape_type}: {@code visual} (default) uses the visual
+        // outline shape — same as vanilla's eye-trace and what
+        // PlayerInteractionManager uses for break/place targeting. {@code collider}
+        // uses the collision shape, which is tighter than visual for
+        // non-cube blocks (stairs, slabs, fences) — pack authors choose
+        // collider when they want "what the hitbox sees" semantics.
+        String shapeType = json.has("shape_type") ? json.get("shape_type").getAsString() : "visual";
+        net.minecraft.world.level.ClipContext.Block blockShape = switch (shapeType.toLowerCase()) {
+            case "collider"  -> net.minecraft.world.level.ClipContext.Block.COLLIDER;
+            case "visual"    -> net.minecraft.world.level.ClipContext.Block.VISUAL;
+            default          -> net.minecraft.world.level.ClipContext.Block.OUTLINE;
+        };
+        EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
+            ? parse(json.getAsJsonObject("block_action"), contextId) : EntityAction.noop();
+        EntityAction bientityAction = json.has("bientity_action") && json.get("bientity_action").isJsonObject()
+            ? parse(json.getAsJsonObject("bientity_action"), contextId) : EntityAction.noop();
+        EntityAction missAction = json.has("miss_action") && json.get("miss_action").isJsonObject()
+            ? parse(json.getAsJsonObject("miss_action"), contextId) : EntityAction.noop();
+        // {@code command_along_ray} + {@code command_step}: execute a command
+        // at each {@code command_step}-block increment along the ray. Used by
+        // packs for "trail of particles", "place a torch every N blocks",
+        // etc. Step defaults to 1 block.
+        String commandAlongRay = json.has("command_along_ray") ? json.get("command_along_ray").getAsString() : null;
+        double commandStep = json.has("command_step") ? json.get("command_step").getAsDouble() : 1.0;
+        if (commandStep <= 0) commandStep = 1.0; // guard against infinite loops on bad config
+        final double finalStep = commandStep;
+        return player -> {
+            Vec3 from = player.getEyePosition();
+            Vec3 look = player.getLookAngle();
+            Vec3 to = from.add(look.x * distance, look.y * distance, look.z * distance);
+
+            // Run the along-ray command (if any) before bail-out so it fires
+            // regardless of whether a block / entity is hit. Pack authors who
+            // want hit-gated trails use block_action with execute_command.
+            if (commandAlongRay != null && !commandAlongRay.isEmpty()
+                    && player.level().getServer() != null
+                    && player.level() instanceof ServerLevel serverLevel) {
+                int steps = (int) Math.floor(distance / finalStep);
+                var server = player.level().getServer();
+                var commands = server.getCommands();
+                for (int i = 1; i <= steps; i++) {
+                    Vec3 stepPos = from.add(look.x * finalStep * i, look.y * finalStep * i, look.z * finalStep * i);
+                    var src = server.createCommandSourceStack()
+                        .withSuppressedOutput()
+                        .withEntity(player)
+                        .withPosition(stepPos)
+                        .withRotation(player.getRotationVector())
+                        .withLevel(serverLevel);
+                    try {
+                        commands.performPrefixedCommand(src, commandAlongRay);
+                    } catch (Exception e) {
+                        com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                            "[CompatB] raycast {} command_along_ray step {} failed: {}",
+                            contextId, i, e.getMessage());
+                        break; // don't repeat the same failure for every remaining step
+                    }
+                }
+            }
+
+            if (checkEntity) {
+                // Entity raycast: walk the AABB along the ray and find the
+                // closest LivingEntity hit. Cheap server-side approximation
+                // — vanilla's ProjectileUtil.getHitResultOnViewVector is
+                // expensive and we don't need projectile-level precision.
+                var aabb = player.getBoundingBox().expandTowards(look.scale(distance)).inflate(1.0);
+                var entityHit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(
+                    player, from, to, aabb,
+                    e -> e instanceof net.minecraft.world.entity.LivingEntity && e != player,
+                    distance * distance);
+                if (entityHit != null && entityHit.getEntity() instanceof net.minecraft.world.entity.LivingEntity le) {
+                    Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                        new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(le));
+                    try { bientityAction.execute(player); }
+                    finally { com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev); }
+                    return;
+                }
+            }
+
+            if (checkBlock) {
+                var clipCtx = new net.minecraft.world.level.ClipContext(from, to,
+                    blockShape, fluidMode, player);
+                var hit = player.level().clip(clipCtx);
+                if (hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
+                    BlockPos pos = hit.getBlockPos();
+                    // Publish a synthetic block-event-shaped context so
+                    // execute_command's `~ ~ ~` resolves to the hit block.
+                    Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                        new RaycastBlockContext(pos));
+                    try { blockAction.execute(player); }
+                    finally { com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev); }
+                    return;
+                }
+            }
+
+            missAction.execute(player);
+        };
+    }
+
+    private static net.minecraft.world.entity.EquipmentSlot mapEquipmentSlot(String slot) {
+        return switch (slot.toLowerCase(java.util.Locale.ROOT)) {
+            case "head"    -> net.minecraft.world.entity.EquipmentSlot.HEAD;
+            case "chest"   -> net.minecraft.world.entity.EquipmentSlot.CHEST;
+            case "legs"    -> net.minecraft.world.entity.EquipmentSlot.LEGS;
+            case "feet"    -> net.minecraft.world.entity.EquipmentSlot.FEET;
+            case "offhand" -> net.minecraft.world.entity.EquipmentSlot.OFFHAND;
+            case "mainhand", ""  -> net.minecraft.world.entity.EquipmentSlot.MAINHAND;
+            default -> throw new IllegalArgumentException("unknown slot: " + slot);
+        };
     }
 
     // ---- Phase 2: New action parsers ----

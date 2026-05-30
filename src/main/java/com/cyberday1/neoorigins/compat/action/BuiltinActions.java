@@ -1639,13 +1639,12 @@ public final class BuiltinActions {
         // ── Task 5: heavy/complex verbs, LIFTED AS-IS ──────────────────────────
         // Behavior-neutral by construction: the descriptor factory carries the
         // existing ActionParser parse lambda verbatim (delegation, no restructuring)
-        // — the recursive fan-out (area_of_effect) and entity-spawn factories stay
-        // exactly where they are; only dispatch moves from the switch to the
-        // descriptor. The parse methods are package-private for this delegation,
-        // mirroring failNoop / extractBientityTarget. The FieldSpec lists are
-        // transcribed from the hand-written schema branches.
-        // (raycast / equipped_item_action / modify_inventory are not present on
-        // this MC line and are intentionally omitted.)
+        // — the recursive fan-out (area_of_effect), synthetic-context publishing
+        // (raycast), Item machinery (equipped_item_action / modify_inventory) and
+        // entity-spawn factories stay exactly where they are; only dispatch moves
+        // from the switch to the descriptor. The parse methods are package-private
+        // for this delegation, mirroring failNoop / extractBientityTarget. The
+        // FieldSpec lists are transcribed from the hand-written schema branches.
 
         // area_of_effect — run entity_action on every entity in radius, fanning out
         // apply_effect/damage leaves to mobs. `radius` required-ish (schema requires
@@ -1664,6 +1663,57 @@ public final class BuiltinActions {
                     .doc("AoE shape (default sphere)."),
                 new FieldSpec("include_source", FormFieldSpec.Kind.BOOLEAN, false).def(true)
                     .doc("Include the caster in the AoE (default true).")));
+
+        // raycast — cast a ray from the eyes; run block/bientity/miss actions.
+        define("raycast",
+            (json, ctx) -> ActionParser.parseRaycast(json, ctx),
+            List.of(
+                new FieldSpec("distance", FormFieldSpec.Kind.NUMBER, false).def(10.0).range(0.0, null)
+                    .doc("Max ray length in blocks (default 10)."),
+                new FieldSpec("block", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("Test for block collisions (default true)."),
+                new FieldSpec("entity", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Test for entity collisions (default false)."),
+                new FieldSpec("fluid_handling", FormFieldSpec.Kind.ENUM, false).def("none")
+                    .options("none", "source_only", "any")
+                    .doc("How fluids are treated (default none)."),
+                new FieldSpec("shape_type", FormFieldSpec.Kind.ENUM, false).def("visual")
+                    .options("visual", "collider")
+                    .doc("Block shape for the trace: visual (default) or collider."),
+                new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action when a block is hit; ~ ~ ~ resolves to the hit block."),
+                new FieldSpec("bientity_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action when an entity is hit (with the hit entity as target context)."),
+                new FieldSpec("miss_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action when nothing is hit within range."),
+                new FieldSpec("command_along_ray", FormFieldSpec.Kind.STRING, false)
+                    .doc("Optional command run at each step along the ray (fires regardless of hit)."),
+                new FieldSpec("command_step", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
+                    .doc("Block increment between command_along_ray executions (default 1).")));
+
+        // equipped_item_action — read a slot's stack and run an ItemAction on it.
+        define("equipped_item_action",
+            (json, ctx) -> ActionParser.parseEquippedItemAction(json),
+            List.of(
+                new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false).def("mainhand")
+                    .options("mainhand", "offhand", "head", "chest", "legs", "feet")
+                    .doc("Equipment slot to read the stack from (default mainhand)."),
+                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.).")));
+
+        // modify_inventory — filter inventory stacks and run an ItemAction on each.
+        define("modify_inventory",
+            (json, ctx) -> ActionParser.parseModifyInventory(json),
+            List.of(
+                new FieldSpec("item_condition", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Optional ItemCondition filtering which stacks to process."),
+                new FieldSpec("item_action", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("ItemAction run on each matching stack."),
+                new FieldSpec("process_mode", FormFieldSpec.Kind.ENUM, false).def("items")
+                    .options("items", "stacks")
+                    .doc("items (default) counts individual items; stacks counts whole stacks toward the limit."),
+                new FieldSpec("limit", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
+                    .doc("Cap on items/stacks processed; 0 = no limit (default 0).")));
 
         // spawn_lingering_area — spawn a recurring effect-cloud entity.
         define("spawn_lingering_area",
