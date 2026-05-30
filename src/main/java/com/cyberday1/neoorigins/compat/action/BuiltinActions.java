@@ -843,6 +843,101 @@ public final class BuiltinActions {
                     .doc("Cloud radius in blocks (default 3.0)."),
                 new FieldSpec("wait_time", FormFieldSpec.Kind.INTEGER, false).def(10).range(0.0, null)
                     .doc("Ticks before the cloud starts applying its effect (default 10).")));
+
+        // damage_attacker — hurt the attacker recorded in the current HIT_TAKEN
+        // context. Lift-and-shift of parseDamageAttacker. All fields optional:
+        // `amount` (default 2.0) is overridden when `amount_ratio` is present
+        // (damage = incoming * ratio, min 0.5); the source type reads
+        // `source.name` (default "magic"). No-ops outside a HitTakenContext.
+        define("damage_attacker",
+            (json, ctx) -> {
+                final float amount = json.has("amount") ? json.get("amount").getAsFloat() : 2.0f;
+                final boolean useRatio = json.has("amount_ratio");
+                final float ratio = useRatio ? json.get("amount_ratio").getAsFloat() : 0f;
+                final String srcName = json.has("source") && json.get("source").isJsonObject()
+                    && json.getAsJsonObject("source").has("name")
+                    ? json.getAsJsonObject("source").get("name").getAsString()
+                    : "magic";
+                return player -> {
+                    Object actionCtx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                    if (!(actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
+                    var attacker = htc.source().getEntity();
+                    if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
+                    var ds = switch (srcName) {
+                        case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
+                        case "lava"    -> player.level().damageSources().lava();
+                        case "magic"   -> player.level().damageSources().magic();
+                        case "generic" -> player.level().damageSources().generic();
+                        default        -> player.level().damageSources().magic();
+                    };
+                    float dmg = useRatio ? Math.max(0.5f, htc.amount() * ratio) : amount;
+                    if (!Float.isFinite(dmg)) dmg = Float.MAX_VALUE;
+                    le.hurt(ds, dmg);
+                };
+            },
+            List.of(
+                new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false).def(2.0).range(0.0, null)
+                    .doc("Flat damage dealt to the attacker (default 2.0; ignored when amount_ratio is set)."),
+                new FieldSpec("amount_ratio", FormFieldSpec.Kind.NUMBER, false)
+                    .doc("If set, damage = incoming hit * this ratio (min 0.5), overriding amount."),
+                new FieldSpec("source", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/generic; default magic).")));
+
+        // ignite_attacker — set the current HIT_TAKEN attacker on fire.
+        // Lift-and-shift of parseIgniteAttacker. `ticks` optional (parser default
+        // 60). No-ops outside a HitTakenContext or when the attacker is null.
+        define("ignite_attacker",
+            (json, ctx) -> {
+                final int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 60;
+                return player -> {
+                    Object actionCtx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                    if (!(actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
+                    var attacker = htc.source().getEntity();
+                    if (attacker == null) return;
+                    attacker.setRemainingFireTicks(ticks);
+                };
+            },
+            List.of(new FieldSpec("ticks", FormFieldSpec.Kind.INTEGER, false).def(60).range(0.0, null)
+                .doc("Fire duration applied to the attacker in ticks (default 60).")));
+
+        // effect_on_attacker — apply a mob effect to the current HIT_TAKEN attacker.
+        // Lift-and-shift of parseEffectOnAttacker. `effect` is the hard requirement
+        // (parser no-ops + warns without it); `duration` (default 100) and
+        // `amplifier` (default 0) optional. Unknown ids resolve at parse time and
+        // no-op with a warning. No-ops outside a HitTakenContext. (26.1:
+        // BuiltInRegistries.MOB_EFFECT.get(Identifier).orElse(null) yields the
+        // Holder directly — no getOptional/wrapAsHolder.)
+        define("effect_on_attacker",
+            (json, ctx) -> {
+                String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
+                if (effectId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] effect_on_attacker: missing effect id — no-op");
+                    return EntityAction.noop();
+                }
+                final int duration = json.has("duration") ? json.get("duration").getAsInt() : 100;
+                final int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+                var effectHolder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.get(
+                    net.minecraft.resources.Identifier.parse(effectId)).orElse(null);
+                if (effectHolder == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] effect_on_attacker: unknown effect '{}' — no-op", effectId);
+                    return EntityAction.noop();
+                }
+                final var fEffectHolder = effectHolder;
+                return player -> {
+                    Object actionCtx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                    if (!(actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
+                    var attacker = htc.source().getEntity();
+                    if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
+                    le.addEffect(new net.minecraft.world.effect.MobEffectInstance(fEffectHolder, duration, amplifier));
+                };
+            },
+            List.of(
+                new FieldSpec("effect", FormFieldSpec.Kind.STRING, true)
+                    .doc("Mob effect id to apply to the attacker."),
+                new FieldSpec("duration", FormFieldSpec.Kind.INTEGER, false).def(100).range(0.0, null)
+                    .doc("Effect duration in ticks (default 100)."),
+                new FieldSpec("amplifier", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
+                    .doc("Effect amplifier level (default 0).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

@@ -109,11 +109,6 @@ public final class ActionParser {
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
                 case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
 
-                // ---- Phase 6.5: context-aware verbs (read from ActionContextHolder) ----
-                case "neoorigins:damage_attacker"               -> parseDamageAttacker(json);
-                case "neoorigins:ignite_attacker"               -> parseIgniteAttacker(json);
-                case "neoorigins:effect_on_attacker"            -> parseEffectOnAttacker(json);
-
                 // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
                 case "neoorigins:add_to_set"                    -> parseAddToSet(json, contextId);
                 case "neoorigins:remove_from_set"               -> parseRemoveFromSet(json, contextId);
@@ -801,87 +796,6 @@ public final class ActionParser {
         };
     }
 
-    // ---- Phase 6.5: context-aware verbs ----
-    //
-    // These verbs read the currently-dispatched event context from
-    // ActionContextHolder. EventPowerIndex.dispatch publishes the context
-    // while running handlers for a given event, so at action-execution time
-    // the holder carries the right record (HitTakenContext, FoodContext, ...).
-
-    /**
-     * Hurt the attacker recorded in the current HIT_TAKEN context.
-     *
-     * <p>Damage amount resolution order:
-     * <ol>
-     *   <li>If {@code amount_ratio} is present, damage = {@code htc.amount() * amount_ratio}
-     *       (minimum 0.5 so very-small incoming hits still draw some blood).</li>
-     *   <li>Otherwise use the fixed {@code amount} field (default 2.0).</li>
-     * </ol>
-     * The ratio path is how {@code thorns_aura}'s alias reflects a fraction of
-     * the incoming damage instead of a flat number.
-     */
-    private static EntityAction parseDamageAttacker(JsonObject json) {
-        final float amount = json.has("amount") ? json.get("amount").getAsFloat() : 2.0f;
-        final boolean useRatio = json.has("amount_ratio");
-        final float ratio = useRatio ? json.get("amount_ratio").getAsFloat() : 0f;
-        final String srcName = json.has("source") && json.get("source").isJsonObject()
-            && json.getAsJsonObject("source").has("name")
-            ? json.getAsJsonObject("source").get("name").getAsString()
-            : "magic";
-        return player -> {
-            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
-            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
-            var attacker = htc.source().getEntity();
-            if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
-            var ds = switch (srcName) {
-                case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
-                case "lava"   -> player.level().damageSources().lava();
-                case "magic"  -> player.level().damageSources().magic();
-                case "generic" -> player.level().damageSources().generic();
-                default       -> player.level().damageSources().magic();
-            };
-            float dmg = useRatio ? Math.max(0.5f, htc.amount() * ratio) : amount;
-            if (!Float.isFinite(dmg)) dmg = Float.MAX_VALUE;
-            le.hurt(ds, dmg);
-        };
-    }
-
-    /** Set the current HIT_TAKEN attacker on fire. */
-    private static EntityAction parseIgniteAttacker(JsonObject json) {
-        final int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 60;
-        return player -> {
-            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
-            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
-            var attacker = htc.source().getEntity();
-            if (attacker == null) return;
-            attacker.setRemainingFireTicks(ticks);
-        };
-    }
-
-    /** Apply a mob effect to the current HIT_TAKEN attacker. */
-    private static EntityAction parseEffectOnAttacker(JsonObject json) {
-        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
-        if (effectId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] effect_on_attacker: missing effect id — no-op");
-            return EntityAction.noop();
-        }
-        final int duration = json.has("duration") ? json.get("duration").getAsInt() : 100;
-        final int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
-        var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
-        if (effectHolder == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] effect_on_attacker: unknown effect '{}' — no-op", effectId);
-            return EntityAction.noop();
-        }
-        return player -> {
-            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
-            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc)) return;
-            var attacker = htc.source().getEntity();
-            if (!(attacker instanceof net.minecraft.world.entity.LivingEntity le)) return;
-            le.addEffect(new MobEffectInstance(effectHolder, duration, amplifier));
-        };
-    }
-
-    /** Random-teleport the player within a bounded box. */
     /** Flip (or set, if `value` is given) the toggle state for the named power id. */
     private static EntityAction parseToggle(JsonObject json) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
