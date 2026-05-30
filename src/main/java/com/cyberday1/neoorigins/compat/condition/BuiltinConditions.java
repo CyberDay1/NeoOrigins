@@ -256,6 +256,101 @@ public final class BuiltinConditions {
                         .doc("Enchantment id to look for across equipped items (absent → always true)."),
                     comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.INTEGER, 1, "Enchantment-level threshold (default 1).")));
+
+        // ---- Damage-source conditions (read DamageSource from HitTakenContext) ----
+        define("from_fire", (json, ctx) -> ConditionParser.parseFromFire(), List.of());
+        define("from_projectile", (json, ctx) -> ConditionParser.parseFromProjectile(), List.of());
+        define("from_explosion", (json, ctx) -> ConditionParser.parseFromExplosion(), List.of());
+        define("damage_type",
+            (json, ctx) -> ConditionParser.parseDamageType(json),
+            List.of(new FieldSpec("damage_type", FormFieldSpec.Kind.STRING, false)
+                .doc("Damage-type id the incoming damage must match (absent → false).")));
+        define("damage_tag",
+            (json, ctx) -> ConditionParser.parseDamageTag(json),
+            List.of(new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                .doc("Damage-type tag the incoming damage must be in (absent → false).")));
+        // damage_name / name — `name` is a synonym (not in KNOWN_TYPES → alias).
+        define("damage_name", List.of("name"),
+            (json, ctx) -> ConditionParser.parseDamageName(json),
+            List.of(new FieldSpec("name", FormFieldSpec.Kind.STRING, false)
+                .doc("Damage-source message id to match, case-insensitive (absent → false).")));
+
+        // ---- Bientity conditions (read target from current dispatch context) ----
+        define("distance",
+            (json, ctx) -> ConditionParser.parseDistance(json),
+            List.of(comparison("<=", "Comparison operator (default <=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Distance threshold to the target (default 0).")));
+        define("can_see", (json, ctx) -> ConditionParser.parseCanSee(), List.of());
+        define("equal", (json, ctx) -> ConditionParser.parseEqual(), List.of());
+        define("target_type",
+            (json, ctx) -> ConditionParser.parseTargetType(json),
+            List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
+                .doc("Target entity-type id, or #tag (absent → false).")));
+        define("target_group",
+            (json, ctx) -> ConditionParser.parseTargetGroup(json),
+            List.of(new FieldSpec("group", FormFieldSpec.Kind.STRING, false)
+                .doc("Vanilla mob category/group the target must be in (absent → false).")));
+        define("in_set",
+            (json, ctx) -> ConditionParser.parseInSet(json, ctx),
+            List.of(new FieldSpec("set", FormFieldSpec.Kind.STRING, true)
+                .doc("Entity-set key on the actor; true iff the target's UUID is in it.")));
+
+        // ---- Meta / world conditions (delegate to ConditionParser helpers) ----
+        define("time_of_day",
+            (json, ctx) -> ConditionParser.parseTimeOfDay(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 0, "Day-time tick threshold 0..23999 (default 0).")));
+        define("weather",
+            (json, ctx) -> ConditionParser.parseWeather(json),
+            List.of(new FieldSpec("state", FormFieldSpec.Kind.ENUM, false)
+                .options("clear", "rain", "thunder").def("clear")
+                .doc("Weather state to match (also accepts the `value` field; default clear).")));
+        define("moon_phase",
+            (json, ctx) -> ConditionParser.parseMoonPhase(json),
+            List.of(comparison("==", "Comparison operator (default ==)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 0, "Moon phase 0..7 (0 = full moon, 4 = new moon; default 0).")));
+        define("nbt",
+            (json, ctx) -> ConditionParser.parseNbt(json),
+            List.of(new FieldSpec("nbt", FormFieldSpec.Kind.STRING, false)
+                .doc("Key the player's persistent data must contain (absent → always true).")));
+        define("scoreboard",
+            (json, ctx) -> ConditionParser.parseScoreboard(json),
+            List.of(new FieldSpec("objective", FormFieldSpec.Kind.STRING, false)
+                        .doc("Scoreboard objective to read the player's score from (absent → false)."),
+                    comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 0, "Score threshold (default 0).")));
+        define("command",
+            (json, ctx) -> ConditionParser.parseCommand(json),
+            List.of(new FieldSpec("command", FormFieldSpec.Kind.STRING, false)
+                        .doc("Command to run; compared against its return value (blank → false)."),
+                    comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 1, "Threshold for the command's return value (default 1).")));
+        define("air",
+            (json, ctx) -> ConditionParser.parseAir(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Air-supply threshold 0..300 (default 0).")));
+        define("status_effect",
+            (json, ctx) -> ConditionParser.parseStatusEffect(json),
+            List.of(new FieldSpec("effect", FormFieldSpec.Kind.STRING, false)
+                        .doc("Mob-effect id the player must have (absent → false)."),
+                    new FieldSpec("amplifier", FormFieldSpec.Kind.INTEGER, false)
+                        .doc("Exact amplifier to require (sets both min and max)."),
+                    new FieldSpec("min_amplifier", FormFieldSpec.Kind.INTEGER, false)
+                        .doc("Lowest acceptable amplifier (default -1 = any)."),
+                    new FieldSpec("max_amplifier", FormFieldSpec.Kind.INTEGER, false)
+                        .doc("Highest acceptable amplifier (default unbounded).")));
+        define("has_effect",
+            (json, ctx) -> ConditionParser.parseHasEffect(json),
+            List.of(new FieldSpec("effect", FormFieldSpec.Kind.STRING, false)
+                .doc("Mob-effect id the player must currently have (absent → false).")));
+        // replacable / replaceable — only `replacable` is in KNOWN_TYPES; `replaceable`
+        // is a spelling synonym (not a picker entry) → alias, not a counted type.
+        define("replacable", List.of("replaceable"),
+            (json, ctx) -> ConditionParser.parseReplaceable(json), List.of());
+        define("power",
+            (json, ctx) -> ConditionParser.parsePower(json, ctx),
+            List.of(new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
+                .doc("Power id the player must have been granted.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

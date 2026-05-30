@@ -167,18 +167,10 @@ public final class ConditionParser {
                 case "neoorigins:biome"                         -> parseBiome(json);
                 case "neoorigins:equipped_item"                 -> parseEquippedItem(json, contextId);
                 case "neoorigins:block"                         -> parseBlockCondition(json, contextId);
-                case "neoorigins:nbt"                           -> parseNbt(json);
-                case "neoorigins:scoreboard"                    -> parseScoreboard(json);
-                case "neoorigins:command"                       -> parseCommand(json);
                 case "neoorigins:in_block",
                      "neoorigins:in_block_anywhere"             -> parseInBlock(json, contextId);
                 case "neoorigins:power_type"                    -> parsePowerType(json, contextId);
                 case "neoorigins:predicate"                     -> parsePredicate(json, contextId);
-
-                // ---- Phase 0 consolidation: new verbs ----
-                case "neoorigins:time_of_day"                   -> parseTimeOfDay(json);
-                case "neoorigins:weather"                       -> parseWeather(json);
-                case "neoorigins:moon_phase"                    -> parseMoonPhase(json);
 
                 // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
                 case "neoorigins:hit_taken_amount"              -> parseHitTakenAmount(json);
@@ -193,36 +185,13 @@ public final class ConditionParser {
                     yield p -> com.cyberday1.neoorigins.service.MinionTracker.countAlive(p.getUUID(), minionKey) == 0;
                 }
 
-                // ---- Bientity conditions (read target from current dispatch context) ----
-                case "neoorigins:distance"                      -> parseDistance(json);
-                case "neoorigins:can_see"                       -> parseCanSee();
-                case "neoorigins:equal"                         -> parseEqual();
-                case "neoorigins:target_type"                   -> parseTargetType(json);
-                case "neoorigins:target_group"                  -> parseTargetGroup(json);
-                case "neoorigins:in_set"                        -> parseInSet(json, contextId);
-
-                // ---- Damage conditions (read DamageSource from HitTakenContext) ----
-                case "neoorigins:from_fire"                     -> parseFromFire();
-                case "neoorigins:from_projectile"               -> parseFromProjectile();
-                case "neoorigins:from_explosion"                -> parseFromExplosion();
-                case "neoorigins:damage_type"                   -> parseDamageType(json);
-                case "neoorigins:damage_tag"                    -> parseDamageTag(json);
-                case "neoorigins:damage_name",
-                     "neoorigins:name"                          -> parseDamageName(json);
-
                 // ---- Phase 8: condition expansion (2026-04-24) ----
-                case "neoorigins:has_effect"                    -> parseHasEffect(json);
                 case "neoorigins:near_block",
                      "neoorigins:block_in_radius"                  -> parseNearBlock(json, contextId);
                 case "neoorigins:near_entity"                   -> parseNearEntity(json, contextId);
                 case "neoorigins:out_of_combat"                 -> parseOutOfCombat(json);
 
                 // ---- Origins++ compat expansion ----
-                case "neoorigins:status_effect"                 -> parseStatusEffect(json);
-                case "neoorigins:air"                           -> parseAir(json);
-                case "neoorigins:power"                         -> parsePower(json, contextId);
-                case "neoorigins:replacable",
-                     "neoorigins:replaceable"                   -> parseReplaceable(json);
                 case "neoorigins:actor_condition"               -> parseActorCondition(json, contextId);
                 case "neoorigins:advancement"                   -> parseAdvancement(json, contextId);
 
@@ -620,7 +589,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseNbt(JsonObject json) {
+    static EntityCondition parseNbt(JsonObject json) {
         String nbtPath = json.has("nbt") ? json.get("nbt").getAsString() : null;
         if (nbtPath == null) return EntityCondition.alwaysTrue();
         // Simplified: check if the player's persisted data contains the key
@@ -630,7 +599,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseScoreboard(JsonObject json) {
+    static EntityCondition parseScoreboard(JsonObject json) {
         String objective = json.has("objective") ? json.get("objective").getAsString() : null;
         if (objective == null) return EntityCondition.alwaysFalse();
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
@@ -651,7 +620,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseCommand(JsonObject json) {
+    static EntityCondition parseCommand(JsonObject json) {
         String command = json.has("command") ? json.get("command").getAsString() : "";
         if (command.isBlank()) return EntityCondition.alwaysFalse();
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
@@ -905,14 +874,14 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseTimeOfDay(JsonObject json) {
+    static EntityCondition parseTimeOfDay(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         long target = json.has("compare_to") ? json.get("compare_to").getAsLong() : 0L;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return p -> comparison.test(p.level().getDayTime() % 24000L, target);
     }
 
-    private static EntityCondition parseWeather(JsonObject json) {
+    static EntityCondition parseWeather(JsonObject json) {
         String state = json.has("state") ? json.get("state").getAsString().toLowerCase()
                      : json.has("value") ? json.get("value").getAsString().toLowerCase() : "clear";
         return p -> {
@@ -940,7 +909,7 @@ public final class ConditionParser {
         return p -> comparison.test(p.totalExperience, target);
     }
 
-    private static EntityCondition parseMoonPhase(JsonObject json) {
+    static EntityCondition parseMoonPhase(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : "==";
         int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -1068,7 +1037,7 @@ public final class ConditionParser {
         return null;
     }
 
-    private static EntityCondition parseDistance(JsonObject json) {
+    static EntityCondition parseDistance(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : "<=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -1079,7 +1048,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseCanSee() {
+    static EntityCondition parseCanSee() {
         return p -> {
             var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             if (le == null) return false;
@@ -1087,14 +1056,14 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseEqual() {
+    static EntityCondition parseEqual() {
         return p -> {
             var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             return le != null && le.getUUID().equals(p.getUUID());
         };
     }
 
-    private static EntityCondition parseTargetType(JsonObject json) {
+    static EntityCondition parseTargetType(JsonObject json) {
         String et = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
         if (et == null || et.isBlank()) return CompatPolicy.FALSE_CONDITION;
         final String target = et;
@@ -1112,7 +1081,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseTargetGroup(JsonObject json) {
+    static EntityCondition parseTargetGroup(JsonObject json) {
         String group = json.has("group") ? json.get("group").getAsString() : null;
         if (group == null || group.isBlank()) return CompatPolicy.FALSE_CONDITION;
         TagKey<net.minecraft.world.entity.EntityType<?>> tag = TagKey.create(
@@ -1130,7 +1099,7 @@ public final class ConditionParser {
      * are expected to namespace it (e.g. {@code "mypack:kill_streak"}) to avoid collision.
      * Fails closed outside a bientity context.
      */
-    private static EntityCondition parseInSet(JsonObject json, String contextId) {
+    static EntityCondition parseInSet(JsonObject json, String contextId) {
         String setName = json.has("set") ? json.get("set").getAsString() : null;
         if (setName == null || setName.isBlank()) {
             return failClosed("origins:in_set", contextId, "missing required field 'set'");
@@ -1146,28 +1115,28 @@ public final class ConditionParser {
 
     // ---- Damage helpers ----
 
-    private static EntityCondition parseFromFire() {
+    static EntityCondition parseFromFire() {
         return p -> {
             var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             return src != null && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE);
         };
     }
 
-    private static EntityCondition parseFromProjectile() {
+    static EntityCondition parseFromProjectile() {
         return p -> {
             var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             return src != null && src.is(net.minecraft.tags.DamageTypeTags.IS_PROJECTILE);
         };
     }
 
-    private static EntityCondition parseFromExplosion() {
+    static EntityCondition parseFromExplosion() {
         return p -> {
             var src = extractDamageSource(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             return src != null && src.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION);
         };
     }
 
-    private static EntityCondition parseDamageType(JsonObject json) {
+    static EntityCondition parseDamageType(JsonObject json) {
         String id = json.has("damage_type") ? json.get("damage_type").getAsString() : null;
         if (id == null || id.isBlank()) return CompatPolicy.FALSE_CONDITION;
         final net.minecraft.resources.ResourceKey<net.minecraft.world.damagesource.DamageType> key =
@@ -1178,7 +1147,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseDamageTag(JsonObject json) {
+    static EntityCondition parseDamageTag(JsonObject json) {
         String tag = json.has("tag") ? json.get("tag").getAsString() : null;
         if (tag == null || tag.isBlank()) return CompatPolicy.FALSE_CONDITION;
         final TagKey<net.minecraft.world.damagesource.DamageType> key =
@@ -1189,7 +1158,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseDamageName(JsonObject json) {
+    static EntityCondition parseDamageName(JsonObject json) {
         String name = json.has("name") ? json.get("name").getAsString() : null;
         if (name == null || name.isBlank()) return CompatPolicy.FALSE_CONDITION;
         final String expected = name;
@@ -1205,7 +1174,7 @@ public final class ConditionParser {
      * Useful for gating passives on consumable-applied buffs (mirrors the
      * FortuneWhenEffectPower gate pattern for DSL authors).
      */
-    private static EntityCondition parseHasEffect(JsonObject json) {
+    static EntityCondition parseHasEffect(JsonObject json) {
         if (!json.has("effect")) return CompatPolicy.FALSE_CONDITION;
         ResourceLocation id = ResourceLocation.parse(json.get("effect").getAsString());
         return p -> {
@@ -1305,7 +1274,7 @@ public final class ConditionParser {
     // ── Origins++ compat conditions ──────────────────────────────────────
 
     /** origins:status_effect — true when player has a specific effect at a given amplifier. */
-    private static EntityCondition parseStatusEffect(JsonObject json) {
+    static EntityCondition parseStatusEffect(JsonObject json) {
         // Apoli format: { "effect": "minecraft:speed", "min_amplifier": 0, "max_amplifier": 2 }
         // or just { "effect": "...", "amplifier": 0 }
         String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
@@ -1327,7 +1296,7 @@ public final class ConditionParser {
     }
 
     /** origins:air — compare player's air supply. */
-    private static EntityCondition parseAir(JsonObject json) {
+    static EntityCondition parseAir(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -1335,7 +1304,7 @@ public final class ConditionParser {
     }
 
     /** origins:power — true when the player has a specific power granted. */
-    private static EntityCondition parsePower(JsonObject json, String contextId) {
+    static EntityCondition parsePower(JsonObject json, String contextId) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
         if (powerId == null) return failClosed("neoorigins:power", contextId, "missing 'power' field");
         ResourceLocation id = ResourceLocation.parse(powerId);
@@ -1351,7 +1320,7 @@ public final class ConditionParser {
     }
 
     /** origins:replacable / replaceable — true when the block at the player's position is replaceable (air, grass, etc.). */
-    private static EntityCondition parseReplaceable(JsonObject json) {
+    static EntityCondition parseReplaceable(JsonObject json) {
         return p -> p.level().getBlockState(p.blockPosition()).canBeReplaced();
     }
 
