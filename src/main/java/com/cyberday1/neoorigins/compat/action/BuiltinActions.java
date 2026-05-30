@@ -687,6 +687,162 @@ public final class BuiltinActions {
                     .doc("Entity type id to mount; omit to mount any nearby entity."),
                 new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(5.0).range(0.0, null)
                     .doc("Search radius around the player (default 5.0).")));
+
+        // spawn_entity — spawn N copies of an entity type at the player. Lift-and-shift
+        // of parseSpawnEntity (26.1: Identifier + ENTITY_TYPE.get holder .value(),
+        // create(sl, EntitySpawnReason.COMMAND)). `entity_type` is the hard
+        // requirement (parser no-ops without it). `quantity` optional (default 1;
+        // <1 or non-integer warns + clamps to 1; >1 adds ±0.5-block jitter).
+        define("spawn_entity",
+            (json, ctx) -> {
+                String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
+                if (entityId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: missing entity_type — action will no-op");
+                    return EntityAction.noop();
+                }
+                net.minecraft.resources.Identifier eid = net.minecraft.resources.Identifier.parse(entityId);
+                var entityTypeOpt = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(eid);
+                if (entityTypeOpt.isEmpty()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: unknown entity type '{}' — action will no-op", eid);
+                    return EntityAction.noop();
+                }
+                final net.minecraft.world.entity.EntityType<?> entityType = entityTypeOpt.get().value();
+                int q = 1;
+                if (json.has("quantity")) {
+                    var qEl = json.get("quantity");
+                    if (qEl.isJsonPrimitive() && qEl.getAsJsonPrimitive().isNumber()) {
+                        int requested = qEl.getAsInt();
+                        if (requested < 1) {
+                            NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: 'quantity' must be >=1 (got {}), clamping to 1", requested);
+                        } else {
+                            q = requested;
+                        }
+                    } else {
+                        NeoOrigins.LOGGER.warn("[CompatB] spawn_entity: 'quantity' must be an integer (got {}), clamping to 1", qEl);
+                    }
+                }
+                final int quantity = q;
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    for (int i = 0; i < quantity; i++) {
+                        var entity = entityType.create(sl, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+                        if (entity == null) continue;
+                        double dx = 0.0, dz = 0.0;
+                        if (quantity > 1) {
+                            var rng = sl.getRandom();
+                            dx = rng.nextDouble() - 0.5;
+                            dz = rng.nextDouble() - 0.5;
+                        }
+                        entity.setPos(player.getX() + dx, player.getY(), player.getZ() + dz);
+                        sl.addFreshEntity(entity);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, true)
+                    .doc("Entity type id to spawn at the player's position."),
+                new FieldSpec("quantity", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
+                    .doc("Number of copies to spawn (default 1; >1 adds ±0.5-block jitter).")));
+
+        // throw_target — find the entity under the player's crosshair within
+        // `max_distance` and push it away. Lift-and-shift of parseThrowTarget
+        // (26.1 ProjectileUtil.getEntityHitResult: (Entity, Vec3, Vec3, AABB,
+        // Predicate, double) — shooter replaces Level, trailing double² filter).
+        // All fields optional (force 1.5, vertical_lift 0.5, max_distance 5.0).
+        define("throw_target",
+            (json, ctx) -> {
+                final float force        = json.has("force")         ? json.get("force").getAsFloat()         : 1.5f;
+                final float verticalLift = json.has("vertical_lift") ? json.get("vertical_lift").getAsFloat() : 0.5f;
+                final float maxDistance  = json.has("max_distance")  ? json.get("max_distance").getAsFloat()  : 5.0f;
+                return player -> {
+                    var eye  = player.getEyePosition();
+                    var look = player.getLookAngle();
+                    var end  = eye.add(look.scale(maxDistance));
+                    var searchBox = player.getBoundingBox().expandTowards(look.scale(maxDistance)).inflate(1.0);
+                    var hit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(
+                        player, eye, end, searchBox,
+                        e -> e != player && e.isAlive() && e instanceof net.minecraft.world.entity.LivingEntity,
+                        (double) maxDistance * maxDistance);
+                    if (hit == null) return;
+                    if (!(hit.getEntity() instanceof net.minecraft.world.entity.LivingEntity target)) return;
+                    double dx = target.getX() - player.getX();
+                    double dz = target.getZ() - player.getZ();
+                    double horiz = Math.sqrt(dx * dx + dz * dz);
+                    if (horiz < 1.0e-4) {
+                        dx = look.x;
+                        dz = look.z;
+                        horiz = Math.sqrt(dx * dx + dz * dz);
+                        if (horiz < 1.0e-4) { dx = 1.0; dz = 0.0; horiz = 1.0; }
+                    }
+                    double ux = dx / horiz;
+                    double uz = dz / horiz;
+                    target.push(ux * force, verticalLift, uz * force);
+                    target.hurtMarked = true;
+                };
+            },
+            List.of(
+                new FieldSpec("force", FormFieldSpec.Kind.NUMBER, false).def(1.5)
+                    .doc("Horizontal push magnitude applied to the target (default 1.5)."),
+                new FieldSpec("vertical_lift", FormFieldSpec.Kind.NUMBER, false).def(0.5)
+                    .doc("Upward push applied to the target (default 0.5)."),
+                new FieldSpec("max_distance", FormFieldSpec.Kind.NUMBER, false).def(5.0).range(0.0, null)
+                    .doc("Max crosshair search distance for a target (default 5.0).")));
+
+        // spawn_effect_cloud — spawn an AreaEffectCloud at the player. Lift-and-shift
+        // of parseSpawnEffectCloud (26.1: Identifier). `effect` optional and
+        // dual-shape (a bare id string, or an object {effect, duration, amplifier});
+        // all numeric fields optional (duration 200, amplifier 0, radius 3.0,
+        // wait_time 10). An unknown effect id is silently skipped.
+        define("spawn_effect_cloud",
+            (json, ctx) -> {
+                String effectId = null;
+                int duration = json.has("duration") ? json.get("duration").getAsInt() : 200;
+                int amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : 0;
+                if (json.has("effect")) {
+                    var effectEl = json.get("effect");
+                    if (effectEl.isJsonPrimitive()) {
+                        effectId = effectEl.getAsString();
+                    } else if (effectEl.isJsonObject()) {
+                        var effectObj = effectEl.getAsJsonObject();
+                        effectId = effectObj.has("effect") ? effectObj.get("effect").getAsString() : null;
+                        if (effectObj.has("duration")) duration = effectObj.get("duration").getAsInt();
+                        if (effectObj.has("amplifier")) amplifier = effectObj.get("amplifier").getAsInt();
+                    }
+                }
+                float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
+                int waitTime = json.has("wait_time") ? json.get("wait_time").getAsInt() : 10;
+                final String fEffectId = effectId;
+                final int fDuration = duration;
+                final int fAmplifier = amplifier;
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    var cloud = new net.minecraft.world.entity.AreaEffectCloud(sl, player.getX(), player.getY(), player.getZ());
+                    cloud.setRadius(radius);
+                    cloud.setDuration(fDuration);
+                    cloud.setWaitTime(waitTime);
+                    cloud.setOwner(player);
+                    if (fEffectId != null) {
+                        var eff = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.getOptional(
+                            net.minecraft.resources.Identifier.parse(fEffectId));
+                        if (eff.isPresent()) {
+                            var holder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT.wrapAsHolder(eff.get());
+                            cloud.addEffect(new net.minecraft.world.effect.MobEffectInstance(holder, fDuration, fAmplifier));
+                        }
+                    }
+                    sl.addFreshEntity(cloud);
+                };
+            },
+            List.of(
+                new FieldSpec("effect", FormFieldSpec.Kind.STRING, false)
+                    .doc("Mob effect id (bare string) or object {effect, duration, amplifier}; omit for an empty cloud."),
+                new FieldSpec("duration", FormFieldSpec.Kind.INTEGER, false).def(200).range(0.0, null)
+                    .doc("Cloud + effect duration in ticks (default 200)."),
+                new FieldSpec("amplifier", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
+                    .doc("Effect amplifier level (default 0)."),
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(3.0).range(0.0, null)
+                    .doc("Cloud radius in blocks (default 3.0)."),
+                new FieldSpec("wait_time", FormFieldSpec.Kind.INTEGER, false).def(10).range(0.0, null)
+                    .doc("Ticks before the cloud starts applying its effect (default 10).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
