@@ -439,28 +439,7 @@ public final class SchemaFormCheck {
             java.util.Set<String> declaredComponents = new java.util.TreeSet<>();
             for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : spec.fields()) {
                 declaredNames.add(fs.name());
-                String componentKey = camelToSnake(fs.effectiveComponentName());
-                declaredComponents.add(componentKey);
-
-                // (a) the spec's field must map to a real record component —
-                // resolved via the key-alias (effectiveComponentName) when set,
-                // else by camel→snake-ing the JSON name itself.
-                java.lang.reflect.RecordComponent rc = byJson.get(componentKey);
-                if (rc == null) {
-                    System.out.println("[schema-check] FAIL  power-spec " + typeId
-                        + ": field '" + fs.name() + "' has no matching Config component"
-                        + (fs.componentName() != null ? " (bound to '" + fs.componentName() + "')" : ""));
-                    fails++;
-                    continue;
-                }
-                // (c) Optional-typed component must not be modelled required.
-                boolean optionalTyped = rc.getType() == java.util.Optional.class;
-                if (optionalTyped && fs.required()) {
-                    System.out.println("[schema-check] FAIL  power-spec " + typeId
-                        + ": field '" + fs.name() + "' is Optional<> in the codec but"
-                        + " declared required(true)");
-                    fails++;
-                }
+                fails += auditSpec(fs, typeId, byJson, declaredComponents);
             }
 
             // (b) every non-internal component should have a spec OR rely on the
@@ -499,6 +478,80 @@ public final class SchemaFormCheck {
 
         System.out.printf("[schema-check] power field-specs: %d registered powers, %d failures%n",
             descriptors.size(), fails);
+        return fails;
+    }
+
+    /**
+     * Audit a single {@link com.cyberday1.neoorigins.compat.registry.FieldSpec}
+     * against the given {@code byJson} component map, recording every resolved
+     * component snake-key into {@code declaredComponents} (so clause (b) sees it
+     * as covered). Returns the failure count contributed by this spec.
+     *
+     * <p>Three shapes:
+     * <ul>
+     *   <li><b>Virtual wrapper</b> ({@code fs.isVirtual()}): the wrapper itself
+     *       has NO backing component — skip clauses (a)/(c) for it and recurse
+     *       into its children against the SAME top-level {@code byJson} map
+     *       (children map to flat components via {@code .boundTo}).</li>
+     *   <li><b>Real OBJECT with children</b>: resolve the wrapper's own component
+     *       (clause a), then recurse children against that component-record's own
+     *       component map.</li>
+     *   <li><b>Leaf</b>: clauses (a) and (c), unchanged.</li>
+     * </ul>
+     */
+    private static int auditSpec(com.cyberday1.neoorigins.compat.registry.FieldSpec fs,
+                                 String typeId,
+                                 java.util.Map<String, java.lang.reflect.RecordComponent> byJson,
+                                 java.util.Set<String> declaredComponents) {
+        int fails = 0;
+
+        // Virtual wrapper: no own component. Skip (a)/(c) for the wrapper; recurse
+        // children against the SAME top-level component map.
+        if (fs.isVirtual()) {
+            for (var child : fs.children()) {
+                fails += auditSpec(child, typeId, byJson, declaredComponents);
+            }
+            return fails;
+        }
+
+        String componentKey = camelToSnake(fs.effectiveComponentName());
+        declaredComponents.add(componentKey);
+
+        // (a) the spec's field must map to a real record component — resolved via
+        // the key-alias (effectiveComponentName) when set, else by camel→snake-ing
+        // the JSON name itself.
+        java.lang.reflect.RecordComponent rc = byJson.get(componentKey);
+        if (rc == null) {
+            System.out.println("[schema-check] FAIL  power-spec " + typeId
+                + ": field '" + fs.name() + "' has no matching Config component"
+                + (fs.componentName() != null ? " (bound to '" + fs.componentName() + "')" : ""));
+            return fails + 1;
+        }
+        // (c) Optional-typed component must not be modelled required.
+        boolean optionalTyped = rc.getType() == java.util.Optional.class;
+        if (optionalTyped && fs.required()) {
+            System.out.println("[schema-check] FAIL  power-spec " + typeId
+                + ": field '" + fs.name() + "' is Optional<> in the codec but"
+                + " declared required(true)");
+            fails++;
+        }
+
+        // Real OBJECT with children: recurse into the sub-record's own component
+        // map. (Forward-compat; resource uses the virtual path above.)
+        if (!fs.children().isEmpty()) {
+            Class<?> sub = rc.getType();
+            if (sub.isRecord()) {
+                java.util.Map<String, java.lang.reflect.RecordComponent> subByJson =
+                    new java.util.LinkedHashMap<>();
+                for (java.lang.reflect.RecordComponent src : sub.getRecordComponents()) {
+                    subByJson.put(camelToSnake(src.getName()), src);
+                }
+                java.util.Set<String> subDeclared = new java.util.TreeSet<>();
+                for (var child : fs.children()) {
+                    fails += auditSpec(child, typeId, subByJson, subDeclared);
+                }
+            }
+        }
         return fails;
     }
 
