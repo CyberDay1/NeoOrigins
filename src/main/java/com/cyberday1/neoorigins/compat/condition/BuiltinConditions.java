@@ -376,6 +376,47 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parsePowerType(json, ctx),
             List.of(new FieldSpec("power_type", FormFieldSpec.Kind.STRING, false)
                 .doc("Power-type id to match across granted powers (also accepts `id`; bare → origins: prefixed).")));
+
+        // ---- Block / position conditions (delegate to ConditionParser) ----
+        // The nested block_condition / item_condition shapes are lifted as-is — the
+        // descriptor factory carries the existing parse logic verbatim (no parser
+        // normalization). FieldSpecs transcribe the hand-written schema branches.
+        // on_block — block beneath the player matches the nested block_condition.
+        define("on_block",
+            (json, ctx) -> ConditionParser.parseOnBlock(json, ctx),
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+                .doc("Nested block condition (block id / in_tag / and / or) tested against the block below; absent → on any ground.")));
+        // block — block at the player's position matches an id or tag.
+        define("block",
+            (json, ctx) -> ConditionParser.parseBlockCondition(json, ctx),
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+                        .doc("Optional nested block condition wrapper; otherwise the fields are read off the root."),
+                    new FieldSpec("block", FormFieldSpec.Kind.STRING, false)
+                        .doc("Block id the block at the player's position must match (also accepts `id`)."),
+                    new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                        .doc("Block tag the block at the player's position must be in (absent block+tag → always true).")));
+        // in_block / in_block_anywhere — block at the player's position matches an id.
+        // `in_block_anywhere` is a true synonym (absent from KNOWN_TYPES) → alias.
+        define("in_block", List.of("in_block_anywhere"),
+            (json, ctx) -> ConditionParser.parseInBlock(json, ctx),
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+                .doc("Nested block condition with `block`/`id`; absent → always true.")));
+        // equipped_item — item in the given slot matches the nested item_condition.
+        define("equipped_item",
+            (json, ctx) -> ConditionParser.parseEquippedItem(json, ctx),
+            List.of(new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false)
+                        .options("head", "chest", "legs", "feet", "mainhand", "offhand").def("mainhand")
+                        .doc("Equipment slot to inspect (default mainhand)."),
+                    new FieldSpec("item_condition", FormFieldSpec.Kind.OBJECT, false)
+                        .doc("Nested item condition; absent → slot-presence check (any item present).")));
+        // predicate — Apoli meta-wrapper compiling a vanilla MC predicate.
+        define("predicate",
+            (json, ctx) -> ConditionParser.parsePredicate(json, ctx),
+            List.of(new FieldSpec("predicate_type", FormFieldSpec.Kind.ENUM, true)
+                        .options("biome", "block_state", "entity_properties", "fluid_state", "item", "location", "damage")
+                        .doc("Which vanilla predicate to compile (damage fails closed; needs hit-context)."),
+                    new FieldSpec("predicate", FormFieldSpec.Kind.OBJECT, true)
+                        .doc("The predicate JSON, parsed against the matching vanilla codec.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

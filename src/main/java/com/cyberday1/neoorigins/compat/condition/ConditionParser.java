@@ -157,15 +157,8 @@ public final class ConditionParser {
                     }
                     return true;
                 };
-                case "neoorigins:on_block"                      -> parseOnBlock(json, contextId);
-
                 // ---- Phase 1: New conditions ----
                 case "neoorigins:biome"                         -> parseBiome(json);
-                case "neoorigins:equipped_item"                 -> parseEquippedItem(json, contextId);
-                case "neoorigins:block"                         -> parseBlockCondition(json, contextId);
-                case "neoorigins:in_block",
-                     "neoorigins:in_block_anywhere"             -> parseInBlock(json, contextId);
-                case "neoorigins:predicate"                     -> parsePredicate(json, contextId);
 
                 // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
                 case "neoorigins:hit_taken_amount"              -> parseHitTakenAmount(json);
@@ -320,7 +313,7 @@ public final class ConditionParser {
         return player -> com.cyberday1.neoorigins.compat.Toggles.isOn(player, powerId);
     }
 
-    private static EntityCondition parseOnBlock(JsonObject json, String contextId) {
+    static EntityCondition parseOnBlock(JsonObject json, String contextId) {
         if (!json.has("block_condition") || !json.get("block_condition").isJsonObject()) {
             // Some packs omit block_condition entirely — treat as "standing on any block"
             return p -> p.onGround();
@@ -474,7 +467,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseEquippedItem(JsonObject json, String contextId) {
+    static EntityCondition parseEquippedItem(JsonObject json, String contextId) {
         String slot = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
         EquipmentSlot eqSlot = mapEquipmentSlot(slot);
 
@@ -572,7 +565,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseBlockCondition(JsonObject json, String contextId) {
+    static EntityCondition parseBlockCondition(JsonObject json, String contextId) {
         // Block condition at player position
         JsonObject blockCond = json.has("block_condition") ? json.getAsJsonObject("block_condition") : json;
         String blockId = blockCond.has("block") ? blockCond.get("block").getAsString() : null;
@@ -674,7 +667,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseInBlock(JsonObject json, String contextId) {
+    static EntityCondition parseInBlock(JsonObject json, String contextId) {
         JsonObject blockCond = json.has("block_condition") ? json.getAsJsonObject("block_condition") : null;
         if (blockCond == null) return EntityCondition.alwaysTrue();
         String blockId = blockCond.has("block") ? blockCond.get("block").getAsString() : null;
@@ -762,7 +755,7 @@ public final class ConditionParser {
 
     // ---- origins:predicate (Apoli meta-wrapper around vanilla MC predicates) ----
 
-    private static EntityCondition parsePredicate(JsonObject json, String contextId) {
+    static EntityCondition parsePredicate(JsonObject json, String contextId) {
         String predicateType = json.has("predicate_type") ? json.get("predicate_type").getAsString() : null;
         JsonElement predicateJson = json.has("predicate") ? json.get("predicate") : null;
         if (predicateType == null || predicateJson == null) {
