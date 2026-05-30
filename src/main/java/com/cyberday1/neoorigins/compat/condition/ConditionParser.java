@@ -124,39 +124,6 @@ public final class ConditionParser {
                 case "neoorigins:and"                           -> parseAnd(json, contextId);
                 case "neoorigins:or"                            -> parseOr(json, contextId);
                 case "neoorigins:not"                           -> parseNot(json, contextId);
-                case "neoorigins:config_flag"                   -> parseConfigFlag(json);
-                case "neoorigins:exposed_to_sun"                -> p -> {
-                    if (!(p.level() instanceof ServerLevel sl)) return false;
-                    if (p.isPassenger()) return false;
-                    // Vanilla daytime is 0–12000 (sunrise to sunset). The prior
-                    // impl gated on 6000–12000, which skipped morning hours and
-                    // silently made sun-damage origins (Abyssal Surface Burn,
-                    // Enderian, Cinderborn daylight variants) fail to damage
-                    // until around noon.
-                    long time = sl.getDefaultClockTime() % 24000L;
-                    if (time >= 12000L
-                        || !sl.canSeeSky(p.blockPosition())
-                        || sl.isRaining()) return false;
-                    // Umbrella protection — if Vampires Need Umbrellas is loaded,
-                    // holding an umbrella in either hand blocks sun damage entirely
-                    // (takes priority over helmet protection).
-                    if (neoorigins$isHoldingUmbrella(p)) return false;
-                    // Helmet protection — any helmet blocks sun damage.
-                    // Damageable helmets take durability damage over time;
-                    // invulnerable/unbreakable helmets (e.g. allthemodium)
-                    // protect indefinitely.
-                    ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
-                    if (!head.isEmpty()) {
-                        if (head.isDamageableItem()) {
-                            float chance = com.cyberday1.neoorigins.NeoOriginsConfig.sunHelmetDuraDamageChance();
-                            if (chance > 0f && p.getRandom().nextFloat() < chance) {
-                                head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
-                            }
-                        }
-                        return false;
-                    }
-                    return true;
-                };
                 // ---- Phase 1: New conditions ----
                 case "neoorigins:biome"                         -> parseBiome(json);
 
@@ -222,7 +189,7 @@ public final class ConditionParser {
      * value of that flag at evaluation time. Unknown keys default to true and
      * log a warning, so a typo doesn't silently turn a power off.
      */
-    private static EntityCondition parseConfigFlag(JsonObject json) {
+    static EntityCondition parseConfigFlag(JsonObject json) {
         String key = json.has("key") ? json.get("key").getAsString() : "";
         var supplier = CONFIG_FLAG_LOOKUPS.get(key);
         if (supplier == null) {
@@ -232,6 +199,47 @@ public final class ConditionParser {
             return EntityCondition.alwaysTrue();
         }
         return p -> supplier.getAsBoolean();
+    }
+
+    /**
+     * exposed_to_sun: true when the player is in open daylight (morning to sunset,
+     * clear sky, not raining) and unprotected by an umbrella or helmet. Helmet
+     * protection may chip durability per tick. Lift-and-shift of the former inline
+     * switch arm — behaviour is byte-identical.
+     */
+    static EntityCondition parseExposedToSun(JsonObject json) {
+        return p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            if (p.isPassenger()) return false;
+            // Vanilla daytime is 0–12000 (sunrise to sunset). The prior
+            // impl gated on 6000–12000, which skipped morning hours and
+            // silently made sun-damage origins (Abyssal Surface Burn,
+            // Enderian, Cinderborn daylight variants) fail to damage
+            // until around noon.
+            long time = sl.getDefaultClockTime() % 24000L;
+            if (time >= 12000L
+                || !sl.canSeeSky(p.blockPosition())
+                || sl.isRaining()) return false;
+            // Umbrella protection — if Vampires Need Umbrellas is loaded,
+            // holding an umbrella in either hand blocks sun damage entirely
+            // (takes priority over helmet protection).
+            if (neoorigins$isHoldingUmbrella(p)) return false;
+            // Helmet protection — any helmet blocks sun damage.
+            // Damageable helmets take durability damage over time;
+            // invulnerable/unbreakable helmets (e.g. allthemodium)
+            // protect indefinitely.
+            ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
+            if (!head.isEmpty()) {
+                if (head.isDamageableItem()) {
+                    float chance = com.cyberday1.neoorigins.NeoOriginsConfig.sunHelmetDuraDamageChance();
+                    if (chance > 0f && p.getRandom().nextFloat() < chance) {
+                        head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                    }
+                }
+                return false;
+            }
+            return true;
+        };
     }
 
     static EntityCondition parseCooldown(JsonObject json) {
@@ -1407,7 +1415,7 @@ public final class ConditionParser {
      * Returns true if the player has an umbrella from Vampires Need Umbrellas
      * equipped — either hand or any Curios/Accessories slot.
      */
-    private static boolean neoorigins$isHoldingUmbrella(net.minecraft.world.entity.LivingEntity entity) {
+    static boolean neoorigins$isHoldingUmbrella(net.minecraft.world.entity.LivingEntity entity) {
         if (!VNU_LOADED) return false;
         if (neoorigins$isUmbrella(entity.getMainHandItem())) return true;
         if (neoorigins$isUmbrella(entity.getOffhandItem())) return true;

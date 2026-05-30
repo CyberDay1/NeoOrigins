@@ -481,6 +481,17 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseAdvancement(json, ctx),
             List.of(new FieldSpec("advancement", FormFieldSpec.Kind.STRING, true)
                 .doc("Advancement id the player must have completed.")));
+
+        // ---- Config / environment conditions (delegate to ConditionParser) ----
+        // config_flag — live value of a named config tunable (unknown key → true).
+        define("config_flag",
+            (json, ctx) -> ConditionParser.parseConfigFlag(json),
+            List.of(new FieldSpec("key", FormFieldSpec.Kind.STRING, false)
+                .doc("Config-flag key whose live boolean to return (unknown key → true, with a warning).")));
+        // exposed_to_sun — player in open, unprotected daylight (umbrella/helmet aware).
+        define("exposed_to_sun",
+            (json, ctx) -> ConditionParser.parseExposedToSun(json),
+            List.of());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
