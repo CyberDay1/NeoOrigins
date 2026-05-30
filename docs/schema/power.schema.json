@@ -118,17 +118,6 @@
       "required": ["type", "particle"]
     },
     {
-      "$comment": "neoorigins:modify_player_spawn",
-      "properties": {
-        "type": { "const": "neoorigins:modify_player_spawn" },
-        "dimension": { "type": "string" },
-        "biome": { "type": "string" },
-        "spawn_strategy": { "type": "string" },
-        "bed_override": { "type": "boolean" }
-      },
-      "required": ["type"]
-    },
-    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {

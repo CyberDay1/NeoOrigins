@@ -832,6 +832,21 @@ public final class BuiltinPowers {
         define("restrict_armor", RestrictArmorPower.class, List.of(
             new FieldSpec("restrictions", Kind.ARRAY, false)
                 .doc("List of slot restrictions, each {slot, item?, tag?}: when a matching item (by id and/or #tag) is equipped in that EquipmentSlot (head/chest/legs/feet/mainhand/offhand) it is ejected back to the inventory. An entry with neither item nor tag bars the whole slot. Empty list (default) restricts nothing.")));
+
+        //   • modify_player_spawn: the codec reads exactly two fields — a NESTED
+        //     `location` LocationCondition object (fieldOf, no default → the only
+        //     hard-fail, so required=true) and a top-level `override_bed` boolean
+        //     (optionalFieldOf default false → not required). The old schema branch
+        //     named four flat phantoms (dimension/biome/spawn_strategy/bed_override)
+        //     the codec never reads: dimension/biome live INSIDE the nested
+        //     `location` object (LocationCondition's own fields), spawn_strategy
+        //     doesn't exist, and the bool is keyed `override_bed`, not
+        //     `bed_override`. The branch collapses onto these two specs.
+        define("modify_player_spawn", ModifyPlayerSpawnPower.class, List.of(
+            new FieldSpec("location", Kind.OBJECT, true)
+                .doc("Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it."),
+            new FieldSpec("override_bed", Kind.BOOLEAN, false)
+                .def(false).doc("When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
