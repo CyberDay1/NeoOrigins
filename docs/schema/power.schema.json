@@ -129,17 +129,6 @@
       "required": ["type"]
     },
     {
-      "$comment": "neoorigins:restrict_armor",
-      "properties": {
-        "type": { "const": "neoorigins:restrict_armor" },
-        "head": { "type": "object" },
-        "chest": { "type": "object" },
-        "legs": { "type": "object" },
-        "feet": { "type": "object" }
-      },
-      "required": ["type"]
-    },
-    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
