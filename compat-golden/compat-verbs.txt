@@ -371,3 +371,5 @@ neoorigins:walk_on_fluid	fields={fluid}
 neoorigins:wraith_phase	fields={always_on,blocked_blocks,exhaustion_per_tick}
 neoorigins:action_on_hit	fields={action,amount,amplifier,chance,damage_type,duration,effect,min_damage,target_group,target_type}
 neoorigins:size_scaling	fields={modify_reach,scale}
+neoorigins:js_custom	fields={js_id}
+neoorigins:js_active	fields={cooldown_ticks,hunger_cost,js_id}

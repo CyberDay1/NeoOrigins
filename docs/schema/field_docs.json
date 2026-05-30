@@ -106,10 +106,6 @@
     "knockback_strength": "Outward knockback pushing hit entities away (default 1.5).",
     "radius": "Blocks around the player whose entities are hit (default 6.0)."
   },
-  "neoorigins:js_active": {
-    "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s), consumed only when the JS onUse returns true; default 20.",
-    "hunger_cost": "Food/exhaustion points consumed on a successful activation (JS onUse returns true); default 0."
-  },
   "neoorigins:loot_pool_grant": {
     "active": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system.",
     "bonus_rolls": "Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming.",

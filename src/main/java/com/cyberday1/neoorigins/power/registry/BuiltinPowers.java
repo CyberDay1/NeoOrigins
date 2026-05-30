@@ -499,6 +499,24 @@ public final class BuiltinPowers {
                 .def(1.0).doc("Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."),
             new FieldSpec("modify_reach", Kind.BOOLEAN, false)
                 .def(true).doc("If true, reach scales with body size too (default true). For independent reach use attribute_modifier.")));
+
+        // ── Group R (cont.) — batch E (JS bridge powers) ────────────────────
+        // js_custom / js_active have a clean primitive RecordCodecBuilder
+        // (js_id is `fieldOf` → required, matching the schema's required list).
+        // Their power.schema.json branches only restated js_id + cooldown/hunger
+        // plus the common wrapper fields, so they collapse; js_id's doc (which
+        // previously lived only inline in the schema, not field_docs.json) is
+        // carried onto the spec here so auditFieldDocs still sees it documented.
+        define("js_custom", JsCustomPower.class, List.of(
+            new FieldSpec("js_id", Kind.STRING, true)
+                .doc("ID of the JS handler. Register from JS via NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick}).")));
+        define("js_active", JsCustomActivePower.class, List.of(
+            new FieldSpec("js_id", Kind.STRING, true)
+                .doc("ID of the JS handler. Register from JS via NeoOrigins.registerActivePower(id, {onUse, onGranted, onRevoked})."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(20).doc("Cooldown between uses in ticks (20 = 1s), consumed only when the JS onUse returns true; default 20."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Food/exhaustion points consumed on a successful activation (JS onUse returns true); default 0.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

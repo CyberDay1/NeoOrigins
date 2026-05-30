@@ -189,24 +189,6 @@
       "required": ["type", "multiplier"]
     },
     {
-      "$comment": "neoorigins:js_custom \u2014 passive power whose lifecycle hooks are supplied by a JS handler registered via NeoOrigins.registerPower(js_id, handler).",
-      "properties": {
-        "type": { "const": "neoorigins:js_custom" },
-        "js_id": { "type": "string", "description": "ID of the JS handler. Register from JS via NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick})." }
-      },
-      "required": ["type", "js_id"]
-    },
-    {
-      "$comment": "neoorigins:js_active \u2014 active (keybind) power whose onUse is supplied by a JS handler registered via NeoOrigins.registerActivePower(js_id, handler).",
-      "properties": {
-        "type": { "const": "neoorigins:js_active" },
-        "js_id": { "type": "string", "description": "ID of the JS handler. Register from JS via NeoOrigins.registerActivePower(id, {onUse, onGranted, onRevoked})." },
-        "cooldown_ticks": { "type": "integer", "minimum": 0 },
-        "hunger_cost": { "type": "integer", "minimum": 0 }
-      },
-      "required": ["type", "js_id"]
-    },
-    {
       "$comment": "neoorigins:edible_item",
       "properties": {
         "type": { "const": "neoorigins:edible_item" },
