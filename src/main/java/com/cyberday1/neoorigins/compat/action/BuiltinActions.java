@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.compat.action;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.registry.ActionType;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
+import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
 import net.minecraft.resources.Identifier;
 
 import java.util.Collections;
@@ -55,6 +56,20 @@ public final class BuiltinActions {
 
         // dismount — stop riding the current vehicle. No config fields.
         define("dismount", (json, ctx) -> player -> player.stopRiding(), List.of());
+
+        // heal — restore health. Lift-and-shift of parseHeal. `amount` is
+        // optional at parse time (parser falls back to 1.0), so it's modelled
+        // optional-with-default rather than required — the FieldSpec reflects the
+        // parser's actual contract, which collapses the two redundant schema
+        // branches (shared "amount-only" vs. the per-verb branch) into one shape.
+        define("heal",
+            (json, ctx) -> {
+                float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
+                return player -> player.heal(amount);
+            },
+            List.of(new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false)
+                .def(1.0)
+                .doc("Health points to restore (1.0 = half a heart; default 1.0).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
