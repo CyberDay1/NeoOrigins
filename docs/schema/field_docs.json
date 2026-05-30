@@ -379,7 +379,8 @@
     "enchantments": "List of {id, level} enchantments applied to the granted item.",
     "grant_id": "Unique id tracked so the item is granted only once per player.",
     "item": "Item id granted once after the player commits their origin.",
-    "legacy_tag": "Apoli-style flat SNBT translated into data components on the item."
+    "legacy_tag": "Apoli-style flat SNBT translated into data components on the item.",
+    "stacks": "Plural multi-item shape (v2.1.6): array of {item, count, enchantments, legacy_tag, components} entries granted in order; takes precedence over the singular root fields when non-empty."
   },
   "neoorigins:stealth": {
     "activation_ticks": "Ticks of continuous sneaking before invisibility kicks in (200 = 10s)."
