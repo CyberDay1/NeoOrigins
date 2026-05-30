@@ -959,6 +959,41 @@ public final class BuiltinPowers {
             new FieldSpec("inner_power", Kind.STRING, true)
                 .doc("Required resource id of another power that is only active while this condition holds (e.g. 'neoorigins:flight').")));
 
+        //   • prevent_action: HAS a schema branch (collapsed here). The codec reads
+        //     action (Action enum, REQUIRED — fieldOf, no default → hard-fails on
+        //     absence), active_when (ActiveWhen enum, default always), and the four
+        //     ARMOR_EQUIP per-slot booleans head/chest/legs/feet (each default
+        //     false). type is the internal discriminator (omitted). Both enums
+        //     serialize LOWERCASE (their xmaps .toLowerCase on write / .toUpperCase
+        //     on read), so the spec declares the lowercase vocabulary directly —
+        //     the old schema branch listed UPPERCASE tokens AND only 8 of the 13
+        //     Action constants (it dropped eye_damage, water_damage, sleep, elytra,
+        //     none); the full set is declared here. Unknown action/active_when
+        //     tokens fall back to none/always respectively at decode. field_docs
+        //     entry collapses onto the spec.
+        define("prevent_action", PreventActionPower.class, List.of(
+            new FieldSpec("action", Kind.ENUM, true)
+                .options("fall_damage", "fire", "drown", "freeze", "sprint_food",
+                         "armor_equip", "chestplate_equip", "eye_damage", "water_damage",
+                         "swim", "sleep", "elytra", "none")
+                .doc("Required. The action this power blocks: fall_damage, fire, drown, freeze, sprint_food, armor_equip (per-slot via head/chest/legs/feet), chestplate_equip (legacy alias = armor_equip chest), eye_damage, water_damage, swim, sleep, elytra, or none. Unknown values fall back to none."),
+            new FieldSpec("active_when", Kind.ENUM, false)
+                .options("always", "not_sneaking", "sneaking", "not_on_ground", "on_ground")
+                .def("always")
+                .doc("Player-state gate the prevention applies under: always, not_sneaking, sneaking, not_on_ground, or on_ground (default always). E.g. not_sneaking lets a crouching Avian still take fall damage. Unknown values fall back to always."),
+            new FieldSpec("head", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("ARMOR_EQUIP only: when true, block equipping items in the helmet slot. Ignored for other actions (default false)."),
+            new FieldSpec("chest", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("ARMOR_EQUIP only: when true, block equipping items in the chestplate slot. Ignored for other actions (default false)."),
+            new FieldSpec("legs", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("ARMOR_EQUIP only: when true, block equipping items in the leggings slot. Ignored for other actions (default false)."),
+            new FieldSpec("feet", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("ARMOR_EQUIP only: when true, block equipping items in the boots slot. Ignored for other actions (default false).")));
+
         // ── BOUNCED: neoorigins:resource (hud_render nested-shape mismatch) ──────
         // resource is deliberately NOT registered. Its hand-rolled Codec reads a
         // NESTED `hud_render` JSON object — { label, color, should_render } —
