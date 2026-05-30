@@ -112,9 +112,6 @@
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },
-  "neoorigins:enhanced_vision": {
-    "exposure": "Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7)."
-  },
   "neoorigins:ground_slam": {
     "cooldown_ticks": "Ticks before the slam can be reused (default 120 = 6s).",
     "damage": "Damage dealt to each entity caught in the slam (default 6.0).",
@@ -125,23 +122,6 @@
     "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s), consumed only when the JS onUse returns true; default 20.",
     "hunger_cost": "Food/exhaustion points consumed on a successful activation (JS onUse returns true); default 0."
   },
-  "neoorigins:keep_inventory": {
-    "items": "Item ids to keep on death; empty (with empty tags) keeps everything.",
-    "slots": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *).",
-    "tags": "Item tag ids whose matching items are kept on death."
-  },
-  "neoorigins:less_item_use_slowdown": {
-    "item_type": "Item being used that gets reduced slowdown: any, bow, shield, or an id substring.",
-    "speed_multiplier": "Movement-speed bonus while using the item, as a fraction of base (default 0.5)."
-  },
-  "neoorigins:light_level_effect": {
-    "ambient": "Whether the applied effect is ambient (fainter particles; default true).",
-    "amplifier": "Effect amplifier level, 0 = level I (default 0).",
-    "effect": "Mob effect id applied at/below the light threshold (required).",
-    "max_light_level": "Highest light level at which the effect still applies (default 4).",
-    "show_icon": "Whether the effect's HUD icon is shown (default false).",
-    "show_particles": "Whether the effect's ambient particles are shown (default false)."
-  },
   "neoorigins:loot_pool_grant": {
     "active": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system.",
     "bonus_rolls": "Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming.",
@@ -149,14 +129,6 @@
     "grant_id": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both.",
     "loot_table": "ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).",
     "rolls": "Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op."
-  },
-  "neoorigins:low_hp_threshold": {
-    "effects": "List of {effect, amplifier} entries applied while below the threshold.",
-    "threshold": "Health fraction below which the effects activate (0.5 = 50%; default 0.5)."
-  },
-  "neoorigins:mobs_ignore_player": {
-    "entity_types": "Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob.",
-    "passive": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit)."
   },
   "neoorigins:model_color": {
     "alpha": "Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).",
@@ -169,11 +141,6 @@
     "multiplier": "Factor applied to the damage; 0.5 halves, 2.0 doubles (default 1.0).",
     "target_group": "Optional entity-group filter limiting which targets/attackers apply."
   },
-  "neoorigins:modify_food_nutrition": {
-    "food_item": "Optional item id; only this food's nutrition is overridden.",
-    "food_tag": "Optional item tag; only matching foods are overridden.",
-    "nutrition": "Hunger points matching food gives, saturation scaled with it (default 1)."
-  },
   "neoorigins:modify_lava_speed": {
     "operation": "How value combines with the vanilla lava factor: addition, multiply_base, multiply_total.",
     "value": "Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava)."
@@ -183,13 +150,6 @@
     "biome": "Biome the resolved respawn location must be in.",
     "dimension": "Dimension the player respawns into when spawn is overridden.",
     "spawn_strategy": "How the respawn position is chosen within the dimension/biome."
-  },
-  "neoorigins:no_mob_spawns_nearby": {
-    "categories": "Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).",
-    "radius": "Block radius around the player where natural spawning is suppressed (default 24). Vanilla already blocks MONSTER-category natural spawns within 24 blocks of any player, so use a value above 24 to extend the safe zone meaningfully."
-  },
-  "neoorigins:no_slowdown": {
-    "block_tag": "Block tag to limit slowdown immunity to; omit for immunity to all slowdown."
   },
   "neoorigins:overlay": {
     "strength": "Overlay opacity, 0.0 invisible to 1.0 opaque (default 1.0).",
@@ -334,15 +294,6 @@
     "hunger_cost": "Hunger consumed each time a mob is tamed.",
     "max_tamed": "Max tamed mobs alive at once before taming is blocked.",
     "range": "Max distance in blocks to raycast for the mob to tame (default 16)."
-  },
-  "neoorigins:mount": {
-    "range": "Max distance in blocks to raycast for the entity to mount (default 5).",
-    "cooldown_ticks": "Ticks before the mount ability can be reused (100 = 5s).",
-    "hunger_cost": "Hunger consumed each time an entity is mounted.",
-    "allow_players": "Whether this power can mount other players (default true).",
-    "allow_mobs": "Whether this power can mount mobs (default true).",
-    "block_bosses": "Prevent mounting boss mobs like the Ender Dragon or Wither (default true).",
-    "mount_position": "Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side)."
   },
   "neoorigins:tamed_animal_boost": {
     "health_bonus": "Flat max-health added to your tamed animals (half-hearts; default 4).",
