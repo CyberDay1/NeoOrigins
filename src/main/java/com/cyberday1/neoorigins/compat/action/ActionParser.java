@@ -6,13 +6,11 @@ import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.compat.registry.ActionType;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -83,8 +81,6 @@ public final class ActionParser {
                 return descriptor.factory().create(json, contextId);
             }
             return switch (type) {
-                case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
-
                 // ---- Phase 2: New actions ----
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
 
@@ -101,62 +97,6 @@ public final class ActionParser {
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
-    }
-
-    private static EntityAction parseApplyEffect(JsonObject json) {
-        String effectId = null;
-        int duration = 200;
-        int amplifier = 0;
-        boolean ambient = false;
-        boolean particles = true;
-        boolean icon = true;
-
-        if (json.has("effects") && json.get("effects").isJsonArray()) {
-            JsonArray arr = json.getAsJsonArray("effects");
-            if (!arr.isEmpty() && arr.get(0).isJsonObject()) {
-                JsonObject eff = arr.get(0).getAsJsonObject();
-                effectId = resolveEffectId(eff);
-                duration = eff.has("duration") ? eff.get("duration").getAsInt() : duration;
-                amplifier = eff.has("amplifier") ? eff.get("amplifier").getAsInt() : amplifier;
-                ambient = eff.has("is_ambient") && eff.get("is_ambient").getAsBoolean();
-                particles = !eff.has("show_particles") || eff.get("show_particles").getAsBoolean();
-                icon = !eff.has("show_icon") || eff.get("show_icon").getAsBoolean();
-            }
-        } else {
-            effectId = resolveEffectId(json);
-            duration = json.has("duration") ? json.get("duration").getAsInt() : duration;
-            amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : amplifier;
-            ambient = json.has("is_ambient") && json.get("is_ambient").getAsBoolean();
-            particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
-            icon = !json.has("show_icon") || json.get("show_icon").getAsBoolean();
-        }
-
-        if (effectId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] apply_effect: missing effect id — action will no-op");
-            return EntityAction.noop();
-        }
-        // Cache mob effect holder at parse time — registry is static
-        var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
-        if (effectHolder == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] apply_effect: unknown effect '{}' — action will no-op", effectId);
-            return EntityAction.noop();
-        }
-        final int fDur = duration;
-        final int fAmp = amplifier;
-        final boolean fAmb = ambient;
-        final boolean fPart = particles;
-        final boolean fIcon = icon;
-        return player -> player.addEffect(new MobEffectInstance(effectHolder, fDur, fAmp, fAmb, fPart, fIcon));
-    }
-
-    private static String resolveEffectId(JsonObject obj) {
-        if (obj.has("effect") && obj.get("effect").isJsonPrimitive()) {
-            return obj.get("effect").getAsString();
-        }
-        if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
-            return obj.get("id").getAsString();
-        }
-        return null;
     }
 
     // ---- Phase 2: New action parsers ----
