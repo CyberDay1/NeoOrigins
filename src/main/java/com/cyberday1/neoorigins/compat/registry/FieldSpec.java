@@ -20,8 +20,20 @@ import java.util.List;
  * cannot exist without its doc slot beside it.
  *
  * <p>Records are immutable; the fluent builders ({@link #doc}, {@link #def},
- * {@link #range}, {@link #options}, {@link #ref}) each return a new instance,
- * so a spec reads as {@code new FieldSpec("amount", NUMBER, true).doc("…")}.
+ * {@link #range}, {@link #options}, {@link #ref}, {@link #boundTo}) each return a
+ * new instance, so a spec reads as {@code new FieldSpec("amount", NUMBER, true).doc("…")}.
+ *
+ * <p><b>Key-alias.</b> Most powers' JSON keys equal the camel→snake of their
+ * {@code Config} record component, so {@link #name} alone resolves both. A few
+ * codecs deliberately read a field under a JSON key that differs from the
+ * component (e.g. {@code action_on_event} reads its {@code EntityAction action}
+ * component from the {@code entity_action} JSON key). For those, {@link #name}
+ * stays the author-facing JSON key and {@link #componentName} carries the real
+ * record-component name (camelCase) so the drift audit
+ * ({@code SchemaFormCheck.auditPowerFieldSpecs}) resolves the component via
+ * {@link #boundTo} instead of camel→snake-ing the JSON key. {@code null} (the
+ * default) means "component == camel→snake(name)" — i.e. no regression for the
+ * already-registered powers.
  */
 public record FieldSpec(
     String name,
@@ -32,40 +44,70 @@ public record FieldSpec(
     Double min,
     Double max,
     String description,
-    String ref
+    String ref,
+    String componentName
 ) {
     public FieldSpec {
         enumValues = enumValues == null ? List.of() : List.copyOf(enumValues);
     }
 
+    /** Full constructor without the key-alias — component defaults to camel→snake(name). */
+    public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required, Object defaultValue,
+                     List<String> enumValues, Double min, Double max, String description, String ref) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null);
+    }
+
     /** Minimal spec — name, widget kind, required-ness. Enrich via the fluent withers. */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required) {
-        this(name, kind, required, null, List.of(), null, null, null, null);
+        this(name, kind, required, null, List.of(), null, null, null, null, null);
     }
 
     /** Attach the human-readable help string (D2: doc lives on the spec). */
     public FieldSpec doc(String description) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName);
     }
 
     /** Set the schema {@code default} value. */
     public FieldSpec def(Object defaultValue) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName);
     }
 
     /** Set a numeric range (schema {@code minimum}/{@code maximum}). */
     public FieldSpec range(Double min, Double max) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName);
     }
 
     /** Set the allowed values for an {@link FormFieldSpec.Kind#ENUM} field. */
     public FieldSpec options(String... values) {
-        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref);
+        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName);
     }
 
     /** Set the {@code $ref} target for a {@link FormFieldSpec.Kind#REF} field. */
     public FieldSpec ref(String ref) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName);
+    }
+
+    /**
+     * Bind this spec's JSON {@link #name} to a differently-named {@code Config}
+     * record component (camelCase). Use only when the codec reads the field
+     * under a JSON key that is NOT the camel→snake of its component — e.g.
+     * {@code new FieldSpec("entity_action", REF, false).boundTo("action")} for
+     * a codec whose {@code EntityAction action} component is keyed
+     * {@code entity_action}. When unset the component is {@code camel→snake(name)}.
+     */
+    public FieldSpec boundTo(String componentName) {
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName);
+    }
+
+    /**
+     * The {@code Config} record component (camelCase) this spec maps to: the
+     * explicit {@link #componentName} key-alias when set, else {@link #name}
+     * itself (the audit camel→snakes both sides, so an un-aliased snake-case
+     * JSON name round-trips to its component). Drives component resolution in
+     * {@code SchemaFormCheck.auditPowerFieldSpecs}.
+     */
+    public String effectiveComponentName() {
+        return componentName != null ? componentName : name;
     }
 
     /**

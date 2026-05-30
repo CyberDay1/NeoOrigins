@@ -429,15 +429,27 @@ public final class SchemaFormCheck {
                 byJson.put(camelToSnake(rc.getName()), rc);
             }
 
+            // JSON key names (for the schema-branch parity check, clause d) and
+            // the resolved component snake-keys (for component existence/coverage,
+            // clauses a/b). They differ only for key-aliased specs: a FieldSpec
+            // whose JSON `name` (e.g. entity_action) is bound via `.boundTo(..)`
+            // to a differently-named component (e.g. action) — see
+            // FieldSpec.effectiveComponentName.
             java.util.Set<String> declaredNames = new java.util.TreeSet<>();
+            java.util.Set<String> declaredComponents = new java.util.TreeSet<>();
             for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : spec.fields()) {
                 declaredNames.add(fs.name());
+                String componentKey = camelToSnake(fs.effectiveComponentName());
+                declaredComponents.add(componentKey);
 
-                // (a) the spec's field must be a real record component.
-                java.lang.reflect.RecordComponent rc = byJson.get(fs.name());
+                // (a) the spec's field must map to a real record component —
+                // resolved via the key-alias (effectiveComponentName) when set,
+                // else by camel→snake-ing the JSON name itself.
+                java.lang.reflect.RecordComponent rc = byJson.get(componentKey);
                 if (rc == null) {
                     System.out.println("[schema-check] FAIL  power-spec " + typeId
-                        + ": field '" + fs.name() + "' has no matching Config component");
+                        + ": field '" + fs.name() + "' has no matching Config component"
+                        + (fs.componentName() != null ? " (bound to '" + fs.componentName() + "')" : ""));
                     fails++;
                     continue;
                 }
@@ -458,7 +470,10 @@ public final class SchemaFormCheck {
                 for (var jc : byJson.entrySet()) {
                     String compName = jc.getValue().getName();
                     if (internal.contains(compName)) continue;
-                    if (!declaredNames.contains(jc.getKey())) {
+                    // Match on the resolved component snake-key (clause a), so a
+                    // key-aliased spec covers its component even though its JSON
+                    // name differs.
+                    if (!declaredComponents.contains(jc.getKey())) {
                         System.out.println("[schema-check] WARN  power-spec " + typeId
                             + ": component '" + jc.getKey() + "' has no FieldSpec"
                             + " (relying on codec-reflection fallback)");
@@ -558,6 +573,13 @@ public final class SchemaFormCheck {
                 for (var fs : declared) {
                     if (fs.description() != null && !fs.description().isBlank()) {
                         specDocs.put(fs.name(), fs.description());
+                        // Also index by the resolved component snake-key so a
+                        // key-aliased field's doc is found whether the form
+                        // surfaces the author-facing JSON name (FormModel) or the
+                        // raw component name (the reflection fallback used here
+                        // once the schema branch is collapsed). For un-aliased
+                        // fields this key equals fs.name() — a harmless re-put.
+                        specDocs.put(camelToSnake(fs.effectiveComponentName()), fs.description());
                     }
                 }
             }
