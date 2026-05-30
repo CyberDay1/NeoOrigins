@@ -97,6 +97,31 @@ public final class OriginsPowerTranslator {
     );
 
     /**
+     * Cross-mod (apace-fork) power type ids that the editor schema's authorable
+     * {@code type} enum should recognise as valid, even though they are NOT native
+     * NeoOrigins types.
+     *
+     * <p>These are import-only ids: on load they are rewritten to a first-class
+     * {@code neoorigins:} type by {@link #doTranslate} (the {@code apace:*} cases
+     * in that switch are their <i>actual</i> runtime mapping). They appear in real
+     * imported Apace/Origins packs, so the schema lists them so such files validate
+     * in the editor rather than tripping the permissive fallback branch.
+     *
+     * <p>This is the canonical source of truth for these ids — the dev-time schema
+     * generator ({@code PowerSchemaGenerator}) reads it instead of hard-coding the
+     * list, so the compat layer (not the generator) owns the cross-mod surface.
+     * Each id here MUST have a matching {@code apace:*} case in {@link #doTranslate};
+     * the set is intentionally curated (the apace prefixes seen in the wild whose
+     * targets are authorable {@code neoorigins:} types), not the full translator
+     * source surface.
+     */
+    public static final Set<String> SCHEMA_RECOGNIZED_IMPORT_IDS = Set.of(
+        "apace:night_vision",    // -> neoorigins:night_vision     (doTranslate)
+        "apace:status_effect",   // -> neoorigins:status_effect    (doTranslate)
+        "apace:water_breathing"  // -> neoorigins:water_breathing  (doTranslate)
+    );
+
+    /**
      * Lookup table: Origins Classes power IDs (origins:simple) → NeoOrigins power JSON.
      * When a power with type origins:simple is encountered, we check its ID against this map.
      * If found, the NeoOrigins JSON is returned directly (no further translation needed).

@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.registry;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.compat.EffectImmunityPower;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec.Kind;
@@ -867,6 +868,15 @@ public final class BuiltinPowers {
                 .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).")));
+
+        // effect_immunity lives in the compat package (com.cyberday1.neoorigins.compat),
+        // not power.builtin, so SchemaFormCheck's power.builtin class-scan never flagged
+        // it — it was registered in PowerTypes but missing here. Flat single-field codec
+        // (Codec.STRING.listOf optionalFieldOf "effects" default []), so it registers
+        // cleanly as one ARRAY field.
+        define("effect_immunity", EffectImmunityPower.class, List.of(
+            new FieldSpec("effects", Kind.ARRAY, false)
+                .doc("Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity.")));
 
         // ── Group D — key-alias batch 2 (condition_passive / prevent_death) ──────
         // Both hand-rolled codecs read their `EntityAction action` component from

@@ -4,73 +4,2782 @@
   "title": "NeoOrigins Power",
   "description": "A power grants one mechanical effect to a player via the origins system. File path: data/<namespace>/origins/powers/<power>.json. The `type` field discriminates which fields are valid.",
   "type": "object",
-  "required": ["type"],
+  "required": [
+    "type"
+  ],
   "properties": {
     "type": {
       "type": "string",
       "description": "Fully-qualified power type ID. See docs/API.md for the full catalogue.",
       "enum": [
-        "neoorigins:action_on_event", "neoorigins:action_on_hit", "neoorigins:active_ability",
-        "neoorigins:active_bolt", "neoorigins:active_dash", "neoorigins:active_fireball",
-        "neoorigins:active_phase", "neoorigins:active_place_block", "neoorigins:active_recall",
-        "neoorigins:active_swap", "neoorigins:active_teleport", "neoorigins:attribute_modifier",
-        "neoorigins:break_speed_modifier", "neoorigins:breath_in_fluid", "neoorigins:cobweb_affinity",
-        "neoorigins:command_pack", "neoorigins:condition_passive", "neoorigins:conditional",
-        "neoorigins:craft_amount_bonus", "neoorigins:crop_growth_accelerator", "neoorigins:crop_harvest_bonus",
-        "neoorigins:edible_item", "neoorigins:effect_immunity", "neoorigins:elytra_boost",
-        "neoorigins:ender_gaze_immunity", "neoorigins:enhanced_vision", "neoorigins:entity_group",
-        "neoorigins:entity_set", "neoorigins:exhaustion_filter", "neoorigins:flight",
-        "neoorigins:ground_slam", "neoorigins:hide_hud_bar",
-        "neoorigins:horde_regen", "neoorigins:invulnerability", "neoorigins:item_magnetism",
-        "neoorigins:keep_inventory", "neoorigins:less_item_use_slowdown",
-        "neoorigins:mob_behavior", "neoorigins:mobs_ignore_player",
-        "neoorigins:modify_damage", "neoorigins:modify_player_spawn", "neoorigins:more_smoker_xp",
-        "neoorigins:no_mob_spawns_nearby", "neoorigins:no_natural_regen", "neoorigins:no_projectile_divergence",
-        "neoorigins:no_slowdown", "neoorigins:persistent_effect", "neoorigins:phantom_form",
-        "neoorigins:prevent_action", "neoorigins:prevent_death", "neoorigins:projectile_immunity", "neoorigins:quality_equipment",
-        "neoorigins:rare_wandering_loot", "neoorigins:restrict_armor", "neoorigins:scare_entities",
-        "neoorigins:shadow_orb", "neoorigins:size_scaling", "neoorigins:sneaky",
+        "apace:night_vision",
+        "apace:status_effect",
+        "apace:water_breathing",
+        "apoli:edible_item",
+        "apugli:action_on_jump",
+        "apugli:action_on_target_death",
+        "apugli:edible_item",
+        "neoorigins:action_on_event",
+        "neoorigins:action_on_hit",
+        "neoorigins:action_on_hit_taken",
+        "neoorigins:action_on_kill",
+        "neoorigins:active_ability",
+        "neoorigins:active_aoe_effect",
+        "neoorigins:active_bolt",
+        "neoorigins:active_dash",
+        "neoorigins:active_fireball",
+        "neoorigins:active_launch",
+        "neoorigins:active_phase",
+        "neoorigins:active_place_block",
+        "neoorigins:active_recall",
+        "neoorigins:active_swap",
+        "neoorigins:active_teleport",
+        "neoorigins:attribute_modifier",
+        "neoorigins:bare_hand_tool",
+        "neoorigins:better_bone_meal",
+        "neoorigins:better_crafted_food",
+        "neoorigins:better_enchanting",
+        "neoorigins:biome_buff",
+        "neoorigins:break_speed_modifier",
+        "neoorigins:breath_in_fluid",
+        "neoorigins:breath_out_of_fluid",
+        "neoorigins:burn",
+        "neoorigins:burn_at_health_threshold",
+        "neoorigins:cobweb_affinity",
+        "neoorigins:command_pack",
+        "neoorigins:condition_passive",
+        "neoorigins:conditional",
+        "neoorigins:craft_amount_bonus",
+        "neoorigins:crop_growth_accelerator",
+        "neoorigins:crop_harvest_bonus",
+        "neoorigins:damage_in_biome",
+        "neoorigins:damage_in_daylight",
+        "neoorigins:damage_in_water",
+        "neoorigins:dodge_chance",
+        "neoorigins:edible_item",
+        "neoorigins:effect_immunity",
+        "neoorigins:efficient_repairs",
+        "neoorigins:elytra_boost",
+        "neoorigins:ender_gaze_immunity",
+        "neoorigins:enhanced_vision",
+        "neoorigins:entity_group",
+        "neoorigins:entity_set",
+        "neoorigins:exhaustion_filter",
+        "neoorigins:extra_inventory",
+        "neoorigins:flight",
+        "neoorigins:food_restriction",
+        "neoorigins:fortune_when_effect",
+        "neoorigins:glow",
+        "neoorigins:ground_slam",
+        "neoorigins:healing_mist",
+        "neoorigins:hide_hud_bar",
+        "neoorigins:horde_regen",
+        "neoorigins:hunger_drain_modifier",
+        "neoorigins:ignore_water",
+        "neoorigins:invulnerability",
+        "neoorigins:item_magnetism",
+        "neoorigins:keep_inventory",
+        "neoorigins:knockback_modifier",
+        "neoorigins:lava_vision",
+        "neoorigins:less_item_use_slowdown",
+        "neoorigins:light_level_effect",
+        "neoorigins:longer_potions",
         "neoorigins:loot_pool_grant",
-        "neoorigins:starting_equipment", "neoorigins:stealth", "neoorigins:summon_minion",
-        "neoorigins:tame_mob", "neoorigins:tamed_animal_boost", "neoorigins:tamed_potion_diffusal",
-        "neoorigins:tick_action", "neoorigins:tidal_wave", "neoorigins:toggle", "neoorigins:particle",
-        "neoorigins:trade_availability", "neoorigins:tree_felling", "neoorigins:twin_breeding",
-        "neoorigins:underwater_mining_speed", "neoorigins:wall_climbing", "neoorigins:water_breathing",
-        "neoorigins:status_effect", "neoorigins:night_vision", "neoorigins:glow",
-        "neoorigins:biome_buff", "neoorigins:damage_in_biome", "neoorigins:damage_in_daylight",
-        "neoorigins:damage_in_water", "neoorigins:burn_at_health_threshold", "neoorigins:regen_in_fluid",
-        "neoorigins:food_restriction", "neoorigins:action_on_kill", "neoorigins:action_on_hit_taken",
-        "neoorigins:hunger_drain_modifier", "neoorigins:natural_regen_modifier", "neoorigins:knockback_modifier",
-        "neoorigins:longer_potions", "neoorigins:teleport_range_modifier", "neoorigins:more_animal_loot",
-        "neoorigins:efficient_repairs", "neoorigins:better_enchanting", "neoorigins:better_crafted_food",
-        "neoorigins:better_bone_meal", "neoorigins:thorns_aura",
-        "apace:status_effect", "apace:night_vision", "apace:water_breathing",
-        "apoli:edible_item", "apugli:edible_item", "apugli:action_on_jump", "apugli:action_on_target_death"
+        "neoorigins:low_hp_threshold",
+        "neoorigins:mob_behavior",
+        "neoorigins:mobs_ignore_player",
+        "neoorigins:model_color",
+        "neoorigins:modify_damage",
+        "neoorigins:modify_food_nutrition",
+        "neoorigins:modify_lava_speed",
+        "neoorigins:modify_player_spawn",
+        "neoorigins:more_animal_loot",
+        "neoorigins:more_smoker_xp",
+        "neoorigins:mount",
+        "neoorigins:natural_glide",
+        "neoorigins:natural_regen_modifier",
+        "neoorigins:night_vision",
+        "neoorigins:no_mob_spawns_nearby",
+        "neoorigins:no_natural_regen",
+        "neoorigins:no_projectile_divergence",
+        "neoorigins:no_slowdown",
+        "neoorigins:overlay",
+        "neoorigins:particle",
+        "neoorigins:persistent_effect",
+        "neoorigins:phantom_form",
+        "neoorigins:prevent_action",
+        "neoorigins:prevent_death",
+        "neoorigins:projectile_immunity",
+        "neoorigins:quality_equipment",
+        "neoorigins:rare_wandering_loot",
+        "neoorigins:regen_in_fluid",
+        "neoorigins:repulse",
+        "neoorigins:resource",
+        "neoorigins:restrict_armor",
+        "neoorigins:scare_entities",
+        "neoorigins:shader",
+        "neoorigins:shadow_orb",
+        "neoorigins:size_scaling",
+        "neoorigins:slime_death_save",
+        "neoorigins:slime_level_hp",
+        "neoorigins:slime_moisture",
+        "neoorigins:sneaky",
+        "neoorigins:stacking_status_effects",
+        "neoorigins:starting_equipment",
+        "neoorigins:status_effect",
+        "neoorigins:stealth",
+        "neoorigins:summon_minion",
+        "neoorigins:tame_mob",
+        "neoorigins:tamed_animal_boost",
+        "neoorigins:tamed_potion_diffusal",
+        "neoorigins:teleport_range_modifier",
+        "neoorigins:thorns_aura",
+        "neoorigins:thorns_on_hit",
+        "neoorigins:tick_action",
+        "neoorigins:tidal_wave",
+        "neoorigins:toggle",
+        "neoorigins:trade_availability",
+        "neoorigins:tree_felling",
+        "neoorigins:twin_breeding",
+        "neoorigins:underwater_mining_speed",
+        "neoorigins:walk_on_fluid",
+        "neoorigins:wall_climbing",
+        "neoorigins:water_breathing",
+        "neoorigins:wraith_phase"
       ]
     },
-    "name": { "description": "Display name. Plain string = translation key.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
-    "description": { "description": "Display description.", "oneOf": [{ "type": "string" }, { "type": "object" }] },
-    "hidden": { "description": "When true, this power is excluded from the origin info panel. Useful for purely-internal flag/glue powers (e.g. neoorigins:toggle, action_on_hit setters under a multiple).", "type": "boolean", "default": false }
+    "name": {
+      "description": "Display name. Plain string = translation key.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "description": {
+      "description": "Display description.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "hidden": {
+      "description": "When true, this power is excluded from the origin info panel. Useful for purely-internal flag/glue powers (e.g. neoorigins:toggle, action_on_hit setters under a multiple).",
+      "type": "boolean",
+      "default": false
+    }
   },
   "oneOf": [
     {
-      "$comment": "neoorigins:particle",
+      "$comment": "neoorigins:action_on_event",
       "properties": {
-        "type": { "const": "neoorigins:particle" },
-        "particle": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "object", "properties": { "type": { "type": "string" }, "color": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "scale": { "type": "number" } }, "required": ["type"] }
+        "type": {
+          "const": "neoorigins:action_on_event"
+        },
+        "event": {
+          "description": "Case-insensitive event key that triggers this hook (e.g. food_eaten, block_break, mod_exhaustion). See docs/EVENTS.md.",
+          "type": "string",
+          "enum": [
+            "attack",
+            "hit_taken",
+            "kill",
+            "death",
+            "block_break",
+            "block_place",
+            "item_use",
+            "respawn",
+            "tick",
+            "dimension_change",
+            "climb",
+            "jump",
+            "projectile_hit",
+            "craft_item",
+            "smelt_item",
+            "enchant_item",
+            "anvil_repair",
+            "bonemeal",
+            "breed",
+            "tame",
+            "food_eaten",
+            "food_finished",
+            "advancement_earned",
+            "trade_completed",
+            "villager_interact",
+            "gained",
+            "lost",
+            "chosen",
+            "wake_up",
+            "land",
+            "block_use",
+            "entity_use",
+            "item_pickup",
+            "item_use_finish",
+            "effect_applied",
+            "mod_exhaustion",
+            "mod_natural_regen",
+            "mod_trade_price",
+            "mod_craft_amount",
+            "mod_enchant_level",
+            "mod_harvest_drops",
+            "mod_teleport_range",
+            "mod_fall_damage",
+            "mod_knockback",
+            "mod_potion_duration",
+            "mod_anvil_cost",
+            "mod_crafted_food_saturation",
+            "mod_bonemeal_extra"
           ]
         },
-        "frequency": { "type": "integer", "minimum": 1 },
-        "count": { "type": "integer", "minimum": 0 },
-        "spread": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
-        "offset": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
-        "speed": { "type": "number" },
-        "condition": { "type": "object" }
+        "condition": {
+          "description": "Optional DSL condition gating the action/modifier; both only run while it passes (default always).",
+          "$ref": "condition.schema.json"
+        },
+        "entity_action": {
+          "description": "EntityAction run on the player as a side-effect when the configured event fires.",
+          "$ref": "action.schema.json"
+        },
+        "modifier": {
+          "description": "FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen).",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "block_condition": {
+          "description": "Block-position filter for block events (block_break, block_place, block_use). Ignored on other events.",
+          "type": "object"
+        },
+        "effect": {
+          "description": "EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events.",
+          "type": "string"
+        },
+        "effect_tag": {
+          "description": "EFFECT_APPLIED filter: only fire for effects in this tag (e.g. '#minecraft:harmful'). Combine with 'effect' (OR-matched). Ignored on other events.",
+          "type": "string"
+        },
+        "immunity_ticks": {
+          "description": "EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace).",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
       },
-      "required": ["type", "particle"]
+      "required": [
+        "type",
+        "event"
+      ]
+    },
+    {
+      "$comment": "neoorigins:action_on_hit",
+      "properties": {
+        "type": {
+          "const": "neoorigins:action_on_hit"
+        },
+        "action": {
+          "description": "Effect on dealing damage: restore_health, restore_hunger, grant_effect, or target_effect.",
+          "type": "string",
+          "default": "restore_health"
+        },
+        "amount": {
+          "description": "Half-hearts healed (restore_health) or food points fed (restore_hunger); default 2.0.",
+          "type": "number",
+          "default": 2.0
+        },
+        "effect": {
+          "description": "Mob effect id applied to self (grant_effect) or the victim (target_effect).",
+          "type": "string"
+        },
+        "duration": {
+          "description": "Effect duration in ticks for grant/target_effect (20 = 1s); default 100.",
+          "type": "integer",
+          "default": 100
+        },
+        "amplifier": {
+          "description": "Potion amplifier for grant_effect/target_effect (0 = level I); default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "min_damage": {
+          "description": "Minimum incoming damage required before the action triggers; default 0.0.",
+          "type": "number",
+          "default": 0.0
+        },
+        "chance": {
+          "description": "Probability 0.0-1.0 the action triggers per qualifying hit; default 1.0.",
+          "type": "number",
+          "default": 1.0
+        },
+        "target_group": {
+          "description": "Optional entity-group filter (undead, arthropod, ...) restricting which victims trigger it.",
+          "type": "string"
+        },
+        "target_type": {
+          "description": "Optional specific entity-type id filter for the victim.",
+          "type": "string"
+        },
+        "damage_type": {
+          "description": "Optional damage-type id filter; the action only fires for matching sources.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_ability",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_ability"
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between uses in ticks (20 = 1s); default 60.",
+          "type": "integer",
+          "default": 60,
+          "minimum": 0
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed per successful activation; default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on activation; empty = no resource cost.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource consumed per activation; default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "entity_action": {
+          "description": "EntityAction tree executed on the player when the keybind fires (defaults to noop).",
+          "$ref": "action.schema.json"
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
+          "$ref": "condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_bolt",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_bolt"
+        },
+        "speed": {
+          "description": "Velocity of the launched wind charge along the look direction; default 1.2.",
+          "type": "number",
+          "default": 1.2
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between casts in ticks (20 = 1s); default 80.",
+          "type": "integer",
+          "default": 80
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_dash",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_dash"
+        },
+        "power": {
+          "description": "Magnitude of the dash velocity vector; default 1.5.",
+          "type": "number",
+          "default": 1.5
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between dashes in ticks (20 = 1s); default 40.",
+          "type": "integer",
+          "default": 40
+        },
+        "allow_vertical": {
+          "description": "If true the dash follows look pitch; if false it stays horizontal; default false.",
+          "type": "boolean",
+          "default": false
+        },
+        "set_velocity": {
+          "description": "If true replace the player's velocity; if false add to it; default false.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_fireball",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_fireball"
+        },
+        "speed": {
+          "description": "Velocity applied to each of the spread small fireballs; default 1.5.",
+          "type": "number",
+          "default": 1.5
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between casts in ticks (20 = 1s); default 100.",
+          "type": "integer",
+          "default": 100
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_phase",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_phase"
+        },
+        "max_depth": {
+          "description": "Maximum wall thickness in blocks the phase can pass through; default 16.",
+          "type": "integer",
+          "default": 16
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between phases in ticks (20 = 1s); default 40.",
+          "type": "integer",
+          "default": 40
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed on a successful phase; default 0.",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_place_block",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_place_block"
+        },
+        "block_id": {
+          "description": "Block id placed at the targeted face; default minecraft:glowstone.",
+          "type": "string",
+          "default": "minecraft:glowstone"
+        },
+        "max_distance": {
+          "description": "Maximum ray-pick reach in blocks for the placement surface; default 5.0.",
+          "type": "number",
+          "default": 5.0
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between placements in ticks (20 = 1s); default 100.",
+          "type": "integer",
+          "default": 100
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed on a successful placement; default 0.",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_recall",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_recall"
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600.",
+          "type": "integer",
+          "default": 600
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_swap",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_swap"
+        },
+        "range": {
+          "description": "Max distance in blocks to find the looked-at entity to swap with; default 20.0.",
+          "type": "number",
+          "default": 20.0
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between swaps in ticks (20 = 1s); default 80.",
+          "type": "integer",
+          "default": 80
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_teleport",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_teleport"
+        },
+        "range": {
+          "description": "Maximum teleport distance in blocks; default 32.0.",
+          "type": "number",
+          "default": 32.0
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between teleports in ticks (20 = 1s); default 60.",
+          "type": "integer",
+          "default": 60
+        },
+        "mode": {
+          "description": "\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target.",
+          "type": "string",
+          "default": "target"
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed on a successful teleport; default 0.",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:attribute_modifier",
+      "properties": {
+        "type": {
+          "const": "neoorigins:attribute_modifier"
+        },
+        "attribute": {
+          "description": "Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.",
+          "type": "string"
+        },
+        "amount": {
+          "description": "Numeric value applied to the attribute under the chosen operation; required.",
+          "type": "number"
+        },
+        "operation": {
+          "description": "How amount applies: add_value, add_multiplied_base, or add_multiplied_total.",
+          "type": "string",
+          "enum": [
+            "add_value",
+            "add_multiplied_base",
+            "add_multiplied_total"
+          ]
+        },
+        "condition": {
+          "description": "Optional gate: a named-condition string (in_water/on_land/in_lava) or a DSL condition object; active only while it passes.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "equipment_condition": {
+          "description": "Optional gate matching a worn item by id/tag in a slot; active only while worn.",
+          "type": "object"
+        },
+        "location_condition": {
+          "description": "Optional gate on dimension/biome/structure; active only while there.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "attribute",
+        "amount"
+      ]
+    },
+    {
+      "$comment": "neoorigins:bare_hand_tool",
+      "properties": {
+        "type": {
+          "const": "neoorigins:bare_hand_tool"
+        },
+        "tool": {
+          "description": "Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe.",
+          "type": "string",
+          "default": "minecraft:stone_pickaxe"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:break_speed_modifier",
+      "properties": {
+        "type": {
+          "const": "neoorigins:break_speed_modifier"
+        },
+        "multiplier": {
+          "description": "Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0.",
+          "type": "number",
+          "default": 2.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:breath_in_fluid",
+      "properties": {
+        "type": {
+          "const": "neoorigins:breath_in_fluid"
+        },
+        "fluid": {
+          "description": "Fluid that suffocates the player, \"water\" or \"lava\"; default water.",
+          "type": "string",
+          "default": "water"
+        },
+        "drain_interval_ticks": {
+          "description": "Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Aliases: drain_rate, air_loss_per_second.",
+          "type": "integer",
+          "default": 20
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:breath_out_of_fluid",
+      "properties": {
+        "type": {
+          "const": "neoorigins:breath_out_of_fluid"
+        },
+        "fluid": {
+          "description": "Fluid the player must stay in to breathe; drying on land drains air.",
+          "type": "string",
+          "default": "water"
+        },
+        "drain_rate": {
+          "description": "Ticks between each air drain while out of the fluid (20 = 1s).",
+          "type": "integer",
+          "default": 40
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:burn",
+      "properties": {
+        "type": {
+          "const": "neoorigins:burn"
+        },
+        "interval": {
+          "description": "Ticks between each fire application; <=0 disables (default 20).",
+          "type": "integer",
+          "default": 20
+        },
+        "burn_duration": {
+          "description": "Ticks of fire set on the player each application (20 = 1s; default 100).",
+          "type": "integer",
+          "default": 100
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:cobweb_affinity",
+      "properties": {
+        "type": {
+          "const": "neoorigins:cobweb_affinity"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:command_pack",
+      "properties": {
+        "type": {
+          "const": "neoorigins:command_pack"
+        },
+        "range": {
+          "description": "Max block distance of the look-targeted entity your tamed mobs attack (default 32).",
+          "type": "number",
+          "default": 32.0
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before this ability can be triggered again (default 40).",
+          "type": "integer",
+          "default": 40
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:condition_passive",
+      "properties": {
+        "type": {
+          "const": "neoorigins:condition_passive"
+        },
+        "interval": {
+          "description": "Ticks between condition checks (min 1; default 20 = 1s).",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the action: entity_action runs each interval only while it passes; else_action runs while it does not (default always-true).",
+          "$ref": "condition.schema.json"
+        },
+        "entity_action": {
+          "description": "EntityAction run on the player each interval while the condition passes (defaults to noop).",
+          "$ref": "action.schema.json"
+        },
+        "else_action": {
+          "description": "EntityAction run on the player each interval while the condition does NOT pass (defaults to noop).",
+          "$ref": "action.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:conditional",
+      "properties": {
+        "type": {
+          "const": "neoorigins:conditional"
+        },
+        "condition": {
+          "description": "Built-in player-state gate the inner power is active under: climbing, in_water, on_ground, or always (default always). Unknown values fall back to always.",
+          "type": "string",
+          "enum": [
+            "climbing",
+            "in_water",
+            "on_ground",
+            "always"
+          ],
+          "default": "always"
+        },
+        "inner_power": {
+          "description": "Required resource id of another power that is only active while this condition holds (e.g. 'neoorigins:flight').",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "inner_power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:craft_amount_bonus",
+      "properties": {
+        "type": {
+          "const": "neoorigins:craft_amount_bonus"
+        },
+        "output_item": {
+          "description": "Item id whose crafting triggers the bonus (default oak_planks).",
+          "type": "string",
+          "default": "minecraft:oak_planks"
+        },
+        "bonus_count": {
+          "description": "Extra copies of the output added per craft (default 4; skipped if <=0).",
+          "type": "integer",
+          "default": 4
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:crop_growth_accelerator",
+      "properties": {
+        "type": {
+          "const": "neoorigins:crop_growth_accelerator"
+        },
+        "radius": {
+          "description": "Cubic block radius around the player scanned for crops (default 4).",
+          "type": "integer",
+          "default": 4
+        },
+        "tick_interval": {
+          "description": "Ticks between growth passes; <=0 disables (default 40).",
+          "type": "integer",
+          "default": 40
+        },
+        "growths_per_interval": {
+          "description": "Number of random nearby crops bone-mealed each interval (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:crop_harvest_bonus",
+      "properties": {
+        "type": {
+          "const": "neoorigins:crop_harvest_bonus"
+        },
+        "extra_drops": {
+          "description": "Extra copies of the block's own loot when breaking crops/logs (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:dodge_chance",
+      "properties": {
+        "type": {
+          "const": "neoorigins:dodge_chance"
+        },
+        "chance": {
+          "description": "Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15).",
+          "type": "number",
+          "default": 0.15
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:edible_item",
+      "properties": {
+        "type": {
+          "const": "neoorigins:edible_item"
+        },
+        "items": {
+          "description": "List of item ids that become edible (matches items OR tags).",
+          "type": "array",
+          "items": {}
+        },
+        "tags": {
+          "description": "List of item-tag ids that become edible (matches items OR tags).",
+          "type": "array",
+          "items": {}
+        },
+        "nutrition": {
+          "description": "Hunger points restored when consumed (default 4).",
+          "type": "integer",
+          "default": 4,
+          "minimum": 0
+        },
+        "saturation": {
+          "description": "Saturation modifier applied on consumption (default 0.3).",
+          "type": "number",
+          "default": 0.3
+        },
+        "always_edible": {
+          "description": "If true the item can be eaten even at full hunger (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "consume_sound": {
+          "description": "Optional sound-event id played on consumption; omit to use the default eat sound.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:effect_immunity",
+      "properties": {
+        "type": {
+          "const": "neoorigins:effect_immunity"
+        },
+        "effects": {
+          "description": "Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity.",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:elytra_boost",
+      "properties": {
+        "type": {
+          "const": "neoorigins:elytra_boost"
+        },
+        "strength": {
+          "description": "Multiplier on the forward impulse applied while elytra gliding (default 1.5).",
+          "type": "number",
+          "default": 1.5
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the boost can be triggered again (default 40).",
+          "type": "integer",
+          "default": 40
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:ender_gaze_immunity",
+      "properties": {
+        "type": {
+          "const": "neoorigins:ender_gaze_immunity"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:enhanced_vision",
+      "properties": {
+        "type": {
+          "const": "neoorigins:enhanced_vision"
+        },
+        "exposure": {
+          "description": "Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7).",
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:entity_group",
+      "properties": {
+        "type": {
+          "const": "neoorigins:entity_group"
+        },
+        "group": {
+          "description": "Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).",
+          "type": "string",
+          "default": "undefined"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:entity_set",
+      "properties": {
+        "type": {
+          "const": "neoorigins:entity_set"
+        },
+        "name": {
+          "description": "Named UUID set this power declares the player a member of; namespace it (e.g. 'mypack:kill_streak') to avoid collisions. Read/mutated by the in_set / add_to_set / remove_from_set verbs.",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:exhaustion_filter",
+      "properties": {
+        "type": {
+          "const": "neoorigins:exhaustion_filter"
+        },
+        "sources": {
+          "description": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:extra_inventory",
+      "properties": {
+        "type": {
+          "const": "neoorigins:extra_inventory"
+        },
+        "size": {
+          "description": "Slot count, rounded to a multiple of 9 (min 9, max 54; default 9).",
+          "type": "integer",
+          "default": 9
+        },
+        "drop_on_death": {
+          "description": "If true the extra inventory drops on death instead of persisting (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:flight",
+      "properties": {
+        "type": {
+          "const": "neoorigins:flight"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:fortune_when_effect",
+      "properties": {
+        "type": {
+          "const": "neoorigins:fortune_when_effect"
+        },
+        "effect": {
+          "description": "Mob effect that must be active on the player for the Fortune bonus.",
+          "type": "string",
+          "default": "minecraft:luck"
+        },
+        "level": {
+          "description": "Virtual Fortune level rolled via the vanilla ore-drops formula.",
+          "type": "integer",
+          "default": 2
+        },
+        "target": {
+          "description": "Block tag the bonus applies to (default #c:ores; ancient debris excluded).",
+          "type": "string",
+          "default": "#c:ores"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:ground_slam",
+      "properties": {
+        "type": {
+          "const": "neoorigins:ground_slam"
+        },
+        "damage": {
+          "description": "Damage dealt to each entity caught in the slam (default 6.0).",
+          "type": "number",
+          "default": 6.0
+        },
+        "knockback_strength": {
+          "description": "Outward knockback pushing hit entities away (default 1.5).",
+          "type": "number",
+          "default": 1.5
+        },
+        "radius": {
+          "description": "Blocks around the player whose entities are hit (default 6.0).",
+          "type": "number",
+          "default": 6.0
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the slam can be reused (default 120 = 6s).",
+          "type": "integer",
+          "default": 120
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:hide_hud_bar",
+      "properties": {
+        "type": {
+          "const": "neoorigins:hide_hud_bar"
+        },
+        "bar": {
+          "description": "Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger).",
+          "type": "string",
+          "default": "hunger"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:horde_regen",
+      "properties": {
+        "type": {
+          "const": "neoorigins:horde_regen"
+        },
+        "heal_amount": {
+          "description": "Health restored to each eligible tamed mob per interval (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "interval_ticks": {
+          "description": "Ticks between each horde-healing pass (default 120 = 6s).",
+          "type": "integer",
+          "default": 120
+        },
+        "combat_cooldown_ticks": {
+          "description": "Ticks a tamed mob must avoid damage before it can heal (default 100).",
+          "type": "integer",
+          "default": 100
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:ignore_water",
+      "properties": {
+        "type": {
+          "const": "neoorigins:ignore_water"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:invulnerability",
+      "properties": {
+        "type": {
+          "const": "neoorigins:invulnerability"
+        },
+        "damage_types": {
+          "description": "Damage-type ids (e.g. minecraft:fall) whose damage is cancelled.",
+          "type": "array",
+          "items": {}
+        },
+        "damage_tags": {
+          "description": "Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled.",
+          "type": "array",
+          "items": {}
+        },
+        "msg_ids": {
+          "description": "Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:item_magnetism",
+      "properties": {
+        "type": {
+          "const": "neoorigins:item_magnetism"
+        },
+        "radius": {
+          "description": "Blocks around the player within which dropped items are pulled in (default 4.0).",
+          "type": "number",
+          "default": 4.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:keep_inventory",
+      "properties": {
+        "type": {
+          "const": "neoorigins:keep_inventory"
+        },
+        "slots": {
+          "description": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *).",
+          "type": "array",
+          "items": {}
+        },
+        "items": {
+          "description": "Item ids to keep on death; empty (with empty tags) keeps everything.",
+          "type": "array",
+          "items": {}
+        },
+        "tags": {
+          "description": "Item tag ids whose matching items are kept on death.",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:lava_vision",
+      "properties": {
+        "type": {
+          "const": "neoorigins:lava_vision"
+        },
+        "strength": {
+          "description": "Lava fog distance multiplier; higher sees farther in lava (default 3.0).",
+          "type": "number",
+          "default": 3.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:less_item_use_slowdown",
+      "properties": {
+        "type": {
+          "const": "neoorigins:less_item_use_slowdown"
+        },
+        "item_type": {
+          "description": "Item being used that gets reduced slowdown: any, bow, shield, or an id substring.",
+          "type": "string",
+          "default": "any"
+        },
+        "speed_multiplier": {
+          "description": "Movement-speed bonus while using the item, as a fraction of base (default 0.5).",
+          "type": "number",
+          "default": 0.5
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:light_level_effect",
+      "properties": {
+        "type": {
+          "const": "neoorigins:light_level_effect"
+        },
+        "max_light_level": {
+          "description": "Highest light level at which the effect still applies (default 4).",
+          "type": "integer",
+          "default": 4
+        },
+        "effect": {
+          "description": "Mob effect id applied at/below the light threshold (required).",
+          "type": "string"
+        },
+        "amplifier": {
+          "description": "Effect amplifier level, 0 = level I (default 0).",
+          "type": "integer",
+          "default": 0
+        },
+        "ambient": {
+          "description": "Whether the applied effect is ambient (fainter particles; default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "show_particles": {
+          "description": "Whether the effect's ambient particles are shown (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "show_icon": {
+          "description": "Whether the effect's HUD icon is shown (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "effect"
+      ]
+    },
+    {
+      "$comment": "neoorigins:loot_pool_grant",
+      "properties": {
+        "type": {
+          "const": "neoorigins:loot_pool_grant"
+        },
+        "grant_id": {
+          "description": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both.",
+          "type": "string"
+        },
+        "loot_table": {
+          "description": "ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).",
+          "type": "string"
+        },
+        "rolls": {
+          "description": "Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 0
+        },
+        "bonus_rolls": {
+          "description": "Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "active": {
+          "description": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown": {
+          "description": "Cooldown in ticks between activations (20 = 1s); default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type",
+        "grant_id",
+        "loot_table"
+      ]
+    },
+    {
+      "$comment": "neoorigins:low_hp_threshold",
+      "properties": {
+        "type": {
+          "const": "neoorigins:low_hp_threshold"
+        },
+        "threshold": {
+          "description": "Health fraction below which the effects activate (0.5 = 50%; default 0.5).",
+          "type": "number",
+          "default": 0.5
+        },
+        "effects": {
+          "description": "List of {effect, amplifier} entries applied while below the threshold.",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type",
+        "effects"
+      ]
+    },
+    {
+      "$comment": "neoorigins:mob_behavior",
+      "properties": {
+        "type": {
+          "const": "neoorigins:mob_behavior"
+        },
+        "aggression": {
+          "description": "neutral = vanilla AI unchanged (only retaliate applies); hostile = always target the target type on sight; conditional = target a player only while every hostile_when condition holds. Default neutral.",
+          "type": "string",
+          "enum": [
+            "neutral",
+            "hostile",
+            "conditional"
+          ],
+          "default": "neutral"
+        },
+        "hostile_when": {
+          "description": "List of conditions (AND-ed) tested against the PROSPECTIVE PLAYER TARGET (piglin-style, e.g. 'player not wearing gold'), not the mob. Only used when aggression = conditional; empty list behaves like hostile.",
+          "type": "array",
+          "items": {}
+        },
+        "retaliate": {
+          "description": "Also fight back against whatever damaged the mob (vanilla hurt-by-target). Default true.",
+          "type": "boolean",
+          "default": true
+        },
+        "anger_linger_ticks": {
+          "description": "Keep the target this many ticks after the trigger stops holding, so the mob calms down gradually instead of instantly (default 200 = 10s).",
+          "type": "integer",
+          "default": 200,
+          "minimum": 0
+        },
+        "aggro_range": {
+          "description": "Max distance to acquire a target (default 16.0).",
+          "type": "number",
+          "default": 16.0,
+          "minimum": 0.0
+        },
+        "target_type": {
+          "description": "Entity type id to be hostile toward; omitted = players. Conditions only apply to player targets.",
+          "type": "string"
+        },
+        "call_for_help": {
+          "description": "When retaliating, alert nearby same-type mobs (vanilla pack aggro). Default false.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:mobs_ignore_player",
+      "properties": {
+        "type": {
+          "const": "neoorigins:mobs_ignore_player"
+        },
+        "entity_types": {
+          "description": "Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob.",
+          "type": "array",
+          "items": {}
+        },
+        "passive": {
+          "description": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:model_color",
+      "properties": {
+        "type": {
+          "const": "neoorigins:model_color"
+        },
+        "red": {
+          "description": "Red channel of the player model tint, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "green": {
+          "description": "Green channel of the player model tint, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "blue": {
+          "description": "Blue channel of the player model tint, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "alpha": {
+          "description": "Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "condition": {
+          "description": "Only applies the tint while this DSL condition passes (optional).",
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:modify_damage",
+      "properties": {
+        "type": {
+          "const": "neoorigins:modify_damage"
+        },
+        "direction": {
+          "description": "\"in\" scales damage taken, \"out\" scales damage dealt (default in).",
+          "type": "string",
+          "enum": [
+            "in",
+            "out"
+          ],
+          "default": "in"
+        },
+        "damage_type": {
+          "description": "Either a vanilla msg ID (e.g. 'onFire') or a tag prefixed with #.",
+          "type": "string"
+        },
+        "multiplier": {
+          "description": "Factor applied to the damage; 0.5 halves, 2.0 doubles (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "target_group": {
+          "description": "Optional entity-group filter limiting which targets/attackers apply.",
+          "type": "string"
+        },
+        "condition": {
+          "description": "Only applies the multiplier while this DSL condition passes (optional).",
+          "$ref": "condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:modify_food_nutrition",
+      "properties": {
+        "type": {
+          "const": "neoorigins:modify_food_nutrition"
+        },
+        "nutrition": {
+          "description": "Hunger points matching food gives, saturation scaled with it (default 1).",
+          "type": "integer",
+          "default": 1
+        },
+        "food_item": {
+          "description": "Optional item id; only this food's nutrition is overridden.",
+          "type": "string"
+        },
+        "food_tag": {
+          "description": "Optional item tag; only matching foods are overridden.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:modify_lava_speed",
+      "properties": {
+        "type": {
+          "const": "neoorigins:modify_lava_speed"
+        },
+        "operation": {
+          "description": "How value combines with the vanilla lava factor: addition, multiply_base, multiply_total.",
+          "type": "string",
+          "default": "addition"
+        },
+        "value": {
+          "description": "Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava).",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    {
+      "$comment": "neoorigins:modify_player_spawn",
+      "properties": {
+        "type": {
+          "const": "neoorigins:modify_player_spawn"
+        },
+        "location": {
+          "description": "Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it.",
+          "type": "object"
+        },
+        "override_bed": {
+          "description": "When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "location"
+      ]
+    },
+    {
+      "$comment": "neoorigins:more_smoker_xp",
+      "properties": {
+        "type": {
+          "const": "neoorigins:more_smoker_xp"
+        },
+        "multiplier": {
+          "description": "Multiplier for smoker-cooking XP (default 2.0).",
+          "type": "number",
+          "default": 2.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:mount",
+      "properties": {
+        "type": {
+          "const": "neoorigins:mount"
+        },
+        "range": {
+          "description": "Max distance in blocks to raycast for the entity to mount (default 5).",
+          "type": "number",
+          "default": 5.0
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the mount ability can be reused (100 = 5s).",
+          "type": "integer",
+          "default": 100
+        },
+        "hunger_cost": {
+          "description": "Hunger consumed each time an entity is mounted.",
+          "type": "integer",
+          "default": 0
+        },
+        "allow_players": {
+          "description": "Whether this power can mount other players (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "allow_mobs": {
+          "description": "Whether this power can mount mobs (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "block_bosses": {
+          "description": "Prevent mounting boss mobs like the Ender Dragon or Wither (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "mount_position": {
+          "description": "Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side).",
+          "type": "string",
+          "default": "centered"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:natural_glide",
+      "properties": {
+        "type": {
+          "const": "neoorigins:natural_glide"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:no_mob_spawns_nearby",
+      "properties": {
+        "type": {
+          "const": "neoorigins:no_mob_spawns_nearby"
+        },
+        "radius": {
+          "description": "Block radius around the player where natural spawning is suppressed (default 24). Vanilla already blocks MONSTER-category natural spawns within 24 blocks of any player, so use a value above 24 to extend the safe zone meaningfully.",
+          "type": "integer",
+          "default": 24
+        },
+        "categories": {
+          "description": "Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:no_natural_regen",
+      "properties": {
+        "type": {
+          "const": "neoorigins:no_natural_regen"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:no_projectile_divergence",
+      "properties": {
+        "type": {
+          "const": "neoorigins:no_projectile_divergence"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:no_slowdown",
+      "properties": {
+        "type": {
+          "const": "neoorigins:no_slowdown"
+        },
+        "block_tag": {
+          "description": "Block tag to limit slowdown immunity to; omit for immunity to all slowdown.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:overlay",
+      "properties": {
+        "type": {
+          "const": "neoorigins:overlay"
+        },
+        "texture": {
+          "description": "Resource location of the full-screen texture rendered over the view.",
+          "type": "string"
+        },
+        "strength": {
+          "description": "Overlay opacity, 0.0 invisible to 1.0 opaque (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type",
+        "texture"
+      ]
+    },
+    {
+      "$comment": "neoorigins:particle",
+      "properties": {
+        "type": {
+          "const": "neoorigins:particle"
+        },
+        "particle": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "scale": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        "frequency": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "spread": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "offset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "speed": {
+          "type": "number"
+        },
+        "condition": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "particle"
+      ]
+    },
+    {
+      "$comment": "neoorigins:persistent_effect",
+      "properties": {
+        "type": {
+          "const": "neoorigins:persistent_effect"
+        },
+        "effects": {
+          "description": "List of effect entries, each {effect|id, amplifier?, ambient?, show_particles?, show_icon?}, applied at INFINITE_DURATION while active. A single effect may instead be authored as the root-level shorthand (effect/amplifier/... at the power root); root-level ambient/show_particles/show_icon/amplifier also cascade as defaults onto every entry that omits them. Empty list = no effect.",
+          "type": "array",
+          "items": {}
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the effects: they apply only while it passes and are cleared the moment it stops (default always-true).",
+          "$ref": "condition.schema.json"
+        },
+        "toggleable": {
+          "description": "When true the power binds a keybind that flips the effects on/off; off clears them (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "default_off": {
+          "description": "Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:phantom_form",
+      "properties": {
+        "type": {
+          "const": "neoorigins:phantom_form"
+        },
+        "invisibility": {
+          "description": "If true the player gains Invisibility while in phantom form (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "no_gravity": {
+          "description": "If true gravity is disabled so the player can free-fly (default true).",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:prevent_action",
+      "properties": {
+        "type": {
+          "const": "neoorigins:prevent_action"
+        },
+        "action": {
+          "description": "Required. The action this power blocks: fall_damage, fire, drown, freeze, sprint_food, armor_equip (per-slot via head/chest/legs/feet), chestplate_equip (legacy alias = armor_equip chest), eye_damage, water_damage, swim, sleep, elytra, or none. Unknown values fall back to none.",
+          "type": "string",
+          "enum": [
+            "fall_damage",
+            "fire",
+            "drown",
+            "freeze",
+            "sprint_food",
+            "armor_equip",
+            "chestplate_equip",
+            "eye_damage",
+            "water_damage",
+            "swim",
+            "sleep",
+            "elytra",
+            "none"
+          ]
+        },
+        "active_when": {
+          "description": "Player-state gate the prevention applies under: always, not_sneaking, sneaking, not_on_ground, or on_ground (default always). E.g. not_sneaking lets a crouching Avian still take fall damage. Unknown values fall back to always.",
+          "type": "string",
+          "enum": [
+            "always",
+            "not_sneaking",
+            "sneaking",
+            "not_on_ground",
+            "on_ground"
+          ],
+          "default": "always"
+        },
+        "head": {
+          "description": "ARMOR_EQUIP only: when true, block equipping items in the helmet slot. Ignored for other actions (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "chest": {
+          "description": "ARMOR_EQUIP only: when true, block equipping items in the chestplate slot. Ignored for other actions (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "legs": {
+          "description": "ARMOR_EQUIP only: when true, block equipping items in the leggings slot. Ignored for other actions (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "feet": {
+          "description": "ARMOR_EQUIP only: when true, block equipping items in the boots slot. Ignored for other actions (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "action"
+      ]
+    },
+    {
+      "$comment": "neoorigins:prevent_death",
+      "properties": {
+        "type": {
+          "const": "neoorigins:prevent_death"
+        },
+        "damage_types": {
+          "description": "Comma-separated damage-type filter (msgIds, registry keys, or #tags); only matching killing blows are prevented. Omit to prevent every lethal hit.",
+          "type": "string"
+        },
+        "invert": {
+          "description": "When true treat damage_types as a blacklist: prevent all deaths EXCEPT the listed types. Meaningless (ignored) without damage_types. Default false.",
+          "type": "boolean",
+          "default": false
+        },
+        "set_health": {
+          "description": "Health the player is left at after a save; clamped to at least 1 so they don't re-die next tick (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 1.0
+        },
+        "cooldown_ticks": {
+          "description": "Ticks the power goes inert after a save (20 = 1s); default 0 = no cooldown (Origins behaviour, every lethal hit saved).",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "entity_action": {
+          "description": "Optional EntityAction run on the player each time a lethal hit is prevented (defaults to noop).",
+          "$ref": "action.schema.json"
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the save: the power only prevents death while it passes (default always-true).",
+          "$ref": "condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:projectile_immunity",
+      "properties": {
+        "type": {
+          "const": "neoorigins:projectile_immunity"
+        },
+        "projectile_types": {
+          "description": "Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow).",
+          "type": "array",
+          "items": {}
+        },
+        "chance": {
+          "description": "Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "teleport": {
+          "description": "If true a successful dodge triggers a short random teleport (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "teleport_range": {
+          "description": "Max teleport distance in blocks on a dodge when enabled (default 16).",
+          "type": "integer",
+          "default": 16
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:quality_equipment",
+      "properties": {
+        "type": {
+          "const": "neoorigins:quality_equipment"
+        },
+        "bonus_mining_speed": {
+          "description": "Fraction of base mining speed added to crafted tools (default 0.25).",
+          "type": "number",
+          "default": 0.25
+        },
+        "bonus_attack_damage": {
+          "description": "Fraction of base attack damage added to crafted weapons (default 0.20).",
+          "type": "number",
+          "default": 0.2
+        },
+        "bonus_armor_toughness": {
+          "description": "Flat armor toughness added to crafted/smithed armor (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "durability_multiplier": {
+          "description": "Fraction of base durability added to crafted items (default 0.10).",
+          "type": "number",
+          "default": 0.1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:rare_wandering_loot",
+      "properties": {
+        "type": {
+          "const": "neoorigins:rare_wandering_loot"
+        },
+        "master_slots": {
+          "description": "Random master-tier villager trades added to wandering traders (default 3).",
+          "type": "integer",
+          "default": 3
+        },
+        "treasure_chance": {
+          "description": "Probability 0.0-1.0 a rare treasure trade is also offered (default 0.25).",
+          "type": "number",
+          "default": 0.25
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:resource",
+      "properties": {
+        "type": {
+          "const": "neoorigins:resource"
+        },
+        "min": {
+          "description": "Lower bound of the resource bar.",
+          "type": "integer",
+          "default": 0
+        },
+        "max": {
+          "description": "Upper bound of the resource bar.",
+          "type": "integer",
+          "default": 100
+        },
+        "start_value": {
+          "description": "Initial value on grant; defaults to max.",
+          "type": "integer"
+        },
+        "regen_rate": {
+          "description": "Amount added each regen interval (0 = no regen).",
+          "type": "integer",
+          "default": 0
+        },
+        "regen_interval": {
+          "description": "Ticks between regen applications (min 1).",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "regen_condition": {
+          "description": "Optional EntityCondition gating regen; defaults always-true.",
+          "$ref": "#"
+        },
+        "min_action": {
+          "description": "Optional EntityAction fired when the value reaches min.",
+          "$ref": "#"
+        },
+        "max_action": {
+          "description": "Optional EntityAction fired when the value reaches max.",
+          "$ref": "#"
+        },
+        "hud_render": {
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden components.",
+          "type": "object",
+          "properties": {
+            "label": {
+              "description": "Bar label shown on the HUD.",
+              "type": "string",
+              "default": "Resource"
+            },
+            "color": {
+              "description": "Bar color (hex, e.g. #55AAFF).",
+              "type": "string",
+              "default": "#55AAFF"
+            },
+            "should_render": {
+              "description": "When false, hides the bar (stored inverted as hidden=true).",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:restrict_armor",
+      "properties": {
+        "type": {
+          "const": "neoorigins:restrict_armor"
+        },
+        "restrictions": {
+          "description": "List of slot restrictions, each {slot, item?, tag?}: when a matching item (by id and/or #tag) is equipped in that EquipmentSlot (head/chest/legs/feet/mainhand/offhand) it is ejected back to the inventory. An entry with neither item nor tag bars the whole slot. Empty list (default) restricts nothing.",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:scare_entities",
+      "properties": {
+        "type": {
+          "const": "neoorigins:scare_entities"
+        },
+        "entity_types": {
+          "description": "Entity ids or #tags that flee the player within 8 blocks.",
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:shader",
+      "properties": {
+        "type": {
+          "const": "neoorigins:shader"
+        },
+        "shader": {
+          "description": "Resource location of the post shader to apply (e.g. minecraft:spider).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "shader"
+      ]
+    },
+    {
+      "$comment": "neoorigins:shadow_orb",
+      "properties": {
+        "type": {
+          "const": "neoorigins:shadow_orb"
+        },
+        "max_orbs": {
+          "description": "Max simultaneous orbs; placing past this removes the oldest (default 4).",
+          "type": "integer",
+          "default": 4
+        },
+        "radius": {
+          "description": "Block radius around each orb given Darkness+Blindness (default 28).",
+          "type": "number",
+          "default": 28.0
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the orb ability can be reused (20 = 1s; default 100).",
+          "type": "integer",
+          "default": 100
+        },
+        "tick_interval": {
+          "description": "Ticks between each darkness pulse from orbs (20 = 1s; default 20).",
+          "type": "integer",
+          "default": 20
+        },
+        "hunger_cost": {
+          "description": "Hunger points consumed per activation (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:size_scaling",
+      "properties": {
+        "type": {
+          "const": "neoorigins:size_scaling"
+        },
+        "scale": {
+          "description": "Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "modify_reach": {
+          "description": "If true, reach scales with body size too (default true). For independent reach use attribute_modifier.",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:slime_death_save",
+      "properties": {
+        "type": {
+          "const": "neoorigins:slime_death_save"
+        },
+        "moisture_threshold": {
+          "description": "Min slime moisture (0-1) to split instead of dying (default 0.75).",
+          "type": "number",
+          "default": 0.75
+        },
+        "teleport_distance": {
+          "description": "Blocks teleported in a random direction on split (default 50).",
+          "type": "integer",
+          "default": 50
+        },
+        "teleport_y_range": {
+          "description": "Max +/- Y offset applied to the split teleport (default 10).",
+          "type": "integer",
+          "default": 10
+        },
+        "split_max_h_p": {
+          "description": "Max HP set right after splitting, in half-hearts (default 4.0).",
+          "type": "number",
+          "default": 4.0
+        },
+        "recovery_ticks": {
+          "description": "Ticks for reduced max HP to ease back to normal (20 = 1s; default 2400).",
+          "type": "integer",
+          "default": 2400
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:slime_level_hp",
+      "properties": {
+        "type": {
+          "const": "neoorigins:slime_level_hp"
+        },
+        "levels_per_h_p": {
+          "description": "Experience levels needed per +1 max HP half-heart (default 10).",
+          "type": "integer",
+          "default": 10
+        },
+        "max_bonus_h_p": {
+          "description": "Cap on total bonus max HP granted, in half-hearts (default 20).",
+          "type": "integer",
+          "default": 20
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:slime_moisture",
+      "properties": {
+        "type": {
+          "const": "neoorigins:slime_moisture"
+        },
+        "drain_per_tick": {
+          "description": "Moisture lost per tick when not in water/rain (default 0.0004).",
+          "type": "number",
+          "default": 4.0E-4
+        },
+        "dry_biome_drain_multiplier": {
+          "description": "Drain multiplier in desert/savanna/badlands (default 3.0).",
+          "type": "number",
+          "default": 3.0
+        },
+        "fire_drain_multiplier": {
+          "description": "Drain multiplier while the player is on fire (default 10.0).",
+          "type": "number",
+          "default": 10.0
+        },
+        "water_refill_per_tick": {
+          "description": "Moisture regained per tick while in water or rain (default 0.005).",
+          "type": "number",
+          "default": 0.005
+        },
+        "regen_threshold": {
+          "description": "Moisture (0-1) above which the player gets Regeneration (default 0.75).",
+          "type": "number",
+          "default": 0.75
+        },
+        "armor_penalty_threshold": {
+          "description": "Moisture (0-1) below which the player loses 4 armor (default 0.10).",
+          "type": "number",
+          "default": 0.1
+        },
+        "dot_threshold": {
+          "description": "Moisture (0-1) at/below which damage-over-time starts (default 0.0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "dot_damage": {
+          "description": "Magic damage dealt per interval when moisture is too low (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "dot_interval": {
+          "description": "Ticks between drying-out damage ticks (20 = 1s; default 40).",
+          "type": "integer",
+          "default": 40
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:sneaky",
+      "properties": {
+        "type": {
+          "const": "neoorigins:sneaky"
+        },
+        "detection_multiplier": {
+          "description": "Mob detection range multiplier; lower = sneakier (default 0.3).",
+          "type": "number",
+          "default": 0.3
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:stealth",
+      "properties": {
+        "type": {
+          "const": "neoorigins:stealth"
+        },
+        "activation_ticks": {
+          "description": "Ticks of continuous sneaking before invisibility kicks in (200 = 10s).",
+          "type": "integer",
+          "default": 200
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:summon_minion",
+      "properties": {
+        "type": {
+          "const": "neoorigins:summon_minion"
+        },
+        "mob_type": {
+          "description": "Entity type id to summon, e.g. minecraft:zombie.",
+          "type": "string"
+        },
+        "max_count": {
+          "description": "Max minions of this type alive at once before summoning is blocked.",
+          "type": "integer",
+          "default": 3
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the summon ability can be reused (200 = 10s).",
+          "type": "integer",
+          "default": 200
+        },
+        "hunger_cost": {
+          "description": "Hunger consumed each time a minion is summoned.",
+          "type": "integer",
+          "default": 4
+        },
+        "despawn_ticks": {
+          "description": "Ticks a minion lasts before despawning (18000 = 15 min).",
+          "type": "integer",
+          "default": 18000
+        },
+        "death_damage": {
+          "description": "Damage dealt to the player when a minion dies (half-hearts).",
+          "type": "number",
+          "default": 1.0
+        },
+        "head": {
+          "description": "Item id for the summoned mob's helmet slot (defaults to iron helmet).",
+          "type": "string"
+        },
+        "chest": {
+          "description": "Item id for the summoned mob's chest slot (optional).",
+          "type": "string"
+        },
+        "legs": {
+          "description": "Item id for the summoned mob's leggings slot (optional).",
+          "type": "string"
+        },
+        "feet": {
+          "description": "Item id for the summoned mob's boots slot (optional).",
+          "type": "string"
+        },
+        "mainhand": {
+          "description": "Item id placed in the summoned mob's main hand (optional).",
+          "type": "string"
+        },
+        "offhand": {
+          "description": "Item id placed in the summoned mob's off hand (optional).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "mob_type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:tame_mob",
+      "properties": {
+        "type": {
+          "const": "neoorigins:tame_mob"
+        },
+        "range": {
+          "description": "Max distance in blocks to raycast for the mob to tame (default 16).",
+          "type": "number",
+          "default": 16.0
+        },
+        "max_tamed": {
+          "description": "Max tamed mobs alive at once before taming is blocked.",
+          "type": "integer",
+          "default": 4
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the tame ability can be reused (200 = 10s).",
+          "type": "integer",
+          "default": 200
+        },
+        "hunger_cost": {
+          "description": "Hunger consumed each time a mob is tamed.",
+          "type": "integer",
+          "default": 3
+        },
+        "despawn_ticks": {
+          "description": "Ticks a tamed mob lasts before despawning (36000 = 30 min).",
+          "type": "integer",
+          "default": 36000
+        },
+        "death_damage": {
+          "description": "Damage dealt to the player when a tamed mob dies (half-hearts).",
+          "type": "number",
+          "default": 0.5
+        },
+        "hostile_only": {
+          "description": "When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:tamed_animal_boost",
+      "properties": {
+        "type": {
+          "const": "neoorigins:tamed_animal_boost"
+        },
+        "health_bonus": {
+          "description": "Flat max-health added to your tamed animals (half-hearts; default 4).",
+          "type": "number",
+          "default": 4.0
+        },
+        "speed_bonus": {
+          "description": "Flat movement-speed added to your tamed animals (default 0.1).",
+          "type": "number",
+          "default": 0.1
+        },
+        "radius": {
+          "description": "Block radius around the player scanned for tamed animals (default 32).",
+          "type": "number",
+          "default": 32.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:tamed_potion_diffusal",
+      "properties": {
+        "type": {
+          "const": "neoorigins:tamed_potion_diffusal"
+        },
+        "radius": {
+          "description": "Block radius for sharing positive potion effects with tamed animals.",
+          "type": "number",
+          "default": 16.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:thorns_on_hit",
+      "properties": {
+        "type": {
+          "const": "neoorigins:thorns_on_hit"
+        },
+        "damage": {
+          "description": "Damage reflected to a melee attacker when you are hit (half-hearts; default 2).",
+          "type": "number",
+          "default": 2.0
+        },
+        "fire_ticks": {
+          "description": "Ticks the attacker is set on fire on reflect (0 = none; 20 = 1s).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:tick_action",
+      "properties": {
+        "type": {
+          "const": "neoorigins:tick_action"
+        },
+        "interval": {
+          "description": "Ticks between each action run (20 = 1s; default 20).",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "action_type": {
+          "description": "Periodic action dispatched by OriginEventHandler: teleport_on_damage or none (default none).",
+          "type": "string",
+          "enum": [
+            "teleport_on_damage",
+            "none"
+          ],
+          "default": "none"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:tidal_wave",
+      "properties": {
+        "type": {
+          "const": "neoorigins:tidal_wave"
+        },
+        "damage": {
+          "description": "Damage dealt to each entity in the cone (half-hearts; default 4).",
+          "type": "number",
+          "default": 4.0
+        },
+        "knockback_strength": {
+          "description": "Forward push applied to hit entities (default 2).",
+          "type": "number",
+          "default": 2.0
+        },
+        "range": {
+          "description": "Max reach of the water cone in blocks (default 8).",
+          "type": "number",
+          "default": 8.0
+        },
+        "cone_angle": {
+          "description": "Total width in degrees of the forward damage cone (default 60).",
+          "type": "number",
+          "default": 60.0
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the wave can be reused (100 = 5s).",
+          "type": "integer",
+          "default": 100
+        },
+        "hunger_cost": {
+          "description": "Hunger consumed per use (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:toggle",
+      "properties": {
+        "type": {
+          "const": "neoorigins:toggle"
+        },
+        "default": {
+          "description": "Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:trade_availability",
+      "properties": {
+        "type": {
+          "const": "neoorigins:trade_availability"
+        },
+        "scan_interval": {
+          "description": "Ticks between villager-trade refresh scans (40 = 2s).",
+          "type": "integer",
+          "default": 40
+        },
+        "radius": {
+          "description": "Block radius around the player whose villager trades refresh (default 8).",
+          "type": "number",
+          "default": 8.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:tree_felling",
+      "properties": {
+        "type": {
+          "const": "neoorigins:tree_felling"
+        },
+        "max_blocks": {
+          "description": "Maximum connected log blocks broken in one chop (default 64).",
+          "type": "integer",
+          "default": 64
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:twin_breeding",
+      "properties": {
+        "type": {
+          "const": "neoorigins:twin_breeding"
+        },
+        "chance": {
+          "description": "Probability 0.0-1.0 of an extra baby when animals breed (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:underwater_mining_speed",
+      "properties": {
+        "type": {
+          "const": "neoorigins:underwater_mining_speed"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:walk_on_fluid",
+      "properties": {
+        "type": {
+          "const": "neoorigins:walk_on_fluid"
+        },
+        "fluid": {
+          "description": "Which fluid surface you can walk on: water, lava, or both (default both).",
+          "type": "string",
+          "default": "both"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:wall_climbing",
+      "properties": {
+        "type": {
+          "const": "neoorigins:wall_climbing"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:water_breathing",
+      "properties": {
+        "type": {
+          "const": "neoorigins:water_breathing"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:wraith_phase",
+      "properties": {
+        "type": {
+          "const": "neoorigins:wraith_phase"
+        },
+        "blocked_blocks": {
+          "description": "Block ids that cannot be phased through (default obsidian/bedrock).",
+          "type": "array",
+          "items": {}
+        },
+        "exhaustion_per_tick": {
+          "description": "Food exhaustion added each tick while phasing in solids (default 0.15).",
+          "type": "number",
+          "default": 0.15
+        },
+        "always_on": {
+          "description": "If true phasing is always-active instead of a toggle key (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
     },
     {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
@@ -78,13 +2787,104 @@
         "type": {
           "not": {
             "enum": [
-              "neoorigins:attribute_modifier", "neoorigins:action_on_event",
-              "neoorigins:persistent_effect", "neoorigins:active_ability",
-              "neoorigins:modify_damage", "neoorigins:size_scaling", "neoorigins:summon_minion",
-              "neoorigins:tame_mob", "neoorigins:edible_item", "neoorigins:enhanced_vision",
-              "neoorigins:toggle", "neoorigins:entity_set", "neoorigins:modify_player_spawn",
-              "neoorigins:restrict_armor", "neoorigins:keep_inventory",
-              "neoorigins:loot_pool_grant"
+              "neoorigins:action_on_event",
+              "neoorigins:action_on_hit",
+              "neoorigins:active_ability",
+              "neoorigins:active_bolt",
+              "neoorigins:active_dash",
+              "neoorigins:active_fireball",
+              "neoorigins:active_phase",
+              "neoorigins:active_place_block",
+              "neoorigins:active_recall",
+              "neoorigins:active_swap",
+              "neoorigins:active_teleport",
+              "neoorigins:attribute_modifier",
+              "neoorigins:bare_hand_tool",
+              "neoorigins:break_speed_modifier",
+              "neoorigins:breath_in_fluid",
+              "neoorigins:breath_out_of_fluid",
+              "neoorigins:burn",
+              "neoorigins:cobweb_affinity",
+              "neoorigins:command_pack",
+              "neoorigins:condition_passive",
+              "neoorigins:conditional",
+              "neoorigins:craft_amount_bonus",
+              "neoorigins:crop_growth_accelerator",
+              "neoorigins:crop_harvest_bonus",
+              "neoorigins:dodge_chance",
+              "neoorigins:edible_item",
+              "neoorigins:effect_immunity",
+              "neoorigins:elytra_boost",
+              "neoorigins:ender_gaze_immunity",
+              "neoorigins:enhanced_vision",
+              "neoorigins:entity_group",
+              "neoorigins:entity_set",
+              "neoorigins:exhaustion_filter",
+              "neoorigins:extra_inventory",
+              "neoorigins:flight",
+              "neoorigins:fortune_when_effect",
+              "neoorigins:ground_slam",
+              "neoorigins:hide_hud_bar",
+              "neoorigins:horde_regen",
+              "neoorigins:ignore_water",
+              "neoorigins:invulnerability",
+              "neoorigins:item_magnetism",
+              "neoorigins:keep_inventory",
+              "neoorigins:lava_vision",
+              "neoorigins:less_item_use_slowdown",
+              "neoorigins:light_level_effect",
+              "neoorigins:loot_pool_grant",
+              "neoorigins:low_hp_threshold",
+              "neoorigins:mob_behavior",
+              "neoorigins:mobs_ignore_player",
+              "neoorigins:model_color",
+              "neoorigins:modify_damage",
+              "neoorigins:modify_food_nutrition",
+              "neoorigins:modify_lava_speed",
+              "neoorigins:modify_player_spawn",
+              "neoorigins:more_smoker_xp",
+              "neoorigins:mount",
+              "neoorigins:natural_glide",
+              "neoorigins:no_mob_spawns_nearby",
+              "neoorigins:no_natural_regen",
+              "neoorigins:no_projectile_divergence",
+              "neoorigins:no_slowdown",
+              "neoorigins:overlay",
+              "neoorigins:particle",
+              "neoorigins:persistent_effect",
+              "neoorigins:phantom_form",
+              "neoorigins:prevent_action",
+              "neoorigins:prevent_death",
+              "neoorigins:projectile_immunity",
+              "neoorigins:quality_equipment",
+              "neoorigins:rare_wandering_loot",
+              "neoorigins:resource",
+              "neoorigins:restrict_armor",
+              "neoorigins:scare_entities",
+              "neoorigins:shader",
+              "neoorigins:shadow_orb",
+              "neoorigins:size_scaling",
+              "neoorigins:slime_death_save",
+              "neoorigins:slime_level_hp",
+              "neoorigins:slime_moisture",
+              "neoorigins:sneaky",
+              "neoorigins:stealth",
+              "neoorigins:summon_minion",
+              "neoorigins:tame_mob",
+              "neoorigins:tamed_animal_boost",
+              "neoorigins:tamed_potion_diffusal",
+              "neoorigins:thorns_on_hit",
+              "neoorigins:tick_action",
+              "neoorigins:tidal_wave",
+              "neoorigins:toggle",
+              "neoorigins:trade_availability",
+              "neoorigins:tree_felling",
+              "neoorigins:twin_breeding",
+              "neoorigins:underwater_mining_speed",
+              "neoorigins:walk_on_fluid",
+              "neoorigins:wall_climbing",
+              "neoorigins:water_breathing",
+              "neoorigins:wraith_phase"
             ]
           }
         }

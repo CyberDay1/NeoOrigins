@@ -3,3 +3,8 @@
 # The harness always writes LF; pin LF here so autocrlf can't normalize the
 # tracked blob to CRLF and make the byte-identical gate flap.
 compat-golden/compat-verbs.txt text eol=lf
+
+# docs/schema/*.json is regenerated headlessly (e.g. `./gradlew generatePowerSchema`)
+# with a fixed Gson pretty-printer + single trailing LF. Pin LF so Windows-dev
+# and Linux-CI bytes match and the byte-stable regeneration gate can't flap.
+docs/schema/*.json text eol=lf
