@@ -14,7 +14,6 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -233,22 +232,6 @@ public final class ActiveOriginService {
             }
         }
         return false;
-    }
-
-    /**
-     * True if any power currently granted to the player (dimension-filtered,
-     * and for toggleable powers, not toggled off) declares the given
-     * {@link com.cyberday1.neoorigins.api.power.PowerType#capabilities capability} tag.
-     *
-     * <p>Checks logical side and delegates to {@code ActiveOriginService.hasCapability}
-     * or {@code ClientActivePowers.hasCapability}.
-     */
-    public static boolean hasCapabilitySided(Player player, String tag) {
-        if (player instanceof ServerPlayer sp) {
-            return hasCapability(sp, tag);
-        } else {
-            return com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability(tag);
-        }
     }
 
     // ── Mutating operations (bypass dimension restrictions) ─────────────

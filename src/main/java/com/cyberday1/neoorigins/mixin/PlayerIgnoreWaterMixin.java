@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.mixin;
 
+import com.cyberday1.neoorigins.power.capability.PowerCapabilities;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,14 +27,14 @@ public abstract class PlayerIgnoreWaterMixin {
 
     @Inject(method = "isPushedByFluid", at = @At("HEAD"), cancellable = true, require = 0)
     private void neoorigins$ignoreWaterPushing(CallbackInfoReturnable<Boolean> cir) {
-        if (ActiveOriginService.hasCapabilitySided((Player) (Object) this, "ignore_water")) {
+        if (PowerCapabilities.hasActive((Player) (Object) this, "ignore_water")) {
             cir.setReturnValue(false);
         }
     }
 
     @Redirect(method = "getDigSpeed", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;onGround()Z"))
     private boolean neoorigins$ignoreInWaterDigSpeedPenalty(Player player) {
-        if (ActiveOriginService.hasCapabilitySided(player, "ignore_water")
+        if (PowerCapabilities.hasActive(player, "ignore_water")
                 && player.isInWater()) {
             return true;
         }
