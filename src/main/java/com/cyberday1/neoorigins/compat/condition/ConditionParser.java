@@ -120,19 +120,16 @@ public final class ConditionParser {
             if (descriptor != null) {
                 return descriptor.factory().create(json, contextId);
             }
-            return switch (type) {
-                case "neoorigins:and"                           -> parseAnd(json, contextId);
-                case "neoorigins:or"                            -> parseOr(json, contextId);
-                case "neoorigins:not"                           -> parseNot(json, contextId);
-
-                default -> failClosed(type, contextId, "unsupported condition type");
-            };
+            // Every condition verb now lives in BuiltinConditions (the switch has
+            // fully retired, mirroring the action side). An unresolved type is an
+            // unknown verb — fail closed.
+            return failClosed(type, contextId, "unsupported condition type");
         } catch (Exception e) {
             return failClosed(type, contextId, "parse error: " + e.getMessage());
         }
     }
 
-    private static EntityCondition parseAnd(JsonObject json, String ctx) {
+    static EntityCondition parseAnd(JsonObject json, String ctx) {
         JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
         List<EntityCondition> list = new ArrayList<>();
         for (JsonElement el : arr) {
@@ -144,7 +141,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseOr(JsonObject json, String ctx) {
+    static EntityCondition parseOr(JsonObject json, String ctx) {
         JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
         List<EntityCondition> list = new ArrayList<>();
         for (JsonElement el : arr) {
@@ -156,7 +153,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseNot(JsonObject json, String ctx) {
+    static EntityCondition parseNot(JsonObject json, String ctx) {
         if (!json.has("condition") || !json.get("condition").isJsonObject()) {
             return failClosed("origins:not", ctx, "missing required field 'condition'");
         }

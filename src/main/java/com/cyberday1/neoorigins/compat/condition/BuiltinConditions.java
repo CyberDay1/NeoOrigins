@@ -515,6 +515,27 @@ public final class BuiltinConditions {
                     .doc("Synonym for `tag` used by several built-in JSONs (shape 2)."),
                 new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
                     .doc("Nested biome sub-condition (shape 3); `temperature` compares biome base temperature, other sub-types fail closed. Absent all of biome/tag/biome_tag/condition → always true.")));
+
+        // ---- Boolean combinators (recursive; delegate to ConditionParser) ----
+        // These mirror the action side's and/if_else/choice combinators: pure
+        // recursive delegators that parse() their sub-conditions. The block-condition
+        // internal and/or shorthand inside parseOnBlock is a SEPARATE code path and is
+        // untouched. The condition switch fully retires with these three.
+        // and — every sub-condition in `conditions` must pass (empty/absent → true).
+        define("and",
+            (json, ctx) -> ConditionParser.parseAnd(json, ctx),
+            List.of(new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
+                .doc("List of sub-conditions; all must pass (absent/empty → true).")));
+        // or — at least one sub-condition in `conditions` must pass (empty/absent → false).
+        define("or",
+            (json, ctx) -> ConditionParser.parseOr(json, ctx),
+            List.of(new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
+                .doc("List of sub-conditions; at least one must pass (absent/empty → false).")));
+        // not — negate the single nested `condition` (missing condition fails closed).
+        define("not",
+            (json, ctx) -> ConditionParser.parseNot(json, ctx),
+            List.of(new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, true)
+                .doc("Nested condition whose result is negated.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
