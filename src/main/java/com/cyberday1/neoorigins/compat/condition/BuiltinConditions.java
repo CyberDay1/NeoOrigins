@@ -441,6 +441,46 @@ public final class BuiltinConditions {
             List.of(new FieldSpec("key", FormFieldSpec.Kind.STRING, false)
                 .def("tamer:tamed")
                 .doc("Minion-tracker key to count (default tamer:tamed).")));
+
+        // ---- Proximity / combat / Origins++ conditions (delegate to ConditionParser) ----
+        // near_block / block_in_radius — a matching block within radius (cubic scan).
+        // `block_in_radius` is a true synonym (absent from KNOWN_TYPES) → alias.
+        define("near_block", List.of("block_in_radius"),
+            (json, ctx) -> ConditionParser.parseNearBlock(json, ctx),
+            List.of(new FieldSpec("radius", FormFieldSpec.Kind.INTEGER, false).def(4).range(1.0, 8.0)
+                        .doc("Scan radius in blocks (default 4, clamped 1..8)."),
+                    new FieldSpec("block", FormFieldSpec.Kind.STRING, false)
+                        .doc("Single block id to match."),
+                    new FieldSpec("blocks", FormFieldSpec.Kind.ARRAY, false)
+                        .doc("List of block ids to match (any → true)."),
+                    new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                        .doc("Single block tag to match (#-prefix optional)."),
+                    new FieldSpec("tags", FormFieldSpec.Kind.ARRAY, false)
+                        .doc("List of block tags to match (any → true)."),
+                    new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+                        .doc("Origins block_in_radius shape: nested in_tag/block condition. Requires at least one of block/blocks/tag/tags/block_condition.")));
+        // near_entity — an entity of the given type/tag within distance (AABB scan).
+        define("near_entity",
+            (json, ctx) -> ConditionParser.parseNearEntity(json, ctx),
+            List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, true)
+                        .doc("Entity-type id, or #tag, to look for nearby."),
+                    new FieldSpec("distance", FormFieldSpec.Kind.NUMBER, false).def(8.0).range(1.0, 64.0)
+                        .doc("Search distance in blocks (default 8, clamped 1..64).")));
+        // out_of_combat — at least `ticks` elapsed since the player last took damage.
+        define("out_of_combat",
+            (json, ctx) -> ConditionParser.parseOutOfCombat(json),
+            List.of(new FieldSpec("ticks", FormFieldSpec.Kind.INTEGER, false).def(100).range(0.0, null)
+                .doc("Ticks since last damage required (default 100 = 5 s).")));
+        // actor_condition — unwrap and evaluate the inner condition on the player.
+        define("actor_condition",
+            (json, ctx) -> ConditionParser.parseActorCondition(json, ctx),
+            List.of(new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, true)
+                .doc("Inner condition evaluated on the actor (the player).")));
+        // advancement — player has completed the given advancement.
+        define("advancement",
+            (json, ctx) -> ConditionParser.parseAdvancement(json, ctx),
+            List.of(new FieldSpec("advancement", FormFieldSpec.Kind.STRING, true)
+                .doc("Advancement id the player must have completed.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

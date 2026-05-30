@@ -160,16 +160,6 @@ public final class ConditionParser {
                 // ---- Phase 1: New conditions ----
                 case "neoorigins:biome"                         -> parseBiome(json);
 
-                // ---- Phase 8: condition expansion (2026-04-24) ----
-                case "neoorigins:near_block",
-                     "neoorigins:block_in_radius"                  -> parseNearBlock(json, contextId);
-                case "neoorigins:near_entity"                   -> parseNearEntity(json, contextId);
-                case "neoorigins:out_of_combat"                 -> parseOutOfCombat(json);
-
-                // ---- Origins++ compat expansion ----
-                case "neoorigins:actor_condition"               -> parseActorCondition(json, contextId);
-                case "neoorigins:advancement"                   -> parseAdvancement(json, contextId);
-
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
         } catch (Exception e) {
@@ -1188,7 +1178,7 @@ public final class ConditionParser {
      * warmth, lava-side speed, etc.). Capped at radius 8 to avoid overly
      * expensive per-tick scans.
      */
-    private static EntityCondition parseNearBlock(JsonObject json, String contextId) {
+    static EntityCondition parseNearBlock(JsonObject json, String contextId) {
         int radius = Math.min(8, Math.max(1,
             json.has("radius") ? json.get("radius").getAsInt() : 4));
         List<ResourceLocation> blockIds = new ArrayList<>();
@@ -1311,7 +1301,7 @@ public final class ConditionParser {
 
     /** origins:actor_condition — unwrap and delegate to the inner condition. In Apoli this
      *  filters the "actor" in a bientity context; here we just evaluate on the player. */
-    private static EntityCondition parseActorCondition(JsonObject json, String contextId) {
+    static EntityCondition parseActorCondition(JsonObject json, String contextId) {
         if (json.has("condition") && json.get("condition").isJsonObject()) {
             return ConditionParser.parse(json.getAsJsonObject("condition"), contextId);
         }
@@ -1319,7 +1309,7 @@ public final class ConditionParser {
     }
 
     /** origins:advancement — true when the player has completed a specific advancement. */
-    private static EntityCondition parseAdvancement(JsonObject json, String contextId) {
+    static EntityCondition parseAdvancement(JsonObject json, String contextId) {
         String advId = json.has("advancement") ? json.get("advancement").getAsString() : null;
         if (advId == null) return failClosed("neoorigins:advancement", contextId, "missing 'advancement' field");
         ResourceLocation id = ResourceLocation.parse(advId);
@@ -1339,7 +1329,7 @@ public final class ConditionParser {
      * <pre>{ "type": "neoorigins:near_entity", "entity_type": "minecraft:creeper", "distance": 8 }</pre>
      * <pre>{ "type": "neoorigins:near_entity", "entity_type": "#minecraft:undead", "distance": 16 }</pre>
      */
-    private static EntityCondition parseNearEntity(JsonObject json, String contextId) {
+    static EntityCondition parseNearEntity(JsonObject json, String contextId) {
         String rawType = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
         if (rawType == null || rawType.isBlank()) {
             return failClosed("neoorigins:near_entity", contextId, "missing 'entity_type' field");
@@ -1386,7 +1376,7 @@ public final class ConditionParser {
      * timestamps damage hits via {@code CombatPowerEvents.onLivingDamage}
      * and is forgotten on logout.
      */
-    private static EntityCondition parseOutOfCombat(JsonObject json) {
+    static EntityCondition parseOutOfCombat(JsonObject json) {
         int threshold = json.has("ticks") ? Math.max(0, json.get("ticks").getAsInt()) : 100;
         return p -> {
             if (!(p instanceof net.minecraft.server.level.ServerPlayer sp)) return true;
