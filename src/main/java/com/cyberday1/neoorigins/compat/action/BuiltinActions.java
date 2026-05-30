@@ -1635,6 +1635,112 @@ public final class BuiltinActions {
                 // is_ambient, show_particles, show_icon}.
                 new FieldSpec("effects", FormFieldSpec.Kind.ARRAY, false)
                     .doc("Array of {effect, duration, amplifier, is_ambient, show_particles, show_icon} objects. First entry wins if both 'effect' and 'effects' are present.")));
+
+        // ── Task 5: heavy/complex verbs, LIFTED AS-IS ──────────────────────────
+        // Behavior-neutral by construction: the descriptor factory carries the
+        // existing ActionParser parse lambda verbatim (delegation, no restructuring)
+        // — the recursive fan-out (area_of_effect) and entity-spawn factories stay
+        // exactly where they are; only dispatch moves from the switch to the
+        // descriptor. The parse methods are package-private for this delegation,
+        // mirroring failNoop / extractBientityTarget. The FieldSpec lists are
+        // transcribed from the hand-written schema branches.
+        // (raycast / equipped_item_action / modify_inventory are not present on
+        // this MC line and are intentionally omitted.)
+
+        // area_of_effect — run entity_action on every entity in radius, fanning out
+        // apply_effect/damage leaves to mobs. `radius` required-ish (schema requires
+        // it) but parser defaults to 16 and never hard-fails → modelled optional.
+        define("area_of_effect",
+            (json, ctx) -> ActionParser.parseAreaOfEffect(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(0.0, null)
+                    .doc("AoE radius in blocks (default 16)."),
+                new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action run on every caught entity."),
+                new FieldSpec("entity_condition", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Optional filter — only entities matching are hit."),
+                new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false).def("sphere")
+                    .options("sphere", "cube")
+                    .doc("AoE shape (default sphere)."),
+                new FieldSpec("include_source", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("Include the caster in the AoE (default true).")));
+
+        // spawn_lingering_area — spawn a recurring effect-cloud entity.
+        define("spawn_lingering_area",
+            (json, ctx) -> ActionParser.parseSpawnLingeringArea(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(3.0)
+                    .doc("Effect cloud radius (default 3.0)."),
+                new FieldSpec("duration_ticks", FormFieldSpec.Kind.INTEGER, false).def(100).range(1.0, null)
+                    .doc("Lifetime in ticks (default 100)."),
+                new FieldSpec("interval_ticks", FormFieldSpec.Kind.INTEGER, false).def(20).range(1.0, null)
+                    .doc("Ticks between entity_action firings (default 20)."),
+                new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Visual effect palette id (client-side; optional)."),
+                new FieldSpec("particle_type", FormFieldSpec.Kind.STRING, false).def("minecraft:witch")
+                    .doc("Particle id rendered (default minecraft:witch)."),
+                new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action run every interval against caught entities.")));
+
+        // spawn_black_hole — spawn a pull-and-damage entity.
+        define("spawn_black_hole",
+            (json, ctx) -> ActionParser.parseSpawnBlackHole(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(6.0)
+                    .doc("Pull radius (default 6.0)."),
+                new FieldSpec("duration_ticks", FormFieldSpec.Kind.INTEGER, false).def(100).range(1.0, null)
+                    .doc("Lifetime (default 100)."),
+                new FieldSpec("pull_strength", FormFieldSpec.Kind.NUMBER, false).def(1.5)
+                    .doc("Per-tick pull magnitude (default 1.5)."),
+                new FieldSpec("damage_per_tick", FormFieldSpec.Kind.NUMBER, false).def(2.0)
+                    .doc("Damage applied per tick to caught entities (default 2.0)."),
+                new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Visual palette id (client-side; optional).")));
+
+        // spawn_tornado — spawn a pull/lift/spin vortex entity.
+        define("spawn_tornado",
+            (json, ctx) -> ActionParser.parseSpawnTornado(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(5.0)
+                    .doc("Vortex radius (default 5.0)."),
+                new FieldSpec("duration_ticks", FormFieldSpec.Kind.INTEGER, false).def(100).range(1.0, null)
+                    .doc("Lifetime (default 100)."),
+                new FieldSpec("pull_strength", FormFieldSpec.Kind.NUMBER, false).def(1.0)
+                    .doc("Horizontal pull magnitude (default 1.0)."),
+                new FieldSpec("lift_strength", FormFieldSpec.Kind.NUMBER, false).def(0.5)
+                    .doc("Upward lift magnitude (default 0.5)."),
+                new FieldSpec("spin_strength", FormFieldSpec.Kind.NUMBER, false).def(0.5)
+                    .doc("Tangential spin magnitude (default 0.5)."),
+                new FieldSpec("damage_per_interval", FormFieldSpec.Kind.NUMBER, false).def(2.0)
+                    .doc("Damage per interval (default 2.0)."),
+                new FieldSpec("damage_interval_ticks", FormFieldSpec.Kind.INTEGER, false).def(10).range(1.0, null)
+                    .doc("Ticks between damage applications (default 10)."),
+                new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Visual palette id (client-side; optional).")));
+
+        // chain_to_nearest — pull the player toward the nearest matching entity.
+        define("chain_to_nearest",
+            (json, ctx) -> ActionParser.parseChainToNearest(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(16.0)
+                    .doc("Search radius (default 16)."),
+                new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.0)
+                    .doc("Pull speed (default 1.0)."),
+                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Optional filter — only entities matching are valid targets.")));
+
+        // pull_entities — pull nearby entities toward the caster.
+        define("pull_entities",
+            (json, ctx) -> ActionParser.parsePullEntities(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(8.0)
+                    .doc("Pull radius (default 8)."),
+                new FieldSpec("strength", FormFieldSpec.Kind.NUMBER, false).def(0.5)
+                    .doc("Pull magnitude per entity (default 0.5)."),
+                new FieldSpec("include_players", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("Whether to pull other players (default true)."),
+                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Optional filter on which entities to pull.")));
     }
 
     /**

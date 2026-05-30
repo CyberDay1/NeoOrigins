@@ -76,24 +76,18 @@ public final class ActionParser {
             // registered descriptor dispatch here; the switch below holds only
             // the not-yet-migrated arms. Behaviour is identical — the factory is
             // the lift-and-shift of the old case body.
+            // Registry-refactor migration complete (D1): every built-in action verb
+            // is now a registered descriptor (see BuiltinActions). The former
+            // type-switch is retired — dispatch is a single descriptor lookup, and
+            // an unknown verb falls through to the unsupported-action no-op (which
+            // records a CompatWarningCollector entry, preserving the old default
+            // arm's behaviour). Addon-contributed verbs resolve through the same
+            // BuiltinActions.get path once their descriptors are registered.
             ActionType descriptor = BuiltinActions.get(type);
             if (descriptor != null) {
                 return descriptor.factory().create(json, contextId);
             }
-            return switch (type) {
-                // ---- Phase 2: New actions ----
-                case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
-
-                // ---- Phase 0/1: new actions for consolidation (active_ability) ----
-                case "neoorigins:chain_to_nearest"              -> parseChainToNearest(json, contextId);
-                case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
-
-                // ---- Lingering-area VFX (spawns LingeringAreaEntity) ----
-                case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
-                case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
-                case "neoorigins:spawn_tornado"                 -> parseSpawnTornado(json, contextId);
-                default -> failNoop(type, contextId, "unsupported action type");
-            };
+            return failNoop(type, contextId, "unsupported action type");
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
@@ -101,7 +95,7 @@ public final class ActionParser {
 
     // ---- Phase 2: New action parsers ----
 
-    private static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
+    static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
         // AoE: run entity_action against every ServerPlayer within the radius.
         // For the common {@code apply_effect} inner action, ALSO apply the same
         // MobEffect to non-player {@link net.minecraft.world.entity.LivingEntity}
@@ -275,7 +269,7 @@ public final class ActionParser {
      *   <li>{@code particle_type} (string, default "minecraft:witch") — particle emitted each tick</li>
      * </ul>
      */
-    private static EntityAction parseSpawnLingeringArea(JsonObject json, String contextId) {
+    static EntityAction parseSpawnLingeringArea(JsonObject json, String contextId) {
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final int intervalTicks = json.has("interval_ticks") ? json.get("interval_ticks").getAsInt() : 20;
@@ -334,7 +328,7 @@ public final class ActionParser {
      * <p>Spawns at the impact point when invoked from an on_hit_action; at
      * the caster's position otherwise.
      */
-    private static EntityAction parseSpawnBlackHole(JsonObject json, String contextId) {
+    static EntityAction parseSpawnBlackHole(JsonObject json, String contextId) {
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 6.0f;
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final float pullStrength = json.has("pull_strength") ? json.get("pull_strength").getAsFloat() : 1.5f;
@@ -379,7 +373,7 @@ public final class ActionParser {
      *   <li>{@code effect_type} (string, default "") — color key for future renderer hooks</li>
      * </ul>
      */
-    private static EntityAction parseSpawnTornado(JsonObject json, String contextId) {
+    static EntityAction parseSpawnTornado(JsonObject json, String contextId) {
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 5.0f;
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final float pullStrength = json.has("pull_strength") ? json.get("pull_strength").getAsFloat() : 1.0f;
@@ -413,7 +407,7 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parseChainToNearest(JsonObject json, String contextId) {
+    static EntityAction parseChainToNearest(JsonObject json, String contextId) {
         // Pull the player toward the nearest entity matching `entity_condition` (default: any living).
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
         final float speed  = json.has("speed")  ? json.get("speed").getAsFloat()  : 1.0f;
@@ -441,7 +435,7 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parsePullEntities(JsonObject json, String contextId) {
+    static EntityAction parsePullEntities(JsonObject json, String contextId) {
         // Pull nearby entities toward the caster.
         final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 8f;
         final float strength = json.has("strength") ? json.get("strength").getAsFloat() : 0.5f;
