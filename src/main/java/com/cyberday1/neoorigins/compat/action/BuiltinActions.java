@@ -1432,6 +1432,133 @@ public final class BuiltinActions {
                     .doc("Alias for on_hit_action."),
                 new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
                     .doc("Visual palette id for MagicOrb projectiles (client-side).")));
+
+        // execute_command — run a command at server (permission level 2). Lift-and-
+        // shift of parseExecuteCommand. `command` defaults to "" and a blank command
+        // silently no-ops (parser does not hard-fail), so it is modelled optional.
+        // When the dispatch context carries a BlockPos (BLOCK_BREAK/PLACE/USE or a
+        // synthetic raycast hit), the command source is repositioned at that block's
+        // centre so `~ ~ ~` resolves to "this block".
+        define("execute_command",
+            (json, ctx) -> {
+                String command = json.has("command") ? json.get("command").getAsString() : "";
+                return player -> {
+                    if (player.level().getServer() == null || command.isBlank()) return;
+                    try {
+                        net.minecraft.core.BlockPos blockPos = ActionParser.extractCommandBlockPos(
+                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                        var pos = blockPos != null
+                            ? net.minecraft.world.phys.Vec3.atCenterOf(blockPos)
+                            : player.position();
+                        var serverSource = player.level().getServer().createCommandSourceStack()
+                            .withSuppressedOutput()
+                            .withEntity(player)
+                            .withPosition(pos)
+                            .withRotation(player.getRotationVector())
+                            .withLevel((net.minecraft.server.level.ServerLevel) player.level());
+                        String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
+                        player.level().getServer().getCommands().performPrefixedCommand(serverSource, finalCmd);
+                    } catch (Exception e) {
+                        NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());
+                    }
+                };
+            },
+            List.of(new FieldSpec("command", FormFieldSpec.Kind.STRING, false).def("")
+                .doc("Command to run at server authority; `~ ~ ~` resolves to the dispatch block when available.")));
+
+        // drop_items — spawn one or more item stacks at the dispatch position.
+        // Lift-and-shift of parseDropItems (see ActionParser's original javadoc for
+        // the each/one_of semantics). `items` required-ish but the parser no-ops
+        // silently when absent/empty → modelled optional.
+        define("drop_items",
+            (json, ctx) -> {
+                if (!json.has("items") || !json.get("items").isJsonArray()) return EntityAction.noop();
+                record Drop(net.minecraft.core.Holder<net.minecraft.world.item.Item> item,
+                            int countMin, int countMax, float chance, int weight) {}
+                List<Drop> drops = new java.util.ArrayList<>();
+                for (com.google.gson.JsonElement el : json.getAsJsonArray("items")) {
+                    if (!el.isJsonObject()) continue;
+                    com.google.gson.JsonObject obj = el.getAsJsonObject();
+                    if (!obj.has("item")) continue;
+                    Identifier itemId = Identifier.parse(obj.get("item").getAsString());
+                    var resolved = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemId).orElse(null);
+                    if (resolved == null) {
+                        NeoOrigins.LOGGER.warn("[CompatB] drop_items: unknown item '{}' — skipped", itemId);
+                        continue;
+                    }
+                    int countMin = 1, countMax = 1;
+                    if (obj.has("count")) {
+                        com.google.gson.JsonElement cEl = obj.get("count");
+                        if (cEl.isJsonArray() && cEl.getAsJsonArray().size() >= 2) {
+                            countMin = cEl.getAsJsonArray().get(0).getAsInt();
+                            countMax = cEl.getAsJsonArray().get(1).getAsInt();
+                            if (countMax < countMin) { int t = countMin; countMin = countMax; countMax = t; }
+                        } else if (cEl.isJsonPrimitive()) {
+                            countMin = countMax = cEl.getAsInt();
+                        }
+                    }
+                    float chance = obj.has("chance") ? obj.get("chance").getAsFloat() : 1.0f;
+                    int weight = Math.max(1, obj.has("weight") ? obj.get("weight").getAsInt() : 1);
+                    drops.add(new Drop(resolved, countMin, countMax, chance, weight));
+                }
+                if (drops.isEmpty()) return EntityAction.noop();
+
+                String mode = json.has("mode") ? json.get("mode").getAsString().toLowerCase(java.util.Locale.ROOT) : "each";
+                int rolls = Math.max(1, json.has("rolls") ? json.get("rolls").getAsInt() : 1);
+                boolean oneOf = "one_of".equals(mode) || "single".equals(mode) || "weighted".equals(mode);
+                int totalWeight = 0;
+                for (Drop d : drops) totalWeight += d.weight();
+                final int finalTotalWeight = totalWeight;
+                final int finalRolls = rolls;
+                return player -> {
+                    net.minecraft.core.BlockPos blockPos = ActionParser.extractCommandBlockPos(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    net.minecraft.world.phys.Vec3 spawn = blockPos != null
+                        ? net.minecraft.world.phys.Vec3.atCenterOf(blockPos)
+                        : player.position().add(0, 0.5, 0);
+                    var random = player.getRandom();
+
+                    if (oneOf) {
+                        for (int r = 0; r < finalRolls; r++) {
+                            int roll = random.nextInt(finalTotalWeight);
+                            int cum = 0;
+                            for (Drop d : drops) {
+                                cum += d.weight();
+                                if (roll < cum) {
+                                    int count = d.countMin() == d.countMax() ? d.countMin()
+                                        : d.countMin() + random.nextInt(d.countMax() - d.countMin() + 1);
+                                    if (count > 0) {
+                                        net.minecraft.world.entity.item.ItemEntity entity = new net.minecraft.world.entity.item.ItemEntity(player.level(),
+                                            spawn.x, spawn.y, spawn.z, new net.minecraft.world.item.ItemStack(d.item(), count));
+                                        entity.setDefaultPickUpDelay();
+                                        player.level().addFreshEntity(entity);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        for (Drop d : drops) {
+                            if (d.chance() < 1.0f && random.nextFloat() >= d.chance()) continue;
+                            int count = d.countMin() == d.countMax() ? d.countMin()
+                                : d.countMin() + random.nextInt(d.countMax() - d.countMin() + 1);
+                            if (count <= 0) continue;
+                            net.minecraft.world.entity.item.ItemEntity entity = new net.minecraft.world.entity.item.ItemEntity(player.level(),
+                                spawn.x, spawn.y, spawn.z, new net.minecraft.world.item.ItemStack(d.item(), count));
+                            entity.setDefaultPickUpDelay();
+                            player.level().addFreshEntity(entity);
+                        }
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("mode", FormFieldSpec.Kind.ENUM, false).def("each")
+                    .options("each", "one_of", "single", "weighted")
+                    .doc("'each' rolls every entry independently; 'one_of' picks one weighted by 'weight'."),
+                new FieldSpec("rolls", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
+                    .doc("Number of weighted picks in one_of mode (default 1; ignored in each mode)."),
+                new FieldSpec("items", FormFieldSpec.Kind.ARRAY, false)
+                    .doc("Drop entries — each: {item, count (int|[min,max]), chance (each-mode), weight (one_of-mode)}.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
