@@ -119,19 +119,21 @@ public final class PowerSchemaGenerator {
             branches.add(new Branch(id, buildPowerBranch(id, entry.getValue().fields())));
         }
 
-        // Preserved branches parsed out of the current committed file.
-        JsonObject preservedParticle = findPreservedBranch(current, ID_PARTICLE);
-        JsonObject preservedStarting = findPreservedBranch(current, ID_STARTING_EQUIPMENT);
-        if (preservedParticle == null) {
-            throw new IOException("Could not locate preserved branch " + ID_PARTICLE
-                + " in current schema.");
+        // Preserved branches parsed out of the current committed file. These are
+        // hand-written, unrepresentable shapes spliced back verbatim. Whether a
+        // given branch exists is per-branch: 1.21.1 ships both particle AND a
+        // structured starting_equipment branch, while 26.1 only has particle
+        // (starting_equipment lives in the enum and falls to the fallback). So
+        // splice a preserved branch ONLY if the source file actually has one;
+        // otherwise its id stays in the enum (added in buildTypeEnum) and matches
+        // the permissive fallback. This keeps regeneration behavior-neutral on
+        // either branch instead of fabricating a branch that wasn't there.
+        for (String id : List.of(ID_PARTICLE, ID_STARTING_EQUIPMENT)) {
+            JsonObject preserved = findPreservedBranch(current, id);
+            if (preserved != null) {
+                branches.add(new Branch(id, preserved));
+            }
         }
-        if (preservedStarting == null) {
-            throw new IOException("Could not locate preserved branch " + ID_STARTING_EQUIPMENT
-                + " in current schema.");
-        }
-        branches.add(new Branch(ID_PARTICLE, preservedParticle));
-        branches.add(new Branch(ID_STARTING_EQUIPMENT, preservedStarting));
 
         // Sort ALL branches together, alphabetically by id.
         branches.sort(Comparator.comparing(Branch::id));
