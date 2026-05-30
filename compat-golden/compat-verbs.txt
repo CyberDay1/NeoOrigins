@@ -396,3 +396,4 @@ neoorigins:edible_item	fields={always_edible,consume_sound,items,nutrition,satur
 neoorigins:loot_pool_grant	fields={active,bonus_rolls,cooldown,grant_id,loot_table,rolls}
 neoorigins:restrict_armor	fields={restrictions}
 neoorigins:modify_player_spawn	fields={location,override_bed}
+neoorigins:persistent_effect	fields={condition,default_off,effects,toggleable}

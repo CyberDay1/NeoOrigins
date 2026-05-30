@@ -48,9 +48,9 @@ public final class SchemaFormCheck {
         // 3. A known structured branch still resolves with fields. (Uses a power
         //    that is NOT yet registered in BuiltinPowers — registering a power
         //    collapses its schema branch, so the sample must be a still-branched
-        //    type; attribute_modifier and mob_behavior moved to the spec, so this
-        //    points at persistent_effect, which keeps its schema branch.)
-        String structuredSample = "neoorigins:persistent_effect";
+        //    type; attribute_modifier, mob_behavior and persistent_effect moved to
+        //    the spec, so this points at particle, which keeps its schema branch.)
+        String structuredSample = "neoorigins:particle";
         if (!model.hasStructuredForm(structuredSample)) {
             System.out.println("[schema-check] FAIL  expected structured branch for "
                 + structuredSample);

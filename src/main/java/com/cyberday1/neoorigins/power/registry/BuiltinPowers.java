@@ -860,6 +860,31 @@ public final class BuiltinPowers {
                 .doc("Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it."),
             new FieldSpec("override_bed", Kind.BOOLEAN, false)
                 .def(false).doc("When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).")));
+
+        //   • persistent_effect: a hand-rolled Codec whose Config record carries
+        //     only FOUR user-facing components — effects (List<EffectSpec>, built
+        //     from the `effects` array OR a single root-level effect shorthand;
+        //     empty when absent → not required), condition (EntityCondition,
+        //     defaults alwaysTrue → REF, not required), toggleable (bool default
+        //     true) and defaultOff→`default_off` (bool default false). The old
+        //     schema branch ALSO listed effect/amplifier/show_icon/show_particles
+        //     /ambient (root-level shorthand + cascade-override hooks the codec
+        //     folds INTO each EffectSpec, NOT separate Config components) and a
+        //     `duration` field the codec never reads (phantom — effects apply at
+        //     INFINITE_DURATION). Those non-components can't be FieldSpecs (the
+        //     drift audit resolves each spec name to a record component), so the
+        //     spec is the four real components and the branch collapses. (This
+        //     also moves SchemaFormCheck's hardcoded structured sample off
+        //     persistent_effect onto the still-branched `particle`.)
+        define("persistent_effect", PersistentEffectPower.class, List.of(
+            new FieldSpec("effects", Kind.ARRAY, false)
+                .doc("List of effect entries, each {effect|id, amplifier?, ambient?, show_particles?, show_icon?}, applied at INFINITE_DURATION while active. A single effect may instead be authored as the root-level shorthand (effect/amplifier/... at the power root); root-level ambient/show_particles/show_icon/amplifier also cascade as defaults onto every entry that omits them. Empty list = no effect."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gating the effects: they apply only while it passes and are cleared the moment it stops (default always-true)."),
+            new FieldSpec("toggleable", Kind.BOOLEAN, false)
+                .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
+            new FieldSpec("default_off", Kind.BOOLEAN, false)
+                .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
