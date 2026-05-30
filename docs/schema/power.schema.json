@@ -230,20 +230,6 @@
       "required": ["type"]
     },
     {
-      "$comment": "neoorigins:mount",
-      "properties": {
-        "type": { "const": "neoorigins:mount" },
-        "range": { "type": "number", "exclusiveMinimum": 0 },
-        "cooldown_ticks": { "type": "integer", "minimum": 0 },
-        "hunger_cost": { "type": "integer", "minimum": 0 },
-        "allow_players": { "type": "boolean" },
-        "allow_mobs": { "type": "boolean" },
-        "block_bosses": { "type": "boolean" },
-        "mount_position": { "type": "string", "enum": ["centered", "shoulder"] }
-      },
-      "required": ["type"]
-    },
-    {
       "$comment": "neoorigins:edible_item",
       "properties": {
         "type": { "const": "neoorigins:edible_item" },
@@ -255,14 +241,6 @@
         "always_edible": { "type": "boolean" },
         "fast": { "type": "boolean" },
         "meat": { "type": "boolean" }
-      },
-      "required": ["type"]
-    },
-    {
-      "$comment": "neoorigins:enhanced_vision",
-      "properties": {
-        "type": { "const": "neoorigins:enhanced_vision" },
-        "exposure": { "type": "number", "minimum": 0, "maximum": 1 }
       },
       "required": ["type"]
     },
@@ -321,16 +299,6 @@
         "chest": { "type": "object" },
         "legs": { "type": "object" },
         "feet": { "type": "object" }
-      },
-      "required": ["type"]
-    },
-    {
-      "$comment": "neoorigins:keep_inventory",
-      "properties": {
-        "type": { "const": "neoorigins:keep_inventory" },
-        "slots": { "type": "array", "items": { "type": "string" } },
-        "items": { "type": "array", "items": { "type": "string" } },
-        "tags": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["type"]
     },

@@ -215,6 +215,84 @@ public final class BuiltinPowers {
                 .doc("Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled."),
             new FieldSpec("msg_ids", Kind.ARRAY, false)
                 .doc("Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.")));
+
+        // ── Group R (cont.) — batch B ───────────────────────────────────────
+        // More primitive/enum/list records. A bare `fieldOf` (no default) is a
+        // hard-required field → required=true (e.g. light_level_effect.effect,
+        // low_hp_threshold.effects); `Optional<>`-typed components stay
+        // required=false with no default (modify_food_nutrition.food_item/tag,
+        // no_slowdown.block_tag). enhanced_vision / keep_inventory / mount each
+        // keep their power.schema.json branch, which the spec stays consistent
+        // with (every schema field appears here); the field_docs.json entries
+        // collapse onto the specs.
+        define("enhanced_vision", EnhancedVisionPower.class, List.of(
+            new FieldSpec("exposure", Kind.NUMBER, false)
+                .def(0.7).range(0.0, 1.0).doc("Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7).")));
+        define("keep_inventory", KeepInventoryPower.class, List.of(
+            new FieldSpec("slots", Kind.ARRAY, false)
+                .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *)."),
+            new FieldSpec("items", Kind.ARRAY, false)
+                .doc("Item ids to keep on death; empty (with empty tags) keeps everything."),
+            new FieldSpec("tags", Kind.ARRAY, false)
+                .doc("Item tag ids whose matching items are kept on death.")));
+        define("less_item_use_slowdown", LessItemUseSlowdownPower.class, List.of(
+            new FieldSpec("item_type", Kind.STRING, false)
+                .def("any").doc("Item being used that gets reduced slowdown: any, bow, shield, or an id substring."),
+            new FieldSpec("speed_multiplier", Kind.NUMBER, false)
+                .def(0.5).doc("Movement-speed bonus while using the item, as a fraction of base (default 0.5).")));
+        define("light_level_effect", LightLevelEffectPower.class, List.of(
+            new FieldSpec("max_light_level", Kind.INTEGER, false)
+                .def(4).doc("Highest light level at which the effect still applies (default 4)."),
+            new FieldSpec("effect", Kind.STRING, true)
+                .doc("Mob effect id applied at/below the light threshold (required)."),
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .def(0).doc("Effect amplifier level, 0 = level I (default 0)."),
+            new FieldSpec("ambient", Kind.BOOLEAN, false)
+                .def(true).doc("Whether the applied effect is ambient (fainter particles; default true)."),
+            new FieldSpec("show_particles", Kind.BOOLEAN, false)
+                .def(false).doc("Whether the effect's ambient particles are shown (default false)."),
+            new FieldSpec("show_icon", Kind.BOOLEAN, false)
+                .def(false).doc("Whether the effect's HUD icon is shown (default false).")));
+        define("low_hp_threshold", LowHPThresholdPower.class, List.of(
+            new FieldSpec("threshold", Kind.NUMBER, false)
+                .def(0.5).doc("Health fraction below which the effects activate (0.5 = 50%; default 0.5)."),
+            new FieldSpec("effects", Kind.ARRAY, true)
+                .doc("List of {effect, amplifier} entries applied while below the threshold.")));
+        define("mobs_ignore_player", MobsIgnorePlayerPower.class, List.of(
+            new FieldSpec("entity_types", Kind.ARRAY, false)
+                .doc("Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob."),
+            new FieldSpec("passive", Kind.BOOLEAN, false)
+                .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).")));
+        define("modify_food_nutrition", ModifyFoodNutritionPower.class, List.of(
+            new FieldSpec("nutrition", Kind.INTEGER, false)
+                .def(1).doc("Hunger points matching food gives, saturation scaled with it (default 1)."),
+            new FieldSpec("food_item", Kind.STRING, false)
+                .doc("Optional item id; only this food's nutrition is overridden."),
+            new FieldSpec("food_tag", Kind.STRING, false)
+                .doc("Optional item tag; only matching foods are overridden.")));
+        define("mount", MountPower.class, List.of(
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(5.0).doc("Max distance in blocks to raycast for the entity to mount (default 5)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(100).doc("Ticks before the mount ability can be reused (100 = 5s)."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Hunger consumed each time an entity is mounted."),
+            new FieldSpec("allow_players", Kind.BOOLEAN, false)
+                .def(true).doc("Whether this power can mount other players (default true)."),
+            new FieldSpec("allow_mobs", Kind.BOOLEAN, false)
+                .def(true).doc("Whether this power can mount mobs (default true)."),
+            new FieldSpec("block_bosses", Kind.BOOLEAN, false)
+                .def(true).doc("Prevent mounting boss mobs like the Ender Dragon or Wither (default true)."),
+            new FieldSpec("mount_position", Kind.STRING, false)
+                .def("centered").doc("Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side).")));
+        define("no_mob_spawns_nearby", NoMobSpawnsNearbyPower.class, List.of(
+            new FieldSpec("radius", Kind.INTEGER, false)
+                .def(24).doc("Block radius around the player where natural spawning is suppressed (default 24). Vanilla already blocks MONSTER-category natural spawns within 24 blocks of any player, so use a value above 24 to extend the safe zone meaningfully."),
+            new FieldSpec("categories", Kind.ARRAY, false)
+                .doc("Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).")));
+        define("no_slowdown", NoSlowdownPower.class, List.of(
+            new FieldSpec("block_tag", Kind.STRING, false)
+                .doc("Block tag to limit slowdown immunity to; omit for immunity to all slowdown.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
