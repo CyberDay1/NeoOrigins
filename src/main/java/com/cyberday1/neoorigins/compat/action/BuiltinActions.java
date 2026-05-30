@@ -512,6 +512,181 @@ public final class BuiltinActions {
                     .doc("Experience points to grant (default 0)."),
                 new FieldSpec("levels", FormFieldSpec.Kind.INTEGER, false).def(0)
                     .doc("Experience levels to grant (default 0).")));
+
+        // grant_power — dynamically grant a power to the player. Lift-and-shift of
+        // parseGrantPower (26.1: Identifier id). The power id (from `power` or the
+        // `power_id` alias) is the hard requirement (parser no-ops without it).
+        define("grant_power",
+            (json, ctx) -> {
+                String powerId = json.has("power") ? json.get("power").getAsString()
+                               : json.has("power_id") ? json.get("power_id").getAsString() : null;
+                if (powerId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] grant_power: missing power id — action will no-op");
+                    return EntityAction.noop();
+                }
+                final net.minecraft.resources.Identifier pid = net.minecraft.resources.Identifier.parse(powerId);
+                return player -> {
+                    var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                    if (data.hasDynamicGrant(pid)) return;
+                    var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
+                    if (holder == null) {
+                        NeoOrigins.LOGGER.warn("[CompatB] grant_power: unknown power '{}'", pid);
+                        return;
+                    }
+                    boolean fromOrigin = false;
+                    for (var entry : data.getOrigins().entrySet()) {
+                        var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                        if (origin != null && origin.powers().contains(pid)) { fromOrigin = true; break; }
+                    }
+                    if (fromOrigin) {
+                        data.addDynamicGrant(pid);
+                        return;
+                    }
+                    if (data.addDynamicGrant(pid)) {
+                        holder.onGranted(player);
+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                            new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, pid));
+                        com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
+                    .doc("Power id to grant (or use the `power_id` alias)."),
+                new FieldSpec("power_id", FormFieldSpec.Kind.STRING, false)
+                    .doc("Alias for power.")));
+
+        // revoke_power — remove a dynamically-granted power from the player.
+        // Lift-and-shift of parseRevokePower (26.1: Identifier id). The power id
+        // (from `power` or the `power_id` alias) is the hard requirement.
+        define("revoke_power",
+            (json, ctx) -> {
+                String powerId = json.has("power") ? json.get("power").getAsString()
+                               : json.has("power_id") ? json.get("power_id").getAsString() : null;
+                if (powerId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] revoke_power: missing power id — action will no-op");
+                    return EntityAction.noop();
+                }
+                final net.minecraft.resources.Identifier pid = net.minecraft.resources.Identifier.parse(powerId);
+                return player -> {
+                    var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                    if (!data.hasDynamicGrant(pid)) return;
+                    var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
+                    if (data.removeDynamicGrant(pid) && holder != null) {
+                        boolean stillGranted = false;
+                        for (var entry : data.getOrigins().entrySet()) {
+                            var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+                            if (origin != null && origin.powers().contains(pid)) { stillGranted = true; break; }
+                        }
+                        if (!stillGranted) {
+                            holder.onRevoked(player);
+                            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                                new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, pid));
+                        }
+                        com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
+                    .doc("Power id to revoke (or use the `power_id` alias)."),
+                new FieldSpec("power_id", FormFieldSpec.Kind.STRING, false)
+                    .doc("Alias for power.")));
+
+        // teleport_to_marker — teleport to absolute coords (`position`) or by a
+        // dx/dy/dz offset. Lift-and-shift of parseTeleportToMarker. All fields
+        // optional (offsets default 0); presence of `position` switches to
+        // absolute mode.
+        define("teleport_to_marker",
+            (json, ctx) -> {
+                final double dx = json.has("dx") ? json.get("dx").getAsDouble() : 0;
+                final double dy = json.has("dy") ? json.get("dy").getAsDouble() : 0;
+                final double dz = json.has("dz") ? json.get("dz").getAsDouble() : 0;
+                final boolean absolute = json.has("position");
+                final double px = absolute ? json.getAsJsonObject("position").get("x").getAsDouble() : 0;
+                final double py = absolute ? json.getAsJsonObject("position").get("y").getAsDouble() : 0;
+                final double pz = absolute ? json.getAsJsonObject("position").get("z").getAsDouble() : 0;
+                return player -> {
+                    if (absolute) {
+                        player.teleportTo(px, py, pz);
+                    } else {
+                        player.teleportTo(player.getX() + dx, player.getY() + dy, player.getZ() + dz);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("position", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Absolute target {x, y, z}; when present, overrides the dx/dy/dz offset."),
+                new FieldSpec("dx", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("X offset from the player (default 0)."),
+                new FieldSpec("dy", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Y offset from the player (default 0)."),
+                new FieldSpec("dz", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Z offset from the player (default 0).")));
+
+        // random_teleport — try N random nearby positions and teleport to the
+        // first air gap. Lift-and-shift of parseRandomTeleport (26.1: level
+        // .getMinY()/.getMaxY()). All fields optional: horizontal_range (or
+        // `range` alias) default 16.0, vertical_range default 8.0, attempts 16.
+        define("random_teleport",
+            (json, ctx) -> {
+                final double hRange = json.has("horizontal_range") ? json.get("horizontal_range").getAsDouble()
+                                    : json.has("range") ? json.get("range").getAsDouble() : 16.0;
+                final double vRange = json.has("vertical_range") ? json.get("vertical_range").getAsDouble() : 8.0;
+                final int attempts = json.has("attempts") ? json.get("attempts").getAsInt() : 16;
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
+                    var rng = player.getRandom();
+                    double px = player.getX(), py = player.getY(), pz = player.getZ();
+                    for (int i = 0; i < attempts; i++) {
+                        double tx = px + (rng.nextDouble() - 0.5) * hRange * 2;
+                        double ty = py + (rng.nextDouble() - 0.5) * vRange * 2;
+                        double tz = pz + (rng.nextDouble() - 0.5) * hRange * 2;
+                        ty = Math.max(level.getMinY(), Math.min(level.getMaxY() - 2, ty));
+                        var target = net.minecraft.core.BlockPos.containing(tx, ty, tz);
+                        if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {
+                            player.teleportTo(tx, ty, tz);
+                            return;
+                        }
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("horizontal_range", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(0.0, null)
+                    .doc("Max horizontal teleport distance (or use the `range` alias; default 16.0)."),
+                new FieldSpec("range", FormFieldSpec.Kind.NUMBER, false)
+                    .doc("Alias for horizontal_range."),
+                new FieldSpec("vertical_range", FormFieldSpec.Kind.NUMBER, false).def(8.0).range(0.0, null)
+                    .doc("Max vertical teleport distance (default 8.0)."),
+                new FieldSpec("attempts", FormFieldSpec.Kind.INTEGER, false).def(16).range(1.0, null)
+                    .doc("Number of random positions tried before giving up (default 16).")));
+
+        // mount — start riding the nearest unoccupied entity within `radius`.
+        // Lift-and-shift of parseMount (26.1: Identifier + startRiding 3-arg).
+        // `entity_type` optional (absent → any entity); `radius` optional
+        // (parser default 5.0).
+        define("mount",
+            (json, ctx) -> {
+                String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
+                double radius = json.has("radius") ? json.get("radius").getAsDouble() : 5.0;
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    net.minecraft.world.phys.AABB box = player.getBoundingBox().inflate(radius);
+                    for (var entity : sl.getEntities(player, box)) {
+                        if (entityId != null && !net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())
+                                .equals(net.minecraft.resources.Identifier.parse(entityId))) continue;
+                        if (entity.isAlive() && !entity.isPassenger()) {
+                            player.startRiding(entity, true, true);
+                            return;
+                        }
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Entity type id to mount; omit to mount any nearby entity."),
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(5.0).range(0.0, null)
+                    .doc("Search radius around the player (default 5.0).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
