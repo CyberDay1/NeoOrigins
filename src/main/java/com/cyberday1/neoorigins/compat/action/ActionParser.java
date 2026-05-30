@@ -102,7 +102,6 @@ public final class ActionParser {
                      "neoorigins:fire_projectile"               -> parseSpawnProjectile(json, contextId);
                 case "neoorigins:chain_to_nearest"              -> parseChainToNearest(json, contextId);
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
-                case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
 
                 // ---- Lingering-area VFX (spawns LingeringAreaEntity) ----
                 case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
@@ -666,38 +665,6 @@ public final class ActionParser {
                 e.push(dir.x * strength, dir.y * strength + 0.1, dir.z * strength);
                 e.hurtMarked = true;
             }
-        };
-    }
-
-    private static EntityAction parseSwapWithEntity(JsonObject json, String contextId) {
-        // Swap positions with the nearest matching entity in radius.
-        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
-        EntityCondition tgtCond = json.has("target_condition")
-            ? ConditionParser.parse(json.getAsJsonObject("target_condition"), contextId)
-            : EntityCondition.alwaysTrue();
-        final EntityCondition fCond = tgtCond;
-        return player -> {
-            var level = player.level();
-            var aabb = player.getBoundingBox().inflate(radius);
-            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb,
-                e -> e != player && e.isAlive());
-            net.minecraft.world.entity.LivingEntity best = null;
-            double bestDist = Double.MAX_VALUE;
-            var origin = player.position();
-            for (var e : candidates) {
-                if (e instanceof net.minecraft.server.level.ServerPlayer sp && !fCond.test(sp)) continue;
-                double d = e.position().distanceToSqr(origin);
-                if (d < bestDist) { bestDist = d; best = e; }
-            }
-            if (best == null) return;
-            double px = player.getX(), py = player.getY(), pz = player.getZ();
-            float pyaw = player.getYRot(), ppitch = player.getXRot();
-            player.teleportTo(best.getX(), best.getY(), best.getZ());
-            player.setYRot(best.getYRot());
-            player.setXRot(best.getXRot());
-            best.teleportTo(px, py, pz);
-            best.setYRot(pyaw);
-            best.setXRot(ppitch);
         };
     }
 

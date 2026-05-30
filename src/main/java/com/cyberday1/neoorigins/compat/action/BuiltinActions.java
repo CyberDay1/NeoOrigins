@@ -1233,6 +1233,49 @@ public final class BuiltinActions {
             },
             List.of(new FieldSpec("block_action", FormFieldSpec.Kind.OBJECT, false)
                 .doc("Action run at the entity's block position (BlockPos published to context).")));
+
+        // swap_with_entity — swap positions (and look) with the nearest matching
+        // living entity within `radius`. Lift-and-shift of parseSwapWithEntity.
+        // `radius` optional (parser default 16); `target_condition` optional (parser
+        // default always-true) and only applied to ServerPlayer candidates.
+        // (Source commit c960b6cd also migrated kubejs_callback; master has no such
+        // verb, so it is omitted here.)
+        define("swap_with_entity",
+            (json, ctx) -> {
+                final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;
+                EntityCondition tgtCond = json.has("target_condition")
+                    ? ConditionParser.parse(json.getAsJsonObject("target_condition"), ctx)
+                    : EntityCondition.alwaysTrue();
+                final EntityCondition fCond = tgtCond;
+                return player -> {
+                    var level = player.level();
+                    var aabb = player.getBoundingBox().inflate(radius);
+                    var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb,
+                        e -> e != player && e.isAlive());
+                    net.minecraft.world.entity.LivingEntity best = null;
+                    double bestDist = Double.MAX_VALUE;
+                    var origin = player.position();
+                    for (var e : candidates) {
+                        if (e instanceof net.minecraft.server.level.ServerPlayer sp && !fCond.test(sp)) continue;
+                        double d = e.position().distanceToSqr(origin);
+                        if (d < bestDist) { bestDist = d; best = e; }
+                    }
+                    if (best == null) return;
+                    double px = player.getX(), py = player.getY(), pz = player.getZ();
+                    float pyaw = player.getYRot(), ppitch = player.getXRot();
+                    player.teleportTo(best.getX(), best.getY(), best.getZ());
+                    player.setYRot(best.getYRot());
+                    player.setXRot(best.getXRot());
+                    best.teleportTo(px, py, pz);
+                    best.setYRot(pyaw);
+                    best.setXRot(ppitch);
+                };
+            },
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(0.0, null)
+                    .doc("Search radius for swap candidates (default 16)."),
+                new FieldSpec("target_condition", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Optional entity condition; applied to player candidates (default always-true).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
