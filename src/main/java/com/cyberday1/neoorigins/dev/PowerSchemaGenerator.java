@@ -299,6 +299,12 @@ public final class PowerSchemaGenerator {
             }
         }
 
+        // pattern (regex) — STRING fields only; a format hint surfaced by the
+        // web editor (StringFieldSpec.pattern). After type, before default.
+        if (kind == Kind.STRING && fs.pattern() != null) {
+            node.addProperty("pattern", fs.pattern());
+        }
+
         // default (typed) — after type/$ref/oneOf/enum.
         if (fs.defaultValue() != null) {
             Object d = fs.defaultValue();

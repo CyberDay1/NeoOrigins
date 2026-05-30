@@ -70,6 +70,13 @@ public final class BuiltinPowers {
     /** Canonical {@code "neoorigins:<type>"} string → descriptor, for fast lookup. */
     private static final Map<String, PowerSpec> BY_KEY = new java.util.HashMap<>();
 
+    /**
+     * Schema {@code pattern} for resource-location-shaped STRING fields
+     * ({@code namespace:path}). Restores the regex hint the hand-written schema
+     * validated these fields against; surfaced by the web editor as a format hint.
+     */
+    private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
+
     private static void define(String path, Class<?> powerClass, List<FieldSpec> fields) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         PowerSpec spec = new PowerSpec(id, powerClass, fields);
@@ -400,7 +407,8 @@ public final class BuiltinPowers {
                 .def(200).doc("Ticks of continuous sneaking before invisibility kicks in (200 = 10s).")));
         define("summon_minion", SummonMinionPower.class, List.of(
             new FieldSpec("mob_type", Kind.STRING, true)
-                .doc("Entity type id to summon, e.g. minecraft:zombie."),
+                .doc("Entity type id to summon, e.g. minecraft:zombie.")
+                .pattern(RESOURCE_LOCATION_PATTERN),
             new FieldSpec("max_count", Kind.INTEGER, false)
                 .def(3).doc("Max minions of this type alive at once before summoning is blocked."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
@@ -649,7 +657,8 @@ public final class BuiltinPowers {
         // equipment/location conditions are nested OBJECTs.
         define("attribute_modifier", AttributeModifierPower.class, List.of(
             new FieldSpec("attribute", Kind.STRING, true)
-                .doc("Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required."),
+                .doc("Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.")
+                .pattern(RESOURCE_LOCATION_PATTERN),
             new FieldSpec("amount", Kind.NUMBER, true)
                 .doc("Numeric value applied to the attribute under the chosen operation; required."),
             new FieldSpec("operation", Kind.ENUM, false)
@@ -820,7 +829,8 @@ public final class BuiltinPowers {
             new FieldSpec("grant_id", Kind.STRING, true)
                 .doc("Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both."),
             new FieldSpec("loot_table", Kind.STRING, true)
-                .doc("ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers)."),
+                .doc("ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).")
+                .pattern(RESOURCE_LOCATION_PATTERN),
             new FieldSpec("rolls", Kind.INTEGER, false)
                 .def(1).range(0.0, null).doc("Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op."),
             new FieldSpec("bonus_rolls", Kind.INTEGER, false)

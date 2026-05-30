@@ -8,3 +8,8 @@ compat-golden/compat-verbs.txt text eol=lf
 # with a fixed Gson pretty-printer + single trailing LF. Pin LF so Windows-dev
 # and Linux-CI bytes match and the byte-stable regeneration gate can't flap.
 docs/schema/*.json text eol=lf
+
+# website/static/schemas/*.json is a committed copy of docs/schema/*.json that the
+# editor-pages CI workflow re-copies then byte-checks (`git diff --exit-code`). Pin
+# LF to match the docs/schema source so autocrlf can't make the drift gate flap.
+website/static/schemas/*.json text eol=lf

@@ -586,7 +586,8 @@
         },
         "attribute": {
           "description": "Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.",
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "amount": {
           "description": "Numeric value applied to the attribute under the chosen operation; required.",
@@ -1386,7 +1387,8 @@
         },
         "loot_table": {
           "description": "ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).",
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "rolls": {
           "description": "Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op.",
@@ -2543,7 +2545,8 @@
         },
         "mob_type": {
           "description": "Entity type id to summon, e.g. minecraft:zombie.",
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "max_count": {
           "description": "Max minions of this type alive at once before summoning is blocked.",
