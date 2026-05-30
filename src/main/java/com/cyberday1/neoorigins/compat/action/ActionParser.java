@@ -109,13 +109,6 @@ public final class ActionParser {
                 case "neoorigins:pull_entities"                 -> parsePullEntities(json, contextId);
                 case "neoorigins:swap_with_entity"              -> parseSwapWithEntity(json, contextId);
 
-                // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
-                case "neoorigins:add_to_set"                    -> parseAddToSet(json, contextId);
-                case "neoorigins:remove_from_set"               -> parseRemoveFromSet(json, contextId);
-
-                // ---- Toggle verb (flip a toggle-power's boolean state) ----
-                case "neoorigins:toggle"                        -> parseToggle(json);
-
                 // ---- Lingering-area VFX (spawns LingeringAreaEntity) ----
                 case "neoorigins:spawn_lingering_area"          -> parseSpawnLingeringArea(json, contextId);
                 case "neoorigins:spawn_black_hole"              -> parseSpawnBlackHole(json, contextId);
@@ -796,20 +789,6 @@ public final class ActionParser {
         };
     }
 
-    /** Flip (or set, if `value` is given) the toggle state for the named power id. */
-    private static EntityAction parseToggle(JsonObject json) {
-        String powerId = json.has("power") ? json.get("power").getAsString() : null;
-        if (powerId == null || powerId.isBlank()) {
-            return failNoop("neoorigins:toggle", "root", "missing 'power' field");
-        }
-        final Boolean explicit = json.has("value") ? json.get("value").getAsBoolean() : null;
-        final String key = powerId;
-        return player -> {
-            if (explicit != null) com.cyberday1.neoorigins.compat.Toggles.setOn(player, key, explicit);
-            else com.cyberday1.neoorigins.compat.Toggles.flip(player, key);
-        };
-    }
-
     /**
      * Drop one or more item stacks at the current dispatch position. Inline
      * alternative to authoring a vanilla loot table — pack authors who want
@@ -947,7 +926,7 @@ public final class ActionParser {
      * to no-op silently. Mirrors {@code ConditionParser.extractTarget} — any context
      * shape that carries a target LivingEntity is honoured.
      */
-    private static net.minecraft.world.entity.LivingEntity extractBientityTarget(Object ctx) {
+    static net.minecraft.world.entity.LivingEntity extractBientityTarget(Object ctx) {
         if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc) {
             var e = htc.source().getEntity();
             return e instanceof net.minecraft.world.entity.LivingEntity le ? le : null;
@@ -965,42 +944,6 @@ public final class ActionParser {
             }
         }
         return null;
-    }
-
-    /**
-     * Add the current bientity target's UUID to the actor player's named entity-set.
-     * No-op if no bientity context is active or the {@code set} field is missing.
-     */
-    private static EntityAction parseAddToSet(JsonObject json, String contextId) {
-        String setName = json.has("set") ? json.get("set").getAsString() : null;
-        if (setName == null || setName.isBlank()) {
-            return failNoop("neoorigins:add_to_set", contextId, "missing required field 'set'");
-        }
-        final String key = setName;
-        return player -> {
-            var le = extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
-            if (le == null) return;
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            data.addToEntitySet(player, key, le.getUUID());
-        };
-    }
-
-    /**
-     * Remove the current bientity target's UUID from the actor player's named entity-set.
-     * No-op if no bientity context is active or the {@code set} field is missing.
-     */
-    private static EntityAction parseRemoveFromSet(JsonObject json, String contextId) {
-        String setName = json.has("set") ? json.get("set").getAsString() : null;
-        if (setName == null || setName.isBlank()) {
-            return failNoop("neoorigins:remove_from_set", contextId, "missing required field 'set'");
-        }
-        final String key = setName;
-        return player -> {
-            var le = extractBientityTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
-            if (le == null) return;
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            data.removeFromEntitySet(player, key, le.getUUID());
-        };
     }
 
     /**
@@ -1117,7 +1060,7 @@ public final class ActionParser {
     }
 
     /** origins:add_xp — grant experience points or levels. */
-    private static EntityAction failNoop(String type, String contextId, String detail) {
+    static EntityAction failNoop(String type, String contextId, String detail) {
         com.cyberday1.neoorigins.compat.CompatWarningCollector
             .recordUnsupportedAction(type, contextId, detail);
         final String finalType = type;
