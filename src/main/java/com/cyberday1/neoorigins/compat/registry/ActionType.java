@@ -22,11 +22,25 @@ import java.util.List;
  * @param id      canonical {@code neoorigins:<verb>} id (also the registry key).
  * @param factory builds the compiled {@link EntityAction} from the verb's JSON.
  * @param fields  declared config fields, in author-facing order.
+ * @param aliases additional {@code neoorigins:<verb>} ids that dispatch to the
+ *                same factory (e.g. {@code modify_resource} → {@code change_resource}).
+ *                These are <em>known verbs</em>, not separate registry types: only
+ *                the canonical {@link #id()} is registered and counted toward the
+ *                type total; the {@code SchemaFormCheck} audit treats the alias set
+ *                as known so {@code KNOWN_TYPES} parity holds without the alias being
+ *                a distinct descriptor. See locked decision (Task 1 / alias-sets).
  */
-public record ActionType(Identifier id, Factory factory, List<FieldSpec> fields) {
+public record ActionType(Identifier id, Factory factory, List<FieldSpec> fields,
+                         List<Identifier> aliases) {
 
     public ActionType {
         fields = List.copyOf(fields);
+        aliases = List.copyOf(aliases);
+    }
+
+    /** Convenience: a descriptor with no aliases (the common case). */
+    public ActionType(Identifier id, Factory factory, List<FieldSpec> fields) {
+        this(id, factory, fields, List.of());
     }
 
     /** Parse lambda: {@code (json, contextId) -> EntityAction} — mirrors {@code ActionParser.parse}. */

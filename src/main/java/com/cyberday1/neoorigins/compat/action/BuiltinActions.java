@@ -48,6 +48,28 @@ public final class BuiltinActions {
         BY_KEY.put(id.toString(), type);
     }
 
+    /**
+     * Define an aliased descriptor: {@code path} is the canonical id; every entry
+     * in {@code aliasPaths} dispatches to the same factory. Only the canonical id
+     * is registered ({@link #DESCRIPTORS} / the live registry) and counted toward
+     * the type total — the aliases are known-verb synonyms (lift-and-shift of a
+     * multi-label {@code case "a", "b" ->} switch arm), routed through
+     * {@link #BY_KEY} so {@code ActionParser} dispatch accepts them verbatim, and
+     * surfaced to {@code SchemaFormCheck} via {@link #aliasIds()} so the
+     * {@code KNOWN_TYPES} parity check treats them as handled.
+     */
+    private static void define(String path, List<String> aliasPaths,
+                               ActionType.Factory factory, List<FieldSpec> fields) {
+        Identifier id = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
+        List<Identifier> aliases = aliasPaths.stream()
+            .map(p -> Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, p))
+            .toList();
+        ActionType type = new ActionType(id, factory, fields, aliases);
+        DESCRIPTORS.put(id, type);
+        BY_KEY.put(id.toString(), type);
+        for (Identifier alias : aliases) BY_KEY.put(alias.toString(), type);
+    }
+
     static {
         // nothing — explicit no-op. Lift-and-shift of `case "neoorigins:nothing"
         // -> EntityAction.noop()`. No config fields.
@@ -1286,5 +1308,30 @@ public final class BuiltinActions {
     /** All built-in action descriptors, in registration order. */
     public static Map<Identifier, ActionType> descriptors() {
         return Collections.unmodifiableMap(DESCRIPTORS);
+    }
+
+    /**
+     * Canonical {@code neoorigins:<verb>} id strings for every descriptor — the
+     * type total the audit counts (aliases excluded, since an alias is not a
+     * separate type).
+     */
+    public static java.util.Set<String> canonicalIds() {
+        java.util.Set<String> ids = new java.util.TreeSet<>();
+        for (Identifier rl : DESCRIPTORS.keySet()) ids.add(rl.toString());
+        return ids;
+    }
+
+    /**
+     * Alias id strings across all descriptors (synonyms that dispatch to a
+     * canonical verb). Surfaced so {@code SchemaFormCheck} can treat them as known
+     * verbs in the {@code KNOWN_TYPES} parity check without counting them as
+     * separate types.
+     */
+    public static java.util.Set<String> aliasIds() {
+        java.util.Set<String> ids = new java.util.TreeSet<>();
+        for (ActionType t : DESCRIPTORS.values()) {
+            for (Identifier alias : t.aliases()) ids.add(alias.toString());
+        }
+        return ids;
     }
 }
