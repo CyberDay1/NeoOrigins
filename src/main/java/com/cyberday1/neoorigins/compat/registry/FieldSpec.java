@@ -47,7 +47,8 @@ public record FieldSpec(
     String ref,
     String componentName,
     List<FieldSpec> children,
-    boolean virtual
+    boolean virtual,
+    String pattern
 ) {
     public FieldSpec {
         enumValues = enumValues == null ? List.of() : List.copyOf(enumValues);
@@ -59,44 +60,44 @@ public record FieldSpec(
                      List<String> enumValues, Double min, Double max, String description, String ref,
                      String componentName) {
         this(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName,
-             List.of(), false);
+             List.of(), false, null);
     }
 
     /** Full constructor without the key-alias — component defaults to camel→snake(name). */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required, Object defaultValue,
                      List<String> enumValues, Double min, Double max, String description, String ref) {
         this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null,
-             List.of(), false);
+             List.of(), false, null);
     }
 
     /** Minimal spec — name, widget kind, required-ness. Enrich via the fluent withers. */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required) {
-        this(name, kind, required, null, List.of(), null, null, null, null, null, List.of(), false);
+        this(name, kind, required, null, List.of(), null, null, null, null, null, List.of(), false, null);
     }
 
     /** Attach the human-readable help string (D2: doc lives on the spec). */
     public FieldSpec doc(String description) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /** Set the schema {@code default} value. */
     public FieldSpec def(Object defaultValue) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /** Set a numeric range (schema {@code minimum}/{@code maximum}). */
     public FieldSpec range(Double min, Double max) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /** Set the allowed values for an {@link FormFieldSpec.Kind#ENUM} field. */
     public FieldSpec options(String... values) {
-        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName, children, virtual);
+        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /** Set the {@code $ref} target for a {@link FormFieldSpec.Kind#REF} field. */
     public FieldSpec ref(String ref) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /**
@@ -108,7 +109,7 @@ public record FieldSpec(
      * {@code entity_action}. When unset the component is {@code camel→snake(name)}.
      */
     public FieldSpec boundTo(String componentName) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /**
@@ -118,7 +119,7 @@ public record FieldSpec(
      * component map (drift-audit "real OBJECT with children" path).
      */
     public FieldSpec children(FieldSpec... kids) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false, pattern);
     }
 
     /**
@@ -130,7 +131,19 @@ public record FieldSpec(
      * itself and resolves each child against the SAME top-level component map.
      */
     public FieldSpec virtualObject(FieldSpec... kids) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), true);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), true, pattern);
+    }
+
+    /**
+     * Attach a JSON-Schema {@code pattern} (regex) to a
+     * {@link FormFieldSpec.Kind#STRING} field — emitted into the generated
+     * schema's field node and surfaced by the web editor as a format hint
+     * (see {@code StringFieldSpec.pattern}). Used for resource-location-shaped
+     * string fields (e.g. {@code loot_table}, {@code attribute}) that the
+     * hand-written schema validated against {@code ^[a-z0-9_.-]+:[a-z0-9_./-]+$}.
+     */
+    public FieldSpec pattern(String pattern) {
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
     }
 
     /** True when this OBJECT is a virtual wrapper with no backing component of its own. */
