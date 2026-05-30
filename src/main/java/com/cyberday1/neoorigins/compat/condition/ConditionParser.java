@@ -124,28 +124,7 @@ public final class ConditionParser {
                 case "neoorigins:and"                           -> parseAnd(json, contextId);
                 case "neoorigins:or"                            -> parseOr(json, contextId);
                 case "neoorigins:not"                           -> parseNot(json, contextId);
-                case "neoorigins:constant"                      ->
-                    json.has("value") && json.get("value").getAsBoolean()
-                        ? EntityCondition.alwaysTrue() : EntityCondition.alwaysFalse();
                 case "neoorigins:config_flag"                   -> parseConfigFlag(json);
-                case "neoorigins:in_rain"                       -> p -> {
-                    if (!(p.level() instanceof ServerLevel sl)) return false;
-                    if (p.isPassenger()) return false;
-                    // isRainingAt only considers world weather + biome — it does
-                    // not check whether overhead blocks shield the player. A
-                    // glass roof would still report "raining at this position",
-                    // hurting fire-vulnerable origins through the glass (#32).
-                    // Pair with canSeeSky so any solid OR transparent overhead
-                    // block blocks the rain check, matching player intuition.
-                    BlockPos pos = p.blockPosition();
-                    return sl.isRainingAt(pos) && sl.canSeeSky(pos);
-                };
-                case "neoorigins:daytime"                       ->
-                    p -> p.level().getDayTime() % 24000L < 13000L;
-                case "neoorigins:exposed_to_sky"                -> p -> {
-                    if (!(p.level() instanceof ServerLevel sl)) return false;
-                    return sl.canSeeSky(p.blockPosition());
-                };
                 case "neoorigins:exposed_to_sun"                -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     if (p.isPassenger()) return false;
@@ -207,7 +186,6 @@ public final class ConditionParser {
                      "neoorigins:in_block_anywhere"             -> parseInBlock(json, contextId);
                 case "neoorigins:brightness"                    -> parseLightLevel(json);
                 case "neoorigins:height"                        -> parseHeight(json);
-                case "neoorigins:block_collision"               -> EntityCondition.alwaysTrue();
                 case "neoorigins:temperature"                   -> parseTemperature(json);
                 case "neoorigins:armor_value"                   -> parseArmorValue(json);
                 case "neoorigins:amount"                        -> parseAmount(json);
@@ -253,12 +231,6 @@ public final class ConditionParser {
                      "neoorigins:name"                          -> parseDamageName(json);
 
                 // ---- Phase 8: condition expansion (2026-04-24) ----
-                case "neoorigins:night"                         ->
-                    p -> p.level().getDayTime() % 24000L >= 13000L;
-                case "neoorigins:thundering"                    -> p -> {
-                    if (!(p.level() instanceof ServerLevel sl)) return false;
-                    return sl.isThundering() && sl.isRainingAt(p.blockPosition());
-                };
                 case "neoorigins:has_effect"                    -> parseHasEffect(json);
                 case "neoorigins:near_block",
                      "neoorigins:block_in_radius"                  -> parseNearBlock(json, contextId);
