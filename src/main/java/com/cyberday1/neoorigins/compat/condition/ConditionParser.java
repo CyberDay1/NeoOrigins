@@ -157,7 +157,6 @@ public final class ConditionParser {
                     }
                     return true;
                 };
-                case "neoorigins:health"                        -> parseHealth(json);
                 case "neoorigins:cooldown"                      -> parseCooldown(json);
                 case "neoorigins:resource",
                      "neoorigins:resource_level"                -> parseResource(json, contextId);
@@ -165,39 +164,20 @@ public final class ConditionParser {
                 case "neoorigins:on_block"                      -> parseOnBlock(json, contextId);
 
                 // ---- Phase 1: New conditions ----
-                case "neoorigins:dimension"                     -> parseDimension(json);
                 case "neoorigins:biome"                         -> parseBiome(json);
-                case "neoorigins:in_tag"                        -> parseInTag(json);
-                case "neoorigins:food_level", "neoorigins:food" -> parseFoodLevel(json);
-                case "neoorigins:saturation_level"              -> parseSaturationLevel(json);
-                case "neoorigins:submerged_in"                  -> parseSubmergedIn(json);
                 case "neoorigins:equipped_item"                 -> parseEquippedItem(json, contextId);
-                case "neoorigins:relative_health"               -> parseRelativeHealth(json);
-                case "neoorigins:fall_distance"                 -> parseFallDistance(json);
-                case "neoorigins:enchantment"                   -> parseEnchantment(json);
                 case "neoorigins:block"                         -> parseBlockCondition(json, contextId);
-                case "neoorigins:light_level"                   -> parseLightLevel(json);
                 case "neoorigins:nbt"                           -> parseNbt(json);
                 case "neoorigins:scoreboard"                    -> parseScoreboard(json);
                 case "neoorigins:command"                       -> parseCommand(json);
-                case "neoorigins:entity_type"                   -> parseEntityType(json);
-                case "neoorigins:fluid_height"                  -> parseFluidHeight(json);
                 case "neoorigins:in_block",
                      "neoorigins:in_block_anywhere"             -> parseInBlock(json, contextId);
-                case "neoorigins:brightness"                    -> parseLightLevel(json);
-                case "neoorigins:height"                        -> parseHeight(json);
-                case "neoorigins:temperature"                   -> parseTemperature(json);
-                case "neoorigins:armor_value"                   -> parseArmorValue(json);
-                case "neoorigins:amount"                        -> parseAmount(json);
                 case "neoorigins:power_type"                    -> parsePowerType(json, contextId);
                 case "neoorigins:predicate"                     -> parsePredicate(json, contextId);
 
                 // ---- Phase 0 consolidation: new verbs ----
                 case "neoorigins:time_of_day"                   -> parseTimeOfDay(json);
                 case "neoorigins:weather"                       -> parseWeather(json);
-                case "neoorigins:xp_level",
-                     "neoorigins:xp_levels"                     -> parseXpLevel(json);
-                case "neoorigins:xp_points"                     -> parseXpPoints(json);
                 case "neoorigins:moon_phase"                    -> parseMoonPhase(json);
 
                 // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
@@ -329,7 +309,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseHealth(JsonObject json) {
+    static EntityCondition parseHealth(JsonObject json) {
         String comp    = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target  = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -438,7 +418,7 @@ public final class ConditionParser {
 
     // ---- Phase 1: New condition parsers ----
 
-    private static EntityCondition parseDimension(JsonObject json) {
+    static EntityCondition parseDimension(JsonObject json) {
         String dimension = json.has("dimension") ? json.get("dimension").getAsString() : null;
         if (dimension == null) return EntityCondition.alwaysTrue();
         ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimension));
@@ -492,7 +472,7 @@ public final class ConditionParser {
         return EntityCondition.alwaysTrue();
     }
 
-    private static EntityCondition parseInTag(JsonObject json) {
+    static EntityCondition parseInTag(JsonObject json) {
         String tag = json.has("tag") ? json.get("tag").getAsString() : null;
         if (tag == null) return EntityCondition.alwaysTrue();
         // in_tag is typically a biome tag check
@@ -500,7 +480,7 @@ public final class ConditionParser {
         return player -> player.level().getBiome(player.blockPosition()).is(biomeTag);
     }
 
-    private static EntityCondition parseFoodLevel(JsonObject json) {
+    static EntityCondition parseFoodLevel(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -511,14 +491,14 @@ public final class ConditionParser {
      * Apoli's {@code origins:saturation_level} — tests against the float
      * saturation value (vanilla range 0..20, soft-capped to the hunger level).
      */
-    private static EntityCondition parseSaturationLevel(JsonObject json) {
+    static EntityCondition parseSaturationLevel(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> comparison.test(player.getFoodData().getSaturationLevel(), target);
     }
 
-    private static EntityCondition parseSubmergedIn(JsonObject json) {
+    static EntityCondition parseSubmergedIn(JsonObject json) {
         String fluid = json.has("fluid") ? json.get("fluid").getAsString() : "";
         return switch (fluid) {
             case "minecraft:water" -> p -> p.isUnderWater();
@@ -562,7 +542,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseRelativeHealth(JsonObject json) {
+    static EntityCondition parseRelativeHealth(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -573,14 +553,14 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseFallDistance(JsonObject json) {
+    static EntityCondition parseFallDistance(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> comparison.test(player.fallDistance, target);
     }
 
-    private static EntityCondition parseEnchantment(JsonObject json) {
+    static EntityCondition parseEnchantment(JsonObject json) {
         String enchantId = json.has("enchantment") ? json.get("enchantment").getAsString() : null;
         if (enchantId == null) return EntityCondition.alwaysTrue();
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
@@ -624,7 +604,7 @@ public final class ConditionParser {
         return EntityCondition.alwaysTrue();
     }
 
-    private static EntityCondition parseLightLevel(JsonObject json) {
+    static EntityCondition parseLightLevel(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         String lightType = json.has("light_type") ? json.get("light_type").getAsString() : "";
@@ -693,7 +673,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseFluidHeight(JsonObject json) {
+    static EntityCondition parseFluidHeight(JsonObject json) {
         String fluid = json.has("fluid") ? json.get("fluid").getAsString() : "";
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
@@ -723,14 +703,14 @@ public final class ConditionParser {
         return EntityCondition.alwaysTrue();
     }
 
-    private static EntityCondition parseHeight(JsonObject json) {
+    static EntityCondition parseHeight(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> comparison.test(player.getY(), target);
     }
 
-    private static EntityCondition parseTemperature(JsonObject json) {
+    static EntityCondition parseTemperature(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -740,14 +720,14 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseArmorValue(JsonObject json) {
+    static EntityCondition parseArmorValue(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> comparison.test(player.getArmorValue(), target);
     }
 
-    private static EntityCondition parseAmount(JsonObject json) {
+    static EntityCondition parseAmount(JsonObject json) {
         // Generic numeric comparison wrapper — just delegates to comparison fields
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
@@ -827,7 +807,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseEntityType(JsonObject json) {
+    static EntityCondition parseEntityType(JsonObject json) {
         // For a player context, player entity type is always minecraft:player.
         String expected = json.has("entity_type") ? json.get("entity_type").getAsString()
                         : json.has("type_id") ? json.get("type_id").getAsString() : "";
@@ -946,14 +926,14 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseXpLevel(JsonObject json) {
+    static EntityCondition parseXpLevel(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return p -> comparison.test(p.experienceLevel, target);
     }
 
-    private static EntityCondition parseXpPoints(JsonObject json) {
+    static EntityCondition parseXpPoints(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         ComparisonType comparison = ComparisonType.fromString(comp);
