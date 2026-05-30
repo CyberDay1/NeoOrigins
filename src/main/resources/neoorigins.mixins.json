@@ -19,6 +19,7 @@
     "ItemStackEdibleAnimationMixin",
     "LivingEntityIgnoreWaterMixin",
     "PlayerIgnoreWaterMixin",
+    "PlayerTurtleHelmetMixin",
     "LivingEntityWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin",
     "LivingEntityUndeadPotionMixin",

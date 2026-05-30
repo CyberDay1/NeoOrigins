@@ -13,6 +13,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -138,6 +139,11 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                     || sp.hasEffect(MobEffects.WATER_BREATHING)
                     || sp.hasEffect(MobEffects.CONDUIT_POWER)
                     || consumeBacktankAir(sp);
+
+                // Apply turtle helmet effect when in water
+                if (sp.isInWater() && sp.getItemBySlot(EquipmentSlot.HEAD).is(Items.TURTLE_HELMET)) {
+                    sp.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 200, 0, false, false, true));
+                }
             }
             int maxAir = sp.getMaxAirSupply();
             if (inFluid) {
