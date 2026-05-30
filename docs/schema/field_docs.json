@@ -5,14 +5,6 @@
     "hidden": "If true, this power is not listed on the origin screen.",
     "condition": "Only applies while this condition passes (a DSL condition object — use pick)."
   },
-  "neoorigins:action_on_event": {
-    "entity_action": "EntityAction run on the player as a side-effect when the configured event fires.",
-    "modifier": "FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen).",
-    "block_condition": "Block-position filter for block events (block_break, block_place, block_use). Ignored on other events.",
-    "effect": "EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events.",
-    "effect_tag": "EFFECT_APPLIED filter: only fire for effects in this tag (e.g. '#minecraft:harmful'). Combine with 'effect' (OR-matched). Ignored on other events.",
-    "immunity_ticks": "EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace)."
-  },
   "neoorigins:active_ability": {
     "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s); default 60.",
     "entity_action": "EntityAction tree executed on the player when the keybind fires.",
