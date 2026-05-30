@@ -96,8 +96,6 @@ public final class ActionParser {
                 case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
                 case "neoorigins:clear_effect"                  -> parseClearEffect(json);
                 case "neoorigins:play_sound"                    -> parsePlaySound(json);
-                case "neoorigins:add_velocity"                  -> parseAddVelocity(json);
-                case "neoorigins:dash"                          -> parseDash(json);
                 case "neoorigins:change_resource",
                      "neoorigins:modify_resource"               -> parseChangeResource(json);
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
@@ -114,7 +112,6 @@ public final class ActionParser {
                 case "neoorigins:grant_power"                   -> parseGrantPower(json);
                 case "neoorigins:revoke_power"                  -> parseRevokePower(json);
                 case "neoorigins:emit_game_event"               -> parseEmitGameEvent(json);
-                case "neoorigins:swing_hand"                    -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                 case "neoorigins:drop_items"                    -> parseDropItems(json);
 
                 // ---- Phase 0/1: new actions for consolidation (active_ability) ----
@@ -131,7 +128,6 @@ public final class ActionParser {
                 case "neoorigins:ignite_attacker"               -> parseIgniteAttacker(json);
                 case "neoorigins:effect_on_attacker"            -> parseEffectOnAttacker(json);
                 case "neoorigins:random_teleport"               -> parseRandomTeleport(json);
-                case "neoorigins:cancel_event"                  -> parseCancelEvent();
 
                 // ---- Entity-set verbs (mutate a named UUID set on the actor) ----
                 case "neoorigins:add_to_set"                    -> parseAddToSet(json, contextId);
@@ -162,10 +158,6 @@ public final class ActionParser {
                 case "neoorigins:spawn_effect_cloud"            -> parseSpawnEffectCloud(json);
                 case "neoorigins:offset"                        -> parseOffset(json, contextId);
                 case "neoorigins:add_xp"                        -> parseAddXp(json);
-                case "neoorigins:crafting_table"                -> player -> player.openMenu(new net.minecraft.world.SimpleMenuProvider(
-                    (id, inv, p) -> new net.minecraft.world.inventory.CraftingMenu(id, inv, net.minecraft.world.inventory.ContainerLevelAccess.create(p.level(), p.blockPosition())),
-                    net.minecraft.network.chat.Component.translatable("container.crafting")));
-                case "neoorigins:invert"                        -> EntityAction.noop(); // no-op: modifier inversion has no entity-action equivalent
 
                 default -> failNoop(type, contextId, "unsupported action type");
             };
@@ -371,54 +363,6 @@ public final class ActionParser {
                 sl.playSound(null, player.getX(), player.getY(), player.getZ(),
                     sound, net.minecraft.sounds.SoundSource.PLAYERS, volume, pitch);
             }
-        };
-    }
-
-    private static EntityAction parseAddVelocity(JsonObject json) {
-        double x = json.has("x") ? json.get("x").getAsDouble() : 0;
-        double y = json.has("y") ? json.get("y").getAsDouble() : 0;
-        double z = json.has("z") ? json.get("z").getAsDouble() : 0;
-        boolean set = json.has("set") && json.get("set").getAsBoolean();
-        return player -> {
-            if (set) player.setDeltaMovement(x, y, z);
-            else player.push(x, y, z);
-            // Without hurtMarked=true the client keeps simulating its own
-            // physics locally and the server's velocity change is lost at the
-            // next movement packet. Active launch / dash / wind_charge all
-            // depend on this flag to actually move the player.
-            player.hurtMarked = true;
-        };
-    }
-
-    /**
-     * dash: applies a forward impulse in the direction the player is facing.
-     * Variable strength. Optional {@code allow_vertical} (default true) — when
-     * false, pins the dash to horizontal so looking up/down doesn't boost
-     * vertical movement.
-     *
-     * <pre>{ "type": "neoorigins:dash", "strength": 2.0 }</pre>
-     * <pre>{ "type": "neoorigins:dash", "strength": 1.5, "allow_vertical": false }</pre>
-     *
-     * Unlike {@code add_velocity} (which uses fixed x/y/z), dash reads
-     * the player's current look vector and projects strength along it.
-     * Sets {@code hurtMarked = true} so the client doesn't discard the
-     * server-authoritative velocity change on the next movement packet.
-     */
-    private static EntityAction parseDash(JsonObject json) {
-        float strength = json.has("strength") ? json.get("strength").getAsFloat() : 1.5f;
-        boolean allowVertical = !json.has("allow_vertical") || json.get("allow_vertical").getAsBoolean();
-        boolean setVelocity = json.has("set_velocity") && json.get("set_velocity").getAsBoolean();
-        return player -> {
-            Vec3 look = player.getLookAngle();
-            double dx = look.x * strength;
-            double dy = allowVertical ? look.y * strength : 0.0;
-            double dz = look.z * strength;
-            if (setVelocity) {
-                player.setDeltaMovement(dx, dy, dz);
-            } else {
-                player.push(dx, dy, dz);
-            }
-            player.hurtMarked = true;
         };
     }
 
@@ -1324,29 +1268,6 @@ public final class ActionParser {
     }
 
     /** Cancel the current dispatch if its context is an ICancellableEvent. */
-    private static EntityAction parseCancelEvent() {
-        return player -> {
-            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
-            // Some contexts wrap the cancellable event — unwrap those first.
-            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc
-                && fc.event() != null) {
-                fc.event().setCanceled(true);
-                return;
-            }
-            // EFFECT_APPLIED uses NeoForge's Result enum, not ICancellableEvent:
-            // setting DO_NOT_APPLY is what blocks the effect from landing.
-            if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.EffectAppliedContext ec
-                && ec.event() != null) {
-                ec.event().setResult(net.neoforged.neoforge.event.entity.living.MobEffectEvent
-                    .Applicable.Result.DO_NOT_APPLY);
-                return;
-            }
-            if (ctx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
-                ce.setCanceled(true);
-            }
-        };
-    }
-
     /** Flip (or set, if `value` is given) the toggle state for the named power id. */
     private static EntityAction parseToggle(JsonObject json) {
         String powerId = json.has("power") ? json.get("power").getAsString() : null;
