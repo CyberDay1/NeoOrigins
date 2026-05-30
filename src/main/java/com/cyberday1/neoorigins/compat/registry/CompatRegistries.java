@@ -74,6 +74,12 @@ public final class CompatRegistries {
     }
 
     public static void register(IEventBus modEventBus) {
+        // Mirror the static built-in descriptor tables into the DeferredRegisters
+        // so runtime lookups (and, later, addon contributions) resolve through the
+        // live registry. The static tables remain the headless source of truth
+        // (the registry is empty until NewRegistryEvent fires).
+        com.cyberday1.neoorigins.compat.action.BuiltinActions.descriptors().values().forEach(CompatRegistries::reg);
+
         modEventBus.addListener(CompatRegistries::onNewRegistry);
         ACTION_TYPES.register(modEventBus);
         CONDITION_TYPES.register(modEventBus);

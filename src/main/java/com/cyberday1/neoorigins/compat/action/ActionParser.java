@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.compat.CompatPolicy;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.cyberday1.neoorigins.compat.registry.ActionType;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -77,6 +78,14 @@ public final class ActionParser {
             type = canonical;
         }
         try {
+            // Registry-refactor migration (D1): verbs that have moved to a
+            // registered descriptor dispatch here; the switch below holds only
+            // the not-yet-migrated arms. Behaviour is identical — the factory is
+            // the lift-and-shift of the old case body.
+            ActionType descriptor = BuiltinActions.get(type);
+            if (descriptor != null) {
+                return descriptor.factory().create(json, contextId);
+            }
             return switch (type) {
                 case "neoorigins:and"                           -> parseAnd(json, contextId);
                 case "neoorigins:if_else"                       -> parseIfElse(json, contextId);
@@ -95,7 +104,6 @@ public final class ActionParser {
                 case "neoorigins:change_resource",
                      "neoorigins:modify_resource"               -> parseChangeResource(json);
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
-                case "neoorigins:nothing"                       -> EntityAction.noop();
 
                 // ---- Phase 2: New actions ----
                 case "neoorigins:damage"                        -> parseDamage(json);
