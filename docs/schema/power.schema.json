@@ -80,17 +80,6 @@
       "required": ["type"]
     },
     {
-      "$comment": "neoorigins:active_ability",
-      "properties": {
-        "type": { "const": "neoorigins:active_ability" },
-        "entity_action": { "$ref": "action.schema.json" },
-        "cooldown_ticks": { "type": "integer", "minimum": 0 },
-        "hunger_cost": { "type": "integer", "minimum": 0 },
-        "key": { "type": "string", "enum": ["primary", "secondary"] }
-      },
-      "required": ["type", "entity_action"]
-    },
-    {
       "$comment": "neoorigins:prevent_action",
       "properties": {
         "type": { "const": "neoorigins:prevent_action" },
@@ -108,30 +97,6 @@
         "feet":  { "type": "boolean", "description": "ARMOR_EQUIP only — block boots slot." }
       },
       "required": ["type", "action"]
-    },
-    {
-      "$comment": "neoorigins:edible_item",
-      "properties": {
-        "type": { "const": "neoorigins:edible_item" },
-        "items": { "type": "array", "items": { "type": "string" } },
-        "tags": { "type": "array", "items": { "type": "string" } },
-        "item_condition": { "type": "object" },
-        "nutrition": { "type": "integer", "minimum": 0 },
-        "saturation": { "type": "number" },
-        "always_edible": { "type": "boolean" },
-        "fast": { "type": "boolean" },
-        "meat": { "type": "boolean" }
-      },
-      "required": ["type"]
-    },
-    {
-      "$comment": "neoorigins:toggle",
-      "properties": {
-        "type": { "const": "neoorigins:toggle" },
-        "default_value": { "type": "boolean" },
-        "key": { "type": "string", "enum": ["primary", "secondary"] }
-      },
-      "required": ["type"]
     },
     {
       "$comment": "neoorigins:particle",
@@ -173,19 +138,6 @@
         "feet": { "type": "object" }
       },
       "required": ["type"]
-    },
-    {
-      "$comment": "neoorigins:loot_pool_grant — v2.1.6 backlog #3. Active power that rolls a vanilla loot table and grants each rolled stack to the player. Gives pack authors the full vanilla loot infrastructure (weighted entries, conditions, functions) instead of a flat item list. `grant_id` dedups via the shared starting_equipment grant attachment. When the `ftbquests` mod is loaded, FTBQ quests tagged `neoorigins_loot_pool_grant:<loot_table_id>` route through the same grant pipeline on quest completion.",
-      "properties": {
-        "type": { "const": "neoorigins:loot_pool_grant" },
-        "grant_id": { "type": "string", "description": "Unique id tracked so the bundle is granted only once per player." },
-        "loot_table": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$", "description": "ResourceLocation of the vanilla loot table to roll on activation." },
-        "rolls": { "type": "integer", "minimum": 0, "description": "Number of times the table is rolled per activation; default 1." },
-        "bonus_rolls": { "type": "integer", "minimum": 0, "description": "Extra rolls added to `rolls`; default 0. Mirrors vanilla loot-pool naming." },
-        "active": { "type": "string", "description": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system." },
-        "cooldown": { "type": "integer", "minimum": 0, "description": "Cooldown in ticks between activations (20 = 1s); default 0." }
-      },
-      "required": ["type", "grant_id", "loot_table"]
     },
     {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
