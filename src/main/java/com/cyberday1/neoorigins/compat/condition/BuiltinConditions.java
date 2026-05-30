@@ -72,9 +72,47 @@ public final class BuiltinConditions {
 
     static {
         // Descriptors are migrated here verb-by-verb off the ConditionParser
-        // switch (locked decision D1). The table starts empty: standing it up is
-        // behaviour-neutral, and the parser only dispatches through BuiltinConditions
-        // for verbs that have actually moved across.
+        // switch (locked decision D1). Each is the lift-and-shift of the old case
+        // body; the parser dispatches through BuiltinConditions for migrated verbs.
+
+        // ---- Zero-config marker conditions (no JSON fields read) ----
+        // sneaking — player is crouching.
+        define("sneaking", (json, ctx) -> p -> p.isShiftKeyDown(), List.of());
+        // sprinting — player is sprinting.
+        define("sprinting", (json, ctx) -> p -> p.isSprinting(), List.of());
+        // on_ground — player is standing on ground.
+        define("on_ground", (json, ctx) -> p -> p.onGround(), List.of());
+        // in_water — player is in a water column.
+        define("in_water", (json, ctx) -> p -> p.isInWater(), List.of());
+        // swimming — player is in the swimming pose.
+        define("swimming", (json, ctx) -> p -> p.isSwimming(), List.of());
+        // submerged_in_water — player's eyes are underwater.
+        define("submerged_in_water", (json, ctx) -> p -> p.isUnderWater(), List.of());
+        // fall_flying — player is gliding with an elytra.
+        define("fall_flying", (json, ctx) -> p -> p.isFallFlying(), List.of());
+        // invisible — player has the invisibility flag set.
+        define("invisible", (json, ctx) -> p -> p.isInvisible(), List.of());
+        // using_item — player is actively using/charging an item.
+        define("using_item", (json, ctx) -> p -> p.isUsingItem(), List.of());
+        // ticking — player entity has not been removed.
+        define("ticking", (json, ctx) -> p -> !p.isRemoved(), List.of());
+        // exists — player is present and not removed.
+        define("exists", (json, ctx) -> p -> p != null && !p.isRemoved(), List.of());
+        // living — player is alive.
+        define("living", (json, ctx) -> p -> p.isAlive(), List.of());
+        // creative_flying — player's flying ability is active.
+        define("creative_flying", (json, ctx) -> p -> p.getAbilities().flying, List.of());
+        // climbing — player is on a climbable block.
+        define("climbing", (json, ctx) -> p -> p.onClimbable(), List.of());
+        // moving — player has nonzero horizontal delta movement.
+        define("moving", (json, ctx) -> p -> {
+            var dm = p.getDeltaMovement();
+            return dm.x != 0 || dm.z != 0;
+        }, List.of());
+        // passenger / riding — player is riding a vehicle. `riding` is a synonym.
+        define("passenger", List.of("riding"), (json, ctx) -> p -> p.isPassenger(), List.of());
+        // on_fire / fire — player is on fire. `fire` is a synonym.
+        define("on_fire", List.of("fire"), (json, ctx) -> p -> p.isOnFire(), List.of());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
