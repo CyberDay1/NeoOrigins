@@ -220,6 +220,23 @@ tasks.register('goldenMaster', JavaExec) {
          'src/main/resources/data', 'example-pack/data'
 }
 
+// ── Phase 2 / D3: regenerate docs/schema/power.schema.json ──────────────────
+//
+// Emits a full per-power JSON-Schema from the BuiltinPowers FieldSpec registry
+// (editor-metadata only — the power Codec parse path never reads this file).
+// Deterministic: the top-level type.enum and the oneOf branches are sorted by
+// id, and re-running on the generator's own output is byte-identical.
+//
+// Run: ./gradlew generatePowerSchema   (writes docs/schema/power.schema.json)
+tasks.register('generatePowerSchema', JavaExec) {
+    group = 'neoorigins'
+    description = '[2-D3] Regenerate docs/schema/power.schema.json from BuiltinPowers FieldSpecs.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.PowerSchemaGenerator'
+    args 'docs/schema/power.schema.json'
+}
+
 // ── 2.1 creator: package the power schema onto the runtime classpath ────────
 //
 // docs/schema/power.schema.json is the human-facing source of truth. The

@@ -464,8 +464,14 @@ public final class SchemaFormCheck {
             //     only check this once the power declares fields (an empty spec is
             //     the not-yet-migrated/marker case and falls back to the schema).
             if (!spec.fields().isEmpty() && model.hasStructuredForm(typeId)) {
+                // Root common fields (name/description/hidden) are merged into
+                // every branch's form by SchemaFormModel.parse; they are not
+                // per-power FieldSpecs, so exclude them from the coverage check.
+                java.util.Set<String> commonNames = new java.util.HashSet<>();
+                for (FormFieldSpec cf : model.commonFields()) commonNames.add(cf.name());
                 for (FormFieldSpec sf : model.formFor(typeId)) {
                     if (sf.name().equals("type")) continue;
+                    if (commonNames.contains(sf.name())) continue;
                     if (!declaredNames.contains(sf.name())) {
                         System.out.println("[schema-check] FAIL  power-spec " + typeId
                             + ": schema branch field '" + sf.name()
