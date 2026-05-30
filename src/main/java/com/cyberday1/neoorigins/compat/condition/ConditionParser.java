@@ -110,29 +110,23 @@ public final class ConditionParser {
             type = canonical;
         }
         try {
-            // Registry-refactor migration (D1): verbs that have moved to a
-            // registered descriptor dispatch here; the switch below holds only
-            // the not-yet-migrated arms. Behaviour is identical — the factory is
-            // the lift-and-shift of the old case body. Addon-contributed verbs
-            // resolve through the same BuiltinConditions.get path.
+            // Registry-refactor migration (D1): every condition verb now lives in
+            // BuiltinConditions and dispatches through the registered descriptor;
+            // the switch has fully retired, mirroring the action side. Addon-
+            // contributed verbs resolve through the same BuiltinConditions.get
+            // path. An unresolved type is an unknown verb — fail closed.
             com.cyberday1.neoorigins.compat.registry.ConditionType descriptor =
                 BuiltinConditions.get(type);
             if (descriptor != null) {
                 return descriptor.factory().create(json, contextId);
             }
-            return switch (type) {
-                case "neoorigins:and"                           -> parseAnd(json, contextId);
-                case "neoorigins:or"                            -> parseOr(json, contextId);
-                case "neoorigins:not"                           -> parseNot(json, contextId);
-
-                default -> failClosed(type, contextId, "unsupported condition type");
-            };
+            return failClosed(type, contextId, "unsupported condition type");
         } catch (Exception e) {
             return failClosed(type, contextId, "parse error: " + e.getMessage());
         }
     }
 
-    private static EntityCondition parseAnd(JsonObject json, String ctx) {
+    static EntityCondition parseAnd(JsonObject json, String ctx) {
         JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
         List<EntityCondition> list = new ArrayList<>();
         for (JsonElement el : arr) {
@@ -144,7 +138,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseOr(JsonObject json, String ctx) {
+    static EntityCondition parseOr(JsonObject json, String ctx) {
         JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
         List<EntityCondition> list = new ArrayList<>();
         for (JsonElement el : arr) {
@@ -156,7 +150,7 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseNot(JsonObject json, String ctx) {
+    static EntityCondition parseNot(JsonObject json, String ctx) {
         if (!json.has("condition") || !json.get("condition").isJsonObject()) {
             return failClosed("origins:not", ctx, "missing required field 'condition'");
         }
