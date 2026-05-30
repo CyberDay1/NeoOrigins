@@ -76,26 +76,11 @@
     "location_condition": "Optional gate on dimension/biome/structure; active only while there.",
     "operation": "How amount applies: add_value, add_multiplied_base, or add_multiplied_total."
   },
-  "neoorigins:bare_hand_tool": {
-    "tool": "Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe."
-  },
   "neoorigins:breath_in_fluid": {
     "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
     "drain_interval_ticks": "Ticks between each 1-point air drain while submerged; clearer alias of drain_rate. Higher = slower drain (20 = 1s).",
     "air_loss_per_second": "Air points lost per second while submerged. Higher = faster drain. Overrides drain_interval_ticks / drain_rate when set.",
     "fluid": "Fluid that suffocates the player, \"water\" or \"lava\"; default water."
-  },
-  "neoorigins:breath_out_of_fluid": {
-    "drain_rate": "Ticks between each air drain while out of the fluid (20 = 1s).",
-    "fluid": "Fluid the player must stay in to breathe; drying on land drains air."
-  },
-  "neoorigins:burn": {
-    "burn_duration": "Ticks of fire set on the player each application (20 = 1s; default 100).",
-    "interval": "Ticks between each fire application; <=0 disables (default 20)."
-  },
-  "neoorigins:command_pack": {
-    "cooldown_ticks": "Ticks before this ability can be triggered again (default 40).",
-    "range": "Max block distance of the look-targeted entity your tamed mobs attack (default 32)."
   },
   "neoorigins:condition_passive": {
     "entity_action": "EntityAction run on the player each interval when the condition passes.",
@@ -114,15 +99,6 @@
   "neoorigins:conditional": {
     "inner_power": "Resource id of another power that is only active while this condition holds."
   },
-  "neoorigins:craft_amount_bonus": {
-    "bonus_count": "Extra copies of the output added per craft (default 4; skipped if <=0).",
-    "output_item": "Item id whose crafting triggers the bonus (default oak_planks)."
-  },
-  "neoorigins:crop_growth_accelerator": {
-    "growths_per_interval": "Number of random nearby crops bone-mealed each interval (default 1).",
-    "radius": "Cubic block radius around the player scanned for crops (default 4).",
-    "tick_interval": "Ticks between growth passes; <=0 disables (default 40)."
-  },
   "neoorigins:edible_item": {
     "always_edible": "If true the item can be eaten even at full hunger (default true).",
     "fast": "If true the item is consumed with the quick eat animation.",
@@ -136,40 +112,14 @@
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },
-  "neoorigins:elytra_boost": {
-    "cooldown_ticks": "Ticks before the boost can be triggered again (default 40).",
-    "strength": "Multiplier on the forward impulse applied while elytra gliding (default 1.5)."
-  },
   "neoorigins:enhanced_vision": {
     "exposure": "Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7)."
-  },
-  "neoorigins:exhaustion_filter": {
-    "sources": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint])."
-  },
-  "neoorigins:extra_inventory": {
-    "drop_on_death": "If true the extra inventory drops on death instead of persisting (default false).",
-    "size": "Slot count, rounded to a multiple of 9 (min 9, max 54; default 9)."
-  },
-  "neoorigins:fortune_when_effect": {
-    "effect": "Mob effect that must be active on the player for the Fortune bonus.",
-    "level": "Virtual Fortune level rolled via the vanilla ore-drops formula.",
-    "target": "Block tag the bonus applies to (default #c:ores; ancient debris excluded)."
   },
   "neoorigins:ground_slam": {
     "cooldown_ticks": "Ticks before the slam can be reused (default 120 = 6s).",
     "damage": "Damage dealt to each entity caught in the slam (default 6.0).",
     "knockback_strength": "Outward knockback pushing hit entities away (default 1.5).",
     "radius": "Blocks around the player whose entities are hit (default 6.0)."
-  },
-  "neoorigins:horde_regen": {
-    "combat_cooldown_ticks": "Ticks a tamed mob must avoid damage before it can heal (default 100).",
-    "heal_amount": "Health restored to each eligible tamed mob per interval (default 1.0).",
-    "interval_ticks": "Ticks between each horde-healing pass (default 120 = 6s)."
-  },
-  "neoorigins:invulnerability": {
-    "damage_tags": "Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled.",
-    "damage_types": "Damage-type ids (e.g. minecraft:fall) whose damage is cancelled.",
-    "msg_ids": "Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled."
   },
   "neoorigins:keep_inventory": {
     "items": "Item ids to keep on death; empty (with empty tags) keeps everything.",
