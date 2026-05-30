@@ -302,3 +302,13 @@ neoorigins:wraith_phase	x3	recognized=-	fields={blocked_blocks,exhaustion_per_ti
 
 == POWER COVERAGE ==
 # <power-type>	fields={...}  (spec-declared, from BuiltinPowers)
+neoorigins:cobweb_affinity	fields={}
+neoorigins:ender_gaze_immunity	fields={}
+neoorigins:flight	fields={}
+neoorigins:ignore_water	fields={}
+neoorigins:natural_glide	fields={}
+neoorigins:no_natural_regen	fields={}
+neoorigins:no_projectile_divergence	fields={}
+neoorigins:underwater_mining_speed	fields={}
+neoorigins:wall_climbing	fields={}
+neoorigins:water_breathing	fields={}

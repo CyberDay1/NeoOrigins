@@ -76,12 +76,24 @@ public final class BuiltinPowers {
     }
 
     static {
-        // Foundation commit: the table stands up empty. Powers are registered
-        // group-by-group in subsequent commits (markers first, then the
-        // field-bearing batches), each gated on the golden master + SchemaFormCheck
-        // staying green. With nothing registered, FormModel.forPower falls back to
-        // the existing schema-branch / codec-reflection path for every power, so
-        // this commit is behavior-neutral.
+        // ── Group M — marker-only powers ────────────────────────────────────
+        // No config fields: the empty form is correct (nothing to author). These
+        // are the lowest-risk entries — registering them only makes the drift
+        // audit count them; FormModel still resolves an empty field list either
+        // way (declared-empty here, or codec-reflection-empty before), so this is
+        // behavior-neutral. The marker set is exactly SchemaFormCheck
+        // .auditPowerFormCoverage's "marker-only" list; each Config is
+        // `record Config(String type)` (type is internal plumbing, not a field).
+        define("cobweb_affinity",          CobwebAffinityPower.class,         List.of());
+        define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
+        define("flight",                   FlightPower.class,                 List.of());
+        define("ignore_water",             IgnoreWaterPower.class,            List.of());
+        define("natural_glide",            NaturalGlidePower.class,           List.of());
+        define("no_natural_regen",         NoNaturalRegenPower.class,         List.of());
+        define("no_projectile_divergence", NoProjectileDivergencePower.class, List.of());
+        define("underwater_mining_speed",  UnderwaterMiningSpeedPower.class,  List.of());
+        define("wall_climbing",            WallClimbingPower.class,           List.of());
+        define("water_breathing",          WaterBreathingPower.class,         List.of());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
