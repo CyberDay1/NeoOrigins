@@ -3,7 +3,10 @@ package com.cyberday1.neoorigins.compat.condition;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.registry.ConditionType;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
+import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -113,6 +116,40 @@ public final class BuiltinConditions {
         define("passenger", List.of("riding"), (json, ctx) -> p -> p.isPassenger(), List.of());
         // on_fire / fire — player is on fire. `fire` is a synonym.
         define("on_fire", List.of("fire"), (json, ctx) -> p -> p.isOnFire(), List.of());
+
+        // ---- World / time / weather conditions (read live world state) ----
+        // constant — literal boolean. `value` optional (absent → false).
+        define("constant",
+            (json, ctx) -> json.has("value") && json.get("value").getAsBoolean()
+                ? EntityCondition.alwaysTrue() : EntityCondition.alwaysFalse(),
+            List.of(new FieldSpec("value", FormFieldSpec.Kind.BOOLEAN, false)
+                .def(false)
+                .doc("Constant result this condition always returns (default false).")));
+        // block_collision — always true (placeholder; no spatial query implemented).
+        define("block_collision", (json, ctx) -> EntityCondition.alwaysTrue(), List.of());
+        // daytime — vanilla day window (0–13000 of the 24000-tick day).
+        define("daytime",
+            (json, ctx) -> p -> p.level().getDefaultClockTime() % 24000L < 13000L, List.of());
+        // night — vanilla night window (>= 13000 of the day).
+        define("night",
+            (json, ctx) -> p -> p.level().getDefaultClockTime() % 24000L >= 13000L, List.of());
+        // in_rain — raining at the player's exposed position (canSeeSky-gated).
+        define("in_rain", (json, ctx) -> p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            if (p.isPassenger()) return false;
+            BlockPos pos = p.blockPosition();
+            return sl.isRainingAt(pos) && sl.canSeeSky(pos);
+        }, List.of());
+        // exposed_to_sky — open sky directly above the player.
+        define("exposed_to_sky", (json, ctx) -> p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            return sl.canSeeSky(p.blockPosition());
+        }, List.of());
+        // thundering — thunderstorm with rain falling at the player's position.
+        define("thundering", (json, ctx) -> p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            return sl.isThundering() && sl.isRainingAt(p.blockPosition());
+        }, List.of());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
