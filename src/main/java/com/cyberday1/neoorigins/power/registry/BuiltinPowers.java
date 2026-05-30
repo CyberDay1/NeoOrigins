@@ -712,6 +712,54 @@ public final class BuiltinPowers {
             new FieldSpec("immunity_ticks", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
                 .doc("EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace).")));
+
+        // ── Group A — batch 2 (required↔optional flips: schema disagreed) ─────
+        // These three powers' hand-rolled codecs treat as OPTIONAL a field the
+        // power.schema.json branch marked required — registering as the codec
+        // (required=false, with the codec's default) collapses the branch and
+        // corrects the drift. Every JSON key already equals camel→snake of its
+        // record component, so no key-alias is needed.
+        //   • mob_behavior: schema required [type, aggression], but the codec
+        //     defaults aggression to NEUTRAL when absent (o.has("aggression") ?
+        //     … : NEUTRAL) — not required. Every other field defaults too
+        //     (retaliate=true, anger_linger_ticks=200, aggro_range=16.0,
+        //     call_for_help=false); target_type is Optional<>. None required.
+        //   • modify_damage: schema required [type, multiplier], but the codec
+        //     defaults multiplier to 1.0f when absent — not required. direction
+        //     defaults to IN; damage_type/target_group/condition are Optional<>.
+        //   • entity_set: schema required [type, name], but `name` is
+        //     optionalFieldOf("name", "") — not required.
+        define("mob_behavior", MobBehaviorPower.class, List.of(
+            new FieldSpec("aggression", Kind.ENUM, false)
+                .options("neutral", "hostile", "conditional").def("neutral")
+                .doc("neutral = vanilla AI unchanged (only retaliate applies); hostile = always target the target type on sight; conditional = target a player only while every hostile_when condition holds. Default neutral."),
+            new FieldSpec("hostile_when", Kind.ARRAY, false)
+                .doc("List of conditions (AND-ed) tested against the PROSPECTIVE PLAYER TARGET (piglin-style, e.g. 'player not wearing gold'), not the mob. Only used when aggression = conditional; empty list behaves like hostile."),
+            new FieldSpec("retaliate", Kind.BOOLEAN, false)
+                .def(true).doc("Also fight back against whatever damaged the mob (vanilla hurt-by-target). Default true."),
+            new FieldSpec("anger_linger_ticks", Kind.INTEGER, false)
+                .def(200).range(0.0, null).doc("Keep the target this many ticks after the trigger stops holding, so the mob calms down gradually instead of instantly (default 200 = 10s)."),
+            new FieldSpec("aggro_range", Kind.NUMBER, false)
+                .def(16.0).range(0.0, null).doc("Max distance to acquire a target (default 16.0)."),
+            new FieldSpec("target_type", Kind.STRING, false)
+                .doc("Entity type id to be hostile toward; omitted = players. Conditions only apply to player targets."),
+            new FieldSpec("call_for_help", Kind.BOOLEAN, false)
+                .def(false).doc("When retaliating, alert nearby same-type mobs (vanilla pack aggro). Default false.")));
+        define("modify_damage", ModifyDamagePower.class, List.of(
+            new FieldSpec("direction", Kind.ENUM, false)
+                .options("in", "out").def("in")
+                .doc("\"in\" scales damage taken, \"out\" scales damage dealt (default in)."),
+            new FieldSpec("damage_type", Kind.STRING, false)
+                .doc("Either a vanilla msg ID (e.g. 'onFire') or a tag prefixed with #."),
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(1.0).doc("Factor applied to the damage; 0.5 halves, 2.0 doubles (default 1.0)."),
+            new FieldSpec("target_group", Kind.STRING, false)
+                .doc("Optional entity-group filter limiting which targets/attackers apply."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Only applies the multiplier while this DSL condition passes (optional).")));
+        define("entity_set", EntitySetPower.class, List.of(
+            new FieldSpec("name", Kind.STRING, false)
+                .def("").doc("Named UUID set this power declares the player a member of; namespace it (e.g. 'mypack:kill_streak') to avoid collisions. Read/mutated by the in_set / add_to_set / remove_from_set verbs.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

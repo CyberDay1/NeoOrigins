@@ -66,23 +66,6 @@
       "required": ["type", "entity_action"]
     },
     {
-      "$comment": "neoorigins:mob_behavior",
-      "properties": {
-        "type": { "const": "neoorigins:mob_behavior" },
-        "aggression": { "type": "string", "enum": ["neutral", "hostile", "conditional"] },
-        "hostile_when": {
-          "type": "array",
-          "items": { "$ref": "condition.schema.json" }
-        },
-        "retaliate": { "type": "boolean" },
-        "anger_linger_ticks": { "type": "integer", "minimum": 0 },
-        "aggro_range": { "type": "number", "minimum": 0 },
-        "target_type": { "type": "string" },
-        "call_for_help": { "type": "boolean" }
-      },
-      "required": ["type", "aggression"]
-    },
-    {
       "$comment": "neoorigins:persistent_effect",
       "properties": {
         "type": { "const": "neoorigins:persistent_effect" },
@@ -128,18 +111,6 @@
       "required": ["type", "action"]
     },
     {
-      "$comment": "neoorigins:modify_damage",
-      "properties": {
-        "type": { "const": "neoorigins:modify_damage" },
-        "direction": { "type": "string", "enum": ["in", "out"] },
-        "damage_type": { "type": "string", "description": "Either a vanilla msg ID (e.g. 'onFire') or a tag prefixed with #." },
-        "multiplier": { "type": "number" },
-        "target_group": { "type": "string" },
-        "condition": { "$ref": "condition.schema.json" }
-      },
-      "required": ["type", "multiplier"]
-    },
-    {
       "$comment": "neoorigins:edible_item",
       "properties": {
         "type": { "const": "neoorigins:edible_item" },
@@ -181,14 +152,6 @@
         "condition": { "type": "object" }
       },
       "required": ["type", "particle"]
-    },
-    {
-      "$comment": "neoorigins:entity_set",
-      "properties": {
-        "type": { "const": "neoorigins:entity_set" },
-        "name": { "type": "string" }
-      },
-      "required": ["type", "name"]
     },
     {
       "$comment": "neoorigins:modify_player_spawn",
