@@ -564,8 +564,11 @@ public final class BuiltinPowers {
         // NO schema branch whose every authored field maps 1:1 to a record
         // component (snake-case), so the spec is behavior-neutral:
         //   • model_color.condition is Optional<EntityCondition> in the codec →
-        //     a nested condition REF (.ref("#"), required=false), mirroring how
-        //     the action combinators model an embedded condition.
+        //     a nested condition REF (.ref("condition.schema.json"),
+        //     required=false). Unlike the action/condition combinators (which
+        //     legitimately self-ref via "#" because they live IN the
+        //     action/condition doc), a power field must point at the sibling
+        //     condition schema so both editors render a nested condition form.
         //   • breath_in_fluid's codec ALSO accepts two alias input keys
         //     (air_loss_per_second, drain_rate) that are not record components —
         //     reflection never surfaced them as form fields and they keep their
@@ -617,7 +620,7 @@ public final class BuiltinPowers {
                 .def(1.0).range(0.0, 1.0).doc("Blue channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
             new FieldSpec("alpha", Kind.NUMBER, false)
                 .def(1.0).range(0.0, 1.0).doc("Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0)."),
-            new FieldSpec("condition", Kind.REF, false).ref("#")
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Only applies the tint while this DSL condition passes (optional).")));
         define("breath_in_fluid", BreathInFluidPower.class, List.of(
             new FieldSpec("fluid", Kind.STRING, false)
@@ -1022,9 +1025,9 @@ public final class BuiltinPowers {
             new FieldSpec("start_value", Kind.INTEGER, false).doc("Initial value on grant; defaults to max."),
             new FieldSpec("regen_rate", Kind.INTEGER, false).def(0).doc("Amount added each regen interval (0 = no regen)."),
             new FieldSpec("regen_interval", Kind.INTEGER, false).def(20).range(1.0, null).doc("Ticks between regen applications (min 1)."),
-            new FieldSpec("regen_condition", Kind.REF, false).ref("#").doc("Optional EntityCondition gating regen; defaults always-true."),
-            new FieldSpec("min_action", Kind.REF, false).ref("#").doc("Optional EntityAction fired when the value reaches min."),
-            new FieldSpec("max_action", Kind.REF, false).ref("#").doc("Optional EntityAction fired when the value reaches max."),
+            new FieldSpec("regen_condition", Kind.REF, false).ref("condition.schema.json").doc("Optional EntityCondition gating regen; defaults always-true."),
+            new FieldSpec("min_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches min."),
+            new FieldSpec("max_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches max."),
             new FieldSpec("hud_render", Kind.OBJECT, false).virtualObject(
                 new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
                 new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color (hex, e.g. #55AAFF)."),

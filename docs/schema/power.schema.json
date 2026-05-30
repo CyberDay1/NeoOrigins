@@ -1507,7 +1507,7 @@
         },
         "condition": {
           "description": "Only applies the tint while this DSL condition passes (optional).",
-          "$ref": "#"
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2112,15 +2112,15 @@
         },
         "regen_condition": {
           "description": "Optional EntityCondition gating regen; defaults always-true.",
-          "$ref": "#"
+          "$ref": "condition.schema.json"
         },
         "min_action": {
           "description": "Optional EntityAction fired when the value reaches min.",
-          "$ref": "#"
+          "$ref": "action.schema.json"
         },
         "max_action": {
           "description": "Optional EntityAction fired when the value reaches max.",
-          "$ref": "#"
+          "$ref": "action.schema.json"
         },
         "hud_render": {
           "description": "Nested HUD-render block; its keys map to flat label/color/hidden components.",
