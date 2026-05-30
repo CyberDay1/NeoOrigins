@@ -129,7 +129,9 @@ public final class SchemaFormCheck {
             "condition", java.util.Set.of());
         failures += auditParserTypes(
             "src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java",
-            "action", actionDescriptorIds());
+            "action",
+            com.cyberday1.neoorigins.compat.action.BuiltinActions.canonicalIds(),
+            com.cyberday1.neoorigins.compat.action.BuiltinActions.aliasIds());
 
         // 9. Every form field of every power must have a description.
         failures += auditFieldDocs(model);
@@ -178,6 +180,24 @@ public final class SchemaFormCheck {
      * parser actually accepts. Returns the failure count.
      */
     private static int auditParserTypes(String src, String label, java.util.Set<String> descriptorIds) {
+        return auditParserTypes(src, label, descriptorIds, java.util.Set.of());
+    }
+
+    /**
+     * @param descriptorIds canonical migrated descriptor ids (each a distinct
+     *                       registry type that must appear in {@code KNOWN_TYPES}).
+     * @param aliasIds       alias ids — known synonyms that dispatch to a canonical
+     *                       verb. These are handled by the parser but are
+     *                       deliberately <em>not</em> separate types, so they are
+     *                       excluded from the {@code KNOWN_TYPES} parity check on
+     *                       both sides: their absence from {@code KNOWN_TYPES} is
+     *                       not a "missing arm", and a switch/case label for them
+     *                       is not an "unhandled id". The reported type total is
+     *                       {@code KNOWN_TYPES}'s size — aliases never inflate it.
+     */
+    private static int auditParserTypes(String src, String label,
+                                        java.util.Set<String> descriptorIds,
+                                        java.util.Set<String> aliasIds) {
         String text;
         try {
             text = java.nio.file.Files.readString(java.nio.file.Path.of(src));
@@ -206,6 +226,12 @@ public final class SchemaFormCheck {
             while (dm.find()) declared.add(dm.group(1));
         }
 
+        // Alias ids are known synonyms, not separate types: drop them from both
+        // sides of the parity comparison so an alias never has to live in
+        // KNOWN_TYPES (and a leftover alias case label is not flagged as unhandled).
+        fromSwitch.removeAll(aliasIds);
+        declared.removeAll(aliasIds);
+
         java.util.Set<String> missing = new java.util.TreeSet<>(fromSwitch);
         missing.removeAll(declared);
         java.util.Set<String> extra = new java.util.TreeSet<>(declared);
@@ -231,24 +257,6 @@ public final class SchemaFormCheck {
                 label, declared.size());
         }
         return fails;
-    }
-
-    /**
-     * Migrated built-in action verbs the parser handles via descriptors, as
-     * {@code neoorigins:<verb>} ids — canonical ids plus their alias ids. An
-     * aliased descriptor (e.g. {@code change_resource} aliasing
-     * {@code modify_resource}) lifts a multi-label {@code case "a","b" ->} switch
-     * arm: both labels are still handled verbs, so both must appear here for the
-     * {@code KNOWN_TYPES} parity check to hold — even though only the canonical id
-     * is a distinct registry type. The "N types, in sync" total reported by
-     * {@link #auditParserTypes} is taken from {@code KNOWN_TYPES} itself, so this
-     * union does not inflate the type count.
-     */
-    private static java.util.Set<String> actionDescriptorIds() {
-        java.util.Set<String> ids = new java.util.TreeSet<>(
-            com.cyberday1.neoorigins.compat.action.BuiltinActions.canonicalIds());
-        ids.addAll(com.cyberday1.neoorigins.compat.action.BuiltinActions.aliasIds());
-        return ids;
     }
 
     /**

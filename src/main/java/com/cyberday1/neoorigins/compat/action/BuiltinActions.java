@@ -1298,6 +1298,140 @@ public final class BuiltinActions {
                     .doc("Search radius for swap candidates (default 16)."),
                 new FieldSpec("target_condition", FormFieldSpec.Kind.OBJECT, false)
                     .doc("Optional entity condition; applied to player candidates (default always-true).")));
+
+        // change_resource / modify_resource — add to or set a resource-bar value.
+        // Lift-and-shift of parseChangeResource. `modify_resource` is an alias
+        // (lifts the two-label `case "change_resource","modify_resource" ->` arm).
+        // `resource` is required-ish but the parser falls back to a silent no-op
+        // when absent (mirrors grant_power's contract), so it is modelled optional.
+        // `add` (default) clamps within the bar's [min,max]; `set` assigns directly.
+        define("change_resource", List.of("modify_resource"),
+            (json, ctx) -> {
+                String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
+                if (resourceId == null) return EntityAction.noop();
+                String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
+                int change = json.has("change") ? json.get("change").getAsInt() : 0;
+                final String key = resourceId;
+                return switch (operation) {
+                    case "add" -> player -> {
+                        var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
+                        int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
+                        int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
+                        player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
+                    };
+                    case "set" -> player -> player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).set(key, change);
+                    default -> player -> {
+                        var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
+                        int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
+                        int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
+                        player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
+                    };
+                };
+            },
+            List.of(
+                new FieldSpec("resource", FormFieldSpec.Kind.STRING, false)
+                    .doc("Resource power id (matches the bar's defining power)."),
+                new FieldSpec("operation", FormFieldSpec.Kind.ENUM, false).def("add")
+                    .options("add", "set")
+                    .doc("add (default) clamps within bar bounds; set assigns directly."),
+                new FieldSpec("change", FormFieldSpec.Kind.INTEGER, false).def(0)
+                    .doc("Amount to add or value to set (default 0).")));
+
+        // set_resource — assign a resource-bar value directly (no clamp). Lift-and-
+        // shift of parseSetResource. `resource` required-ish but parser silently
+        // no-ops when absent → modelled optional. Value comes from `value`, falling
+        // back to `change`, default 0.
+        define("set_resource",
+            (json, ctx) -> {
+                String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
+                if (resourceId == null) return EntityAction.noop();
+                int value = json.has("value") ? json.get("value").getAsInt()
+                           : json.has("change") ? json.get("change").getAsInt() : 0;
+                final String key = resourceId;
+                return player -> player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).set(key, value);
+            },
+            List.of(
+                new FieldSpec("resource", FormFieldSpec.Kind.STRING, false)
+                    .doc("Resource power id (matches the bar's defining power)."),
+                new FieldSpec("value", FormFieldSpec.Kind.INTEGER, false).def(0)
+                    .doc("Value to assign (falls back to `change`; default 0)."),
+                new FieldSpec("change", FormFieldSpec.Kind.INTEGER, false)
+                    .doc("Alias for value.")));
+
+        // spawn_projectile / fire_projectile — spawn a projectile entity aimed
+        // along the player's look. Lift-and-shift of parseSpawnProjectile.
+        // `fire_projectile` is an alias (lifts the two-label switch arm). Accepts
+        // Apoli synonyms: `projectile` (=entity_type), `divergence` (=inaccuracy),
+        // `projectile_action` (=on_hit_action). entity_type/projectile is required-
+        // ish but the parser warns + no-ops when absent → modelled optional.
+        // (26.1: Identifier + BuiltInRegistries.ENTITY_TYPE.get(eid) -> Optional<Holder>
+        // .get().value(); EntityType.create(sl, EntitySpawnReason.MOB_SUMMONED).)
+        define("spawn_projectile", List.of("fire_projectile"),
+            (json, ctx) -> {
+                String entityId = json.has("entity_type") ? json.get("entity_type").getAsString()
+                                : json.has("projectile") ? json.get("projectile").getAsString() : null;
+                if (entityId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: missing entity_type/projectile — no-op");
+                    return EntityAction.noop();
+                }
+                net.minecraft.resources.Identifier eid = net.minecraft.resources.Identifier.parse(entityId);
+                var entityTypeOpt = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(eid);
+                if (entityTypeOpt.isEmpty()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: unknown entity '{}' — no-op", eid);
+                    return EntityAction.noop();
+                }
+                final net.minecraft.world.entity.EntityType<?> entityType = entityTypeOpt.get().value();
+                final float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
+                final float inaccuracy = json.has("inaccuracy") ? json.get("inaccuracy").getAsFloat()
+                    : json.has("divergence") ? json.get("divergence").getAsFloat() : 0f;
+                final float verticalOffset = json.has("vertical_offset") ? json.get("vertical_offset").getAsFloat() : 0f;
+                com.google.gson.JsonObject hitActionJson = json.has("on_hit_action") ? json.getAsJsonObject("on_hit_action")
+                    : json.has("projectile_action") ? json.getAsJsonObject("projectile_action") : null;
+                final EntityAction onHitAction = hitActionJson != null
+                    ? ActionParser.parse(hitActionJson, ctx) : null;
+                final String effectType = json.has("effect_type")
+                    ? json.get("effect_type").getAsString() : null;
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    var entity = entityType.create(sl, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
+                    if (entity == null) return;
+                    entity.setPos(player.getX(), player.getEyeY() + verticalOffset, player.getZ());
+                    if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb && effectType != null) {
+                        orb.setEffectType(effectType);
+                    }
+                    if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
+                        proj.setOwner(player);
+                        proj.shootFromRotation(player, player.getXRot(), player.getYRot(), 0f, speed, inaccuracy);
+                    } else {
+                        var look = player.getLookAngle();
+                        entity.setDeltaMovement(look.x * speed, look.y * speed, look.z * speed);
+                    }
+                    sl.addFreshEntity(entity);
+                    if (onHitAction != null) {
+                        com.cyberday1.neoorigins.service.ProjectileActionRegistry.register(
+                            entity.getUUID(), onHitAction, player.tickCount);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Projectile entity type id (e.g. minecraft:arrow)."),
+                new FieldSpec("projectile", FormFieldSpec.Kind.STRING, false)
+                    .doc("Alias for entity_type."),
+                new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.5)
+                    .doc("Launch speed (default 1.5)."),
+                new FieldSpec("inaccuracy", FormFieldSpec.Kind.NUMBER, false).def(0.0).range(0.0, null)
+                    .doc("Random spread; 0 = perfect aim (default 0)."),
+                new FieldSpec("divergence", FormFieldSpec.Kind.NUMBER, false).range(0.0, null)
+                    .doc("Alias for inaccuracy."),
+                new FieldSpec("vertical_offset", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Spawn-Y offset from eye height (default 0)."),
+                new FieldSpec("on_hit_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action run when the projectile hits something."),
+                new FieldSpec("projectile_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Alias for on_hit_action."),
+                new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Visual palette id for MagicOrb projectiles (client-side).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
