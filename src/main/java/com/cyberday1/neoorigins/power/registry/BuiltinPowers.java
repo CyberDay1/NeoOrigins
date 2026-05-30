@@ -293,6 +293,177 @@ public final class BuiltinPowers {
         define("no_slowdown", NoSlowdownPower.class, List.of(
             new FieldSpec("block_tag", Kind.STRING, false)
                 .doc("Block tag to limit slowdown immunity to; omit for immunity to all slowdown.")));
+
+        // ── Group R (cont.) — batch C ───────────────────────────────────────
+        // Final batch of primitive/enum/list records. summon_minion and
+        // tame_mob each kept a power.schema.json branch that only restated
+        // their plain config + the universal name/description/hidden wrapper
+        // fields; the spec fully represents the real config, so those branches
+        // collapse here too (see batch B). split_max_h_p / levels_per_h_p /
+        // max_bonus_h_p use the camel→snake form the reflection fallback and
+        // field_docs already used (HP → h_p), so the editor field name is
+        // byte-identical to today. mob equipment slots (head/chest/...) are
+        // Optional<String> in the codec → required=false, no default.
+        define("modify_lava_speed", ModifyLavaSpeedPower.class, List.of(
+            new FieldSpec("operation", Kind.STRING, false)
+                .def("addition").doc("How value combines with the vanilla lava factor: addition, multiply_base, multiply_total."),
+            new FieldSpec("value", Kind.NUMBER, true)
+                .doc("Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava).")));
+        define("overlay", OverlayPower.class, List.of(
+            new FieldSpec("texture", Kind.STRING, true)
+                .doc("Resource location of the full-screen texture rendered over the view."),
+            new FieldSpec("strength", Kind.NUMBER, false)
+                .def(1.0).doc("Overlay opacity, 0.0 invisible to 1.0 opaque (default 1.0).")));
+        define("phantom_form", PhantomFormPower.class, List.of(
+            new FieldSpec("invisibility", Kind.BOOLEAN, false)
+                .def(true).doc("If true the player gains Invisibility while in phantom form (default true)."),
+            new FieldSpec("no_gravity", Kind.BOOLEAN, false)
+                .def(true).doc("If true gravity is disabled so the player can free-fly (default true).")));
+        define("projectile_immunity", ProjectileImmunityPower.class, List.of(
+            new FieldSpec("projectile_types", Kind.ARRAY, false)
+                .doc("Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow)."),
+            new FieldSpec("chance", Kind.NUMBER, false)
+                .def(1.0).range(0.0, 1.0).doc("Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0)."),
+            new FieldSpec("teleport", Kind.BOOLEAN, false)
+                .def(false).doc("If true a successful dodge triggers a short random teleport (default false)."),
+            new FieldSpec("teleport_range", Kind.INTEGER, false)
+                .def(16).doc("Max teleport distance in blocks on a dodge when enabled (default 16).")));
+        define("quality_equipment", QualityEquipmentPower.class, List.of(
+            new FieldSpec("bonus_mining_speed", Kind.NUMBER, false)
+                .def(0.25).doc("Fraction of base mining speed added to crafted tools (default 0.25)."),
+            new FieldSpec("bonus_attack_damage", Kind.NUMBER, false)
+                .def(0.20).doc("Fraction of base attack damage added to crafted weapons (default 0.20)."),
+            new FieldSpec("bonus_armor_toughness", Kind.NUMBER, false)
+                .def(1.0).doc("Flat armor toughness added to crafted/smithed armor (default 1.0)."),
+            new FieldSpec("durability_multiplier", Kind.NUMBER, false)
+                .def(0.10).doc("Fraction of base durability added to crafted items (default 0.10).")));
+        define("rare_wandering_loot", RareWanderingLootPower.class, List.of(
+            new FieldSpec("master_slots", Kind.INTEGER, false)
+                .def(3).doc("Random master-tier villager trades added to wandering traders (default 3)."),
+            new FieldSpec("treasure_chance", Kind.NUMBER, false)
+                .def(0.25).doc("Probability 0.0-1.0 a rare treasure trade is also offered (default 0.25).")));
+        define("scare_entities", ScareEntitiesPower.class, List.of(
+            new FieldSpec("entity_types", Kind.ARRAY, false)
+                .doc("Entity ids or #tags that flee the player within 8 blocks.")));
+        define("shader", ShaderPower.class, List.of(
+            new FieldSpec("shader", Kind.STRING, true)
+                .doc("Resource location of the post shader to apply (e.g. minecraft:spider).")));
+        define("shadow_orb", ShadowOrbPower.class, List.of(
+            new FieldSpec("max_orbs", Kind.INTEGER, false)
+                .def(4).doc("Max simultaneous orbs; placing past this removes the oldest (default 4)."),
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(28.0).doc("Block radius around each orb given Darkness+Blindness (default 28)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(100).doc("Ticks before the orb ability can be reused (20 = 1s; default 100)."),
+            new FieldSpec("tick_interval", Kind.INTEGER, false)
+                .def(20).doc("Ticks between each darkness pulse from orbs (20 = 1s; default 20)."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Hunger points consumed per activation (default 0).")));
+        define("slime_death_save", SlimeDeathSavePower.class, List.of(
+            new FieldSpec("moisture_threshold", Kind.NUMBER, false)
+                .def(0.75).doc("Min slime moisture (0-1) to split instead of dying (default 0.75)."),
+            new FieldSpec("teleport_distance", Kind.INTEGER, false)
+                .def(50).doc("Blocks teleported in a random direction on split (default 50)."),
+            new FieldSpec("teleport_y_range", Kind.INTEGER, false)
+                .def(10).doc("Max +/- Y offset applied to the split teleport (default 10)."),
+            new FieldSpec("split_max_h_p", Kind.NUMBER, false)
+                .def(4.0).doc("Max HP set right after splitting, in half-hearts (default 4.0)."),
+            new FieldSpec("recovery_ticks", Kind.INTEGER, false)
+                .def(2400).doc("Ticks for reduced max HP to ease back to normal (20 = 1s; default 2400).")));
+        define("slime_level_hp", SlimeLevelHPPower.class, List.of(
+            new FieldSpec("levels_per_h_p", Kind.INTEGER, false)
+                .def(10).doc("Experience levels needed per +1 max HP half-heart (default 10)."),
+            new FieldSpec("max_bonus_h_p", Kind.INTEGER, false)
+                .def(20).doc("Cap on total bonus max HP granted, in half-hearts (default 20).")));
+        define("slime_moisture", SlimeMoisturePower.class, List.of(
+            new FieldSpec("drain_per_tick", Kind.NUMBER, false)
+                .def(0.0004).doc("Moisture lost per tick when not in water/rain (default 0.0004)."),
+            new FieldSpec("dry_biome_drain_multiplier", Kind.NUMBER, false)
+                .def(3.0).doc("Drain multiplier in desert/savanna/badlands (default 3.0)."),
+            new FieldSpec("fire_drain_multiplier", Kind.NUMBER, false)
+                .def(10.0).doc("Drain multiplier while the player is on fire (default 10.0)."),
+            new FieldSpec("water_refill_per_tick", Kind.NUMBER, false)
+                .def(0.005).doc("Moisture regained per tick while in water or rain (default 0.005)."),
+            new FieldSpec("regen_threshold", Kind.NUMBER, false)
+                .def(0.75).doc("Moisture (0-1) above which the player gets Regeneration (default 0.75)."),
+            new FieldSpec("armor_penalty_threshold", Kind.NUMBER, false)
+                .def(0.10).doc("Moisture (0-1) below which the player loses 4 armor (default 0.10)."),
+            new FieldSpec("dot_threshold", Kind.NUMBER, false)
+                .def(0.0).doc("Moisture (0-1) at/below which damage-over-time starts (default 0.0)."),
+            new FieldSpec("dot_damage", Kind.NUMBER, false)
+                .def(1.0).doc("Magic damage dealt per interval when moisture is too low (default 1.0)."),
+            new FieldSpec("dot_interval", Kind.INTEGER, false)
+                .def(40).doc("Ticks between drying-out damage ticks (20 = 1s; default 40).")));
+        define("stealth", StealthPower.class, List.of(
+            new FieldSpec("activation_ticks", Kind.INTEGER, false)
+                .def(200).doc("Ticks of continuous sneaking before invisibility kicks in (200 = 10s).")));
+        define("summon_minion", SummonMinionPower.class, List.of(
+            new FieldSpec("mob_type", Kind.STRING, true)
+                .doc("Entity type id to summon, e.g. minecraft:zombie."),
+            new FieldSpec("max_count", Kind.INTEGER, false)
+                .def(3).doc("Max minions of this type alive at once before summoning is blocked."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(200).doc("Ticks before the summon ability can be reused (200 = 10s)."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(4).doc("Hunger consumed each time a minion is summoned."),
+            new FieldSpec("despawn_ticks", Kind.INTEGER, false)
+                .def(18000).doc("Ticks a minion lasts before despawning (18000 = 15 min)."),
+            new FieldSpec("death_damage", Kind.NUMBER, false)
+                .def(1.0).doc("Damage dealt to the player when a minion dies (half-hearts)."),
+            new FieldSpec("head", Kind.STRING, false)
+                .doc("Item id for the summoned mob's helmet slot (defaults to iron helmet)."),
+            new FieldSpec("chest", Kind.STRING, false)
+                .doc("Item id for the summoned mob's chest slot (optional)."),
+            new FieldSpec("legs", Kind.STRING, false)
+                .doc("Item id for the summoned mob's leggings slot (optional)."),
+            new FieldSpec("feet", Kind.STRING, false)
+                .doc("Item id for the summoned mob's boots slot (optional)."),
+            new FieldSpec("mainhand", Kind.STRING, false)
+                .doc("Item id placed in the summoned mob's main hand (optional)."),
+            new FieldSpec("offhand", Kind.STRING, false)
+                .doc("Item id placed in the summoned mob's off hand (optional).")));
+        define("tame_mob", TameMobPower.class, List.of(
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(16.0).doc("Max distance in blocks to raycast for the mob to tame (default 16)."),
+            new FieldSpec("max_tamed", Kind.INTEGER, false)
+                .def(4).doc("Max tamed mobs alive at once before taming is blocked."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(200).doc("Ticks before the tame ability can be reused (200 = 10s)."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(3).doc("Hunger consumed each time a mob is tamed."),
+            new FieldSpec("despawn_ticks", Kind.INTEGER, false)
+                .def(36000).doc("Ticks a tamed mob lasts before despawning (36000 = 30 min)."),
+            new FieldSpec("death_damage", Kind.NUMBER, false)
+                .def(0.5).doc("Damage dealt to the player when a tamed mob dies (half-hearts)."),
+            new FieldSpec("hostile_only", Kind.BOOLEAN, false)
+                .def(true).doc("When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).")));
+        define("tamed_animal_boost", TamedAnimalBoostPower.class, List.of(
+            new FieldSpec("health_bonus", Kind.NUMBER, false)
+                .def(4.0).doc("Flat max-health added to your tamed animals (half-hearts; default 4)."),
+            new FieldSpec("speed_bonus", Kind.NUMBER, false)
+                .def(0.1).doc("Flat movement-speed added to your tamed animals (default 0.1)."),
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(32.0).doc("Block radius around the player scanned for tamed animals (default 32).")));
+        define("thorns_on_hit", ThornsOnHitPower.class, List.of(
+            new FieldSpec("damage", Kind.NUMBER, false)
+                .def(2.0).doc("Damage reflected to a melee attacker when you are hit (half-hearts; default 2)."),
+            new FieldSpec("fire_ticks", Kind.INTEGER, false)
+                .def(0).doc("Ticks the attacker is set on fire on reflect (0 = none; 20 = 1s).")));
+        define("trade_availability", TradeAvailabilityPower.class, List.of(
+            new FieldSpec("scan_interval", Kind.INTEGER, false)
+                .def(40).doc("Ticks between villager-trade refresh scans (40 = 2s)."),
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(8.0).doc("Block radius around the player whose villager trades refresh (default 8).")));
+        define("walk_on_fluid", WalkOnFluidPower.class, List.of(
+            new FieldSpec("fluid", Kind.STRING, false)
+                .def("both").doc("Which fluid surface you can walk on: water, lava, or both (default both).")));
+        define("wraith_phase", WraithPhasePower.class, List.of(
+            new FieldSpec("blocked_blocks", Kind.ARRAY, false)
+                .doc("Block ids that cannot be phased through (default obsidian/bedrock)."),
+            new FieldSpec("exhaustion_per_tick", Kind.NUMBER, false)
+                .def(0.15).doc("Food exhaustion added each tick while phasing in solids (default 0.15)."),
+            new FieldSpec("always_on", Kind.BOOLEAN, false)
+                .def(false).doc("If true phasing is always-active instead of a toggle key (default false).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
