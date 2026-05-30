@@ -402,3 +402,4 @@ neoorigins:prevent_death	fields={condition,cooldown_ticks,damage_types,entity_ac
 neoorigins:tick_action	fields={action_type,interval}
 neoorigins:conditional	fields={condition,inner_power}
 neoorigins:prevent_action	fields={action,active_when,chest,feet,head,legs}
+neoorigins:resource	fields={hud_render{color,label,should_render},max,max_action,min,min_action,regen_condition,regen_interval,regen_rate,start_value}
