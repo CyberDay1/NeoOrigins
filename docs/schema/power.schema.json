@@ -54,19 +54,6 @@
   },
   "oneOf": [
     {
-      "$comment": "neoorigins:attribute_modifier",
-      "properties": {
-        "type": { "const": "neoorigins:attribute_modifier" },
-        "attribute": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
-        "amount": { "type": "number" },
-        "operation": { "type": "string", "enum": ["add_value", "add_multiplied_base", "add_multiplied_total"] },
-        "condition": { "oneOf": [{ "type": "string" }, { "$ref": "condition.schema.json" }] },
-        "equipment_condition": { "type": "object" },
-        "location_condition": { "type": "object" }
-      },
-      "required": ["type", "attribute", "amount"]
-    },
-    {
       "$comment": "neoorigins:condition_passive",
       "properties": {
         "type": { "const": "neoorigins:condition_passive" },

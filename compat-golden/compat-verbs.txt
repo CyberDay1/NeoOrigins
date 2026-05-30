@@ -380,3 +380,4 @@ neoorigins:ground_slam	fields={cooldown_ticks,damage,knockback_strength,radius}
 neoorigins:tidal_wave	fields={cone_angle,cooldown_ticks,damage,hunger_cost,knockback_strength,range}
 neoorigins:model_color	fields={alpha,blue,green,red}
 neoorigins:breath_in_fluid	fields={drain_interval_ticks,fluid}
+neoorigins:attribute_modifier	fields={amount,attribute,condition,equipment_condition,location_condition,operation}

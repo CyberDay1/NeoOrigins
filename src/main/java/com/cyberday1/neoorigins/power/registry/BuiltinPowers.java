@@ -620,6 +620,33 @@ public final class BuiltinPowers {
                 .def("water").doc("Fluid that suffocates the player, \"water\" or \"lava\"; default water."),
             new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
                 .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Aliases: drain_rate, air_loss_per_second.")));
+
+        // ── Group N — batch 3 (attribute_modifier: schema-branch collapse) ────
+        // A hand-rolled JsonOps decoder that, unlike its siblings, agrees with
+        // its power.schema.json branch on required-ness: the codec hard-fails
+        // without `attribute` and `amount` (required=true), exactly the schema's
+        // `required: [type, attribute, amount]`. Every other field defaults
+        // (required=false). Each authored JSON key maps 1:1 to a record
+        // component, so the spec is behavior-neutral and the schema branch
+        // collapses (its name/description/hidden wrapper fields are subsumed by
+        // FormModel's common handling). Field kinds mirror the collapsed branch
+        // byte-for-byte: `operation` is the curated ENUM (also EnumHints-backed);
+        // `condition` is the schema's MIXED (oneOf string|condition-REF);
+        // equipment/location conditions are nested OBJECTs.
+        define("attribute_modifier", AttributeModifierPower.class, List.of(
+            new FieldSpec("attribute", Kind.STRING, true)
+                .doc("Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required."),
+            new FieldSpec("amount", Kind.NUMBER, true)
+                .doc("Numeric value applied to the attribute under the chosen operation; required."),
+            new FieldSpec("operation", Kind.ENUM, false)
+                .options("add_value", "add_multiplied_base", "add_multiplied_total")
+                .doc("How amount applies: add_value, add_multiplied_base, or add_multiplied_total."),
+            new FieldSpec("condition", Kind.MIXED, false)
+                .doc("Optional gate: a named-condition string (in_water/on_land/in_lava) or a DSL condition object; active only while it passes."),
+            new FieldSpec("equipment_condition", Kind.OBJECT, false)
+                .doc("Optional gate matching a worn item by id/tag in a slot; active only while worn."),
+            new FieldSpec("location_condition", Kind.OBJECT, false)
+                .doc("Optional gate on dimension/biome/structure; active only while there.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
