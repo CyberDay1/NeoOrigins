@@ -492,6 +492,29 @@ public final class BuiltinConditions {
         define("exposed_to_sun",
             (json, ctx) -> ConditionParser.parseExposedToSun(json),
             List.of());
+
+        // biome — TRIPLE-SHAPE (lift-and-shift of parseBiome; NOT normalized — all
+        // three shapes parse exactly as before). The factory delegates verbatim; the
+        // FieldSpec list is the oneOf-style union of the shapes, mirroring the
+        // apply_effect precedent:
+        //   (1) `biome`     — exact biome id at the player's position.
+        //   (2) `tag`/`biome_tag` — biome tag membership (`biome_tag` is a synonym
+        //                     field read by frostborn/piglin/strider JSONs).
+        //   (3) `condition` — nested sub-condition; the temperature case compares the
+        //                     biome base temperature, other sub-types fail closed.
+        // Precedence (id > tag > condition > always-true) is enforced inside the
+        // parser, not the schema. None of the shapes hard-fails → all optional.
+        define("biome",
+            (json, ctx) -> ConditionParser.parseBiome(json),
+            List.of(
+                new FieldSpec("biome", FormFieldSpec.Kind.STRING, false)
+                    .doc("Exact biome id at the player's position (shape 1; highest precedence)."),
+                new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                    .doc("Biome tag the player's biome must be in (shape 2)."),
+                new FieldSpec("biome_tag", FormFieldSpec.Kind.STRING, false)
+                    .doc("Synonym for `tag` used by several built-in JSONs (shape 2)."),
+                new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Nested biome sub-condition (shape 3); `temperature` compares biome base temperature, other sub-types fail closed. Absent all of biome/tag/biome_tag/condition → always true.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

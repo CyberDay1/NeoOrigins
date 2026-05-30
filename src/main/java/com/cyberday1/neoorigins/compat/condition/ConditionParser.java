@@ -124,8 +124,6 @@ public final class ConditionParser {
                 case "neoorigins:and"                           -> parseAnd(json, contextId);
                 case "neoorigins:or"                            -> parseOr(json, contextId);
                 case "neoorigins:not"                           -> parseNot(json, contextId);
-                // ---- Phase 1: New conditions ----
-                case "neoorigins:biome"                         -> parseBiome(json);
 
                 default -> failClosed(type, contextId, "unsupported condition type");
             };
@@ -367,7 +365,7 @@ public final class ConditionParser {
         return player -> player.level().dimension().equals(dimKey);
     }
 
-    private static EntityCondition parseBiome(JsonObject json) {
+    static EntityCondition parseBiome(JsonObject json) {
         // Can check either "biome" (exact id) or "condition" (sub-condition on biome)
         String biomeId = json.has("biome") ? json.get("biome").getAsString() : null;
         if (biomeId != null) {
