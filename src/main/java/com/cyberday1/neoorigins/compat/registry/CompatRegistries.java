@@ -79,6 +79,7 @@ public final class CompatRegistries {
         // live registry. The static tables remain the headless source of truth
         // (the registry is empty until NewRegistryEvent fires).
         com.cyberday1.neoorigins.compat.action.BuiltinActions.descriptors().values().forEach(CompatRegistries::reg);
+        com.cyberday1.neoorigins.compat.condition.BuiltinConditions.descriptors().values().forEach(CompatRegistries::reg);
 
         modEventBus.addListener(CompatRegistries::onNewRegistry);
         ACTION_TYPES.register(modEventBus);

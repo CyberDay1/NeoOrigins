@@ -126,7 +126,9 @@ public final class SchemaFormCheck {
         // 8. Condition/Action picker sources stay in sync with the parsers.
         failures += auditParserTypes(
             "src/main/java/com/cyberday1/neoorigins/compat/condition/ConditionParser.java",
-            "condition", java.util.Set.of());
+            "condition",
+            com.cyberday1.neoorigins.compat.condition.BuiltinConditions.canonicalIds(),
+            com.cyberday1.neoorigins.compat.condition.BuiltinConditions.aliasIds());
         failures += auditParserTypes(
             "src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java",
             "action",
