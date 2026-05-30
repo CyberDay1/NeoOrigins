@@ -382,3 +382,6 @@ neoorigins:model_color	fields={alpha,blue,green,red}
 neoorigins:breath_in_fluid	fields={drain_interval_ticks,fluid}
 neoorigins:attribute_modifier	fields={amount,attribute,condition,equipment_condition,location_condition,operation}
 neoorigins:action_on_event	fields={block_condition,condition,effect,effect_tag,entity_action,event,immunity_ticks,modifier}
+neoorigins:mob_behavior	fields={aggression,aggro_range,anger_linger_ticks,call_for_help,hostile_when,retaliate,target_type}
+neoorigins:modify_damage	fields={condition,damage_type,direction,multiplier,target_group}
+neoorigins:entity_set	fields={name}
