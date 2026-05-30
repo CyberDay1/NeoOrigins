@@ -308,6 +308,111 @@ public final class BuiltinActions {
                     .doc("Saturation delta."),
                 new FieldSpec("food_component_saturation", FormFieldSpec.Kind.NUMBER, false)
                     .doc("Alias for saturation.")));
+
+        // damage — hurt the player with a chosen damage source. Lift-and-shift of
+        // parseDamage. `amount` optional (parser default 1.0); the source type is
+        // read from a nested `source.name` string (parser default "" → generic).
+        define("damage",
+            (json, ctx) -> {
+                float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
+                String sourceType = "";
+                if (json.has("source") && json.get("source").isJsonObject()) {
+                    var src = json.getAsJsonObject("source");
+                    sourceType = src.has("name") ? src.get("name").getAsString() : "";
+                }
+                final String fSrc = sourceType;
+                return player -> {
+                    var dmgSrc = switch (fSrc) {
+                        case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
+                        case "lava"   -> player.level().damageSources().lava();
+                        case "magic"  -> player.level().damageSources().magic();
+                        case "starve" -> player.level().damageSources().starve();
+                        case "drown"  -> player.level().damageSources().drown();
+                        case "freeze" -> player.level().damageSources().freeze();
+                        case "wither" -> player.level().damageSources().wither();
+                        default       -> player.level().damageSources().generic();
+                    };
+                    player.hurt(dmgSrc, amount);
+                };
+            },
+            List.of(
+                new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
+                    .doc("Damage dealt in half-hearts (default 1.0)."),
+                new FieldSpec("source", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/starve/drown/freeze/wither; default generic).")));
+
+        // give — give an item stack to the player. Lift-and-shift of parseGive
+        // (26.1: Identifier + lambda-internal BuiltInRegistries.ITEM.get lookup).
+        // Item id (from `stack.item`/`item`) is the hard requirement; parser
+        // no-ops without it. `count` optional (parser default 1).
+        define("give",
+            (json, ctx) -> {
+                var stack = json.has("stack") ? json.getAsJsonObject("stack") : json;
+                String itemId = stack.has("item") ? stack.get("item").getAsString() : null;
+                if (itemId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] give: missing item id — action will no-op");
+                    return EntityAction.noop();
+                }
+                int count = stack.has("count") ? stack.get("count").getAsInt() : 1;
+                net.minecraft.resources.Identifier iid = net.minecraft.resources.Identifier.parse(itemId);
+                return player -> {
+                    var itemOpt = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(iid);
+                    if (itemOpt.isEmpty()) return;
+                    var itemStack = new net.minecraft.world.item.ItemStack(itemOpt.get(), count);
+                    if (!player.getInventory().add(itemStack)) {
+                        var drop = new net.minecraft.world.entity.item.ItemEntity(
+                            player.level(), player.getX(), player.getY(), player.getZ(), itemStack);
+                        player.level().addFreshEntity(drop);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("item", FormFieldSpec.Kind.STRING, false)
+                    .doc("Item id to give (or place under `stack.item`)."),
+                new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
+                    .doc("Stack size (default 1)."),
+                new FieldSpec("stack", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("Optional nested item-stack object ({item, count}).")));
+
+        // launch — push the player straight up. Lift-and-shift of parseLaunch.
+        // `speed` optional (parser default 1.0).
+        define("launch",
+            (json, ctx) -> {
+                float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
+                return player -> {
+                    player.push(0, speed, 0);
+                    player.hurtMarked = true;
+                };
+            },
+            List.of(new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.0)
+                .doc("Upward impulse magnitude (default 1.0).")));
+
+        // set_block — place a block at the player's position. Lift-and-shift of
+        // parseSetBlock (26.1: Identifier + lambda-internal BuiltInRegistries.BLOCK
+        // .get().value()). Block id is the hard requirement (parser no-ops without
+        // it). `keep` optional (parser default false). The legacy
+        // origins:temporary_cobweb id is rewritten to minecraft:cobweb.
+        define("set_block",
+            (json, ctx) -> {
+                String blockId = json.has("block") ? json.get("block").getAsString() : null;
+                if (blockId == null) return EntityAction.noop();
+                if (blockId.equals("origins:temporary_cobweb")) blockId = "minecraft:cobweb";
+                net.minecraft.resources.Identifier bid = net.minecraft.resources.Identifier.parse(blockId);
+                boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
+                return player -> {
+                    var blockOpt = net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(bid);
+                    if (blockOpt.isEmpty()) return;
+                    var block = blockOpt.get().value();
+                    var pos = player.blockPosition();
+                    if (keep && !player.level().getBlockState(pos).isAir()) return;
+                    player.level().setBlock(pos, block.defaultBlockState(), 3);
+                };
+            },
+            List.of(
+                new FieldSpec("block", FormFieldSpec.Kind.STRING, true)
+                    .doc("Block id to place at the player's position."),
+                new FieldSpec("keep", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("If true, only place when the target position is air (default false).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
