@@ -94,8 +94,6 @@ public final class ActionParser {
                 case "neoorigins:delay"                         -> parseDelay(json, contextId);
                 case "neoorigins:execute_command"               -> parseExecuteCommand(json);
                 case "neoorigins:apply_effect"                  -> parseApplyEffect(json);
-                case "neoorigins:clear_effect"                  -> parseClearEffect(json);
-                case "neoorigins:play_sound"                    -> parsePlaySound(json);
                 case "neoorigins:change_resource",
                      "neoorigins:modify_resource"               -> parseChangeResource(json);
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
@@ -105,7 +103,6 @@ public final class ActionParser {
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
                 case "neoorigins:grant_power"                   -> parseGrantPower(json);
                 case "neoorigins:revoke_power"                  -> parseRevokePower(json);
-                case "neoorigins:emit_game_event"               -> parseEmitGameEvent(json);
                 case "neoorigins:drop_items"                    -> parseDropItems(json);
 
                 // ---- Phase 0/1: new actions for consolidation (active_ability) ----
@@ -151,8 +148,6 @@ public final class ActionParser {
                 case "neoorigins:passenger_action"              -> parsePassengerAction(json, contextId);
                 case "neoorigins:spawn_effect_cloud"            -> parseSpawnEffectCloud(json);
                 case "neoorigins:offset"                        -> parseOffset(json, contextId);
-                case "neoorigins:add_xp"                        -> parseAddXp(json);
-
                 default -> failNoop(type, contextId, "unsupported action type");
             };
         } catch (Exception e) {
@@ -323,41 +318,6 @@ public final class ActionParser {
             return obj.get("id").getAsString();
         }
         return null;
-    }
-
-    private static EntityAction parseClearEffect(JsonObject json) {
-        String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
-        if (effectId == null) {
-            return player -> player.removeAllEffects();
-        }
-        var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
-        if (effectHolder == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] clear_effect: unknown effect '{}' — action will no-op", effectId);
-            return EntityAction.noop();
-        }
-        return player -> player.removeEffect(effectHolder);
-    }
-
-    private static EntityAction parsePlaySound(JsonObject json) {
-        String soundId = json.has("sound") ? json.get("sound").getAsString() : null;
-        if (soundId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] play_sound: missing sound id — action will no-op");
-            return EntityAction.noop();
-        }
-        float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
-        float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
-        var soundHolder = BuiltInRegistries.SOUND_EVENT.get(Identifier.parse(soundId)).orElse(null);
-        if (soundHolder == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] play_sound: unknown sound '{}' — action will no-op", soundId);
-            return EntityAction.noop();
-        }
-        var sound = soundHolder.value();
-        return player -> {
-            if (player.level() instanceof ServerLevel sl) {
-                sl.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    sound, net.minecraft.sounds.SoundSource.PLAYERS, volume, pitch);
-            }
-        };
     }
 
     private static EntityAction parseChangeResource(JsonObject json) {
@@ -668,23 +628,6 @@ public final class ActionParser {
                 com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
             }
         };
-    }
-
-    private static EntityAction parseEmitGameEvent(JsonObject json) {
-        String eventId = json.has("event") ? json.get("event").getAsString()
-                       : json.has("game_event") ? json.get("game_event").getAsString() : null;
-        if (eventId == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: missing event id — action will no-op");
-            return EntityAction.noop();
-        }
-        Identifier eid = Identifier.parse(eventId);
-        var evOpt = BuiltInRegistries.GAME_EVENT.get(eid);
-        if (evOpt.isEmpty()) {
-            NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: unknown event '{}' — action will no-op", eid);
-            return EntityAction.noop();
-        }
-        final var gameEvent = evOpt.get();
-        return player -> player.level().gameEvent(player, gameEvent, player.position());
     }
 
     // ---- Phase 0/1: new verbs (for active_ability consolidation) ----
@@ -1534,15 +1477,6 @@ public final class ActionParser {
     }
 
     /** origins:add_xp — grant experience points or levels. */
-    private static EntityAction parseAddXp(JsonObject json) {
-        int points = json.has("points") ? json.get("points").getAsInt() : 0;
-        int levels = json.has("levels") ? json.get("levels").getAsInt() : 0;
-        return player -> {
-            if (points != 0) player.giveExperiencePoints(points);
-            if (levels != 0) player.giveExperienceLevels(levels);
-        };
-    }
-
     private static EntityAction failNoop(String type, String contextId, String detail) {
         com.cyberday1.neoorigins.compat.CompatWarningCollector
             .recordUnsupportedAction(type, contextId, detail);

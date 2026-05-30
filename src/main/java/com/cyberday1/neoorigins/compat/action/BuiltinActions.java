@@ -413,6 +413,105 @@ public final class BuiltinActions {
                     .doc("Block id to place at the player's position."),
                 new FieldSpec("keep", FormFieldSpec.Kind.BOOLEAN, false).def(false)
                     .doc("If true, only place when the target position is air (default false).")));
+
+        // clear_effect — remove one mob effect, or all when `effect` is absent.
+        // Lift-and-shift of parseClearEffect (26.1: Identifier + MOB_EFFECT.get
+        // returns the holder directly). An unknown id resolves at parse time and
+        // no-ops with a warning.
+        define("clear_effect",
+            (json, ctx) -> {
+                String effectId = json.has("effect") ? json.get("effect").getAsString() : null;
+                if (effectId == null) {
+                    return player -> player.removeAllEffects();
+                }
+                var effectHolder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
+                    .get(net.minecraft.resources.Identifier.parse(effectId)).orElse(null);
+                if (effectHolder == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] clear_effect: unknown effect '{}' — action will no-op", effectId);
+                    return EntityAction.noop();
+                }
+                return player -> player.removeEffect(effectHolder);
+            },
+            List.of(new FieldSpec("effect", FormFieldSpec.Kind.STRING, false)
+                .doc("Mob effect id to remove; omit to clear all effects.")));
+
+        // play_sound — play a sound at the player on the server. Lift-and-shift of
+        // parsePlaySound (26.1: Identifier + SOUND_EVENT.get holder -> .value()).
+        // `sound` is the hard requirement (parser no-ops without it);
+        // `volume`/`pitch` optional (parser default 1.0 each).
+        define("play_sound",
+            (json, ctx) -> {
+                String soundId = json.has("sound") ? json.get("sound").getAsString() : null;
+                if (soundId == null) return EntityAction.noop();
+                float volume = json.has("volume") ? json.get("volume").getAsFloat() : 1.0f;
+                float pitch = json.has("pitch") ? json.get("pitch").getAsFloat() : 1.0f;
+                var soundHolder = net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT
+                    .get(net.minecraft.resources.Identifier.parse(soundId)).orElse(null);
+                if (soundHolder == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] play_sound: unknown sound '{}' — action will no-op", soundId);
+                    return EntityAction.noop();
+                }
+                var sound = soundHolder.value();
+                return player -> {
+                    if (player.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+                        sl.playSound(null, player.getX(), player.getY(), player.getZ(),
+                            sound, net.minecraft.sounds.SoundSource.PLAYERS, volume, pitch);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("sound", FormFieldSpec.Kind.STRING, true)
+                    .doc("Sound event id to play."),
+                new FieldSpec("volume", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
+                    .doc("Playback volume (default 1.0)."),
+                new FieldSpec("pitch", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
+                    .doc("Playback pitch (default 1.0).")));
+
+        // emit_game_event — broadcast a vanilla game event from the player.
+        // Lift-and-shift of parseEmitGameEvent (26.1: Identifier + GAME_EVENT.get
+        // holder passed directly to level().gameEvent). The event id (from `event`
+        // or the `game_event` alias) is the hard requirement (parser no-ops
+        // without it); unknown ids resolve at parse time and no-op with a warning.
+        define("emit_game_event",
+            (json, ctx) -> {
+                String eventId = json.has("event") ? json.get("event").getAsString()
+                               : json.has("game_event") ? json.get("game_event").getAsString() : null;
+                if (eventId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: missing event id — action will no-op");
+                    return EntityAction.noop();
+                }
+                net.minecraft.resources.Identifier eid = net.minecraft.resources.Identifier.parse(eventId);
+                var evOpt = net.minecraft.core.registries.BuiltInRegistries.GAME_EVENT.get(eid);
+                if (evOpt.isEmpty()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] emit_game_event: unknown event '{}' — action will no-op", eid);
+                    return EntityAction.noop();
+                }
+                final var gameEvent = evOpt.get();
+                return player -> player.level().gameEvent(player, gameEvent, player.position());
+            },
+            List.of(
+                new FieldSpec("event", FormFieldSpec.Kind.STRING, false)
+                    .doc("Game event id to emit (or use the `game_event` alias)."),
+                new FieldSpec("game_event", FormFieldSpec.Kind.STRING, false)
+                    .doc("Alias for event.")));
+
+        // add_xp — grant experience points and/or levels. Lift-and-shift of
+        // parseAddXp. Both fields optional (parser default 0); a zero value is
+        // simply not applied.
+        define("add_xp",
+            (json, ctx) -> {
+                int points = json.has("points") ? json.get("points").getAsInt() : 0;
+                int levels = json.has("levels") ? json.get("levels").getAsInt() : 0;
+                return player -> {
+                    if (points != 0) player.giveExperiencePoints(points);
+                    if (levels != 0) player.giveExperienceLevels(levels);
+                };
+            },
+            List.of(
+                new FieldSpec("points", FormFieldSpec.Kind.INTEGER, false).def(0)
+                    .doc("Experience points to grant (default 0)."),
+                new FieldSpec("levels", FormFieldSpec.Kind.INTEGER, false).def(0)
+                    .doc("Experience levels to grant (default 0).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
