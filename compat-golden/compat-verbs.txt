@@ -395,3 +395,4 @@ neoorigins:active_ability	fields={condition,cooldown_ticks,entity_action,hunger_
 neoorigins:edible_item	fields={always_edible,consume_sound,items,nutrition,saturation,tags}
 neoorigins:loot_pool_grant	fields={active,bonus_rolls,cooldown,grant_id,loot_table,rolls}
 neoorigins:restrict_armor	fields={restrictions}
+neoorigins:modify_player_spawn	fields={location,override_bed}

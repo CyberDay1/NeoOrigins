@@ -119,17 +119,6 @@
       "required": ["type", "particle"]
     },
     {
-      "$comment": "neoorigins:modify_player_spawn",
-      "properties": {
-        "type": { "const": "neoorigins:modify_player_spawn" },
-        "dimension": { "type": "string" },
-        "biome": { "type": "string" },
-        "spawn_strategy": { "type": "string" },
-        "bed_override": { "type": "boolean" }
-      },
-      "required": ["type"]
-    },
-    {
       "$comment": "neoorigins:starting_equipment \u2014 grants one or more items the first time the power is applied after origin commit. Accepts BOTH a legacy singular shape (top-level item/count/enchantments/legacy_tag/components) and a plural shape (stacks: [ { item, count, enchantments, legacy_tag, components } ]). When `stacks` is non-empty it takes precedence over the singular root fields; otherwise the root `item` is wrapped as a one-entry list. `grant_id` dedups the whole bundle (not individual stacks) so retries via /origin reset re-grant everything.",
       "properties": {
         "type": { "const": "neoorigins:starting_equipment" },

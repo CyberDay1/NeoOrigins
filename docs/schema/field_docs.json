@@ -20,12 +20,6 @@
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },
-  "neoorigins:modify_player_spawn": {
-    "bed_override": "If true also overrides the player's bed/anchor spawn, not just respawns.",
-    "biome": "Biome the resolved respawn location must be in.",
-    "dimension": "Dimension the player respawns into when spawn is overridden.",
-    "spawn_strategy": "How the respawn position is chosen within the dimension/biome."
-  },
   "neoorigins:particle": {
     "count": "Particles spawned each emission (default 1, min 0).",
     "frequency": "Emit every N ticks (20 = 1s; default 8, min 1).",
