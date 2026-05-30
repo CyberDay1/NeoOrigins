@@ -160,19 +160,6 @@ public final class ConditionParser {
                 // ---- Phase 1: New conditions ----
                 case "neoorigins:biome"                         -> parseBiome(json);
 
-                // ---- Phase 6.5: context-aware conditions (read from ActionContextHolder) ----
-                case "neoorigins:hit_taken_amount"              -> parseHitTakenAmount(json);
-                case "neoorigins:food_item_in_tag"              -> parseFoodItemInTag(json);
-                case "neoorigins:food_item_id"                  -> parseFoodItemId(json);
-                case "neoorigins:no_minions_alive"              -> {
-                    // True when the player has no tracked minions of the
-                    // given {@code key} (e.g. "tamer:tamed"). Used by Monster
-                    // Tamer's Lone Weakness to only penalise the player when
-                    // they're fighting without their pack.
-                    final String minionKey = json.has("key") ? json.get("key").getAsString() : "tamer:tamed";
-                    yield p -> com.cyberday1.neoorigins.service.MinionTracker.countAlive(p.getUUID(), minionKey) == 0;
-                }
-
                 // ---- Phase 8: condition expansion (2026-04-24) ----
                 case "neoorigins:near_block",
                      "neoorigins:block_in_radius"                  -> parseNearBlock(json, contextId);
@@ -923,7 +910,7 @@ public final class ConditionParser {
      * evaluates to false outside that context. Used by the
      * {@code food_restriction} alias to re-express its item-tag filter.
      */
-    private static EntityCondition parseFoodItemInTag(JsonObject json) {
+    static EntityCondition parseFoodItemInTag(JsonObject json) {
         String tag = json.has("tag") ? json.get("tag").getAsString() : null;
         if (tag == null) return CompatPolicy.FALSE_CONDITION;
         TagKey<net.minecraft.world.item.Item> itemTag =
@@ -943,7 +930,7 @@ public final class ConditionParser {
      * to give per-item food bonuses (raw cod → cooked cod values, raw salmon
      * → cooked salmon values) without needing one tag per fish item.
      */
-    private static EntityCondition parseFoodItemId(JsonObject json) {
+    static EntityCondition parseFoodItemId(JsonObject json) {
         String idStr = json.has("id") ? json.get("id").getAsString() : null;
         if (idStr == null) return CompatPolicy.FALSE_CONDITION;
         Identifier itemId = Identifier.parse(idStr);
@@ -970,7 +957,7 @@ public final class ConditionParser {
      * {@code action_on_hit_taken} alias to re-express {@code min_damage}
      * gating.
      */
-    private static EntityCondition parseHitTakenAmount(JsonObject json) {
+    static EntityCondition parseHitTakenAmount(JsonObject json) {
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
@@ -981,6 +968,16 @@ public final class ConditionParser {
             }
             return comparison.test(htc.amount(), target);
         };
+    }
+
+    /**
+     * no_minions_alive: true when the player has no tracked minions of the given
+     * {@code key} (default "tamer:tamed"). Used by Monster Tamer's Lone Weakness
+     * to only penalise the player when they're fighting without their pack.
+     */
+    static EntityCondition parseNoMinionsAlive(JsonObject json) {
+        final String minionKey = json.has("key") ? json.get("key").getAsString() : "tamer:tamed";
+        return p -> com.cyberday1.neoorigins.service.MinionTracker.countAlive(p.getUUID(), minionKey) == 0;
     }
 
     // ---- Bientity helpers ----

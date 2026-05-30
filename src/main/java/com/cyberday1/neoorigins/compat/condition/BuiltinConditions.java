@@ -417,6 +417,30 @@ public final class BuiltinConditions {
                         .doc("Which vanilla predicate to compile (damage fails closed; needs hit-context)."),
                     new FieldSpec("predicate", FormFieldSpec.Kind.OBJECT, true)
                         .doc("The predicate JSON, parsed against the matching vanilla codec.")));
+
+        // ---- Context-aware conditions (read the active ActionContextHolder) ----
+        // These fail closed (false) outside their event context; delegated as-is.
+        // food_item_in_tag — current FOOD_EATEN stack is in the given tag (or matches id).
+        define("food_item_in_tag",
+            (json, ctx) -> ConditionParser.parseFoodItemInTag(json),
+            List.of(new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                .doc("Item tag (#-prefixed) the eaten stack must be in, or a bare item id to match exactly (absent → false).")));
+        // food_item_id — current FOOD_EATEN stack matches the given item id exactly.
+        define("food_item_id",
+            (json, ctx) -> ConditionParser.parseFoodItemId(json),
+            List.of(new FieldSpec("id", FormFieldSpec.Kind.STRING, false)
+                .doc("Item id the eaten stack must match exactly (absent → false).")));
+        // hit_taken_amount — current HIT_TAKEN damage amount vs a threshold.
+        define("hit_taken_amount",
+            (json, ctx) -> ConditionParser.parseHitTakenAmount(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Incoming-damage threshold (default 0).")));
+        // no_minions_alive — player has no tracked minions of the given key.
+        define("no_minions_alive",
+            (json, ctx) -> ConditionParser.parseNoMinionsAlive(json),
+            List.of(new FieldSpec("key", FormFieldSpec.Kind.STRING, false)
+                .def("tamer:tamed")
+                .doc("Minion-tracker key to count (default tamer:tamed).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
