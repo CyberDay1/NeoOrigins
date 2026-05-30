@@ -19,34 +19,6 @@
     "hunger_cost": "Food/exhaustion points consumed per successful activation; default 0.",
     "key": "Active keybind slot that triggers the ability."
   },
-  "neoorigins:active_bolt": {
-    "cooldown_ticks": "Cooldown between casts in ticks (20 = 1s); default 80.",
-    "speed": "Velocity of the launched wind charge along the look direction; default 1.2."
-  },
-  "neoorigins:active_dash": {
-    "allow_vertical": "If true the dash follows look pitch; if false it stays horizontal; default false.",
-    "cooldown_ticks": "Cooldown between dashes in ticks (20 = 1s); default 40.",
-    "power": "Magnitude of the dash velocity vector; default 1.5.",
-    "set_velocity": "If true replace the player's velocity; if false add to it; default false."
-  },
-  "neoorigins:active_fireball": {
-    "cooldown_ticks": "Cooldown between casts in ticks (20 = 1s); default 100.",
-    "speed": "Velocity applied to each of the spread small fireballs; default 1.5."
-  },
-  "neoorigins:active_phase": {
-    "cooldown_ticks": "Cooldown between phases in ticks (20 = 1s); default 40.",
-    "hunger_cost": "Food/exhaustion points consumed on a successful phase; default 0.",
-    "max_depth": "Maximum wall thickness in blocks the phase can pass through; default 16."
-  },
-  "neoorigins:active_place_block": {
-    "block_id": "Block id placed at the targeted face; default minecraft:glowstone.",
-    "cooldown_ticks": "Cooldown between placements in ticks (20 = 1s); default 100.",
-    "hunger_cost": "Food/exhaustion points consumed on a successful placement; default 0.",
-    "max_distance": "Maximum ray-pick reach in blocks for the placement surface; default 5.0."
-  },
-  "neoorigins:active_recall": {
-    "cooldown_ticks": "Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600."
-  },
   "neoorigins:active_swap": {
     "cooldown_ticks": "Cooldown between swaps in ticks (20 = 1s); default 80.",
     "range": "Max distance in blocks to find the looked-at entity to swap with; default 20.0."

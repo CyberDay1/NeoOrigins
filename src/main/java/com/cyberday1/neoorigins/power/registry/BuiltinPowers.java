@@ -499,6 +499,54 @@ public final class BuiltinPowers {
                 .def(1.0).doc("Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."),
             new FieldSpec("modify_reach", Kind.BOOLEAN, false)
                 .def(true).doc("If true, reach scales with body size too (default true). For independent reach use attribute_modifier.")));
+
+        // ── Group N — batch 1 (Active* primitive RecordCodecBuilder powers) ──
+        // These Active* powers share the AbstractActivePower contract but, unlike
+        // active_ability, deserialize through a plain RecordCodecBuilder of
+        // primitives — every field is `optionalFieldOf` (required=false + the
+        // codec default) and every JSON key equals its record component's
+        // snake-case, so the spec is a faithful, behavior-neutral mirror. None
+        // has a power.schema.json branch (only a `type`-enum entry), so there is
+        // nothing to collapse; the field_docs.json entries fold onto the specs.
+        // `type` is internal plumbing (not authored), so it is omitted.
+        define("active_bolt", ActiveBoltPower.class, List.of(
+            new FieldSpec("speed", Kind.NUMBER, false)
+                .def(1.2).doc("Velocity of the launched wind charge along the look direction; default 1.2."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(80).doc("Cooldown between casts in ticks (20 = 1s); default 80.")));
+        define("active_dash", ActiveDashPower.class, List.of(
+            new FieldSpec("power", Kind.NUMBER, false)
+                .def(1.5).doc("Magnitude of the dash velocity vector; default 1.5."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(40).doc("Cooldown between dashes in ticks (20 = 1s); default 40."),
+            new FieldSpec("allow_vertical", Kind.BOOLEAN, false)
+                .def(false).doc("If true the dash follows look pitch; if false it stays horizontal; default false."),
+            new FieldSpec("set_velocity", Kind.BOOLEAN, false)
+                .def(false).doc("If true replace the player's velocity; if false add to it; default false.")));
+        define("active_fireball", ActiveFireballPower.class, List.of(
+            new FieldSpec("speed", Kind.NUMBER, false)
+                .def(1.5).doc("Velocity applied to each of the spread small fireballs; default 1.5."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(100).doc("Cooldown between casts in ticks (20 = 1s); default 100.")));
+        define("active_phase", ActivePhasePower.class, List.of(
+            new FieldSpec("max_depth", Kind.INTEGER, false)
+                .def(16).doc("Maximum wall thickness in blocks the phase can pass through; default 16."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(40).doc("Cooldown between phases in ticks (20 = 1s); default 40."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Food/exhaustion points consumed on a successful phase; default 0.")));
+        define("active_place_block", ActivePlaceBlockPower.class, List.of(
+            new FieldSpec("block_id", Kind.STRING, false)
+                .def("minecraft:glowstone").doc("Block id placed at the targeted face; default minecraft:glowstone."),
+            new FieldSpec("max_distance", Kind.NUMBER, false)
+                .def(5.0).doc("Maximum ray-pick reach in blocks for the placement surface; default 5.0."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(100).doc("Cooldown between placements in ticks (20 = 1s); default 100."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Food/exhaustion points consumed on a successful placement; default 0.")));
+        define("active_recall", ActiveRecallPower.class, List.of(
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(600).doc("Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
