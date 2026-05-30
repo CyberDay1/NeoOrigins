@@ -128,18 +128,6 @@ public final class ConditionParser {
                     json.has("value") && json.get("value").getAsBoolean()
                         ? EntityCondition.alwaysTrue() : EntityCondition.alwaysFalse();
                 case "neoorigins:config_flag"                   -> parseConfigFlag(json);
-                case "neoorigins:sneaking"                      -> p -> p.isShiftKeyDown();
-                case "neoorigins:sprinting"                     -> p -> p.isSprinting();
-                case "neoorigins:on_ground"                     -> p -> p.onGround();
-                case "neoorigins:in_water"                      -> p -> p.isInWater();
-                case "neoorigins:swimming"                      -> p -> p.isSwimming();
-                case "neoorigins:submerged_in_water"            -> p -> p.isUnderWater();
-                case "neoorigins:fall_flying"                   -> p -> p.isFallFlying();
-                case "neoorigins:invisible"                     -> p -> p.isInvisible();
-                case "neoorigins:moving"                        -> p -> {
-                    var dm = p.getDeltaMovement();
-                    return dm.x != 0 || dm.z != 0;
-                };
                 case "neoorigins:in_rain"                       -> p -> {
                     if (!(p.level() instanceof ServerLevel sl)) return false;
                     if (p.isPassenger()) return false;
@@ -204,7 +192,6 @@ public final class ConditionParser {
                 case "neoorigins:food_level", "neoorigins:food" -> parseFoodLevel(json);
                 case "neoorigins:saturation_level"              -> parseSaturationLevel(json);
                 case "neoorigins:submerged_in"                  -> parseSubmergedIn(json);
-                case "neoorigins:on_fire", "neoorigins:fire"    -> p -> p.isOnFire();
                 case "neoorigins:equipped_item"                 -> parseEquippedItem(json, contextId);
                 case "neoorigins:relative_health"               -> parseRelativeHealth(json);
                 case "neoorigins:fall_distance"                 -> parseFallDistance(json);
@@ -214,8 +201,6 @@ public final class ConditionParser {
                 case "neoorigins:nbt"                           -> parseNbt(json);
                 case "neoorigins:scoreboard"                    -> parseScoreboard(json);
                 case "neoorigins:command"                       -> parseCommand(json);
-                case "neoorigins:passenger",
-                     "neoorigins:riding"                        -> p -> p.isPassenger();
                 case "neoorigins:entity_type"                   -> parseEntityType(json);
                 case "neoorigins:fluid_height"                  -> parseFluidHeight(json);
                 case "neoorigins:in_block",
@@ -226,11 +211,6 @@ public final class ConditionParser {
                 case "neoorigins:temperature"                   -> parseTemperature(json);
                 case "neoorigins:armor_value"                   -> parseArmorValue(json);
                 case "neoorigins:amount"                        -> parseAmount(json);
-                case "neoorigins:using_item"                    -> p -> p.isUsingItem();
-                case "neoorigins:ticking"                       -> p -> !p.isRemoved();
-                case "neoorigins:exists"                        -> p -> p != null && !p.isRemoved();
-                case "neoorigins:living"                        -> p -> p.isAlive();
-                case "neoorigins:creative_flying"               -> p -> p.getAbilities().flying;
                 case "neoorigins:power_type"                    -> parsePowerType(json, contextId);
                 case "neoorigins:predicate"                     -> parsePredicate(json, contextId);
 
@@ -280,7 +260,6 @@ public final class ConditionParser {
                     return sl.isThundering() && sl.isRainingAt(p.blockPosition());
                 };
                 case "neoorigins:has_effect"                    -> parseHasEffect(json);
-                case "neoorigins:climbing"                      -> p -> p.onClimbable();
                 case "neoorigins:near_block",
                      "neoorigins:block_in_radius"                  -> parseNearBlock(json, contextId);
                 case "neoorigins:near_entity"                   -> parseNearEntity(json, contextId);
