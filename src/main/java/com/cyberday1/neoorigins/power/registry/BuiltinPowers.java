@@ -989,26 +989,27 @@ public final class BuiltinPowers {
                 .def(false)
                 .doc("ARMOR_EQUIP only: when true, block equipping items in the boots slot. Ignored for other actions (default false).")));
 
-        // ── BOUNCED: neoorigins:resource (hud_render nested-shape mismatch) ──────
-        // resource is deliberately NOT registered. Its hand-rolled Codec reads a
-        // NESTED `hud_render` JSON object — { label, color, should_render } —
-        // whose values are stored on the FLATTENED Config record components
-        // `label`, `color`, `hidden`. The codec NEVER reads root-level `label` or
-        // `color`; they exist only inside hud_render (ResourcePower.Config.CODEC
-        // .decode, the `obj.getAsJsonObject("hud_render")` block).
-        //
-        // The FieldSpec model can't represent this: every FieldSpec.name must
-        // resolve to a record component via camel→snake or .boundTo (drift-audit
-        // clause a). There is NO `hud_render` component, so a `hud_render` OBJECT
-        // spec fails clause (a); and a top-level `label`/`color` spec would assert
-        // a JSON shape the codec does NOT read (a phantom), violating "match the
-        // CODEC". Registering only the 8 cleanly-mappable root fields leaves
-        // `label`/`color` permanently on the codec-reflection fallback (audit WARNs
-        // both) and drops the HUD-authoring surface from the spec — an incomplete,
-        // codec-disagreeing spec. No faithful FieldSpec registration exists until
-        // the model grows nested-object support, so resource stays branch-less in
-        // the schema (it already falls through to the permissive fallback) and on
-        // the reflection path. BOUNCED — reported, not forced.
+        // ── neoorigins:resource — registered via nested-object (children) support ─
+        // Its Codec reads a NESTED `hud_render` JSON object — { label, color,
+        // should_render } — whose values are stored on the FLATTENED Config
+        // components label/color/hidden. A VIRTUAL OBJECT wrapper (no backing
+        // component of its own) carries those three as children, each .boundTo
+        // its flat component (should_render→hidden, stored INVERTED). See
+        // FieldSpec.virtualObject and the drift-audit "virtual wrapper" path.
+        define("resource", ResourcePower.class, List.of(
+            new FieldSpec("min", Kind.INTEGER, false).def(0).doc("Lower bound of the resource bar."),
+            new FieldSpec("max", Kind.INTEGER, false).def(100).doc("Upper bound of the resource bar."),
+            new FieldSpec("start_value", Kind.INTEGER, false).doc("Initial value on grant; defaults to max."),
+            new FieldSpec("regen_rate", Kind.INTEGER, false).def(0).doc("Amount added each regen interval (0 = no regen)."),
+            new FieldSpec("regen_interval", Kind.INTEGER, false).def(20).range(1.0, null).doc("Ticks between regen applications (min 1)."),
+            new FieldSpec("regen_condition", Kind.REF, false).ref("#").doc("Optional EntityCondition gating regen; defaults always-true."),
+            new FieldSpec("min_action", Kind.REF, false).ref("#").doc("Optional EntityAction fired when the value reaches min."),
+            new FieldSpec("max_action", Kind.REF, false).ref("#").doc("Optional EntityAction fired when the value reaches max."),
+            new FieldSpec("hud_render", Kind.OBJECT, false).virtualObject(
+                new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
+                new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color (hex, e.g. #55AAFF)."),
+                new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."))
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden components.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
