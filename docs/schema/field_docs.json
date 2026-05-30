@@ -5,12 +5,6 @@
     "hidden": "If true, this power is not listed on the origin screen.",
     "condition": "Only applies while this condition passes (a DSL condition object — use pick)."
   },
-  "neoorigins:active_ability": {
-    "cooldown_ticks": "Cooldown between uses in ticks (20 = 1s); default 60.",
-    "entity_action": "EntityAction tree executed on the player when the keybind fires.",
-    "hunger_cost": "Food/exhaustion points consumed per successful activation; default 0.",
-    "key": "Active keybind slot that triggers the ability."
-  },
   "neoorigins:breath_in_fluid": {
     "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
     "air_loss_per_second": "Air points lost per second while submerged. Higher = faster drain. Overrides drain_interval_ticks / drain_rate when set."
@@ -23,26 +17,8 @@
   "neoorigins:conditional": {
     "inner_power": "Resource id of another power that is only active while this condition holds."
   },
-  "neoorigins:edible_item": {
-    "always_edible": "If true the item can be eaten even at full hunger (default true).",
-    "fast": "If true the item is consumed with the quick eat animation.",
-    "item_condition": "Optional condition an item must match (in addition to items/tags) to be edible.",
-    "items": "List of item ids that become edible (matches items OR tags).",
-    "meat": "If true the food counts as meat for diet/wolf interactions.",
-    "nutrition": "Hunger points restored when consumed (default 4).",
-    "saturation": "Saturation modifier applied on consumption (default 0.3).",
-    "tags": "List of item-tag ids that become edible (matches items OR tags)."
-  },
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
-  },
-  "neoorigins:loot_pool_grant": {
-    "active": "Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system.",
-    "bonus_rolls": "Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming.",
-    "cooldown": "Cooldown in ticks between activations (20 = 1s); default 0.",
-    "grant_id": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both.",
-    "loot_table": "ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).",
-    "rolls": "Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op."
   },
   "neoorigins:modify_player_spawn": {
     "bed_override": "If true also overrides the player's bed/anchor spawn, not just respawns.",
@@ -108,9 +84,5 @@
   "neoorigins:tick_action": {
     "action_type": "Periodic action: teleport_on_damage or none (default none).",
     "interval": "Ticks between each action run (20 = 1s; default 20)."
-  },
-  "neoorigins:toggle": {
-    "default_value": "Initial boolean value before the toggle is first flipped (default false).",
-    "key": "Identifier other powers read/flip this named boolean by."
   }
 }

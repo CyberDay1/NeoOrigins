@@ -760,6 +760,74 @@ public final class BuiltinPowers {
         define("entity_set", EntitySetPower.class, List.of(
             new FieldSpec("name", Kind.STRING, false)
                 .def("").doc("Named UUID set this power declares the player a member of; namespace it (e.g. 'mypack:kill_streak') to avoid collisions. Read/mutated by the in_set / add_to_set / remove_from_set verbs.")));
+
+        // ── Group B — phantom / renamed fields (schema named what the codec lacks) ─
+        // For each of these the power.schema.json branch named a field the codec
+        // does NOT read (a phantom), or named a real field under the wrong JSON
+        // key. Register to match the codec — using the FieldSpec key-alias
+        // (.boundTo) where the codec reads a component under a non-camel→snake
+        // JSON key — then collapse the branch and drop the phantom field_docs.
+        //   • toggle: the codec reads its `defaultValue` component from the
+        //     `default` JSON key (Codec.BOOL.optionalFieldOf("default", false)),
+        //     NOT `default_value` as the schema claimed; and it has NO `key`
+        //     field at all (the schema's `key` enum was a phantom). The spec's
+        //     JSON name is `default`, bound to the `defaultValue` component.
+        //   • active_ability: the codec reads its `action` component from the
+        //     `entity_action` JSON key (bound), defaulting to noop → the schema's
+        //     `required: [type, entity_action]` was wrong (not required). It also
+        //     reads resource_cost / resource_cost_amount the schema omitted, and
+        //     has NO `key` field (schema phantom). cooldown_ticks / hunger_cost
+        //     default; condition defaults to alwaysTrue.
+        //   • edible_item: the codec has NO item_condition / fast / meat fields
+        //     (all three were schema phantoms) and DOES read consume_sound
+        //     (Optional<>) which the schema omitted. Every real field defaults.
+        //   • loot_pool_grant: the codec reads its `cooldownTicks` component from
+        //     the `cooldown` JSON key (Codec.INT.optionalFieldOf("cooldown", 0)),
+        //     bound here. grant_id / loot_table are bare fieldOf → required=true
+        //     (matching the schema's required list); rolls / bonus_rolls / active
+        //     default.
+        define("toggle", TogglePower.class, List.of(
+            new FieldSpec("default", Kind.BOOLEAN, false).boundTo("defaultValue")
+                .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.")));
+        define("active_ability", ActiveAbilityPower.class, List.of(
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Food/exhaustion points consumed per successful activation; default 0."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on activation; empty = no resource cost."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).doc("Amount of the resource_cost resource consumed per activation; default 0."),
+            new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
+                .doc("EntityAction tree executed on the player when the keybind fires (defaults to noop)."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional DSL condition gating the ability; it only fires while this passes (default always).")));
+        define("edible_item", EdibleItemPower.class, List.of(
+            new FieldSpec("items", Kind.ARRAY, false)
+                .doc("List of item ids that become edible (matches items OR tags)."),
+            new FieldSpec("tags", Kind.ARRAY, false)
+                .doc("List of item-tag ids that become edible (matches items OR tags)."),
+            new FieldSpec("nutrition", Kind.INTEGER, false)
+                .def(4).range(0.0, null).doc("Hunger points restored when consumed (default 4)."),
+            new FieldSpec("saturation", Kind.NUMBER, false)
+                .def(0.3).doc("Saturation modifier applied on consumption (default 0.3)."),
+            new FieldSpec("always_edible", Kind.BOOLEAN, false)
+                .def(true).doc("If true the item can be eaten even at full hunger (default true)."),
+            new FieldSpec("consume_sound", Kind.STRING, false)
+                .doc("Optional sound-event id played on consumption; omit to use the default eat sound.")));
+        define("loot_pool_grant", LootPoolGrantPower.class, List.of(
+            new FieldSpec("grant_id", Kind.STRING, true)
+                .doc("Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both."),
+            new FieldSpec("loot_table", Kind.STRING, true)
+                .doc("ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers)."),
+            new FieldSpec("rolls", Kind.INTEGER, false)
+                .def(1).range(0.0, null).doc("Number of times the table is rolled per activation; default 1. Combined with bonus_rolls; if both are zero the harness lints the power as a no-op."),
+            new FieldSpec("bonus_rolls", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Extra rolls added to `rolls` per activation; default 0. Mirrors vanilla loot-pool naming."),
+            new FieldSpec("active", Kind.STRING, false)
+                .def("").doc("Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system."),
+            new FieldSpec("cooldown", Kind.INTEGER, false).boundTo("cooldownTicks")
+                .def(0).range(0.0, null).doc("Cooldown in ticks between activations (20 = 1s); default 0.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
