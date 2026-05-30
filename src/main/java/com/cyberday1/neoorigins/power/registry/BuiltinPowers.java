@@ -885,6 +885,27 @@ public final class BuiltinPowers {
                 .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).")));
+
+        // ── BOUNCED: neoorigins:resource (hud_render nested-shape mismatch) ──────
+        // resource is deliberately NOT registered. Its hand-rolled Codec reads a
+        // NESTED `hud_render` JSON object — { label, color, should_render } —
+        // whose values are stored on the FLATTENED Config record components
+        // `label`, `color`, `hidden`. The codec NEVER reads root-level `label` or
+        // `color`; they exist only inside hud_render (ResourcePower.Config.CODEC
+        // .decode, the `obj.getAsJsonObject("hud_render")` block).
+        //
+        // The FieldSpec model can't represent this: every FieldSpec.name must
+        // resolve to a record component via camel→snake or .boundTo (drift-audit
+        // clause a). There is NO `hud_render` component, so a `hud_render` OBJECT
+        // spec fails clause (a); and a top-level `label`/`color` spec would assert
+        // a JSON shape the codec does NOT read (a phantom), violating "match the
+        // CODEC". Registering only the 8 cleanly-mappable root fields leaves
+        // `label`/`color` permanently on the codec-reflection fallback (audit WARNs
+        // both) and drops the HUD-authoring surface from the spec — an incomplete,
+        // codec-disagreeing spec. No faithful FieldSpec registration exists until
+        // the model grows nested-object support, so resource stays branch-less in
+        // the schema (it already falls through to the permissive fallback) and on
+        // the reflection path. BOUNCED — reported, not forced.
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
