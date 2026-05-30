@@ -647,6 +647,58 @@ public final class BuiltinPowers {
                 .doc("Optional gate matching a worn item by id/tag in a slot; active only while worn."),
             new FieldSpec("location_condition", Kind.OBJECT, false)
                 .doc("Optional gate on dimension/biome/structure; active only while there.")));
+
+        // ── Group A — batch 1 (key-aliased event hook: schema-branch collapse) ─
+        // action_on_event is the first power whose JSON key set does NOT line up
+        // with its Config record components 1:1, so it exercises the FieldSpec
+        // key-alias (`.boundTo`): the codec reads its `EntityAction action`
+        // component from the `entity_action` JSON key (see ActionOnEventPower
+        // .Config.CODEC.decode), so the spec keeps the author-facing JSON name
+        // `entity_action` and binds it to the `action` component for the drift
+        // audit. Every other component's JSON key already equals camel→snake of
+        // the component (condition, modifier, block_condition, effect,
+        // effect_tag, immunity_ticks), so those need no alias. Required-ness is
+        // read straight off the codec: `event` is the only field whose absence
+        // hard-fails (valueOf on "" throws → required=true, matching the
+        // schema's `required: [type, event]`); condition/action/modifier default
+        // to always-true/noop/identity and the rest are `Optional<>` or default
+        // to 0 → required=false. The codec accepts the FULL EventPowerIndex.Event
+        // vocabulary case-insensitively, so the `event` options below are the
+        // complete enum (lowercased) — the old schema branch's `event` enum had
+        // drifted, omitting climb/craft_item/smelt_item/enchant_item/anvil_repair
+        // /bonemeal/breed/tame/food_finished/advancement_earned/trade_completed
+        // /villager_interact/mod_trade_price/mod_craft_amount/mod_fall_damage; the
+        // spec now matches the codec. The power.schema.json branch and the
+        // field_docs.json entry collapse onto this spec (behavior-neutral: the
+        // power still deserializes through its own Codec<Config>, untouched).
+        define("action_on_event", ActionOnEventPower.class, List.of(
+            new FieldSpec("event", Kind.ENUM, true)
+                .options("attack", "hit_taken", "kill", "death", "block_break", "block_place",
+                    "item_use", "respawn", "tick", "dimension_change", "climb", "jump",
+                    "projectile_hit", "craft_item", "smelt_item", "enchant_item", "anvil_repair",
+                    "bonemeal", "breed", "tame", "food_eaten", "food_finished", "advancement_earned",
+                    "trade_completed", "villager_interact", "gained", "lost", "chosen", "wake_up",
+                    "land", "block_use", "entity_use", "item_pickup", "item_use_finish",
+                    "effect_applied", "mod_exhaustion", "mod_natural_regen", "mod_trade_price",
+                    "mod_craft_amount", "mod_enchant_level", "mod_harvest_drops", "mod_teleport_range",
+                    "mod_fall_damage", "mod_knockback", "mod_potion_duration", "mod_anvil_cost",
+                    "mod_crafted_food_saturation", "mod_bonemeal_extra")
+                .doc("Case-insensitive event key that triggers this hook (e.g. food_eaten, block_break, mod_exhaustion). See docs/EVENTS.md."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional DSL condition gating the action/modifier; both only run while it passes (default always)."),
+            new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
+                .doc("EntityAction run on the player as a side-effect when the configured event fires."),
+            new FieldSpec("modifier", Kind.MIXED, false)
+                .doc("FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen)."),
+            new FieldSpec("block_condition", Kind.OBJECT, false)
+                .doc("Block-position filter for block events (block_break, block_place, block_use). Ignored on other events."),
+            new FieldSpec("effect", Kind.STRING, false)
+                .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
+            new FieldSpec("effect_tag", Kind.STRING, false)
+                .doc("EFFECT_APPLIED filter: only fire for effects in this tag (e.g. '#minecraft:harmful'). Combine with 'effect' (OR-matched). Ignored on other events."),
+            new FieldSpec("immunity_ticks", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
