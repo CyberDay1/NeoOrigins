@@ -198,39 +198,6 @@
       "required": ["type", "scale"]
     },
     {
-      "$comment": "neoorigins:summon_minion",
-      "properties": {
-        "type": { "const": "neoorigins:summon_minion" },
-        "mob_type": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
-        "max_count": { "type": "integer", "minimum": 1 },
-        "cooldown_ticks": { "type": "integer", "minimum": 0 },
-        "hunger_cost": { "type": "integer", "minimum": 0 },
-        "despawn_ticks": { "type": "integer", "minimum": 1 },
-        "death_damage": { "type": "number", "minimum": 0 },
-        "head": { "type": "string" },
-        "chest": { "type": "string" },
-        "legs": { "type": "string" },
-        "feet": { "type": "string" },
-        "mainhand": { "type": "string" },
-        "offhand": { "type": "string" }
-      },
-      "required": ["type", "mob_type"]
-    },
-    {
-      "$comment": "neoorigins:tame_mob",
-      "properties": {
-        "type": { "const": "neoorigins:tame_mob" },
-        "range": { "type": "number", "exclusiveMinimum": 0 },
-        "max_tamed": { "type": "integer", "minimum": 1 },
-        "cooldown_ticks": { "type": "integer", "minimum": 0 },
-        "hunger_cost": { "type": "integer", "minimum": 0 },
-        "despawn_ticks": { "type": "integer", "minimum": 1 },
-        "death_damage": { "type": "number", "minimum": 0 },
-        "hostile_only": { "description": "When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, etc.) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).", "type": "boolean", "default": true }
-      },
-      "required": ["type"]
-    },
-    {
       "$comment": "neoorigins:js_custom \u2014 passive power whose lifecycle hooks are supplied by a JS handler registered via NeoOrigins.registerPower(js_id, handler).",
       "properties": {
         "type": { "const": "neoorigins:js_custom" },
