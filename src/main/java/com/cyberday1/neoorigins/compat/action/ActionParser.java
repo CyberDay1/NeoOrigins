@@ -98,19 +98,13 @@ public final class ActionParser {
                 case "neoorigins:play_sound"                    -> parsePlaySound(json);
                 case "neoorigins:add_velocity"                  -> parseAddVelocity(json);
                 case "neoorigins:dash"                          -> parseDash(json);
-                case "neoorigins:set_on_fire"                   -> parseSetOnFire(json);
-                case "neoorigins:exhaust"                       -> parseExhaust(json);
                 case "neoorigins:change_resource",
                      "neoorigins:modify_resource"               -> parseChangeResource(json);
                 case "neoorigins:set_resource"                  -> parseSetResource(json);
 
                 // ---- Phase 2: New actions ----
                 case "neoorigins:damage"                        -> parseDamage(json);
-                case "neoorigins:feed"                          -> parseFeed(json);
-                case "neoorigins:trigger_cooldown"              -> parseTriggerCooldown(json);
-                case "neoorigins:gain_air"                      -> parseGainAir(json);
                 case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
-                case "neoorigins:set_fall_distance"             -> parseSetFallDistance(json);
                 case "neoorigins:give"                          -> parseGive(json);
                 case "neoorigins:explode"                       -> parseExplode(json);
                 case "neoorigins:launch"                        -> parseLaunch(json);
@@ -396,11 +390,6 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parseSetOnFire(JsonObject json) {
-        int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 20;
-        return player -> player.setRemainingFireTicks(ticks);
-    }
-
     /**
      * dash: applies a forward impulse in the direction the player is facing.
      * Variable strength. Optional {@code allow_vertical} (default true) — when
@@ -431,11 +420,6 @@ public final class ActionParser {
             }
             player.hurtMarked = true;
         };
-    }
-
-    private static EntityAction parseExhaust(JsonObject json) {
-        float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
-        return player -> player.getFoodData().addExhaustion(amount);
     }
 
     private static EntityAction parseChangeResource(JsonObject json) {
@@ -498,27 +482,6 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parseFeed(JsonObject json) {
-        int food = json.has("food") ? json.get("food").getAsInt() : 1;
-        float saturation = json.has("saturation") ? json.get("saturation").getAsFloat() : 0.0f;
-        return player -> player.getFoodData().eat(food, saturation);
-    }
-
-    private static EntityAction parseTriggerCooldown(JsonObject json) {
-        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 20;
-        String powerId = json.has("power") ? json.get("power").getAsString() : null;
-        if (powerId == null) return EntityAction.noop();
-        return player -> {
-            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-            data.setCooldown(powerId, player.tickCount, cooldown);
-        };
-    }
-
-    private static EntityAction parseGainAir(JsonObject json) {
-        int amount = json.has("amount") ? json.get("amount").getAsInt() : 10;
-        return player -> player.setAirSupply(Math.min(player.getMaxAirSupply(), player.getAirSupply() + amount));
-    }
-
     private static EntityAction parseSpawnEntity(JsonObject json) {
         String entityId = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
         if (entityId == null) {
@@ -569,11 +532,6 @@ public final class ActionParser {
                 sl.addFreshEntity(entity);
             }
         };
-    }
-
-    private static EntityAction parseSetFallDistance(JsonObject json) {
-        float distance = json.has("fall_distance") ? json.get("fall_distance").getAsFloat() : 0.0f;
-        return player -> player.fallDistance = distance;
     }
 
     private static EntityAction parseGive(JsonObject json) {

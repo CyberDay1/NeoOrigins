@@ -70,6 +70,94 @@ public final class BuiltinActions {
             List.of(new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false)
                 .def(1.0)
                 .doc("Health points to restore (1.0 = half a heart; default 1.0).")));
+
+        // exhaust — add food exhaustion. Lift-and-shift of parseExhaust. `amount`
+        // is optional at parse time (parser falls back to 1.0), so it is modelled
+        // optional-with-default; the parser is the contract, not the schema's
+        // shared amount-only `required` branch.
+        define("exhaust",
+            (json, ctx) -> {
+                float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
+                return player -> player.getFoodData().addExhaustion(amount);
+            },
+            List.of(new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false)
+                .def(1.0)
+                .range(0.0, null)
+                .doc("Exhaustion points added (default 1.0).")));
+
+        // gain_air — restore air supply, clamped to max. Lift-and-shift of
+        // parseGainAir. `amount` optional (parser default 10).
+        define("gain_air",
+            (json, ctx) -> {
+                int amount = json.has("amount") ? json.get("amount").getAsInt() : 10;
+                return player -> player.setAirSupply(
+                    Math.min(player.getMaxAirSupply(), player.getAirSupply() + amount));
+            },
+            List.of(new FieldSpec("amount", FormFieldSpec.Kind.INTEGER, false)
+                .def(10)
+                .doc("Air-supply ticks to add, clamped to max (default 10).")));
+
+        // feed — eat food + saturation. Lift-and-shift of parseFeed. Both fields
+        // optional (parser defaults food=1, saturation=0.0).
+        define("feed",
+            (json, ctx) -> {
+                int food = json.has("food") ? json.get("food").getAsInt() : 1;
+                float saturation = json.has("saturation") ? json.get("saturation").getAsFloat() : 0.0f;
+                return player -> player.getFoodData().eat(food, saturation);
+            },
+            List.of(
+                new FieldSpec("food", FormFieldSpec.Kind.INTEGER, false)
+                    .def(1)
+                    .range(0.0, null)
+                    .doc("Food points added (default 1)."),
+                new FieldSpec("saturation", FormFieldSpec.Kind.NUMBER, false)
+                    .def(0.0)
+                    .range(0.0, null)
+                    .doc("Saturation points added (default 0.0).")));
+
+        // set_fall_distance — overwrite the player's fall distance. Lift-and-shift
+        // of parseSetFallDistance. `fall_distance` optional (parser default 0.0).
+        define("set_fall_distance",
+            (json, ctx) -> {
+                float distance = json.has("fall_distance") ? json.get("fall_distance").getAsFloat() : 0.0f;
+                return player -> player.fallDistance = distance;
+            },
+            List.of(new FieldSpec("fall_distance", FormFieldSpec.Kind.NUMBER, false)
+                .def(0.0)
+                .doc("New fall distance value (default 0.0 — resets fall damage).")));
+
+        // set_on_fire — set remaining fire ticks. Lift-and-shift of parseSetOnFire.
+        // `ticks` optional (parser default 20).
+        define("set_on_fire",
+            (json, ctx) -> {
+                int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 20;
+                return player -> player.setRemainingFireTicks(ticks);
+            },
+            List.of(new FieldSpec("ticks", FormFieldSpec.Kind.INTEGER, false)
+                .def(20)
+                .range(0.0, null)
+                .doc("Fire duration in ticks (default 20 = 1s).")));
+
+        // trigger_cooldown — start a power's cooldown. Lift-and-shift of
+        // parseTriggerCooldown. `power` is the only hard requirement (parser
+        // no-ops when absent); `cooldown` optional (parser default 20).
+        define("trigger_cooldown",
+            (json, ctx) -> {
+                int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 20;
+                String powerId = json.has("power") ? json.get("power").getAsString() : null;
+                if (powerId == null) return EntityAction.noop();
+                return player -> {
+                    var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                    data.setCooldown(powerId, player.tickCount, cooldown);
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
+                    .doc("Power id whose cooldown to start."),
+                new FieldSpec("cooldown", FormFieldSpec.Kind.INTEGER, false)
+                    .def(20)
+                    .range(0.0, null)
+                    .doc("Cooldown duration in ticks (20 = 1s; default 20).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
