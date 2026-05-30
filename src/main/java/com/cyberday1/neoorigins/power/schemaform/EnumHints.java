@@ -26,11 +26,21 @@ public final class EnumHints {
     private static final List<String> ATTRIBUTE_OPERATIONS =
         List.of("add_value", "add_multiplied_base", "add_multiplied_total");
 
+    /**
+     * JSON tokens {@code TickActionPower.ActionType.CODEC} accepts. The enum's
+     * own constant names are UPPERCASE ({@code TELEPORT_ON_DAMAGE}/{@code NONE}),
+     * but its {@code xmap} serializes/parses the LOWERCASE form, so the reflection
+     * path (which would surface the raw constant names) must be pinned to these.
+     */
+    private static final List<String> TICK_ACTION_TYPES =
+        List.of("teleport_on_damage", "none");
+
     private static final Map<String, List<String>> HINTS = Map.of(
         "*|slot", EQUIPMENT_SLOTS,
         "*|equipment_slot", EQUIPMENT_SLOTS,
         "*|operation", ATTRIBUTE_OPERATIONS,
-        "neoorigins:attribute_modifier|operation", ATTRIBUTE_OPERATIONS
+        "neoorigins:attribute_modifier|operation", ATTRIBUTE_OPERATIONS,
+        "*|action_type", TICK_ACTION_TYPES
     );
 
     private EnumHints() {}
