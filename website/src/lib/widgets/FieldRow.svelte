@@ -11,6 +11,8 @@
 	import NumericRow from './NumericRow.svelte';
 	import EnumRow from './EnumRow.svelte';
 	import StringRow from './StringRow.svelte';
+	import RefRow from './RefRow.svelte';
+	import ArrayRefRow from './ArrayRefRow.svelte';
 	import RawJsonRow from './RawJsonRow.svelte';
 
 	let {
@@ -27,6 +29,10 @@
 	<EnumRow {field} bind:value={value as string} />
 {:else if field.kind === 'STRING'}
 	<StringRow {field} bind:value={value as string} />
+{:else if field.kind === 'REF'}
+	<RefRow {field} bind:value={value as Record<string, unknown> | null} />
+{:else if field.kind === 'ARRAY_REF'}
+	<ArrayRefRow {field} bind:value={value as unknown[] | null} />
 {:else}
 	<RawJsonRow {field} bind:value={value as string} />
 {/if}

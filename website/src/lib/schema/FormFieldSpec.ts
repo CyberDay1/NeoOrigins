@@ -63,10 +63,43 @@ export interface StringFieldSpec extends FieldSpecBase {
 }
 
 /**
+ * A cross-document `$ref` into `action.schema.json` / `condition.schema.json`
+ * (or a self-`$ref:"#"` inside one of those). Replaces the raw-JSON fallback
+ * with a recursive sub-form (D4): a type picker over the referenced schema's
+ * `type.enum`, then that branch's own `FormFieldSpec` list rendered inline.
+ * The bound value is the nested action/condition OBJECT (`{type, …}`) — not a
+ * stringified blob — so it serializes straight into the wire JSON. Mirrors the
+ * in-game `RefRow` that the Java creator ships.
+ */
+export interface RefFieldSpec extends FieldSpecBase {
+	kind: 'REF';
+	/** Which sibling schema document this refs into. */
+	refDoc: 'action' | 'condition';
+}
+
+/**
+ * An `array` whose `items` are a cross-document `$ref` into
+ * `action.schema.json` / `condition.schema.json` (e.g. the `actions` list on
+ * `neoorigins:and`). Rendered as an add/remove list of {@link RefFieldSpec}
+ * sub-forms (D4 `ArrayRefRow`). The bound value is an array of nested
+ * action/condition OBJECTs.
+ */
+export interface ArrayRefFieldSpec extends FieldSpecBase {
+	kind: 'ARRAY_REF';
+	/** Which sibling schema document each element refs into. */
+	refDoc: 'action' | 'condition';
+}
+
+/**
  * Escape hatch for any non-Tier-A field: OBJECT, ARRAY, REF, MIXED, UNKNOWN,
  * or a `oneOf` without a per-branch `$comment` discriminator. The widget
  * renders a `<textarea>` and validates with `JSON.parse`. Authors edit
  * these by hand — same as the in-game creator's behaviour for these kinds.
+ *
+ * <p>Note D4 lifts the cross-document action/condition `$ref` cases out of
+ * here into {@link RefFieldSpec} / {@link ArrayRefFieldSpec}; the `REF`/`ARRAY`
+ * reasons remain for refs that target neither sibling schema (unknown
+ * cross-document refs) and for same-document object/array shapes.
  */
 export interface RawJsonFieldSpec extends FieldSpecBase {
 	kind: 'RawJson';
@@ -86,11 +119,19 @@ export type FormFieldSpec =
 	| NumberFieldSpec
 	| EnumFieldSpec
 	| StringFieldSpec
+	| RefFieldSpec
+	| ArrayRefFieldSpec
 	| RawJsonFieldSpec;
 
 /** True when this field is one of the five Tier-A kinds (proper widget). */
 export function isTierA(field: FormFieldSpec): boolean {
-	return field.kind !== 'RawJson';
+	return (
+		field.kind === 'BOOLEAN' ||
+		field.kind === 'INTEGER' ||
+		field.kind === 'NUMBER' ||
+		field.kind === 'ENUM' ||
+		field.kind === 'STRING'
+	);
 }
 
 /** Default value appropriate for an empty / fresh form. */
@@ -105,6 +146,11 @@ export function emptyValueFor(field: FormFieldSpec): unknown {
 			return field.default ?? (field.options[0] ?? '');
 		case 'STRING':
 			return field.default ?? '';
+		case 'REF':
+			// Unset until the author picks an action/condition type.
+			return null;
+		case 'ARRAY_REF':
+			return [];
 		case 'RawJson':
 			return field.default;
 	}

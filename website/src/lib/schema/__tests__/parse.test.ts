@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { parsePowerSchema } from '../SchemaFormModel.js';
+import { parsePowerSchema, parseRefSchema, refTypeOptions } from '../SchemaFormModel.js';
 import type { FormFieldSpec } from '../FormFieldSpec.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +23,12 @@ const schemaDir = resolve(repoRoot, 'docs/schema');
 
 const powerSchema = JSON.parse(
 	readFileSync(resolve(schemaDir, 'power.schema.json'), 'utf-8')
+);
+const actionSchema = JSON.parse(
+	readFileSync(resolve(schemaDir, 'action.schema.json'), 'utf-8')
+);
+const conditionSchema = JSON.parse(
+	readFileSync(resolve(schemaDir, 'condition.schema.json'), 'utf-8')
 );
 const fieldDocs = JSON.parse(
 	readFileSync(resolve(schemaDir, 'field_docs.json'), 'utf-8')
@@ -155,6 +161,82 @@ check('fallback branch — power in enum but with no $comment branch returns com
 	assert(names.includes('name'), 'common `name` missing');
 	assert(names.includes('hidden'), 'common `hidden` missing');
 	assert(!names.includes('grant_id'), 'should not include branch-specific fields');
+});
+
+// ── D4: cross-document action/condition refs → REF / ARRAY_REF ───────────────
+
+console.log('\nparsePowerSchema — D4 cross-document refs');
+
+check('neoorigins:condition_passive — condition→REF(condition), entity_action/else_action→REF(action)', () => {
+	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:condition_passive');
+	const cond = findField(fields, 'condition');
+	assert(cond.kind === 'REF', `condition should be REF, got ${cond.kind}`);
+	if (cond.kind === 'REF') {
+		assert(cond.refDoc === 'condition', `condition.refDoc should be 'condition', got ${cond.refDoc}`);
+	}
+	for (const actionField of ['entity_action', 'else_action']) {
+		const f = findField(fields, actionField);
+		assert(f.kind === 'REF', `${actionField} should be REF, got ${f.kind}`);
+		if (f.kind === 'REF') {
+			assert(f.refDoc === 'action', `${actionField}.refDoc should be 'action', got ${f.refDoc}`);
+		}
+	}
+});
+
+console.log('\nparseRefSchema');
+
+check('action neoorigins:and — actions is ARRAY_REF(action)', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:and');
+	const actions = findField(fields, 'actions');
+	assert(actions.kind === 'ARRAY_REF', `actions should be ARRAY_REF, got ${actions.kind}`);
+	if (actions.kind === 'ARRAY_REF') {
+		assert(actions.refDoc === 'action', `actions.refDoc should be 'action', got ${actions.refDoc}`);
+	}
+});
+
+check('action neoorigins:if_else — condition→REF(condition), if_action/else_action→REF(action)', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:if_else');
+	const cond = findField(fields, 'condition');
+	assert(cond.kind === 'REF' && cond.refDoc === 'condition',
+		`condition should be REF(condition), got ${cond.kind}/${cond.kind === 'REF' ? cond.refDoc : '—'}`);
+	for (const a of ['if_action', 'else_action']) {
+		const f = findField(fields, a);
+		assert(f.kind === 'REF' && f.refDoc === 'action',
+			`${a} should be REF(action), got ${f.kind}`);
+	}
+	// `if_else` carries no common-root fields (action root is just `type`).
+	assert(!fields.some((f) => f.name === 'name'), 'action branch should not emit common `name`');
+});
+
+check('action apace:and — alias matched via branch type.enum', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'apace:and');
+	const actions = findField(fields, 'actions');
+	assert(actions.kind === 'ARRAY_REF', `apace:and actions should be ARRAY_REF, got ${actions.kind}`);
+});
+
+check('condition schema parses + has a type universe', () => {
+	const opts = refTypeOptions(conditionSchema);
+	assert(opts.length > 0, 'condition type universe empty');
+	assert(opts.includes('neoorigins:and'), 'condition enum should include neoorigins:and');
+});
+
+check('refTypeOptions dedups the (hand-written) duplicated action enum', () => {
+	const opts = refTypeOptions(actionSchema);
+	const set = new Set(opts);
+	assert(set.size === opts.length, 'refTypeOptions returned duplicates');
+	assert(opts.includes('neoorigins:damage'), 'action enum should include neoorigins:damage');
+});
+
+check('unknown action type id — explicit error', () => {
+	let threw = false;
+	try {
+		parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:bogus_action');
+	} catch (e) {
+		threw = true;
+		const msg = e instanceof Error ? e.message : String(e);
+		assert(msg.includes('not in schema enum'), `expected "not in schema enum", got: ${msg}`);
+	}
+	assert(threw, 'expected parseRefSchema to throw on unknown action id');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

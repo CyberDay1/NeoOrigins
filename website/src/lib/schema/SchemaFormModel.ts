@@ -13,21 +13,35 @@
 //   - The `type` discriminator itself is NEVER emitted (the power-picker
 //     drives that; it's not editable as a field).
 //   - `$ref` is resolved ONE level deep, looking up the pointer inside the
-//     same schema document (e.g. `#/$defs/foo`). Cross-document refs (e.g.
-//     `condition.schema.json`) fall to RawJson — the recursive RefRow that
-//     the Java side ships is a Phase-2 add per the scope doc.
+//     same schema document (e.g. `#/$defs/foo`).
+//   - D4: cross-document refs to `action.schema.json` / `condition.schema.json`
+//     (and the self-`$ref:"#"` inside those documents) now map to REF /
+//     ARRAY_REF field specs, which the recursive RefRow / ArrayRefRow render
+//     as nested sub-forms. {@link parseRefSchema} walks an action/condition
+//     document for a chosen type exactly the way {@link parsePowerSchema}
+//     walks the power document — they share one discriminated-oneOf core.
+//     Cross-document refs that target NEITHER sibling schema still fall to
+//     RawJson(REF).
 //   - Nested `properties` of an OBJECT field fall to RawJson — same MVP
 //     cutoff. Authors edit the inner JSON by hand.
 
 import type {
+	ArrayRefFieldSpec,
 	BooleanFieldSpec,
 	EnumFieldSpec,
 	FormFieldSpec,
 	IntegerFieldSpec,
 	NumberFieldSpec,
 	RawJsonFieldSpec,
+	RefFieldSpec,
 	StringFieldSpec
 } from './FormFieldSpec.js';
+
+/** Which schema document a field's `$ref` resolves into ({@link SelfDoc} drives `#`). */
+export type RefDoc = 'action' | 'condition';
+
+/** The document a discriminated walk is rooted in, so `$ref:"#"` self-refs resolve. */
+type SelfDoc = 'power' | RefDoc;
 
 // ── public API ──────────────────────────────────────────────────────────────
 
@@ -49,20 +63,73 @@ export function parsePowerSchema(
 	fieldDocs: object,
 	powerType: string
 ): FormFieldSpec[] {
+	return parseDiscriminated(schema, fieldDocs, powerType, 'power', 'power type');
+}
+
+/**
+ * Parse the field list for a chosen action/condition type out of
+ * `action.schema.json` / `condition.schema.json`. The recursive RefRow calls
+ * this when the author picks a type, then renders the returned specs inline.
+ *
+ * @param refDoc    Which sibling schema `schema` is (`'action'` | `'condition'`).
+ *                  Drives how the document's own `$ref:"#"` self-refs resolve.
+ * @param schema    The full parsed action/condition schema document.
+ * @param fieldDocs The full parsed `field_docs.json` document.
+ * @param typeId    The fully-qualified action/condition id (e.g. `"neoorigins:damage"`).
+ * @returns         The chosen branch's `FormFieldSpec[]` (no common-root fields —
+ *                  action/condition roots carry only the `type` discriminator).
+ *                  `[]` for a type with no structured `oneOf` branch.
+ * @throws          `Error` if `typeId` is not in the document's `type.enum`.
+ */
+export function parseRefSchema(
+	refDoc: RefDoc,
+	schema: object,
+	fieldDocs: object,
+	typeId: string
+): FormFieldSpec[] {
+	return parseDiscriminated(schema, fieldDocs, typeId, refDoc, `${refDoc} type`);
+}
+
+/** The de-duplicated `type.enum` universe of a power/action/condition schema. */
+export function refTypeOptions(schema: object): string[] {
+	const seen = new Set<string>();
+	const out: string[] = [];
+	for (const id of readTypeEnum(schema as JsonObject)) {
+		if (seen.has(id)) continue;
+		seen.add(id);
+		out.push(id);
+	}
+	return out;
+}
+
+/**
+ * Shared discriminated-oneOf walk behind {@link parsePowerSchema} and
+ * {@link parseRefSchema}. Emits common-root fields (everything but `type`)
+ * then the matched branch's fields. `selfDoc` lets `$ref:"#"` self-refs and
+ * cross-document action/condition refs resolve to REF / ARRAY_REF specs.
+ */
+function parseDiscriminated(
+	schema: object,
+	fieldDocs: object,
+	typeId: string,
+	selfDoc: SelfDoc,
+	label: string
+): FormFieldSpec[] {
 	const root = schema as JsonObject;
 	const docs = fieldDocs as FieldDocs;
 
-	// Sanity: power type must appear in the schema's universe.
+	// Sanity: the type must appear in the schema's universe.
 	const typeEnum = readTypeEnum(root);
-	if (!typeEnum.includes(powerType)) {
-		throw new Error(`power type not in schema enum: ${powerType}`);
+	if (!typeEnum.includes(typeId)) {
+		throw new Error(`${label} not in schema enum: ${typeId}`);
 	}
 
-	// Common-root fields (skip `type` — driven by the power picker, not a row).
-	const commonFields = commonRootFields(root, docs, powerType);
+	// Common-root fields (skip `type` — driven by the picker, not a row). For
+	// action/condition documents the root carries only `type`, so this is empty.
+	const commonFields = commonRootFields(root, docs, typeId, selfDoc);
 
-	// Find the matching structured branch by `$comment`.
-	const branch = findStructuredBranch(root, powerType);
+	// Find the matching structured branch.
+	const branch = findStructuredBranch(root, typeId);
 	if (!branch) return commonFields; // fallback branch → raw-JSON only
 
 	// Branch fields, in schema-declared order, skipping `type` again.
@@ -73,7 +140,7 @@ export function parsePowerSchema(
 		if (name === 'type') continue;
 		const propSchema = derefOneLevel(root, raw as JsonValue);
 		branchFields.push(
-			mapProperty(name, propSchema, branchRequired.has(name), docs, powerType)
+			mapProperty(name, propSchema, branchRequired.has(name), docs, typeId, selfDoc)
 		);
 	}
 	return [...commonFields, ...branchFields];
@@ -104,42 +171,57 @@ function readRequiredSet(o: JsonObject): Set<string> {
 function commonRootFields(
 	root: JsonObject,
 	docs: FieldDocs,
-	powerType: string
+	powerType: string,
+	selfDoc: SelfDoc
 ): FormFieldSpec[] {
 	const props = (root['properties'] ?? {}) as JsonObject;
 	const required = readRequiredSet(root);
 	const out: FormFieldSpec[] = [];
 	for (const [name, raw] of Object.entries(props)) {
 		if (name === 'type') continue;
-		out.push(mapProperty(name, raw as JsonValue, required.has(name), docs, powerType));
+		out.push(mapProperty(name, raw as JsonValue, required.has(name), docs, powerType, selfDoc));
 	}
 	return out;
 }
 
 /**
- * Find the `oneOf` branch whose `$comment` equals (or starts with) `powerType`.
+ * Find the `oneOf` branch for `typeId`.
  *
- * The schema uses long `$comment` strings of the form
- * `"neoorigins:starting_equipment — grants one or more items …"` for
- * documentation, and the in-game Java side matches on `type.const`. We match
- * by checking that the `$comment` starts with `powerType` followed by a
- * non-id character (em-dash, space, or end of string), which handles both
- * the bare-id and documented-id forms.
+ * Two discriminator shapes coexist: the generated `power.schema.json` keys each
+ * branch's `type` as a `const` and carries a bare-id `$comment`, while the
+ * hand-written `action.schema.json` / `condition.schema.json` key `type` as an
+ * `enum` (so one branch covers a verb plus its `apace:` aliases) under a long
+ * grouped `$comment` (e.g. `"neoorigins:and / … — combinators"`). We match on
+ * EITHER the branch's own `type` const/enum containing `typeId` (authoritative)
+ * OR the `$comment` starting with `typeId` followed by a non-id boundary
+ * (em-dash, space, or end) — the latter preserves the original power matching.
  */
-function findStructuredBranch(root: JsonObject, powerType: string): JsonObject | null {
+function findStructuredBranch(root: JsonObject, typeId: string): JsonObject | null {
 	const oneOf = root['oneOf'];
 	if (!Array.isArray(oneOf)) return null;
 	for (const candidate of oneOf) {
 		if (!isObject(candidate)) continue;
+		if (branchTypeMatches(candidate, typeId)) return candidate;
 		const comment = candidate['$comment'];
 		if (typeof comment !== 'string') continue;
-		if (comment === powerType || comment.startsWith(powerType + ' ') ||
-			comment.startsWith(powerType + '\u2014') ||
-			comment.startsWith(powerType + ' \u2014')) {
+		if (comment === typeId || comment.startsWith(typeId + ' ') ||
+			comment.startsWith(typeId + '\u2014') ||
+			comment.startsWith(typeId + ' \u2014')) {
 			return candidate;
 		}
 	}
 	return null;
+}
+
+/** True when a branch's `properties.type` pins `typeId` via `const` or `enum`. */
+function branchTypeMatches(branch: JsonObject, typeId: string): boolean {
+	const props = branch['properties'];
+	if (!isObject(props)) return false;
+	const typeProp = props['type'];
+	if (!isObject(typeProp)) return false;
+	if (typeProp['const'] === typeId) return true;
+	const en = typeProp['enum'];
+	return Array.isArray(en) && en.includes(typeId);
 }
 
 /**
@@ -165,12 +247,29 @@ function derefOneLevel(root: JsonObject, value: JsonValue): JsonValue {
 	return cur;
 }
 
+/**
+ * Classify a `$ref` string into which sibling schema document it targets, for
+ * the recursive RefRow. `"action.schema.json"` → `'action'`,
+ * `"condition.schema.json"` → `'condition'`, and a self-`"#"` resolves to the
+ * document currently being walked (`selfDoc`, when that is action/condition —
+ * the power document has no self-refs). Same-document pointer refs (`#/...`)
+ * are already dereffed by {@link derefOneLevel} before this runs, and any other
+ * ref (unknown cross-document) returns `null` so the caller keeps RawJson(REF).
+ */
+function refDocOf(ref: string, selfDoc: SelfDoc): RefDoc | null {
+	if (ref === '#') return selfDoc === 'power' ? null : selfDoc;
+	if (ref === 'action.schema.json') return 'action';
+	if (ref === 'condition.schema.json') return 'condition';
+	return null;
+}
+
 function mapProperty(
 	name: string,
 	raw: JsonValue,
 	required: boolean,
 	docs: FieldDocs,
-	powerType: string
+	powerType: string,
+	selfDoc: SelfDoc
 ): FormFieldSpec {
 	const p = isObject(raw) ? raw : ({} as JsonObject);
 
@@ -207,8 +306,15 @@ function mapProperty(
 	}
 
 	// Bare `$ref` that survived `derefOneLevel` is a cross-document ref
-	// (e.g. action.schema.json / condition.schema.json) → RawJson REF.
+	// (action.schema.json / condition.schema.json) or a self-`$ref:"#"`. When
+	// it targets a sibling action/condition document → REF (recursive sub-form);
+	// anything else stays a RawJson(REF) escape hatch.
 	if (typeof p['$ref'] === 'string') {
+		const refDoc = refDocOf(p['$ref'] as string, selfDoc);
+		if (refDoc) {
+			const spec: RefFieldSpec = { ...base, kind: 'REF', refDoc };
+			return spec;
+		}
 		return rawJsonOf(base, 'REF', p['default']);
 	}
 
@@ -238,8 +344,20 @@ function mapProperty(
 				const spec: StringFieldSpec = { ...base, kind: 'STRING', default: def, pattern };
 				return spec;
 			}
-			case 'array':
+			case 'array': {
+				// An `array` of cross-document action/condition refs (e.g. the
+				// `actions` list on `neoorigins:and`) → ARRAY_REF, rendered as an
+				// add/remove list of RefRow sub-forms. Other arrays stay RawJson.
+				const items = p['items'];
+				if (isObject(items) && typeof items['$ref'] === 'string') {
+					const refDoc = refDocOf(items['$ref'] as string, selfDoc);
+					if (refDoc) {
+						const spec: ArrayRefFieldSpec = { ...base, kind: 'ARRAY_REF', refDoc };
+						return spec;
+					}
+				}
 				return rawJsonOf(base, 'ARRAY', p['default']);
+			}
 			case 'object':
 				return rawJsonOf(base, 'OBJECT', p['default']);
 			default:

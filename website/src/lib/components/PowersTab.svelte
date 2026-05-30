@@ -14,34 +14,53 @@
 
 	import { base } from '$app/paths';
 	import { draft, type PowerDraft } from '$lib/stores/originDraft';
+	import { setRefSchemas, type RefSchemas } from '$lib/schema/refSchemaContext';
 	import PowerEditor from './power/PowerEditor.svelte';
 
 	// ── module-level schema cache ──────────────────────────────────────────────
 	// A single in-flight promise shared across tab mounts so we don't refetch
 	// when the user toggles tabs. Lives at module scope intentionally.
-	let schemaPromise: Promise<{ schema: object; fieldDocs: object; typeOptions: string[] }> | null =
-		null;
+	let schemaPromise: Promise<{
+		schema: object;
+		fieldDocs: object;
+		typeOptions: string[];
+		actionSchema: object;
+		conditionSchema: object;
+	}> | null = null;
 
 	function loadSchemas() {
 		if (schemaPromise) return schemaPromise;
 		schemaPromise = (async () => {
-			const [schemaRes, docsRes] = await Promise.all([
+			const [schemaRes, docsRes, actionRes, conditionRes] = await Promise.all([
 				fetch(`${base}/schemas/power.schema.json`),
-				fetch(`${base}/schemas/field_docs.json`)
+				fetch(`${base}/schemas/field_docs.json`),
+				fetch(`${base}/schemas/action.schema.json`),
+				fetch(`${base}/schemas/condition.schema.json`)
 			]);
 			if (!schemaRes.ok) throw new Error(`power.schema.json: ${schemaRes.status}`);
 			if (!docsRes.ok) throw new Error(`field_docs.json: ${docsRes.status}`);
+			if (!actionRes.ok) throw new Error(`action.schema.json: ${actionRes.status}`);
+			if (!conditionRes.ok) throw new Error(`condition.schema.json: ${conditionRes.status}`);
 			const schema = (await schemaRes.json()) as Record<string, unknown>;
 			const fieldDocs = (await docsRes.json()) as object;
+			const actionSchema = (await actionRes.json()) as object;
+			const conditionSchema = (await conditionRes.json()) as object;
 			const typeProp = (schema.properties as Record<string, unknown> | undefined)?.type as
 				| Record<string, unknown>
 				| undefined;
 			const en = typeProp?.enum;
 			const typeOptions = Array.isArray(en) ? en.filter((v): v is string => typeof v === 'string') : [];
-			return { schema, fieldDocs, typeOptions };
+			return { schema, fieldDocs, typeOptions, actionSchema, conditionSchema };
 		})();
 		return schemaPromise;
 	}
+
+	// Reactive holder published to the recursive RefRow / ArrayRefRow sub-forms.
+	// `setContext` must run during init (before any child mounts), so we publish
+	// an empty holder now and fill it when the async fetch resolves — the rows
+	// only mount once `schemaState.status === 'ready'`, by which point it's set.
+	const refSchemas = $state<RefSchemas>({ action: {}, condition: {}, fieldDocs: {} });
+	setRefSchemas(refSchemas);
 
 	let schemaState = $state<{
 		status: 'loading' | 'ready' | 'error';
@@ -56,6 +75,11 @@
 		loadSchemas()
 			.then((v) => {
 				if (cancelled) return;
+				// Fill the context holder so RefRow / ArrayRefRow can resolve
+				// nested action/condition types.
+				refSchemas.action = v.actionSchema;
+				refSchemas.condition = v.conditionSchema;
+				refSchemas.fieldDocs = v.fieldDocs;
 				schemaState = {
 					status: 'ready',
 					schema: v.schema,

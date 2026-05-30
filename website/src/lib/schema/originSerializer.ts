@@ -93,6 +93,31 @@ export interface SerializedDatapackBundle {
 
 // ── implementation ──────────────────────────────────────────────────────────
 
+/**
+ * Recursively drop "unset" values for the wire JSON: empty string, `null`,
+ * `undefined`, empty array, and empty object collapse to `undefined` (the
+ * caller omits the key). `0`, `false`, non-empty strings, and populated
+ * arrays/objects are kept. Used to keep nested action/condition sub-forms
+ * (D4 RefRow / ArrayRefRow) from leaking blank optional fields or unpicked
+ * array slots into the exported datapack.
+ */
+function pruneForWire(v: unknown): unknown {
+	if (v === '' || v === null || v === undefined) return undefined;
+	if (Array.isArray(v)) {
+		const out = v.map(pruneForWire).filter((x) => x !== undefined);
+		return out.length > 0 ? out : undefined;
+	}
+	if (typeof v === 'object') {
+		const out: Record<string, unknown> = {};
+		for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+			const pruned = pruneForWire(val);
+			if (pruned !== undefined) out[k] = pruned;
+		}
+		return Object.keys(out).length > 0 ? out : undefined;
+	}
+	return v;
+}
+
 function serializePower(
 	power: PowerDraft,
 	namespace: string
@@ -102,13 +127,18 @@ function serializePower(
 	const localId = power.id;
 	const fullId = `${namespace}:${localId}`;
 
-	// Spread the form-driven fields under `type`. Drop empty strings —
-	// same MVP rule as origin fields. `null` and `0` are preserved
-	// (those are meaningful values, not user-forgot-to-fill blanks).
+	// Spread the form-driven fields under `type`, pruning unset values. Empty
+	// strings, `null`, `undefined`, and empty arrays/objects are dropped (a
+	// blank field is "not authored", not a meaningful value); `0` and `false`
+	// are kept. The prune recurses into the nested action/condition OBJECTs that
+	// the D4 RefRow / ArrayRefRow produce so e.g. an unfilled optional sub-field
+	// or an unpicked array slot doesn't leak into the wire JSON. RawJson values
+	// are plain strings and pass through atomically.
 	const json: SerializedPower = { type: power.type };
 	for (const [k, v] of Object.entries(power.fields)) {
-		if (v === '' || v === undefined) continue;
-		json[k] = v;
+		const pruned = pruneForWire(v);
+		if (pruned === undefined) continue;
+		json[k] = pruned;
 	}
 
 	return {
