@@ -49,6 +49,12 @@ public final class BuiltinActions {
         // nothing — explicit no-op. Lift-and-shift of `case "neoorigins:nothing"
         // -> EntityAction.noop()`. No config fields.
         define("nothing", (json, ctx) -> EntityAction.noop(), List.of());
+
+        // extinguish — clear the player's fire. No config fields.
+        define("extinguish", (json, ctx) -> player -> player.clearFire(), List.of());
+
+        // dismount — stop riding the current vehicle. No config fields.
+        define("dismount", (json, ctx) -> player -> player.stopRiding(), List.of());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */
