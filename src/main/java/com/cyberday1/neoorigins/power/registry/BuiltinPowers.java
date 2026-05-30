@@ -141,6 +141,80 @@ public final class BuiltinPowers {
         define("twin_breeding", TwinBreedingPower.class, List.of(
             new FieldSpec("chance", Kind.NUMBER, false)
                 .def(1.0).doc("Probability 0.0-1.0 of an extra baby when animals breed (default 1.0).")));
+
+        // ── Group R (cont.) — multi-knob record-reflectable powers ──────────
+        // Same contract as the single-knob block above, just with several
+        // fields. Each FieldSpec mirrors the codec's `optionalFieldOf` default
+        // (required=false) or its bare `fieldOf` (required=true); docs are the
+        // collapsed field_docs.json entries. None of these had a structured
+        // power.schema.json branch (their fields were reflection + field_docs
+        // only), so registering them carries name+optionality+default+doc in one
+        // place and the field_docs.json entry can be dropped. Behavior-neutral:
+        // the power still deserializes through its own Codec<Config>, untouched.
+        define("bare_hand_tool", BareHandToolPower.class, List.of(
+            new FieldSpec("tool", Kind.STRING, false)
+                .def("minecraft:stone_pickaxe").doc("Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe.")));
+        define("breath_out_of_fluid", BreathOutOfFluidPower.class, List.of(
+            new FieldSpec("fluid", Kind.STRING, false)
+                .def("water").doc("Fluid the player must stay in to breathe; drying on land drains air."),
+            new FieldSpec("drain_rate", Kind.INTEGER, false)
+                .def(40).doc("Ticks between each air drain while out of the fluid (20 = 1s).")));
+        define("burn", BurnPower.class, List.of(
+            new FieldSpec("interval", Kind.INTEGER, false)
+                .def(20).doc("Ticks between each fire application; <=0 disables (default 20)."),
+            new FieldSpec("burn_duration", Kind.INTEGER, false)
+                .def(100).doc("Ticks of fire set on the player each application (20 = 1s; default 100).")));
+        define("command_pack", CommandPackPower.class, List.of(
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(32.0).doc("Max block distance of the look-targeted entity your tamed mobs attack (default 32)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(40).doc("Ticks before this ability can be triggered again (default 40).")));
+        define("craft_amount_bonus", CraftAmountBonusPower.class, List.of(
+            new FieldSpec("output_item", Kind.STRING, false)
+                .def("minecraft:oak_planks").doc("Item id whose crafting triggers the bonus (default oak_planks)."),
+            new FieldSpec("bonus_count", Kind.INTEGER, false)
+                .def(4).doc("Extra copies of the output added per craft (default 4; skipped if <=0).")));
+        define("crop_growth_accelerator", CropGrowthAcceleratorPower.class, List.of(
+            new FieldSpec("radius", Kind.INTEGER, false)
+                .def(4).doc("Cubic block radius around the player scanned for crops (default 4)."),
+            new FieldSpec("tick_interval", Kind.INTEGER, false)
+                .def(40).doc("Ticks between growth passes; <=0 disables (default 40)."),
+            new FieldSpec("growths_per_interval", Kind.INTEGER, false)
+                .def(1).doc("Number of random nearby crops bone-mealed each interval (default 1).")));
+        define("elytra_boost", ElytraBoostPower.class, List.of(
+            new FieldSpec("strength", Kind.NUMBER, false)
+                .def(1.5).doc("Multiplier on the forward impulse applied while elytra gliding (default 1.5)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(40).doc("Ticks before the boost can be triggered again (default 40).")));
+        define("exhaustion_filter", ExhaustionFilterPower.class, List.of(
+            new FieldSpec("sources", Kind.ARRAY, false)
+                .doc("Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).")));
+        define("extra_inventory", ExtraInventoryPower.class, List.of(
+            new FieldSpec("size", Kind.INTEGER, false)
+                .def(9).doc("Slot count, rounded to a multiple of 9 (min 9, max 54; default 9)."),
+            new FieldSpec("drop_on_death", Kind.BOOLEAN, false)
+                .def(false).doc("If true the extra inventory drops on death instead of persisting (default false).")));
+        define("fortune_when_effect", FortuneWhenEffectPower.class, List.of(
+            new FieldSpec("effect", Kind.STRING, false)
+                .def("minecraft:luck").doc("Mob effect that must be active on the player for the Fortune bonus."),
+            new FieldSpec("level", Kind.INTEGER, false)
+                .def(2).doc("Virtual Fortune level rolled via the vanilla ore-drops formula."),
+            new FieldSpec("target", Kind.STRING, false)
+                .def("#c:ores").doc("Block tag the bonus applies to (default #c:ores; ancient debris excluded).")));
+        define("horde_regen", HordeRegenPower.class, List.of(
+            new FieldSpec("heal_amount", Kind.NUMBER, false)
+                .def(1.0).doc("Health restored to each eligible tamed mob per interval (default 1.0)."),
+            new FieldSpec("interval_ticks", Kind.INTEGER, false)
+                .def(120).doc("Ticks between each horde-healing pass (default 120 = 6s)."),
+            new FieldSpec("combat_cooldown_ticks", Kind.INTEGER, false)
+                .def(100).doc("Ticks a tamed mob must avoid damage before it can heal (default 100).")));
+        define("invulnerability", InvulnerabilityPower.class, List.of(
+            new FieldSpec("damage_types", Kind.ARRAY, false)
+                .doc("Damage-type ids (e.g. minecraft:fall) whose damage is cancelled."),
+            new FieldSpec("damage_tags", Kind.ARRAY, false)
+                .doc("Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled."),
+            new FieldSpec("msg_ids", Kind.ARRAY, false)
+                .doc("Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */
