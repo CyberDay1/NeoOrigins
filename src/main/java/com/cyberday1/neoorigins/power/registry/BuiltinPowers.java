@@ -606,15 +606,10 @@ public final class BuiltinPowers {
                 .def(1.0).range(0.0, 1.0).doc("Green channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
             new FieldSpec("blue", Kind.NUMBER, false)
                 .def(1.0).range(0.0, 1.0).doc("Blue channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
-            // NOTE (26.1 port): the 1.21.1 source declares a 5th field here, a
-            // nested `condition` (Optional<EntityCondition>) REF. The 26.1
-            // ModelColorPower.Config record has no `condition` component
-            // (red/green/blue/alpha/type only), so registering that field would
-            // fail auditPowerFieldSpecs (no matching Config component). The
-            // condition knob is a 26.1 feature-parity follow-up; this spec
-            // declares only what the 26.1 codec actually parses.
             new FieldSpec("alpha", Kind.NUMBER, false)
-                .def(1.0).range(0.0, 1.0).doc("Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0).")));
+                .def(1.0).range(0.0, 1.0).doc("Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0)."),
+            new FieldSpec("condition", Kind.REF, false).ref("#")
+                .doc("Only applies the tint while this DSL condition passes (optional).")));
         define("breath_in_fluid", BreathInFluidPower.class, List.of(
             new FieldSpec("fluid", Kind.STRING, false)
                 .def("water").doc("Fluid that suffocates the player, \"water\" or \"lava\"; default water."),
