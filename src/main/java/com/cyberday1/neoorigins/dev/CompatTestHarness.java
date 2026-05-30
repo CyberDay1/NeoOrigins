@@ -403,7 +403,7 @@ public final class CompatTestHarness {
             com.cyberday1.neoorigins.power.registry.BuiltinPowers.descriptors();
         for (var e : powerDescriptors.entrySet()) {
             TreeSet<String> declared = new TreeSet<>();
-            for (var fs : e.getValue().fields()) declared.add(fs.name());
+            for (var fs : e.getValue().fields()) declared.add(flattenPowerField(fs));
             sb.append(e.getKey().toString())
               .append("\tfields={").append(String.join(",", declared)).append("}\n");
         }
@@ -413,6 +413,20 @@ public final class CompatTestHarness {
         System.out.print(sb);
         System.out.println();
         System.out.println("golden master written to " + out.toAbsolutePath().normalize());
+    }
+
+    /**
+     * Flatten a power {@link com.cyberday1.neoorigins.compat.registry.FieldSpec}
+     * for the POWER COVERAGE golden: a leaf emits {@code fs.name()}; an
+     * OBJECT-with-children emits {@code fs.name()+"{"+sorted-child-names+"}"} so
+     * nested-object shape lands as a reviewable git diff.
+     */
+    private static String flattenPowerField(
+            com.cyberday1.neoorigins.compat.registry.FieldSpec fs) {
+        if (fs.children().isEmpty()) return fs.name();
+        TreeSet<String> kids = new TreeSet<>();
+        for (var child : fs.children()) kids.add(flattenPowerField(child));
+        return fs.name() + "{" + String.join(",", kids) + "}";
     }
 
     private static void appendVerbSet(StringBuilder sb, String label, java.util.Set<String> verbs) {
