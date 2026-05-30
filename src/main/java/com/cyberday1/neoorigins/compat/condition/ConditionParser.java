@@ -110,6 +110,16 @@ public final class ConditionParser {
             type = canonical;
         }
         try {
+            // Registry-refactor migration (D1): verbs that have moved to a
+            // registered descriptor dispatch here; the switch below holds only
+            // the not-yet-migrated arms. Behaviour is identical — the factory is
+            // the lift-and-shift of the old case body. Addon-contributed verbs
+            // resolve through the same BuiltinConditions.get path.
+            com.cyberday1.neoorigins.compat.registry.ConditionType descriptor =
+                BuiltinConditions.get(type);
+            if (descriptor != null) {
+                return descriptor.factory().create(json, contextId);
+            }
             return switch (type) {
                 case "neoorigins:and"                           -> parseAnd(json, contextId);
                 case "neoorigins:or"                            -> parseOr(json, contextId);
