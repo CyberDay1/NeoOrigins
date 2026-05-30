@@ -401,3 +401,4 @@ neoorigins:condition_passive	fields={condition,else_action,entity_action,interva
 neoorigins:prevent_death	fields={condition,cooldown_ticks,damage_types,entity_action,invert,set_health}
 neoorigins:tick_action	fields={action_type,interval}
 neoorigins:conditional	fields={condition,inner_power}
+neoorigins:prevent_action	fields={action,active_when,chest,feet,head,legs}
