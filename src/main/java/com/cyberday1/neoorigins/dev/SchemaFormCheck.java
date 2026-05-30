@@ -541,6 +541,23 @@ public final class SchemaFormCheck {
             }
             String typeId = "neoorigins:" + id;
 
+            // A power registered in BuiltinPowers carries its field docs ON the
+            // FieldSpec (D2: doc lives on the spec that drives the form), so it
+            // is fully spec-driven — its field_docs.json entry has been
+            // collapsed. Source descriptions from the spec for those fields, so
+            // this gate keeps proving "every form field is documented" without
+            // the side-table. Non-registered powers fall back to field_docs.json.
+            java.util.Map<String, String> specDocs = new java.util.HashMap<>();
+            java.util.List<com.cyberday1.neoorigins.compat.registry.FieldSpec> declared =
+                com.cyberday1.neoorigins.power.registry.BuiltinPowers.fieldsFor(typeId);
+            if (declared != null) {
+                for (var fs : declared) {
+                    if (fs.description() != null && !fs.description().isBlank()) {
+                        specDocs.put(fs.name(), fs.description());
+                    }
+                }
+            }
+
             java.util.List<FormFieldSpec> specs;
             boolean schemaBranch = model.hasStructuredForm(typeId);
             if (schemaBranch) {
@@ -554,7 +571,8 @@ public final class SchemaFormCheck {
             for (FormFieldSpec s : specs) {
                 if (s.name().equals("type")) continue;
                 totalFields++;
-                boolean ok = (schemaBranch && s.description() != null
+                boolean ok = specDocs.containsKey(s.name())
+                    || (schemaBranch && s.description() != null
                         && !s.description().isBlank())
                     || (docs.describe(typeId, s.name()) != null
                         && !docs.describe(typeId, s.name()).isBlank());

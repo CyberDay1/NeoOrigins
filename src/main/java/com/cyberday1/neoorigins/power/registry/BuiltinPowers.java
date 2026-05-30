@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.power.registry;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.builtin.*;
+import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec.Kind;
 import net.minecraft.resources.Identifier;
 
 import java.util.Collections;
@@ -94,6 +95,52 @@ public final class BuiltinPowers {
         define("underwater_mining_speed",  UnderwaterMiningSpeedPower.class,  List.of());
         define("wall_climbing",            WallClimbingPower.class,           List.of());
         define("water_breathing",          WaterBreathingPower.class,         List.of());
+
+        // ── Group R — record-reflectable single-knob powers ─────────────────
+        // Plain-Config powers whose one user-facing field reflection already
+        // sees by name+kind, but whose codec `optionalFieldOf` default and field
+        // doc previously lived in the side-tables (field_docs.json). Declaring
+        // the FieldSpec here carries name + optionality + default + doc in one
+        // place; required=false mirrors the codec's optionalFieldOf, and the
+        // collapsed field_docs.json entry is now sourced from the spec (see
+        // SchemaFormCheck.auditFieldDocs / FormModel.enrich). Behavior-neutral:
+        // the power still deserializes through its own Codec<Config>, untouched.
+        define("break_speed_modifier", BreakSpeedModifierPower.class, List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(2.0).doc("Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0.")));
+        define("crop_harvest_bonus", CropHarvestBonusPower.class, List.of(
+            new FieldSpec("extra_drops", Kind.INTEGER, false)
+                .def(1).doc("Extra copies of the block's own loot when breaking crops/logs (default 1).")));
+        define("dodge_chance", DodgeChancePower.class, List.of(
+            new FieldSpec("chance", Kind.NUMBER, false)
+                .def(0.15).doc("Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15).")));
+        define("entity_group", EntityGroupPower.class, List.of(
+            new FieldSpec("group", Kind.STRING, false)
+                .def("undefined").doc("Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).")));
+        define("hide_hud_bar", HideHudBarPower.class, List.of(
+            new FieldSpec("bar", Kind.STRING, false)
+                .def("hunger").doc("Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger).")));
+        define("item_magnetism", ItemMagnetismPower.class, List.of(
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(4.0).doc("Blocks around the player within which dropped items are pulled in (default 4.0).")));
+        define("lava_vision", LavaVisionPower.class, List.of(
+            new FieldSpec("strength", Kind.NUMBER, false)
+                .def(3.0).doc("Lava fog distance multiplier; higher sees farther in lava (default 3.0).")));
+        define("more_smoker_xp", MoreSmokerXpPower.class, List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(2.0).doc("Multiplier for smoker-cooking XP (default 2.0).")));
+        define("sneaky", SneakyPower.class, List.of(
+            new FieldSpec("detection_multiplier", Kind.NUMBER, false)
+                .def(0.3).doc("Mob detection range multiplier; lower = sneakier (default 0.3).")));
+        define("tamed_potion_diffusal", TamedPotionDiffusalPower.class, List.of(
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(16.0).doc("Block radius for sharing positive potion effects with tamed animals.")));
+        define("tree_felling", TreeFellingPower.class, List.of(
+            new FieldSpec("max_blocks", Kind.INTEGER, false)
+                .def(64).doc("Maximum connected log blocks broken in one chop (default 64).")));
+        define("twin_breeding", TwinBreedingPower.class, List.of(
+            new FieldSpec("chance", Kind.NUMBER, false)
+                .def(1.0).doc("Probability 0.0-1.0 of an extra baby when animals breed (default 1.0).")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

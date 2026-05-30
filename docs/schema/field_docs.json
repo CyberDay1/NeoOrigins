@@ -79,9 +79,6 @@
   "neoorigins:bare_hand_tool": {
     "tool": "Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe."
   },
-  "neoorigins:break_speed_modifier": {
-    "multiplier": "Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0."
-  },
   "neoorigins:breath_in_fluid": {
     "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
     "drain_interval_ticks": "Ticks between each 1-point air drain while submerged; clearer alias of drain_rate. Higher = slower drain (20 = 1s).",
@@ -126,12 +123,6 @@
     "radius": "Cubic block radius around the player scanned for crops (default 4).",
     "tick_interval": "Ticks between growth passes; <=0 disables (default 40)."
   },
-  "neoorigins:crop_harvest_bonus": {
-    "extra_drops": "Extra copies of the block's own loot when breaking crops/logs (default 1)."
-  },
-  "neoorigins:dodge_chance": {
-    "chance": "Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15)."
-  },
   "neoorigins:edible_item": {
     "always_edible": "If true the item can be eaten even at full hunger (default true).",
     "fast": "If true the item is consumed with the quick eat animation.",
@@ -152,9 +143,6 @@
   "neoorigins:enhanced_vision": {
     "exposure": "Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7)."
   },
-  "neoorigins:entity_group": {
-    "group": "Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions)."
-  },
   "neoorigins:exhaustion_filter": {
     "sources": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint])."
   },
@@ -173,9 +161,6 @@
     "knockback_strength": "Outward knockback pushing hit entities away (default 1.5).",
     "radius": "Blocks around the player whose entities are hit (default 6.0)."
   },
-  "neoorigins:hide_hud_bar": {
-    "bar": "Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger)."
-  },
   "neoorigins:horde_regen": {
     "combat_cooldown_ticks": "Ticks a tamed mob must avoid damage before it can heal (default 100).",
     "heal_amount": "Health restored to each eligible tamed mob per interval (default 1.0).",
@@ -186,16 +171,10 @@
     "damage_types": "Damage-type ids (e.g. minecraft:fall) whose damage is cancelled.",
     "msg_ids": "Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled."
   },
-  "neoorigins:item_magnetism": {
-    "radius": "Blocks around the player within which dropped items are pulled in (default 4.0)."
-  },
   "neoorigins:keep_inventory": {
     "items": "Item ids to keep on death; empty (with empty tags) keeps everything.",
     "slots": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *).",
     "tags": "Item tag ids whose matching items are kept on death."
-  },
-  "neoorigins:lava_vision": {
-    "strength": "Lava fog distance multiplier; higher sees farther in lava (default 3.0)."
   },
   "neoorigins:less_item_use_slowdown": {
     "item_type": "Item being used that gets reduced slowdown: any, bow, shield, or an id substring.",
@@ -250,9 +229,6 @@
     "biome": "Biome the resolved respawn location must be in.",
     "dimension": "Dimension the player respawns into when spawn is overridden.",
     "spawn_strategy": "How the respawn position is chosen within the dimension/biome."
-  },
-  "neoorigins:more_smoker_xp": {
-    "multiplier": "Multiplier for smoker-cooking XP (default 2.0)."
   },
   "neoorigins:no_mob_spawns_nearby": {
     "categories": "Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).",
@@ -370,9 +346,6 @@
     "regen_threshold": "Moisture (0-1) above which the player gets Regeneration (default 0.75).",
     "water_refill_per_tick": "Moisture regained per tick while in water or rain (default 0.005)."
   },
-  "neoorigins:sneaky": {
-    "detection_multiplier": "Mob detection range multiplier; lower = sneakier (default 0.3)."
-  },
   "neoorigins:starting_equipment": {
     "components": "SNBT data-component patch applied to the granted item.",
     "count": "Stack size of the granted item (default 1).",
@@ -422,9 +395,6 @@
     "radius": "Block radius around the player scanned for tamed animals (default 32).",
     "speed_bonus": "Flat movement-speed added to your tamed animals (default 0.1)."
   },
-  "neoorigins:tamed_potion_diffusal": {
-    "radius": "Block radius for sharing positive potion effects with tamed animals."
-  },
   "neoorigins:thorns_on_hit": {
     "damage": "Damage reflected to a melee attacker when you are hit (half-hearts; default 2).",
     "fire_ticks": "Ticks the attacker is set on fire on reflect (0 = none; 20 = 1s)."
@@ -448,12 +418,6 @@
   "neoorigins:trade_availability": {
     "radius": "Block radius around the player whose villager trades refresh (default 8).",
     "scan_interval": "Ticks between villager-trade refresh scans (40 = 2s)."
-  },
-  "neoorigins:tree_felling": {
-    "max_blocks": "Maximum connected log blocks broken in one chop (default 64)."
-  },
-  "neoorigins:twin_breeding": {
-    "chance": "Probability 0.0-1.0 of an extra baby when animals breed (default 1.0)."
   },
   "neoorigins:walk_on_fluid": {
     "fluid": "Which fluid surface you can walk on: water, lava, or both (default both)."
