@@ -130,17 +130,6 @@
       "required": ["type"]
     },
     {
-      "$comment": "neoorigins:restrict_armor",
-      "properties": {
-        "type": { "const": "neoorigins:restrict_armor" },
-        "head": { "type": "object" },
-        "chest": { "type": "object" },
-        "legs": { "type": "object" },
-        "feet": { "type": "object" }
-      },
-      "required": ["type"]
-    },
-    {
       "$comment": "neoorigins:starting_equipment \u2014 grants one or more items the first time the power is applied after origin commit. Accepts BOTH a legacy singular shape (top-level item/count/enchantments/legacy_tag/components) and a plural shape (stacks: [ { item, count, enchantments, legacy_tag, components } ]). When `stacks` is non-empty it takes precedence over the singular root fields; otherwise the root `item` is wrapped as a one-entry list. `grant_id` dedups the whole bundle (not individual stacks) so retries via /origin reset re-grant everything.",
       "properties": {
         "type": { "const": "neoorigins:starting_equipment" },

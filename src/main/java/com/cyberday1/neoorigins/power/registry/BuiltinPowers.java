@@ -828,6 +828,23 @@ public final class BuiltinPowers {
                 .def("").doc("Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system."),
             new FieldSpec("cooldown", Kind.INTEGER, false).boundTo("cooldownTicks")
                 .def(0).range(0.0, null).doc("Cooldown in ticks between activations (20 = 1s); default 0.")));
+
+        // ── Group C — shape-mismatch (nested object/array): schema STRUCTURE drifted ─
+        // For these the power.schema.json branch's nested shape (objects/arrays)
+        // disagreed with the Config record. Register to the codec, then collapse
+        // the branch (the structure it named was a phantom) and drop the matching
+        // field_docs entries (docs now live on the spec).
+        //   • restrict_armor: the codec reads a SINGLE `restrictions` component —
+        //     a List<SlotRestriction{slot,item,tag}> via
+        //     SlotRestriction.CODEC.listOf().optionalFieldOf("restrictions",
+        //     List.of()) — so it is NOT required (empty list when absent). The old
+        //     schema branch instead named four per-slot OBJECT fields
+        //     (head/chest/legs/feet) that the codec never reads (phantoms); the
+        //     real per-slot data lives inside each array entry's `slot` string.
+        //     One ARRAY spec matches the codec; the phantom branch collapses.
+        define("restrict_armor", RestrictArmorPower.class, List.of(
+            new FieldSpec("restrictions", Kind.ARRAY, false)
+                .doc("List of slot restrictions, each {slot, item?, tag?}: when a matching item (by id and/or #tag) is equipped in that EquipmentSlot (head/chest/legs/feet/mainhand/offhand) it is ejected back to the inventory. An entry with neither item nor tag bars the whole slot. Empty list (default) restricts nothing.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

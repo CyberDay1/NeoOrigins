@@ -66,12 +66,6 @@
     "regen_rate": "Amount added each regen interval; 0 disables regen (default 0).",
     "start_value": "Value the resource starts at when first granted (default max)."
   },
-  "neoorigins:restrict_armor": {
-    "chest": "Item or tag id barred from the chest slot; equipping it ejects the item.",
-    "feet": "Item or tag id barred from the feet slot; equipping it ejects the item.",
-    "head": "Item or tag id barred from the head slot; equipping it ejects the item.",
-    "legs": "Item or tag id barred from the legs slot; equipping it ejects the item."
-  },
   "neoorigins:starting_equipment": {
     "components": "Singular shape: SNBT data-component patch applied to the granted item.",
     "count": "Singular shape: stack size of the granted item (default 1).",

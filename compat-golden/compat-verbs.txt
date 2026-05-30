@@ -394,3 +394,4 @@ neoorigins:toggle	fields={default}
 neoorigins:active_ability	fields={condition,cooldown_ticks,entity_action,hunger_cost,resource_cost,resource_cost_amount}
 neoorigins:edible_item	fields={always_edible,consume_sound,items,nutrition,saturation,tags}
 neoorigins:loot_pool_grant	fields={active,bonus_rolls,cooldown,grant_id,loot_table,rolls}
+neoorigins:restrict_armor	fields={restrictions}
