@@ -253,6 +253,61 @@ public final class BuiltinActions {
                 }
             },
             List.of());
+
+        // explode — create an explosion at the player. Lift-and-shift of
+        // parseExplode. All fields optional (power 3.0, destruction none, no fire).
+        define("explode",
+            (json, ctx) -> {
+                float power = json.has("power") ? json.get("power").getAsFloat() : 3.0f;
+                boolean destructive = json.has("destruction_type")
+                    && !"none".equals(json.get("destruction_type").getAsString());
+                boolean fire = json.has("create_fire") && json.get("create_fire").getAsBoolean();
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    var blockInteraction = destructive
+                        ? net.minecraft.world.level.Level.ExplosionInteraction.BLOCK
+                        : net.minecraft.world.level.Level.ExplosionInteraction.NONE;
+                    sl.explode(player, player.getX(), player.getY(), player.getZ(), power,
+                        fire, blockInteraction);
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.NUMBER, false).def(3.0).range(0.0, null)
+                    .doc("Explosion strength (default 3.0; TNT = 4)."),
+                new FieldSpec("destruction_type", FormFieldSpec.Kind.ENUM, false)
+                    .options("none", "break", "destroy").def("none")
+                    .doc("Block-interaction mode; 'none' is entity-only (default 'none')."),
+                new FieldSpec("create_fire", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Spawn fire on affected blocks (default false).")));
+
+        // modify_food — one-shot food/saturation adjustment. Lift-and-shift of
+        // parseModifyFood. All fields optional (deltas default 0), with the
+        // food_component_* aliases the parser reads as fallbacks.
+        define("modify_food",
+            (json, ctx) -> {
+                int foodDelta = json.has("food") ? json.get("food").getAsInt()
+                              : json.has("food_component_food") ? json.get("food_component_food").getAsInt()
+                              : 0;
+                float satDelta = json.has("saturation") ? json.get("saturation").getAsFloat()
+                               : json.has("food_component_saturation") ? json.get("food_component_saturation").getAsFloat()
+                               : 0.0f;
+                return player -> {
+                    var food = player.getFoodData();
+                    int newFood = Math.max(0, Math.min(20, food.getFoodLevel() + foodDelta));
+                    float newSat = Math.max(0f, Math.min(newFood, food.getSaturationLevel() + satDelta));
+                    food.setFoodLevel(newFood);
+                    food.setSaturation(newSat);
+                };
+            },
+            List.of(
+                new FieldSpec("food", FormFieldSpec.Kind.INTEGER, false).def(0)
+                    .doc("Food points delta."),
+                new FieldSpec("food_component_food", FormFieldSpec.Kind.INTEGER, false)
+                    .doc("Alias for food."),
+                new FieldSpec("saturation", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Saturation delta."),
+                new FieldSpec("food_component_saturation", FormFieldSpec.Kind.NUMBER, false)
+                    .doc("Alias for saturation.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

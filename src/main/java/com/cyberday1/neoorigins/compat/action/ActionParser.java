@@ -104,11 +104,9 @@ public final class ActionParser {
                 case "neoorigins:damage"                        -> parseDamage(json);
                 case "neoorigins:spawn_entity"                  -> parseSpawnEntity(json);
                 case "neoorigins:give"                          -> parseGive(json);
-                case "neoorigins:explode"                       -> parseExplode(json);
                 case "neoorigins:launch"                        -> parseLaunch(json);
                 case "neoorigins:set_block"                     -> parseSetBlock(json);
                 case "neoorigins:area_of_effect"                -> parseAreaOfEffect(json, contextId);
-                case "neoorigins:modify_food"                   -> parseModifyFood(json);
                 case "neoorigins:grant_power"                   -> parseGrantPower(json);
                 case "neoorigins:revoke_power"                  -> parseRevokePower(json);
                 case "neoorigins:emit_game_event"               -> parseEmitGameEvent(json);
@@ -500,21 +498,6 @@ public final class ActionParser {
         };
     }
 
-    private static EntityAction parseExplode(JsonObject json) {
-        float power = json.has("power") ? json.get("power").getAsFloat() : 3.0f;
-        boolean destructive = json.has("destruction_type")
-            && !"none".equals(json.get("destruction_type").getAsString());
-        boolean fire = json.has("create_fire") && json.get("create_fire").getAsBoolean();
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return;
-            var blockInteraction = destructive
-                ? Level.ExplosionInteraction.BLOCK
-                : Level.ExplosionInteraction.NONE;
-            sl.explode(player, player.getX(), player.getY(), player.getZ(), power,
-                fire, blockInteraction);
-        };
-    }
-
     private static EntityAction parseLaunch(JsonObject json) {
         float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
         return player -> {
@@ -696,26 +679,6 @@ public final class ActionParser {
     }
 
     // ---- Phase 0: filled stubs ----
-
-    private static EntityAction parseModifyFood(JsonObject json) {
-        // Apoli modify_food only applies in the context of an `action_on_item_use`
-        // style hook where a food item is being consumed. In our action context we
-        // have no item-stack reference, so the best we can do is apply a one-shot
-        // food/saturation adjustment to the player right now.
-        int foodDelta = json.has("food") ? json.get("food").getAsInt()
-                      : json.has("food_component_food") ? json.get("food_component_food").getAsInt()
-                      : 0;
-        float satDelta = json.has("saturation") ? json.get("saturation").getAsFloat()
-                       : json.has("food_component_saturation") ? json.get("food_component_saturation").getAsFloat()
-                       : 0.0f;
-        return player -> {
-            var food = player.getFoodData();
-            int newFood = Math.max(0, Math.min(20, food.getFoodLevel() + foodDelta));
-            float newSat = Math.max(0f, Math.min(newFood, food.getSaturationLevel() + satDelta));
-            food.setFoodLevel(newFood);
-            food.setSaturation(newSat);
-        };
-    }
 
     private static EntityAction parseGrantPower(JsonObject json) {
         String powerId = json.has("power") ? json.get("power").getAsString()
