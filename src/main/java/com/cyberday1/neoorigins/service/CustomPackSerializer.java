@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -59,9 +60,47 @@ public final class CustomPackSerializer {
         } catch (RuntimeException e) {
             body = new JsonObject();
         }
+        pruneBlankArrayEntries(body);
         // type is authoritative from the draft, not the raw body.
         body.addProperty("type", p.typeId);
         return body;
+    }
+
+    /**
+     * Drop blank ({@code ""}) entries from any array in {@code obj} (and remove
+     * arrays left empty), recursing into nested objects/arrays. Scalar-string
+     * list widgets ({@code ArrayStringRow}) keep blank entries in the working
+     * JSON so a freshly-added input survives a form rebuild; this strips them on
+     * export, mirroring the website serializer's {@code pruneForWire}.
+     */
+    private static void pruneBlankArrayEntries(JsonObject obj) {
+        java.util.Map<String, JsonArray> replace = new java.util.LinkedHashMap<>();
+        java.util.List<String> drop = new java.util.ArrayList<>();
+        for (var e : obj.entrySet()) {
+            JsonElement v = e.getValue();
+            if (v.isJsonArray()) {
+                JsonArray cleaned = pruneArray(v.getAsJsonArray());
+                if (cleaned.isEmpty()) drop.add(e.getKey());
+                else replace.put(e.getKey(), cleaned);
+            } else if (v.isJsonObject()) {
+                pruneBlankArrayEntries(v.getAsJsonObject());
+            }
+        }
+        for (var r : replace.entrySet()) obj.add(r.getKey(), r.getValue());
+        for (String k : drop) obj.remove(k);
+    }
+
+    private static JsonArray pruneArray(JsonArray arr) {
+        JsonArray out = new JsonArray();
+        for (JsonElement el : arr) {
+            if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()
+                    && el.getAsString().trim().isEmpty()) {
+                continue; // drop blank scalar entry
+            }
+            if (el.isJsonObject()) pruneBlankArrayEntries(el.getAsJsonObject());
+            out.add(el);
+        }
+        return out;
     }
 
     /**

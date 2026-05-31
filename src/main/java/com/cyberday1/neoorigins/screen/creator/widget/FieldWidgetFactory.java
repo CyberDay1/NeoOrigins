@@ -109,10 +109,16 @@ public final class FieldWidgetFactory {
             case REF     -> (typePicker != null && rebuildCb != null && refTypeKind(spec) != null)
                                 ? new RefRow(spec, typePicker, rebuildCb)
                                 : new TextRow(spec, true, refOpener);
-            case ARRAY   -> (typePicker != null && rebuildCb != null
-                            && spec.itemsRef() != null && refTypeKind(spec) != null)
-                                ? new ArrayRefRow(spec, typePicker, rebuildCb)
-                                : new TextRow(spec, true, null);
+            case ARRAY   -> {
+                if (typePicker != null && rebuildCb != null
+                        && spec.itemsRef() != null && refTypeKind(spec) != null) {
+                    yield new ArrayRefRow(spec, typePicker, rebuildCb);
+                } else if (rebuildCb != null && isScalarStringList(spec)) {
+                    yield new ArrayStringRow(spec, rebuildCb);
+                } else {
+                    yield new TextRow(spec, true, null);
+                }
+            }
             // An OBJECT with a fixed child set → inline sub-form; free-form
             // objects (no children) keep the raw-JSON escape.
             case OBJECT  -> spec.children().isEmpty()
@@ -141,6 +147,12 @@ public final class FieldWidgetFactory {
         if (hay.contains("action")) return "action";
         if (hay.contains("condition")) return "condition";
         return null;
+    }
+
+    /** True for an array of scalar strings ({@code items.pattern}, no {@code items.$ref}) — a list-of-text-inputs. */
+    private static boolean isScalarStringList(FormFieldSpec spec) {
+        return spec.kind() == FormFieldSpec.Kind.ARRAY
+            && spec.itemsRef() == null && spec.itemPattern() != null;
     }
 
     /**
@@ -193,7 +205,7 @@ public final class FieldWidgetFactory {
                 case NUMBER  -> "decimal number";
                 case BOOLEAN -> "true / false";
                 case ENUM    -> "pick one";
-                case ARRAY   -> "list (JSON)";
+                case ARRAY   -> isScalarStringList(spec) ? "list of text" : "list (JSON)";
                 case OBJECT  -> spec.children().isEmpty() ? "object (JSON)" : "object (sub-form)";
                 case REF     -> "DSL reference (JSON)";
                 case MIXED   -> "value or object (JSON)";
@@ -223,8 +235,15 @@ public final class FieldWidgetFactory {
             }
             if (spec.ref() != null) t.add("references: " + spec.ref());
             switch (spec.kind()) {
-                case REF, ARRAY, MIXED, UNKNOWN ->
+                case REF, MIXED, UNKNOWN ->
                     t.add("No guided sub-form yet — edit this as JSON.");
+                case ARRAY -> {
+                    if (isScalarStringList(spec)) {
+                        t.add("List of text entries — one per row; modded/datapack ids welcome.");
+                    } else if (spec.itemsRef() == null) {
+                        t.add("No guided sub-form yet — edit this as JSON.");
+                    }
+                }
                 case OBJECT -> {
                     if (spec.children().isEmpty()) t.add("No guided sub-form yet — edit this as JSON.");
                 }
@@ -683,6 +702,113 @@ public final class FieldWidgetFactory {
                 row.build(parent, font, subW, 16);
                 row.fromJson(itemEl);
                 items.add(row);
+            }
+        }
+    }
+
+    // ── ARRAY of scalar strings (biomes, tags, ids — items.pattern, no $ref) ─
+
+    /**
+     * List editor for an array whose items are scalar STRINGs (schema
+     * {@code items:{type:"string", pattern:…}}, no {@code items.$ref}) — e.g. a
+     * location condition's {@code biomes} list. Renders a {@code + add} button and
+     * one {@link EditBox} per entry, each with a remove ({@code x}) button, instead
+     * of the raw-JSON fallback. Entries are free-text resource-locations (never a
+     * closed enum), so modded/datapack ids work by construction — mirroring the
+     * website's {@code ArrayStringRow}.
+     *
+     * <p>Add/remove mutate the live row list and call {@code rebuildCb}; the panel
+     * captures {@link #toJson()} into the draft and rebuilds, re-running
+     * {@link #fromJson} to lay rows out at the new height — the same dynamic-height
+     * pattern {@link RefRow} / {@link ArrayRefRow} use. A freshly added blank entry
+     * round-trips as {@code ""} so its box survives the rebuild; the pack
+     * serializer drops blank entries on export (mirroring {@code pruneForWire}).
+     */
+    private static final class ArrayStringRow extends Base {
+        private static final int HEADER_H = 22;
+        private static final int ROW_H = 20;
+        private static final int INDENT = 12;
+        private static final int REMOVE_W = 22;
+
+        private final Runnable rebuildCb;
+
+        private CreatorHost parent;
+        private Font font;
+        private int fieldW;
+        private Button addButton;
+        private final List<EditBox> boxes = new ArrayList<>();
+        private final List<Button> removeButtons = new ArrayList<>();
+        /** Blank entries appended via "+ add" that the next toJson() materialises. */
+        private final List<String> pendingAdds = new ArrayList<>();
+
+        ArrayStringRow(FormFieldSpec spec, Runnable rebuildCb) {
+            super(spec);
+            this.rebuildCb = rebuildCb;
+        }
+
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
+            this.parent = parent;
+            this.font = font;
+            this.fieldW = fieldW;
+            addButton = Button.builder(Component.literal("+ add"),
+                    b -> { pendingAdds.add(""); if (rebuildCb != null) rebuildCb.run(); })
+                .bounds(0, 0, Math.min(fieldW, 80), h).build();
+            parent.register(addButton);
+        }
+
+        /** Append one entry row (text box + remove button) seeded with {@code value}. */
+        private void addRow(String value) {
+            int boxW = Math.max(40, fieldW - INDENT - REMOVE_W - 4);
+            EditBox box = new EditBox(font, 0, 0, boxW, ROW_H - 2, Component.literal(spec.name()));
+            box.setMaxLength(32767);
+            box.setValue(value);
+            if (spec.itemPattern() != null) box.setHint(Component.literal("resource location"));
+            parent.register(box);
+            Button rm = Button.builder(Component.literal("x"), b -> {
+                    int i = boxes.indexOf(box);
+                    if (i >= 0) { boxes.remove(i); removeButtons.remove(i); }
+                    if (rebuildCb != null) rebuildCb.run();
+                })
+                .bounds(0, 0, REMOVE_W, ROW_H - 2).build();
+            parent.register(rm);
+            boxes.add(box);
+            removeButtons.add(rm);
+        }
+
+        @Override public int height() {
+            return HEADER_H + boxes.size() * ROW_H;
+        }
+
+        @Override public void reposition(int fieldX, int y) {
+            addButton.setPosition(fieldX, y);
+            int rowY = y + HEADER_H;
+            for (int i = 0; i < boxes.size(); i++) {
+                boxes.get(i).setPosition(fieldX + INDENT, rowY);
+                removeButtons.get(i).setPosition(fieldX + fieldW - REMOVE_W, rowY);
+                rowY += ROW_H;
+            }
+        }
+
+        @Override public void setVisible(boolean v) {
+            addButton.visible = v; addButton.active = v;
+            for (EditBox box : boxes) { box.visible = v; box.active = v; }
+            for (Button rm : removeButtons) { rm.visible = v; rm.active = v; }
+        }
+
+        @Override public JsonElement toJson() {
+            JsonArray arr = new JsonArray();
+            for (EditBox box : boxes) arr.add(box.getValue().trim());
+            for (String pending : pendingAdds) arr.add(pending);
+            pendingAdds.clear();
+            return arr.size() == 0 ? null : arr;
+        }
+
+        @Override public void fromJson(JsonElement el) {
+            boxes.clear();
+            removeButtons.clear();
+            if (parent == null || el == null || !el.isJsonArray()) return;
+            for (JsonElement item : el.getAsJsonArray()) {
+                addRow(item.isJsonPrimitive() ? item.getAsString() : item.toString());
             }
         }
     }
