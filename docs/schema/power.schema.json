@@ -291,6 +291,12 @@
         "action": {
           "description": "Effect on dealing damage: restore_health, restore_hunger, grant_effect, or target_effect.",
           "type": "string",
+          "enum": [
+            "restore_health",
+            "restore_hunger",
+            "grant_effect",
+            "target_effect"
+          ],
           "default": "restore_health"
         },
         "amount": {
@@ -566,6 +572,10 @@
         "mode": {
           "description": "\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target.",
           "type": "string",
+          "enum": [
+            "target",
+            "random"
+          ],
           "default": "target"
         },
         "hunger_cost": {
@@ -669,6 +679,10 @@
         "fluid": {
           "description": "Fluid that suffocates the player, \"water\" or \"lava\"; default water.",
           "type": "string",
+          "enum": [
+            "water",
+            "lava"
+          ],
           "default": "water"
         },
         "drain_interval_ticks": {
@@ -690,6 +704,10 @@
         "fluid": {
           "description": "Fluid the player must stay in to breathe; drying on land drains air.",
           "type": "string",
+          "enum": [
+            "water",
+            "lava"
+          ],
           "default": "water"
         },
         "drain_rate": {
@@ -1006,6 +1024,12 @@
         "group": {
           "description": "Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).",
           "type": "string",
+          "enum": [
+            "undead",
+            "arthropod",
+            "water",
+            "undefined"
+          ],
           "default": "undefined"
         }
       },
@@ -1143,6 +1167,13 @@
         "bar": {
           "description": "Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger).",
           "type": "string",
+          "enum": [
+            "hunger",
+            "food",
+            "air",
+            "oxygen",
+            "breath"
+          ],
           "default": "hunger"
         }
       },
@@ -1628,6 +1659,11 @@
         "operation": {
           "description": "How value combines with the vanilla lava factor: addition, multiply_base, multiply_total.",
           "type": "string",
+          "enum": [
+            "addition",
+            "multiply_base",
+            "multiply_total"
+          ],
           "default": "addition"
         },
         "value": {
@@ -2868,6 +2904,11 @@
         "fluid": {
           "description": "Which fluid surface you can walk on: water, lava, or both (default both).",
           "type": "string",
+          "enum": [
+            "water",
+            "lava",
+            "both"
+          ],
           "default": "both"
         }
       },
