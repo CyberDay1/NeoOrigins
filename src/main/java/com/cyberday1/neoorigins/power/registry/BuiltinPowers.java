@@ -77,6 +77,16 @@ public final class BuiltinPowers {
      */
     private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
 
+    /**
+     * Looser hint for scalar-string lists whose entries are NOT strictly
+     * {@code namespace:path}: bare keywords ({@code sprint}, {@code arrow},
+     * {@code all}), vanilla camelCase msgIds ({@code inFire}, {@code fall}), an
+     * optional {@code #} tag prefix, or a resource location. Matched
+     * case-insensitively by the powers themselves, so a strict resource-location
+     * pattern would wrongly flag valid entries. Still rejects whitespace/braces.
+     */
+    private static final String TOKEN_OR_ID_PATTERN = "^#?[A-Za-z0-9_.:/-]+$";
+
     private static void define(String path, Class<?> powerClass, List<FieldSpec> fields) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         PowerSpec spec = new PowerSpec(id, powerClass, fields);
@@ -242,6 +252,7 @@ public final class BuiltinPowers {
                 .def(40).doc("Ticks before the boost can be triggered again (default 40).")));
         define("exhaustion_filter", ExhaustionFilterPower.class, List.of(
             new FieldSpec("sources", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).")));
         define("extra_inventory", ExtraInventoryPower.class, List.of(
             new FieldSpec("size", Kind.INTEGER, false)
@@ -264,10 +275,13 @@ public final class BuiltinPowers {
                 .def(100).doc("Ticks a tamed mob must avoid damage before it can heal (default 100).")));
         define("invulnerability", InvulnerabilityPower.class, List.of(
             new FieldSpec("damage_types", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Damage-type ids (e.g. minecraft:fall) whose damage is cancelled."),
             new FieldSpec("damage_tags", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled."),
             new FieldSpec("msg_ids", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.")));
 
         // ── Group R (cont.) — batch B ───────────────────────────────────────
@@ -286,8 +300,10 @@ public final class BuiltinPowers {
             new FieldSpec("slots", Kind.ARRAY, false)
                 .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *)."),
             new FieldSpec("items", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Item ids to keep on death; empty (with empty tags) keeps everything."),
             new FieldSpec("tags", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Item tag ids whose matching items are kept on death.")));
         define("less_item_use_slowdown", LessItemUseSlowdownPower.class, List.of(
             new FieldSpec("item_type", Kind.STRING, false)
@@ -314,6 +330,7 @@ public final class BuiltinPowers {
                 .doc("List of {effect, amplifier} entries applied while below the threshold.")));
         define("mobs_ignore_player", MobsIgnorePlayerPower.class, List.of(
             new FieldSpec("entity_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob."),
             new FieldSpec("passive", Kind.BOOLEAN, false)
                 .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).")));
@@ -376,6 +393,7 @@ public final class BuiltinPowers {
                 .def(true).doc("If true gravity is disabled so the player can free-fly (default true).")));
         define("projectile_immunity", ProjectileImmunityPower.class, List.of(
             new FieldSpec("projectile_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow)."),
             new FieldSpec("chance", Kind.NUMBER, false)
                 .def(1.0).range(0.0, 1.0).doc("Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0)."),
@@ -399,6 +417,7 @@ public final class BuiltinPowers {
                 .def(0.25).doc("Probability 0.0-1.0 a rare treasure trade is also offered (default 0.25).")));
         define("scare_entities", ScareEntitiesPower.class, List.of(
             new FieldSpec("entity_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Entity ids or #tags that flee the player within 8 blocks.")));
         define("shader", ShaderPower.class, List.of(
             new FieldSpec("shader", Kind.STRING, true)
@@ -516,6 +535,7 @@ public final class BuiltinPowers {
                 .def("both").doc("Which fluid surface you can walk on: water, lava, or both (default both).")));
         define("wraith_phase", WraithPhasePower.class, List.of(
             new FieldSpec("blocked_blocks", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Block ids that cannot be phased through (default obsidian/bedrock)."),
             new FieldSpec("exhaustion_per_tick", Kind.NUMBER, false)
                 .def(0.15).doc("Food exhaustion added each tick while phasing in solids (default 0.15)."),
@@ -880,8 +900,10 @@ public final class BuiltinPowers {
                 .doc("Optional DSL condition gating the ability; it only fires while this passes (default always).")));
         define("edible_item", EdibleItemPower.class, List.of(
             new FieldSpec("items", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("List of item ids that become edible (matches items OR tags)."),
             new FieldSpec("tags", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("List of item-tag ids that become edible (matches items OR tags)."),
             new FieldSpec("nutrition", Kind.INTEGER, false)
                 .def(4).range(0.0, null).doc("Hunger points restored when consumed (default 4)."),

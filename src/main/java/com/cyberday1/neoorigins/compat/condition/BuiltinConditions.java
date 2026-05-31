@@ -39,6 +39,11 @@ public final class BuiltinConditions {
 
     private BuiltinConditions() {}
 
+    /** Resource-location-shaped scalar-list hint ({@code namespace:path}). */
+    private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
+    /** Looser hint allowing an optional {@code #} tag prefix on a resource location. */
+    private static final String TAG_OR_ID_PATTERN = "^#?[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
+
     /** Shared {@code comparison} ENUM field (vanilla operator vocabulary). */
     private static FieldSpec comparison(String defaultOp, String doc) {
         return new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
@@ -466,10 +471,12 @@ public final class BuiltinConditions {
                     new FieldSpec("block", FormFieldSpec.Kind.STRING, false)
                         .doc("Single block id to match."),
                     new FieldSpec("blocks", FormFieldSpec.Kind.ARRAY, false)
+                        .itemPattern(RESOURCE_LOCATION_PATTERN)
                         .doc("List of block ids to match (any → true)."),
                     new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
                         .doc("Single block tag to match (#-prefix optional)."),
                     new FieldSpec("tags", FormFieldSpec.Kind.ARRAY, false)
+                        .itemPattern(TAG_OR_ID_PATTERN)
                         .doc("List of block tags to match (any → true)."),
                     new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
                         .ref("block_condition.schema.json")

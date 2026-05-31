@@ -1435,7 +1435,10 @@
         "blocks": {
           "description": "List of block ids to match (any → true).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "tag": {
           "description": "Single block tag to match (#-prefix optional).",
@@ -1444,7 +1447,10 @@
         "tags": {
           "description": "List of block tags to match (any → true).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "block_condition": {
           "description": "Origins block_in_radius shape: nested in_tag/block condition. Requires at least one of block/blocks/tag/tags/block_condition.",

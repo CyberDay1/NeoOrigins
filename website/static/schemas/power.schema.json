@@ -1000,12 +1000,18 @@
         "items": {
           "description": "List of item ids that become edible (matches items OR tags).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "tags": {
           "description": "List of item-tag ids that become edible (matches items OR tags).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "nutrition": {
           "description": "Hunger points restored when consumed (default 4).",
@@ -1145,7 +1151,10 @@
         "sources": {
           "description": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -1310,17 +1319,26 @@
         "damage_types": {
           "description": "Damage-type ids (e.g. minecraft:fall) whose damage is cancelled.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "damage_tags": {
           "description": "Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "msg_ids": {
           "description": "Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -1399,12 +1417,18 @@
         "items": {
           "description": "Item ids to keep on death; empty (with empty tags) keeps everything.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "tags": {
           "description": "Item tag ids whose matching items are kept on death.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         }
       },
       "required": [
@@ -1617,7 +1641,10 @@
         "entity_types": {
           "description": "Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         },
         "passive": {
           "description": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).",
@@ -2223,7 +2250,10 @@
         "projectile_types": {
           "description": "Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         },
         "chance": {
           "description": "Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0).",
@@ -2393,7 +2423,10 @@
         "entity_types": {
           "description": "Entity ids or #tags that flee the player within 8 blocks.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -3087,7 +3120,10 @@
         "blocked_blocks": {
           "description": "Block ids that cannot be phased through (default obsidian/bedrock).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "exhaustion_per_tick": {
           "description": "Food exhaustion added each tick while phasing in solids (default 0.15).",
