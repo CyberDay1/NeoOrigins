@@ -180,6 +180,17 @@ export const KNOWN_TABS: readonly EditorTab[] = [
 
 export const activeTab = writable<EditorTab>('identity');
 
+// ── Powers tab view mode ─────────────────────────────────────────────────
+//
+// The Powers tab offers two interchangeable editing surfaces over the SAME
+// `draft.powers` data: the classic stacked form ('form') and a colour-coded
+// nested-block view ('blocks'). Module-level so the choice survives tab
+// switches within a session. Deliberately NOT persisted to localStorage — it's
+// a transient UI preference, not part of the saved draft.
+
+export type PowersView = 'form' | 'blocks';
+export const powersView = writable<PowersView>('form');
+
 // ── draft store ──────────────────────────────────────────────────────────
 
 export const draft = writable<OriginDraft>(createDraft());

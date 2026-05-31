@@ -13,9 +13,10 @@
 	//     PowerEditor child surfaces a "(form fields reset)" inline toast.
 
 	import { base } from '$app/paths';
-	import { draft, type PowerDraft } from '$lib/stores/originDraft';
+	import { draft, powersView, type PowerDraft } from '$lib/stores/originDraft';
 	import { setRefSchemas, type RefSchemas } from '$lib/schema/refSchemaContext';
 	import PowerEditor from './power/PowerEditor.svelte';
+	import BlockCanvas from './power/block/BlockCanvas.svelte';
 
 	// ── module-level schema cache ──────────────────────────────────────────────
 	// A single in-flight promise shared across tab mounts so we don't refetch
@@ -192,14 +193,36 @@
 <section aria-labelledby="powers-heading" class="tab">
 	<header class="head">
 		<h2 id="powers-heading">Powers</h2>
-		<button
-			type="button"
-			class="add"
-			onclick={addPower}
-			disabled={schemaState.status !== 'ready'}
-		>
-			Add Power
-		</button>
+		<div class="head-actions">
+			<div class="viewtoggle" role="group" aria-label="Powers editing view">
+				<button
+					type="button"
+					class:active={$powersView === 'form'}
+					aria-pressed={$powersView === 'form'}
+					onclick={() => powersView.set('form')}
+				>
+					Form
+				</button>
+				<button
+					type="button"
+					class:active={$powersView === 'blocks'}
+					aria-pressed={$powersView === 'blocks'}
+					onclick={() => powersView.set('blocks')}
+				>
+					Blocks
+				</button>
+			</div>
+			{#if $powersView === 'form'}
+				<button
+					type="button"
+					class="add"
+					onclick={addPower}
+					disabled={schemaState.status !== 'ready'}
+				>
+					Add Power
+				</button>
+			{/if}
+		</div>
 	</header>
 
 	{#if schemaState.status === 'loading'}
@@ -209,6 +232,8 @@
 			Failed to load power schema: {schemaState.error}.<br />
 			Confirm <code>static/schemas/power.schema.json</code> is present.
 		</p>
+	{:else if $powersView === 'blocks'}
+		<BlockCanvas powerSchema={schemaState.schema!} {refSchemas} />
 	{:else if $draft.powers.length === 0}
 		<p class="empty">No powers yet. Click <strong>Add Power</strong> to add your first one.</p>
 	{:else}
@@ -243,6 +268,40 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-3);
+	}
+	.head-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		flex-wrap: wrap;
+	}
+	.viewtoggle {
+		display: inline-flex;
+		gap: 2px;
+		padding: 3px;
+		background: var(--color-bg-subtle);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+	}
+	.viewtoggle button {
+		padding: 0.35rem 0.8rem;
+		background: transparent;
+		color: var(--color-text-muted);
+		border: none;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font: inherit;
+		font-size: 0.82rem;
+		font-weight: 500;
+		transition: background 120ms ease, color 120ms ease;
+	}
+	.viewtoggle button:hover {
+		color: var(--color-text);
+	}
+	.viewtoggle button.active {
+		color: var(--color-text);
+		background: var(--color-surface);
+		box-shadow: var(--shadow-sm);
 	}
 	h2 {
 		margin: 0;
