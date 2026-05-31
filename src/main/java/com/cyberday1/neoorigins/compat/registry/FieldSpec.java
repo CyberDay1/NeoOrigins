@@ -34,6 +34,14 @@ import java.util.List;
  * {@link #boundTo} instead of camel→snake-ing the JSON key. {@code null} (the
  * default) means "component == camel→snake(name)" — i.e. no regression for the
  * already-registered powers.
+ *
+ * <p><b>Array element refs.</b> {@link #itemsRef} mirrors the in-game
+ * {@link FormFieldSpec#itemsRef()}: on a {@link FormFieldSpec.Kind#ARRAY} field
+ * it names the {@code items.$ref} target (e.g. {@code "#"} for a list of the same
+ * doc, or {@code "condition.schema.json"} for a cross-doc list) so the generated
+ * schema emits {@code {"type":"array","items":{"$ref":…}}} and the editors render
+ * a list-of-sub-forms instead of a raw-JSON box. {@code null} → a permissive
+ * scalar array ({@code items:{}}).
  */
 public record FieldSpec(
     String name,
@@ -48,7 +56,9 @@ public record FieldSpec(
     String componentName,
     List<FieldSpec> children,
     boolean virtual,
-    String pattern
+    String pattern,
+    String itemsRef,
+    String itemPattern
 ) {
     public FieldSpec {
         enumValues = enumValues == null ? List.of() : List.copyOf(enumValues);
@@ -60,44 +70,54 @@ public record FieldSpec(
                      List<String> enumValues, Double min, Double max, String description, String ref,
                      String componentName) {
         this(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName,
-             List.of(), false, null);
+             List.of(), false, null, null, null);
     }
 
     /** Full constructor without the key-alias — component defaults to camel→snake(name). */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required, Object defaultValue,
                      List<String> enumValues, Double min, Double max, String description, String ref) {
         this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null,
-             List.of(), false, null);
+             List.of(), false, null, null, null);
     }
 
     /** Minimal spec — name, widget kind, required-ness. Enrich via the fluent withers. */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required) {
-        this(name, kind, required, null, List.of(), null, null, null, null, null, List.of(), false, null);
+        this(name, kind, required, null, List.of(), null, null, null, null, null, List.of(), false, null, null, null);
     }
 
     /** Attach the human-readable help string (D2: doc lives on the spec). */
     public FieldSpec doc(String description) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /** Set the schema {@code default} value. */
     public FieldSpec def(Object defaultValue) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /** Set a numeric range (schema {@code minimum}/{@code maximum}). */
     public FieldSpec range(Double min, Double max) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /** Set the allowed values for an {@link FormFieldSpec.Kind#ENUM} field. */
     public FieldSpec options(String... values) {
-        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /** Set the {@code $ref} target for a {@link FormFieldSpec.Kind#REF} field. */
     public FieldSpec ref(String ref) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+    }
+
+    /**
+     * Set the {@code items.$ref} target for a {@link FormFieldSpec.Kind#ARRAY}
+     * field — the array's element type (e.g. {@code "#"} for a same-doc list, or
+     * {@code "condition.schema.json"} for a cross-doc list). Drives the generated
+     * {@code items.$ref} and the editors' list-of-sub-forms rendering.
+     */
+    public FieldSpec itemsRef(String itemsRef) {
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /**
@@ -109,7 +129,7 @@ public record FieldSpec(
      * {@code entity_action}. When unset the component is {@code camel→snake(name)}.
      */
     public FieldSpec boundTo(String componentName) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /**
@@ -119,7 +139,7 @@ public record FieldSpec(
      * component map (drift-audit "real OBJECT with children" path).
      */
     public FieldSpec children(FieldSpec... kids) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false, pattern, itemsRef, itemPattern);
     }
 
     /**
@@ -131,7 +151,7 @@ public record FieldSpec(
      * itself and resolves each child against the SAME top-level component map.
      */
     public FieldSpec virtualObject(FieldSpec... kids) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), true, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), true, pattern, itemsRef, itemPattern);
     }
 
     /**
@@ -143,7 +163,20 @@ public record FieldSpec(
      * hand-written schema validated against {@code ^[a-z0-9_.-]+:[a-z0-9_./-]+$}.
      */
     public FieldSpec pattern(String pattern) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+    }
+
+    /**
+     * On a {@link FormFieldSpec.Kind#ARRAY} field with NO {@link #itemsRef} (a list
+     * of scalars rather than sub-forms), declare the array's STRING elements and
+     * their validation regex. Drives the generated {@code items:{type:string,pattern}}
+     * and flips the editors from a raw-JSON box to a list-of-text-inputs widget. The
+     * presence of {@code itemPattern} on a no-{@code itemsRef} array is the
+     * scalar-string-list discriminator. (Resource-location lists use
+     * {@code ^[a-z0-9_.-]+:[a-z0-9_./-]+$}.)
+     */
+    public FieldSpec itemPattern(String itemPattern) {
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
     }
 
     /** True when this OBJECT is a virtual wrapper with no backing component of its own. */
@@ -166,8 +199,14 @@ public record FieldSpec(
      * Project this descriptor field onto the renderer-facing {@link FormFieldSpec}.
      * Compile-time proof that the descriptor subsumes the in-game form contract;
      * the Phase-4 picker work sources its fields through here.
+     *
+     * <p>An {@link FormFieldSpec.Kind#OBJECT} spec's {@link #children} (real or
+     * {@link #virtualObject() virtual} — the {@code virtual} flag is a parse-time
+     * binding detail the renderer doesn't care about) are projected recursively so
+     * the creator renders the nested sub-form instead of a raw-JSON box.
      */
     public FormFieldSpec toFormSpec() {
-        return new FormFieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref);
+        return new FormFieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef,
+            children.stream().map(FieldSpec::toFormSpec).toList(), itemPattern);
     }
 }

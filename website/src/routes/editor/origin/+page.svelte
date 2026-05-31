@@ -213,11 +213,14 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
-		background: var(--color-surface);
+		background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+		backdrop-filter: blur(8px) saturate(130%);
+		-webkit-backdrop-filter: blur(8px) saturate(130%);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-lg);
 		margin-bottom: var(--space-4);
 		box-shadow: var(--shadow-sm);
+		animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 	}
 	.topbar-id {
 		display: flex;
@@ -226,11 +229,11 @@
 		min-width: 0;
 	}
 	.topbar-label {
-		font-size: 0.7rem;
+		font-size: 0.68rem;
 		font-weight: 600;
 		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--color-text-subtle);
+		letter-spacing: 0.14em;
+		color: var(--color-accent);
 	}
 	.id-display {
 		font-family: var(--font-mono);
@@ -328,15 +331,20 @@
 		box-shadow: var(--shadow-sm);
 	}
 
-	/* Card wrapping each tab's body. */
+	/* Card wrapping each tab's body. Kept near-opaque so form fields stay
+	 * crisp over the moving nebula backdrop. */
 	.tab-card {
 		min-height: 14rem;
 		padding: var(--space-5);
-		background: var(--color-surface);
+		background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+		backdrop-filter: blur(10px) saturate(125%);
+		-webkit-backdrop-filter: blur(10px) saturate(125%);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-sm);
 		margin-bottom: var(--space-4);
+		animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+		animation-delay: 0.08s;
 	}
 
 	.bottombar {

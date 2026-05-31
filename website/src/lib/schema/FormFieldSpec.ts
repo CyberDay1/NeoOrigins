@@ -74,7 +74,7 @@ export interface StringFieldSpec extends FieldSpecBase {
 export interface RefFieldSpec extends FieldSpecBase {
 	kind: 'REF';
 	/** Which sibling schema document this refs into. */
-	refDoc: 'action' | 'condition';
+	refDoc: 'action' | 'condition' | 'block_condition' | 'item_condition' | 'item_action';
 }
 
 /**
@@ -87,7 +87,38 @@ export interface RefFieldSpec extends FieldSpecBase {
 export interface ArrayRefFieldSpec extends FieldSpecBase {
 	kind: 'ARRAY_REF';
 	/** Which sibling schema document each element refs into. */
-	refDoc: 'action' | 'condition';
+	refDoc: 'action' | 'condition' | 'block_condition' | 'item_condition' | 'item_action';
+}
+
+/**
+ * An `array` whose `items` are scalar STRINGs (schema `items:{type:"string"}`,
+ * no `$ref`) — e.g. the `biomes` list on a location condition. Rendered as an
+ * add/remove list of text inputs (one per element) rather than the raw-JSON
+ * fallback. `pattern` carries the optional `items.pattern` regex as a validation
+ * hint, exactly like {@link StringFieldSpec.pattern}. The bound value is a
+ * `string[]`. Entries are free-text resource-locations (never a closed enum),
+ * so modded/datapack ids are supported by construction.
+ */
+export interface ArrayStringFieldSpec extends FieldSpecBase {
+	kind: 'ARRAY_STRING';
+	/** Optional regex hint from schema `items.pattern` — UI displays as a hint. */
+	pattern: string | null;
+}
+
+/**
+ * A nested object with a FIXED set of sub-fields (schema `type:object` with
+ * inline `properties`) — e.g. an item stack (`{item, count}`), an effect
+ * instance (`{effect, duration, amplifier, …}`), or the `resource` power's
+ * `hud_render` block. Unlike {@link RefFieldSpec} there is NO type to pick:
+ * the children are always the same. Rendered as an inline sub-form (no picker),
+ * binding each child by its JSON key into the nested object value. Mirrors the
+ * in-game `ObjectRow`. The bound value is the nested OBJECT (`{…}`) — not a
+ * stringified blob — so it serializes straight into the wire JSON.
+ */
+export interface ObjectFieldSpec extends FieldSpecBase {
+	kind: 'OBJECT';
+	/** The fixed nested sub-fields, in schema-declared order. */
+	children: FormFieldSpec[];
 }
 
 /**
@@ -121,6 +152,8 @@ export type FormFieldSpec =
 	| StringFieldSpec
 	| RefFieldSpec
 	| ArrayRefFieldSpec
+	| ArrayStringFieldSpec
+	| ObjectFieldSpec
 	| RawJsonFieldSpec;
 
 /** True when this field is one of the five Tier-A kinds (proper widget). */
@@ -150,7 +183,12 @@ export function emptyValueFor(field: FormFieldSpec): unknown {
 			// Unset until the author picks an action/condition type.
 			return null;
 		case 'ARRAY_REF':
+		case 'ARRAY_STRING':
 			return [];
+		case 'OBJECT':
+			// Empty object; children populate keys on edit. pruneForWire drops it
+			// if untouched, so an optional nested object doesn't leak blanks.
+			return {};
 		case 'RawJson':
 			return field.default;
 	}

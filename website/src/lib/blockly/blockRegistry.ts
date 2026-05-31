@@ -20,24 +20,51 @@
 //                               is a `neo_cond_item` wrapper holding one
 //                               condition value (value blocks can't stack, so
 //                               the wrapper provides the prev/next surface).
+//   - OBJECT (fixed children) → its leaf children are flattened onto the parent
+//                               block as inline fields named `<obj>.<child>`
+//                               (Blockly fields are flat). Round-trips into a
+//                               nested object value in blockState. The current
+//                               OBJECT shapes (item_stack / effect_instance /
+//                               modifier / hud_render) have only leaf children.
 
 import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
 import { parsePowerSchema, parseRefSchema, refTypeOptions } from '$lib/schema/SchemaFormModel';
 import type { RefSchemas } from '$lib/schema/refSchemaContext';
 
-export type BlockKind = 'power' | 'action' | 'condition';
+export type BlockKind =
+	| 'power'
+	| 'action'
+	| 'condition'
+	| 'block_condition'
+	| 'item_condition'
+	| 'item_action';
 
 /** Synthetic wrapper block that gives condition-list entries a prev/next surface. */
 export const COND_ITEM_TYPE = 'neo_cond_item';
 
+/** Wrapper giving block_condition-list entries (and/or `conditions`) a prev/next surface. */
+export const BLOCK_COND_ITEM_TYPE = 'neo_block_cond_item';
+
+/** Wrapper giving item_condition-list entries (and/or `conditions`) a prev/next surface. */
+export const ITEM_COND_ITEM_TYPE = 'neo_item_cond_item';
+
+/** Wrapper giving scalar-string-list entries (e.g. `biomes`) a prev/next surface;
+ *  unlike the condition wrappers it holds the value in a text FIELD, not an input. */
+export const STR_ITEM_TYPE = 'neo_str_item';
+
 /** Field name carrying a power block's local id. */
 export const POWER_ID_FIELD = '__id';
 
-/** Category colours (block backgrounds). Condition = teal, action = violet. */
+/** Category colours (block backgrounds). Condition = teal, action = violet,
+ *  block_condition = amber, item_condition = green, item_action = magenta
+ *  (distinct so nested tests/actions read at a glance). */
 const COLOUR: Record<BlockKind, string> = {
 	power: '#5d6b87',
 	condition: '#15a89b',
-	action: '#7c5cff'
+	action: '#7c5cff',
+	block_condition: '#c8881f',
+	item_condition: '#4f9d3a',
+	item_action: '#b5478f'
 };
 
 export interface BlockRegistry {
@@ -68,7 +95,13 @@ function shortName(typeId: string): string {
 type FieldRender =
 	| { kind: 'inline'; arg: Record<string, unknown> }
 	| { kind: 'value'; check: string }
-	| { kind: 'statement'; check: string };
+	| { kind: 'statement'; check: string }
+	| { kind: 'object'; children: FormFieldSpec[] };
+
+/** The flattened Blockly field name for a leaf `child` of OBJECT field `obj`. */
+export function objChildFieldName(objName: string, childName: string): string {
+	return `${objName}.${childName}`;
+}
 
 /** Decide how a FormFieldSpec maps onto Blockly. Shared by defs + serialization. */
 export function renderOf(field: FormFieldSpec): FieldRender {
@@ -111,13 +144,24 @@ export function renderOf(field: FormFieldSpec): FieldRender {
 				arg: { type: 'field_input', name: field.name, text: field.default ?? '' }
 			};
 		case 'REF':
-			return field.refDoc === 'condition'
-				? { kind: 'value', check: 'Condition' }
-				: { kind: 'statement', check: 'Action' };
+			if (field.refDoc === 'condition') return { kind: 'value', check: 'Condition' };
+			if (field.refDoc === 'block_condition') return { kind: 'value', check: 'BlockCondition' };
+			if (field.refDoc === 'item_condition') return { kind: 'value', check: 'ItemCondition' };
+			if (field.refDoc === 'item_action') return { kind: 'statement', check: 'ItemAction' };
+			return { kind: 'statement', check: 'Action' };
 		case 'ARRAY_REF':
-			return field.refDoc === 'condition'
-				? { kind: 'statement', check: 'CondItem' }
-				: { kind: 'statement', check: 'Action' };
+			if (field.refDoc === 'condition') return { kind: 'statement', check: 'CondItem' };
+			if (field.refDoc === 'block_condition') return { kind: 'statement', check: 'BlockCondItem' };
+			if (field.refDoc === 'item_condition') return { kind: 'statement', check: 'ItemCondItem' };
+			if (field.refDoc === 'item_action') return { kind: 'statement', check: 'ItemAction' };
+			return { kind: 'statement', check: 'Action' };
+		case 'ARRAY_STRING':
+			// A scalar-string list → stack of `neo_str_item` wrappers, each holding
+			// one free-text value (e.g. a biome id). Modded/datapack ids work since
+			// the field is plain text, never a closed dropdown.
+			return { kind: 'statement', check: 'StrItem' };
+		case 'OBJECT':
+			return { kind: 'object', children: field.children };
 	}
 }
 
@@ -138,6 +182,17 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 		if (r.kind === 'inline') {
 			message += ` ${f.label} %${++n}`;
 			args.push(r.arg);
+		} else if (r.kind === 'object') {
+			// Flatten the object's leaf children onto this block as inline fields
+			// named `<obj>.<child>`. Non-leaf children (REF/ARRAY_REF/nested OBJECT)
+			// have no flat-field representation — none exist in current shapes.
+			message += ` ${f.label}:`;
+			for (const child of r.children) {
+				const cr = renderOf(child);
+				if (cr.kind !== 'inline') continue;
+				message += ` ${child.label} %${++n}`;
+				args.push({ ...cr.arg, name: objChildFieldName(f.name, child.name) });
+			}
 		} else if (r.kind === 'value') {
 			message += ` ${f.label} %${++n}`;
 			args.push({ type: 'input_value', name: f.name, check: r.check });
@@ -169,6 +224,13 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 		// Standalone root block — no connections.
 	} else if (kind === 'condition') {
 		def.output = 'Condition';
+	} else if (kind === 'block_condition') {
+		def.output = 'BlockCondition';
+	} else if (kind === 'item_condition') {
+		def.output = 'ItemCondition';
+	} else if (kind === 'item_action') {
+		def.previousStatement = 'ItemAction';
+		def.nextStatement = 'ItemAction';
 	} else {
 		def.previousStatement = 'Action';
 		def.nextStatement = 'Action';
@@ -189,6 +251,46 @@ function condItemDef(): object {
 	};
 }
 
+/** The fixed wrapper block for block_condition-list entries (and/or `conditions`). */
+function blockCondItemDef(): object {
+	return {
+		type: BLOCK_COND_ITEM_TYPE,
+		colour: COLOUR.block_condition,
+		inputsInline: true,
+		previousStatement: 'BlockCondItem',
+		nextStatement: 'BlockCondItem',
+		message0: 'block condition %1',
+		args0: [{ type: 'input_value', name: 'ITEM', check: 'BlockCondition' }]
+	};
+}
+
+/** The fixed wrapper block for item_condition-list entries (and/or `conditions`). */
+function itemCondItemDef(): object {
+	return {
+		type: ITEM_COND_ITEM_TYPE,
+		colour: COLOUR.item_condition,
+		inputsInline: true,
+		previousStatement: 'ItemCondItem',
+		nextStatement: 'ItemCondItem',
+		message0: 'item condition %1',
+		args0: [{ type: 'input_value', name: 'ITEM', check: 'ItemCondition' }]
+	};
+}
+
+/** The fixed wrapper block for scalar-string-list entries (e.g. `biomes`). The
+ *  value lives in a text FIELD (not an input), since strings have no value block. */
+function strItemDef(): object {
+	return {
+		type: STR_ITEM_TYPE,
+		colour: '#8a8f99',
+		inputsInline: true,
+		previousStatement: 'StrItem',
+		nextStatement: 'StrItem',
+		message0: 'entry %1',
+		args0: [{ type: 'field_input', name: 'ITEM', text: '' }]
+	};
+}
+
 /**
  * Build the full registry from the three loaded schemas. Types whose parse
  * throws (malformed branch) still get a header-only block so the palette and
@@ -198,7 +300,7 @@ export function buildBlockRegistry(
 	powerSchema: object,
 	schemas: RefSchemas
 ): BlockRegistry {
-	const defs: object[] = [condItemDef()];
+	const defs: object[] = [condItemDef(), blockCondItemDef(), itemCondItemDef(), strItemDef()];
 	const blockTypeForId = new Map<string, string>();
 	const idForBlockType = new Map<string, string>();
 	const fieldsByTypeId = new Map<string, FormFieldSpec[]>();
@@ -207,7 +309,10 @@ export function buildBlockRegistry(
 	const toolboxCats: { kind: string; name: string; colour: string; contents: object[] }[] = [
 		{ kind: 'category', name: 'Powers', colour: COLOUR.power, contents: [] },
 		{ kind: 'category', name: 'Conditions', colour: COLOUR.condition, contents: [] },
-		{ kind: 'category', name: 'Actions', colour: COLOUR.action, contents: [] }
+		{ kind: 'category', name: 'Actions', colour: COLOUR.action, contents: [] },
+		{ kind: 'category', name: 'Block Conditions', colour: COLOUR.block_condition, contents: [] },
+		{ kind: 'category', name: 'Item Conditions', colour: COLOUR.item_condition, contents: [] },
+		{ kind: 'category', name: 'Item Actions', colour: COLOUR.item_action, contents: [] }
 	];
 
 	const register = (
@@ -256,6 +361,33 @@ export function buildBlockRegistry(
 			fields = [];
 		}
 		register('action', t, fields, 2);
+	}
+	for (const t of refTypeOptions(schemas.blockCondition)) {
+		let fields: FormFieldSpec[] = [];
+		try {
+			fields = parseRefSchema('block_condition', schemas.blockCondition, schemas.fieldDocs, t);
+		} catch {
+			fields = [];
+		}
+		register('block_condition', t, fields, 3);
+	}
+	for (const t of refTypeOptions(schemas.itemCondition)) {
+		let fields: FormFieldSpec[] = [];
+		try {
+			fields = parseRefSchema('item_condition', schemas.itemCondition, schemas.fieldDocs, t);
+		} catch {
+			fields = [];
+		}
+		register('item_condition', t, fields, 4);
+	}
+	for (const t of refTypeOptions(schemas.itemAction)) {
+		let fields: FormFieldSpec[] = [];
+		try {
+			fields = parseRefSchema('item_action', schemas.itemAction, schemas.fieldDocs, t);
+		} catch {
+			fields = [];
+		}
+		register('item_action', t, fields, 5);
 	}
 
 	return {

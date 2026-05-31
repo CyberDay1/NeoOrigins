@@ -154,6 +154,12 @@ public final class SchemaFormCheck {
             "action", "neoorigins:add_velocity");
         failures += auditAuxSchema(SchemaFormModel.CONDITION_RESOURCE_PATH,
             "condition", "neoorigins:in_water");
+        failures += auditAuxSchema(SchemaFormModel.BLOCK_CONDITION_RESOURCE_PATH,
+            "block_condition", "neoorigins:in_tag");
+        failures += auditAuxSchema(SchemaFormModel.ITEM_CONDITION_RESOURCE_PATH,
+            "item_condition", "neoorigins:enchantment");
+        failures += auditAuxSchema(SchemaFormModel.ITEM_ACTION_RESOURCE_PATH,
+            "item_action", "neoorigins:consume");
 
         System.out.printf("[schema-check] %d power types, %d structured branches, %d failures%n",
             types, model.structuredTypes().size(), failures);

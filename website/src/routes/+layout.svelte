@@ -81,9 +81,10 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
-		font-weight: 600;
-		font-size: 0.95rem;
-		letter-spacing: -0.005em;
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 1.02rem;
+		letter-spacing: -0.01em;
 		text-decoration: none;
 		color: var(--color-text);
 	}
@@ -94,10 +95,22 @@
 		background: linear-gradient(
 			135deg,
 			var(--color-accent) 0%,
-			color-mix(in srgb, var(--color-accent) 60%, #ec4899) 100%
+			var(--color-accent-2) 100%
 		);
 		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, transparent),
 			0 0 12px color-mix(in srgb, var(--color-accent) 35%, transparent);
+		animation: mark-pulse 4.5s ease-in-out infinite;
+	}
+	@keyframes mark-pulse {
+		0%,
+		100% {
+			box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, transparent),
+				0 0 12px color-mix(in srgb, var(--color-accent) 35%, transparent);
+		}
+		50% {
+			box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 70%, transparent),
+				0 0 20px color-mix(in srgb, var(--color-accent) 55%, transparent);
+		}
 	}
 	.brand-name {
 		display: inline-flex;

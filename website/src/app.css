@@ -7,11 +7,13 @@
  * `prefers-color-scheme: light`. No manual toggle UI for now — OS pref
  * is the contract.
  *
- * Accent: indigo/violet (#7c5cff). "Origins" reads as identity/lineage;
- * the indigo-violet family is the modern dev-tool palette (Vercel,
- * Linear, Radix) while still suggesting "magical / mystic" without
- * leaning on cliché purple. Different enough from the in-game parchment
- * + amber aesthetic that the two surfaces won't be confused.
+ * Theme: "Arcane Nebula". Deep space-blue base with a teal/cyan glow
+ * accent (#34e3c2) and a violet highlight (#b07cff) for gradients and
+ * secondary emphasis. "Origins" reads as identity/lineage; the
+ * nebula palette suggests "magical / cosmic" without leaning on cliché
+ * flat-purple, and the teal accent pops against the cool dark base.
+ * Deliberately distinct from the in-game parchment + amber aesthetic
+ * so the two surfaces won't be confused.
  *
  * Typography: Inter for UI + JetBrains Mono for code, loaded via
  * Google Fonts in app.html. System-font fallbacks cover offline / CSP
@@ -23,28 +25,33 @@
 
 :root {
 	/* Surface scale — bg is the page, surface is a card, elevated is a
-	 * popover / dropdown that sits over a card. */
-	--color-bg: #0c0d10;
-	--color-bg-subtle: #14161b;
-	--color-bg-elevated: #1a1d24;
-	--color-surface: #14161b;
-	--color-surface-hover: #1a1d24;
+	 * popover / dropdown that sits over a card. Cool space-blue base. */
+	--color-bg: #0a0e17;
+	--color-bg-subtle: #0e1422;
+	--color-bg-elevated: #161f33;
+	--color-surface: #121a2b;
+	--color-surface-hover: #18233a;
 
 	/* Borders — `strong` for focused / active states. */
-	--color-border: #2a2e38;
-	--color-border-strong: #3a3f4d;
+	--color-border: #233149;
+	--color-border-strong: #33476a;
 
 	/* Text — `subtle` is captions, `muted` is secondary labels. */
-	--color-text: #e6e8ee;
-	--color-text-muted: #a3a8b5;
-	--color-text-subtle: #6e7484;
+	--color-text: #e7edf6;
+	--color-text-muted: #9fb0c8;
+	--color-text-subtle: #647590;
 
-	/* Accent — indigo/violet. `subtle` is a tinted background for chips
-	 * / pill highlights. */
-	--color-accent: #7c5cff;
-	--color-accent-hover: #927aff;
-	--color-accent-subtle: rgba(124, 92, 255, 0.14);
-	--color-accent-contrast: #ffffff;
+	/* Accent — teal/cyan glow. `subtle` is a tinted background for chips
+	 * / pill highlights. `accent-2` is the violet highlight used for
+	 * gradients and secondary emphasis. Teal is light, so `contrast`
+	 * (text on a filled accent button) is a near-black teal-tinted ink. */
+	--color-accent: #34e3c2;
+	--color-accent-hover: #5beed3;
+	--color-accent-subtle: rgba(52, 227, 194, 0.13);
+	--color-accent-contrast: #04211b;
+	--color-accent-2: #b07cff;
+	--color-accent-2-hover: #c69bff;
+	--color-accent-2-subtle: rgba(176, 124, 255, 0.14);
 
 	/* Semantic colors. */
 	--color-danger: #ef4444;
@@ -55,16 +62,21 @@
 	--color-warning: #f59e0b;
 	--color-warning-subtle: rgba(245, 158, 11, 0.12);
 
-	/* JSON syntax tokens — picked to harmonise with the accent. */
-	--color-syntax-key: #93c5fd;     /* soft blue */
-	--color-syntax-string: #fcd34d;  /* warm yellow */
-	--color-syntax-number: #c4b5fd;  /* lavender */
-	--color-syntax-bool: #f9a8d4;    /* pink */
+	/* JSON syntax tokens — picked to harmonise with the nebula accent. */
+	--color-syntax-key: #7cc7ff;     /* sky blue */
+	--color-syntax-string: #fbd38d;  /* warm sand — pops against teal */
+	--color-syntax-number: #c9b3ff;  /* violet, echoes accent-2 */
+	--color-syntax-bool: #f6a5d0;    /* pink */
 
-	/* Typography. */
+	/* Typography. Display is reserved for hero/brand/headings; sans is the
+	 * UI body; mono renders JSON. Distinctive faces over system defaults so
+	 * the editor and docs read as a designed product, not a scaffold. */
+	--font-display:
+		'Syne', 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI',
+		sans-serif;
 	--font-sans:
-		'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-		Arial, sans-serif;
+		'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto,
+		'Helvetica Neue', Arial, sans-serif;
 	--font-mono:
 		'JetBrains Mono', ui-monospace, SFMono-Regular, 'Cascadia Code',
 		Menlo, Consolas, monospace;
@@ -96,23 +108,27 @@
 /* Light-mode overrides. Triggered by OS preference only — no JS toggle. */
 @media (prefers-color-scheme: light) {
 	:root {
-		--color-bg: #f8f9fb;
-		--color-bg-subtle: #eef0f4;
+		--color-bg: #f5f8fc;
+		--color-bg-subtle: #e9eef6;
 		--color-bg-elevated: #ffffff;
 		--color-surface: #ffffff;
-		--color-surface-hover: #f4f5f9;
+		--color-surface-hover: #eef3fa;
 
-		--color-border: #d8dbe3;
-		--color-border-strong: #b6bbc7;
+		--color-border: #d3dcea;
+		--color-border-strong: #aebccf;
 
-		--color-text: #15171c;
-		--color-text-muted: #525866;
-		--color-text-subtle: #80869a;
+		--color-text: #0e1726;
+		--color-text-muted: #4c5a70;
+		--color-text-subtle: #76849a;
 
-		--color-accent: #6048e0;
-		--color-accent-hover: #4f3bc4;
-		--color-accent-subtle: rgba(96, 72, 224, 0.12);
+		/* Teal darkened so it carries text contrast on white. */
+		--color-accent: #0d9488;
+		--color-accent-hover: #0b7d73;
+		--color-accent-subtle: rgba(13, 148, 136, 0.12);
 		--color-accent-contrast: #ffffff;
+		--color-accent-2: #7c3aed;
+		--color-accent-2-hover: #6d28d9;
+		--color-accent-2-subtle: rgba(124, 58, 237, 0.12);
 
 		--color-danger: #dc2626;
 		--color-danger-hover: #b91c1c;
@@ -122,7 +138,7 @@
 		--color-warning: #b45309;
 		--color-warning-subtle: rgba(180, 83, 9, 0.1);
 
-		--color-syntax-key: #1d4ed8;
+		--color-syntax-key: #0369a1;
 		--color-syntax-string: #b45309;
 		--color-syntax-number: #6d28d9;
 		--color-syntax-bool: #be185d;
@@ -157,6 +173,69 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	text-rendering: optimizeLegibility;
+	position: relative;
+	min-height: 100vh;
+	overflow-x: hidden;
+	isolation: isolate;
+}
+
+/* ─── "Arcane Nebula" atmosphere ──────────────────────────────────────
+ * Two fixed, pointer-transparent layers sit behind all content:
+ *   ::before — a gradient-mesh of teal + violet glows over the deep core,
+ *              plus a faint scattered star dust, slowly drifting.
+ *   ::after  — a fine SVG grain so the flat dark surfaces gain texture.
+ * Both are decorative; reduced-motion freezes the drift (see end of file). */
+body::before {
+	content: '';
+	position: fixed;
+	inset: -20% -10% -10%;
+	z-index: -2;
+	pointer-events: none;
+	background:
+		radial-gradient(
+			42rem 36rem at 14% 8%,
+			color-mix(in srgb, var(--color-accent) 22%, transparent) 0%,
+			transparent 60%
+		),
+		radial-gradient(
+			46rem 40rem at 88% 92%,
+			color-mix(in srgb, var(--color-accent-2) 20%, transparent) 0%,
+			transparent 62%
+		),
+		radial-gradient(
+			30rem 30rem at 78% 12%,
+			color-mix(in srgb, var(--color-accent-2) 12%, transparent) 0%,
+			transparent 55%
+		),
+		radial-gradient(2px 2px at 20% 32%, var(--color-text-subtle) 50%, transparent 51%),
+		radial-gradient(1.5px 1.5px at 67% 21%, var(--color-text-muted) 50%, transparent 51%),
+		radial-gradient(1.5px 1.5px at 41% 71%, var(--color-text-subtle) 50%, transparent 51%),
+		radial-gradient(2px 2px at 84% 58%, var(--color-text-subtle) 50%, transparent 51%),
+		radial-gradient(1px 1px at 9% 84%, var(--color-text-muted) 50%, transparent 51%),
+		radial-gradient(1.5px 1.5px at 54% 44%, var(--color-text-subtle) 50%, transparent 51%);
+	background-repeat: no-repeat;
+	opacity: 0.9;
+	animation: nebula-drift 38s ease-in-out infinite alternate;
+}
+
+body::after {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	opacity: 0.035;
+	mix-blend-mode: soft-light;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes nebula-drift {
+	0% {
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+	100% {
+		transform: translate3d(-2.5%, 1.5%, 0) scale(1.06);
+	}
 }
 
 /* Code is monospaced everywhere; pre defers to its own size in components. */
@@ -212,4 +291,33 @@ select:focus-visible,
 }
 *::-webkit-scrollbar-thumb:hover {
 	background: var(--color-border-strong);
+}
+
+/* ─── shared entrance reveal ──────────────────────────────────────────
+ * Components opt in with `animation: rise <delay>` and stagger via
+ * animation-delay. One orchestrated load beats scattered micro-motion. */
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Accessibility: honour reduced-motion — freeze the drift, drop reveals,
+ * and stop the accent shimmer. Content stays fully visible. */
+@media (prefers-reduced-motion: reduce) {
+	body::before {
+		animation: none;
+	}
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
 }

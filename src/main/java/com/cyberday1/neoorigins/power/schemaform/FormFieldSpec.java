@@ -28,6 +28,14 @@ import java.util.List;
  *                     creator uses this to recognise arrays of actions/conditions
  *                     and render an {@code ArrayRefRow} list editor. {@code null}
  *                     for arrays of scalars (rendered as raw-JSON).
+ * @param children     when {@link Kind#OBJECT} with a FIXED set of inline sub-fields
+ *                     (e.g. an item stack, an effect instance, {@code hud_render}),
+ *                     the nested fields in schema-declared order — rendered as an
+ *                     inline sub-form. Empty for free-form objects (raw-JSON box).
+ * @param itemPattern  when {@link Kind#ARRAY} with NO {@link #itemsRef} (a list of
+ *                     scalars), the STRING elements' validation regex — non-null marks
+ *                     this as a scalar-string list (list-of-text-inputs widget) rather
+ *                     than a raw-JSON array. {@code null} for raw/permissive arrays.
  */
 public record FormFieldSpec(
     String name,
@@ -39,13 +47,33 @@ public record FormFieldSpec(
     Double max,
     String description,
     String ref,
-    String itemsRef
+    String itemsRef,
+    List<FormFieldSpec> children,
+    String itemPattern
 ) {
+    public FormFieldSpec {
+        children = children == null ? List.of() : List.copyOf(children);
+    }
+
+    /** Back-compat constructor — call sites that carry children but no scalar itemPattern. */
+    public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
+                         List<String> enumValues, Double min, Double max, String description,
+                         String ref, String itemsRef, List<FormFieldSpec> children) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef, children, null);
+    }
+
+    /** Back-compat constructor — call sites that don't carry nested children. */
+    public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
+                         List<String> enumValues, Double min, Double max, String description,
+                         String ref, String itemsRef) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef, List.of(), null);
+    }
+
     /** Back-compat constructor — older call sites that don't track itemsRef. */
     public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
                          List<String> enumValues, Double min, Double max, String description,
                          String ref) {
-        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null);
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null, List.of(), null);
     }
     public enum Kind {
         /** free text → text box */

@@ -22,23 +22,28 @@
 //     walks the power document — they share one discriminated-oneOf core.
 //     Cross-document refs that target NEITHER sibling schema still fall to
 //     RawJson(REF).
-//   - Nested `properties` of an OBJECT field fall to RawJson — same MVP
-//     cutoff. Authors edit the inner JSON by hand.
+//   - An OBJECT field with a FIXED set of inline `properties` (e.g. an item
+//     stack, an effect instance, hud_render) maps to an OBJECT spec whose
+//     `children` are the parsed sub-fields, rendered inline as a labeled
+//     sub-form (no type picker). Free-form objects (no `properties`) still
+//     fall to RawJson.
 
 import type {
 	ArrayRefFieldSpec,
+	ArrayStringFieldSpec,
 	BooleanFieldSpec,
 	EnumFieldSpec,
 	FormFieldSpec,
 	IntegerFieldSpec,
 	NumberFieldSpec,
+	ObjectFieldSpec,
 	RawJsonFieldSpec,
 	RefFieldSpec,
 	StringFieldSpec
 } from './FormFieldSpec.js';
 
 /** Which schema document a field's `$ref` resolves into ({@link SelfDoc} drives `#`). */
-export type RefDoc = 'action' | 'condition';
+export type RefDoc = 'action' | 'condition' | 'block_condition' | 'item_condition' | 'item_action';
 
 /** The document a discriminated walk is rooted in, so `$ref:"#"` self-refs resolve. */
 type SelfDoc = 'power' | RefDoc;
@@ -140,7 +145,7 @@ function parseDiscriminated(
 		if (name === 'type') continue;
 		const propSchema = derefOneLevel(root, raw as JsonValue);
 		branchFields.push(
-			mapProperty(name, propSchema, branchRequired.has(name), docs, typeId, selfDoc)
+			mapProperty(root, name, propSchema, branchRequired.has(name), docs, typeId, selfDoc)
 		);
 	}
 	return [...commonFields, ...branchFields];
@@ -179,7 +184,9 @@ function commonRootFields(
 	const out: FormFieldSpec[] = [];
 	for (const [name, raw] of Object.entries(props)) {
 		if (name === 'type') continue;
-		out.push(mapProperty(name, raw as JsonValue, required.has(name), docs, powerType, selfDoc));
+		out.push(
+			mapProperty(root, name, raw as JsonValue, required.has(name), docs, powerType, selfDoc)
+		);
 	}
 	return out;
 }
@@ -258,12 +265,19 @@ function derefOneLevel(root: JsonObject, value: JsonValue): JsonValue {
  */
 function refDocOf(ref: string, selfDoc: SelfDoc): RefDoc | null {
 	if (ref === '#') return selfDoc === 'power' ? null : selfDoc;
+	if (ref === 'item_action.schema.json') return 'item_action';
 	if (ref === 'action.schema.json') return 'action';
+	// `block_condition.schema.json` / `item_condition.schema.json` must be matched
+	// before any substring-style check for `condition.schema.json` — each is its
+	// own document.
+	if (ref === 'block_condition.schema.json') return 'block_condition';
+	if (ref === 'item_condition.schema.json') return 'item_condition';
 	if (ref === 'condition.schema.json') return 'condition';
 	return null;
 }
 
 function mapProperty(
+	root: JsonObject,
 	name: string,
 	raw: JsonValue,
 	required: boolean,
@@ -356,10 +370,45 @@ function mapProperty(
 						return spec;
 					}
 				}
+				// A scalar-string list (`items:{type:"string"}`, no `$ref`) →
+				// ARRAY_STRING: an add/remove list of text inputs. `items.pattern`
+				// carries the per-element validation hint (e.g. resource-location).
+				if (isObject(items) && items['type'] === 'string') {
+					const pattern = typeof items['pattern'] === 'string' ? (items['pattern'] as string) : null;
+					const spec: ArrayStringFieldSpec = { ...base, kind: 'ARRAY_STRING', pattern };
+					return spec;
+				}
 				return rawJsonOf(base, 'ARRAY', p['default']);
 			}
-			case 'object':
+			case 'object': {
+				// An object with a FIXED set of inline `properties` (e.g. an item
+				// stack, an effect instance, or hud_render) → OBJECT sub-form: parse
+				// each child property the same way, render inline (no type picker).
+				// Objects without `properties` (free-form maps) stay RawJson.
+				const objProps = p['properties'];
+				if (isObject(objProps) && Object.keys(objProps).length > 0) {
+					const childRequired = readRequiredSet(p);
+					const children: FormFieldSpec[] = [];
+					for (const [childName, childRaw] of Object.entries(objProps)) {
+						if (childName === 'type') continue;
+						const childSchema = derefOneLevel(root, childRaw as JsonValue);
+						children.push(
+							mapProperty(
+								root,
+								childName,
+								childSchema,
+								childRequired.has(childName),
+								docs,
+								powerType,
+								selfDoc
+							)
+						);
+					}
+					const spec: ObjectFieldSpec = { ...base, kind: 'OBJECT', children };
+					return spec;
+				}
 				return rawJsonOf(base, 'OBJECT', p['default']);
+			}
 			default:
 				return rawJsonOf(base, 'UNKNOWN', p['default']);
 		}

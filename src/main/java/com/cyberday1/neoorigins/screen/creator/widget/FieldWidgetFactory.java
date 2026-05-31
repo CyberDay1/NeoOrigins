@@ -113,7 +113,12 @@ public final class FieldWidgetFactory {
                             && spec.itemsRef() != null && refTypeKind(spec) != null)
                                 ? new ArrayRefRow(spec, typePicker, rebuildCb)
                                 : new TextRow(spec, true, null);
-            // OBJECT/MIXED/UNKNOWN → raw-JSON escape
+            // An OBJECT with a fixed child set → inline sub-form; free-form
+            // objects (no children) keep the raw-JSON escape.
+            case OBJECT  -> spec.children().isEmpty()
+                                ? new TextRow(spec, true, null)
+                                : new ObjectRow(spec, typePicker, rebuildCb);
+            // MIXED/UNKNOWN → raw-JSON escape
             default      -> new TextRow(spec, true, null);
         };
     }
@@ -127,6 +132,12 @@ public final class FieldWidgetFactory {
             hay = (spec.itemsRef() + " " + spec.name()).toLowerCase(java.util.Locale.ROOT);
         }
         if (hay == null) return null;
+        // "block_condition" / "item_condition" CONTAIN "condition" and
+        // "item_action" CONTAINS "action" — the specific docs must be checked
+        // before the generic action/condition, else they mis-route.
+        if (hay.contains("block_condition")) return "block_condition";
+        if (hay.contains("item_condition")) return "item_condition";
+        if (hay.contains("item_action")) return "item_action";
         if (hay.contains("action")) return "action";
         if (hay.contains("condition")) return "condition";
         return null;
@@ -134,12 +145,16 @@ public final class FieldWidgetFactory {
 
     /**
      * What a row's "pick" button browses, or null if none:
-     * REF → "condition"/"action"; STRING → a registry kind (particle, item, …).
+     * REF → "block_condition"/"item_condition"/"condition"/"action"; STRING → a
+     * registry kind (particle, item, …).
      */
     private static String pickKind(FormFieldSpec spec) {
         if (spec.kind() == FormFieldSpec.Kind.REF) {
             String hay = ((spec.ref() == null ? "" : spec.ref()) + " " + spec.name())
                 .toLowerCase(java.util.Locale.ROOT);
+            if (hay.contains("block_condition")) return "block_condition";
+            if (hay.contains("item_condition")) return "item_condition";
+            if (hay.contains("item_action")) return "item_action";
             if (hay.contains("action")) return "action";
             if (hay.contains("condition")) return "condition";
             return null;
@@ -179,7 +194,7 @@ public final class FieldWidgetFactory {
                 case BOOLEAN -> "true / false";
                 case ENUM    -> "pick one";
                 case ARRAY   -> "list (JSON)";
-                case OBJECT  -> "object (JSON)";
+                case OBJECT  -> spec.children().isEmpty() ? "object (JSON)" : "object (sub-form)";
                 case REF     -> "DSL reference (JSON)";
                 case MIXED   -> "value or object (JSON)";
                 case UNKNOWN -> "JSON";
@@ -208,8 +223,11 @@ public final class FieldWidgetFactory {
             }
             if (spec.ref() != null) t.add("references: " + spec.ref());
             switch (spec.kind()) {
-                case REF, OBJECT, ARRAY, MIXED, UNKNOWN ->
+                case REF, ARRAY, MIXED, UNKNOWN ->
                     t.add("No guided sub-form yet — edit this as JSON.");
+                case OBJECT -> {
+                    if (spec.children().isEmpty()) t.add("No guided sub-form yet — edit this as JSON.");
+                }
                 default -> { }
             }
             return t;
@@ -455,9 +473,15 @@ public final class FieldWidgetFactory {
             if (currentType.isEmpty() || refKind == null) return;
             List<FormFieldSpec> specs = "action".equals(refKind)
                 ? com.cyberday1.neoorigins.power.schemaform.FormModel.forAction(currentType)
-                : "condition".equals(refKind)
-                    ? com.cyberday1.neoorigins.power.schemaform.FormModel.forCondition(currentType)
-                    : List.of();
+                : "block_condition".equals(refKind)
+                    ? com.cyberday1.neoorigins.power.schemaform.FormModel.forBlockCondition(currentType)
+                    : "item_condition".equals(refKind)
+                        ? com.cyberday1.neoorigins.power.schemaform.FormModel.forItemCondition(currentType)
+                        : "item_action".equals(refKind)
+                            ? com.cyberday1.neoorigins.power.schemaform.FormModel.forItemAction(currentType)
+                            : "condition".equals(refKind)
+                                ? com.cyberday1.neoorigins.power.schemaform.FormModel.forCondition(currentType)
+                                : List.of();
             int subW = Math.max(40, fieldW - INDENT);
             for (FormFieldSpec sub : specs) {
                 // Recursive: pass typePicker + rebuildCb so nested REFs / ARRAYs
@@ -659,6 +683,101 @@ public final class FieldWidgetFactory {
                 row.build(parent, font, subW, 16);
                 row.fromJson(itemEl);
                 items.add(row);
+            }
+        }
+    }
+
+    // ── OBJECT with a fixed child set (item stack, effect instance, hud_render) ─
+
+    /**
+     * Inline sub-form for an {@link FormFieldSpec.Kind#OBJECT} that carries a
+     * FIXED set of {@link FormFieldSpec#children() children} (e.g. an item stack
+     * {@code {item, count}}, an effect instance, or the {@code resource} power's
+     * {@code hud_render} block). Unlike {@link RefRow} there is NO type to pick —
+     * the children are always the same — so this renders just an indented column
+     * of child rows under the field label, with no header widget of its own.
+     *
+     * <p>{@code typePicker} / {@code rebuildCb} are forwarded so a nested REF /
+     * ARRAY child still becomes its own {@link RefRow} / {@link ArrayRefRow}.
+     * Registry "pick" buttons and large-enum dropdowns are disabled at depth for
+     * the same reason {@link RefRow} disables them: they route through the
+     * top-level write path that doesn't know this object's JSON sub-path. State
+     * lives in the child rows and serialises via {@link #toJson()}.
+     */
+    private static final class ObjectRow extends Base {
+        private static final int HEADER_H = 12;
+        private static final int INDENT = 12;
+
+        private final TypePicker typePicker;
+        private final Runnable rebuildCb;
+
+        private CreatorHost parent;
+        private Font font;
+        private int fieldW;
+        private final List<FieldRow> subRows = new ArrayList<>();
+        /** Per-sub-row y offset (relative to this row's top), set on reposition. */
+        private final List<Integer> subYs = new ArrayList<>();
+
+        ObjectRow(FormFieldSpec spec, TypePicker typePicker, Runnable rebuildCb) {
+            super(spec);
+            this.typePicker = typePicker;
+            this.rebuildCb = rebuildCb;
+        }
+
+        @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
+            this.parent = parent;
+            this.font = font;
+            this.fieldW = fieldW;
+            subRows.clear();
+            int subW = Math.max(40, fieldW - INDENT);
+            for (FormFieldSpec child : spec.children()) {
+                FieldRow row = FieldWidgetFactory.create(child, null, null, typePicker, rebuildCb);
+                row.build(parent, font, subW, 16);
+                subRows.add(row);
+            }
+        }
+
+        @Override public int height() {
+            int h = HEADER_H;
+            for (FieldRow sub : subRows) h += sub.height();
+            return h;
+        }
+
+        @Override public void reposition(int fieldX, int y) {
+            subYs.clear();
+            int subY = y + HEADER_H;
+            for (FieldRow sub : subRows) {
+                subYs.add(subY);
+                sub.reposition(fieldX + INDENT, subY);
+                subY += sub.height();
+            }
+        }
+
+        @Override public void setVisible(boolean v) {
+            for (FieldRow sub : subRows) sub.setVisible(v);
+        }
+
+        @Override public void drawLabel(GuiGraphics g, Font font, int labelX, int y) {
+            super.drawLabel(g, font, labelX, y);
+            for (int i = 0; i < subRows.size() && i < subYs.size(); i++) {
+                subRows.get(i).drawLabel(g, font, labelX + INDENT, subYs.get(i));
+            }
+        }
+
+        @Override public JsonElement toJson() {
+            JsonObject body = new JsonObject();
+            for (FieldRow sub : subRows) {
+                JsonElement v = sub.toJson();
+                if (v != null) body.add(sub.fieldName(), v);
+            }
+            // Drop an untouched optional object rather than leaking an empty {}.
+            return body.size() == 0 ? null : body;
+        }
+
+        @Override public void fromJson(JsonElement el) {
+            JsonObject body = (el != null && el.isJsonObject()) ? el.getAsJsonObject() : null;
+            for (FieldRow sub : subRows) {
+                sub.fromJson(body == null ? null : body.get(sub.fieldName()));
             }
         }
     }

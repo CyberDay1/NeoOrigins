@@ -4,7 +4,6 @@ import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
 import com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases;
-import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec.Kind;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -229,124 +228,10 @@ public final class PowerSchemaGenerator {
      * {@code properties:{"type":{"const":id}}} with {@code required:["type"]}.
      */
     private static JsonObject buildPowerBranch(String id, List<FieldSpec> fields) {
-        JsonObject branch = new JsonObject();
-        branch.addProperty("$comment", id);
-
-        JsonObject props = new JsonObject();
-        JsonObject constType = new JsonObject();
-        constType.addProperty("const", id);
-        props.add("type", constType);
-
-        List<String> required = new ArrayList<>();
-        required.add("type");
-        for (FieldSpec fs : fields) {
-            props.add(fs.name(), buildNode(fs)); // keyed by JSON name (not component)
-            if (fs.required()) required.add(fs.name());
-        }
-        branch.add("properties", props);
-
-        JsonArray req = new JsonArray();
-        for (String r : required) req.add(r);
-        branch.add("required", req);
-        return branch;
-    }
-
-    /**
-     * Map one {@link FieldSpec} to its JSON-Schema node. Keys are emitted in this
-     * fixed order per node: {@code description}, then {@code type}/{@code $ref}/
-     * {@code oneOf}/{@code enum}, then {@code default}, then {@code minimum}/
-     * {@code maximum}, then {@code items}, then {@code properties}/{@code required}.
-     */
-    private static JsonObject buildNode(FieldSpec fs) {
-        JsonObject node = new JsonObject();
-        Kind kind = fs.kind();
-
-        // description first (common to leaves).
-        if (fs.description() != null) node.addProperty("description", fs.description());
-
-        switch (kind) {
-            case STRING -> node.addProperty("type", "string");
-            case INTEGER -> node.addProperty("type", "integer");
-            case NUMBER -> node.addProperty("type", "number");
-            case BOOLEAN -> node.addProperty("type", "boolean");
-            case ENUM -> {
-                node.addProperty("type", "string");
-                JsonArray values = new JsonArray();
-                for (String v : fs.enumValues()) values.add(v); // declared order, NOT sorted
-                node.add("enum", values);
-            }
-            case OBJECT -> {
-                node.addProperty("type", "object");
-            }
-            case ARRAY -> {
-                node.addProperty("type", "array");
-            }
-            case REF -> {
-                if (fs.ref() != null) node.addProperty("$ref", fs.ref());
-            }
-            case MIXED -> {
-                JsonArray oneOf = new JsonArray();
-                JsonObject asString = new JsonObject();
-                asString.addProperty("type", "string");
-                JsonObject asObject = new JsonObject();
-                asObject.addProperty("type", "object");
-                oneOf.add(asString);
-                oneOf.add(asObject);
-                node.add("oneOf", oneOf);
-            }
-            case UNKNOWN -> {
-                // {} (plus any description already added).
-            }
-        }
-
-        // pattern (regex) — STRING fields only; a format hint surfaced by the
-        // web editor (StringFieldSpec.pattern). After type, before default.
-        if (kind == Kind.STRING && fs.pattern() != null) {
-            node.addProperty("pattern", fs.pattern());
-        }
-
-        // default (typed) — after type/$ref/oneOf/enum.
-        if (fs.defaultValue() != null) {
-            Object d = fs.defaultValue();
-            if (d instanceof Boolean b) node.addProperty("default", b);
-            else if (d instanceof Number n) node.addProperty("default", n);
-            else node.addProperty("default", d.toString());
-        }
-
-        // minimum / maximum — integral when INTEGER.
-        if (fs.min() != null) {
-            if (kind == Kind.INTEGER) node.addProperty("minimum", (long) (double) fs.min());
-            else node.addProperty("minimum", fs.min());
-        }
-        if (fs.max() != null) {
-            if (kind == Kind.INTEGER) node.addProperty("maximum", (long) (double) fs.max());
-            else node.addProperty("maximum", fs.max());
-        }
-
-        // items — for ARRAY. FieldSpec carries no element kind, so always
-        // permissive {}.
-        if (kind == Kind.ARRAY) {
-            node.add("items", new JsonObject());
-        }
-
-        // properties / required — for OBJECT with children (real OR virtual:
-        // identical in JSON).
-        if (kind == Kind.OBJECT && !fs.children().isEmpty()) {
-            JsonObject childProps = new JsonObject();
-            List<String> childRequired = new ArrayList<>();
-            for (FieldSpec child : fs.children()) {
-                childProps.add(child.name(), buildNode(child));
-                if (child.required()) childRequired.add(child.name());
-            }
-            node.add("properties", childProps);
-            if (!childRequired.isEmpty()) {
-                JsonArray req = new JsonArray();
-                for (String r : childRequired) req.add(r);
-                node.add("required", req);
-            }
-        }
-
-        return node;
+        // A power matches a single id → const discriminator (List.of(id)). Field
+        // nodes are emitted by the shared SchemaNodeBuilder (single source for all
+        // three documents), so this stays byte-identical to the prior inline impl.
+        return SchemaNodeBuilder.buildBranch(id, List.of(id), fields);
     }
 
     /**

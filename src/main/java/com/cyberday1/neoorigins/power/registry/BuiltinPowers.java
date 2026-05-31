@@ -84,6 +84,49 @@ public final class BuiltinPowers {
         BY_KEY.put(id.toString(), spec);
     }
 
+    /**
+     * The 11 nested fields of {@link com.cyberday1.neoorigins.api.condition.LocationCondition},
+     * shared by {@code attribute_modifier.location_condition} (Optional) and
+     * {@code modify_player_spawn.location} (required). Names mirror the codec's JSON keys 1:1
+     * (camel→snake of the record components), so the drift audit's "real OBJECT with children"
+     * recursion resolves each child against {@code LocationCondition}'s own component map.
+     * Returns a fresh array per call so the two parents don't alias the same builder chain.
+     * The single non-scalar field {@code biomes} is a {@code List<ResourceLocation>}; until the
+     * scalar-list widget lands it renders as a raw-JSON array child within the sub-form.
+     */
+    private static FieldSpec[] locationConditionChildren() {
+        return new FieldSpec[] {
+            new FieldSpec("dimension", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Dimension the player must be in, e.g. minecraft:the_nether (combines with AND)."),
+            new FieldSpec("biome", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Exact biome id to match, e.g. minecraft:desert (biome fields OR-combine)."),
+            new FieldSpec("biome_tag", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Biome tag the current biome must be in, e.g. minecraft:is_forest (OR-combines with biome/biomes)."),
+            new FieldSpec("biomes", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
+                .doc("List of biome ids; matching any one satisfies the biome requirement (OR-combines with biome/biome_tag)."),
+            new FieldSpec("structure", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Exact structure id the position must be inside, e.g. minecraft:village_plains (combines with AND)."),
+            new FieldSpec("structure_tag", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Structure tag the position must be inside, e.g. minecraft:village (combines with AND)."),
+            new FieldSpec("allow_water_surface", Kind.BOOLEAN, false)
+                .def(false).doc("When resolving a spawn, allow standing on the water surface (default false)."),
+            new FieldSpec("allow_ocean_floor", Kind.BOOLEAN, false)
+                .def(false).doc("When resolving a spawn, allow the ocean floor under water (default false)."),
+            new FieldSpec("min_y", Kind.INTEGER, false)
+                .doc("Minimum Y for the spawn/location search band (optional)."),
+            new FieldSpec("max_y", Kind.INTEGER, false)
+                .doc("Maximum Y for the spawn/location search band (optional)."),
+            new FieldSpec("can_see_sky", Kind.BOOLEAN, false)
+                .doc("Require open sky (true) or allow caves/underground (false). Default: true on overworld-like dimensions, false in ceiling dimensions like the Nether.")
+        };
+    }
+
     static {
         // ── Group M — marker-only powers ────────────────────────────────────
         // No config fields: the empty form is correct (nothing to author). These
@@ -678,9 +721,21 @@ public final class BuiltinPowers {
             new FieldSpec("condition", Kind.MIXED, false)
                 .doc("Optional gate: a named-condition string (in_water/on_land/in_lava) or a DSL condition object; active only while it passes."),
             new FieldSpec("equipment_condition", Kind.OBJECT, false)
-                .doc("Optional gate matching a worn item by id/tag in a slot; active only while worn."),
+                .doc("Optional gate matching a worn item by id/tag in a slot; active only while worn.")
+                .children(
+                    new FieldSpec("slot", Kind.ENUM, false)
+                        .options("mainhand", "offhand", "head", "chest", "legs", "feet", "body")
+                        .def("mainhand")
+                        .doc("Equipment slot to inspect (default mainhand)."),
+                    new FieldSpec("item", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Exact item id the worn item must match (e.g. minecraft:elytra)."),
+                    new FieldSpec("tag", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item tag the worn item must be in (e.g. minecraft:swords).")),
             new FieldSpec("location_condition", Kind.OBJECT, false)
-                .doc("Optional gate on dimension/biome/structure; active only while there.")));
+                .doc("Optional gate on dimension/biome/structure; active only while there.")
+                .children(locationConditionChildren())));
 
         // ── Group A — batch 1 (key-aliased event hook: schema-branch collapse) ─
         // action_on_event is the first power whose JSON key set does NOT line up
@@ -724,7 +779,7 @@ public final class BuiltinPowers {
                 .doc("EntityAction run on the player as a side-effect when the configured event fires."),
             new FieldSpec("modifier", Kind.MIXED, false)
                 .doc("FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen)."),
-            new FieldSpec("block_condition", Kind.OBJECT, false)
+            new FieldSpec("block_condition", Kind.REF, false).ref("block_condition.schema.json")
                 .doc("Block-position filter for block events (block_break, block_place, block_use). Ignored on other events."),
             new FieldSpec("effect", Kind.STRING, false)
                 .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
@@ -879,7 +934,8 @@ public final class BuiltinPowers {
         //     `bed_override`. The branch collapses onto these two specs.
         define("modify_player_spawn", ModifyPlayerSpawnPower.class, List.of(
             new FieldSpec("location", Kind.OBJECT, true)
-                .doc("Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it."),
+                .doc("Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it.")
+                .children(locationConditionChildren()),
             new FieldSpec("override_bed", Kind.BOOLEAN, false)
                 .def(false).doc("When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).")));
 

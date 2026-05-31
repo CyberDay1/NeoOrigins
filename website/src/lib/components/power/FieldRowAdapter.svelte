@@ -39,8 +39,10 @@
 			case 'REF':
 			case 'ARRAY_REF':
 				return null;
+			case 'OBJECT':
+				return {}; // inline sub-form; children populate keys on edit
 			default:
-				return ''; // ENUM, STRING, and the OBJECT/ARRAY/MIXED/UNKNOWN raw-JSON escape hatch
+				return ''; // ENUM, STRING, and the ARRAY/MIXED/UNKNOWN raw-JSON escape hatch
 		}
 	}
 	const coerce = (v: unknown): unknown => (v === undefined ? emptyFor(field.kind) : v);

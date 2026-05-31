@@ -230,7 +230,8 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseFluidHeight(json),
             List.of(comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Fluid-height threshold (default 0)."),
-                    new FieldSpec("fluid", FormFieldSpec.Kind.STRING, false)
+                    new FieldSpec("fluid", FormFieldSpec.Kind.ENUM, false)
+                        .options("minecraft:water", "minecraft:lava")
                         .doc("Fluid id to measure (minecraft:water / minecraft:lava).")));
 
         // ---- Identifier / tag conditions (delegate to ConditionParser helpers) ----
@@ -249,7 +250,9 @@ public final class BuiltinConditions {
         define("entity_type",
             (json, ctx) -> ConditionParser.parseEntityType(json),
             List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
-                .doc("Entity-type id to match (player is always minecraft:player; absent → always true).")));
+                        .doc("Entity-type id to match (player is always minecraft:player; absent → always true)."),
+                    new FieldSpec("type_id", FormFieldSpec.Kind.STRING, false)
+                        .doc("Alias for entity_type (entity_type condition only).")));
         define("enchantment",
             (json, ctx) -> ConditionParser.parseEnchantment(json),
             List.of(new FieldSpec("enchantment", FormFieldSpec.Kind.STRING, false)
@@ -285,7 +288,9 @@ public final class BuiltinConditions {
         define("target_type",
             (json, ctx) -> ConditionParser.parseTargetType(json),
             List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
-                .doc("Target entity-type id, or #tag (absent → false).")));
+                        .doc("Target entity-type id, or #tag (absent → false)."),
+                    new FieldSpec("type_id", FormFieldSpec.Kind.STRING, false)
+                        .doc("Alias for entity_type (entity_type condition only).")));
         define("target_group",
             (json, ctx) -> ConditionParser.parseTargetGroup(json),
             List.of(new FieldSpec("group", FormFieldSpec.Kind.STRING, false)
@@ -303,8 +308,11 @@ public final class BuiltinConditions {
         define("weather",
             (json, ctx) -> ConditionParser.parseWeather(json),
             List.of(new FieldSpec("state", FormFieldSpec.Kind.ENUM, false)
-                .options("clear", "rain", "thunder").def("clear")
-                .doc("Weather state to match (also accepts the `value` field; default clear).")));
+                        .options("clear", "rain", "thunder").def("clear")
+                        .doc("Weather state to match (also accepts the `value` field; default clear)."),
+                    new FieldSpec("value", FormFieldSpec.Kind.ENUM, false)
+                        .options("clear", "rain", "thunder")
+                        .doc("Alias for state.")));
         define("moon_phase",
             (json, ctx) -> ConditionParser.parseMoonPhase(json),
             List.of(comparison("==", "Comparison operator (default ==)."),
@@ -375,7 +383,9 @@ public final class BuiltinConditions {
         define("power_type",
             (json, ctx) -> ConditionParser.parsePowerType(json, ctx),
             List.of(new FieldSpec("power_type", FormFieldSpec.Kind.STRING, false)
-                .doc("Power-type id to match across granted powers (also accepts `id`; bare → origins: prefixed).")));
+                        .doc("Power-type id to match across granted powers (also accepts `id`; bare → origins: prefixed)."),
+                    new FieldSpec("id", FormFieldSpec.Kind.STRING, false)
+                        .doc("Alias for power_type.")));
 
         // ---- Block / position conditions (delegate to ConditionParser) ----
         // The nested block_condition / item_condition shapes are lifted as-is — the
@@ -384,12 +394,14 @@ public final class BuiltinConditions {
         // on_block — block beneath the player matches the nested block_condition.
         define("on_block",
             (json, ctx) -> ConditionParser.parseOnBlock(json, ctx),
-            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                .ref("block_condition.schema.json")
                 .doc("Nested block condition (block id / in_tag / and / or) tested against the block below; absent → on any ground.")));
         // block — block at the player's position matches an id or tag.
         define("block",
             (json, ctx) -> ConditionParser.parseBlockCondition(json, ctx),
-            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("block_condition.schema.json")
                         .doc("Optional nested block condition wrapper; otherwise the fields are read off the root."),
                     new FieldSpec("block", FormFieldSpec.Kind.STRING, false)
                         .doc("Block id the block at the player's position must match (also accepts `id`)."),
@@ -399,7 +411,8 @@ public final class BuiltinConditions {
         // `in_block_anywhere` is a true synonym (absent from KNOWN_TYPES) → alias.
         define("in_block", List.of("in_block_anywhere"),
             (json, ctx) -> ConditionParser.parseInBlock(json, ctx),
-            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                .ref("block_condition.schema.json")
                 .doc("Nested block condition with `block`/`id`; absent → always true.")));
         // equipped_item — item in the given slot matches the nested item_condition.
         define("equipped_item",
@@ -407,7 +420,8 @@ public final class BuiltinConditions {
             List.of(new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false)
                         .options("head", "chest", "legs", "feet", "mainhand", "offhand").def("mainhand")
                         .doc("Equipment slot to inspect (default mainhand)."),
-                    new FieldSpec("item_condition", FormFieldSpec.Kind.OBJECT, false)
+                    new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("item_condition.schema.json")
                         .doc("Nested item condition; absent → slot-presence check (any item present).")));
         // predicate — Apoli meta-wrapper compiling a vanilla MC predicate.
         define("predicate",
@@ -457,7 +471,8 @@ public final class BuiltinConditions {
                         .doc("Single block tag to match (#-prefix optional)."),
                     new FieldSpec("tags", FormFieldSpec.Kind.ARRAY, false)
                         .doc("List of block tags to match (any → true)."),
-                    new FieldSpec("block_condition", FormFieldSpec.Kind.OBJECT, false)
+                    new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("block_condition.schema.json")
                         .doc("Origins block_in_radius shape: nested in_tag/block condition. Requires at least one of block/blocks/tag/tags/block_condition.")));
         // near_entity — an entity of the given type/tag within distance (AABB scan).
         define("near_entity",
@@ -474,7 +489,8 @@ public final class BuiltinConditions {
         // actor_condition — unwrap and evaluate the inner condition on the player.
         define("actor_condition",
             (json, ctx) -> ConditionParser.parseActorCondition(json, ctx),
-            List.of(new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, true)
+            List.of(new FieldSpec("condition", FormFieldSpec.Kind.REF, true)
+                .ref("#")
                 .doc("Inner condition evaluated on the actor (the player).")));
         // advancement — player has completed the given advancement.
         define("advancement",
@@ -525,16 +541,19 @@ public final class BuiltinConditions {
         define("and",
             (json, ctx) -> ConditionParser.parseAnd(json, ctx),
             List.of(new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
+                .itemsRef("#")
                 .doc("List of sub-conditions; all must pass (absent/empty → true).")));
         // or — at least one sub-condition in `conditions` must pass (empty/absent → false).
         define("or",
             (json, ctx) -> ConditionParser.parseOr(json, ctx),
             List.of(new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
+                .itemsRef("#")
                 .doc("List of sub-conditions; at least one must pass (absent/empty → false).")));
         // not — negate the single nested `condition` (missing condition fails closed).
         define("not",
             (json, ctx) -> ConditionParser.parseNot(json, ctx),
-            List.of(new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, true)
+            List.of(new FieldSpec("condition", FormFieldSpec.Kind.REF, true)
+                .ref("#")
                 .doc("Nested condition whose result is negated.")));
     }
 

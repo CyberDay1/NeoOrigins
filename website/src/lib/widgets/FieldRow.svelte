@@ -3,8 +3,9 @@
 	// `FieldWidgetFactory.create()` dispatch (see
 	// src/main/java/com/cyberday1/neoorigins/screen/creator/widget/FieldWidgetFactory.java).
 	//
-	// Reads one FormFieldSpec and dispatches to the matching Tier-A row, or
-	// the RawJsonRow escape hatch for OBJECT / ARRAY / REF / MIXED / UNKNOWN.
+	// Reads one FormFieldSpec and dispatches to the matching Tier-A row, the
+	// REF / ARRAY_REF / OBJECT sub-form rows, or the RawJsonRow escape hatch
+	// for the remaining ARRAY / MIXED / UNKNOWN raw-JSON fallbacks.
 
 	import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
 	import BoolRow from './BoolRow.svelte';
@@ -13,6 +14,8 @@
 	import StringRow from './StringRow.svelte';
 	import RefRow from './RefRow.svelte';
 	import ArrayRefRow from './ArrayRefRow.svelte';
+	import ArrayStringRow from './ArrayStringRow.svelte';
+	import ObjectRow from './ObjectRow.svelte';
 	import RawJsonRow from './RawJsonRow.svelte';
 
 	let {
@@ -33,6 +36,10 @@
 	<RefRow {field} bind:value={value as Record<string, unknown> | null} />
 {:else if field.kind === 'ARRAY_REF'}
 	<ArrayRefRow {field} bind:value={value as unknown[] | null} />
+{:else if field.kind === 'ARRAY_STRING'}
+	<ArrayStringRow {field} bind:value={value as string[] | null} />
+{:else if field.kind === 'OBJECT'}
+	<ObjectRow {field} bind:value={value as Record<string, unknown> | null} />
 {:else}
 	<RawJsonRow {field} bind:value={value as string} />
 {/if}

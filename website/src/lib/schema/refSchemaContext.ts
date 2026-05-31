@@ -16,6 +16,12 @@ export interface RefSchemas {
 	action: object;
 	/** Parsed `condition.schema.json`. */
 	condition: object;
+	/** Parsed `block_condition.schema.json` (nested block-condition sub-shapes). */
+	blockCondition: object;
+	/** Parsed `item_condition.schema.json` (nested item-condition sub-shapes). */
+	itemCondition: object;
+	/** Parsed `item_action.schema.json` (nested item-action sub-shapes). */
+	itemAction: object;
 	/** Parsed `field_docs.json` (shared with the power form). */
 	fieldDocs: object;
 }
@@ -31,6 +37,13 @@ export function getRefSchemas(): RefSchemas | null {
 }
 
 /** Pick the document for a given ref target out of the published context. */
-export function docFor(schemas: RefSchemas, refDoc: 'action' | 'condition'): object {
-	return refDoc === 'action' ? schemas.action : schemas.condition;
+export function docFor(
+	schemas: RefSchemas,
+	refDoc: 'action' | 'condition' | 'block_condition' | 'item_condition' | 'item_action'
+): object {
+	if (refDoc === 'action') return schemas.action;
+	if (refDoc === 'block_condition') return schemas.blockCondition;
+	if (refDoc === 'item_condition') return schemas.itemCondition;
+	if (refDoc === 'item_action') return schemas.itemAction;
+	return schemas.condition;
 }

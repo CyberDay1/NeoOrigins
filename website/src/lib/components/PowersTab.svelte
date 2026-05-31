@@ -27,31 +27,63 @@
 		typeOptions: string[];
 		actionSchema: object;
 		conditionSchema: object;
+		blockConditionSchema: object;
+		itemConditionSchema: object;
+		itemActionSchema: object;
 	}> | null = null;
 
 	function loadSchemas() {
 		if (schemaPromise) return schemaPromise;
 		schemaPromise = (async () => {
-			const [schemaRes, docsRes, actionRes, conditionRes] = await Promise.all([
-				fetch(`${base}/schemas/power.schema.json`),
-				fetch(`${base}/schemas/field_docs.json`),
-				fetch(`${base}/schemas/action.schema.json`),
-				fetch(`${base}/schemas/condition.schema.json`)
-			]);
+			const [
+				schemaRes,
+				docsRes,
+				actionRes,
+				conditionRes,
+				blockConditionRes,
+				itemConditionRes,
+				itemActionRes
+			] = await Promise.all([
+					fetch(`${base}/schemas/power.schema.json`),
+					fetch(`${base}/schemas/field_docs.json`),
+					fetch(`${base}/schemas/action.schema.json`),
+					fetch(`${base}/schemas/condition.schema.json`),
+					fetch(`${base}/schemas/block_condition.schema.json`),
+					fetch(`${base}/schemas/item_condition.schema.json`),
+					fetch(`${base}/schemas/item_action.schema.json`)
+				]);
 			if (!schemaRes.ok) throw new Error(`power.schema.json: ${schemaRes.status}`);
 			if (!docsRes.ok) throw new Error(`field_docs.json: ${docsRes.status}`);
 			if (!actionRes.ok) throw new Error(`action.schema.json: ${actionRes.status}`);
 			if (!conditionRes.ok) throw new Error(`condition.schema.json: ${conditionRes.status}`);
+			if (!blockConditionRes.ok)
+				throw new Error(`block_condition.schema.json: ${blockConditionRes.status}`);
+			if (!itemConditionRes.ok)
+				throw new Error(`item_condition.schema.json: ${itemConditionRes.status}`);
+			if (!itemActionRes.ok)
+				throw new Error(`item_action.schema.json: ${itemActionRes.status}`);
 			const schema = (await schemaRes.json()) as Record<string, unknown>;
 			const fieldDocs = (await docsRes.json()) as object;
 			const actionSchema = (await actionRes.json()) as object;
 			const conditionSchema = (await conditionRes.json()) as object;
+			const blockConditionSchema = (await blockConditionRes.json()) as object;
+			const itemConditionSchema = (await itemConditionRes.json()) as object;
+			const itemActionSchema = (await itemActionRes.json()) as object;
 			const typeProp = (schema.properties as Record<string, unknown> | undefined)?.type as
 				| Record<string, unknown>
 				| undefined;
 			const en = typeProp?.enum;
 			const typeOptions = Array.isArray(en) ? en.filter((v): v is string => typeof v === 'string') : [];
-			return { schema, fieldDocs, typeOptions, actionSchema, conditionSchema };
+			return {
+				schema,
+				fieldDocs,
+				typeOptions,
+				actionSchema,
+				conditionSchema,
+				blockConditionSchema,
+				itemConditionSchema,
+				itemActionSchema
+			};
 		})();
 		return schemaPromise;
 	}
@@ -60,7 +92,14 @@
 	// `setContext` must run during init (before any child mounts), so we publish
 	// an empty holder now and fill it when the async fetch resolves — the rows
 	// only mount once `schemaState.status === 'ready'`, by which point it's set.
-	const refSchemas = $state<RefSchemas>({ action: {}, condition: {}, fieldDocs: {} });
+	const refSchemas = $state<RefSchemas>({
+		action: {},
+		condition: {},
+		blockCondition: {},
+		itemCondition: {},
+		itemAction: {},
+		fieldDocs: {}
+	});
 	setRefSchemas(refSchemas);
 
 	let schemaState = $state<{
@@ -80,6 +119,9 @@
 				// nested action/condition types.
 				refSchemas.action = v.actionSchema;
 				refSchemas.condition = v.conditionSchema;
+				refSchemas.blockCondition = v.blockConditionSchema;
+				refSchemas.itemCondition = v.itemConditionSchema;
+				refSchemas.itemAction = v.itemActionSchema;
 				refSchemas.fieldDocs = v.fieldDocs;
 				schemaState = {
 					status: 'ready',

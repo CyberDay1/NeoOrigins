@@ -30,6 +30,15 @@ const actionSchema = JSON.parse(
 const conditionSchema = JSON.parse(
 	readFileSync(resolve(schemaDir, 'condition.schema.json'), 'utf-8')
 );
+const blockConditionSchema = JSON.parse(
+	readFileSync(resolve(schemaDir, 'block_condition.schema.json'), 'utf-8')
+);
+const itemConditionSchema = JSON.parse(
+	readFileSync(resolve(schemaDir, 'item_condition.schema.json'), 'utf-8')
+);
+const itemActionSchema = JSON.parse(
+	readFileSync(resolve(schemaDir, 'item_action.schema.json'), 'utf-8')
+);
 const fieldDocs = JSON.parse(
 	readFileSync(resolve(schemaDir, 'field_docs.json'), 'utf-8')
 );
@@ -163,6 +172,28 @@ check('fallback branch — power in enum but with no $comment branch returns com
 	assert(!names.includes('grant_id'), 'should not include branch-specific fields');
 });
 
+check('neoorigins:resource — hud_render is OBJECT with label/color/should_render children', () => {
+	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:resource');
+	const hud = findField(fields, 'hud_render');
+	assert(hud.kind === 'OBJECT', `hud_render should be OBJECT, got ${hud.kind}`);
+	if (hud.kind === 'OBJECT') {
+		const childNames = hud.children.map((c) => c.name);
+		for (const c of ['label', 'color', 'should_render']) {
+			assert(childNames.includes(c),
+				`hud_render child ${c} missing (have: ${childNames.join(', ')})`);
+		}
+		const label = findField(hud.children, 'label');
+		assert(label.kind === 'STRING', `hud_render.label should be STRING, got ${label.kind}`);
+		const shouldRender = findField(hud.children, 'should_render');
+		assert(shouldRender.kind === 'BOOLEAN',
+			`hud_render.should_render should be BOOLEAN, got ${shouldRender.kind}`);
+		if (shouldRender.kind === 'BOOLEAN') {
+			assert(shouldRender.default === true,
+				`hud_render.should_render.default should be true, got ${shouldRender.default}`);
+		}
+	}
+});
+
 // ── D4: cross-document action/condition refs → REF / ARRAY_REF ───────────────
 
 console.log('\nparsePowerSchema — D4 cross-document refs');
@@ -194,6 +225,67 @@ check('action neoorigins:and — actions is ARRAY_REF(action)', () => {
 	}
 });
 
+check('action neoorigins:give — stack is OBJECT with item/count children (item_stack shape)', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:give');
+	const stack = findField(fields, 'stack');
+	assert(stack.kind === 'OBJECT', `stack should be OBJECT, got ${stack.kind}`);
+	if (stack.kind === 'OBJECT') {
+		const childNames = stack.children.map((c) => c.name);
+		for (const c of ['item', 'count']) {
+			assert(childNames.includes(c), `stack child ${c} missing (have: ${childNames.join(', ')})`);
+		}
+		const item = findField(stack.children, 'item');
+		assert(item.kind === 'STRING', `stack.item should be STRING, got ${item.kind}`);
+		const count = findField(stack.children, 'count');
+		assert(count.kind === 'INTEGER', `stack.count should be INTEGER, got ${count.kind}`);
+	}
+});
+
+check('action neoorigins:area_of_effect — entity_condition→REF(condition), block_action_at→REF(action)', () => {
+	const aoe = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:area_of_effect');
+	const entityCond = findField(aoe, 'entity_condition');
+	assert(entityCond.kind === 'REF' && entityCond.refDoc === 'condition',
+		`area_of_effect.entity_condition should be REF(condition), got ${entityCond.kind}/${entityCond.kind === 'REF' ? entityCond.refDoc : '—'}`);
+	const baa = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:block_action_at');
+	const blockAction = findField(baa, 'block_action');
+	assert(blockAction.kind === 'REF' && blockAction.refDoc === 'action',
+		`block_action_at.block_action should be REF(action), got ${blockAction.kind}/${blockAction.kind === 'REF' ? blockAction.refDoc : '—'}`);
+});
+
+check('action neoorigins:teleport_to_marker — position is OBJECT with x/y/z NUMBER children', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:teleport_to_marker');
+	const position = findField(fields, 'position');
+	assert(position.kind === 'OBJECT', `position should be OBJECT, got ${position.kind}`);
+	if (position.kind === 'OBJECT') {
+		for (const c of ['x', 'y', 'z']) {
+			const child = findField(position.children, c);
+			assert(child.kind === 'NUMBER', `position.${c} should be NUMBER, got ${child.kind}`);
+		}
+	}
+});
+
+check('action neoorigins:damage_attacker — source is OBJECT with name STRING child', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:damage_attacker');
+	const source = findField(fields, 'source');
+	assert(source.kind === 'OBJECT', `source should be OBJECT, got ${source.kind}`);
+	if (source.kind === 'OBJECT') {
+		const name = findField(source.children, 'name');
+		assert(name.kind === 'STRING', `source.name should be STRING, got ${name.kind}`);
+	}
+});
+
+check('action entity-filter conditions → REF(condition), not REF(action) [latent #-ref fix]', () => {
+	for (const [type, field] of [
+		['neoorigins:chain_to_nearest', 'target_condition'],
+		['neoorigins:swap_with_entity', 'target_condition']
+	] as const) {
+		const fields = parseRefSchema('action', actionSchema, fieldDocs, type);
+		const f = findField(fields, field);
+		assert(f.kind === 'REF' && f.refDoc === 'condition',
+			`${type}.${field} should be REF(condition), got ${f.kind}/${f.kind === 'REF' ? f.refDoc : '—'}`);
+	}
+});
+
 check('action neoorigins:if_else — condition→REF(condition), if_action/else_action→REF(action)', () => {
 	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:if_else');
 	const cond = findField(fields, 'condition');
@@ -206,6 +298,21 @@ check('action neoorigins:if_else — condition→REF(condition), if_action/else_
 	}
 	// `if_else` carries no common-root fields (action root is just `type`).
 	assert(!fields.some((f) => f.name === 'name'), 'action branch should not emit common `name`');
+});
+
+check('power neoorigins:modify_player_spawn — location.biomes is ARRAY_STRING with pattern', () => {
+	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:modify_player_spawn');
+	const location = findField(fields, 'location');
+	assert(location.kind === 'OBJECT', `location should be OBJECT, got ${location.kind}`);
+	if (location.kind === 'OBJECT') {
+		const biomes = findField(location.children, 'biomes');
+		assert(biomes.kind === 'ARRAY_STRING',
+			`location.biomes should be ARRAY_STRING, got ${biomes.kind}`);
+		if (biomes.kind === 'ARRAY_STRING') {
+			assert(biomes.pattern != null && biomes.pattern.includes(':'),
+				`location.biomes.pattern should carry the resource-location regex, got ${biomes.pattern}`);
+		}
+	}
 });
 
 check('action apace:and — alias matched via branch type.enum', () => {
@@ -237,6 +344,123 @@ check('unknown action type id — explicit error', () => {
 		assert(msg.includes('not in schema enum'), `expected "not in schema enum", got: ${msg}`);
 	}
 	assert(threw, 'expected parseRefSchema to throw on unknown action id');
+});
+
+console.log('\nparseRefSchema — block_condition');
+
+check('block_condition neoorigins:and — conditions is ARRAY_REF(block_condition)', () => {
+	const fields = parseRefSchema('block_condition', blockConditionSchema, fieldDocs, 'neoorigins:and');
+	const conds = findField(fields, 'conditions');
+	assert(conds.kind === 'ARRAY_REF', `conditions should be ARRAY_REF, got ${conds.kind}`);
+	if (conds.kind === 'ARRAY_REF') {
+		assert(conds.refDoc === 'block_condition',
+			`conditions.refDoc should be 'block_condition', got ${conds.refDoc}`);
+	}
+});
+
+check('block_condition neoorigins:in_tag — tag is required STRING', () => {
+	const fields = parseRefSchema('block_condition', blockConditionSchema, fieldDocs, 'neoorigins:in_tag');
+	const tag = findField(fields, 'tag');
+	assert(tag.kind === 'STRING', `tag should be STRING, got ${tag.kind}`);
+	assert(tag.required, 'tag should be required on in_tag');
+});
+
+check('block_condition type universe includes neoorigins:block', () => {
+	const opts = refTypeOptions(blockConditionSchema);
+	assert(opts.includes('neoorigins:block'), 'block_condition enum should include neoorigins:block');
+});
+
+check('condition neoorigins:on_block — block_condition→REF(block_condition)', () => {
+	const fields = parseRefSchema('condition', conditionSchema, fieldDocs, 'neoorigins:on_block');
+	const bc = findField(fields, 'block_condition');
+	assert(bc.kind === 'REF' && bc.refDoc === 'block_condition',
+		`block_condition should be REF(block_condition), got ${bc.kind}/${bc.kind === 'REF' ? bc.refDoc : '—'}`);
+});
+
+console.log('\nparseRefSchema — item_condition');
+
+check('item_condition neoorigins:and — conditions is ARRAY_REF(item_condition)', () => {
+	const fields = parseRefSchema('item_condition', itemConditionSchema, fieldDocs, 'neoorigins:and');
+	const conds = findField(fields, 'conditions');
+	assert(conds.kind === 'ARRAY_REF', `conditions should be ARRAY_REF, got ${conds.kind}`);
+	if (conds.kind === 'ARRAY_REF') {
+		assert(conds.refDoc === 'item_condition',
+			`conditions.refDoc should be 'item_condition', got ${conds.refDoc}`);
+	}
+});
+
+check('item_condition neoorigins:not — condition is REF(item_condition)', () => {
+	const fields = parseRefSchema('item_condition', itemConditionSchema, fieldDocs, 'neoorigins:not');
+	const cond = findField(fields, 'condition');
+	assert(cond.kind === 'REF' && cond.refDoc === 'item_condition',
+		`condition should be REF(item_condition), got ${cond.kind}/${cond.kind === 'REF' ? cond.refDoc : '—'}`);
+});
+
+check('item_condition neoorigins:enchantment — enchantment is required STRING', () => {
+	const fields = parseRefSchema('item_condition', itemConditionSchema, fieldDocs, 'neoorigins:enchantment');
+	const ench = findField(fields, 'enchantment');
+	assert(ench.kind === 'STRING', `enchantment should be STRING, got ${ench.kind}`);
+	assert(ench.required, 'enchantment should be required on enchantment');
+});
+
+check('item_condition type universe includes neoorigins:ingredient', () => {
+	const opts = refTypeOptions(itemConditionSchema);
+	assert(opts.includes('neoorigins:ingredient'),
+		'item_condition enum should include neoorigins:ingredient');
+});
+
+check('condition neoorigins:equipped_item — item_condition→REF(item_condition)', () => {
+	const fields = parseRefSchema('condition', conditionSchema, fieldDocs, 'neoorigins:equipped_item');
+	const ic = findField(fields, 'item_condition');
+	assert(ic.kind === 'REF' && ic.refDoc === 'item_condition',
+		`item_condition should be REF(item_condition), got ${ic.kind}/${ic.kind === 'REF' ? ic.refDoc : '—'}`);
+});
+
+console.log('\nparseRefSchema — item_action');
+
+check('item_action neoorigins:and — actions is ARRAY_REF(item_action)', () => {
+	const fields = parseRefSchema('item_action', itemActionSchema, fieldDocs, 'neoorigins:and');
+	const actions = findField(fields, 'actions');
+	assert(actions.kind === 'ARRAY_REF', `actions should be ARRAY_REF, got ${actions.kind}`);
+	if (actions.kind === 'ARRAY_REF') {
+		assert(actions.refDoc === 'item_action',
+			`actions.refDoc should be 'item_action', got ${actions.refDoc}`);
+	}
+});
+
+check('item_action neoorigins:if_else — if_action REF(item_action), condition REF(item_condition)', () => {
+	const fields = parseRefSchema('item_action', itemActionSchema, fieldDocs, 'neoorigins:if_else');
+	const ifAction = findField(fields, 'if_action');
+	assert(ifAction.kind === 'REF' && ifAction.refDoc === 'item_action',
+		`if_action should be REF(item_action), got ${ifAction.kind}/${ifAction.kind === 'REF' ? ifAction.refDoc : '—'}`);
+	const cond = findField(fields, 'condition');
+	assert(cond.kind === 'REF' && cond.refDoc === 'item_condition',
+		`condition should be REF(item_condition), got ${cond.kind}/${cond.kind === 'REF' ? cond.refDoc : '—'}`);
+});
+
+check('item_action neoorigins:consume — amount is INTEGER', () => {
+	const fields = parseRefSchema('item_action', itemActionSchema, fieldDocs, 'neoorigins:consume');
+	const amount = findField(fields, 'amount');
+	assert(amount.kind === 'INTEGER', `amount should be INTEGER, got ${amount.kind}`);
+});
+
+check('item_action type universe includes neoorigins:damage', () => {
+	const opts = refTypeOptions(itemActionSchema);
+	assert(opts.includes('neoorigins:damage'), 'item_action enum should include neoorigins:damage');
+});
+
+check('action neoorigins:modify_inventory — item_action→REF(item_action)', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:modify_inventory');
+	const ia = findField(fields, 'item_action');
+	assert(ia.kind === 'REF' && ia.refDoc === 'item_action',
+		`item_action should be REF(item_action), got ${ia.kind}/${ia.kind === 'REF' ? ia.refDoc : '—'}`);
+});
+
+check('action neoorigins:equipped_item_action — action→REF(item_action)', () => {
+	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:equipped_item_action');
+	const act = findField(fields, 'action');
+	assert(act.kind === 'REF' && act.refDoc === 'item_action',
+		`action should be REF(item_action), got ${act.kind}/${act.kind === 'REF' ? act.refDoc : '—'}`);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/block_condition.schema.json",
+  "title": "NeoOrigins Block Condition",
+  "description": "A nested block condition used by on_block / block / in_block / near_block. The `type` field discriminates.",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Block-condition verb (block / in_tag / and / or). `apace:` aliases are accepted.",
+      "enum": [
+        "apace:and",
+        "apace:block",
+        "apace:in_tag",
+        "apace:or",
+        "neoorigins:and",
+        "neoorigins:block",
+        "neoorigins:in_tag",
+        "neoorigins:or"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$comment": "neoorigins:and",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:and",
+            "apace:and"
+          ]
+        },
+        "conditions": {
+          "description": "Nested block conditions; all must match (evaluated against the same block).",
+          "type": "array",
+          "items": {
+            "$ref": "block_condition.schema.json"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:block",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:block",
+            "apace:block"
+          ]
+        },
+        "block": {
+          "description": "Block id to match (e.g. minecraft:water).",
+          "type": "string"
+        },
+        "id": {
+          "description": "Legacy alias for `block`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:in_tag",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:in_tag",
+            "apace:in_tag"
+          ]
+        },
+        "tag": {
+          "description": "Block tag the block must be in (e.g. minecraft:ice).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "tag"
+      ]
+    },
+    {
+      "$comment": "neoorigins:or",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:or",
+            "apace:or"
+          ]
+        },
+        "conditions": {
+          "description": "Nested block conditions; at least one must match.",
+          "type": "array",
+          "items": {
+            "$ref": "block_condition.schema.json"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "apace:and",
+              "apace:block",
+              "apace:in_tag",
+              "apace:or",
+              "neoorigins:and",
+              "neoorigins:block",
+              "neoorigins:in_tag",
+              "neoorigins:or"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

@@ -362,7 +362,7 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
                     .doc("Damage dealt in half-hearts (default 1.0)."),
-                new FieldSpec("source", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("source", FormFieldSpec.Kind.MIXED, false)
                     .doc("Optional damage source; reads `source.name` (fire/lava/magic/starve/drown/freeze/wither; default generic).")));
 
         // give — give an item stack to the player. Lift-and-shift of parseGive.
@@ -397,7 +397,12 @@ public final class BuiltinActions {
                 new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
                     .doc("Stack size (default 1)."),
                 new FieldSpec("stack", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Optional nested item-stack object ({item, count}).")));
+                    .doc("Optional nested item-stack object; its item/count override the flat fields.")
+                    .children(
+                        new FieldSpec("item", FormFieldSpec.Kind.STRING, false)
+                            .doc("Item id for the stack (e.g. minecraft:diamond)."),
+                        new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
+                            .doc("Stack size (default 1)."))));
 
         // launch — push the player straight up. Lift-and-shift of parseLaunch.
         // `speed` optional (parser default 1.0).
@@ -581,7 +586,9 @@ public final class BuiltinActions {
                 new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
                     .doc("Power id to grant (or use the `power_id` alias)."),
                 new FieldSpec("power_id", FormFieldSpec.Kind.STRING, false)
-                    .doc("Alias for power.")));
+                    .doc("Alias for power."),
+                new FieldSpec("source", FormFieldSpec.Kind.STRING, false)
+                    .doc("Apoli-style 'source' label; accepted but ignored by this implementation.")));
 
         // revoke_power — remove a dynamically-granted power from the player.
         // Lift-and-shift of parseRevokePower. The power id (from `power` or the
@@ -619,7 +626,9 @@ public final class BuiltinActions {
                 new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
                     .doc("Power id to revoke (or use the `power_id` alias)."),
                 new FieldSpec("power_id", FormFieldSpec.Kind.STRING, false)
-                    .doc("Alias for power.")));
+                    .doc("Alias for power."),
+                new FieldSpec("source", FormFieldSpec.Kind.STRING, false)
+                    .doc("Apoli-style 'source' label; accepted but ignored by this implementation.")));
 
         // teleport_to_marker — teleport to absolute coords (`position`) or by a
         // dx/dy/dz offset. Lift-and-shift of parseTeleportToMarker. All fields
@@ -644,7 +653,14 @@ public final class BuiltinActions {
             },
             List.of(
                 new FieldSpec("position", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Absolute target {x, y, z}; when present, overrides the dx/dy/dz offset."),
+                    .doc("Absolute target {x, y, z}; when present, overrides the dx/dy/dz offset.")
+                    .children(
+                        new FieldSpec("x", FormFieldSpec.Kind.NUMBER, true)
+                            .doc("Absolute X coordinate."),
+                        new FieldSpec("y", FormFieldSpec.Kind.NUMBER, true)
+                            .doc("Absolute Y coordinate."),
+                        new FieldSpec("z", FormFieldSpec.Kind.NUMBER, true)
+                            .doc("Absolute Z coordinate.")),
                 new FieldSpec("dx", FormFieldSpec.Kind.NUMBER, false).def(0.0)
                     .doc("X offset from the player (default 0)."),
                 new FieldSpec("dy", FormFieldSpec.Kind.NUMBER, false).def(0.0)
@@ -902,7 +918,10 @@ public final class BuiltinActions {
                 new FieldSpec("amount_ratio", FormFieldSpec.Kind.NUMBER, false)
                     .doc("If set, damage = incoming hit * this ratio (min 0.5), overriding amount."),
                 new FieldSpec("source", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/generic; default magic).")));
+                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/generic; default magic).")
+                    .children(
+                        new FieldSpec("name", FormFieldSpec.Kind.STRING, false)
+                            .doc("Damage source name: fire, lava, magic, or generic (default magic)."))));
 
         // ignite_attacker — set the current HIT_TAKEN attacker on fire.
         // Lift-and-shift of parseIgniteAttacker. `ticks` optional (parser default
@@ -1038,6 +1057,7 @@ public final class BuiltinActions {
                 return player -> { for (EntityAction a : actions) a.execute(player); };
             },
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
+                .itemsRef("#")
                 .doc("List of entity actions to run in order.")));
 
         // if_else — run `if_action` when `condition` passes, else `else_action`.
@@ -1058,11 +1078,14 @@ public final class BuiltinActions {
                 };
             },
             List.of(
-                new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
+                    .ref("condition.schema.json")
                     .doc("Entity condition deciding which branch runs (fail-closed when absent)."),
-                new FieldSpec("if_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("if_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run when the condition passes."),
-                new FieldSpec("else_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("else_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run when the condition fails.")));
 
         // if_else_list — run the action of the first branch whose condition passes.
@@ -1109,7 +1132,8 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("chance", FormFieldSpec.Kind.NUMBER, false).def(0.5).range(0.0, 1.0)
                     .doc("Probability in [0,1] that the action runs (default 0.5)."),
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run when the chance roll succeeds.")));
 
         // delay — schedule `action` to run `ticks` server-ticks later via the compat
@@ -1130,7 +1154,8 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("ticks", FormFieldSpec.Kind.INTEGER, false).def(1).range(0.0, null)
                     .doc("Server ticks to wait before running the action (default 1)."),
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run after the delay elapses.")));
 
         // choice — randomly run one action from `actions`, weighted by each entry's
@@ -1176,7 +1201,8 @@ public final class BuiltinActions {
         define("target_action",
             (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
                 ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
-            List.of(new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                .ref("#")
                 .doc("Inner action to run on the dispatch target.")));
 
         // actor_action — bientity unwrapper that runs the inner `action` on the actor.
@@ -1184,7 +1210,8 @@ public final class BuiltinActions {
         define("actor_action",
             (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
                 ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
-            List.of(new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                .ref("#")
                 .doc("Inner action to run on the actor (source player).")));
 
         // passenger_action — run the inner action on every ServerPlayer passenger.
@@ -1207,9 +1234,11 @@ public final class BuiltinActions {
                 };
             },
             List.of(
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run on each passenger (or use the `entity_action` alias)."),
-                new FieldSpec("entity_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Alias for action.")));
 
         // offset — Apoli-architectural offset wrapper. Lift-and-shift of parseOffset:
@@ -1220,7 +1249,8 @@ public final class BuiltinActions {
             (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
                 ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
             List.of(
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Inner action to run (offset is architectural; position comes from context)."),
                 new FieldSpec("x", FormFieldSpec.Kind.NUMBER, false).def(0.0)
                     .doc("X offset (accepted for Apoli parity; no positional effect here)."),
@@ -1248,7 +1278,7 @@ public final class BuiltinActions {
                     }
                 };
             },
-            List.of(new FieldSpec("block_action", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
                 .doc("Action run at the entity's block position (BlockPos published to context).")));
 
         // swap_with_entity — swap positions (and look) with the nearest matching
@@ -1289,7 +1319,8 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(0.0, null)
                     .doc("Search radius for swap candidates (default 16)."),
-                new FieldSpec("target_condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("condition.schema.json")
                     .doc("Optional entity condition; applied to player candidates (default always-true).")));
 
         // kubejs_callback — invoke a KubeJS-registered callback by `id`. Lift-and-
@@ -1658,7 +1689,7 @@ public final class BuiltinActions {
                     .doc("AoE radius in blocks (default 16)."),
                 new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Action run on every caught entity."),
-                new FieldSpec("entity_condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter — only entities matching are hit."),
                 new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false).def("sphere")
                     .options("sphere", "cube")
@@ -1700,16 +1731,19 @@ public final class BuiltinActions {
                 new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false).def("mainhand")
                     .options("mainhand", "offhand", "head", "chest", "legs", "feet")
                     .doc("Equipment slot to read the stack from (default mainhand)."),
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("item_action.schema.json")
                     .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.).")));
 
         // modify_inventory — filter inventory stacks and run an ItemAction on each.
         define("modify_inventory",
             (json, ctx) -> ActionParser.parseModifyInventory(json),
             List.of(
-                new FieldSpec("item_condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("item_condition.schema.json")
                     .doc("Optional ItemCondition filtering which stacks to process."),
-                new FieldSpec("item_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("item_action", FormFieldSpec.Kind.REF, false)
+                    .ref("item_action.schema.json")
                     .doc("ItemAction run on each matching stack."),
                 new FieldSpec("process_mode", FormFieldSpec.Kind.ENUM, false).def("items")
                     .options("items", "stacks")
@@ -1778,7 +1812,7 @@ public final class BuiltinActions {
                     .doc("Search radius (default 16)."),
                 new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.0)
                     .doc("Pull speed (default 1.0)."),
-                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false).ref("#")
+                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter — only entities matching are valid targets.")));
 
         // pull_entities — pull nearby entities toward the caster.
@@ -1791,7 +1825,7 @@ public final class BuiltinActions {
                     .doc("Pull magnitude per entity (default 0.5)."),
                 new FieldSpec("include_players", FormFieldSpec.Kind.BOOLEAN, false).def(true)
                     .doc("Whether to pull other players (default true)."),
-                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("#")
+                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter on which entities to pull.")));
     }
 

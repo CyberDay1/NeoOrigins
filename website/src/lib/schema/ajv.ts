@@ -32,6 +32,9 @@ const SIBLING_SCHEMAS = [
 	'power.schema.json',
 	'origin.schema.json',
 	'condition.schema.json',
+	'block_condition.schema.json',
+	'item_condition.schema.json',
+	'item_action.schema.json',
 	'action.schema.json',
 	'origin_layer.schema.json'
 ] as const;

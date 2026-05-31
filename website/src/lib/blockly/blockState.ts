@@ -8,7 +8,16 @@
 
 import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
 import type { PowerDraft } from '$lib/stores/originDraft';
-import { COND_ITEM_TYPE, POWER_ID_FIELD, renderOf, type BlockRegistry } from './blockRegistry';
+import {
+	BLOCK_COND_ITEM_TYPE,
+	COND_ITEM_TYPE,
+	ITEM_COND_ITEM_TYPE,
+	STR_ITEM_TYPE,
+	objChildFieldName,
+	POWER_ID_FIELD,
+	renderOf,
+	type BlockRegistry
+} from './blockRegistry';
 
 interface BlockState {
 	type: string;
@@ -94,14 +103,24 @@ function fillNode(
 		const v = value[f.name];
 		if (r.kind === 'inline') {
 			fieldsOut[f.name] = encodeLeaf(f, v);
+		} else if (r.kind === 'object') {
+			// Encode each leaf child into a flat `<obj>.<child>` field. The object
+			// value may be absent/partial — encodeLeaf falls back to the child default.
+			const objVal = v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+			for (const child of r.children) {
+				const cr = renderOf(child);
+				if (cr.kind !== 'inline') continue;
+				fieldsOut[objChildFieldName(f.name, child.name)] = encodeLeaf(child, objVal[child.name]);
+			}
 		} else if (r.kind === 'value') {
 			// single condition reporter
 			if (v && typeof v === 'object') {
 				const child = buildNode(reg, v as Record<string, unknown>);
 				if (child) inputsOut[f.name] = { block: child };
 			}
-		} else if (r.kind === 'statement' && r.check === 'Action') {
-			// single action ref OR action array — both render as an Action stack
+		} else if (r.kind === 'statement' && (r.check === 'Action' || r.check === 'ItemAction')) {
+			// single action ref OR action array — both render as a statement stack
+			// (entity Action or ItemAction; both chain directly via `next`).
 			if (Array.isArray(v)) {
 				const head = chain(
 					v
@@ -114,15 +133,36 @@ function fillNode(
 				const child = buildNode(reg, v as Record<string, unknown>);
 				if (child) inputsOut[f.name] = { block: child };
 			}
-		} else {
-			// condition array → stack of cond_item wrappers
+		} else if (f.kind === 'ARRAY_STRING') {
+			// scalar-string array (e.g. biomes) -> stack of `neo_str_item` wrappers,
+			// each holding one string in its ITEM text field.
 			if (Array.isArray(v)) {
+				const items: BlockState[] = [];
+				for (const el of v) {
+					if (typeof el !== 'string') continue;
+					items.push({ type: STR_ITEM_TYPE, fields: { ITEM: el } });
+				}
+				const head = chain(items);
+				if (head) inputsOut[f.name] = { block: head };
+			}
+		} else {
+			// condition / block_condition / item_condition array → stack of wrapper
+			// blocks. The wrapper type depends on the list's element kind (CondItem
+			// holds a Condition value, BlockCondItem a BlockCondition, ItemCondItem
+			// an ItemCondition).
+			if (Array.isArray(v)) {
+				const wrapperType =
+					r.kind === 'statement' && r.check === 'BlockCondItem'
+						? BLOCK_COND_ITEM_TYPE
+						: r.kind === 'statement' && r.check === 'ItemCondItem'
+							? ITEM_COND_ITEM_TYPE
+							: COND_ITEM_TYPE;
 				const items: BlockState[] = [];
 				for (const el of v) {
 					if (!el || typeof el !== 'object') continue;
 					const child = buildNode(reg, el as Record<string, unknown>);
 					if (!child) continue;
-					items.push({ type: COND_ITEM_TYPE, inputs: { ITEM: { block: child } } });
+					items.push({ type: wrapperType, inputs: { ITEM: { block: child } } });
 				}
 				const head = chain(items);
 				if (head) inputsOut[f.name] = { block: head };
@@ -206,13 +246,22 @@ function readInto(
 		if (r.kind === 'inline') {
 			const raw = state.fields?.[f.name];
 			out[f.name] = decodeLeaf(f, raw);
+		} else if (r.kind === 'object') {
+			// Reassemble the nested object from its flat `<obj>.<child>` fields.
+			const obj: Record<string, unknown> = {};
+			for (const child of r.children) {
+				const cr = renderOf(child);
+				if (cr.kind !== 'inline') continue;
+				obj[child.name] = decodeLeaf(child, state.fields?.[objChildFieldName(f.name, child.name)]);
+			}
+			out[f.name] = obj;
 		} else if (r.kind === 'value') {
 			const child = state.inputs?.[f.name]?.block;
 			if (child) {
 				const node = readNode(reg, child);
 				if (node) out[f.name] = node;
 			}
-		} else if (r.kind === 'statement' && r.check === 'Action') {
+		} else if (r.kind === 'statement' && (r.check === 'Action' || r.check === 'ItemAction')) {
 			const head = state.inputs?.[f.name]?.block;
 			if (f.kind === 'ARRAY_REF') {
 				const arr: unknown[] = [];
@@ -228,6 +277,16 @@ function readInto(
 				const node = readNode(reg, head);
 				if (node) out[f.name] = node;
 			}
+		} else if (f.kind === 'ARRAY_STRING') {
+			// scalar-string array -> walk the str_item stack, pull each ITEM field.
+			const arr: string[] = [];
+			let cur: BlockState | undefined = state.inputs?.[f.name]?.block;
+			while (cur) {
+				const sv = cur.fields?.ITEM;
+				if (typeof sv === 'string') arr.push(sv);
+				cur = cur.next?.block;
+			}
+			out[f.name] = arr;
 		} else {
 			// condition array — walk the cond_item stack, pull each ITEM
 			const arr: unknown[] = [];
