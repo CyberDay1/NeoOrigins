@@ -123,10 +123,12 @@ public final class BuiltinPowers {
             new FieldSpec("chance", Kind.NUMBER, false)
                 .def(0.15).doc("Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15).")));
         define("entity_group", EntityGroupPower.class, List.of(
-            new FieldSpec("group", Kind.STRING, false)
+            new FieldSpec("group", Kind.ENUM, false)
+                .options("undead", "arthropod", "water", "undefined")
                 .def("undefined").doc("Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).")));
         define("hide_hud_bar", HideHudBarPower.class, List.of(
-            new FieldSpec("bar", Kind.STRING, false)
+            new FieldSpec("bar", Kind.ENUM, false)
+                .options("hunger", "food", "air", "oxygen", "breath")
                 .def("hunger").doc("Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger).")));
         define("item_magnetism", ItemMagnetismPower.class, List.of(
             new FieldSpec("radius", Kind.NUMBER, false)
@@ -163,7 +165,8 @@ public final class BuiltinPowers {
             new FieldSpec("tool", Kind.STRING, false)
                 .def("minecraft:stone_pickaxe").doc("Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe.")));
         define("breath_out_of_fluid", BreathOutOfFluidPower.class, List.of(
-            new FieldSpec("fluid", Kind.STRING, false)
+            new FieldSpec("fluid", Kind.ENUM, false)
+                .options("water", "lava")
                 .def("water").doc("Fluid the player must stay in to breathe; drying on land drains air."),
             new FieldSpec("drain_rate", Kind.INTEGER, false)
                 .def(40).doc("Ticks between each air drain while out of the fluid (20 = 1s).")));
@@ -313,7 +316,8 @@ public final class BuiltinPowers {
         // byte-identical to today. mob equipment slots (head/chest/...) are
         // Optional<String> in the codec → required=false, no default.
         define("modify_lava_speed", ModifyLavaSpeedPower.class, List.of(
-            new FieldSpec("operation", Kind.STRING, false)
+            new FieldSpec("operation", Kind.ENUM, false)
+                .options("addition", "multiply_base", "multiply_total")
                 .def("addition").doc("How value combines with the vanilla lava factor: addition, multiply_base, multiply_total."),
             new FieldSpec("value", Kind.NUMBER, true)
                 .doc("Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava).")));
@@ -464,7 +468,8 @@ public final class BuiltinPowers {
             new FieldSpec("radius", Kind.NUMBER, false)
                 .def(8.0).doc("Block radius around the player whose villager trades refresh (default 8).")));
         define("walk_on_fluid", WalkOnFluidPower.class, List.of(
-            new FieldSpec("fluid", Kind.STRING, false)
+            new FieldSpec("fluid", Kind.ENUM, false)
+                .options("water", "lava", "both")
                 .def("both").doc("Which fluid surface you can walk on: water, lava, or both (default both).")));
         define("wraith_phase", WraithPhasePower.class, List.of(
             new FieldSpec("blocked_blocks", Kind.ARRAY, false)
@@ -483,7 +488,8 @@ public final class BuiltinPowers {
         // scale/modify_reach branch is collapsed like the other registered
         // powers, leaving only common wrapper fields the spec subsumes).
         define("action_on_hit", ActionOnHitPower.class, List.of(
-            new FieldSpec("action", Kind.STRING, false)
+            new FieldSpec("action", Kind.ENUM, false)
+                .options("restore_health", "restore_hunger", "grant_effect", "target_effect")
                 .def("restore_health").doc("Effect on dealing damage: restore_health, restore_hunger, grant_effect, or target_effect."),
             new FieldSpec("amount", Kind.NUMBER, false)
                 .def(2.0).doc("Half-hearts healed (restore_health) or food points fed (restore_hunger); default 2.0."),
@@ -585,7 +591,8 @@ public final class BuiltinPowers {
                 .def(32.0).doc("Maximum teleport distance in blocks; default 32.0."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(60).doc("Cooldown between teleports in ticks (20 = 1s); default 60."),
-            new FieldSpec("mode", Kind.STRING, false)
+            new FieldSpec("mode", Kind.ENUM, false)
+                .options("target", "random")
                 .def("target").doc("\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).doc("Food/exhaustion points consumed on a successful teleport; default 0.")));
@@ -623,7 +630,8 @@ public final class BuiltinPowers {
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Only applies the tint while this DSL condition passes (optional).")));
         define("breath_in_fluid", BreathInFluidPower.class, List.of(
-            new FieldSpec("fluid", Kind.STRING, false)
+            new FieldSpec("fluid", Kind.ENUM, false)
+                .options("water", "lava")
                 .def("water").doc("Fluid that suffocates the player, \"water\" or \"lava\"; default water."),
             new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
                 .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Aliases: drain_rate, air_loss_per_second.")));
