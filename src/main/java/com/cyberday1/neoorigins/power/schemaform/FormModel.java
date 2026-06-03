@@ -29,6 +29,9 @@ public final class FormModel {
     private static SchemaFormModel schema;
     private static SchemaFormModel actionSchema;
     private static SchemaFormModel conditionSchema;
+    private static SchemaFormModel blockConditionSchema;
+    private static SchemaFormModel itemConditionSchema;
+    private static SchemaFormModel itemActionSchema;
 
     private FormModel() {}
 
@@ -51,6 +54,30 @@ public final class FormModel {
                 SchemaFormModel.CONDITION_RESOURCE_PATH);
         }
         return conditionSchema;
+    }
+
+    private static synchronized SchemaFormModel blockConditionSchema() {
+        if (blockConditionSchema == null) {
+            blockConditionSchema = SchemaFormModel.loadFromClasspath(
+                SchemaFormModel.BLOCK_CONDITION_RESOURCE_PATH);
+        }
+        return blockConditionSchema;
+    }
+
+    private static synchronized SchemaFormModel itemConditionSchema() {
+        if (itemConditionSchema == null) {
+            itemConditionSchema = SchemaFormModel.loadFromClasspath(
+                SchemaFormModel.ITEM_CONDITION_RESOURCE_PATH);
+        }
+        return itemConditionSchema;
+    }
+
+    private static synchronized SchemaFormModel itemActionSchema() {
+        if (itemActionSchema == null) {
+            itemActionSchema = SchemaFormModel.loadFromClasspath(
+                SchemaFormModel.ITEM_ACTION_RESOURCE_PATH);
+        }
+        return itemActionSchema;
     }
 
     /** Every power type id in the schema's {@code type} enum, sorted. Includes
@@ -146,6 +173,72 @@ public final class FormModel {
     /** Renderer-ready field list for a DSL condition ({@code condition} REF values). */
     public static List<FormFieldSpec> forCondition(String typeId) {
         return formForRef(conditionSchema(), typeId);
+    }
+
+    /**
+     * Renderer-ready field list for a nested {@code block_condition} sub-shape
+     * (REF values like {@code neoorigins:block} / {@code in_tag} / {@code and}).
+     * Empty when the id has no structured branch.
+     */
+    public static List<FormFieldSpec> forBlockCondition(String typeId) {
+        return formForRef(blockConditionSchema(), typeId);
+    }
+
+    /** Native {@code neoorigins:} block_condition type ids for the type picker
+     *  (apace: aliases filtered out as import-only noise, mirroring creatorTypes). */
+    public static List<String> blockConditionTypes() {
+        return blockConditionSchema().allTypes().stream()
+            .filter(t -> t.startsWith("neoorigins:"))
+            .toList();
+    }
+
+    /** True when a block_condition id has a structured schema branch. */
+    public static boolean hasBlockConditionForm(String typeId) {
+        return blockConditionSchema().hasStructuredForm(typeId);
+    }
+
+    /**
+     * Renderer-ready field list for a nested {@code item_condition} sub-shape
+     * (REF values like {@code neoorigins:enchantment} / {@code nbt} / {@code and}).
+     * Empty when the id has no structured branch.
+     */
+    public static List<FormFieldSpec> forItemCondition(String typeId) {
+        return formForRef(itemConditionSchema(), typeId);
+    }
+
+    /** Native {@code neoorigins:} item_condition type ids for the type picker
+     *  (apace: aliases filtered out as import-only noise, mirroring creatorTypes). */
+    public static List<String> itemConditionTypes() {
+        return itemConditionSchema().allTypes().stream()
+            .filter(t -> t.startsWith("neoorigins:"))
+            .toList();
+    }
+
+    /** True when an item_condition id has a structured schema branch. */
+    public static boolean hasItemConditionForm(String typeId) {
+        return itemConditionSchema().hasStructuredForm(typeId);
+    }
+
+    /**
+     * Renderer-ready field list for a nested {@code item_action} sub-shape
+     * (REF values like {@code neoorigins:consume} / {@code damage} / {@code and}).
+     * Empty when the id has no structured branch.
+     */
+    public static List<FormFieldSpec> forItemAction(String typeId) {
+        return formForRef(itemActionSchema(), typeId);
+    }
+
+    /** Native {@code neoorigins:} item_action type ids for the type picker
+     *  (apace: aliases filtered out as import-only noise, mirroring creatorTypes). */
+    public static List<String> itemActionTypes() {
+        return itemActionSchema().allTypes().stream()
+            .filter(t -> t.startsWith("neoorigins:"))
+            .toList();
+    }
+
+    /** True when an item_action id has a structured schema branch. */
+    public static boolean hasItemActionForm(String typeId) {
+        return itemActionSchema().hasStructuredForm(typeId);
     }
 
     /** True when an action id has a structured schema branch (renderable as a sub-form). */

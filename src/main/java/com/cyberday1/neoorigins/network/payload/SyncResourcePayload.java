@@ -18,7 +18,8 @@ import java.util.Map;
  */
 public record SyncResourcePayload(Map<String, Entry> resources) implements CustomPacketPayload {
 
-    public record Entry(int value, int min, int max, String label, int color) {}
+    public record Entry(int value, int min, int max, String label, int color,
+                        int barIndex, int iconIndex, String spriteLocation) {}
 
     public static final Type<SyncResourcePayload> TYPE =
         new Type<>(Identifier.fromNamespaceAndPath("neoorigins", "sync_resource"));
@@ -35,6 +36,9 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
             buf.writeVarInt(e.getValue().max());
             buf.writeUtf(e.getValue().label());
             buf.writeInt(e.getValue().color());
+            buf.writeVarInt(e.getValue().barIndex());
+            buf.writeVarInt(e.getValue().iconIndex());
+            buf.writeUtf(e.getValue().spriteLocation());
         }
     }
 
@@ -48,7 +52,10 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
             int max = buf.readVarInt();
             String label = buf.readUtf();
             int color = buf.readInt();
-            map.put(key, new Entry(value, min, max, label, color));
+            int barIndex = buf.readVarInt();
+            int iconIndex = buf.readVarInt();
+            String spriteLocation = buf.readUtf();
+            map.put(key, new Entry(value, min, max, label, color, barIndex, iconIndex, spriteLocation));
         }
         return new SyncResourcePayload(map);
     }

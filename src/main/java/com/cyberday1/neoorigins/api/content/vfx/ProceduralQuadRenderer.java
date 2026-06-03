@@ -115,43 +115,147 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
      */
     protected void submitQuads(S state, PoseStack poseStack,
                                SubmitNodeCollector collector, RenderType renderType) {
-        int[] color = resolveColor(state);
+        // Resolve colours: explicit per-entity state.coreColor wins, else the
+        // effect_type lookup via resolveColor(). Glow defaults to the core colour
+        // when not given its own.
+        int[] color = state.coreColor != null ? state.coreColor : resolveColor(state);
+        int[] glow = state.glowColor != null ? state.glowColor : color;
         float time = state.lifetime + state.partialTick;
 
-        // Core — near-white, fast spin
+        // Core — near-white, fast spin. Size from state (explicit/effect default)
+        // or the hardcoded coreScale() fallback.
         float blend = coreTintTowardWhite();
         final int cr = (int) (255 * blend + color[0] * (1 - blend));
         final int cg = (int) (255 * blend + color[1] * (1 - blend));
         final int cb = (int) (255 * blend + color[2] * (1 - blend));
 
+        String shape = (state.shape == null || state.shape.isEmpty()) ? "cross" : state.shape;
+        float cs = state.size > 0 ? state.size : coreScale();
+
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(time * coreYawPerTick()));
         poseStack.mulPose(Axis.XP.rotationDegrees(time * corePitchPerTick()));
-        float cs = coreScale();
         poseStack.scale(cs, cs, cs);
-        collector.submitCustomGeometry(poseStack, renderType,
-            (pose, consumer) -> renderQuad(consumer, pose, cr, cg, cb, 255));
-        poseStack.mulPose(Axis.YP.rotationDegrees(90f));
-        collector.submitCustomGeometry(poseStack, renderType,
-            (pose, consumer) -> renderQuad(consumer, pose, cr, cg, cb, 255));
+        drawShape(shape, collector, renderType, poseStack, cr, cg, cb, 255);
         poseStack.popPose();
 
-        // Glow — full effect color, slower reverse spin, pulsing
+        // Glow — full glow colour, slower reverse spin, pulsing. Size/alpha from
+        // state or hardcoded fallbacks.
         float pulse = 1.0f + glowPulseAmplitude() * (float) Math.sin(time * glowPulseFrequency());
-        float gs = glowBaseScale() * pulse;
-        final int ga = glowAlpha();
-        final int gr = color[0], gg = color[1], gb = color[2];
+        float gs = (state.glowSize > 0 ? state.glowSize : glowBaseScale()) * pulse;
+        final int ga = state.glowAlpha >= 0 ? state.glowAlpha : glowAlpha();
+        final int gr = glow[0], gg = glow[1], gb = glow[2];
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(time * glowYawPerTick()));
         poseStack.mulPose(Axis.XP.rotationDegrees(time * glowPitchPerTick()));
         poseStack.scale(gs, gs, gs);
-        collector.submitCustomGeometry(poseStack, renderType,
-            (pose, consumer) -> renderQuad(consumer, pose, gr, gg, gb, ga));
-        poseStack.mulPose(Axis.YP.rotationDegrees(90f));
-        collector.submitCustomGeometry(poseStack, renderType,
-            (pose, consumer) -> renderQuad(consumer, pose, gr, gg, gb, ga));
+        drawShape(shape, collector, renderType, poseStack, gr, gg, gb, ga);
         poseStack.popPose();
+    }
+
+    // ─── Procedural-quad shapes ──────────────────────────────────────────
+    //
+    // All four shapes are built from the same ±0.5 quad primitive so they share
+    // the renderType (texture + emissive translucency) and cost a handful of
+    // quads each. The pose passed in already carries the spin + scale; each shape
+    // just stamps quads in different planes. `cross` is the original two-billboard
+    // look (back-compat default).
+    //
+    // 26.1 path: each quad is handed to the collector via submitCustomGeometry —
+    // the per-quad pose snapshot is captured inside the lambda from the live
+    // poseStack, so the push/mulPose/translate sequence mutates poseStack between
+    // submits exactly as the 1.21.1 render() path mutated it between renderQuad
+    // calls.
+
+    /** Dispatch to the named shape. Unknown keys fall back to {@code cross}. */
+    protected static void drawShape(String shape, SubmitNodeCollector collector, RenderType renderType,
+                                    PoseStack poseStack, int r, int g, int b, int a) {
+        switch (shape) {
+            case "cube"   -> drawCube(collector, renderType, poseStack, r, g, b, a);
+            case "ring"   -> drawRing(collector, renderType, poseStack, r, g, b, a);
+            case "sphere" -> drawSphere(collector, renderType, poseStack, r, g, b, a);
+            case "cross"  -> drawCross(collector, renderType, poseStack, r, g, b, a);
+            default       -> drawCross(collector, renderType, poseStack, r, g, b, a);
+        }
+    }
+
+    /** Submit one ±0.5 quad from the current poseStack state via the collector. */
+    private static void submitQuad(SubmitNodeCollector collector, RenderType renderType,
+                                   PoseStack poseStack, int r, int g, int b, int a) {
+        final int fr = r, fg = g, fb = b, fa = a;
+        collector.submitCustomGeometry(poseStack, renderType,
+            (pose, consumer) -> renderQuad(consumer, pose, fr, fg, fb, fa));
+    }
+
+    /** Two crossed billboards (original 2.0 look). */
+    protected static void drawCross(SubmitNodeCollector collector, RenderType renderType,
+                                    PoseStack poseStack, int r, int g, int b, int a) {
+        submitQuad(collector, renderType, poseStack, r, g, b, a);
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(90f));
+        submitQuad(collector, renderType, poseStack, r, g, b, a);
+        poseStack.popPose();
+    }
+
+    /** Six axis-aligned faces of a unit cube (±0.5 box). */
+    protected static void drawCube(SubmitNodeCollector collector, RenderType renderType,
+                                   PoseStack poseStack, int r, int g, int b, int a) {
+        // +Z / -Z
+        submitQuad(collector, renderType, poseStack, r, g, b, a);
+        for (float deg : new float[]{90f, 180f, 270f}) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(deg));
+            submitQuad(collector, renderType, poseStack, r, g, b, a);
+            poseStack.popPose();
+        }
+        // top / bottom
+        for (float deg : new float[]{90f, -90f}) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.XP.rotationDegrees(deg));
+            submitQuad(collector, renderType, poseStack, r, g, b, a);
+            poseStack.popPose();
+        }
+    }
+
+    /** Flat ring of {@value #RING_SEGMENTS} quads arranged in a circle (XY plane). */
+    private static final int RING_SEGMENTS = 8;
+    protected static void drawRing(SubmitNodeCollector collector, RenderType renderType,
+                                   PoseStack poseStack, int r, int g, int b, int a) {
+        for (int i = 0; i < RING_SEGMENTS; i++) {
+            float deg = 360f * i / RING_SEGMENTS;
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.ZP.rotationDegrees(deg));
+            poseStack.translate(0.55f, 0f, 0f);
+            poseStack.scale(0.4f, 0.4f, 0.4f);
+            submitQuad(collector, renderType, poseStack, r, g, b, a);
+            poseStack.popPose();
+        }
+    }
+
+    /**
+     * Cheap faithful sphere: three orthogonal great-circle billboards plus the
+     * crossed pair, giving a round volumetric read from any angle without a mesh.
+     * (Simplified vs. a true tessellated sphere — the plan accepts the cheap
+     * faithful version; with the emissive translucent material this reads as a
+     * soft orb.)
+     */
+    protected static void drawSphere(SubmitNodeCollector collector, RenderType renderType,
+                                     PoseStack poseStack, int r, int g, int b, int a) {
+        // Crossed verticals
+        drawCross(collector, renderType, poseStack, r, g, b, a);
+        // Horizontal great circle
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.XP.rotationDegrees(90f));
+        submitQuad(collector, renderType, poseStack, r, g, b, a);
+        poseStack.popPose();
+        // Two 45° diagonal billboards to fill the silhouette
+        for (float deg : new float[]{45f, -45f}) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(deg));
+            submitQuad(collector, renderType, poseStack, r, g, b, a);
+            poseStack.popPose();
+        }
     }
 
     /** Emit a single ±0.5 quad in the current pose plane. */

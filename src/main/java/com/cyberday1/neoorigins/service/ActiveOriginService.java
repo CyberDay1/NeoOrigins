@@ -266,6 +266,13 @@ public final class ActiveOriginService {
             if (holder != null) holder.onRevoked(player);
             data.removeDynamicGrant(powerId);
         }
+        // Clear the global-power ledger too — the dynamic grants backing it were
+        // just torn down above, so the ledger must be emptied or reconcilePlayer
+        // (run on the next login / datapack-sync) would see the powers as still
+        // owned and never re-grant them.
+        for (Identifier powerId : new java.util.ArrayList<>(data.getGlobalGrantedPowers())) {
+            data.removeGlobalGrant(powerId);
+        }
 
         // Final sweep: remove any neoorigins:power_* attribute modifiers still
         // attached to the player. The per-power onRevoked above handles the

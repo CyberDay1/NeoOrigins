@@ -126,9 +126,15 @@ public final class PowerFormPanel {
         push();
         java.util.List<String> src = new ArrayList<>("action".equals(kind)
             ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
-            : "condition".equals(kind)
-                ? com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES
-                : java.util.Collections.emptyList());
+            : "block_condition".equals(kind)
+                ? com.cyberday1.neoorigins.power.schemaform.FormModel.blockConditionTypes()
+                : "item_condition".equals(kind)
+                    ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemConditionTypes()
+                    : "item_action".equals(kind)
+                        ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemActionTypes()
+                        : "condition".equals(kind)
+                            ? com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES
+                            : java.util.Collections.emptyList());
         java.util.Collections.sort(src);
         refPicker.open("pick " + kind, () -> src,
             sink::accept,
@@ -156,12 +162,20 @@ public final class PowerFormPanel {
      */
     private void openRefPicker(String kind, String field) {
         push(); // keep edits to the other fields
-        boolean dsl = "condition".equals(kind) || "action".equals(kind);
+        boolean dsl = "condition".equals(kind) || "action".equals(kind)
+            || "block_condition".equals(kind) || "item_condition".equals(kind)
+            || "item_action".equals(kind);
         java.util.List<String> src;
         if (dsl) {
             src = new ArrayList<>("action".equals(kind)
                 ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
-                : com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES);
+                : "block_condition".equals(kind)
+                    ? com.cyberday1.neoorigins.power.schemaform.FormModel.blockConditionTypes()
+                    : "item_condition".equals(kind)
+                        ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemConditionTypes()
+                        : "item_action".equals(kind)
+                            ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemActionTypes()
+                            : com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES);
             java.util.Collections.sort(src);
         } else {
             src = com.cyberday1.neoorigins.screen.creator.CreatorAssets

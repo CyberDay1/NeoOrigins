@@ -5,6 +5,8 @@ import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.origin.OriginTierOverlay;
 import com.cyberday1.neoorigins.client.ClientEvolutionConfig;
 import com.cyberday1.neoorigins.client.ClientOriginState;
+import com.cyberday1.neoorigins.client.theme.PanelRenderer;
+import com.cyberday1.neoorigins.client.theme.UITheme;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
@@ -25,12 +27,17 @@ public class OriginInfoScreen extends Screen {
 
     private static final int PANEL_TOP = 44;
     private static final int PANEL_BTM_MARGIN = 32;
+    /** Width of the 9-slice burnt-edge curl in the parchment panel — widgets
+     *  that touch the panel edge should inset by this amount. */
+    private static final int PANEL_INSET = 12;
     private static final int DETAIL_PAD = 10;
     private static final int HEADER_H = DETAIL_PAD + 32 + 6 + 9 + 4 + 5 + 10;
     private static final int DOT_SIZE = 5;
     private static final int DOT_SPACING = 8;
     private static final int DOT_COUNT = 4;
     private static final int LINE_H = 10;
+    /** Vertical gap between consecutive power entries in the detail panel. */
+    private static final int POWER_GAP = 5;
     private static final int TAB_H = 20;
     private static final int TAB_GAP = 4;
 
@@ -157,11 +164,14 @@ public class OriginInfoScreen extends Screen {
         TabEntry tab = tabs.get(currentTab);
         OriginDetailViewModel vm = tab.viewModel();
         if (vm.origin() != null) {
-            descLines = font.split(vm.origin().description(), detailTextW);
+            // Wrap with themed() BEFORE Font.split — the split bakes Style into
+            // the FormattedCharSequence so the font selector has to be on the
+            // Component before this point. See OriginSelectionScreen.updateDetail.
+            descLines = font.split(themed(vm.origin().description()), detailTextW);
             List<List<FormattedCharSequence>> wrapped = new ArrayList<>();
             int powerDescW = detailTextW - 8;
             for (String desc : vm.powerDescs()) {
-                wrapped.add(desc.isEmpty() ? List.of() : font.split(Component.literal(desc), powerDescW));
+                wrapped.add(desc.isEmpty() ? List.of() : font.split(themed(Component.literal(desc)), powerDescW));
             }
             wrappedPowerDescs = wrapped;
             detailContentH = computeContentHeight(vm);
@@ -173,15 +183,13 @@ public class OriginInfoScreen extends Screen {
     }
 
     private int computeContentHeight(OriginDetailViewModel vm) {
-        int h = 8 + descLines.size() * LINE_H + 4;
-        // Spawn row adds one line + small gap when present.
+        int h = 8 + descLines.size() * LINE_H + 8;
         if (vm.origin() != null && vm.origin().spawnLocation().isPresent()
             && !vm.origin().spawnLocation().get().formatSummary().isEmpty()) {
             h += LINE_H;
         }
         // Evolution path section (inline, after spawn location, before powers).
         h += evolutionSectionHeight(vm);
-        h += 8;
         if (!vm.powerNames().isEmpty()) {
             h += 9 + 4;
             for (int i = 0; i < vm.powerNames().size(); i++) {
@@ -189,6 +197,7 @@ public class OriginInfoScreen extends Screen {
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     h += wrappedPowerDescs.get(i).size() * LINE_H;
                 }
+                h += POWER_GAP;
             }
         }
         return h + 6;
@@ -215,6 +224,27 @@ public class OriginInfoScreen extends Screen {
             h += overlay.remove().size() * LINE_H;
         }
         return h;
+    }
+
+    /** Wraps a Component with the theme's font Style so a custom font provider can take effect. */
+    private static Component themed(Component c) {
+        Identifier fid = UITheme.current().font();
+        return fid != null
+            ? c.copy().withStyle(s -> s.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid)))
+            : c;
+    }
+
+    /** Like {@link #themed} but also marks the Style as bold — used for the
+     *  origin-name header and per-power name lines so the TTF renderer picks
+     *  up its synthesized bold weight. */
+    private static Component themedBold(Component c) {
+        Identifier fid = UITheme.current().font();
+        return c.copy().withStyle(s -> {
+            var styled = s.withBold(true);
+            return fid != null
+                ? styled.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid))
+                : styled;
+        });
     }
 
     /** Best-effort human display name for a power id. */
@@ -245,18 +275,20 @@ public class OriginInfoScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
-        g.fill(0, 0, width, height, 0xCC060610);
+        UITheme theme = UITheme.current();
+        // Full-screen scrim — kept dark behind the parchment panel.
+        g.fill(0, 0, width, height, theme.overlayColor());
 
         if (tabs.isEmpty()) {
-            g.centeredText(font, Component.translatable("gui.neoorigins.info.no_origin"),
-                width / 2, height / 2 - 10, 0xFF555577);
+            var msg = themed(Component.translatable("gui.neoorigins.info.no_origin"));
+            g.text(font, msg, width / 2 - font.width(msg) / 2,
+                height / 2 - 10, theme.mutedColor(), false);
             super.extractRenderState(g, mouseX, mouseY, partial);
             return;
         }
 
-        // Panel background
-        g.fill(panelX, PANEL_TOP, panelX + panelW, panelBottom, 0xFF09091A);
-        g.outline(panelX - 1, PANEL_TOP - 1, panelW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        // Parchment panel.
+        PanelRenderer.drawPanel(g, theme, panelX - 1, PANEL_TOP - 1, panelW + 2, panelBottom - PANEL_TOP + 2);
 
         TabEntry tab = tabs.get(currentTab);
         OriginDetailViewModel vm = tab.viewModel();
@@ -269,38 +301,36 @@ public class OriginInfoScreen extends Screen {
         int cx = panelX + panelW / 2;
         int y = PANEL_TOP + DETAIL_PAD;
 
-        // Icon
-        g.fill(cx - 16, y, cx + 16, y + 32, 0xFF0D1830);
-        g.outline(cx - 16, y, 32, 32, 0xFF4A90D9);
+        g.outline(cx - 16, y, 32, 32, theme.borderColor());
         OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
         y += 32 + 6;
-        g.centeredText(font, origin.name(), cx, y, 0xFFFFFFFF);
+        var nameC = themedBold(origin.name());
+        g.text(font, nameC, cx - font.width(nameC) / 2, y, theme.nameColor(), false);
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
 
         // Scrollable content
         int scrollTop = PANEL_TOP + HEADER_H;
-        int scrollBottom = panelBottom - 2;
+        // Pull the bottom in so the rail clears the parchment burnt-edge curl.
+        int scrollBottom = panelBottom - PANEL_INSET;
         int scrollAreaH = scrollBottom - scrollTop;
         int maxScroll = Math.max(0, detailContentH - scrollAreaH);
         detailScrollOffset = Mth.clamp(detailScrollOffset, 0, maxScroll);
 
         g.enableScissor(panelX + 1, scrollTop, panelX + panelW - 5, scrollBottom);
         int sy = scrollTop - detailScrollOffset;
-        g.fill(panelX + DETAIL_PAD, sy + 3, panelX + panelW - DETAIL_PAD - 6, sy + 4, 0xFF252540);
+        g.fill(panelX + DETAIL_PAD, sy + 3, panelX + panelW - DETAIL_PAD - 6, sy + 4, theme.borderColor());
         sy += 8;
         for (FormattedCharSequence line : descLines) {
-            g.text(font, line, panelX + DETAIL_PAD, sy, 0xFF9999BB, false);
+            g.text(font, line, panelX + DETAIL_PAD, sy, theme.descriptionColor(), false);
             sy += LINE_H;
         }
-        sy += 4;
         // Spawn-location row — shown only when the origin declares a spawn_location.
-        // Highlighted in amber so it reads as a mechanic, not flavor text.
         if (origin.spawnLocation().isPresent()) {
             String spawnSummary = origin.spawnLocation().get().formatSummary();
             if (!spawnSummary.isEmpty()) {
-                g.text(font, Component.literal(spawnSummary),
-                    panelX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                g.text(font, themed(Component.literal(spawnSummary)),
+                    panelX + DETAIL_PAD, sy, theme.accentColor(), false);
                 sy += LINE_H;
             }
         }
@@ -326,11 +356,11 @@ public class OriginInfoScreen extends Screen {
                         "gui.neoorigins.info.evolution_progress",
                         String.valueOf(curKills), String.valueOf(need));
                 }
-                g.text(font, summary, panelX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                g.text(font, themed(summary), panelX + DETAIL_PAD, sy, theme.accentColor(), false);
                 sy += LINE_H;
             }
-            g.text(font, Component.translatable("gui.neoorigins.info.evolution_path"),
-                panelX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
+            g.text(font, themed(Component.translatable("gui.neoorigins.info.evolution_path")),
+                panelX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             // Sort by tier ascending so display order is Evolved → Ascended → Apex
             // even if the JSON listed them in a different order.
@@ -340,8 +370,8 @@ public class OriginInfoScreen extends Screen {
             int curKills = evoOn ? ClientEvolutionConfig.getCurrentKills() : 0;
             for (OriginTierOverlay overlay : sortedTiers) {
                 String name = tierName(overlay.tier());
-                g.text(font, Component.literal(name),
-                    panelX + DETAIL_PAD, sy, 0xFF7AACDA, false);
+                g.text(font, themed(Component.literal(name)),
+                    panelX + DETAIL_PAD, sy, theme.powerNameColor(), false);
                 sy += 11;
                 if (evoOn) {
                     // Per-tier annotation: progress on the next-up tier,
@@ -356,17 +386,17 @@ public class OriginInfoScreen extends Screen {
                             "gui.neoorigins.info.evolution_tier_progress",
                             String.valueOf(curKills), String.valueOf(need));
                     }
-                    g.text(font, annotation, panelX + DETAIL_PAD + 8, sy, 0xFF666688, false);
+                    g.text(font, themed(annotation), panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
                     sy += LINE_H;
                 }
                 for (Identifier pid : overlay.add()) {
-                    g.text(font, Component.literal("+ " + powerDisplayName(pid)),
-                        panelX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                    g.text(font, themed(Component.literal("+ " + powerDisplayName(pid))),
+                        panelX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
                     sy += LINE_H;
                 }
                 for (Identifier pid : overlay.remove()) {
-                    g.text(font, Component.literal("- " + powerDisplayName(pid)),
-                        panelX + DETAIL_PAD + 8, sy, 0xFF666688, false);
+                    g.text(font, themed(Component.literal("- " + powerDisplayName(pid))),
+                        panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
                     sy += LINE_H;
                 }
             }
@@ -375,41 +405,45 @@ public class OriginInfoScreen extends Screen {
         sy += 8;
         List<String> pNames = vm.powerNames();
         if (!pNames.isEmpty()) {
-            g.text(font, Component.translatable("gui.neoorigins.detail.powers_header"),
-                panelX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
+            g.text(font, themedBold(Component.translatable("gui.neoorigins.detail.powers_header")),
+                panelX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
-                g.fill(panelX + DETAIL_PAD, sy + 3, panelX + DETAIL_PAD + 3, sy + 6, 0xFF4A90D9);
-                g.text(font, pNames.get(i), panelX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
+                g.fill(panelX + DETAIL_PAD, sy + 3, panelX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
+                g.text(font, themedBold(Component.literal(pNames.get(i))), panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
-                        g.text(font, dLine, panelX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                        g.text(font, dLine, panelX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
                         sy += LINE_H;
                     }
                 }
+                sy += POWER_GAP;
             }
         }
         g.disableScissor();
 
         // Scrollbar
         if (maxScroll > 0) {
-            int barX = panelX + panelW - 4;
-            int thumbH = Math.max(14, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
+            // Sit the scroll rail inside the parchment burnt-edge curl (PANEL_INSET)
+            // so it doesn't run off the curled paper border.
+            int barX = panelX + panelW - PANEL_INSET;
+            int thumbH = Math.max(10, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
             int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
-            g.fill(barX, scrollTop, barX + 2, scrollBottom, 0xFF1A1A30);
-            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, 0xFF4A90D9);
+            g.fill(barX, scrollTop, barX + 1, scrollBottom, theme.borderColor());
+            g.fill(barX, thumbY, barX + 1, thumbY + thumbH, theme.accentColor());
         }
 
         super.extractRenderState(g, mouseX, mouseY, partial);
     }
 
     private void drawImpactRow(GuiGraphicsExtractor g, int cx, int y, Impact impact) {
+        UITheme theme = UITheme.current();
         int totalW = (DOT_COUNT - 1) * DOT_SPACING + DOT_SIZE;
         int x0 = cx - totalW / 2;
         for (int i = 0; i < DOT_COUNT; i++)
             g.fill(x0 + i * DOT_SPACING, y, x0 + i * DOT_SPACING + DOT_SIZE, y + DOT_SIZE,
-                i < impact.getDotCount() ? 0xFFFF8822 : 0xFF252540);
+                i < impact.getDotCount() ? theme.accentColor() : theme.borderColor());
         Component label = Component.translatable("origins.gui.impact.impact").append(": ")
             .append(switch (impact) {
                 case NONE -> Component.translatable("origins.gui.impact.none");
@@ -417,13 +451,13 @@ public class OriginInfoScreen extends Screen {
                 case MEDIUM -> Component.translatable("origins.gui.impact.medium");
                 case HIGH -> Component.translatable("origins.gui.impact.high");
             });
-        g.text(font, label, cx + totalW / 2 + 6, y - 1, 0xFF666688, false);
+        g.text(font, themed(label), cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (mx >= panelX && mx <= panelX + panelW && my >= PANEL_TOP && my <= panelBottom) {
-            int scrollAreaH = (panelBottom - 2) - (PANEL_TOP + HEADER_H);
+            int scrollAreaH = (panelBottom - PANEL_INSET) - (PANEL_TOP + HEADER_H);
             int maxScroll = Math.max(0, detailContentH - scrollAreaH);
             detailScrollOffset = Mth.clamp(detailScrollOffset + (sy > 0 ? -14 : 14), 0, maxScroll);
             return true;

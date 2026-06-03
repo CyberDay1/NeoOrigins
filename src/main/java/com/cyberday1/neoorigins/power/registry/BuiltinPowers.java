@@ -77,11 +77,64 @@ public final class BuiltinPowers {
      */
     private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
 
+    /**
+     * Looser hint for scalar-string lists whose entries are NOT strictly
+     * {@code namespace:path}: bare keywords ({@code sprint}, {@code arrow},
+     * {@code all}), vanilla camelCase msgIds ({@code inFire}, {@code fall}), an
+     * optional {@code #} tag prefix, or a resource location. Matched
+     * case-insensitively by the powers themselves, so a strict resource-location
+     * pattern would wrongly flag valid entries. Still rejects whitespace/braces.
+     */
+    private static final String TOKEN_OR_ID_PATTERN = "^#?[A-Za-z0-9_.:/-]+$";
+
     private static void define(String path, Class<?> powerClass, List<FieldSpec> fields) {
         Identifier id = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         PowerSpec spec = new PowerSpec(id, powerClass, fields);
         DESCRIPTORS.put(id, spec);
         BY_KEY.put(id.toString(), spec);
+    }
+
+    /**
+     * The 11 nested fields of {@link com.cyberday1.neoorigins.api.condition.LocationCondition},
+     * shared by {@code attribute_modifier.location_condition} (Optional) and
+     * {@code modify_player_spawn.location} (required). Names mirror the codec's JSON keys 1:1
+     * (camel→snake of the record components), so the drift audit's "real OBJECT with children"
+     * recursion resolves each child against {@code LocationCondition}'s own component map.
+     * Returns a fresh array per call so the two parents don't alias the same builder chain.
+     * The single non-scalar field {@code biomes} is a {@code List<Identifier>}; until the
+     * scalar-list widget lands it renders as a raw-JSON array child within the sub-form.
+     */
+    private static FieldSpec[] locationConditionChildren() {
+        return new FieldSpec[] {
+            new FieldSpec("dimension", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Dimension the player must be in, e.g. minecraft:the_nether (combines with AND)."),
+            new FieldSpec("biome", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Exact biome id to match, e.g. minecraft:desert (biome fields OR-combine)."),
+            new FieldSpec("biome_tag", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Biome tag the current biome must be in, e.g. minecraft:is_forest (OR-combines with biome/biomes)."),
+            new FieldSpec("biomes", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
+                .doc("List of biome ids; matching any one satisfies the biome requirement (OR-combines with biome/biome_tag)."),
+            new FieldSpec("structure", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Exact structure id the position must be inside, e.g. minecraft:village_plains (combines with AND)."),
+            new FieldSpec("structure_tag", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Structure tag the position must be inside, e.g. minecraft:village (combines with AND)."),
+            new FieldSpec("allow_water_surface", Kind.BOOLEAN, false)
+                .def(false).doc("When resolving a spawn, allow standing on the water surface (default false)."),
+            new FieldSpec("allow_ocean_floor", Kind.BOOLEAN, false)
+                .def(false).doc("When resolving a spawn, allow the ocean floor under water (default false)."),
+            new FieldSpec("min_y", Kind.INTEGER, false)
+                .doc("Minimum Y for the spawn/location search band (optional)."),
+            new FieldSpec("max_y", Kind.INTEGER, false)
+                .doc("Maximum Y for the spawn/location search band (optional)."),
+            new FieldSpec("can_see_sky", Kind.BOOLEAN, false)
+                .doc("Require open sky (true) or allow caves/underground (false). Default: true on overworld-like dimensions, false in ceiling dimensions like the Nether.")
+        };
     }
 
     static {
@@ -94,6 +147,7 @@ public final class BuiltinPowers {
         // .auditPowerFormCoverage's "marker-only" list; each Config is
         // `record Config(String type)` (type is internal plumbing, not a field).
         define("cobweb_affinity",          CobwebAffinityPower.class,         List.of());
+        define("simple",                   SimplePower.class,                 List.of());
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
         define("flight",                   FlightPower.class,                 List.of());
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
@@ -199,6 +253,7 @@ public final class BuiltinPowers {
                 .def(40).doc("Ticks before the boost can be triggered again (default 40).")));
         define("exhaustion_filter", ExhaustionFilterPower.class, List.of(
             new FieldSpec("sources", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).")));
         define("extra_inventory", ExtraInventoryPower.class, List.of(
             new FieldSpec("size", Kind.INTEGER, false)
@@ -221,10 +276,13 @@ public final class BuiltinPowers {
                 .def(100).doc("Ticks a tamed mob must avoid damage before it can heal (default 100).")));
         define("invulnerability", InvulnerabilityPower.class, List.of(
             new FieldSpec("damage_types", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Damage-type ids (e.g. minecraft:fall) whose damage is cancelled."),
             new FieldSpec("damage_tags", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled."),
             new FieldSpec("msg_ids", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.")));
 
         // ── Group R (cont.) — batch B ───────────────────────────────────────
@@ -243,8 +301,10 @@ public final class BuiltinPowers {
             new FieldSpec("slots", Kind.ARRAY, false)
                 .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *)."),
             new FieldSpec("items", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Item ids to keep on death; empty (with empty tags) keeps everything."),
             new FieldSpec("tags", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Item tag ids whose matching items are kept on death.")));
         define("less_item_use_slowdown", LessItemUseSlowdownPower.class, List.of(
             new FieldSpec("item_type", Kind.STRING, false)
@@ -271,6 +331,7 @@ public final class BuiltinPowers {
                 .doc("List of {effect, amplifier} entries applied while below the threshold.")));
         define("mobs_ignore_player", MobsIgnorePlayerPower.class, List.of(
             new FieldSpec("entity_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob."),
             new FieldSpec("passive", Kind.BOOLEAN, false)
                 .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).")));
@@ -333,6 +394,7 @@ public final class BuiltinPowers {
                 .def(true).doc("If true gravity is disabled so the player can free-fly (default true).")));
         define("projectile_immunity", ProjectileImmunityPower.class, List.of(
             new FieldSpec("projectile_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow)."),
             new FieldSpec("chance", Kind.NUMBER, false)
                 .def(1.0).range(0.0, 1.0).doc("Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0)."),
@@ -356,6 +418,7 @@ public final class BuiltinPowers {
                 .def(0.25).doc("Probability 0.0-1.0 a rare treasure trade is also offered (default 0.25).")));
         define("scare_entities", ScareEntitiesPower.class, List.of(
             new FieldSpec("entity_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Entity ids or #tags that flee the player within 8 blocks.")));
         define("shader", ShaderPower.class, List.of(
             new FieldSpec("shader", Kind.STRING, true)
@@ -473,6 +536,7 @@ public final class BuiltinPowers {
                 .def("both").doc("Which fluid surface you can walk on: water, lava, or both (default both).")));
         define("wraith_phase", WraithPhasePower.class, List.of(
             new FieldSpec("blocked_blocks", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Block ids that cannot be phased through (default obsidian/bedrock)."),
             new FieldSpec("exhaustion_per_tick", Kind.NUMBER, false)
                 .def(0.15).doc("Food exhaustion added each tick while phasing in solids (default 0.15)."),
@@ -660,9 +724,21 @@ public final class BuiltinPowers {
             new FieldSpec("condition", Kind.MIXED, false)
                 .doc("Optional gate: a named-condition string (in_water/on_land/in_lava) or a DSL condition object; active only while it passes."),
             new FieldSpec("equipment_condition", Kind.OBJECT, false)
-                .doc("Optional gate matching a worn item by id/tag in a slot; active only while worn."),
+                .doc("Optional gate matching a worn item by id/tag in a slot; active only while worn.")
+                .children(
+                    new FieldSpec("slot", Kind.ENUM, false)
+                        .options("mainhand", "offhand", "head", "chest", "legs", "feet", "body")
+                        .def("mainhand")
+                        .doc("Equipment slot to inspect (default mainhand)."),
+                    new FieldSpec("item", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Exact item id the worn item must match (e.g. minecraft:elytra)."),
+                    new FieldSpec("tag", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item tag the worn item must be in (e.g. minecraft:swords).")),
             new FieldSpec("location_condition", Kind.OBJECT, false)
-                .doc("Optional gate on dimension/biome/structure; active only while there.")));
+                .doc("Optional gate on dimension/biome/structure; active only while there.")
+                .children(locationConditionChildren())));
 
         // ── Group A — batch 1 (key-aliased event hook: schema-branch collapse) ─
         // action_on_event is the first power whose JSON key set does NOT line up
@@ -706,7 +782,7 @@ public final class BuiltinPowers {
                 .doc("EntityAction run on the player as a side-effect when the configured event fires."),
             new FieldSpec("modifier", Kind.MIXED, false)
                 .doc("FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen)."),
-            new FieldSpec("block_condition", Kind.OBJECT, false)
+            new FieldSpec("block_condition", Kind.REF, false).ref("block_condition.schema.json")
                 .doc("Block-position filter for block events (block_break, block_place, block_use). Ignored on other events."),
             new FieldSpec("effect", Kind.STRING, false)
                 .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
@@ -807,8 +883,10 @@ public final class BuiltinPowers {
                 .doc("Optional DSL condition gating the ability; it only fires while this passes (default always).")));
         define("edible_item", EdibleItemPower.class, List.of(
             new FieldSpec("items", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("List of item ids that become edible (matches items OR tags)."),
             new FieldSpec("tags", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("List of item-tag ids that become edible (matches items OR tags)."),
             new FieldSpec("nutrition", Kind.INTEGER, false)
                 .def(4).range(0.0, null).doc("Hunger points restored when consumed (default 4)."),
@@ -861,7 +939,8 @@ public final class BuiltinPowers {
         //     `bed_override`. The branch collapses onto these two specs.
         define("modify_player_spawn", ModifyPlayerSpawnPower.class, List.of(
             new FieldSpec("location", Kind.OBJECT, true)
-                .doc("Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it."),
+                .doc("Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it.")
+                .children(locationConditionChildren()),
             new FieldSpec("override_bed", Kind.BOOLEAN, false)
                 .def(false).doc("When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).")));
 

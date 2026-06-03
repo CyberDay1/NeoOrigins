@@ -362,7 +362,7 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
                     .doc("Damage dealt in half-hearts (default 1.0)."),
-                new FieldSpec("source", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("source", FormFieldSpec.Kind.MIXED, false)
                     .doc("Optional damage source; reads `source.name` (fire/lava/magic/starve/drown/freeze/wither; default generic).")));
 
         // give — give an item stack to the player. Lift-and-shift of parseGive
@@ -396,7 +396,12 @@ public final class BuiltinActions {
                 new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
                     .doc("Stack size (default 1)."),
                 new FieldSpec("stack", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Optional nested item-stack object ({item, count}).")));
+                    .doc("Optional nested item-stack object; its item/count override the flat fields.")
+                    .children(
+                        new FieldSpec("item", FormFieldSpec.Kind.STRING, false)
+                            .doc("Item id for the stack (e.g. minecraft:diamond)."),
+                        new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, null)
+                            .doc("Stack size (default 1)."))));
 
         // launch — push the player straight up. Lift-and-shift of parseLaunch.
         // `speed` optional (parser default 1.0).
@@ -578,7 +583,9 @@ public final class BuiltinActions {
                 new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
                     .doc("Power id to grant (or use the `power_id` alias)."),
                 new FieldSpec("power_id", FormFieldSpec.Kind.STRING, false)
-                    .doc("Alias for power.")));
+                    .doc("Alias for power."),
+                new FieldSpec("source", FormFieldSpec.Kind.STRING, false)
+                    .doc("Apoli-style 'source' label; accepted but ignored by this implementation.")));
 
         // revoke_power — remove a dynamically-granted power from the player.
         // Lift-and-shift of parseRevokePower (26.1: Identifier id). The power id
@@ -615,7 +622,9 @@ public final class BuiltinActions {
                 new FieldSpec("power", FormFieldSpec.Kind.STRING, false)
                     .doc("Power id to revoke (or use the `power_id` alias)."),
                 new FieldSpec("power_id", FormFieldSpec.Kind.STRING, false)
-                    .doc("Alias for power.")));
+                    .doc("Alias for power."),
+                new FieldSpec("source", FormFieldSpec.Kind.STRING, false)
+                    .doc("Apoli-style 'source' label; accepted but ignored by this implementation.")));
 
         // teleport_to_marker — teleport to absolute coords (`position`) or by a
         // dx/dy/dz offset. Lift-and-shift of parseTeleportToMarker. All fields
@@ -640,7 +649,14 @@ public final class BuiltinActions {
             },
             List.of(
                 new FieldSpec("position", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Absolute target {x, y, z}; when present, overrides the dx/dy/dz offset."),
+                    .doc("Absolute target {x, y, z}; when present, overrides the dx/dy/dz offset.")
+                    .children(
+                        new FieldSpec("x", FormFieldSpec.Kind.NUMBER, true)
+                            .doc("Absolute X coordinate."),
+                        new FieldSpec("y", FormFieldSpec.Kind.NUMBER, true)
+                            .doc("Absolute Y coordinate."),
+                        new FieldSpec("z", FormFieldSpec.Kind.NUMBER, true)
+                            .doc("Absolute Z coordinate.")),
                 new FieldSpec("dx", FormFieldSpec.Kind.NUMBER, false).def(0.0)
                     .doc("X offset from the player (default 0)."),
                 new FieldSpec("dy", FormFieldSpec.Kind.NUMBER, false).def(0.0)
@@ -905,7 +921,10 @@ public final class BuiltinActions {
                 new FieldSpec("amount_ratio", FormFieldSpec.Kind.NUMBER, false)
                     .doc("If set, damage = incoming hit * this ratio (min 0.5), overriding amount."),
                 new FieldSpec("source", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/generic; default magic).")));
+                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/generic; default magic).")
+                    .children(
+                        new FieldSpec("name", FormFieldSpec.Kind.STRING, false)
+                            .doc("Damage source name: fire, lava, magic, or generic (default magic)."))));
 
         // ignite_attacker — set the current HIT_TAKEN attacker on fire.
         // Lift-and-shift of parseIgniteAttacker. `ticks` optional (parser default
@@ -1043,6 +1062,7 @@ public final class BuiltinActions {
                 return player -> { for (EntityAction a : actions) a.execute(player); };
             },
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
+                .itemsRef("#")
                 .doc("List of entity actions to run in order.")));
 
         // if_else — run `if_action` when `condition` passes, else `else_action`.
@@ -1063,11 +1083,14 @@ public final class BuiltinActions {
                 };
             },
             List.of(
-                new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
+                    .ref("condition.schema.json")
                     .doc("Entity condition deciding which branch runs (fail-closed when absent)."),
-                new FieldSpec("if_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("if_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run when the condition passes."),
-                new FieldSpec("else_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("else_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run when the condition fails.")));
 
         // if_else_list — run the action of the first branch whose condition passes.
@@ -1114,7 +1137,8 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("chance", FormFieldSpec.Kind.NUMBER, false).def(0.5).range(0.0, 1.0)
                     .doc("Probability in [0,1] that the action runs (default 0.5)."),
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run when the chance roll succeeds.")));
 
         // delay — schedule `action` to run `ticks` server-ticks later via the compat
@@ -1135,7 +1159,8 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("ticks", FormFieldSpec.Kind.INTEGER, false).def(1).range(0.0, null)
                     .doc("Server ticks to wait before running the action (default 1)."),
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run after the delay elapses.")));
 
         // choice — randomly run one action from `actions`, weighted by each entry's
@@ -1175,21 +1200,55 @@ public final class BuiltinActions {
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
                 .doc("List of {action, weight} entries; one is picked weighted-randomly.")));
 
-        // target_action — bientity unwrapper that runs the inner `action`. Lift-and-
-        // shift of parseTargetAction: in our model the dispatch target is already the
-        // correct entity, so this just delegates to the inner action.
+        // target_action — dual-actor retarget. Resolves the "entity on the other side
+        // of the interaction" from the active dispatch context via
+        // ActionParser.extractBientityTarget (ProjectileHitContext / HitTakenContext /
+        // KillContext / EntityInteractContext). The inner `action` then runs against
+        // that resolved target rather than the holder:
+        //   • player target  → full player-typed EntityAction (with the actor published
+        //     to context so sub-actions resolve the actor side);
+        //   • non-player mob  → TargetAction subset (entity-general verbs only);
+        //   • no target       → no-op.
+        // The actor (the holder running the power) remains the EntityAction `player`
+        // arg. This is the dual-actor seam: actor_action stays a holder pass-through.
         define("target_action",
-            (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
-                ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
-            List.of(new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
-                .doc("Inner action to run on the dispatch target.")));
+            (json, ctx) -> {
+                if (!json.has("action") || !json.get("action").isJsonObject()) {
+                    return EntityAction.noop();
+                }
+                com.google.gson.JsonObject inner = json.getAsJsonObject("action");
+                EntityAction playerAction = ActionParser.parse(inner, ctx);
+                TargetAction mobAction = TargetActionParser.parse(inner, ctx);
+                return actor -> {
+                    net.minecraft.world.entity.LivingEntity target =
+                        ActionParser.extractBientityTarget(
+                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    if (target == null) return; // no resolvable target — no-op
+                    if (target instanceof net.minecraft.server.level.ServerPlayer tp) {
+                        // Player target: run the full EntityAction on it, with the actor
+                        // published so any nested actor-facing sub-action resolves.
+                        Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                            new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(actor));
+                        try { playerAction.execute(tp); }
+                        finally { com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev); }
+                    } else if (mobAction != null) {
+                        // Non-player mob target: run the entity-general TargetAction subset.
+                        mobAction.execute(target, actor);
+                    }
+                    // Non-player target + non-generalizable verb — skip.
+                };
+            },
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                .ref("#")
+                .doc("Inner action to run on the resolved context target (player → full action; mob → entity-general subset).")));
 
         // actor_action — bientity unwrapper that runs the inner `action` on the actor.
         // Lift-and-shift of parseActorAction (delegates to the inner action).
         define("actor_action",
             (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
                 ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
-            List.of(new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                .ref("#")
                 .doc("Inner action to run on the actor (source player).")));
 
         // passenger_action — run the inner action on every ServerPlayer passenger.
@@ -1212,10 +1271,127 @@ public final class BuiltinActions {
                 };
             },
             List.of(
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Action run on each passenger (or use the `entity_action` alias)."),
-                new FieldSpec("entity_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Alias for action.")));
+
+        // riding_action — run an entity-action on the entity the holder is riding.
+        // Mirror of passenger_action (inverse direction). NeoOrigins entity-actions
+        // are ServerPlayer-typed, so this fires only when the vehicle is itself a
+        // player; non-player vehicles (boat/horse) can't receive a player-action.
+        define("riding_action",
+            (json, ctx) -> {
+                EntityAction inner = json.has("action") && json.get("action").isJsonObject()
+                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                if (inner == EntityAction.noop() && json.has("entity_action") && json.get("entity_action").isJsonObject()) {
+                    inner = ActionParser.parse(json.getAsJsonObject("entity_action"), ctx);
+                }
+                final EntityAction fInner = inner;
+                return player -> {
+                    if (player.getVehicle() instanceof net.minecraft.server.level.ServerPlayer sp) {
+                        fInner.execute(sp);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
+                    .doc("Action run on the entity the holder is riding (or use the `entity_action` alias)."),
+                new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
+                    .doc("Alias for action.")));
+
+        // spawn_particles — broadcast particles from the player's position. Server-side
+        // sendParticles, so all nearby clients see them. Simple (data-less) particle
+        // types only — data-bearing particles (dust/block/item) aren't reachable from a
+        // plain id and no-op with a warning. `force` is accepted but always-on here
+        // (the server unconditionally broadcasts).
+        define("spawn_particles",
+            (json, ctx) -> {
+                String particleId = json.has("particle") ? json.get("particle").getAsString() : "minecraft:poof";
+                int count = json.has("count") ? json.get("count").getAsInt() : 1;
+                double speed = json.has("speed") ? json.get("speed").getAsDouble() : 0.0;
+                double offsetY = json.has("offset_y") ? json.get("offset_y").getAsDouble() : 0.0;
+                double sx = 0, sy = 0, sz = 0;
+                if (json.has("spread") && json.get("spread").isJsonObject()) {
+                    var sp = json.getAsJsonObject("spread");
+                    sx = sp.has("x") ? sp.get("x").getAsDouble() : 0.0;
+                    sy = sp.has("y") ? sp.get("y").getAsDouble() : 0.0;
+                    sz = sp.has("z") ? sp.get("z").getAsDouble() : 0.0;
+                }
+                net.minecraft.core.particles.ParticleOptions options = null;
+                var pid = net.minecraft.resources.Identifier.tryParse(particleId);
+                if (pid != null) {
+                    var ptypeOpt = net.minecraft.core.registries.BuiltInRegistries.PARTICLE_TYPE.get(pid);
+                    if (ptypeOpt.isPresent()
+                            && ptypeOpt.get().value() instanceof net.minecraft.core.particles.ParticleOptions po) {
+                        options = po;
+                    }
+                }
+                if (options == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] spawn_particles: unsupported/unknown particle '{}' — no-op", particleId);
+                    return EntityAction.noop();
+                }
+                final net.minecraft.core.particles.ParticleOptions fOpts = options;
+                final double fsx = sx, fsy = sy, fsz = sz, foffY = offsetY, fspeed = speed;
+                final int fcount = count;
+                return player -> {
+                    if (!(player.level() instanceof net.minecraft.server.level.ServerLevel lvl)) return;
+                    lvl.sendParticles(fOpts, player.getX(), player.getY() + foffY, player.getZ(),
+                        fcount, fsx, fsy, fsz, fspeed);
+                };
+            },
+            List.of(
+                new FieldSpec("particle", FormFieldSpec.Kind.STRING, false).def("minecraft:poof")
+                    .doc("Particle id to spawn (simple/data-less particles only; dust/block/item no-op)."),
+                new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(0.0, null)
+                    .doc("Number of particles (default 1)."),
+                new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(0.0).range(0.0, null)
+                    .doc("Particle speed / extra-data scalar (default 0)."),
+                new FieldSpec("force", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Apoli force-render flag (accepted; the server always broadcasts)."),
+                new FieldSpec("offset_y", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Vertical offset from the player's feet (default 0)."),
+                new FieldSpec("spread", FormFieldSpec.Kind.OBJECT, false)
+                    .doc("{x,y,z} per-axis gaussian spread radius (default 0).")));
+
+        // drop_inventory — drop the holder's vanilla inventory as item entities.
+        // LIMITATION: the Apoli `slots` selector is not honoured — the whole player
+        // inventory is dropped. Every observed pack either lists all slots or leaves
+        // `slots` empty (Apoli treats empty as "all"), so drop-all matches intent.
+        // Apoli "power" inventories (virtual per-power containers) aren't modelled.
+        define("drop_inventory",
+            (json, ctx) -> {
+                String invType = json.has("inventory_type") ? json.get("inventory_type").getAsString() : "inventory";
+                boolean throwRandomly = !json.has("throw_randomly") || json.get("throw_randomly").getAsBoolean();
+                boolean retainOwnership = json.has("retain_ownership") && json.get("retain_ownership").getAsBoolean();
+                if (!"inventory".equalsIgnoreCase(invType)) {
+                    NeoOrigins.LOGGER.warn("[CompatB] drop_inventory: inventory_type '{}' unsupported (only 'inventory') — no-op", invType);
+                    return EntityAction.noop();
+                }
+                return player -> {
+                    var inv = player.getInventory();
+                    boolean dropped = false;
+                    for (int i = 0; i < inv.getContainerSize(); i++) {
+                        net.minecraft.world.item.ItemStack s = inv.getItem(i);
+                        if (s.isEmpty()) continue;
+                        player.drop(s, throwRandomly, retainOwnership);
+                        inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+                        dropped = true;
+                    }
+                    if (dropped) player.containerMenu.broadcastChanges();
+                };
+            },
+            List.of(
+                new FieldSpec("inventory_type", FormFieldSpec.Kind.STRING, false).def("inventory")
+                    .doc("Only 'inventory' (the vanilla player inventory) is supported; 'power' inventories no-op."),
+                new FieldSpec("throw_randomly", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("Scatter the dropped items (default true)."),
+                new FieldSpec("retain_ownership", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Tag drops with the thrower for pickup priority (default false).")));
 
         // offset — Apoli-architectural offset wrapper. Lift-and-shift of parseOffset:
         // our actions already read their position from the dispatch context, so the
@@ -1225,7 +1401,8 @@ public final class BuiltinActions {
             (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
                 ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
             List.of(
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("#")
                     .doc("Inner action to run (offset is architectural; position comes from context)."),
                 new FieldSpec("x", FormFieldSpec.Kind.NUMBER, false).def(0.0)
                     .doc("X offset (accepted for Apoli parity; no positional effect here)."),
@@ -1253,7 +1430,7 @@ public final class BuiltinActions {
                     }
                 };
             },
-            List.of(new FieldSpec("block_action", FormFieldSpec.Kind.OBJECT, false)
+            List.of(new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
                 .doc("Action run at the entity's block position (BlockPos published to context).")));
 
         // swap_with_entity — swap positions (and look) with the nearest matching
@@ -1296,8 +1473,234 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(0.0, null)
                     .doc("Search radius for swap candidates (default 16)."),
-                new FieldSpec("target_condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("condition.schema.json")
                     .doc("Optional entity condition; applied to player candidates (default always-true).")));
+
+        // swap_positions — dual-actor: atomically swap the actor and the resolved
+        // context target's full transform (x,y,z,yaw,pitch). Unlike swap_with_entity
+        // (a radius search around the holder), this uses the entity on the other side
+        // of the interaction (ActionParser.extractBientityTarget) — e.g. the mob a
+        // projectile hit across the room. Snapshot-first (the swap_with_entity
+        // pattern): naïve sequential teleports collapse both entities to one point.
+        // No-op if no target resolves. No config fields.
+        define("swap_positions",
+            (json, ctx) -> actor -> {
+                net.minecraft.world.entity.LivingEntity target =
+                    ActionParser.extractBientityTarget(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                if (target == null) return;
+                // Snapshot BOTH transforms before moving either one.
+                double ax = actor.getX(), ay = actor.getY(), az = actor.getZ();
+                float ayaw = actor.getYRot(), apitch = actor.getXRot();
+                double tx = target.getX(), ty = target.getY(), tz = target.getZ();
+                float tyaw = target.getYRot(), tpitch = target.getXRot();
+                actor.teleportTo(tx, ty, tz);
+                actor.setYRot(tyaw);
+                actor.setXRot(tpitch);
+                target.teleportTo(ax, ay, az);
+                target.setYRot(ayaw);
+                target.setXRot(apitch);
+            },
+            List.of());
+
+        // teleport_to_target — dual-actor: move the actor to the resolved context
+        // target's position (and look). No-op if no target resolves. No config fields.
+        define("teleport_to_target",
+            (json, ctx) -> actor -> {
+                net.minecraft.world.entity.LivingEntity target =
+                    ActionParser.extractBientityTarget(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                if (target == null) return;
+                actor.teleportTo(target.getX(), target.getY(), target.getZ());
+                actor.setYRot(target.getYRot());
+                actor.setXRot(target.getXRot());
+            },
+            List.of());
+
+        // teleport_target_to_self — dual-actor: move the resolved context target to
+        // the actor's position (and look). No-op if no target resolves. No config fields.
+        define("teleport_target_to_self",
+            (json, ctx) -> actor -> {
+                net.minecraft.world.entity.LivingEntity target =
+                    ActionParser.extractBientityTarget(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                if (target == null) return;
+                target.teleportTo(actor.getX(), actor.getY(), actor.getZ());
+                target.setYRot(actor.getYRot());
+                target.setXRot(actor.getXRot());
+            },
+            List.of());
+
+        // ── Item 4: entity-target spells (dual-actor) ───────────────────────────
+        // Each resolves the "entity on the other side of the interaction" from the
+        // active dispatch context (ActionParser.extractBientityTarget). They're
+        // registered BOTH as context-resolving EntityActions here (so an author can
+        // write {"type":"neoorigins:shear"} directly as an on_hit_action / target
+        // action and have it hit the projectile's victim — the same shape as
+        // swap_positions / teleport_to_target above) AND in TargetActionParser (so a
+        // target_action wrapper reaches them on an arbitrary mob target). All no-op
+        // cleanly when the target is null or not applicable.
+
+        // shear — shear the resolved target the way vanilla/modded shears would,
+        // via the NeoForge IShearable seam (sheep drop wool + set sheared, mooshroom
+        // → cow + mushrooms, snow golem → drop pumpkin, bogged, modded shearables).
+        // No-op when there's no target or the target isn't shearable (e.g. an already-
+        // sheared sheep, or a non-shearable mob). No config fields.
+        define("shear",
+            (json, ctx) -> actor -> {
+                net.minecraft.world.entity.LivingEntity target =
+                    ActionParser.extractBientityTarget(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                shearTarget(target, actor);
+            },
+            List.of());
+
+        // dye — set the colour of a dyeable resolved target. Field: `color` (a dye
+        // colour name, e.g. "red"). Currently dyes a Sheep's wool colour; other mobs
+        // (wolf/cat collars) expose no public colour setter on 26.1, so they no-op.
+        // No-op when there's no target, the target is non-dyeable, or `color` is an
+        // unknown dye name.
+        define("dye",
+            (json, ctx) -> {
+                String colorName = json.has("color") ? json.get("color").getAsString() : null;
+                net.minecraft.world.item.DyeColor color =
+                    colorName == null ? null : net.minecraft.world.item.DyeColor.byName(colorName, null);
+                if (colorName != null && color == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] dye: unknown dye colour '{}' — action will no-op", colorName);
+                }
+                final net.minecraft.world.item.DyeColor fColor = color;
+                return actor -> {
+                    if (fColor == null) return;
+                    net.minecraft.world.entity.LivingEntity target =
+                        ActionParser.extractBientityTarget(
+                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    dyeTarget(target, fColor);
+                };
+            },
+            List.of(new FieldSpec("color", FormFieldSpec.Kind.STRING, false)
+                .doc("Dye colour name to apply to the target (e.g. \"red\"). Dyes a sheep's wool; non-dyeable targets no-op.")));
+
+        // force_drop — make the resolved target drop the item in a named equipment
+        // slot as an item entity and clear the slot. Field: `slot`
+        // (mainhand/offhand/head/chest/legs/feet; default mainhand). No-op when
+        // there's no target or the slot is empty.
+        define("force_drop",
+            (json, ctx) -> {
+                final net.minecraft.world.entity.EquipmentSlot slot = parseEquipmentSlotOrMain(
+                    json.has("slot") ? json.get("slot").getAsString() : "mainhand", "force_drop");
+                return actor -> {
+                    net.minecraft.world.entity.LivingEntity target =
+                        ActionParser.extractBientityTarget(
+                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    if (target == null) return;
+                    // 26.1 delta: Entity.spawnAtLocation gained a leading ServerLevel arg.
+                    if (!(target.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    net.minecraft.world.item.ItemStack stack = target.getItemBySlot(slot);
+                    if (stack.isEmpty()) return;
+                    target.setItemSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
+                    target.spawnAtLocation(sl, stack);
+                };
+            },
+            List.of(new FieldSpec("slot", FormFieldSpec.Kind.STRING, false).def("mainhand")
+                .doc("Equipment slot to drop from: mainhand/offhand/head/chest/legs/feet (default mainhand).")));
+
+        // steal_item — like force_drop, but transfer the dropped stack to the ACTOR
+        // (the power holder): added to the actor's inventory, or dropped at the actor
+        // if the inventory is full. Field: `slot` (default mainhand). No-op when
+        // there's no target or the slot is empty.
+        define("steal_item",
+            (json, ctx) -> {
+                final net.minecraft.world.entity.EquipmentSlot slot = parseEquipmentSlotOrMain(
+                    json.has("slot") ? json.get("slot").getAsString() : "mainhand", "steal_item");
+                return actor -> {
+                    net.minecraft.world.entity.LivingEntity target =
+                        ActionParser.extractBientityTarget(
+                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    if (target == null) return;
+                    net.minecraft.world.item.ItemStack stack = target.getItemBySlot(slot);
+                    if (stack.isEmpty()) return;
+                    target.setItemSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
+                    if (!actor.getInventory().add(stack)) {
+                        actor.drop(stack, false);
+                    }
+                };
+            },
+            List.of(new FieldSpec("slot", FormFieldSpec.Kind.STRING, false).def("mainhand")
+                .doc("Equipment slot to steal from: mainhand/offhand/head/chest/legs/feet (default mainhand). Item goes to the actor's inventory, or drops at the actor if full.")));
+
+        // ── Item 5: block-target spells (block-target seam) ─────────────────────
+        // Each resolves the impacted BLOCK on the other side of the interaction from
+        // the active dispatch context (ActionParser.extractBlockTarget — reads the
+        // BlockHitContext / a ProjectileHitContext with a block ray-trace result /
+        // the raycast RaycastBlockContext). They're registered BOTH as context-
+        // resolving EntityActions here (so an author can write
+        // {"type":"neoorigins:strip"} directly as a projectile on_hit_action /
+        // raycast block_action and have it hit the impacted block — same shape as the
+        // item-4 entity spells above) AND in BlockTargetActionParser (so a
+        // block_target_action wrapper reaches them). All no-op cleanly when no block
+        // resolves or the block isn't applicable. The implementations live in the
+        // applyStrip/applyTill/applyPath/applyGrow/applyTransformBlock helpers so
+        // both registration paths share one body.
+
+        // strip — log/wood → stripped (vanilla AxeItem.STRIPPABLES), preserving axis.
+        // No fields. No-op when the block has no strip mapping.
+        define("strip",
+            (json, ctx) -> blockTargetEntityAction(BuiltinActions::applyStrip),
+            List.of());
+
+        // till — dirt/grass/coarse-dirt/rooted-dirt → farmland (coarse → dirt),
+        // only when the block above is air (vanilla hoe rule). No fields.
+        define("till",
+            (json, ctx) -> blockTargetEntityAction(BuiltinActions::applyTill),
+            List.of());
+
+        // path — grass/dirt/podzol/mycelium → dirt path, only when the block above
+        // is air (vanilla shovel rule). No fields.
+        define("path",
+            (json, ctx) -> blockTargetEntityAction(BuiltinActions::applyPath),
+            List.of());
+
+        // grow — bonemeal-style growth on a BonemealableBlock (crops/saplings/grass).
+        // No fields. No-op when the block isn't bonemealable / not growable now.
+        define("grow",
+            (json, ctx) -> blockTargetEntityAction(BuiltinActions::applyGrow),
+            List.of());
+
+        // transform_block — generic primitive: set the impacted block to `to`,
+        // optionally gated on it currently being `from`. No-op when `to` is
+        // missing/unknown or the `from` guard fails.
+        define("transform_block",
+            (json, ctx) -> {
+                final net.minecraft.world.level.block.Block from =
+                    resolveBlockOrNull(json.has("from") ? json.get("from").getAsString() : null, "transform_block.from");
+                final net.minecraft.world.level.block.Block to =
+                    resolveBlockOrNull(json.has("to") ? json.get("to").getAsString() : null, "transform_block.to");
+                return blockTargetEntityAction((level, pos, actor) -> applyTransformBlock(level, pos, from, to));
+            },
+            List.of(
+                new FieldSpec("from", FormFieldSpec.Kind.STRING, false)
+                    .doc("Optional block id guard; only transform when the impacted block matches (e.g. \"minecraft:stone\")."),
+                new FieldSpec("to", FormFieldSpec.Kind.STRING, true)
+                    .doc("Block id to set the impacted block to (e.g. \"minecraft:gold_block\").")));
+
+        // block_target_action — block-side analogue of target_action. Resolves the
+        // impacted block from the active dispatch context and runs the inner block-
+        // target verb against that (level, pos, actor). No-op when no block context
+        // resolves or the inner verb isn't a block-target verb (parsed by
+        // BlockTargetActionParser). The actor remains the EntityAction `player` arg.
+        define("block_target_action",
+            (json, ctx) -> {
+                if (!json.has("action") || !json.get("action").isJsonObject()) {
+                    return EntityAction.noop();
+                }
+                BlockTargetAction inner = BlockTargetActionParser.parse(json.getAsJsonObject("action"), ctx);
+                if (inner == null) return EntityAction.noop();
+                return blockTargetEntityAction(inner);
+            },
+            List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                .ref("#")
+                .doc("Inner block-target verb to run on the resolved context block (strip/till/path/grow/transform_block).")));
 
         // change_resource / modify_resource — add to or set a resource-bar value.
         // Lift-and-shift of parseChangeResource. `modify_resource` is an alias
@@ -1391,13 +1794,50 @@ public final class BuiltinActions {
                     ? ActionParser.parse(hitActionJson, ctx) : null;
                 final String effectType = json.has("effect_type")
                     ? json.get("effect_type").getAsString() : null;
+                // Data-driven visuals (2.1). COLOR_UNSET / SIZE_UNSET / -1 / null =
+                // "not set in JSON" → the entity + renderer fall back to the
+                // effect_type default, then the hardcoded default.
+                final int orbColor = parseColor(json.get("orb_color"));
+                final int glowColor = parseColor(json.get("glow_color"));
+                final float size = json.has("size") ? json.get("size").getAsFloat()
+                    : com.cyberday1.neoorigins.content.MagicOrbProjectile.SIZE_UNSET;
+                final float glowSize = json.has("glow_size") ? json.get("glow_size").getAsFloat()
+                    : com.cyberday1.neoorigins.content.MagicOrbProjectile.SIZE_UNSET;
+                final int glowAlpha = json.has("glow_alpha") ? json.get("glow_alpha").getAsInt() : -1;
+                final String shape = json.has("shape") ? json.get("shape").getAsString() : null;
+                final String trailParticle = json.has("trail_particle") ? json.get("trail_particle").getAsString() : null;
+                final int trailCount = json.has("count") ? json.get("count").getAsInt() : 2;
+                final float trailSpread = json.has("spread") ? json.get("spread").getAsFloat() : 0.05f;
+                final float trailSpeed = json.has("speed_particle") ? json.get("speed_particle").getAsFloat()
+                    : json.has("trail_speed") ? json.get("trail_speed").getAsFloat() : 0.0f;
+                final boolean noGravity = json.has("no_gravity") && json.get("no_gravity").getAsBoolean();
                 return player -> {
                     if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
                     var entity = entityType.create(sl, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
                     if (entity == null) return;
                     entity.setPos(player.getX(), player.getEyeY() + verticalOffset, player.getZ());
-                    if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb && effectType != null) {
-                        orb.setEffectType(effectType);
+                    // no_gravity: vanilla Entity flag — getGravity() returns 0 when set, so the
+                    // projectile flies straight along its launch vector (drag still applies).
+                    if (noGravity) entity.setNoGravity(true);
+                    if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb) {
+                        if (effectType != null) orb.setEffectType(effectType);
+                        if (orbColor != com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET) orb.setOrbColor(orbColor);
+                        if (glowColor != com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET) orb.setGlowColor(glowColor);
+                        if (size >= 0) orb.setSize(size);
+                        if (glowSize >= 0) orb.setGlowSize(glowSize);
+                        if (glowAlpha >= 0) orb.setGlowAlpha(glowAlpha);
+                        if (shape != null && !shape.isEmpty()) orb.setShape(shape);
+                        // Trail particle: explicit JSON id, else the effect_type shorthand default.
+                        String resolvedTrail = trailParticle;
+                        if ((resolvedTrail == null || resolvedTrail.isEmpty())) {
+                            String d = com.cyberday1.neoorigins.api.content.vfx.VfxEffectTypes
+                                .defaults(orb.getEffectType()).trailParticle();
+                            if (d != null) resolvedTrail = d;
+                        }
+                        if (resolvedTrail != null && !resolvedTrail.isEmpty()) orb.setTrailParticle(resolvedTrail);
+                        orb.setTrailCount(Math.max(0, trailCount));
+                        orb.setTrailSpread(trailSpread);
+                        orb.setTrailSpeed(trailSpeed);
                     }
                     if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
                         proj.setOwner(player);
@@ -1431,7 +1871,31 @@ public final class BuiltinActions {
                 new FieldSpec("projectile_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Alias for on_hit_action."),
                 new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
-                    .doc("Visual palette id for MagicOrb projectiles (client-side).")));
+                    .doc("Visual palette id for MagicOrb projectiles (client-side). Sets defaults for color/shape/trail_particle; explicit fields below override it."),
+                new FieldSpec("orb_color", FormFieldSpec.Kind.STRING, false)
+                    .doc("Core orb color. Accepts an RGB array [r,g,b] (0-255) or a hex string \"#RRGGBB\". Overrides the effect_type color."),
+                new FieldSpec("glow_color", FormFieldSpec.Kind.STRING, false)
+                    .doc("Outer-glow color (RGB array [r,g,b] or hex \"#RRGGBB\"). Defaults to the orb_color when omitted."),
+                new FieldSpec("size", FormFieldSpec.Kind.NUMBER, false).range(0.0, null)
+                    .doc("Core quad scale (renderer default 0.3)."),
+                new FieldSpec("glow_size", FormFieldSpec.Kind.NUMBER, false).range(0.0, null)
+                    .doc("Glow base scale (renderer default 0.7)."),
+                new FieldSpec("glow_alpha", FormFieldSpec.Kind.INTEGER, false).range(0.0, 255.0)
+                    .doc("Glow halo opacity 0-255 (renderer default 140)."),
+                new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false)
+                    .options("cross", "cube", "ring", "sphere")
+                    .doc("Procedural orb shape (default cross / effect_type default)."),
+                new FieldSpec("trail_particle", FormFieldSpec.Kind.STRING, false)
+                    .pattern("^[a-z0-9_.-]+:[a-z0-9_./-]+$")
+                    .doc("Vanilla particle id for the flight trail (e.g. minecraft:witch). Overrides the effect_type trail."),
+                new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(2).range(0.0, null)
+                    .doc("Trail particles emitted per tick (default 2)."),
+                new FieldSpec("spread", FormFieldSpec.Kind.NUMBER, false).def(0.05).range(0.0, null)
+                    .doc("Trail particle position spread (default 0.05)."),
+                new FieldSpec("trail_speed", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Trail particle speed/velocity (default 0)."),
+                new FieldSpec("no_gravity", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("If true the projectile ignores gravity and flies straight along its launch vector (default false).")));
 
         // execute_command — run a command at server (permission level 2). Lift-and-
         // shift of parseExecuteCommand. `command` defaults to "" and a blank command
@@ -1656,7 +2120,7 @@ public final class BuiltinActions {
                     .doc("AoE radius in blocks (default 16)."),
                 new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Action run on every caught entity."),
-                new FieldSpec("entity_condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter — only entities matching are hit."),
                 new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false).def("sphere")
                     .options("sphere", "cube")
@@ -1698,16 +2162,19 @@ public final class BuiltinActions {
                 new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false).def("mainhand")
                     .options("mainhand", "offhand", "head", "chest", "legs", "feet")
                     .doc("Equipment slot to read the stack from (default mainhand)."),
-                new FieldSpec("action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                    .ref("item_action.schema.json")
                     .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.).")));
 
         // modify_inventory — filter inventory stacks and run an ItemAction on each.
         define("modify_inventory",
             (json, ctx) -> ActionParser.parseModifyInventory(json),
             List.of(
-                new FieldSpec("item_condition", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("item_condition.schema.json")
                     .doc("Optional ItemCondition filtering which stacks to process."),
-                new FieldSpec("item_action", FormFieldSpec.Kind.OBJECT, false)
+                new FieldSpec("item_action", FormFieldSpec.Kind.REF, false)
+                    .ref("item_action.schema.json")
                     .doc("ItemAction run on each matching stack."),
                 new FieldSpec("process_mode", FormFieldSpec.Kind.ENUM, false).def("items")
                     .options("items", "stacks")
@@ -1776,7 +2243,7 @@ public final class BuiltinActions {
                     .doc("Search radius (default 16)."),
                 new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.0)
                     .doc("Pull speed (default 1.0)."),
-                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false).ref("#")
+                new FieldSpec("target_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter — only entities matching are valid targets.")));
 
         // pull_entities — pull nearby entities toward the caster.
@@ -1789,7 +2256,7 @@ public final class BuiltinActions {
                     .doc("Pull magnitude per entity (default 0.5)."),
                 new FieldSpec("include_players", FormFieldSpec.Kind.BOOLEAN, false).def(true)
                     .doc("Whether to pull other players (default true)."),
-                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("#")
+                new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter on which entities to pull.")));
     }
 
@@ -1799,7 +2266,7 @@ public final class BuiltinActions {
      * by the dual-shape {@code apply_effect} descriptor for both the flat root and
      * each {@code effects[]} entry.
      */
-    private static String resolveEffectId(com.google.gson.JsonObject obj) {
+    static String resolveEffectId(com.google.gson.JsonObject obj) {
         if (obj.has("effect") && obj.get("effect").isJsonPrimitive()) {
             return obj.get("effect").getAsString();
         }
@@ -1807,6 +2274,312 @@ public final class BuiltinActions {
             return obj.get("id").getAsString();
         }
         return null;
+    }
+
+    /**
+     * Parse a color JSON value into a packed {@code 0xRRGGBB} int. Accepts either
+     * an RGB array {@code [r,g,b]} with components 0–255, or a hex string
+     * {@code "#RRGGBB"} (the leading {@code #} is optional; 3-digit {@code #RGB}
+     * shorthand is also expanded). Returns
+     * {@link com.cyberday1.neoorigins.content.MagicOrbProjectile#COLOR_UNSET} for a
+     * null/absent/unparseable value so callers can fall back to defaults.
+     */
+    static int parseColor(com.google.gson.JsonElement el) {
+        final int UNSET = com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET;
+        if (el == null || el.isJsonNull()) return UNSET;
+        try {
+            if (el.isJsonArray()) {
+                com.google.gson.JsonArray arr = el.getAsJsonArray();
+                if (arr.size() < 3) return UNSET;
+                int r = clamp255(arr.get(0).getAsInt());
+                int g = clamp255(arr.get(1).getAsInt());
+                int b = clamp255(arr.get(2).getAsInt());
+                return (r << 16) | (g << 8) | b;
+            }
+            if (el.isJsonPrimitive()) {
+                String s = el.getAsString().trim();
+                if (s.startsWith("#")) s = s.substring(1);
+                if (s.length() == 3) { // #RGB shorthand → #RRGGBB
+                    s = "" + s.charAt(0) + s.charAt(0) + s.charAt(1) + s.charAt(1) + s.charAt(2) + s.charAt(2);
+                }
+                if (s.length() != 6) return UNSET;
+                return Integer.parseInt(s, 16) & 0xFFFFFF;
+            }
+        } catch (RuntimeException e) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_projectile: bad color value '{}' — ignored", el);
+        }
+        return UNSET;
+    }
+
+    private static int clamp255(int v) {
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+    }
+
+    // ── Item 4 entity-target helpers (shared with TargetActionParser) ────────────
+
+    /**
+     * Shear {@code target} via the NeoForge {@link net.neoforged.neoforge.common.IShearable}
+     * seam — the same path vanilla/modded shears use, so sheep drop wool + go bald,
+     * mooshrooms convert to cows + drop mushrooms, snow golems lose their pumpkin,
+     * and modded shearables behave correctly. {@code actor} is passed as the
+     * triggering player (for sound source / loot attribution). No-op when the target
+     * is null, not an {@link net.neoforged.neoforge.common.IShearable}, or not
+     * currently shearable (e.g. an already-sheared sheep). Server-side only.
+     *
+     * <p>26.1 delta: {@code spawnShearedDrop} takes a {@link net.minecraft.server.level.ServerLevel}
+     * (it was {@code Level} on 1.21.1), so we pass the resolved ServerLevel rather
+     * than the raw {@code target.level()}.
+     */
+    static void shearTarget(net.minecraft.world.entity.LivingEntity target,
+                            net.minecraft.server.level.ServerPlayer actor) {
+        if (target == null) return;
+        if (!(target.level() instanceof net.minecraft.server.level.ServerLevel serverLevel)) return;
+        if (!(target instanceof net.neoforged.neoforge.common.IShearable shearable)) return;
+        net.minecraft.core.BlockPos pos = target.blockPosition();
+        net.minecraft.world.item.ItemStack tool = net.minecraft.world.item.ItemStack.EMPTY;
+        if (!shearable.isShearable(actor, tool, serverLevel, pos)) return;
+        java.util.List<net.minecraft.world.item.ItemStack> drops =
+            shearable.onSheared(actor, tool, serverLevel, pos);
+        for (net.minecraft.world.item.ItemStack drop : drops) {
+            shearable.spawnShearedDrop(serverLevel, pos, drop);
+        }
+    }
+
+    /**
+     * Set the colour of a dyeable {@code target}. On 26.1 the only mob with a
+     * public colour setter is {@link net.minecraft.world.entity.animal.sheep.Sheep}
+     * (wool colour); wolf/cat collar setters are private, so those mobs no-op
+     * cleanly. No-op when the target is null or non-dyeable.
+     *
+     * <p>26.1 delta: {@code Sheep} moved from {@code net.minecraft.world.entity.animal}
+     * to {@code net.minecraft.world.entity.animal.sheep}.
+     */
+    static void dyeTarget(net.minecraft.world.entity.LivingEntity target,
+                          net.minecraft.world.item.DyeColor color) {
+        if (target == null || color == null) return;
+        if (target instanceof net.minecraft.world.entity.animal.sheep.Sheep sheep) {
+            sheep.setColor(color);
+        }
+        // Other dyeable mobs (wolf/cat collars) expose no public setter on 26.1 — no-op.
+    }
+
+    /**
+     * Map a slot name (mainhand/offhand/head/chest/legs/feet) to an
+     * {@link net.minecraft.world.entity.EquipmentSlot}, defaulting to MAINHAND on an
+     * empty/unknown name (with a one-shot warning for genuinely unknown names).
+     */
+    static net.minecraft.world.entity.EquipmentSlot parseEquipmentSlotOrMain(String name, String verb) {
+        if (name == null || name.isEmpty()) return net.minecraft.world.entity.EquipmentSlot.MAINHAND;
+        return switch (name.toLowerCase(java.util.Locale.ROOT)) {
+            case "head"    -> net.minecraft.world.entity.EquipmentSlot.HEAD;
+            case "chest"   -> net.minecraft.world.entity.EquipmentSlot.CHEST;
+            case "legs"    -> net.minecraft.world.entity.EquipmentSlot.LEGS;
+            case "feet"    -> net.minecraft.world.entity.EquipmentSlot.FEET;
+            case "offhand" -> net.minecraft.world.entity.EquipmentSlot.OFFHAND;
+            case "mainhand" -> net.minecraft.world.entity.EquipmentSlot.MAINHAND;
+            default -> {
+                NeoOrigins.LOGGER.warn("[CompatB] {}: unknown slot '{}' — defaulting to mainhand", verb, name);
+                yield net.minecraft.world.entity.EquipmentSlot.MAINHAND;
+            }
+        };
+    }
+
+    // ── Item 5: block-target verb implementations ───────────────────────────
+    // Shared by the context-resolving EntityAction registrations (so they can be
+    // used directly as an on_hit_action and self-resolve the impacted block from
+    // ActionContextHolder) and by BlockTargetActionParser (so block_target_action
+    // reaches them). Each no-ops cleanly when the block isn't applicable.
+
+    /**
+     * Wrap a {@link BlockTargetAction} as a context-resolving {@link EntityAction}:
+     * resolve the impacted block ({@link ActionParser#extractBlockTarget}) from the
+     * active dispatch context — using the actor's level as the fallback level for
+     * the raycast context — and run the verb against {@code (level, pos, actor)}.
+     * No-op when no block context resolves. This is the bridge that lets every
+     * block-target verb be used directly as a projectile {@code on_hit_action} /
+     * raycast {@code block_action} (self-resolving the block) and is reused by the
+     * {@code block_target_action} wrapper.
+     */
+    private static EntityAction blockTargetEntityAction(BlockTargetAction verb) {
+        return actor -> {
+            net.minecraft.server.level.ServerLevel actorLevel =
+                actor.level() instanceof net.minecraft.server.level.ServerLevel sl ? sl : null;
+            ActionParser.BlockTarget bt = ActionParser.extractBlockTarget(
+                com.cyberday1.neoorigins.service.ActionContextHolder.get(), actorLevel);
+            if (bt == null) return;
+            verb.execute(bt.level(), bt.pos(), actor);
+        };
+    }
+
+    /**
+     * Resolve a block id string to a {@link net.minecraft.world.level.block.Block},
+     * or {@code null} when the string is null/blank or unknown (one-shot warning
+     * for genuinely-unknown ids). Used by {@code transform_block}'s from/to fields.
+     *
+     * <p>26.1: {@code BuiltInRegistries.BLOCK.get(Identifier)} returns an
+     * {@code Optional<Holder<Block>>}, so unwrap via {@code .get().value()}
+     * (1.21.1 returned the {@code Block} directly).
+     */
+    static net.minecraft.world.level.block.Block resolveBlockOrNull(String id, String where) {
+        if (id == null || id.isBlank()) return null;
+        net.minecraft.resources.Identifier rl = net.minecraft.resources.Identifier.tryParse(id);
+        if (rl == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: malformed block id '{}' — will no-op", where, id);
+            return null;
+        }
+        var opt = net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(rl);
+        if (opt.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: unknown block '{}' — will no-op", where, id);
+            return null;
+        }
+        return opt.get().value();
+    }
+
+    /**
+     * Log/wood → stripped-variant map for {@code strip}. Vanilla's
+     * {@code AxeItem.STRIPPABLES} is {@code protected} (not accessible), so this
+     * mirrors it for the wood/log family (the strip case authors actually want).
+     * Built lazily on first use. Axis/orientation is carried over by
+     * {@link #applyStrip} so pillar logs keep their rotation.
+     */
+    private static java.util.Map<net.minecraft.world.level.block.Block, net.minecraft.world.level.block.Block> STRIP_MAP;
+
+    private static java.util.Map<net.minecraft.world.level.block.Block, net.minecraft.world.level.block.Block> stripMap() {
+        if (STRIP_MAP != null) return STRIP_MAP;
+        var m = new java.util.HashMap<net.minecraft.world.level.block.Block, net.minecraft.world.level.block.Block>();
+        // Vanilla wood family (logs + wood + mangrove roots).
+        m.put(net.minecraft.world.level.block.Blocks.OAK_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_OAK_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.SPRUCE_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_SPRUCE_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.BIRCH_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_BIRCH_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.JUNGLE_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_JUNGLE_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.ACACIA_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_ACACIA_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.DARK_OAK_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_DARK_OAK_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.MANGROVE_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_MANGROVE_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.CHERRY_LOG, net.minecraft.world.level.block.Blocks.STRIPPED_CHERRY_LOG);
+        m.put(net.minecraft.world.level.block.Blocks.CRIMSON_STEM, net.minecraft.world.level.block.Blocks.STRIPPED_CRIMSON_STEM);
+        m.put(net.minecraft.world.level.block.Blocks.WARPED_STEM, net.minecraft.world.level.block.Blocks.STRIPPED_WARPED_STEM);
+        m.put(net.minecraft.world.level.block.Blocks.BAMBOO_BLOCK, net.minecraft.world.level.block.Blocks.STRIPPED_BAMBOO_BLOCK);
+        // Wood (bark-on-all-sides) variants.
+        m.put(net.minecraft.world.level.block.Blocks.OAK_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_OAK_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.SPRUCE_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_SPRUCE_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.BIRCH_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_BIRCH_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.JUNGLE_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_JUNGLE_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.ACACIA_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_ACACIA_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.DARK_OAK_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_DARK_OAK_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.MANGROVE_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_MANGROVE_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.CHERRY_WOOD, net.minecraft.world.level.block.Blocks.STRIPPED_CHERRY_WOOD);
+        m.put(net.minecraft.world.level.block.Blocks.CRIMSON_HYPHAE, net.minecraft.world.level.block.Blocks.STRIPPED_CRIMSON_HYPHAE);
+        m.put(net.minecraft.world.level.block.Blocks.WARPED_HYPHAE, net.minecraft.world.level.block.Blocks.STRIPPED_WARPED_HYPHAE);
+        STRIP_MAP = java.util.Collections.unmodifiableMap(m);
+        return STRIP_MAP;
+    }
+
+    /**
+     * strip — axe-strip the block at {@code pos} (log → stripped log, wood →
+     * stripped wood) using {@link #stripMap()} (mirroring vanilla's protected
+     * {@code AxeItem.STRIPPABLES}), preserving block state (axis/orientation).
+     * No-op when the block has no strip mapping. {@code actor} unused.
+     */
+    static void applyStrip(net.minecraft.server.level.ServerLevel level,
+                           net.minecraft.core.BlockPos pos,
+                           net.minecraft.server.level.ServerPlayer actor) {
+        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+        net.minecraft.world.level.block.Block block = state.getBlock();
+        net.minecraft.world.level.block.Block stripped = stripMap().get(block);
+        if (stripped == null) return;
+        net.minecraft.world.level.block.state.BlockState out = stripped.defaultBlockState();
+        // Preserve the rotational axis for pillar-style logs.
+        if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS)
+            && out.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS)) {
+            out = out.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS,
+                state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS));
+        }
+        level.setBlockAndUpdate(pos, out);
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.AXE_STRIP,
+            net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
+    }
+
+    /**
+     * till — hoe-till dirt / grass / coarse-dirt / rooted-dirt → farmland (and
+     * grass-path → dirt) at {@code pos}, but only when the block above is air
+     * (vanilla tilling rule), matching hoe behaviour. No-op otherwise.
+     */
+    static void applyTill(net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.core.BlockPos pos,
+                          net.minecraft.server.level.ServerPlayer actor) {
+        net.minecraft.world.level.block.Block block = level.getBlockState(pos).getBlock();
+        net.minecraft.world.level.block.state.BlockState out;
+        if (block == net.minecraft.world.level.block.Blocks.GRASS_BLOCK
+            || block == net.minecraft.world.level.block.Blocks.DIRT
+            || block == net.minecraft.world.level.block.Blocks.DIRT_PATH
+            || block == net.minecraft.world.level.block.Blocks.ROOTED_DIRT) {
+            out = net.minecraft.world.level.block.Blocks.FARMLAND.defaultBlockState();
+        } else if (block == net.minecraft.world.level.block.Blocks.COARSE_DIRT) {
+            out = net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState();
+        } else {
+            return;
+        }
+        // Vanilla only tills when there's space above the block.
+        if (!level.getBlockState(pos.above()).isAir()) return;
+        level.setBlockAndUpdate(pos, out);
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.HOE_TILL,
+            net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
+    }
+
+    /**
+     * path — shovel a grass block (and the other flattenables: dirt, podzol,
+     * mycelium, coarse/rooted dirt) into a dirt path at {@code pos}, only when the
+     * block above is air (vanilla shovel rule). No-op otherwise.
+     */
+    static void applyPath(net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.core.BlockPos pos,
+                          net.minecraft.server.level.ServerPlayer actor) {
+        net.minecraft.world.level.block.Block block = level.getBlockState(pos).getBlock();
+        if (block != net.minecraft.world.level.block.Blocks.GRASS_BLOCK
+            && block != net.minecraft.world.level.block.Blocks.DIRT
+            && block != net.minecraft.world.level.block.Blocks.PODZOL
+            && block != net.minecraft.world.level.block.Blocks.MYCELIUM
+            && block != net.minecraft.world.level.block.Blocks.COARSE_DIRT
+            && block != net.minecraft.world.level.block.Blocks.ROOTED_DIRT) {
+            return;
+        }
+        if (!level.getBlockState(pos.above()).isAir()) return;
+        level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.DIRT_PATH.defaultBlockState());
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.SHOVEL_FLATTEN,
+            net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
+    }
+
+    /**
+     * grow — bonemeal-style growth on the block at {@code pos}: if it's a
+     * {@link net.minecraft.world.level.block.BonemealableBlock} ready to grow,
+     * apply one bonemeal tick (crops/saplings/grass/etc.) via the vanilla
+     * {@code performBonemeal} path, with the green growth particles. No-op when
+     * the block isn't bonemealable or isn't valid for growth right now.
+     */
+    static void applyGrow(net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.core.BlockPos pos,
+                          net.minecraft.server.level.ServerPlayer actor) {
+        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+        if (!(state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock bonemealable)) return;
+        if (!bonemealable.isValidBonemealTarget(level, pos, state)) return;
+        if (!bonemealable.isBonemealSuccess(level, level.getRandom(), pos, state)) return;
+        bonemealable.performBonemeal(level, level.getRandom(), pos, state);
+        level.levelEvent(1505 /* BONEMEAL_USE growth particles */, pos, 15);
+    }
+
+    /**
+     * transform_block — the generic primitive. When {@code from} is non-null, only
+     * transform if the block at {@code pos} matches it; set the block to {@code to}.
+     * No-op when {@code to} is null (unknown/missing) or the {@code from} guard
+     * fails. Used as the fallback for any state swap not covered by the verbs above.
+     */
+    static void applyTransformBlock(net.minecraft.server.level.ServerLevel level,
+                                    net.minecraft.core.BlockPos pos,
+                                    net.minecraft.world.level.block.Block from,
+                                    net.minecraft.world.level.block.Block to) {
+        if (to == null) return;
+        if (from != null && level.getBlockState(pos).getBlock() != from) return;
+        level.setBlockAndUpdate(pos, to.defaultBlockState());
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

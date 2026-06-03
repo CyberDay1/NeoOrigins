@@ -110,6 +110,8 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, KeepInventoryPower>       KEEP_INVENTORY       = reg("keep_inventory",       new KeepInventoryPower());
     public static final DeferredHolder<PowerType<?>, ModifyPlayerSpawnPower>   MODIFY_PLAYER_SPAWN  = reg("modify_player_spawn",  new ModifyPlayerSpawnPower());
     public static final DeferredHolder<PowerType<?>, EdibleItemPower>          EDIBLE_ITEM          = reg("edible_item",          new EdibleItemPower());
+    // Display-only marker (origins:simple equivalent) — no behavior; carries name+description only.
+    public static final DeferredHolder<PowerType<?>, SimplePower>              SIMPLE               = reg("simple",               new SimplePower());
 
     // --- Origins Classes power types ---
     public static final DeferredHolder<PowerType<?>, ExhaustionFilterPower>      EXHAUSTION_FILTER      = reg("exhaustion_filter",      new ExhaustionFilterPower());

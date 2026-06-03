@@ -43,6 +43,28 @@ public class MagicOrbRenderer extends ProceduralQuadRenderer<MagicOrbProjectile,
         state.lifetime = entity.tickCount;
         state.range = 0f;
         state.lifetimeProgress = 0f;
+
+        // Data-driven visuals (2.1): explicit synched fields override; sentinels
+        // (COLOR_UNSET / negative size·alpha / empty shape) leave the base
+        // renderer to fall back to effect_type → hardcoded defaults.
+        int orb = entity.getOrbColor();
+        state.coreColor = orb != MagicOrbProjectile.COLOR_UNSET ? unpack(orb) : null;
+        int glow = entity.getGlowColor();
+        state.glowColor = glow != MagicOrbProjectile.COLOR_UNSET ? unpack(glow) : null;
+        state.size = entity.getSize();
+        state.glowSize = entity.getGlowSize();
+        state.glowAlpha = entity.getGlowAlpha();
+
+        // Shape: explicit wins, else the effect_type's shorthand default.
+        String shape = entity.getShape();
+        state.shape = (shape != null && !shape.isEmpty())
+            ? shape
+            : com.cyberday1.neoorigins.api.content.vfx.VfxEffectTypes.defaults(state.effectType).shape();
+    }
+
+    /** Unpack a 0xRRGGBB int into {r,g,b} 0–255. */
+    private static int[] unpack(int packed) {
+        return new int[]{ (packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF };
     }
 
     @Override

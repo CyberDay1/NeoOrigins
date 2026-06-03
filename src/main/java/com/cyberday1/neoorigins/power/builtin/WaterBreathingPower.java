@@ -36,7 +36,12 @@ public class WaterBreathingPower extends PowerType<WaterBreathingPower.Config> {
         @SubscribeEvent
         public static void onPlayerTickPost(PlayerTickEvent.Post event) {
             if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-            if (!sp.isUnderWater()) return;
+            // Gate on the eye being submerged — this is the exact condition under
+            // which vanilla baseTick depletes air. isUnderWater() additionally
+            // requires the body to be in water, which can flicker false while the
+            // eye stays under, causing the bubble bar to drain on the ticks where
+            // we fail to fire and reset air to max.
+            if (!sp.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
 
             boolean[] has = {false};
             ActiveOriginService.forEachOfType(sp, WaterBreathingPower.class, cfg -> has[0] = true);

@@ -1,0 +1,20 @@
+{
+  "_comment": "Example: only craftable while the player has the merling water-breathing power.",
+  "type": "neoorigins:origin_gated_crafting",
+  "gates": [
+    { "type": "neoorigins:has_power", "power": "neoorigins:merling_water_breathing" }
+  ],
+  "inner": {
+    "type": "minecraft:crafting_shaped",
+    "category": "misc",
+    "pattern": ["PPP", "PSP", "PPP"],
+    "key": {
+      "P": "minecraft:prismarine_shard",
+      "S": "minecraft:sponge"
+    },
+    "result": {
+      "id": "minecraft:wet_sponge",
+      "count": 1
+    }
+  }
+}

@@ -64,6 +64,16 @@ public class NeoOrigins {
         // Register TOML config (config/neoorigins-common.toml)
         modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
 
+        // Client TOML config (config/neoorigins-client.toml) — currently just
+        // the UI theme override. Registered on physical-client side only so the
+        // dedicated server doesn't manage a useless file.
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+            modContainer.registerConfig(ModConfig.Type.CLIENT,
+                com.cyberday1.neoorigins.client.NeoOriginsClientConfig.SPEC);
+            modEventBus.addListener(
+                com.cyberday1.neoorigins.client.NeoOriginsClientConfig::onConfigLoadOrReload);
+        }
+
         // Wire the auto-generated NeoForge config screen into the mod menu's
         // "Config" button. ConfigurationScreen + IConfigScreenFactory are
         // client-only types — load through a client-package trampoline so the
@@ -107,6 +117,9 @@ public class NeoOrigins {
         // Register the global-loot-modifier serializer for mob-origin drops.
         com.cyberday1.neoorigins.event.MobOriginLootModifiers.register(modEventBus);
 
+        // Register the origin-gated crafting recipe serializer.
+        com.cyberday1.neoorigins.recipe.OriginRecipeRegistry.register(modEventBus);
+
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
 
@@ -114,6 +127,12 @@ public class NeoOrigins {
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onRegisterRenderers);
+            // UI theme reload listener — client resources only (NOT server-side).
+            modEventBus.addListener(
+                (net.neoforged.neoforge.client.event.AddClientReloadListenersEvent ev) ->
+                    ev.addListener(
+                        net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "ui_themes"),
+                        com.cyberday1.neoorigins.client.theme.UIThemeManager.INSTANCE));
         }
 
         // Auto-register items from originpacks/ before the registry freezes
@@ -161,6 +180,13 @@ public class NeoOrigins {
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "origin_data"),      OriginDataManager.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "layer_data"),       LayerDataManager.INSTANCE);
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "mob_origin_data"),  com.cyberday1.neoorigins.data.MobOriginDataManager.INSTANCE);
+        // global_powers — Apoli apoli:global port. Grants powers to players/mobs
+        // without an origin. Registered AFTER mob_origin_data; only needs powers.
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "global_powers"),    com.cyberday1.neoorigins.data.GlobalPowerSetDataManager.INSTANCE);
+        // UI theming — addon packs declare which theme to use via
+        // data/<ns>/neoorigins/active_theme.json. Listener resolves the winner;
+        // the result is broadcast to clients at login and on datapack sync.
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "active_theme"),     com.cyberday1.neoorigins.data.ActiveThemeManager.INSTANCE);
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

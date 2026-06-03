@@ -3,6 +3,8 @@ package com.cyberday1.neoorigins.screen;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.client.ClientOriginState;
+import com.cyberday1.neoorigins.client.theme.PanelRenderer;
+import com.cyberday1.neoorigins.client.theme.UITheme;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
@@ -10,8 +12,6 @@ import com.cyberday1.neoorigins.screen.model.OriginListEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -28,17 +28,32 @@ public class OriginSelectionScreen extends Screen {
     private static final int PANEL_BTM_MARGIN = 32;
     private static final int SEARCH_H         = 16;
     private static final int SEARCH_GAP       = 3;
-    private static final int LIST_BTN_H       = 22;
-    private static final int LIST_BTN_GAP     = 2;
-    private static final int MIN_LEFT_W       = 130;
-    private static final int MAX_LEFT_W       = 200;
+    private static final int LIST_BTN_H       = 28;
+    /** Negative on purpose: the scroll texture's art occupies only the middle
+     *  ~13 of its 25px, leaving transparent top/bottom margins that stretch to
+     *  ~6–7px at this button height. Overlapping the rows by that much packs the
+     *  *opaque* scrolls to a tight ~4px visual gap without ever overlapping the
+     *  art itself (the overlap lands entirely in the transparent margins). */
+    private static final int LIST_BTN_GAP     = -9;
+    private static final int MIN_LEFT_W       = 120;
+    private static final int MAX_LEFT_W       = 160;
     private static final int PANEL_GAP        = 8;
     private static final int DETAIL_PAD       = 10;
+    /** Inset for widgets inside the parchment panel — must clear the
+     *  9-slice burnt-edge band (12px corners in {@link UITheme#PARCHMENT})
+     *  plus a few pixels of breathing room so the curl decoration stays
+     *  uninterrupted. */
+    private static final int PANEL_INSET      = 16;
+    /** Vertical padding from parchment top to the search box — same 12-px
+     *  burnt-edge clearance as {@link #PANEL_INSET}. */
+    private static final int SEARCH_TOP_PAD   = 16;
     private static final int HEADER_H         = DETAIL_PAD + 32 + 6 + 9 + 4 + 5 + 10; // 76
     private static final int DOT_SIZE         = 5;
     private static final int DOT_SPACING      = 8;
     private static final int DOT_COUNT        = 4;
     private static final int LINE_H           = 10;
+    /** Vertical gap between consecutive power entries in the detail panel. */
+    private static final int POWER_GAP        = 5;
 
     private final boolean isOrb;
     private final boolean forceReselect;
@@ -86,14 +101,21 @@ public class OriginSelectionScreen extends Screen {
         presenter.setSortMode(lastSortMode);
         if (!presenter.init()) { onClose(); return; }
         int totalW       = Math.max(280, width - 40);
-        leftW            = Mth.clamp((int)(totalW * 0.30f), MIN_LEFT_W, MAX_LEFT_W);
+        leftW            = Mth.clamp((int)(totalW * 0.24f), MIN_LEFT_W, MAX_LEFT_W);
         panelX           = (width - totalW) / 2;
         panelBottom      = height - PANEL_BTM_MARGIN;
         rightX           = panelX + leftW + PANEL_GAP;
         rightW           = totalW - leftW - PANEL_GAP;
         detailTextW      = rightW - DETAIL_PAD * 2 - 6;
-        listTop          = PANEL_TOP + SEARCH_H + SEARCH_GAP;
-        listVisibleCount = Math.max(1, (panelBottom - listTop) / (LIST_BTN_H + LIST_BTN_GAP));
+        listTop          = PANEL_TOP + SEARCH_TOP_PAD + SEARCH_H + SEARCH_GAP;
+        // Clamp the visible row count to the parchment *interior* — clearing the
+        // bottom burnt-edge curl (the same PANEL_INSET the detail panel respects
+        // for its scroll area) AND reserving the last row's full height. Using the
+        // raw panelBottom here let the bottom rows spill past the scroll onto the
+        // curl at low GUI scale / high resolution.
+        int listBottomLimit = panelBottom - PANEL_INSET;
+        int listRowStep     = LIST_BTN_H + listRowGap();
+        listVisibleCount = Math.max(1, (listBottomLimit - listTop - LIST_BTN_H) / listRowStep + 1);
         presenter.buildRows();
         refreshWidgets();
         updateDetail();
@@ -123,7 +145,10 @@ public class OriginSelectionScreen extends Screen {
     private void updateDetail() {
         detailViewModel = OriginDetailViewModel.compute(presenter.selectedOriginId());
         if (detailViewModel.origin() != null) {
-            descLines = font.split(detailViewModel.origin().description(), detailTextW);
+            // Wrap with themed() BEFORE splitting — Font.split bakes the style
+            // (including font selector) into each FormattedCharSequence, so the
+            // themed font has to be on the Component before the split runs.
+            descLines = font.split(themed(detailViewModel.origin().description()), detailTextW);
 
             // Pre-wrap power descriptions
             List<String> pDescs = detailViewModel.powerDescs();
@@ -133,7 +158,7 @@ public class OriginSelectionScreen extends Screen {
                 if (desc.isEmpty()) {
                     wrapped.add(List.of());
                 } else {
-                    wrapped.add(font.split(Component.literal(desc), powerDescW));
+                    wrapped.add(font.split(themed(Component.literal(desc)), powerDescW));
                 }
             }
             wrappedPowerDescs = wrapped;
@@ -148,13 +173,11 @@ public class OriginSelectionScreen extends Screen {
     }
 
     private int computeContentHeight() {
-        int h = 8 + descLines.size() * LINE_H + 4;
-        if (detailViewModel.origin() != null
-            && detailViewModel.origin().spawnLocation().isPresent()
+        int h = 8 + descLines.size() * LINE_H + 8; // separator + desc + gap
+        if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()
             && !detailViewModel.origin().spawnLocation().get().formatSummary().isEmpty()) {
             h += LINE_H;
         }
-        h += 8; // gap before Powers header
         List<String> pNames = detailViewModel.powerNames();
         if (!pNames.isEmpty()) {
             h += 9 + 4; // "Powers" header
@@ -163,6 +186,7 @@ public class OriginSelectionScreen extends Screen {
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     h += wrappedPowerDescs.get(i).size() * LINE_H;
                 }
+                h += POWER_GAP;
             }
         }
         return h + 6; // bottom padding
@@ -173,31 +197,27 @@ public class OriginSelectionScreen extends Screen {
         originButtons.clear();
         visibleHeaders.clear();
 
-        // Sort dropdown — vanilla CycleButton in the top-right of the screen,
-        // mirroring Mojang's Options-screen widgets. Display-only mode so the
-        // current sort label fills the button width. Width/position chosen
-        // so it doesn't collide with the centred layer title or the
-        // right-aligned "n / total" progress text.
-        var sortCycle = CycleButton.<OriginSelectionPresenter.SortMode>builder(
-                this::sortModeLabel, presenter.sortMode())
-            .withValues(OriginSelectionPresenter.SortMode.values())
-            .displayOnlyValue()
-            .create(
-                width - 10 - 110, 8, 110, 16,
-                Component.translatable("gui.neoorigins.sort.label"),
-                (b, value) -> {
-                    lastSortMode = value;
-                    presenter.setSortMode(value);
-                    presenter.buildRows();
-                    refreshWidgets();
-                });
+        // Sort cycle — parchment-skinned. Displays the current sort label
+        // and advances to the next mode on click. Width/position chosen so it
+        // doesn't collide with the centred layer title or the right-aligned
+        // "n / total" progress text.
+        var modes = OriginSelectionPresenter.SortMode.values();
+        var sortCycle = ParchmentButton.parchment(sortModeLabel(presenter.sortMode()), b -> {
+            var current = presenter.sortMode();
+            int next = (current.ordinal() + 1) % modes.length;
+            var nextMode = modes[next];
+            lastSortMode = nextMode;
+            presenter.setSortMode(nextMode);
+            presenter.buildRows();
+            refreshWidgets();
+        }).bounds(width - 10 - 110, 8, 110, 22).shortStyle(true).build();
         addRenderableWidget(sortCycle);
 
-        var search = new EditBox(font, panelX, PANEL_TOP + 1, leftW, SEARCH_H,
-            Component.translatable("gui.neoorigins.search.label"));
+        var search = new ParchmentEditBox(font, panelX + PANEL_INSET, PANEL_TOP + SEARCH_TOP_PAD, leftW - 2 * PANEL_INSET, SEARCH_H,
+            themed(Component.translatable("gui.neoorigins.search.label")));
         search.setMaxLength(64);
-        search.setHint(Component.translatable("gui.neoorigins.search.hint"));
-        search.setBordered(true);
+        search.setHint(themed(Component.translatable("gui.neoorigins.search.hint")));
+        search.setTextColor(UITheme.current().descriptionColor());
         search.setValue(presenter.searchText());
         search.setResponder(text -> { if (presenter.setSearch(text)) refreshWidgets(); });
         addRenderableWidget(search);
@@ -214,40 +234,66 @@ public class OriginSelectionScreen extends Screen {
                 Origin origin = OriginDataManager.INSTANCE.getOrigin(row.id());
                 if (origin != null) {
                     final Identifier rowId = row.id();
-                    var btn = new OriginButton(panelX, btnY, leftW, LIST_BTN_H, origin,
+                    var btn = new OriginButton(panelX + PANEL_INSET, btnY, leftW - 2 * PANEL_INSET, LIST_BTN_H, origin,
                         b -> selectOrigin(rowId));
                     btn.setSelected(rowId.equals(presenter.selectedOriginId()));
                     originButtons.add(btn);
                     addRenderableWidget(btn);
                 }
             }
-            btnY += LIST_BTN_H + LIST_BTN_GAP;
+            btnY += LIST_BTN_H + listRowGap();
         }
 
         var layer = presenter.currentLayer();
-        int cy = height - 24;
+        int cy = height - 32;
         int cx = width / 2;
 
-        var randomBtn = Button.builder(Component.translatable("button.neoorigins.random"), b -> {
+        var randomBtn = ParchmentButton.parchment(Component.translatable("button.neoorigins.random"), b -> {
             Identifier id = presenter.randomId();
             if (id != null) selectOrigin(id);
-        }).bounds(panelX, cy, 70, 20).build();
+        }).bounds(panelX, cy, 70, 28).build();
         randomBtn.visible = layer.allowRandom();
         addRenderableWidget(randomBtn);
 
-        var backBtn = Button.builder(Component.translatable("gui.neoorigins.button.back"), b -> {
+        var backBtn = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.back"), b -> {
             if (presenter.back()) advanceLayer();
-        }).bounds(cx - 92, cy, 80, 20).build();
+        }).bounds(cx - 92, cy, 80, 28).build();
         backBtn.active = presenter.currentLayerIndex() > 0;
         addRenderableWidget(backBtn);
 
-        confirmButton = Button.builder(Component.translatable("gui.neoorigins.button.confirm"), b -> confirmSelection())
-            .bounds(cx + 12, cy, 80, 20).build();
+        confirmButton = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.confirm"), b -> confirmSelection())
+            .bounds(cx + 12, cy, 80, 28).build();
         confirmButton.active = presenter.selectedOriginId() != null;
         addRenderableWidget(confirmButton);
     }
 
-    /** Translation-key label for a sort mode. */
+    /**
+     * Wraps a Component with the theme's font Style so a custom font provider
+     * (e.g. a user-supplied TTF) can take effect. The renderer stays the
+     * vanilla {@link net.minecraft.client.gui.Font}; the {@link Identifier}
+     * in the Style selects which font set is used.
+     */
+    private static Component themed(Component c) {
+        Identifier fid = UITheme.current().font();
+        return fid != null
+            ? c.copy().withStyle(s -> s.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid)))
+            : c;
+    }
+
+    /** Like {@link #themed} but also marks the Style as bold — used for the
+     *  detail-panel "Powers" section header and per-power name lines so the
+     *  TTF renderer picks up its synthesized bold weight. */
+    private static Component themedBold(Component c) {
+        Identifier fid = UITheme.current().font();
+        return c.copy().withStyle(s -> {
+            var styled = s.withBold(true);
+            return fid != null
+                ? styled.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid))
+                : styled;
+        });
+    }
+
+    /** Translation-key label for a sort mode, wrapped in the active theme font. */
     private Component sortModeLabel(OriginSelectionPresenter.SortMode mode) {
         String key = switch (mode) {
             case NAME_ASC   -> "gui.neoorigins.sort.name_asc";
@@ -255,35 +301,44 @@ public class OriginSelectionScreen extends Screen {
             case CLASS      -> "gui.neoorigins.sort.class";
             case IMPACT_ASC -> "gui.neoorigins.sort.impact";
         };
-        return Component.translatable(key);
+        return themed(Component.translatable(key));
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
-        g.fill(0, 0, width, height, 0xCC060610);
+        UITheme theme = UITheme.current();
+        // Full-screen scrim — kept dark behind the parchment panels. Painted
+        // first so it overpaints the vanilla screen background.
+        g.fill(0, 0, width, height, theme.overlayColor());
         if (presenter.isDone()) return;
 
-        var layerTitle = Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name());
-        g.centeredText(font, layerTitle, width / 2, 14, 0xFFFFFFFF);
-        String prog = (presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers();
-        g.text(font, prog, width - 10 - font.width(prog), 26, 0xFF555577, false);
+        // Title + progress sit on the dark scrim *outside* the parchment, so
+        // use a cream parchment-tone (not the dark brown headerColor used on
+        // the panels) to keep them readable.
+        final int SCRIM_TEXT = 0xFFEBD9B0;
+        var layerTitle = themedBold(Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name()));
+        // Manual centering with g.text keeps text clean (no forced drop shadow).
+        g.text(font, layerTitle, width / 2 - font.width(layerTitle) / 2, 14, SCRIM_TEXT, false);
+        Component progComp = themed(Component.literal((presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers()));
+        g.text(font, progComp, width - 10 - font.width(progComp), 32, SCRIM_TEXT, false);
 
-        g.fill(panelX - 1, PANEL_TOP - 1, panelX + leftW + 1, panelBottom + 1, 0xFF0E0E1C);
-        g.outline(panelX - 1, PANEL_TOP - 1, leftW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        // Left list panel — parchment 9-slice.
+        PanelRenderer.drawPanel(g, theme, panelX - 1, PANEL_TOP - 1, leftW + 2, panelBottom - PANEL_TOP + 2);
 
         for (var vh : visibleHeaders) {
-            g.fill(panelX, vh.y(), panelX + leftW, vh.y() + LIST_BTN_H, 0xFF080818);
-            g.fill(panelX, vh.y() + 5, panelX + 2, vh.y() + LIST_BTN_H - 5, 0xFF334488);
-            g.text(font, vh.label().toUpperCase(), panelX + 6, vh.y() + 7, 0xFF445577, false);
+            // Accent bar on the left edge of section headers.
+            g.fill(panelX + PANEL_INSET, vh.y() + 5, panelX + PANEL_INSET + 2, vh.y() + LIST_BTN_H - 5, theme.accentColor());
+            g.text(font, themed(Component.literal(vh.label().toUpperCase())), panelX + PANEL_INSET + 6, vh.y() + 7, theme.headerColor(), false);
         }
         // Scroll hint sits above the list panel so it doesn't collide with the
         // Random / Back / Confirm button row at the bottom.
         if (getMaxListScroll() > 0) {
-            var hint = Component.translatable("gui.neoorigins.hint.scroll");
+            var hint = themed(Component.translatable("gui.neoorigins.hint.scroll"));
             int hintY = PANEL_TOP - 10;
-            g.text(font, hint, panelX, hintY, 0xFF334466, false);
+            // Same cream parchment-tone as the title — readable on the scrim.
+            g.text(font, hint, panelX, hintY, 0xFFEBD9B0, false);
         }
 
         super.extractRenderState(g, mouseX, mouseY, partial);
@@ -291,12 +346,15 @@ public class OriginSelectionScreen extends Screen {
     }
 
     private void renderDetailPanel(GuiGraphicsExtractor g) {
-        g.fill(rightX, PANEL_TOP, rightX + rightW, panelBottom, 0xFF09091A);
-        g.outline(rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2, 0xFF252540);
+        UITheme theme = UITheme.current();
+        // Right detail panel — parchment 9-slice.
+        PanelRenderer.drawPanel(g, theme, rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2);
 
         if (detailViewModel.origin() == null) {
-            g.centeredText(font, Component.translatable("gui.neoorigins.hint.select"),
-                rightX + rightW / 2, PANEL_TOP + (panelBottom - PANEL_TOP) / 2 - 4, 0xFF333355);
+            var hint = themed(Component.translatable("gui.neoorigins.hint.select"));
+            g.text(font, hint,
+                rightX + rightW / 2 - font.width(hint) / 2,
+                PANEL_TOP + (panelBottom - PANEL_TOP) / 2 - 4, theme.mutedColor(), false);
             return;
         }
 
@@ -304,72 +362,75 @@ public class OriginSelectionScreen extends Screen {
         int cx = rightX + rightW / 2;
         int y  = PANEL_TOP + DETAIL_PAD;
 
-        g.fill(cx - 16, y, cx + 16, y + 32, 0xFF0D1830);
-        g.outline(cx - 16, y, 32, 32, 0xFF4A90D9);
+        g.outline(cx - 16, y, 32, 32, theme.borderColor());
         OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
         y += 32 + 6;
-        g.centeredText(font, origin.name(), cx, y, 0xFFFFFFFF);
+        var nameC = themedBold(origin.name());
+        g.text(font, nameC, cx - font.width(nameC) / 2, y, theme.nameColor(), false);
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
 
         int scrollTop    = PANEL_TOP + HEADER_H;
-        int scrollBottom = panelBottom - 2;
+        // Pull the bottom in so the rail clears the parchment burnt-edge curl.
+        int scrollBottom = panelBottom - PANEL_INSET;
         int scrollAreaH  = scrollBottom - scrollTop;
         int maxScroll    = Math.max(0, detailContentH - scrollAreaH);
         detailScrollOffset = Mth.clamp(detailScrollOffset, 0, maxScroll);
 
         g.enableScissor(rightX + 1, scrollTop, rightX + rightW - 5, scrollBottom);
         int sy = scrollTop - detailScrollOffset;
-        g.fill(rightX + DETAIL_PAD, sy + 3, rightX + rightW - DETAIL_PAD - 6, sy + 4, 0xFF252540);
+        g.fill(rightX + DETAIL_PAD, sy + 3, rightX + rightW - DETAIL_PAD - 6, sy + 4, theme.borderColor());
         sy += 8;
         for (FormattedCharSequence line : descLines) {
-            g.text(font, line, rightX + DETAIL_PAD, sy, 0xFF9999BB, false);
+            g.text(font, line, rightX + DETAIL_PAD, sy, theme.descriptionColor(), false);
             sy += LINE_H;
         }
-        sy += 4;
-        if (detailViewModel.origin() != null
-            && detailViewModel.origin().spawnLocation().isPresent()) {
+        if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()) {
             String spawnSummary = detailViewModel.origin().spawnLocation().get().formatSummary();
             if (!spawnSummary.isEmpty()) {
-                g.text(font, Component.literal(spawnSummary),
-                    rightX + DETAIL_PAD, sy, 0xFFFFAA55, false);
+                g.text(font, themed(Component.literal(spawnSummary)),
+                    rightX + DETAIL_PAD, sy, theme.accentColor(), false);
                 sy += LINE_H;
             }
         }
         sy += 8;
         List<String> pNames = detailViewModel.powerNames();
         if (!pNames.isEmpty()) {
-            g.text(font, Component.translatable("gui.neoorigins.detail.powers_header"), rightX + DETAIL_PAD, sy, 0xFFCCCCDD, false);
+            g.text(font, themedBold(Component.translatable("gui.neoorigins.detail.powers_header")), rightX + DETAIL_PAD, sy, theme.headerColor(), false);
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
-                g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, 0xFF4A90D9);
-                g.text(font, pNames.get(i), rightX + DETAIL_PAD + 8, sy, 0xFF7AACDA, false);
+                g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
+                g.text(font, themedBold(Component.literal(pNames.get(i))), rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
-                        g.text(font, dLine, rightX + DETAIL_PAD + 8, sy, 0xFF445566, false);
+                        g.text(font, dLine, rightX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
                         sy += LINE_H;
                     }
                 }
+                sy += POWER_GAP;
             }
         }
         g.disableScissor();
 
         if (maxScroll > 0) {
-            int barX   = rightX + rightW - 4;
-            int thumbH = Math.max(14, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
+            // Sit the scroll rail inside the parchment burnt-edge curl
+            // (PANEL_INSET) so it doesn't run off the curled paper border.
+            int barX   = rightX + rightW - PANEL_INSET;
+            int thumbH = Math.max(10, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
             int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
-            g.fill(barX, scrollTop, barX + 2, scrollBottom, 0xFF1A1A30);
-            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, 0xFF4A90D9);
+            g.fill(barX, scrollTop, barX + 1, scrollBottom, theme.borderColor());
+            g.fill(barX, thumbY, barX + 1, thumbY + thumbH, theme.accentColor());
         }
     }
 
     private void drawImpactRow(GuiGraphicsExtractor g, int cx, int y, Impact impact) {
+        UITheme theme = UITheme.current();
         int totalW = (DOT_COUNT - 1) * DOT_SPACING + DOT_SIZE;
         int x0     = cx - totalW / 2;
         for (int i = 0; i < DOT_COUNT; i++)
             g.fill(x0 + i * DOT_SPACING, y, x0 + i * DOT_SPACING + DOT_SIZE, y + DOT_SIZE,
-                i < impact.getDotCount() ? 0xFFFF8822 : 0xFF252540);
+                i < impact.getDotCount() ? theme.accentColor() : theme.borderColor());
         Component label = Component.translatable("origins.gui.impact.impact").append(": ")
             .append(switch (impact) {
                 case NONE   -> Component.translatable("origins.gui.impact.none");
@@ -377,7 +438,7 @@ public class OriginSelectionScreen extends Screen {
                 case MEDIUM -> Component.translatable("origins.gui.impact.medium");
                 case HIGH   -> Component.translatable("origins.gui.impact.high");
             });
-        g.text(font, label, cx + totalW / 2 + 6, y - 1, 0xFF666688, false);
+        g.text(font, themed(label), cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
     }
 
     // ── Scrolling ─────────────────────────────────────────────────────────────
@@ -390,7 +451,7 @@ public class OriginSelectionScreen extends Screen {
             return true;
         }
         if (mx >= rightX && mx <= rightX + rightW && my >= PANEL_TOP && my <= panelBottom) {
-            int scrollAreaH = (panelBottom - 2) - (PANEL_TOP + HEADER_H);
+            int scrollAreaH = (panelBottom - PANEL_INSET) - (PANEL_TOP + HEADER_H);
             int maxScroll   = Math.max(0, detailContentH - scrollAreaH);
             detailScrollOffset = Mth.clamp(detailScrollOffset + (sy > 0 ? -14 : 14), 0, maxScroll);
             return true;
@@ -402,7 +463,42 @@ public class OriginSelectionScreen extends Screen {
         return Math.max(0, presenter.filteredRows().size() - listVisibleCount);
     }
 
+    /**
+     * Vertical gap between consecutive list rows. The parchment scroll art has
+     * transparent top/bottom margins, so rows are overlapped ({@link #LIST_BTN_GAP}
+     * is negative) to pack the opaque scrolls to a tight ~4px visual gap. The flat
+     * skin paints solid rectangles with no transparent margin, so a negative step
+     * would make the rows literally overlap into one block — it needs a real
+     * positive gap instead.
+     */
+    private static int listRowGap() {
+        return UITheme.current().flat() ? 4 : LIST_BTN_GAP;
+    }
+
     @Override public boolean isPauseScreen() { return false; }
+
+    /**
+     * Lock players into the mandatory initial origin selection: ESC must not
+     * dismiss the screen until they have actually chosen. This is the fix for
+     * the divergence where the picker could be escaped on a dedicated server.
+     *
+     * <p>Escape stays allowed for the cases where backing out is intended:
+     * <ul>
+     *   <li>{@code isOrb} — an orb re-roll is voluntary and {@link #onClose()}
+     *       refunds/cancels it.</li>
+     *   <li>the player already has all origins (voluntary re-selection via the
+     *       editor / {@code /origin} command / VIEW_INFO recovery once done).</li>
+     *   <li>the local selection is already complete ({@code presenter.isDone()})
+     *       — by then {@code confirm()} normally closes the screen anyway; this
+     *       is just a safety net.</li>
+     * </ul>
+     */
+    @Override
+    public boolean shouldCloseOnEsc() {
+        if (isOrb) return true;
+        if (ClientOriginState.isHadAllOrigins()) return true;
+        return presenter.isDone();
+    }
 
     private static final net.minecraft.resources.Identifier CLASS_LAYER_ID =
         net.minecraft.resources.Identifier.fromNamespaceAndPath("neoorigins", "class");

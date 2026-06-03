@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -24,8 +25,14 @@ import java.util.Set;
  */
 public class IgnoreWaterPower extends PowerType<IgnoreWaterPower.Config> {
 
-    private static final Identifier MOD_WATER_SPEED =
-        Identifier.fromNamespaceAndPath("neoorigins", "ignore_water_speed");
+    /** Per-power modifier id so multiple ignore_water powers stack additively. */
+    private static Identifier modWaterSpeed() {
+        Identifier powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return Identifier.fromNamespaceAndPath("neoorigins", "ignore_water_" + key + "_speed");
+    }
 
     public record Config(String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -44,15 +51,16 @@ public class IgnoreWaterPower extends PowerType<IgnoreWaterPower.Config> {
     @Override
     public void onGranted(ServerPlayer player, Config config) {
         AttributeInstance inst = player.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY);
-        if (inst != null && inst.getModifier(MOD_WATER_SPEED) == null) {
+        Identifier modId = modWaterSpeed();
+        if (inst != null && inst.getModifier(modId) == null) {
             inst.addPermanentModifier(new AttributeModifier(
-                MOD_WATER_SPEED, 1.0, AttributeModifier.Operation.ADD_VALUE));
+                modId, 1.0, AttributeModifier.Operation.ADD_VALUE));
         }
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         AttributeInstance inst = player.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY);
-        if (inst != null) inst.removeModifier(MOD_WATER_SPEED);
+        if (inst != null) inst.removeModifier(modWaterSpeed());
     }
 }

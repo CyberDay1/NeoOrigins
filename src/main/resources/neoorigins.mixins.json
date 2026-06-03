@@ -23,7 +23,8 @@
     "PlayerPhaseOverrideMixin",
     "EntityMountPositionMixin",
     "AbstractVillagerTradePriceMixin",
-    "CraftingMenuCraftAmountMixin"
+    "CraftingMenuCraftAmountMixin",
+    "recipe.CraftingMenuOriginContextMixin"
   ],
   "client": [
     "client.LightTextureMixin",

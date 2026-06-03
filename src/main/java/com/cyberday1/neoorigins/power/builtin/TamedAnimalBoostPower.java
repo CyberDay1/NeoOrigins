@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -19,10 +20,16 @@ import net.minecraft.world.phys.AABB;
  */
 public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Config> {
 
-    private static final Identifier HEALTH_MOD_ID =
-        Identifier.fromNamespaceAndPath("neoorigins", "tamed_health_boost");
-    private static final Identifier SPEED_MOD_ID =
-        Identifier.fromNamespaceAndPath("neoorigins", "tamed_speed_boost");
+    /** Per-power modifier id so multiple tamed_animal_boost powers stack additively
+     *  on the boosted animals. The dispatch id is the granting player's power id and
+     *  is stable between the onTick apply and the onRevoked removal. */
+    private static Identifier modId(String suffix) {
+        Identifier powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return Identifier.fromNamespaceAndPath("neoorigins", "tamed_" + key + "_" + suffix);
+    }
 
     public record Config(float healthBonus, float speedBonus, double radius, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -40,6 +47,8 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % 60 != 0) return;
 
+        Identifier healthModId = modId("health_boost");
+        Identifier speedModId = modId("speed_boost");
         AABB area = player.getBoundingBox().inflate(config.radius());
         var animals = player.level().getEntitiesOfClass(Animal.class, area);
         for (Animal animal : animals) {
@@ -53,17 +62,17 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
             // every relog. onRevoked() still removes these by id, so the cleanup
             // path is unchanged.
             AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
-            if (healthAttr != null && healthAttr.getModifier(HEALTH_MOD_ID) == null) {
+            if (healthAttr != null && healthAttr.getModifier(healthModId) == null) {
                 healthAttr.addPermanentModifier(new AttributeModifier(
-                    HEALTH_MOD_ID, config.healthBonus(),
+                    healthModId, config.healthBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
                 animal.setHealth(animal.getMaxHealth());
             }
 
             AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
-            if (speedAttr != null && speedAttr.getModifier(SPEED_MOD_ID) == null) {
+            if (speedAttr != null && speedAttr.getModifier(speedModId) == null) {
                 speedAttr.addPermanentModifier(new AttributeModifier(
-                    SPEED_MOD_ID, config.speedBonus(),
+                    speedModId, config.speedBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
             }
         }
@@ -71,6 +80,8 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
+        Identifier healthModId = modId("health_boost");
+        Identifier speedModId = modId("speed_boost");
         AABB area = player.getBoundingBox().inflate(config.radius());
         var animals = player.level().getEntitiesOfClass(Animal.class, area);
         for (Animal animal : animals) {
@@ -79,10 +90,10 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
             if (owner == null || !player.getUUID().equals(owner.getUUID())) continue;
 
             AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
-            if (healthAttr != null) healthAttr.removeModifier(HEALTH_MOD_ID);
+            if (healthAttr != null) healthAttr.removeModifier(healthModId);
 
             AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
-            if (speedAttr != null) speedAttr.removeModifier(SPEED_MOD_ID);
+            if (speedAttr != null) speedAttr.removeModifier(speedModId);
         }
     }
 }

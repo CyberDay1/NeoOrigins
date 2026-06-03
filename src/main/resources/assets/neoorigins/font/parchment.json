@@ -1,0 +1,32 @@
+{
+  "_comment": [
+    "Font provider for the parchment UI theme.",
+    "",
+    "Bundled font: Newsreader 16pt Regular (static TTF)",
+    "  Source : https://github.com/productiontype/Newsreader",
+    "           fonts/static/ttf/Newsreader16pt-Regular.ttf",
+    "  Renamed to lowercase on disk because NeoForge's PathPackResources",
+    "  validator rejects uppercase letters in path segments (and the",
+    "  `Newsreader[opsz,wght].ttf` variable cut was rejected for the same",
+    "  reason — square brackets are also invalid segment chars).",
+    "  License: SIL Open Font License 1.1 (see OFL.txt in this directory).",
+    "           Per the OFL, OFL.txt MUST ship alongside the TTF binary in",
+    "           the same directory whenever the font is redistributed.",
+    "",
+    "Note: the variable TTF (Newsreader[opsz,wght].ttf) was tried first but",
+    "MC 1.21.1's TTF provider returned .notdef for every glyph against it,",
+    "so we ship the static 16pt Regular cut here instead. 16pt matches the",
+    "optical size the body-text UI uses.",
+    "",
+    "If the type looks oversized/tiny, tune `size`, `shift`, and `oversample`",
+    "below. The vanilla default is chained as a fallback so any glyph the",
+    "TTF doesn't cover (e.g. some symbols) still draws.",
+    "",
+    "Pack authors can override this file entirely from a resource pack to",
+    "swap in their own TTF or fall back to vanilla pixel text."
+  ],
+  "providers": [
+    { "type": "ttf", "file": "neoorigins:newsreader_regular.ttf", "shift": [0, 1], "size": 12, "oversample": 2, "skip": "" },
+    { "type": "reference", "id": "minecraft:default" }
+  ]
+}

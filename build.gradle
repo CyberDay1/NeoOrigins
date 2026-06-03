@@ -232,6 +232,31 @@ tasks.register('generatePowerSchema', JavaExec) {
     args 'docs/schema/power.schema.json'
 }
 
+// Regenerate action.schema.json + condition.schema.json from the BuiltinActions /
+// BuiltinConditions FieldSpec registries — the action/condition analogue of
+// generatePowerSchema (editor-metadata only; the parser path never reads these).
+// Run: ./gradlew generateActionConditionSchema   (writes both files)
+tasks.register('generateActionConditionSchema', JavaExec) {
+    group = 'neoorigins'
+    description = '[2] Regenerate docs/schema/{action,condition}.schema.json from the registries.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.ActionConditionSchemaGenerator'
+}
+
+// Parity gate: parse the committed action/condition schemas AND the registry-
+// generated ones through the production SchemaFormModel and diff per-id field
+// shapes. Fails on any MISSING/CHANGED so the registry-parity work is verifiable
+// and (once generation is the source of truth) drift is guarded.
+// Run: ./gradlew actionConditionSchemaCheck
+tasks.register('actionConditionSchemaCheck', JavaExec) {
+    group = 'neoorigins'
+    description = '[2] Diff committed vs registry-generated action/condition schemas via SchemaFormModel.'
+    dependsOn 'classes'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.ActionConditionSchemaCheck'
+}
+
 // ── 2.1 creator: package the power schema onto the runtime classpath ────────
 //
 // docs/schema/power.schema.json is the human-facing source of truth. The
@@ -247,6 +272,15 @@ processResources {
         into 'data/neoorigins/schema'
     }
     from('docs/schema/condition.schema.json') {
+        into 'data/neoorigins/schema'
+    }
+    from('docs/schema/block_condition.schema.json') {
+        into 'data/neoorigins/schema'
+    }
+    from('docs/schema/item_condition.schema.json') {
+        into 'data/neoorigins/schema'
+    }
+    from('docs/schema/item_action.schema.json') {
         into 'data/neoorigins/schema'
     }
     from('docs/schema/field_docs.json') {

@@ -79,6 +79,9 @@ public class NeoOriginsClientEvents {
 
     @SubscribeEvent
     public static void onLoggingOut(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        // Drop any datapack-declared theme so leaving a server doesn't leak its
+        // selection into the next world / main-menu screens.
+        com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry.clearServerDeclared();
         // Drop the cached template bundle — it's keyed to the server's loaded
         // origins, not to anything persistent on the client.
         ClientTemplateCache.clear();

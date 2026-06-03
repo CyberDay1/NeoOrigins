@@ -101,11 +101,28 @@ public class CompatAttachments {
         public Map<String, Integer> getAll() { return Map.copyOf(values); }
     }
 
-    /** Per-resource display metadata registered at parse time. */
-    public record ResourceMeta(int min, int max, String label, int color, boolean hidden) {
-        /** Convenience constructor — defaults to visible. */
+    /**
+     * Per-resource display metadata registered at parse time.
+     *
+     * <p>{@code barIndex}/{@code iconIndex} mirror Apoli's {@code hud_render}
+     * sprite indices into {@code neoorigins:textures/gui/resource_bar.png}; a
+     * value of {@code -1} means "unset" (the HUD then draws a {@code color}-tinted
+     * fill inside the bar frame instead of an Apoli sprite row).
+     */
+    public record ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                               int barIndex, int iconIndex, String spriteLocation) {
+        /** Convenience constructor — visible, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color) {
-            this(min, max, label, color, false);
+            this(min, max, label, color, false, -1, -1, null);
+        }
+        /** Convenience constructor — explicit visibility, no Apoli sprite indices. */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden) {
+            this(min, max, label, color, hidden, -1, -1, null);
+        }
+        /** Convenience constructor — Apoli sprite indices against the default sheet. */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                            int barIndex, int iconIndex) {
+            this(min, max, label, color, hidden, barIndex, iconIndex, null);
         }
     }
 
@@ -159,7 +176,9 @@ public class CompatAttachments {
             ResourceMeta meta = getResourceMeta(e.getKey());
             if (meta == null || meta.hidden()) continue;
             entries.put(e.getKey(), new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
-                e.getValue(), meta.min(), meta.max(), meta.label(), meta.color()));
+                e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
+                meta.barIndex(), meta.iconIndex(),
+                meta.spriteLocation() == null ? "" : meta.spriteLocation()));
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
             new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));

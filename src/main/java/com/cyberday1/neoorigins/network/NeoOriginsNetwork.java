@@ -166,6 +166,12 @@ public class NeoOriginsNetwork {
             NeoOriginsNetwork::handleOriginTemplates
         );
 
+        registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncActiveTheme
+        );
+
         registrar.playToServer(
             ChooseOriginPayload.TYPE,
             ChooseOriginPayload.STREAM_CODEC,
@@ -334,6 +340,26 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientResourceState.apply(payload.resources())
         );
+    }
+
+    private static void handleSyncActiveTheme(
+            com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload payload, IPayloadContext ctx) {
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() -> {
+            String raw = payload.themeId();
+            Identifier id = (raw == null || raw.isEmpty()) ? null : Identifier.tryParse(raw);
+            com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry.setServerDeclared(id);
+        });
+    }
+
+    /**
+     * Push the datapack-declared active UI theme to one player. The sentinel
+     * empty string means "no datapack declared a theme — fall back to default".
+     */
+    public static void syncActiveThemeToPlayer(ServerPlayer player) {
+        Identifier id = com.cyberday1.neoorigins.data.ActiveThemeManager.INSTANCE.getSelected();
+        PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload(id == null ? "" : id.toString()));
     }
 
     private static void handleSyncEvolutionConfig(SyncEvolutionConfigPayload payload, IPayloadContext ctx) {
@@ -1089,6 +1115,9 @@ public class NeoOriginsNetwork {
         data.incrementOrbUseCount();
         data.resetEvolution();
         data.setPendingOrbCommit(false);
+        // revokeAllPowers cleared the global-power ledger; re-grant matching
+        // global power sets so an orb reset preserves apoli:global powers.
+        com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
     }
 
     private static void shrinkOrbFromInventory(ServerPlayer sp) {

@@ -23,8 +23,10 @@ import net.minecraft.world.entity.LivingEntity;
  *       {@link ActionContextHolder}, then execute inner EntityAction on
  *       the actor.</li>
  *   <li>Wraps {@code target_action} as: if target is a ServerPlayer, run
- *       the inner EntityAction on it (with actor in context). Otherwise
- *       short-circuit — most EntityAction sub-types require a player.</li>
+ *       the inner EntityAction on it (with actor in context). For a non-player
+ *       {@link LivingEntity} target, run a {@link TargetAction} from
+ *       {@link TargetActionParser} for the entity-general verb subset (effects,
+ *       damage, fire, knockback, …); player-only verbs no-op on a mob target.</li>
  *   <li>Implements {@code damage}, {@code chance}, {@code and}, {@code invert}
  *       directly on the (actor, target) pair.</li>
  * </ul>
@@ -46,8 +48,22 @@ public final class BiEntityActionParser {
                 case "origins:damage",         "apoli:damage",         "apace:damage"         -> parseDamage(json);
                 case "origins:nothing",        "apoli:nothing"                                -> BiEntityAction.noop();
                 default -> {
-                    CompatWarningCollector.recordUnsupportedAction(type, contextId, "bientity_action");
-                    yield BiEntityAction.noop();
+                    // Loose packs nest plain entity-actions directly in a bientity
+                    // `and` (add_velocity, mount, if_else, spawn_particles, ...),
+                    // intending them to run on the ACTOR with the hit entity available
+                    // as the dispatch context. Fall back to that rather than no-op:
+                    // parse as an entity-action and run it on the actor, publishing the
+                    // target to ActionContextHolder. ActionParser canonicalizes the
+                    // prefix (origins:/apoli: -> neoorigins:) and itself records any
+                    // genuinely-unknown verb (e.g. sync:execute_command, which needs the
+                    // Sync mod) as unsupported — so this neither hides nor double-warns.
+                    EntityAction actorAction = ActionParser.parse(json, contextId);
+                    yield (actor, target) -> {
+                        Object prev = ActionContextHolder.set(
+                            new EventPowerIndex.EntityInteractContext(target));
+                        try { actorAction.execute(actor); }
+                        finally { ActionContextHolder.restore(prev); }
+                    };
                 }
             };
         } catch (Exception e) {
@@ -76,25 +92,34 @@ public final class BiEntityActionParser {
     }
 
     /**
-     * {@code target_action}: run an entity_action on the target. Since
-     * NeoOrigins's {@link EntityAction} surface is ServerPlayer-typed,
-     * this only fires when the target is itself a player (PvP-style
-     * scenarios). For non-player targets, a one-shot warning is logged
-     * via {@link CompatWarningCollector}.
+     * {@code target_action}: run an entity_action on the target.
+     *
+     * <p>When the target is a player, the full player-targeted
+     * {@link EntityAction} set runs on it (PvP-style scenarios). When the
+     * target is a non-player {@link LivingEntity} (e.g. the mob hit by a
+     * projectile / on-hit power), {@link TargetActionParser} provides a
+     * {@link TargetAction} for the subset of verbs whose effect is
+     * entity-general ({@code apply_effect}, {@code damage}, {@code set_on_fire},
+     * …) so those run against the mob. Player-only verbs ({@code grant_power},
+     * resources, inventory, …) are not generalizable, so on a mob target they
+     * silently no-op — the long-standing behaviour for that case.
      */
     private static BiEntityAction parseTargetAction(JsonObject json, String contextId) {
         JsonObject inner = json.has("action") && json.get("action").isJsonObject()
             ? json.getAsJsonObject("action") : null;
         if (inner == null) return BiEntityAction.noop();
-        EntityAction action = ActionParser.parse(inner, contextId);
+        EntityAction playerAction = ActionParser.parse(inner, contextId);
+        TargetAction mobAction = TargetActionParser.parse(inner, contextId);
         return (actor, target) -> {
             if (target instanceof ServerPlayer sp) {
                 Object prev = ActionContextHolder.set(new EventPowerIndex.EntityInteractContext(actor));
-                try { action.execute(sp); }
+                try { playerAction.execute(sp); }
                 finally { ActionContextHolder.restore(prev); }
+            } else if (mobAction != null) {
+                // Non-player target, generalizable verb — run it on the mob.
+                mobAction.execute(target, actor);
             }
-            // Non-player target — silently skip; warning would spam since this
-            // is the normal case for player-attacks-mob scenarios.
+            // Non-player target + non-generalizable (player-only) verb — skip.
         };
     }
 

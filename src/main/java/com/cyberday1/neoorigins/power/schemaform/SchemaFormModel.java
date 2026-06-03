@@ -44,6 +44,12 @@ public final class SchemaFormModel {
     /** Sibling classpath resources for the DSL action / condition schemas. */
     public static final String ACTION_RESOURCE_PATH    = "/data/neoorigins/schema/action.schema.json";
     public static final String CONDITION_RESOURCE_PATH = "/data/neoorigins/schema/condition.schema.json";
+    /** Reusable ref-doc sub-shapes (Step 3): nested block_condition picker. */
+    public static final String BLOCK_CONDITION_RESOURCE_PATH = "/data/neoorigins/schema/block_condition.schema.json";
+    /** Reusable ref-doc sub-shapes (Step 3): nested item_condition picker. */
+    public static final String ITEM_CONDITION_RESOURCE_PATH = "/data/neoorigins/schema/item_condition.schema.json";
+    /** Reusable ref-doc sub-shapes (Step 3): nested item_action picker. */
+    public static final String ITEM_ACTION_RESOURCE_PATH = "/data/neoorigins/schema/item_action.schema.json";
 
     /** Common fields every power shares (from root {@code properties}). */
     private final List<FormFieldSpec> commonFields = new ArrayList<>();
@@ -198,7 +204,24 @@ public final class SchemaFormModel {
             JsonObject items = p.getAsJsonObject("items");
             if (items.has("$ref")) itemsRef = items.get("$ref").getAsString();
         }
-        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef);
+
+        // An OBJECT with a FIXED set of inline `properties` (e.g. an item stack,
+        // an effect instance, hud_render) → render an inline sub-form: recurse
+        // into each child property the same way. Free-form objects (no
+        // `properties`) keep an empty child list and fall to the raw-JSON box.
+        List<FormFieldSpec> children = List.of();
+        if (kind == FormFieldSpec.Kind.OBJECT && p.has("properties")) {
+            JsonObject objProps = p.getAsJsonObject("properties");
+            Set<String> childReq = readRequired(p);
+            List<FormFieldSpec> kids = new ArrayList<>();
+            for (Map.Entry<String, JsonElement> e : objProps.entrySet()) {
+                if (e.getKey().equals("type")) continue;
+                kids.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
+                    childReq.contains(e.getKey())));
+            }
+            children = kids;
+        }
+        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children);
     }
 
     private static Object unwrap(JsonElement e) {

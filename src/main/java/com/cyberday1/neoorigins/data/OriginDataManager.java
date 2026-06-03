@@ -63,10 +63,15 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
             // Without this filter, the compat path tries to parse `data/<ns>/origins/powers/foo.json`
             // as a flat-layout origin and emits spurious "No key description; No key name" errors.
             // Verified 2026-05-28 via headless server boot with a class-type datapack.
+            // NOTE: `origins/` is intentionally NOT skipped here. Native neoorigins-namespace ids
+            // are already skipped above (line 61), so this guard only sees third-party compat packs.
+            // Such packs may nest origins at `data/<ns>/origins/origins/<name>.json` and reference
+            // them by their Origins-mod nested id `<ns>:origins/<name>`; skipping the `origins/`
+            // prefix would drop those, making their layers resolve to null and auto-skip in the picker.
             if (converter == COMPAT_CONVERTER) {
                 String path = id.getPath();
                 if (path.startsWith("powers/") || path.startsWith("origin_layers/")
-                        || path.startsWith("origins/") || path.startsWith("mob_origins/")) {
+                        || path.startsWith("mob_origins/")) {
                     continue;
                 }
             }
