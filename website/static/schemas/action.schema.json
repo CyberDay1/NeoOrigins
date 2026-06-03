@@ -20,6 +20,7 @@
         "apace:apply_effect",
         "apace:area_of_effect",
         "apace:block_action_at",
+        "apace:block_target_action",
         "apace:cancel_event",
         "apace:chain_to_nearest",
         "apace:chance",
@@ -32,7 +33,9 @@
         "apace:dash",
         "apace:delay",
         "apace:dismount",
+        "apace:drop_inventory",
         "apace:drop_items",
+        "apace:dye",
         "apace:effect_on_attacker",
         "apace:emit_game_event",
         "apace:equipped_item_action",
@@ -42,9 +45,11 @@
         "apace:extinguish",
         "apace:feed",
         "apace:fire_projectile",
+        "apace:force_drop",
         "apace:gain_air",
         "apace:give",
         "apace:grant_power",
+        "apace:grow",
         "apace:heal",
         "apace:if_else",
         "apace:if_else_list",
@@ -59,28 +64,39 @@
         "apace:nothing",
         "apace:offset",
         "apace:passenger_action",
+        "apace:path",
         "apace:play_sound",
         "apace:pull_entities",
         "apace:random_teleport",
         "apace:raycast",
         "apace:remove_from_set",
         "apace:revoke_power",
+        "apace:riding_action",
         "apace:set_block",
         "apace:set_fall_distance",
         "apace:set_on_fire",
         "apace:set_resource",
+        "apace:shear",
         "apace:spawn_black_hole",
         "apace:spawn_effect_cloud",
         "apace:spawn_entity",
         "apace:spawn_lingering_area",
+        "apace:spawn_particles",
         "apace:spawn_projectile",
         "apace:spawn_tornado",
+        "apace:steal_item",
+        "apace:strip",
+        "apace:swap_positions",
         "apace:swap_with_entity",
         "apace:swing_hand",
         "apace:target_action",
+        "apace:teleport_target_to_self",
         "apace:teleport_to_marker",
+        "apace:teleport_to_target",
         "apace:throw_target",
+        "apace:till",
         "apace:toggle",
+        "apace:transform_block",
         "apace:trigger_cooldown",
         "neoorigins:actor_action",
         "neoorigins:add_to_set",
@@ -90,6 +106,7 @@
         "neoorigins:apply_effect",
         "neoorigins:area_of_effect",
         "neoorigins:block_action_at",
+        "neoorigins:block_target_action",
         "neoorigins:cancel_event",
         "neoorigins:chain_to_nearest",
         "neoorigins:chance",
@@ -102,7 +119,9 @@
         "neoorigins:dash",
         "neoorigins:delay",
         "neoorigins:dismount",
+        "neoorigins:drop_inventory",
         "neoorigins:drop_items",
+        "neoorigins:dye",
         "neoorigins:effect_on_attacker",
         "neoorigins:emit_game_event",
         "neoorigins:equipped_item_action",
@@ -112,9 +131,11 @@
         "neoorigins:extinguish",
         "neoorigins:feed",
         "neoorigins:fire_projectile",
+        "neoorigins:force_drop",
         "neoorigins:gain_air",
         "neoorigins:give",
         "neoorigins:grant_power",
+        "neoorigins:grow",
         "neoorigins:heal",
         "neoorigins:if_else",
         "neoorigins:if_else_list",
@@ -129,28 +150,39 @@
         "neoorigins:nothing",
         "neoorigins:offset",
         "neoorigins:passenger_action",
+        "neoorigins:path",
         "neoorigins:play_sound",
         "neoorigins:pull_entities",
         "neoorigins:random_teleport",
         "neoorigins:raycast",
         "neoorigins:remove_from_set",
         "neoorigins:revoke_power",
+        "neoorigins:riding_action",
         "neoorigins:set_block",
         "neoorigins:set_fall_distance",
         "neoorigins:set_on_fire",
         "neoorigins:set_resource",
+        "neoorigins:shear",
         "neoorigins:spawn_black_hole",
         "neoorigins:spawn_effect_cloud",
         "neoorigins:spawn_entity",
         "neoorigins:spawn_lingering_area",
+        "neoorigins:spawn_particles",
         "neoorigins:spawn_projectile",
         "neoorigins:spawn_tornado",
+        "neoorigins:steal_item",
+        "neoorigins:strip",
+        "neoorigins:swap_positions",
         "neoorigins:swap_with_entity",
         "neoorigins:swing_hand",
         "neoorigins:target_action",
+        "neoorigins:teleport_target_to_self",
         "neoorigins:teleport_to_marker",
+        "neoorigins:teleport_to_target",
         "neoorigins:throw_target",
+        "neoorigins:till",
         "neoorigins:toggle",
+        "neoorigins:transform_block",
         "neoorigins:trigger_cooldown"
       ]
     }
@@ -379,6 +411,24 @@
         },
         "block_action": {
           "description": "Action run at the entity's block position (BlockPos published to context).",
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:block_target_action",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:block_target_action",
+            "apace:block_target_action"
+          ]
+        },
+        "action": {
+          "description": "Inner block-target verb to run on the resolved context block (strip/till/path/grow/transform_block).",
           "$ref": "#"
         }
       },
@@ -671,6 +721,35 @@
       ]
     },
     {
+      "$comment": "neoorigins:drop_inventory",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:drop_inventory",
+            "apace:drop_inventory"
+          ]
+        },
+        "inventory_type": {
+          "description": "Only 'inventory' (the vanilla player inventory) is supported; 'power' inventories no-op.",
+          "type": "string",
+          "default": "inventory"
+        },
+        "throw_randomly": {
+          "description": "Scatter the dropped items (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "retain_ownership": {
+          "description": "Tag drops with the thrower for pickup priority (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:drop_items",
       "properties": {
         "type": {
@@ -700,6 +779,24 @@
           "description": "Drop entries — each: {item, count (int|[min,max]), chance (each-mode), weight (one_of-mode)}.",
           "type": "array",
           "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:dye",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:dye",
+            "apace:dye"
+          ]
+        },
+        "color": {
+          "description": "Dye colour name to apply to the target (e.g. \"red\"). Dyes a sheep's wool; non-dyeable targets no-op.",
+          "type": "string"
         }
       },
       "required": [
@@ -905,6 +1002,25 @@
       ]
     },
     {
+      "$comment": "neoorigins:force_drop",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:force_drop",
+            "apace:force_drop"
+          ]
+        },
+        "slot": {
+          "description": "Equipment slot to drop from: mainhand/offhand/head/chest/legs/feet (default mainhand).",
+          "type": "string",
+          "default": "mainhand"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:gain_air",
       "properties": {
         "type": {
@@ -983,6 +1099,20 @@
         "source": {
           "description": "Apoli-style 'source' label; accepted but ignored by this implementation.",
           "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:grow",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:grow",
+            "apace:grow"
+          ]
         }
       },
       "required": [
@@ -1288,6 +1418,20 @@
       ]
     },
     {
+      "$comment": "neoorigins:path",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:path",
+            "apace:path"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:play_sound",
       "properties": {
         "type": {
@@ -1504,6 +1648,28 @@
       ]
     },
     {
+      "$comment": "neoorigins:riding_action",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:riding_action",
+            "apace:riding_action"
+          ]
+        },
+        "action": {
+          "description": "Action run on the entity the holder is riding (or use the `entity_action` alias).",
+          "$ref": "#"
+        },
+        "entity_action": {
+          "description": "Alias for action.",
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:set_block",
       "properties": {
         "type": {
@@ -1587,6 +1753,20 @@
         "change": {
           "description": "Alias for value.",
           "type": "integer"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:shear",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:shear",
+            "apace:shear"
+          ]
         }
       },
       "required": [
@@ -1744,6 +1924,51 @@
       ]
     },
     {
+      "$comment": "neoorigins:spawn_particles",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:spawn_particles",
+            "apace:spawn_particles"
+          ]
+        },
+        "particle": {
+          "description": "Particle id to spawn (simple/data-less particles only; dust/block/item no-op).",
+          "type": "string",
+          "default": "minecraft:poof"
+        },
+        "count": {
+          "description": "Number of particles (default 1).",
+          "type": "integer",
+          "default": 1,
+          "minimum": 0
+        },
+        "speed": {
+          "description": "Particle speed / extra-data scalar (default 0).",
+          "type": "number",
+          "default": 0.0,
+          "minimum": 0.0
+        },
+        "force": {
+          "description": "Apoli force-render flag (accepted; the server always broadcasts).",
+          "type": "boolean",
+          "default": false
+        },
+        "offset_y": {
+          "description": "Vertical offset from the player's feet (default 0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "spread": {
+          "description": "{x,y,z} per-axis gaussian spread radius (default 0).",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:spawn_projectile",
       "properties": {
         "type": {
@@ -1792,8 +2017,69 @@
           "$ref": "#"
         },
         "effect_type": {
-          "description": "Visual palette id for MagicOrb projectiles (client-side).",
+          "description": "Visual palette id for MagicOrb projectiles (client-side). Sets defaults for color/shape/trail_particle; explicit fields below override it.",
           "type": "string"
+        },
+        "orb_color": {
+          "description": "Core orb color. Accepts an RGB array [r,g,b] (0-255) or a hex string \"#RRGGBB\". Overrides the effect_type color.",
+          "type": "string"
+        },
+        "glow_color": {
+          "description": "Outer-glow color (RGB array [r,g,b] or hex \"#RRGGBB\"). Defaults to the orb_color when omitted.",
+          "type": "string"
+        },
+        "size": {
+          "description": "Core quad scale (renderer default 0.3).",
+          "type": "number",
+          "minimum": 0.0
+        },
+        "glow_size": {
+          "description": "Glow base scale (renderer default 0.7).",
+          "type": "number",
+          "minimum": 0.0
+        },
+        "glow_alpha": {
+          "description": "Glow halo opacity 0-255 (renderer default 140).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "shape": {
+          "description": "Procedural orb shape (default cross / effect_type default).",
+          "type": "string",
+          "enum": [
+            "cross",
+            "cube",
+            "ring",
+            "sphere"
+          ]
+        },
+        "trail_particle": {
+          "description": "Vanilla particle id for the flight trail (e.g. minecraft:witch). Overrides the effect_type trail.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+        },
+        "count": {
+          "description": "Trail particles emitted per tick (default 2).",
+          "type": "integer",
+          "default": 2,
+          "minimum": 0
+        },
+        "spread": {
+          "description": "Trail particle position spread (default 0.05).",
+          "type": "number",
+          "default": 0.05,
+          "minimum": 0.0
+        },
+        "trail_speed": {
+          "description": "Trail particle speed/velocity (default 0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "no_gravity": {
+          "description": "If true the projectile ignores gravity and flies straight along its launch vector (default false).",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1856,6 +2142,53 @@
       ]
     },
     {
+      "$comment": "neoorigins:steal_item",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:steal_item",
+            "apace:steal_item"
+          ]
+        },
+        "slot": {
+          "description": "Equipment slot to steal from: mainhand/offhand/head/chest/legs/feet (default mainhand). Item goes to the actor's inventory, or drops at the actor if full.",
+          "type": "string",
+          "default": "mainhand"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:strip",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:strip",
+            "apace:strip"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:swap_positions",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:swap_positions",
+            "apace:swap_positions"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:swap_with_entity",
       "properties": {
         "type": {
@@ -1903,8 +2236,22 @@
           ]
         },
         "action": {
-          "description": "Inner action to run on the dispatch target.",
+          "description": "Inner action to run on the resolved context target (player → full action; mob → entity-general subset).",
           "$ref": "#"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:teleport_target_to_self",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:teleport_target_to_self",
+            "apace:teleport_target_to_self"
+          ]
         }
       },
       "required": [
@@ -1964,6 +2311,20 @@
       ]
     },
     {
+      "$comment": "neoorigins:teleport_to_target",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:teleport_to_target",
+            "apace:teleport_to_target"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:throw_target",
       "properties": {
         "type": {
@@ -1994,6 +2355,20 @@
       ]
     },
     {
+      "$comment": "neoorigins:till",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:till",
+            "apace:till"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:toggle",
       "properties": {
         "type": {
@@ -2014,6 +2389,29 @@
       "required": [
         "type",
         "power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:transform_block",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:transform_block",
+            "apace:transform_block"
+          ]
+        },
+        "from": {
+          "description": "Optional block id guard; only transform when the impacted block matches (e.g. \"minecraft:stone\").",
+          "type": "string"
+        },
+        "to": {
+          "description": "Block id to set the impacted block to (e.g. \"minecraft:gold_block\").",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "to"
       ]
     },
     {
@@ -2055,6 +2453,7 @@
               "apace:apply_effect",
               "apace:area_of_effect",
               "apace:block_action_at",
+              "apace:block_target_action",
               "apace:cancel_event",
               "apace:chain_to_nearest",
               "apace:chance",
@@ -2067,7 +2466,9 @@
               "apace:dash",
               "apace:delay",
               "apace:dismount",
+              "apace:drop_inventory",
               "apace:drop_items",
+              "apace:dye",
               "apace:effect_on_attacker",
               "apace:emit_game_event",
               "apace:equipped_item_action",
@@ -2077,9 +2478,11 @@
               "apace:extinguish",
               "apace:feed",
               "apace:fire_projectile",
+              "apace:force_drop",
               "apace:gain_air",
               "apace:give",
               "apace:grant_power",
+              "apace:grow",
               "apace:heal",
               "apace:if_else",
               "apace:if_else_list",
@@ -2094,28 +2497,39 @@
               "apace:nothing",
               "apace:offset",
               "apace:passenger_action",
+              "apace:path",
               "apace:play_sound",
               "apace:pull_entities",
               "apace:random_teleport",
               "apace:raycast",
               "apace:remove_from_set",
               "apace:revoke_power",
+              "apace:riding_action",
               "apace:set_block",
               "apace:set_fall_distance",
               "apace:set_on_fire",
               "apace:set_resource",
+              "apace:shear",
               "apace:spawn_black_hole",
               "apace:spawn_effect_cloud",
               "apace:spawn_entity",
               "apace:spawn_lingering_area",
+              "apace:spawn_particles",
               "apace:spawn_projectile",
               "apace:spawn_tornado",
+              "apace:steal_item",
+              "apace:strip",
+              "apace:swap_positions",
               "apace:swap_with_entity",
               "apace:swing_hand",
               "apace:target_action",
+              "apace:teleport_target_to_self",
               "apace:teleport_to_marker",
+              "apace:teleport_to_target",
               "apace:throw_target",
+              "apace:till",
               "apace:toggle",
+              "apace:transform_block",
               "apace:trigger_cooldown",
               "neoorigins:actor_action",
               "neoorigins:add_to_set",
@@ -2125,6 +2539,7 @@
               "neoorigins:apply_effect",
               "neoorigins:area_of_effect",
               "neoorigins:block_action_at",
+              "neoorigins:block_target_action",
               "neoorigins:cancel_event",
               "neoorigins:chain_to_nearest",
               "neoorigins:chance",
@@ -2137,7 +2552,9 @@
               "neoorigins:dash",
               "neoorigins:delay",
               "neoorigins:dismount",
+              "neoorigins:drop_inventory",
               "neoorigins:drop_items",
+              "neoorigins:dye",
               "neoorigins:effect_on_attacker",
               "neoorigins:emit_game_event",
               "neoorigins:equipped_item_action",
@@ -2147,9 +2564,11 @@
               "neoorigins:extinguish",
               "neoorigins:feed",
               "neoorigins:fire_projectile",
+              "neoorigins:force_drop",
               "neoorigins:gain_air",
               "neoorigins:give",
               "neoorigins:grant_power",
+              "neoorigins:grow",
               "neoorigins:heal",
               "neoorigins:if_else",
               "neoorigins:if_else_list",
@@ -2164,28 +2583,39 @@
               "neoorigins:nothing",
               "neoorigins:offset",
               "neoorigins:passenger_action",
+              "neoorigins:path",
               "neoorigins:play_sound",
               "neoorigins:pull_entities",
               "neoorigins:random_teleport",
               "neoorigins:raycast",
               "neoorigins:remove_from_set",
               "neoorigins:revoke_power",
+              "neoorigins:riding_action",
               "neoorigins:set_block",
               "neoorigins:set_fall_distance",
               "neoorigins:set_on_fire",
               "neoorigins:set_resource",
+              "neoorigins:shear",
               "neoorigins:spawn_black_hole",
               "neoorigins:spawn_effect_cloud",
               "neoorigins:spawn_entity",
               "neoorigins:spawn_lingering_area",
+              "neoorigins:spawn_particles",
               "neoorigins:spawn_projectile",
               "neoorigins:spawn_tornado",
+              "neoorigins:steal_item",
+              "neoorigins:strip",
+              "neoorigins:swap_positions",
               "neoorigins:swap_with_entity",
               "neoorigins:swing_hand",
               "neoorigins:target_action",
+              "neoorigins:teleport_target_to_self",
               "neoorigins:teleport_to_marker",
+              "neoorigins:teleport_to_target",
               "neoorigins:throw_target",
+              "neoorigins:till",
               "neoorigins:toggle",
+              "neoorigins:transform_block",
               "neoorigins:trigger_cooldown"
             ]
           }

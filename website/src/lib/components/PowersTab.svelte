@@ -13,10 +13,21 @@
 	//     PowerEditor child surfaces a "(form fields reset)" inline toast.
 
 	import { base } from '$app/paths';
-	import { draft, powersView, type PowerDraft } from '$lib/stores/originDraft';
+	import type { Writable } from 'svelte/store';
+	import { draft as originDraftStore, powersView, type PowerDraft } from '$lib/stores/originDraft';
 	import { setRefSchemas, type RefSchemas } from '$lib/schema/refSchemaContext';
 	import PowerEditor from './power/PowerEditor.svelte';
 	import BlockCanvas from './power/block/BlockCanvas.svelte';
+
+	// Which draft store backs the powers list. Defaults to the player Origin
+	// draft so the Origin editor's `<PowersTab />` is unchanged; the Mob Origin
+	// editor passes its own store. Only the `powers` field is touched here, so
+	// any store whose value carries `powers: PowerDraft[]` works — the cast
+	// preserves the concrete store's other fields at runtime (the `{ ...d }`
+	// spread keeps them) while keeping this component store-shape-agnostic.
+	let {
+		powersStore = originDraftStore as unknown as Writable<{ powers: PowerDraft[] }>
+	}: { powersStore?: Writable<{ powers: PowerDraft[] }> } = $props();
 
 	// ── module-level schema cache ──────────────────────────────────────────────
 	// A single in-flight promise shared across tab mounts so we don't refetch
@@ -183,7 +194,7 @@
 
 	function addPower() {
 		const defaultType = schemaState.typeOptions[0] ?? 'neoorigins:attribute_modifier';
-		draft.update((d) => {
+		powersStore.update((d) => {
 			const id = nextPowerId(d.powers);
 			const next: PowerDraft = { id, type: defaultType, fields: {} };
 			return { ...d, powers: [...d.powers, next] };
@@ -191,7 +202,7 @@
 	}
 
 	function removePower(index: number) {
-		draft.update((d) => ({
+		powersStore.update((d) => ({
 			...d,
 			powers: d.powers.filter((_, i) => i !== index)
 		}));
@@ -206,7 +217,7 @@
 	}
 
 	function updatePowerId(index: number, id: string) {
-		draft.update((d) => ({
+		powersStore.update((d) => ({
 			...d,
 			powers: d.powers.map((p, i) => (i === index ? { ...p, id } : p))
 		}));
@@ -216,14 +227,14 @@
 		// WIPE fields on type change — the new branch's schema usually has a
 		// disjoint property set, and silently carrying stale fields produces
 		// invalid JSON downstream. The PowerEditor surfaces the inline toast.
-		draft.update((d) => ({
+		powersStore.update((d) => ({
 			...d,
 			powers: d.powers.map((p, i) => (i === index ? { ...p, type, fields: {} } : p))
 		}));
 	}
 
 	function updatePowerField(index: number, fieldName: string, value: unknown) {
-		draft.update((d) => ({
+		powersStore.update((d) => ({
 			...d,
 			powers: d.powers.map((p, i) =>
 				i === index ? { ...p, fields: { ...p.fields, [fieldName]: value } } : p
@@ -275,20 +286,20 @@
 			Confirm <code>static/schemas/power.schema.json</code> is present.
 		</p>
 	{:else if $powersView === 'blocks'}
-		<BlockCanvas powerSchema={schemaState.schema!} {refSchemas} />
-	{:else if $draft.powers.length === 0}
+		<BlockCanvas powerSchema={schemaState.schema!} {refSchemas} {powersStore} />
+	{:else if $powersStore.powers.length === 0}
 		<p class="empty">No powers yet. Click <strong>Add Power</strong> to add your first one.</p>
 	{:else}
 		<div class="list">
-			{#each $draft.powers as power, i (i)}
+			{#each $powersStore.powers as power, i (i)}
 				<PowerEditor
 					{power}
 					index={i}
 					typeOptions={schemaState.typeOptions}
 					schema={schemaState.schema!}
 					fieldDocs={schemaState.fieldDocs!}
-					collapsed={isCollapsed(i, $draft.powers.length)}
-					onToggleCollapsed={() => toggleCollapsed(i, $draft.powers.length)}
+					collapsed={isCollapsed(i, $powersStore.powers.length)}
+					onToggleCollapsed={() => toggleCollapsed(i, $powersStore.powers.length)}
 					onIdChange={(v) => updatePowerId(i, v)}
 					onTypeChange={(v) => updatePowerType(i, v)}
 					onFieldChange={(name, v) => updatePowerField(i, name, v)}

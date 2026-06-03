@@ -32,7 +32,12 @@ public class WaterBreathingPower extends PowerType<WaterBreathingPower.Config> {
         @SubscribeEvent
         public static void onBreathe(LivingBreatheEvent event) {
             if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-            if (!sp.isUnderWater()) return;
+            // Gate on the eye being submerged — this is the exact condition under
+            // which NeoForge depletes air (CommonHooks#onLivingBreathe keys off
+            // getEyeInFluidType()). isUnderWater() additionally requires the body
+            // to be in water, which can flicker false while the eye stays under,
+            // causing the bubble bar to drain on ticks where we fail to fire.
+            if (!sp.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
 
             boolean[] has = {false};
             ActiveOriginService.forEachOfType(sp, WaterBreathingPower.class, cfg -> has[0] = true);

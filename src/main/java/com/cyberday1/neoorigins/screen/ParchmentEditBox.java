@@ -33,8 +33,11 @@ public class ParchmentEditBox extends EditBox {
 
         // Warm parchment fill — match unselected OriginButton tones at idle and
         // bump to selected-button strength when focused so the search box reads
-        // as part of the same control column as the origin list below it.
-        int bg = isFocused() ? 0xCCB58040 : 0x66B58040;
+        // as part of the same control column as the origin list below it. In the
+        // flat classic skin, match the dark high-contrast OriginButton tones.
+        int bg = theme.flat()
+            ? (isFocused() ? 0xFF1E3A6E : 0xFF14141F)
+            : (isFocused() ? 0xCCB58040 : 0x66B58040);
         g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
 
         // Burnt-edge border — accent when focused.

@@ -344,6 +344,9 @@ public class OriginCommand {
         } else {
             data.clear();
         }
+        // revokeAllPowers cleared the global-power ledger; re-grant any matching
+        // global power sets so a reset doesn't strip apoli:global powers.
+        com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(player);
 
         NeoOriginsNetwork.syncRegistryToPlayer(player);
         NeoOriginsNetwork.syncToPlayer(player);

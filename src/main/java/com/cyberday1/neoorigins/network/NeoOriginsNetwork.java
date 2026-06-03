@@ -1186,6 +1186,9 @@ public class NeoOriginsNetwork {
         data.incrementOrbUseCount();
         data.resetEvolution();
         data.setPendingOrbCommit(false);
+        // revokeAllPowers cleared the global-power ledger; re-grant matching
+        // global power sets so an orb reset preserves apoli:global powers.
+        com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
     }
 
     private static void shrinkOrbFromInventory(ServerPlayer sp) {

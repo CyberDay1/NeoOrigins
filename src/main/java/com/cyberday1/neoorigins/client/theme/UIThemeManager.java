@@ -126,7 +126,9 @@ public class UIThemeManager extends SimpleJsonResourceReloadListener {
             intOr(o, "inset_right",  d.insetRight()),
             intOr(o, "inset_bottom", d.insetBottom()),
             intOr(o, "texture_width",  d.textureWidth()),
-            intOr(o, "texture_height", d.textureHeight())
+            intOr(o, "texture_height", d.textureHeight()),
+            o.has("flat") && o.get("flat").isJsonPrimitive() ? o.get("flat").getAsBoolean() : d.flat(),
+            argb(o, "panel_color", d.panelColor())
         );
     }
 

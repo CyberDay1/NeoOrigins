@@ -81,7 +81,14 @@
 								placeholder="mypack:wizard/tier_1"
 								autocomplete="off"
 								spellcheck="false"
+								aria-invalid={isInvalidResLoc(upg.advancement) || undefined}
+								aria-describedby={isInvalidResLoc(upg.advancement) ? `upg-adv-err-${i}` : undefined}
 							/>
+							{#if isInvalidResLoc(upg.advancement)}
+								<small class="err" id={`upg-adv-err-${i}`}>
+									Must be a valid resource location, e.g. <code>mypack:wizard/tier_1</code>.
+								</small>
+							{/if}
 						</div>
 						<div class="field">
 							<label class="lbl" for={`upg-origin-${i}`}>Next origin</label>
@@ -96,7 +103,14 @@
 								placeholder="mypack:archmage"
 								autocomplete="off"
 								spellcheck="false"
+								aria-invalid={isInvalidResLoc(upg.origin) || undefined}
+								aria-describedby={isInvalidResLoc(upg.origin) ? `upg-origin-err-${i}` : undefined}
 							/>
+							{#if isInvalidResLoc(upg.origin)}
+								<small class="err" id={`upg-origin-err-${i}`}>
+									Must be a valid resource location, e.g. <code>mypack:archmage</code>.
+								</small>
+							{/if}
 						</div>
 						<div class="field">
 							<label class="lbl" for={`upg-anno-${i}`}>Announcement (optional)</label>
@@ -192,6 +206,13 @@
 		color: var(--color-text);
 		font-size: 0.82rem;
 		font-weight: 500;
+	}
+	.err {
+		color: var(--color-danger);
+		font-size: 0.76rem;
+	}
+	.err code {
+		background: var(--color-bg);
 	}
 	code {
 		font-family: var(--font-mono);

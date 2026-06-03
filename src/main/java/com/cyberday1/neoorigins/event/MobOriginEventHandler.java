@@ -48,6 +48,19 @@ public final class MobOriginEventHandler {
 
     private MobOriginEventHandler() {}
 
+    /**
+     * Global power sets (apoli:global port) for mobs. Independent
+     * {@code @SubscribeEvent} so it always runs regardless of the
+     * origin-assignment handler's early returns (spawn-egg path, no candidates,
+     * etc.). Grants mob-applicable global powers once at spawn — already-spawned
+     * mobs pick up datapack changes only via respawn/reload (no live re-apply).
+     */
+    @SubscribeEvent
+    public static void onFinalizeSpawnGlobalPowers(FinalizeSpawnEvent event) {
+        if (!(event.getLevel() instanceof ServerLevel)) return;
+        com.cyberday1.neoorigins.service.GlobalPowerService.applyMobGlobalPowers(event.getEntity());
+    }
+
     @SubscribeEvent
     public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
         if (!(event.getLevel() instanceof ServerLevel sl)) return;

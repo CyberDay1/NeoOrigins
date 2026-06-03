@@ -180,6 +180,9 @@ public class NeoOrigins {
         event.addListener(OriginDataManager.INSTANCE);
         event.addListener(LayerDataManager.INSTANCE);
         event.addListener(com.cyberday1.neoorigins.data.MobOriginDataManager.INSTANCE);
+        // global_powers — Apoli apoli:global port. Grants powers to players/mobs
+        // without an origin. Registered AFTER mob_origin_data; only needs powers.
+        event.addListener(com.cyberday1.neoorigins.data.GlobalPowerSetDataManager.INSTANCE);
         // UI theming — addon packs declare which theme to use via
         // data/<ns>/neoorigins/active_theme.json. Listener resolves the winner;
         // the result is broadcast to clients at login and on datapack sync.

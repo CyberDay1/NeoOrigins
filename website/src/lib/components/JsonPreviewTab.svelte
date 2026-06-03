@@ -156,7 +156,7 @@
 		{/if}
 
 		{#if result.issues.length > 0}
-			<ul class="errors">
+			<ul class="errors" role="alert" aria-label="Validation errors">
 				{#each result.issues as issue, i (i)}
 					<li>
 						<span class="err-section">{issue.section}</span>
@@ -175,6 +175,7 @@
 			<button
 				type="button"
 				class="copy"
+				aria-label={`Copy ${bundle.originPath}`}
 				onclick={() => copy(formatJson(bundle.origin), 'origin')}
 			>
 				{copiedKey === 'origin' ? 'Copied' : 'Copy'}
@@ -193,6 +194,7 @@
 					<button
 						type="button"
 						class="copy"
+						aria-label={`Copy ${p.path}`}
 						onclick={() => copy(formatJson(p.json), `power-${p.id}`)}
 					>
 						{copiedKey === `power-${p.id}` ? 'Copied' : 'Copy'}

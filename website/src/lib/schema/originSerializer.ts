@@ -118,7 +118,7 @@ function pruneForWire(v: unknown): unknown {
 	return v;
 }
 
-function serializePower(
+export function serializePower(
 	power: PowerDraft,
 	namespace: string
 ): SerializedPowerEntry {

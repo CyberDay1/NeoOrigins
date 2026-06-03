@@ -31,16 +31,12 @@ public class OriginButton extends Button {
     public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         UITheme theme = UITheme.current();
 
-        // Background — warm parchment tones, slightly darker when selected,
-        // a hair lighter on hover. Alpha tuned so the underlying panel grain
-        // still bleeds through.
-        int bg = isSelected() ? 0xCCB58040 : (isHovered() ? 0x66B58040 : 0x33A88438);
-        g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-
-        // Burnt-edge border using the theme accent — full strength when
-        // selected, dimmed otherwise.
-        int border = isSelected() ? theme.accentColor() : (theme.borderColor() & 0x80FFFFFF);
-        g.renderOutline(getX(), getY(), getWidth(), getHeight(), border);
+        // Parchment scroll skin: rolled (closed) when resting, unrolled (open)
+        // when selected or hovered, with a warm glow on hover. Replaces the old
+        // flat fill + outline.
+        boolean active = isSelected() || isHovered();
+        ScrollButtonRenderer.draw(g, getX(), getY(), getWidth(), getHeight(),
+            active, isHovered(), 1.0f, true);
 
         // 16×16 icon
         renderIcon(g, origin.icon(), getX() + 3, getY() + (getHeight() - 16) / 2);
@@ -51,7 +47,11 @@ public class OriginButton extends Button {
         int textY = getY() + (getHeight() - 8) / 2;
         ResourceLocation fid = theme.font();
         Component label = fid != null ? origin.name().copy().withStyle(s -> s.withFont(fid)) : origin.name();
-        g.drawString(mc.font, label, getX() + 22, textY, nameColor, false);
+        // Centre the name across the full button width, but never let it slide
+        // left under the 16×16 icon (x+3..x+19) — long names fall back to a
+        // left-aligned x+22 so they stay clear of the icon and the right edge.
+        int textX = Math.max(getX() + 22, getX() + (getWidth() - mc.font.width(label)) / 2);
+        g.drawString(mc.font, label, textX, textY, nameColor, false);
     }
 
     /**

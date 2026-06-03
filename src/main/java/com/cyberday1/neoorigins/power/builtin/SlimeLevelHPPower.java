@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -16,8 +17,15 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
 
-    private static final ResourceLocation MOD_ID =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "slime_level_hp_bonus");
+    /** Per-power modifier id so multiple slime_level_hp powers stack additively
+     *  instead of sharing one fixed id (which would collapse to a single bonus). */
+    private static ResourceLocation modId() {
+        ResourceLocation powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return ResourceLocation.fromNamespaceAndPath("neoorigins", "slime_level_hp_" + key + "_bonus");
+    }
 
     public record Config(
         int levelsPerHP,
@@ -44,14 +52,15 @@ public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
         var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
         if (maxHpAttr == null) return;
 
-        var existing = maxHpAttr.getModifier(MOD_ID);
+        ResourceLocation modId = modId();
+        var existing = maxHpAttr.getModifier(modId);
         double currentBonus = existing != null ? existing.amount() : 0;
 
         if ((int) currentBonus != bonusHP) {
-            maxHpAttr.removeModifier(MOD_ID);
+            maxHpAttr.removeModifier(modId);
             if (bonusHP > 0) {
                 maxHpAttr.addTransientModifier(new AttributeModifier(
-                    MOD_ID, bonusHP, AttributeModifier.Operation.ADD_VALUE));
+                    modId, bonusHP, AttributeModifier.Operation.ADD_VALUE));
             }
         }
     }
@@ -59,6 +68,6 @@ public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
-        if (maxHpAttr != null) maxHpAttr.removeModifier(MOD_ID);
+        if (maxHpAttr != null) maxHpAttr.removeModifier(modId());
     }
 }

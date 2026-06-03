@@ -277,6 +277,10 @@ public final class FieldWidgetFactory {
             box = new EditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));
             box.setMaxLength(32767);
             if (spec.defaultValue() != null && !rawJson) box.setValue(String.valueOf(spec.defaultValue()));
+            // Raw-JSON fallback fields show a ghost placeholder of the expected
+            // shape so an empty box isn't a blank mystery — these have no guided
+            // widget, so the shape hint is the only in-line cue.
+            if (rawJson) box.setHint(Component.literal(rawJsonHint(spec)));
             parent.register(box);
             if (refKind != null) {
                 pick = Button.builder(Component.literal("pick"),
@@ -284,6 +288,16 @@ public final class FieldWidgetFactory {
                     .bounds(0, 0, 38, h).build();
                 parent.register(pick);
             }
+        }
+        /** Ghost placeholder showing the expected JSON shape for a raw-JSON fallback field. */
+        private static String rawJsonHint(FormFieldSpec spec) {
+            return switch (spec.kind()) {
+                case REF    -> "{ \"type\": … }";
+                case ARRAY  -> "[ … ]";
+                case OBJECT -> "{ … }";
+                case MIXED  -> "value or { … }";
+                default     -> "JSON";
+            };
         }
         @Override public void reposition(int fieldX, int y) {
             box.setPosition(fieldX, y);

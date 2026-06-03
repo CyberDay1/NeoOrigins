@@ -91,6 +91,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "apoli:overlay",
         "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
         "origins:modify_falling",       "apace:modify_falling",
+        "origins:modify_velocity",      "apace:modify_velocity",
         // Phase 8: Origins++ compat
         "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
         "origins:freeze",               "apace:freeze",
@@ -156,6 +157,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         com.cyberday1.neoorigins.service.InlineRecipeRegistry.resetPending();
         com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.clear();
 
+        // Rewrite apoli:/apugli: power types to the canonical origins: namespace
+        // before expansion + dispatch, so packs that use the Apoli namespace are
+        // recognized by ROUTE_B_TYPES (and apoli:multiple is expanded).
+        for (JsonElement el : data.values()) {
+            if (el.isJsonObject()) OriginsFormatDetector.canonicalizePowerType(el.getAsJsonObject());
+        }
+
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
         Map<ResourceLocation, JsonObject> expanded = inlineExpand(data);
 
@@ -166,7 +174,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         for (var entry : expanded.entrySet()) {
             ResourceLocation id   = entry.getKey();
             JsonObject json = entry.getValue();
-            String type = OriginsFormatDetector.getType(json);
+            // Canonicalize again to cover synthetic sub-powers emitted by
+            // multiple-expansion (their nested types never pass the pre-loop).
+            String type = OriginsFormatDetector.canonicalizePowerType(json);
 
             // modify_damage_taken/dealt are Route A types normally, but when a
             // condition is present we fall through to Route B so the condition
@@ -490,6 +500,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "apoli:overlay"                                                          -> parseOverlay(id, json);
             case "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier" -> parseModifyEffectAmplifier(id, json);
             case "origins:modify_falling",             "apace:modify_falling"             -> parseModifyFalling(id, json);
+            case "origins:modify_velocity",            "apace:modify_velocity"            -> parseModifyVelocity(id, json);
             // Phase 8: Origins++ compat
             case "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor" -> parseConditionedRestrictArmor(id, json);
             case "origins:freeze",                     "apace:freeze"                     -> parseFreeze(id, json);
@@ -697,7 +708,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .onTick(player -> {
                 boolean pressed = switch (finalKey) {
                     case "key.sneak"   -> player.isShiftKeyDown();
-                    case "key.use"     -> player.isUsingItem();
+                    // key.use = vanilla right-click. isUsingItem() only covers item-use
+                    // ANIMATIONS (food/bow/shield) and is never true for a tap right-click
+                    // on a plain/empty hand — which is how Apoli spell active_self powers
+                    // are cast. Read the right-click tick stamped by CompatEventPowers.
+                    case "key.use"     -> CompatPlayerState.isUseKeyDown(player);
                     case "key.attack"  -> player.swinging;
                     case "key.jump"    -> !player.onGround() && player.getDeltaMovement().y > 0;
                     case "key.forward" -> player.zza > 0;
@@ -861,13 +876,21 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String label = "Resource";
         int color = 0xFF55AAFF;
         boolean hidden = false;
+        // Apoli hud_render sprite indices into resource_bar.png; -1 == unset
+        // (HUD then draws a color-tinted fill inside the frame instead).
+        int barIndex = -1;
+        int iconIndex = -1;
+        // Apoli hud_render.sprite_location overrides which sheet the bar/icon render
+        // against (community packs ship restyled bars at the same coordinates). null
+        // == use our vendored default resource_bar.png. The referenced texture is
+        // normally provided by the source mod/datapack — we pass the id through verbatim.
+        String spriteLocation = null;
         // Boolean toggles (min=0, max=1) are internal state, not player-facing bars.
         if (min == 0 && max == 1) hidden = true;
         if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
             JsonObject hud = json.getAsJsonObject("hud_render");
-            if (hud.has("bar_index")) {
-                // Apoli hud_render has bar_index, sprite_location, condition — we
-                // use a flat color bar, so just derive a label from the power ID.
+            if (hud.has("sprite_location")) {
+                spriteLocation = hud.get("sprite_location").getAsString();
             }
             // Origins compat: should_render=false hides the bar
             if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
@@ -878,6 +901,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             if (hud.has("condition")) {
                 hidden = true;
             }
+            // Apoli sprite-sheet indices: bar_index picks the fill row,
+            // icon_index picks the icon column in resource_bar.png. Apoli
+            // defaults both to 0, so a hud_render block (even without explicit
+            // indices) renders with the real Apoli texture — only resources
+            // with NO hud_render keep -1 and fall back to a color-tinted fill.
+            barIndex  = hud.has("bar_index")  ? hud.get("bar_index").getAsInt()  : 0;
+            iconIndex = hud.has("icon_index") ? hud.get("icon_index").getAsInt() : 0;
         }
         // Derive a human-readable label from the power ID path segment.
         String path = id.getPath();
@@ -895,7 +925,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         label = sb.toString();
 
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(min, max, label, color, hidden));
+            new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation));
 
         return CompatPower.Config.builder()
             .onGranted(player -> {
@@ -1136,6 +1166,73 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (gravAttr != null) gravAttr.removeModifier(gravModId);
                 var fallAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SAFE_FALL_DISTANCE);
                 if (fallAttr != null) fallAttr.removeModifier(fallModId);
+            })
+            .build();
+    }
+
+    /**
+     * {@code apoli:modify_velocity} — per-axis value-modifier applied to the
+     * player's movement. Apoli applies this inside its {@code Entity.move}
+     * mixin, transforming the movement vector each step on the {@code axes}
+     * the power enables (default: all three).
+     *
+     * <p>This is a server-side approximation: each tick we read the player's
+     * delta movement, run the parsed modifiers through {@link OriginsModifierMath}
+     * on every enabled axis, write it back and flag {@code hurtMarked} so the
+     * change is synced to the client (the same mechanism {@link #parseLaunch}
+     * uses). A pixel-perfect port would need a shared {@code Entity.move} mixin
+     * plus client-synced power data; this loads + functions for the common
+     * speed/restriction cases without that subsystem.
+     */
+    private CompatPower.Config parseModifyVelocity(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        java.util.List<OriginsModifierMath.Modifier> mods = parseModifierList(json, "modifier");
+        if (mods.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_velocity '{}' missing modifier/modifiers — skipped", id);
+            return null;
+        }
+
+        // The condition gates whether the velocity transform applies this tick.
+        // CRITICAL: many real packs use modify_velocity to zero velocity (a "stop"
+        // effect) gated on a resource — applying it unconditionally would freeze
+        // the player. If the condition can't be parsed, fail closed (no-op power)
+        // rather than risk applying it always.
+        CompatPolicy.resetFailClosedCount();
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+        if (CompatPolicy.failClosedCount() > 0) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_velocity {} has unsupported condition(s) — refusing to compile", idStr);
+            return null;
+        }
+
+        // Apoli "axes" is an axis-set; default is all three. Accept the array
+        // form (["x","z"]) and treat a missing field as "all axes".
+        boolean applyX = true, applyY = true, applyZ = true;
+        if (json.has("axes") && json.get("axes").isJsonArray()) {
+            applyX = applyY = applyZ = false;
+            for (JsonElement el : json.getAsJsonArray("axes")) {
+                switch (el.getAsString().toLowerCase(java.util.Locale.ROOT)) {
+                    case "x" -> applyX = true;
+                    case "y" -> applyY = true;
+                    case "z" -> applyZ = true;
+                    default -> { /* ignore unknown axis token */ }
+                }
+            }
+        }
+        final boolean fx = applyX, fy = applyY, fz = applyZ;
+
+        return CompatPower.Config.builder()
+            .onTick(player -> {
+                if (!condition.test(player)) return;
+                Vec3 v = player.getDeltaMovement();
+                double nx = fx ? OriginsModifierMath.apply(v.x, mods) : v.x;
+                double ny = fy ? OriginsModifierMath.apply(v.y, mods) : v.y;
+                double nz = fz ? OriginsModifierMath.apply(v.z, mods) : v.z;
+                if (nx != v.x || ny != v.y || nz != v.z) {
+                    player.setDeltaMovement(nx, ny, nz);
+                    player.hurtMarked = true; // sync the velocity change to the client
+                }
             })
             .build();
     }
@@ -1483,10 +1580,17 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parsePreventItemUse(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
+        // The power-level `condition` is the HOLDER gate (e.g. mainhand empty +
+        // offhand holds a spell item). `item_condition` is the TARGET gate (which
+        // item is being used). Both must be honoured, or the prevention fires
+        // unconditionally — which is exactly the Mage "blocks randomly" bug.
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
         var itemPred = json.has("item_condition")
             ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
-        var data = CompatPlayerState.EventPowerData.withItemPredicate(
-            idStr, CompatPlayerState.EventType.PREVENT_ITEM_USE, itemPred);
+        var data = new CompatPlayerState.EventPowerData(
+            idStr, CompatPlayerState.EventType.PREVENT_ITEM_USE,
+            condition, itemPred, null, null);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
@@ -1570,10 +1674,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parsePreventBlockUse(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
+        // Power-level `condition` = HOLDER gate; `block_condition` = TARGET (block)
+        // gate. Dropping the holder gate made block-use prevention fire whenever
+        // the power was granted (the Mage "can't place blocks" bug).
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
         var blockPred = json.has("block_condition")
             ? compileBlockPredicate(json.getAsJsonObject("block_condition")) : null;
-        var data = CompatPlayerState.EventPowerData.withBlockPredicate(
-            idStr, CompatPlayerState.EventType.PREVENT_BLOCK_USE, blockPred);
+        var data = new CompatPlayerState.EventPowerData(
+            idStr, CompatPlayerState.EventType.PREVENT_BLOCK_USE,
+            condition, null, blockPred, null);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))

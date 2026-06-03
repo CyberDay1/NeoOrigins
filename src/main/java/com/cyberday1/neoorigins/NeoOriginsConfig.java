@@ -927,6 +927,29 @@ public final class NeoOriginsConfig {
     public static ConsentMode mountConsentMode() { return MOUNT_CONSENT_MODE.get(); }
     public static int mountRequestTimeoutSeconds() { return MOUNT_REQUEST_TIMEOUT_SECONDS.get(); }
 
+    // ── UI ──────────────────────────────────────────────────────────────
+    // Visual style fallback for the origin/class selection screens.
+
+    public static final ModConfigSpec.BooleanValue CLASSIC_PICKER_STYLE;
+
+    static {
+        BUILDER.comment(
+            "User-interface style options."
+        ).push("ui");
+
+        CLASSIC_PICKER_STYLE = BUILDER
+            .comment("Revert the origin/class selection screens to the original flat",
+                     "high-contrast style (dark panels, light text, vanilla font) instead",
+                     "of the parchment scroll skin. Enable this if the parchment theme's",
+                     "low-contrast brown-on-paper text is hard to read.")
+            .define("classic_picker_style", false);
+
+        BUILDER.pop();
+    }
+
+    /** True if the selection screens should use the original flat high-contrast skin. */
+    public static boolean isClassicPickerStyle() { return CLASSIC_PICKER_STYLE.get(); }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     public static RandomMode getRandomMode() {

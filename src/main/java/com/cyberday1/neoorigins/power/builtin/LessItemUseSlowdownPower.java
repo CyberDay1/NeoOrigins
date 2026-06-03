@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -17,8 +18,14 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class LessItemUseSlowdownPower extends PowerType<LessItemUseSlowdownPower.Config> {
 
-    private static final ResourceLocation MODIFIER_ID =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "less_item_use_slowdown");
+    /** Per-power modifier id so multiple less_item_use_slowdown powers stack additively. */
+    private static ResourceLocation modId() {
+        ResourceLocation powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return ResourceLocation.fromNamespaceAndPath("neoorigins", "less_item_use_" + key + "_slowdown");
+    }
 
     public record Config(String itemType, float speedMultiplier, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -39,15 +46,16 @@ public class LessItemUseSlowdownPower extends PowerType<LessItemUseSlowdownPower
         boolean using = player.isUsingItem();
         boolean matches = using && matchesItem(player, config.itemType());
 
+        ResourceLocation modId = modId();
         if (matches) {
-            if (speedAttr.getModifier(MODIFIER_ID) == null) {
+            if (speedAttr.getModifier(modId) == null) {
                 speedAttr.addTransientModifier(new AttributeModifier(
-                    MODIFIER_ID, config.speedMultiplier(),
+                    modId, config.speedMultiplier(),
                     AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
             }
         } else {
-            if (speedAttr.getModifier(MODIFIER_ID) != null) {
-                speedAttr.removeModifier(MODIFIER_ID);
+            if (speedAttr.getModifier(modId) != null) {
+                speedAttr.removeModifier(modId);
             }
         }
     }
@@ -55,7 +63,7 @@ public class LessItemUseSlowdownPower extends PowerType<LessItemUseSlowdownPower
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         AttributeInstance speedAttr = player.getAttribute(Attributes.MOVEMENT_SPEED);
-        if (speedAttr != null) speedAttr.removeModifier(MODIFIER_ID);
+        if (speedAttr != null) speedAttr.removeModifier(modId());
     }
 
     private boolean matchesItem(ServerPlayer player, String itemType) {

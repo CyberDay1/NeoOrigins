@@ -7,13 +7,25 @@
 	// enum), so modded/datapack biome ids work by construction.
 
 	import type { ArrayStringFieldSpec } from '$lib/schema/FormFieldSpec';
+	import { vanilla, ensureVanilla } from '$lib/data/vanilla';
+	import { suggestionsFor } from '$lib/data/suggestionKind';
+	import { targetVersion } from '$lib/stores/originDraft';
+	import SuggestInput from '$lib/widgets/SuggestInput.svelte';
 
 	let {
 		field,
 		value = $bindable()
 	}: { field: ArrayStringFieldSpec; value: string[] | null } = $props();
 
+	const id = $derived(`arr-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+	const patId = $derived(`${id}-pat`);
 	const items = $derived(Array.isArray(value) ? value : []);
+
+	// Vanilla typeahead shared across every element input (e.g. an `entity_types`
+	// or `biomes` list). Each element uses SuggestInput's custom dropdown; with no
+	// matching list it degrades to a plain text input.
+	let suggestions = $derived(suggestionsFor(field.name, $vanilla));
+	$effect(() => ensureVanilla($targetVersion));
 
 	function addElem() {
 		value = [...items, ''];
@@ -30,7 +42,7 @@
 
 <div class="arr">
 	<div class="arr-head">
-		<span class="lbl">
+		<span class="lbl" {id}>
 			{field.label}
 			{#if field.required}<span class="req" aria-label="required">*</span>{/if}
 			<span class="kind">[string[]]</span>
@@ -42,23 +54,23 @@
 		<small class="desc">{field.description}</small>
 	{/if}
 	{#if field.pattern}
-		<small class="hint">Pattern: <code>{field.pattern}</code></small>
+		<small class="hint" id={patId}>Pattern: <code>{field.pattern}</code></small>
 	{/if}
 
 	{#if items.length === 0}
 		<small class="empty">None yet.</small>
 	{:else}
-		<div class="nested">
+		<div class="nested" role="group" aria-labelledby={id}>
 			{#each items as item, i (i)}
 				<div class="elem">
-					<input
-						type="text"
-						class="txt"
-						class:invalid={field.pattern && item !== '' && !new RegExp(field.pattern).test(item)}
+					<SuggestInput
 						value={item}
-						oninput={(e) => setElem(i, e.currentTarget.value)}
-						aria-label={`${field.label} #${i + 1}`}
-						pattern={field.pattern ?? undefined}
+						{suggestions}
+						invalid={!!(field.pattern && item !== '' && !new RegExp(field.pattern).test(item))}
+						ariaDescribedby={field.pattern ? patId : undefined}
+						mono={false}
+						ariaLabel={`${field.label} #${i + 1}`}
+						oninput={(v) => setElem(i, v)}
 					/>
 					<button
 						type="button"
@@ -146,26 +158,9 @@
 		align-items: center;
 		gap: var(--space-2);
 	}
-	.txt {
+	.elem :global(.sg-combo) {
 		flex: 1;
 		min-width: 0;
-		background: var(--color-bg-subtle);
-		color: var(--color-text);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		padding: 0.3rem 0.5rem;
-		font: inherit;
-		font-size: 0.85rem;
-	}
-	.txt:hover {
-		border-color: var(--color-border-strong);
-	}
-	.txt:focus {
-		border-color: var(--color-accent);
-		background: var(--color-surface);
-	}
-	.txt.invalid {
-		border-color: var(--color-danger);
 	}
 	.remove {
 		background: transparent;

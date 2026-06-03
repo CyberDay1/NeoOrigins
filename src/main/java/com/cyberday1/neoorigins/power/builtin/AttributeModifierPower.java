@@ -327,6 +327,47 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         }
     }
 
+    /**
+     * Layer-aware orphan sweep. Removes every {@code neoorigins:power_*} modifier
+     * whose owning power is NOT in {@code activePowerIds}, leaving modifiers from
+     * still-active powers untouched.
+     *
+     * <p>This is the safe counterpart to {@link #purgeAllOriginModifiers} for the
+     * per-layer grant/revoke path ({@code ActiveOriginService.applyOriginPowers}).
+     * The blanket wipe nukes modifiers from EVERY layer, but that path only
+     * re-grants the one layer it changes — so a player-wide purge silently drops
+     * the OTHER layers' attribute boosts (e.g. picking/changing a class would wipe
+     * the origin layer's +HP and never restore it). Scoping the sweep to the
+     * player's full active set across all layers keeps cross-layer modifiers while
+     * still catching genuine orphans (power JSON edited/removed since the grant).
+     *
+     * <p>The {@code keep} test mirrors the {@link #modIdFor} format: each active
+     * power contributes the prefix {@code power_<powerKey>_}; a modifier survives
+     * iff its path starts with one of those prefixes.
+     */
+    public static void purgeOriginModifiersExcept(net.minecraft.world.entity.LivingEntity entity,
+            java.util.Set<ResourceLocation> activePowerIds) {
+        java.util.Set<String> keepPrefixes = new java.util.HashSet<>();
+        for (ResourceLocation id : activePowerIds) keepPrefixes.add("power_" + powerKeyFor(id) + "_");
+        for (var attribute : BuiltInRegistries.ATTRIBUTE) {
+            var holder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attribute);
+            AttributeInstance instance = entity.getAttribute(holder);
+            if (instance == null) continue;
+            java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
+            for (AttributeModifier m : instance.getModifiers()) {
+                ResourceLocation id = m.id();
+                if (!"neoorigins".equals(id.getNamespace())) continue;
+                if (!id.getPath().startsWith("power_")) continue;
+                boolean keep = false;
+                for (String prefix : keepPrefixes) {
+                    if (id.getPath().startsWith(prefix)) { keep = true; break; }
+                }
+                if (!keep) stale.add(id);
+            }
+            for (ResourceLocation id : stale) instance.removeModifier(id);
+        }
+    }
+
     /** Resolves the attribute with prefix tolerance. 1.21.1 registers attributes
      *  with generic./player. prefixes; 26.1 registers them without. Try both
      *  directions so pack JSON is portable. */
@@ -388,14 +429,24 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         // Golem Natural Armor both granting +6 armor ADD_VALUE — produce
         // distinct modifier IDs and stack instead of de-duping.
         ResourceLocation powerId = com.cyberday1.neoorigins.api.power.PowerHolder.currentDispatchId();
-        String powerKey = powerId == null
-            ? "anon"
-            : (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_').replace(':', '_');
+        String powerKey = powerKeyFor(powerId);
         int h = Double.hashCode(config.amount());
         return ResourceLocation.fromNamespaceAndPath(
             "neoorigins",
             "power_" + powerKey + "_" + attrId.getPath() + "_"
                 + config.operation().name().toLowerCase(java.util.Locale.ROOT) + "_"
                 + Integer.toHexString(h));
+    }
+
+    /**
+     * Stable {@code powerKey} segment used in every modifier ID. Folds the power's
+     * own id into the key so two different powers granting the same
+     * (attribute, operation, amount) produce distinct modifier IDs and stack.
+     * {@code null} (no dispatch context) collapses to {@code "anon"}.
+     */
+    static String powerKeyFor(ResourceLocation powerId) {
+        return powerId == null
+            ? "anon"
+            : (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_').replace(':', '_');
     }
 }

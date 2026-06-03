@@ -29,8 +29,13 @@ public class OriginSelectionScreen extends Screen {
     private static final int PANEL_BTM_MARGIN = 32;
     private static final int SEARCH_H         = 16;
     private static final int SEARCH_GAP       = 3;
-    private static final int LIST_BTN_H       = 22;
-    private static final int LIST_BTN_GAP     = 2;
+    private static final int LIST_BTN_H       = 28;
+    /** Negative on purpose: the scroll texture's art occupies only the middle
+     *  ~13 of its 25px, leaving transparent top/bottom margins that stretch to
+     *  ~6–7px at this button height. Overlapping the rows by that much packs the
+     *  *opaque* scrolls to a tight ~4px visual gap without ever overlapping the
+     *  art itself (the overlap lands entirely in the transparent margins). */
+    private static final int LIST_BTN_GAP     = -9;
     private static final int MIN_LEFT_W       = 120;
     private static final int MAX_LEFT_W       = 160;
     private static final int PANEL_GAP        = 8;
@@ -104,7 +109,14 @@ public class OriginSelectionScreen extends Screen {
         rightW           = totalW - leftW - PANEL_GAP;
         detailTextW      = rightW - DETAIL_PAD * 2 - 6;
         listTop          = PANEL_TOP + SEARCH_TOP_PAD + SEARCH_H + SEARCH_GAP;
-        listVisibleCount = Math.max(1, (panelBottom - listTop) / (LIST_BTN_H + LIST_BTN_GAP));
+        // Clamp the visible row count to the parchment *interior* — clearing the
+        // bottom burnt-edge curl (the same PANEL_INSET the detail panel respects
+        // for its scroll area) AND reserving the last row's full height. Using the
+        // raw panelBottom here let the bottom rows spill past the scroll onto the
+        // curl at low GUI scale / high resolution.
+        int listBottomLimit = panelBottom - PANEL_INSET;
+        int listRowStep     = LIST_BTN_H + listRowGap();
+        listVisibleCount = Math.max(1, (listBottomLimit - listTop - LIST_BTN_H) / listRowStep + 1);
         presenter.buildRows();
         refreshWidgets();
         updateDetail();
@@ -199,7 +211,7 @@ public class OriginSelectionScreen extends Screen {
             presenter.setSortMode(nextMode);
             presenter.buildRows();
             refreshWidgets();
-        }).bounds(width - 10 - 110, 8, 110, 16).build();
+        }).bounds(width - 10 - 110, 8, 110, 22).shortStyle(true).build();
         addRenderableWidget(sortCycle);
 
         var search = new ParchmentEditBox(font, panelX + PANEL_INSET, PANEL_TOP + SEARCH_TOP_PAD, leftW - 2 * PANEL_INSET, SEARCH_H,
@@ -230,28 +242,28 @@ public class OriginSelectionScreen extends Screen {
                     addRenderableWidget(btn);
                 }
             }
-            btnY += LIST_BTN_H + LIST_BTN_GAP;
+            btnY += LIST_BTN_H + listRowGap();
         }
 
         var layer = presenter.currentLayer();
-        int cy = height - 24;
+        int cy = height - 32;
         int cx = width / 2;
 
         var randomBtn = ParchmentButton.parchment(Component.translatable("button.neoorigins.random"), b -> {
             ResourceLocation id = presenter.randomId();
             if (id != null) selectOrigin(id);
-        }).bounds(panelX, cy, 70, 20).build();
+        }).bounds(panelX, cy, 70, 28).build();
         randomBtn.visible = layer.allowRandom();
         addRenderableWidget(randomBtn);
 
         var backBtn = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.back"), b -> {
             if (presenter.back()) advanceLayer();
-        }).bounds(cx - 92, cy, 80, 20).build();
+        }).bounds(cx - 92, cy, 80, 28).build();
         backBtn.active = presenter.currentLayerIndex() > 0;
         addRenderableWidget(backBtn);
 
         confirmButton = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.confirm"), b -> confirmSelection())
-            .bounds(cx + 12, cy, 80, 20).build();
+            .bounds(cx + 12, cy, 80, 28).build();
         confirmButton.active = presenter.selectedOriginId() != null;
         addRenderableWidget(confirmButton);
     }
@@ -453,7 +465,42 @@ public class OriginSelectionScreen extends Screen {
         return Math.max(0, presenter.filteredRows().size() - listVisibleCount);
     }
 
+    /**
+     * Vertical gap between consecutive list rows. The parchment scroll art has
+     * transparent top/bottom margins, so rows are overlapped ({@link #LIST_BTN_GAP}
+     * is negative) to pack the opaque scrolls to a tight ~4px visual gap. The flat
+     * skin paints solid rectangles with no transparent margin, so a negative step
+     * would make the rows literally overlap into one block — it needs a real
+     * positive gap instead.
+     */
+    private static int listRowGap() {
+        return UITheme.current().flat() ? 4 : LIST_BTN_GAP;
+    }
+
     @Override public boolean isPauseScreen() { return false; }
+
+    /**
+     * Lock players into the mandatory initial origin selection: ESC must not
+     * dismiss the screen until they have actually chosen. This is the fix for
+     * the divergence where the picker could be escaped on a dedicated server.
+     *
+     * <p>Escape stays allowed for the cases where backing out is intended:
+     * <ul>
+     *   <li>{@code isOrb} — an orb re-roll is voluntary and {@link #onClose()}
+     *       refunds/cancels it.</li>
+     *   <li>the player already has all origins (voluntary re-selection via the
+     *       editor / {@code /origin} command / VIEW_INFO recovery once done).</li>
+     *   <li>the local selection is already complete ({@code presenter.isDone()})
+     *       — by then {@code confirm()} normally closes the screen anyway; this
+     *       is just a safety net.</li>
+     * </ul>
+     */
+    @Override
+    public boolean shouldCloseOnEsc() {
+        if (isOrb) return true;
+        if (ClientOriginState.isHadAllOrigins()) return true;
+        return presenter.isDone();
+    }
 
     private static final ResourceLocation CLASS_LAYER_ID =
         ResourceLocation.fromNamespaceAndPath("neoorigins", "class");

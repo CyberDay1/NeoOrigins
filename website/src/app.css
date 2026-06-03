@@ -3,9 +3,14 @@
  *
  * Portable shape: every token lives at :root so the same sheet can be
  * lifted into a mkdocs-material extra_css later without restructuring.
- * Dark mode is the default; a light variant kicks in via
- * `prefers-color-scheme: light`. No manual toggle UI for now — OS pref
- * is the contract.
+ * Dark mode is the hard default (`:root`); the light variant applies ONLY
+ * under an explicit `html[data-theme="light"]` choice (set from localStorage
+ * by the no-flash script in app.html). The OS `prefers-color-scheme` is
+ * intentionally NOT honoured as a default — the product defaults to dark
+ * regardless of OS, and the user opts into light via the nav toggle. Five
+ * colourblind palette modes (protan/deutan/tritan/mono + default) are offered
+ * via `html[data-palette]`; each repaints both the Blockly tokens and the UI
+ * accent tokens.
  *
  * Theme: "Arcane Nebula". Deep space-blue base with a teal/cyan glow
  * accent (#34e3c2) and a violet highlight (#b07cff) for gradients and
@@ -36,10 +41,12 @@
 	--color-border: #233149;
 	--color-border-strong: #33476a;
 
-	/* Text — `subtle` is captions, `muted` is secondary labels. */
+	/* Text — `subtle` is captions, `muted` is secondary labels.
+	 * `subtle` raised from #647590 (~3.5:1, failed WCAG-AA) to #8595af
+	 * (~4.6:1 on the #0a0e17 page) so caption text passes AA. */
 	--color-text: #e7edf6;
 	--color-text-muted: #9fb0c8;
-	--color-text-subtle: #647590;
+	--color-text-subtle: #8595af;
 
 	/* Accent — teal/cyan glow. `subtle` is a tinted background for chips
 	 * / pill highlights. `accent-2` is the violet highlight used for
@@ -67,6 +74,19 @@
 	--color-syntax-string: #fbd38d;  /* warm sand — pops against teal */
 	--color-syntax-number: #c9b3ff;  /* violet, echoes accent-2 */
 	--color-syntax-bool: #f6a5d0;    /* pink */
+
+	/* Blockly category colours — the six block-kind backgrounds, tokenised
+	 * so HTML swatches / legends can read them. IMPORTANT: Blockly itself
+	 * does NOT read CSS custom properties for block colour — it sets colour
+	 * in JS at definition/theme time. These tokens mirror the JS DEFAULT map
+	 * in `lib/blockly/blockRegistry.ts`; keep the two in sync. The per-mode
+	 * `[data-palette]` overrides below mirror that file's other maps. */
+	--color-blockly-power: #5d6b87;
+	--color-blockly-condition: #15a89b;
+	--color-blockly-action: #7c5cff;
+	--color-blockly-block-condition: #c8881f;
+	--color-blockly-item-condition: #4f9d3a;
+	--color-blockly-item-action: #b5478f;
 
 	/* Typography. Display is reserved for hero/brand/headings; sans is the
 	 * UI body; mono renders JSON. Distinctive faces over system defaults so
@@ -105,49 +125,191 @@
 	--ring-accent: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
 }
 
-/* Light-mode overrides. Triggered by OS preference only — no JS toggle. */
-@media (prefers-color-scheme: light) {
-	:root {
-		--color-bg: #f5f8fc;
-		--color-bg-subtle: #e9eef6;
-		--color-bg-elevated: #ffffff;
-		--color-surface: #ffffff;
-		--color-surface-hover: #eef3fa;
+/* ─── light-mode tokens ───────────────────────────────────────────────
+ * Dark is the hard default (`:root` above). Light applies ONLY when the
+ * user explicitly chose it: `html[data-theme="light"]`. The no-flash inline
+ * script in app.html sets `data-theme` from localStorage before first paint.
+ *
+ * `--color-text-subtle` raised from #76849a (~3.9:1, failed AA) to #5c6a82
+ * (~5.4:1 on the #f5f8fc light page). */
+html[data-theme='light'] {
+	--color-bg: #f5f8fc;
+	--color-bg-subtle: #e9eef6;
+	--color-bg-elevated: #ffffff;
+	--color-surface: #ffffff;
+	--color-surface-hover: #eef3fa;
 
-		--color-border: #d3dcea;
-		--color-border-strong: #aebccf;
+	--color-border: #d3dcea;
+	--color-border-strong: #aebccf;
 
-		--color-text: #0e1726;
-		--color-text-muted: #4c5a70;
-		--color-text-subtle: #76849a;
+	--color-text: #0e1726;
+	--color-text-muted: #4c5a70;
+	--color-text-subtle: #5c6a82;
 
-		/* Teal darkened so it carries text contrast on white. */
-		--color-accent: #0d9488;
-		--color-accent-hover: #0b7d73;
-		--color-accent-subtle: rgba(13, 148, 136, 0.12);
-		--color-accent-contrast: #ffffff;
-		--color-accent-2: #7c3aed;
-		--color-accent-2-hover: #6d28d9;
-		--color-accent-2-subtle: rgba(124, 58, 237, 0.12);
+	/* Teal darkened so it carries text contrast on white. */
+	--color-accent: #0d9488;
+	--color-accent-hover: #0b7d73;
+	--color-accent-subtle: rgba(13, 148, 136, 0.12);
+	--color-accent-contrast: #ffffff;
+	--color-accent-2: #7c3aed;
+	--color-accent-2-hover: #6d28d9;
+	--color-accent-2-subtle: rgba(124, 58, 237, 0.12);
 
-		--color-danger: #dc2626;
-		--color-danger-hover: #b91c1c;
-		--color-danger-subtle: rgba(220, 38, 38, 0.1);
-		--color-success: #15803d;
-		--color-success-subtle: rgba(21, 128, 61, 0.1);
-		--color-warning: #b45309;
-		--color-warning-subtle: rgba(180, 83, 9, 0.1);
+	--color-danger: #dc2626;
+	--color-danger-hover: #b91c1c;
+	--color-danger-subtle: rgba(220, 38, 38, 0.1);
+	--color-success: #15803d;
+	--color-success-subtle: rgba(21, 128, 61, 0.1);
+	--color-warning: #b45309;
+	--color-warning-subtle: rgba(180, 83, 9, 0.1);
 
-		--color-syntax-key: #0369a1;
-		--color-syntax-string: #b45309;
-		--color-syntax-number: #6d28d9;
-		--color-syntax-bool: #be185d;
+	--color-syntax-key: #0369a1;
+	--color-syntax-string: #b45309;
+	--color-syntax-number: #6d28d9;
+	--color-syntax-bool: #be185d;
 
-		--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-		--shadow-md:
-			0 4px 14px rgba(15, 23, 42, 0.08),
-			0 1px 2px rgba(15, 23, 42, 0.04);
-	}
+	--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+	--shadow-md:
+		0 4px 14px rgba(15, 23, 42, 0.08),
+		0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* ─── colourblind palette modes ───────────────────────────────────────
+ * Five granular modes replace the old binary cb-safe toggle. Each is keyed
+ * on `html[data-palette="<mode>"]` (the no-flash script + themeStore set the
+ * attribute; `default` leaves it unset). Two things repaint per mode:
+ *
+ *   1. The six `--color-blockly-*` tokens below MIRROR the matching JS maps
+ *      in `lib/blockly/blockRegistry.ts` (Blockly can't read CSS vars for
+ *      block colour — it bakes them in JS — so these feed only HTML swatches
+ *      / legends; keep the two in sync).
+ *   2. The UI accent tokens, overridden per theme further below, so the
+ *      whole UI (not just the canvas) reflects the choice.
+ *
+ * Order: power, condition, action, block-condition, item-condition,
+ * item-action. */
+html[data-palette='protan'] {
+	--color-blockly-power: #0072b2;
+	--color-blockly-condition: #5a9bd4;
+	--color-blockly-action: #cc79a7;
+	--color-blockly-block-condition: #b5651d;
+	--color-blockly-item-condition: #117733;
+	--color-blockly-item-action: #d55e00;
+}
+html[data-palette='deutan'] {
+	--color-blockly-power: #1f6f9c;
+	--color-blockly-condition: #009e73;
+	--color-blockly-action: #cc79a7;
+	--color-blockly-block-condition: #c8881f;
+	--color-blockly-item-condition: #56789c;
+	--color-blockly-item-action: #d55e00;
+}
+html[data-palette='tritan'] {
+	--color-blockly-power: #117733;
+	--color-blockly-condition: #cc6677;
+	--color-blockly-action: #aa4499;
+	--color-blockly-block-condition: #882255;
+	--color-blockly-item-condition: #44897a;
+	--color-blockly-item-action: #7a4fa0;
+}
+html[data-palette='mono'] {
+	--color-blockly-power: #5b6470;
+	--color-blockly-condition: #5b6470;
+	--color-blockly-action: #5b6470;
+	--color-blockly-block-condition: #5b6470;
+	--color-blockly-item-condition: #5b6470;
+	--color-blockly-item-action: #5b6470;
+}
+
+/* ─── per-mode UI accent overrides ─────────────────────────────────────
+ * The old cb-safe toggle only touched the Blockly canvas, so it looked inert
+ * on the rest of the UI. Each mode now also repaints the accent tokens.
+ * Dark-theme values come straight from the owner's spec; light-theme values
+ * are darkened equivalents so they carry text contrast on the white surface.
+ * The dark rules use `:not([data-theme='light'])` (not `[data-theme='dark']`)
+ * so they apply both to the implicit dark default — where the no-flash script
+ * sets NO data-theme attribute — and to an explicit dark choice.
+ * `-hover` is ~+8-12% lightness, `-subtle` is the same hue at ~0.13 alpha,
+ * `-contrast` is dark ink on a light accent / light ink on a dark accent. */
+
+/* protan — accent #5a9bd4 / accent-2 #e69f00 */
+html:not([data-theme='light'])[data-palette='protan'] {
+	--color-accent: #5a9bd4;
+	--color-accent-hover: #7db1e0;
+	--color-accent-subtle: rgba(90, 155, 212, 0.13);
+	--color-accent-contrast: #051522;
+	--color-accent-2: #e69f00;
+	--color-accent-2-hover: #ffb31a;
+	--color-accent-2-subtle: rgba(230, 159, 0, 0.14);
+}
+html[data-theme='light'][data-palette='protan'] {
+	--color-accent: #2f6fab;
+	--color-accent-hover: #265d90;
+	--color-accent-subtle: rgba(47, 111, 171, 0.12);
+	--color-accent-contrast: #ffffff;
+	--color-accent-2: #9a6a00;
+	--color-accent-2-hover: #835a00;
+	--color-accent-2-subtle: rgba(154, 106, 0, 0.12);
+}
+
+/* deutan — accent #0072b2 / accent-2 #e69f00 */
+html:not([data-theme='light'])[data-palette='deutan'] {
+	--color-accent: #2a8fcf;
+	--color-accent-hover: #4aa3da;
+	--color-accent-subtle: rgba(0, 114, 178, 0.16);
+	--color-accent-contrast: #04121d;
+	--color-accent-2: #e69f00;
+	--color-accent-2-hover: #ffb31a;
+	--color-accent-2-subtle: rgba(230, 159, 0, 0.14);
+}
+html[data-theme='light'][data-palette='deutan'] {
+	--color-accent: #0072b2;
+	--color-accent-hover: #015e93;
+	--color-accent-subtle: rgba(0, 114, 178, 0.12);
+	--color-accent-contrast: #ffffff;
+	--color-accent-2: #9a6a00;
+	--color-accent-2-hover: #835a00;
+	--color-accent-2-subtle: rgba(154, 106, 0, 0.12);
+}
+
+/* tritan — accent #117733 / accent-2 #cc6677 */
+html:not([data-theme='light'])[data-palette='tritan'] {
+	--color-accent: #2e9c52;
+	--color-accent-hover: #3fb464;
+	--color-accent-subtle: rgba(17, 119, 51, 0.18);
+	--color-accent-contrast: #03150a;
+	--color-accent-2: #cc6677;
+	--color-accent-2-hover: #db8290;
+	--color-accent-2-subtle: rgba(204, 102, 119, 0.14);
+}
+html[data-theme='light'][data-palette='tritan'] {
+	--color-accent: #117733;
+	--color-accent-hover: #0d5f29;
+	--color-accent-subtle: rgba(17, 119, 51, 0.12);
+	--color-accent-contrast: #ffffff;
+	--color-accent-2: #a83f50;
+	--color-accent-2-hover: #8e3343;
+	--color-accent-2-subtle: rgba(168, 63, 80, 0.12);
+}
+
+/* mono — accent #9aa3af / accent-2 #c2c9d4 (no hue cues) */
+html:not([data-theme='light'])[data-palette='mono'] {
+	--color-accent: #9aa3af;
+	--color-accent-hover: #b4bcc6;
+	--color-accent-subtle: rgba(154, 163, 175, 0.14);
+	--color-accent-contrast: #0d1118;
+	--color-accent-2: #c2c9d4;
+	--color-accent-2-hover: #d7dce4;
+	--color-accent-2-subtle: rgba(194, 201, 212, 0.14);
+}
+html[data-theme='light'][data-palette='mono'] {
+	--color-accent: #5a626f;
+	--color-accent-hover: #474e59;
+	--color-accent-subtle: rgba(90, 98, 111, 0.12);
+	--color-accent-contrast: #ffffff;
+	--color-accent-2: #6b737f;
+	--color-accent-2-hover: #565d68;
+	--color-accent-2-subtle: rgba(107, 115, 127, 0.12);
 }
 
 /* ─── base reset ──────────────────────────────────────────────────── */
@@ -179,63 +341,21 @@ body {
 	isolation: isolate;
 }
 
-/* ─── "Arcane Nebula" atmosphere ──────────────────────────────────────
- * Two fixed, pointer-transparent layers sit behind all content:
- *   ::before — a gradient-mesh of teal + violet glows over the deep core,
- *              plus a faint scattered star dust, slowly drifting.
- *   ::after  — a fine SVG grain so the flat dark surfaces gain texture.
- * Both are decorative; reduced-motion freezes the drift (see end of file). */
+/* ─── background ──────────────────────────────────────────────────────
+ * One fixed, pointer-transparent layer: a single faint accent glow from
+ * the top edge for a touch of depth. No animation, no mesh, no grain —
+ * the surfaces carry the design. */
 body::before {
-	content: '';
-	position: fixed;
-	inset: -20% -10% -10%;
-	z-index: -2;
-	pointer-events: none;
-	background:
-		radial-gradient(
-			42rem 36rem at 14% 8%,
-			color-mix(in srgb, var(--color-accent) 22%, transparent) 0%,
-			transparent 60%
-		),
-		radial-gradient(
-			46rem 40rem at 88% 92%,
-			color-mix(in srgb, var(--color-accent-2) 20%, transparent) 0%,
-			transparent 62%
-		),
-		radial-gradient(
-			30rem 30rem at 78% 12%,
-			color-mix(in srgb, var(--color-accent-2) 12%, transparent) 0%,
-			transparent 55%
-		),
-		radial-gradient(2px 2px at 20% 32%, var(--color-text-subtle) 50%, transparent 51%),
-		radial-gradient(1.5px 1.5px at 67% 21%, var(--color-text-muted) 50%, transparent 51%),
-		radial-gradient(1.5px 1.5px at 41% 71%, var(--color-text-subtle) 50%, transparent 51%),
-		radial-gradient(2px 2px at 84% 58%, var(--color-text-subtle) 50%, transparent 51%),
-		radial-gradient(1px 1px at 9% 84%, var(--color-text-muted) 50%, transparent 51%),
-		radial-gradient(1.5px 1.5px at 54% 44%, var(--color-text-subtle) 50%, transparent 51%);
-	background-repeat: no-repeat;
-	opacity: 0.9;
-	animation: nebula-drift 38s ease-in-out infinite alternate;
-}
-
-body::after {
 	content: '';
 	position: fixed;
 	inset: 0;
 	z-index: -1;
 	pointer-events: none;
-	opacity: 0.035;
-	mix-blend-mode: soft-light;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-@keyframes nebula-drift {
-	0% {
-		transform: translate3d(0, 0, 0) scale(1);
-	}
-	100% {
-		transform: translate3d(-2.5%, 1.5%, 0) scale(1.06);
-	}
+	background: radial-gradient(
+		60rem 26rem at 50% -12%,
+		color-mix(in srgb, var(--color-accent) 7%, transparent) 0%,
+		transparent 70%
+	);
 }
 
 /* Code is monospaced everywhere; pre defers to its own size in components. */
@@ -307,12 +427,9 @@ select:focus-visible,
 	}
 }
 
-/* Accessibility: honour reduced-motion — freeze the drift, drop reveals,
- * and stop the accent shimmer. Content stays fully visible. */
+/* Accessibility: honour reduced-motion — drop reveals and any remaining
+ * transitions. Content stays fully visible. */
 @media (prefers-reduced-motion: reduce) {
-	body::before {
-		animation: none;
-	}
 	*,
 	*::before,
 	*::after {
@@ -320,4 +437,35 @@ select:focus-visible,
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.001ms !important;
 	}
+}
+
+/* ─── Blockly toolbox / flyout theming ────────────────────────────────
+ * Blockly injects its own <style> tag at runtime (AFTER this file in the
+ * cascade), and its Classic defaults paint the toolbox + flyout a light
+ * grey (#ddd). Our category labels inherit the app's light --color-text,
+ * so the defaults give light-on-light — unreadable. Blockly's block
+ * COLOURS are set in JS (blockRegistry.ts theme); only these chrome
+ * surfaces need CSS. `!important` is required to win against Blockly's
+ * later-injected equal-specificity rules. Tokens auto-adapt to the
+ * light/dark + colourblind palette toggles. */
+.blocklyToolbox,
+.blocklyToolboxDiv {
+	background-color: var(--color-bg-subtle) !important;
+	border-right: 1px solid var(--color-border) !important;
+}
+.blocklyToolboxCategory .blocklyToolboxCategoryLabel {
+	color: var(--color-text) !important;
+}
+.blocklyToolboxCategory:hover {
+	background-color: var(--color-surface-hover) !important;
+}
+.blocklyToolboxCategory.blocklyToolboxSelected {
+	background-color: var(--color-surface) !important;
+}
+.blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel {
+	color: var(--color-accent) !important;
+}
+.blocklyFlyoutBackground {
+	fill: var(--color-surface) !important;
+	fill-opacity: 1 !important;
 }

@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -36,6 +37,15 @@ import java.util.UUID;
 public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
 
     private static final String MOISTURE_KEY = "slime_moisture";
+
+    /** Per-power modifier id so multiple slime_moisture powers don't collide on the armor penalty. */
+    private static ResourceLocation armorPenaltyModId() {
+        ResourceLocation powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return ResourceLocation.fromNamespaceAndPath("neoorigins", "slime_moisture_" + key + "_armor_penalty");
+    }
 
     public record Config(
         float drainPerTick,
@@ -119,7 +129,7 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
         // power gated by condition — or we can apply it inline here using
         // a transient modifier. Using inline for simplicity.
         var armorAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
-        ResourceLocation modId = ResourceLocation.fromNamespaceAndPath("neoorigins", "slime_moisture_armor_penalty");
+        ResourceLocation modId = armorPenaltyModId();
         if (armorAttr != null) {
             var existingMod = armorAttr.getModifier(modId);
             if (moisture < config.armorPenaltyThreshold()) {
@@ -145,7 +155,7 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
         // Clean up armor modifier
         var armorAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
         if (armorAttr != null) {
-            armorAttr.removeModifier(ResourceLocation.fromNamespaceAndPath("neoorigins", "slime_moisture_armor_penalty"));
+            armorAttr.removeModifier(armorPenaltyModId());
         }
         player.removeEffect(MobEffects.REGENERATION);
         // Clear HUD bar on client

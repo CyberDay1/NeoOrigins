@@ -56,6 +56,8 @@ public class CompatEventPowers {
         if (powers.isEmpty()) return false;
 
         for (var power : powers) {
+            // Holder gate: skip if the power-level condition isn't satisfied.
+            if (power.entityCondition() != null && !power.entityCondition().test(player)) continue;
             if (power.itemPredicate() == null || power.itemPredicate().test(stack)) {
                 return true;
             }
@@ -127,11 +129,36 @@ public class CompatEventPowers {
 
         var powers = CompatPlayerState.getPowers(sp, CompatPlayerState.EventType.PREVENT_BLOCK_USE);
         for (var power : powers) {
+            // Holder gate: skip if the power-level condition isn't satisfied.
+            if (power.entityCondition() != null && !power.entityCondition().test(sp)) continue;
             if (power.blockPredicate() == null || power.blockPredicate().test(sp, event.getPos())) {
                 event.setCanceled(true);
                 return;
             }
         }
+    }
+
+    // ---- USE-key (right-click) tracking for key.use-bound active_self powers ----
+    // Apoli's key.use active_self (e.g. the deanos Mage spells) is cast by
+    // right-clicking. The server has no held-state for the use key on a plain/empty
+    // hand, so we stamp the tick of every right-click interaction and let the
+    // active_self onTick poll read it via CompatPlayerState.isUseKeyDown. We run at
+    // HIGHEST and accept cancelled events so a right-click still counts as a cast
+    // even when prevent_block_use / prevent_item_use suppresses the vanilla action.
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public static void onUseKeyBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getEntity() instanceof ServerPlayer sp) CompatPlayerState.recordUseKey(sp);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public static void onUseKeyItem(PlayerInteractEvent.RightClickItem event) {
+        if (event.getEntity() instanceof ServerPlayer sp) CompatPlayerState.recordUseKey(sp);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public static void onUseKeyEmpty(PlayerInteractEvent.RightClickEmpty event) {
+        if (event.getEntity() instanceof ServerPlayer sp) CompatPlayerState.recordUseKey(sp);
     }
 
     // ---- prevent_entity_use ----

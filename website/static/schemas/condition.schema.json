@@ -54,6 +54,7 @@
         "apace:from_explosion",
         "apace:from_fire",
         "apace:from_projectile",
+        "apace:hardness",
         "apace:has_effect",
         "apace:health",
         "apace:height",
@@ -153,6 +154,7 @@
         "neoorigins:from_explosion",
         "neoorigins:from_fire",
         "neoorigins:from_projectile",
+        "neoorigins:hardness",
         "neoorigins:has_effect",
         "neoorigins:health",
         "neoorigins:height",
@@ -1071,6 +1073,38 @@
             "neoorigins:from_projectile",
             "apace:from_projectile"
           ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:hardness",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:hardness",
+            "apace:hardness"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Block hardness threshold (default 0).",
+          "type": "number",
+          "default": 0.0
         }
       },
       "required": [
@@ -2319,6 +2353,7 @@
               "apace:from_explosion",
               "apace:from_fire",
               "apace:from_projectile",
+              "apace:hardness",
               "apace:has_effect",
               "apace:health",
               "apace:height",
@@ -2418,6 +2453,7 @@
               "neoorigins:from_explosion",
               "neoorigins:from_fire",
               "neoorigins:from_projectile",
+              "neoorigins:hardness",
               "neoorigins:has_effect",
               "neoorigins:health",
               "neoorigins:height",

@@ -13,7 +13,8 @@ import java.util.Map;
  */
 public class ClientResourceState {
 
-    public record ResourceEntry(int value, int min, int max, String label, int color) {
+    public record ResourceEntry(int value, int min, int max, String label, int color,
+                                int barIndex, int iconIndex, String spriteLocation) {
         public float fraction() {
             int range = max - min;
             if (range <= 0) return 1.0f;
@@ -27,7 +28,8 @@ public class ClientResourceState {
         resources.clear();
         for (var e : incoming.entrySet()) {
             var v = e.getValue();
-            resources.put(e.getKey(), new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color()));
+            resources.put(e.getKey(), new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
+                v.barIndex(), v.iconIndex(), v.spriteLocation()));
         }
     }
 

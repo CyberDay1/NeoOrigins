@@ -432,6 +432,14 @@ public class CombatPowerEvents {
             // projectile was fired. Invoked with the ProjectileHitContext installed
             // on ActionContextHolder so area_of_effect can center on the impact
             // point rather than the (now-stale) player position.
+            //
+            // The on_hit path fires for BOTH entity and block impacts. On a block
+            // impact the ray-trace result is a BlockHitResult, which doubles as the
+            // block-target seam (item 5): ActionParser.extractBlockTarget reads the
+            // impacted BlockPos straight off this ProjectileHitContext, so the
+            // block-target verbs (strip/till/path/grow/transform_block) and the
+            // block_target_action wrapper resolve the hit block when used directly
+            // as an on_hit_action — no separate on_block_hit_action plumbing needed.
             var onHit = com.cyberday1.neoorigins.service.ProjectileActionRegistry.drain(proj.getUUID());
             if (onHit != null) {
                 Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(ctx);

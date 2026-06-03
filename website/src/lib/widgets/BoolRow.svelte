@@ -7,6 +7,7 @@
 	}: { field: BooleanFieldSpec; value: boolean } = $props();
 
 	const id = $derived(`f-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+	const descId = $derived(`${id}-desc`);
 </script>
 
 <div class="row">
@@ -14,9 +15,14 @@
 		{field.label}
 		{#if field.required}<span class="req" aria-label="required">*</span>{/if}
 	</label>
-	<input {id} type="checkbox" bind:checked={value} />
+	<input
+		{id}
+		type="checkbox"
+		aria-describedby={field.description ? descId : undefined}
+		bind:checked={value}
+	/>
 	{#if field.description}
-		<small class="desc">{field.description}</small>
+		<small class="desc" id={descId}>{field.description}</small>
 	{/if}
 </div>
 

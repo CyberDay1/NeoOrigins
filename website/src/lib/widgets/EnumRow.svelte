@@ -7,6 +7,7 @@
 	}: { field: EnumFieldSpec; value: string } = $props();
 
 	const id = $derived(`f-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+	const descId = $derived(`${id}-desc`);
 </script>
 
 <div class="row">
@@ -14,7 +15,7 @@
 		{field.label}
 		{#if field.required}<span class="req" aria-label="required">*</span>{/if}
 	</label>
-	<select {id} bind:value>
+	<select {id} aria-describedby={field.description ? descId : undefined} bind:value>
 		{#if !field.required}
 			<option value="">(none)</option>
 		{/if}
@@ -23,7 +24,7 @@
 		{/each}
 	</select>
 	{#if field.description}
-		<small class="desc">{field.description}</small>
+		<small class="desc" id={descId}>{field.description}</small>
 	{/if}
 </div>
 

@@ -41,5 +41,5 @@
 {:else if field.kind === 'OBJECT'}
 	<ObjectRow {field} bind:value={value as Record<string, unknown> | null} />
 {:else}
-	<RawJsonRow {field} bind:value={value as string} />
+	<RawJsonRow {field} bind:value />
 {/if}

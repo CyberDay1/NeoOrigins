@@ -5,6 +5,37 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
 		<meta name="color-scheme" content="dark light" />
+		<!-- No-flash theme/palette init: apply the persisted UI choice to
+		     <html> BEFORE first paint so the page never flashes the wrong
+		     theme. Keep the keys/attrs in sync with lib/stores/themeStore.ts
+		     and the app.css `[data-theme]` / `[data-palette]` selectors. An
+		     explicit stored theme wins; otherwise no attribute is set and
+		     app.css's `:root` dark default applies (OS pref is not honoured
+		     — the product defaults to dark regardless of OS). -->
+		<script>
+			(function () {
+				try {
+					var t = localStorage.getItem('neoorigins.ui.theme');
+					if (t === 'dark' || t === 'light') {
+						document.documentElement.setAttribute('data-theme', t);
+					}
+					var p = localStorage.getItem('neoorigins.ui.palette');
+					// Legacy: the old binary toggle stored 'cb-safe' → map to 'deutan'
+					// (keep in sync with readStoredPalette in themeStore.ts).
+					if (p === 'cb-safe') p = 'deutan';
+					if (
+						p === 'protan' ||
+						p === 'deutan' ||
+						p === 'tritan' ||
+						p === 'mono'
+					) {
+						document.documentElement.setAttribute('data-palette', p);
+					}
+				} catch (e) {
+					/* storage blocked — fall back to the dark :root default */
+				}
+			})();
+		</script>
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<!-- Syne (display — geometric, slightly arcane) + Schibsted Grotesk

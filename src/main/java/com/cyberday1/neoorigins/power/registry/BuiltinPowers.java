@@ -147,6 +147,7 @@ public final class BuiltinPowers {
         // .auditPowerFormCoverage's "marker-only" list; each Config is
         // `record Config(String type)` (type is internal plumbing, not a field).
         define("cobweb_affinity",          CobwebAffinityPower.class,         List.of());
+        define("simple",                   SimplePower.class,                 List.of());
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
         define("flight",                   FlightPower.class,                 List.of());
         define("ignore_water",             IgnoreWaterPower.class,            List.of());

@@ -33,6 +33,25 @@ public class AbstractVfxRenderState {
     /** Fractional tick — added to {@link #lifetime} for per-frame smooth animation. */
     public float partialTick;
 
+    // ── Data-driven visual config (2.1). A renderer that supports per-entity
+    // visuals (MagicOrb) populates these in extractRenderState after resolving
+    // explicit JSON > effect_type defaults > hardcoded. A negative size / alpha
+    // means "use the renderer's hardcoded default"; coreColor/glowColor null means
+    // "fall back to resolveColor()". ──
+
+    /** Explicit core RGB (0xRRGGBB unpacked), or null to use {@code resolveColor}. */
+    public int[] coreColor;
+    /** Explicit glow RGB, or null to reuse the core color. */
+    public int[] glowColor;
+    /** Core quad scale, or negative for the renderer default. */
+    public float size = -1.0f;
+    /** Glow base scale, or negative for the renderer default. */
+    public float glowSize = -1.0f;
+    /** Glow alpha 0–255, or negative for the renderer default. */
+    public int glowAlpha = -1;
+    /** Shape key: cross / cube / ring / sphere. Empty/null = cross. */
+    public String shape = "";
+
     /**
      * Copy the common fields from an entity into the state. Called from
      * the base renderer's render flow; subclasses typically don't need

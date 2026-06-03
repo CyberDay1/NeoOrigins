@@ -114,6 +114,30 @@ public final class CompatPlayerState {
         return false;
     }
 
+    // ---- Server-side USE-key (right-click) state ----
+    // The server has no native "is the use key held" signal for a tap right-click
+    // on a plain/empty hand (player.isUsingItem() only covers item-use animations
+    // like food/bow/shield). Apoli's key.use-bound active_self powers (e.g. the
+    // deanos Mage spells) therefore never fired when polled from onTick. We bridge
+    // that gap by recording the game tick of each right-click interaction event and
+    // exposing it as a 1-tick-tolerant "pressed" query the onTick poll can read.
+    private static final Map<UUID, Integer> LAST_USE_TICK = new ConcurrentHashMap<>();
+
+    /** Record that the player pressed the USE (right-click) key this tick. */
+    public static void recordUseKey(ServerPlayer player) {
+        LAST_USE_TICK.put(player.getUUID(), player.tickCount);
+    }
+
+    /**
+     * True if the player right-clicked on this tick or the previous one. The
+     * 1-tick tolerance absorbs the ordering skew between the interaction event
+     * and the power onTick within the same game tick (either may run first).
+     */
+    public static boolean isUseKeyDown(ServerPlayer player) {
+        Integer t = LAST_USE_TICK.get(player.getUUID());
+        return t != null && player.tickCount - t <= 1 && player.tickCount - t >= 0;
+    }
+
     /** Clear all tracked state (called on data reload). */
     public static void clearAll() {
         ACTIVE_POWERS.clear();
@@ -122,5 +146,6 @@ public final class CompatPlayerState {
     /** Remove a player entirely (called on disconnect). */
     public static void removePlayer(UUID playerId) {
         ACTIVE_POWERS.remove(playerId);
+        LAST_USE_TICK.remove(playerId);
     }
 }

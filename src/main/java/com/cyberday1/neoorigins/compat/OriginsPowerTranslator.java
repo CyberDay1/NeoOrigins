@@ -242,6 +242,7 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> doTranslate(ResourceLocation id, String type, JsonObject src) {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);
+            case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(src);
             case "origins:elytra_flight",          "apace:elytra_flight"          -> translateSimple("neoorigins:natural_glide");
             case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:flight");
             case "origins:night_vision",           "apace:night_vision"           -> translateSimple("neoorigins:night_vision");
@@ -284,6 +285,12 @@ public final class OriginsPowerTranslator {
             case "origins:action_on_block_break",  "apace:action_on_block_break"  -> translateActionOnBlockBreak(src);
             case "origins:action_on_entity_use",   "apace:action_on_entity_use"   -> translateActionOnEntityUse(src);
             case "origins:status_bar_texture",      "apace:status_bar_texture"     -> translateDisplayNoop();
+            // Display-only powers with no gameplay effect — map to the native
+            // neoorigins:simple marker so the name/description still show in the
+            // GUI. (Known origins:simple id-overrides are handled earlier in
+            // translate() before reaching here.)
+            case "origins:simple",                  "apace:simple",
+                 "origins:tooltip",                 "apace:tooltip"                -> translateSimple("neoorigins:simple");
             case "origins:prevent_elytra_flight",   "apace:prevent_elytra_flight"  -> translateSimplePrevent("ELYTRA");
             case "origins:modify_projectile_damage","apace:modify_projectile_damage"-> translateModifyProjectileDamage(src);
             case "origins:modify_air_speed",        "apace:modify_air_speed"        -> translateModifyAirSpeed(src);
@@ -657,6 +664,53 @@ public final class OriginsPowerTranslator {
 
         if (!out.has("attribute")) throw new IllegalArgumentException("origins:attribute missing 'attribute' field");
         if (!out.has("amount"))    throw new IllegalArgumentException("origins:attribute missing 'value'/'amount' field");
+
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:modify_attribute} to {@code neoorigins:attribute_modifier}.
+     *
+     * <p>Distinct schema from {@code origins:attribute}: the target {@code attribute} sits at
+     * the <i>top level</i> with a sibling {@code modifier} (or {@code modifiers} array) that
+     * carries only {@code operation}/{@code value}. {@code origins:attribute}, by contrast,
+     * nests the attribute id <i>inside</i> each modifier — so the two cannot share a handler
+     * (routing this shape through {@link #translateAttribute} would throw "missing attribute").
+     *
+     * <p>Attribute ids pass through verbatim; {@code AttributeModifierPower} resolves the
+     * {@code generic.}/{@code player.} prefix variance across 1.21.1 (prefixed) and 26.1
+     * (unprefixed) at runtime, so legacy {@code minecraft:generic.max_health} names work as-is.
+     *
+     * <p>Route A limitation: when the modifier carries a {@code resource} key the value is
+     * driven by a runtime resource (e.g. health that tracks a counter). A static
+     * attribute_modifier cannot reproduce that — it applies the declared base {@code value}
+     * only. Such powers load (so their origin is no longer hidden) but the dynamic behaviour
+     * is not replicated; a faithful port would need a resource-aware native attribute power.
+     */
+    private static Optional<JsonObject> translateModifyAttribute(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:attribute_modifier");
+
+        JsonObject mod = null;
+        if (src.has("modifier") && src.get("modifier").isJsonObject()) {
+            mod = src.getAsJsonObject("modifier");
+        } else if (src.has("modifiers") && src.get("modifiers").isJsonArray()
+                   && !src.getAsJsonArray("modifiers").isEmpty()) {
+            // Route A takes the first modifier only — stacking is not represented.
+            mod = src.getAsJsonArray("modifiers").get(0).getAsJsonObject();
+        }
+        if (mod != null) {
+            extractModifierFields(mod, out);
+        }
+
+        // Top-level attribute is authoritative for this shape — set it after the
+        // modifier extraction so it wins even if a stray attribute hides in the modifier.
+        if (src.has("attribute")) {
+            out.addProperty("attribute", src.get("attribute").getAsString());
+        }
+
+        if (!out.has("attribute")) throw new IllegalArgumentException("origins:modify_attribute missing 'attribute' field");
+        if (!out.has("amount"))    throw new IllegalArgumentException("origins:modify_attribute missing 'value'/'amount' field");
 
         return Optional.of(out);
     }

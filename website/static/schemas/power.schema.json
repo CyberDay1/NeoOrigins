@@ -121,6 +121,7 @@
         "neoorigins:scare_entities",
         "neoorigins:shader",
         "neoorigins:shadow_orb",
+        "neoorigins:simple",
         "neoorigins:size_scaling",
         "neoorigins:slime_death_save",
         "neoorigins:slime_level_hp",
@@ -2486,6 +2487,17 @@
       ]
     },
     {
+      "$comment": "neoorigins:simple",
+      "properties": {
+        "type": {
+          "const": "neoorigins:simple"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:size_scaling",
       "properties": {
         "type": {
@@ -2683,7 +2695,7 @@
         },
         "stacks": {
           "type": "array",
-          "description": "Plural shape (v2.1.6). Each entry mirrors the singular root field names. When non-empty, takes precedence over the singular item/count/enchantments/legacy_tag/components fields.",
+          "description": "Plural shape (v2.2.0). Each entry mirrors the singular root field names. When non-empty, takes precedence over the singular item/count/enchantments/legacy_tag/components fields.",
           "items": {
             "type": "object",
             "properties": {
@@ -3224,6 +3236,7 @@
               "neoorigins:scare_entities",
               "neoorigins:shader",
               "neoorigins:shadow_orb",
+              "neoorigins:simple",
               "neoorigins:size_scaling",
               "neoorigins:slime_death_save",
               "neoorigins:slime_level_hp",

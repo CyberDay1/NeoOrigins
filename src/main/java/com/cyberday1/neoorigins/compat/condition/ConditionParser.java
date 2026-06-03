@@ -58,6 +58,7 @@ public final class ConditionParser {
         "neoorigins:food_item_id", "neoorigins:food_item_in_tag", "neoorigins:food_level",
         "neoorigins:from_explosion", "neoorigins:from_fire", "neoorigins:from_projectile",
         "neoorigins:saturation_level",
+        "neoorigins:hardness",
         "neoorigins:has_effect", "neoorigins:health", "neoorigins:height",
         "neoorigins:hit_taken_amount", "neoorigins:in_block", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
@@ -98,13 +99,15 @@ public final class ConditionParser {
 
     private static EntityCondition parseInner(JsonObject json, String contextId) {
         String type = json.has("type") ? json.get("type").getAsString() : "";
-        // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:
-        // prefixes get a one-shot [2.0-legacy] warning then are rewritten to
-        // neoorigins: for dispatch. The canonical switch arms below only need
-        // to list neoorigins:* forms.
+        // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:/apoli:
+        // prefixes (the Origins/Apoli ecosystem aliases — these verbs share schemas)
+        // get a one-shot [2.0-legacy] warning then are rewritten to neoorigins: for
+        // dispatch. The canonical switch arms below only need to list neoorigins:*
+        // forms. Without apoli: here, apoli:and / apoli:resource / apoli:sneaking
+        // nested in deanos powers fell through to fail-closed despite a matching handler.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             type = "neoorigins:" + type;
-        } else if (type.startsWith("origins:") || type.startsWith("apace:")) {
+        } else if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
             String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
             com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
             type = canonical;
@@ -251,6 +254,38 @@ public final class ConditionParser {
         double target  = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> comparison.test(player.getHealth(), target);
+    }
+
+    /**
+     * {@code hardness} — compares the destroy-hardness of the block currently in
+     * context against {@code compare_to}. Apoli uses this almost exclusively inside
+     * a raycast {@code block_action}'s gate (e.g. Mage spell_break: "only break
+     * blocks with hardness ≤ 2"). The block is resolved from the raycast-published
+     * {@link com.cyberday1.neoorigins.compat.action.ActionParser.RaycastBlockContext};
+     * outside a raycast it falls back to the block the player is looking at, so the
+     * condition is still meaningful in a plain hit context. No block in range → false.
+     */
+    static EntityCondition parseHardness(JsonObject json) {
+        String comp   = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return player -> {
+            net.minecraft.core.BlockPos pos = null;
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (ctx instanceof com.cyberday1.neoorigins.compat.action.ActionParser.RaycastBlockContext rbc) {
+                pos = rbc.pos();
+            }
+            if (pos == null) {
+                var hit = player.pick(20.0, 1.0F, false);
+                if (hit instanceof net.minecraft.world.phys.BlockHitResult bhr
+                        && hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
+                    pos = bhr.getBlockPos();
+                }
+            }
+            if (pos == null) return false;
+            float hardness = player.level().getBlockState(pos).getDestroySpeed(player.level(), pos);
+            return comparison.test(hardness, target);
+        };
     }
 
     static EntityCondition parseResource(JsonObject json, String contextId) {

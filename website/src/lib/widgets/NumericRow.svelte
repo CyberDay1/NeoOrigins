@@ -8,6 +8,14 @@
 
 	const id = $derived(`f-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
 	const step = $derived(field.kind === 'INTEGER' ? '1' : 'any');
+	const descId = $derived(`${id}-desc`);
+	const rangeId = $derived(`${id}-range`);
+	const hasRange = $derived(field.min !== null || field.max !== null);
+	const describedBy = $derived(
+		[field.description ? descId : null, hasRange ? rangeId : null]
+			.filter(Boolean)
+			.join(' ') || undefined
+	);
 
 	// Use a string proxy so the input can be cleared without clobbering value
 	// to NaN. Sync both directions.
@@ -40,13 +48,14 @@
 		min={field.min ?? undefined}
 		max={field.max ?? undefined}
 		value={raw}
+		aria-describedby={describedBy}
 		oninput={onInput}
 	/>
 	{#if field.description}
-		<small class="desc">{field.description}</small>
+		<small class="desc" id={descId}>{field.description}</small>
 	{/if}
-	{#if field.min !== null || field.max !== null}
-		<small class="range">
+	{#if hasRange}
+		<small class="range" id={rangeId}>
 			range: {field.min ?? '−∞'} … {field.max ?? '+∞'}
 		</small>
 	{/if}

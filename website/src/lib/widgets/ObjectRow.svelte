@@ -55,7 +55,7 @@
 	{/if}
 
 	{#if !collapsed}
-		<div class="nested" id={`${id}-body`}>
+		<div class="nested" id={`${id}-body`} role="group" aria-labelledby={id}>
 			{#each field.children as f (f.path)}
 				<FieldRowAdapter
 					field={f}

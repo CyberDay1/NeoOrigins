@@ -80,7 +80,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             ResourceLocation id = entry.getKey();
             if (!entry.getValue().isJsonObject()) continue;
             JsonObject json = entry.getValue().getAsJsonObject();
-            String typeStr = OriginsFormatDetector.getType(json);
+            // Canonicalize apoli:/apugli: -> origins: so apoli:multiple is expanded.
+            String typeStr = OriginsFormatDetector.canonicalizePowerType(json);
             if ("origins:multiple".equals(typeStr) || "apace:multiple".equals(typeStr)) {
                 working.remove(id);
                 try {
@@ -120,6 +121,11 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                     NeoOrigins.LOGGER.warn("Power {} missing 'type' field", id);
                     continue;
                 }
+
+                // Canonicalize apoli:/apugli: -> origins: here too, to cover the
+                // synthetic sub-powers emitted by multiple-expansion (which never
+                // pass through the first loop).
+                OriginsFormatDetector.canonicalizePowerType(json);
 
                 // Translate Origins-format power to NeoOrigins format before parsing
                 if (OriginsFormatDetector.isOriginsFormat(json)) {

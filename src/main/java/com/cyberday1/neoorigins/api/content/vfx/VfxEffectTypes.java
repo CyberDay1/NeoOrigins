@@ -24,7 +24,21 @@ public final class VfxEffectTypes {
     /** Fallback RGB used when an effect_type key isn't registered. Soft blue. */
     public static final int[] DEFAULT = {150, 200, 255};
 
+    /**
+     * Shorthand visual defaults an {@code effect_type} contributes — the shape
+     * and trail-particle id the orb uses when the author hasn't set those fields
+     * explicitly. {@code shape} is one of {@code cross}/{@code cube}/{@code ring}/
+     * {@code sphere}; {@code trailParticle} is a vanilla particle id (or null to
+     * leave the renderer/entity trail mapping in charge). Explicit JSON fields on
+     * {@code spawn_projectile} ALWAYS override these.
+     */
+    public record Defaults(String shape, String trailParticle) {}
+
+    /** Fallback defaults when an effect_type key carries no shape/particle hint. */
+    public static final Defaults DEFAULT_SHAPE = new Defaults("cross", null);
+
     private static final Map<String, int[]> COLORS = new ConcurrentHashMap<>();
+    private static final Map<String, Defaults> DEFAULTS = new ConcurrentHashMap<>();
 
     static {
         // Damage / fire
@@ -77,6 +91,29 @@ public final class VfxEffectTypes {
         register("teleport",     50, 255, 255);  // cyan
         register("push",        100, 150, 255);  // azure
         register("pull",        100, 150, 255);  // azure
+
+        // ── Per-effect shape + trail-particle shorthands (2.1) ──
+        // Only the keys with a distinctive look need a default; everything else
+        // falls back to DEFAULT_SHAPE (cross, entity-side trail mapping). Explicit
+        // JSON fields override these.
+        registerDefaults("fire",   "sphere", "minecraft:flame");
+        registerDefaults("flame",  "sphere", "minecraft:flame");
+        registerDefaults("lava",   "sphere", "minecraft:lava");
+        registerDefaults("ignite", "sphere", "minecraft:flame");
+        registerDefaults("poison", "sphere", "minecraft:effect");
+        registerDefaults("nature", "ring",   "minecraft:happy_villager");
+        registerDefaults("heal",   "ring",   "minecraft:heart");
+        registerDefaults("magic",  "cross",  "minecraft:witch");
+        registerDefaults("arcane", "cross",  "minecraft:witch");
+        registerDefaults("void",   "cube",   "minecraft:portal");
+        registerDefaults("shadow", "cube",   "minecraft:portal");
+        registerDefaults("ender",  "cube",   "minecraft:portal");
+        registerDefaults("freeze", "cube",   "minecraft:snowflake");
+        registerDefaults("frost",  "cube",   "minecraft:snowflake");
+        registerDefaults("ice",    "cube",   "minecraft:snowflake");
+        registerDefaults("water",  "sphere", "minecraft:splash");
+        registerDefaults("lightning", "cross", "minecraft:electric_spark");
+        registerDefaults("sonic",  "ring",   "minecraft:sonic_boom");
     }
 
     /**
@@ -91,6 +128,29 @@ public final class VfxEffectTypes {
     public static void register(String key, int r, int g, int b) {
         if (key == null) return;
         COLORS.put(key.toLowerCase(Locale.ROOT), new int[]{clamp(r), clamp(g), clamp(b)});
+    }
+
+    /**
+     * Register (or overwrite) the shape + trail-particle shorthand for an
+     * {@code effect_type} key. Case-insensitive. {@code shape} is one of
+     * {@code cross}/{@code cube}/{@code ring}/{@code sphere}; {@code trailParticle}
+     * is a vanilla particle id or {@code null}. Explicit {@code spawn_projectile}
+     * fields override the values registered here.
+     */
+    public static void registerDefaults(String key, String shape, String trailParticle) {
+        if (key == null) return;
+        DEFAULTS.put(key.toLowerCase(Locale.ROOT), new Defaults(shape, trailParticle));
+    }
+
+    /**
+     * Look up the shape/trail-particle defaults for {@code key}. Returns
+     * {@link #DEFAULT_SHAPE} (cross, no particle hint) when the key carries no
+     * registered defaults. Never returns {@code null}.
+     */
+    public static Defaults defaults(String key) {
+        if (key == null || key.isEmpty()) return DEFAULT_SHAPE;
+        Defaults d = DEFAULTS.get(key.toLowerCase(Locale.ROOT));
+        return d != null ? d : DEFAULT_SHAPE;
     }
 
     /**

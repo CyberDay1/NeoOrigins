@@ -133,6 +133,7 @@
 			<div class="row">
 				<label class="lbl" for={`power-type-${index}`}>Type</label>
 				<PowerTypePicker
+					id={`power-type-${index}`}
 					value={power.type}
 					options={typeOptions}
 					onChange={onTypeChange}

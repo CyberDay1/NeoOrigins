@@ -106,8 +106,6 @@ function parseJson(files: Record<string, Uint8Array>, key: string): unknown {
  *   `data/<ns>/origins/origins/<id>.json` origin file.
  */
 export function importDatapack(bytes: Uint8Array): ImportResult {
-	const warnings: string[] = [];
-
 	let files: Record<string, Uint8Array>;
 	try {
 		files = unzipSync(bytes);
@@ -116,6 +114,19 @@ export function importDatapack(bytes: Uint8Array): ImportResult {
 			`Not a readable .zip: ${e instanceof Error ? e.message : String(e)}`
 		);
 	}
+	return buildDraft(files);
+}
+
+/**
+ * Reconstruct an `OriginDraft` from an already-decompressed datapack file map
+ * (path → bytes), in the layout {@link importDatapack} documents. Shared by
+ * the `.zip` importer and the "Load vanilla template" loader so both go
+ * through identical body→draft mapping and warning logic.
+ *
+ * @throws {ImportError} if there's no `data/<ns>/origins/origins/<id>.json`.
+ */
+export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
+	const warnings: string[] = [];
 
 	// ── locate the origin file ───────────────────────────────────────────
 	const originKeys = Object.keys(files).filter((k) => ORIGIN_RE.test(k));

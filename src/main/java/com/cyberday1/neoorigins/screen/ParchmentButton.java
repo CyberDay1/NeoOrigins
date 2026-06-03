@@ -18,9 +18,14 @@ import net.minecraft.resources.ResourceLocation;
  */
 public class ParchmentButton extends Button {
 
+    /** When true, paints with the compact {@code *_short} scroll art instead of {@code *_long}. */
+    private boolean shortStyle = false;
+
     public ParchmentButton(int x, int y, int w, int h, Component label, OnPress onPress) {
         super(x, y, w, h, label, onPress, DEFAULT_NARRATION);
     }
+
+    public ParchmentButton shortStyle(boolean v) { this.shortStyle = v; return this; }
 
     /**
      * Static factory. Named {@code parchment} (not {@code builder}) because the
@@ -37,19 +42,11 @@ public class ParchmentButton extends Button {
         boolean enabled = this.active;
         boolean hovered = isHoveredOrFocused() && enabled;
 
-        // Warm parchment fill — slightly brighter on hover, muted when disabled.
-        // High alpha so buttons stay legible against the dark scrim (the
-        // Random / Back / Confirm row sits outside the parchment panels).
-        int bg = !enabled
-            ? 0x88806030
-            : (hovered ? 0xFFD8A04C : 0xDDB58040);
-        g.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), bg);
-
-        // Burnt-edge border — accent on hover, theme border otherwise.
-        int border = !enabled
-            ? (theme.borderColor() & 0x40FFFFFF)
-            : (hovered ? theme.accentColor() : theme.borderColor());
-        g.renderOutline(getX(), getY(), getWidth(), getHeight(), border);
+        // Parchment scroll skin — unrolled (open) on hover with a warm glow,
+        // rolled (closed) at rest, dimmed when disabled. Replaces the old flat
+        // fill + outline so all in-screen controls share the scroll look.
+        ScrollButtonRenderer.draw(g, getX(), getY(), getWidth(), getHeight(),
+            hovered, hovered, enabled ? 1.0f : 0.5f, shortStyle);
 
         // Centered label in themed font.
         Minecraft mc = Minecraft.getInstance();
@@ -66,6 +63,7 @@ public class ParchmentButton extends Button {
         private final Component label;
         private final OnPress onPress;
         private int x, y, w = 80, h = 20;
+        private boolean shortStyle = false;
 
         private Builder(Component label, OnPress onPress) {
             this.label = label;
@@ -77,8 +75,10 @@ public class ParchmentButton extends Button {
             return this;
         }
 
+        public Builder shortStyle(boolean v) { this.shortStyle = v; return this; }
+
         public ParchmentButton build() {
-            return new ParchmentButton(x, y, w, h, label, onPress);
+            return new ParchmentButton(x, y, w, h, label, onPress).shortStyle(shortStyle);
         }
     }
 }

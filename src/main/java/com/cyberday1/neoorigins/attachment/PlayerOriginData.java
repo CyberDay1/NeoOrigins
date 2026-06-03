@@ -36,6 +36,10 @@ public class PlayerOriginData {
     private final Set<String> toggledOffPowers = new HashSet<>();
     /** Powers granted at runtime via action grant_power (not tied to any origin). Persisted. */
     private final Set<ResourceLocation> dynamicGrantedPowers = new HashSet<>();
+    /** Powers granted by global power sets (apoli:global port). A ledger of what the
+     *  global system owns, so it can reconcile (revoke powers no longer offered by any
+     *  matching global set) without disturbing action-granted dynamics. Persisted. */
+    private final Set<ResourceLocation> globalGrantedPowers = new HashSet<>();
     /** Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs). Persisted as Map&lt;String, List&lt;String&gt;&gt;. */
     private final Map<String, Set<UUID>> entitySets = new HashMap<>();
     /** Generic keyed float storage for power types that need persisted numeric state (e.g. SlimeMoisturePower). */
@@ -88,6 +92,9 @@ public class PlayerOriginData {
         ResourceLocation.CODEC.listOf()
             .optionalFieldOf("dynamic_granted_powers", List.of())
             .forGetter(d -> new ArrayList<>(d.dynamicGrantedPowers)),
+        ResourceLocation.CODEC.listOf()
+            .optionalFieldOf("global_granted_powers", List.of())
+            .forGetter(d -> new ArrayList<>(d.globalGrantedPowers)),
         Codec.unboundedMap(Codec.STRING, Codec.STRING.listOf())
             .optionalFieldOf("entity_sets", Map.of())
             .forGetter(d -> {
@@ -111,7 +118,7 @@ public class PlayerOriginData {
         Codec.BOOL
             .optionalFieldOf("picker_abandoned", false)
             .forGetter(d -> d.pickerAbandoned)
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, sets, floats, kills, tier, abandoned) -> {
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, global, sets, floats, kills, tier, abandoned) -> {
         PlayerOriginData data = new PlayerOriginData();
         data.origins.putAll(map);
         // Pre-v2.1.2 stored the canonical origin layer as "origins:origin".
@@ -130,6 +137,7 @@ public class PlayerOriginData {
         data.orbUseCount = orbUses;
         data.toggledOffPowers.addAll(toggledOff);
         data.dynamicGrantedPowers.addAll(dynamic);
+        data.globalGrantedPowers.addAll(global);
         for (var e : sets.entrySet()) {
             Set<UUID> parsed = new LinkedHashSet<>();
             for (String s : e.getValue()) {
@@ -300,6 +308,31 @@ public class PlayerOriginData {
         return removed;
     }
 
+    // ── Global power sets (apoli:global port) ───────────────────────────
+
+    /** The global-power ledger: powers currently owned by matching global power sets. */
+    public Set<ResourceLocation> getGlobalGrantedPowers() {
+        return Collections.unmodifiableSet(globalGrantedPowers);
+    }
+
+    public boolean hasGlobalGrant(ResourceLocation powerId) {
+        return globalGrantedPowers.contains(powerId);
+    }
+
+    /** @return true if the ledger changed. */
+    public boolean addGlobalGrant(ResourceLocation powerId) {
+        boolean added = globalGrantedPowers.add(powerId);
+        if (added) version++;
+        return added;
+    }
+
+    /** @return true if the ledger changed. */
+    public boolean removeGlobalGrant(ResourceLocation powerId) {
+        boolean removed = globalGrantedPowers.remove(powerId);
+        if (removed) version++;
+        return removed;
+    }
+
     // ---- Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs) ----
 
     /**
@@ -363,6 +396,7 @@ public class PlayerOriginData {
         shadowOrbs.clear();
         toggledOffPowers.clear();
         dynamicGrantedPowers.clear();
+        globalGrantedPowers.clear();
         entitySets.clear();
         activeCooldowns.clear();
         version++;

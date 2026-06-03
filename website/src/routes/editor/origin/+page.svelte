@@ -13,6 +13,8 @@
 	} from '$lib/stores/originDraft';
 	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
 	import { importDatapack, ImportError } from '$lib/datapack/import';
+	import { loadTemplate, type TemplateEntry } from '$lib/datapack/vanillaTemplates';
+	import VanillaTemplatePicker from '$lib/components/VanillaTemplatePicker.svelte';
 	import IdentityTab from '$lib/components/IdentityTab.svelte';
 	import PowersTab from '$lib/components/PowersTab.svelte';
 	import UpgradesTab from '$lib/components/UpgradesTab.svelte';
@@ -30,6 +32,7 @@
 	let importWarnings = $state<string[]>([]);
 	let importError = $state<string>('');
 	let fileInput = $state<HTMLInputElement>();
+	let templatePickerOpen = $state(false);
 
 	let displayId = $derived($draft.path ? fullId($draft) : 'Untitled Origin');
 
@@ -76,6 +79,25 @@
 		fileInput?.click();
 	}
 
+	function onTemplateSelect(
+		entry: TemplateEntry,
+		manifest: Parameters<typeof loadTemplate>[1]
+	) {
+		importError = '';
+		importWarnings = [];
+		downloadMessage = '';
+		templatePickerOpen = false;
+		try {
+			const res = loadTemplate(entry, manifest);
+			draft.set(res.draft);
+			targetVersion.set(res.targetVersion);
+			importWarnings = res.warnings;
+			activeTab.set('identity');
+		} catch (err) {
+			importError = `Couldn't load that template: ${err instanceof Error ? err.message : String(err)}`;
+		}
+	}
+
 	async function onImportFile(e: Event) {
 		const input = e.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
@@ -108,6 +130,9 @@
 		<span class="id-display" aria-live="polite">{displayId}</span>
 	</div>
 	<div class="topbar-actions">
+		<button type="button" class="btn-secondary" onclick={() => (templatePickerOpen = true)}>
+			Load vanilla template
+		</button>
 		<button type="button" class="btn-secondary" onclick={onImportClick}>
 			Import datapack (.zip)
 		</button>
@@ -116,6 +141,7 @@
 			type="file"
 			accept=".zip,application/zip"
 			class="visually-hidden"
+			aria-label="Import datapack zip file"
 			onchange={onImportFile}
 		/>
 		<button type="button" class="btn-secondary" onclick={onReset}>Reset</button>
@@ -134,7 +160,9 @@
 	<button
 		type="button"
 		role="tab"
+		id="origin-tab-identity"
 		aria-selected={$activeTab === 'identity'}
+		aria-controls="origin-tabpanel"
 		class:active={$activeTab === 'identity'}
 		onclick={() => setActive('identity')}
 	>
@@ -143,7 +171,9 @@
 	<button
 		type="button"
 		role="tab"
+		id="origin-tab-powers"
 		aria-selected={$activeTab === 'powers'}
+		aria-controls="origin-tabpanel"
 		class:active={$activeTab === 'powers'}
 		onclick={() => setActive('powers')}
 	>
@@ -152,7 +182,9 @@
 	<button
 		type="button"
 		role="tab"
+		id="origin-tab-upgrades"
 		aria-selected={$activeTab === 'upgrades'}
+		aria-controls="origin-tabpanel"
 		class:active={$activeTab === 'upgrades'}
 		onclick={() => setActive('upgrades')}
 	>
@@ -161,7 +193,9 @@
 	<button
 		type="button"
 		role="tab"
+		id="origin-tab-json"
 		aria-selected={$activeTab === 'json'}
+		aria-controls="origin-tabpanel"
 		class:active={$activeTab === 'json'}
 		onclick={() => setActive('json')}
 	>
@@ -169,7 +203,13 @@
 	</button>
 </div>
 
-<div class="tab-card">
+<div
+	class="tab-card"
+	role="tabpanel"
+	id="origin-tabpanel"
+	aria-labelledby={`origin-tab-${$activeTab}`}
+	tabindex="0"
+>
 	{#if $activeTab === 'identity'}
 		<IdentityTab />
 	{:else if $activeTab === 'powers'}
@@ -205,6 +245,12 @@
 		</div>
 	{/if}
 </div>
+
+<VanillaTemplatePicker
+	open={templatePickerOpen}
+	onselect={onTemplateSelect}
+	onclose={() => (templatePickerOpen = false)}
+/>
 
 <style>
 	.topbar {

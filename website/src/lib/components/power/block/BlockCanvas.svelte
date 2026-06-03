@@ -8,13 +8,30 @@
 	// the store on mount and is the source of truth while this view is shown.
 
 	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
-	import { draft } from '$lib/stores/originDraft';
+	import { get, type Writable } from 'svelte/store';
+	import { draft as originDraftStore, type PowerDraft } from '$lib/stores/originDraft';
+	import { palette } from '$lib/stores/themeStore';
 	import type { RefSchemas } from '$lib/schema/refSchemaContext';
-	import { buildBlockRegistry, type BlockRegistry } from '$lib/blockly/blockRegistry';
+	import {
+		buildBlockRegistry,
+		buildBlocklyTheme,
+		type BlockRegistry
+	} from '$lib/blockly/blockRegistry';
 	import { draftToState, stateToDraft, powerBlockId } from '$lib/blockly/blockState';
 
-	let { powerSchema, refSchemas }: { powerSchema: object; refSchemas: RefSchemas } = $props();
+	// `powersStore` defaults to the player Origin draft (so the Origin editor is
+	// unchanged); the Mob Origin editor passes its own store. Only `powers` is
+	// read/written — the `{ ...d }` spread on save preserves every other field
+	// of the concrete store at runtime.
+	let {
+		powerSchema,
+		refSchemas,
+		powersStore = originDraftStore as unknown as Writable<{ powers: PowerDraft[] }>
+	}: {
+		powerSchema: object;
+		refSchemas: RefSchemas;
+		powersStore?: Writable<{ powers: PowerDraft[] }>;
+	} = $props();
 
 	let host: HTMLDivElement;
 	let status = $state<'init' | 'ready' | 'error'>('init');
@@ -23,8 +40,13 @@
 	// blocks. We preserve them untouched on save and warn rather than drop them.
 	let unsupported = $state<string[]>([]);
 
+	// Hoisted so the palette `$effect` below can recolour the live canvas.
+	// Blockly is loaded dynamically; `blocklyMod` holds the resolved module and
+	// `workspace` the injected instance once `onMount` finishes wiring them.
+	let blocklyMod: typeof import('blockly') | null = null;
+	let workspace: import('blockly').WorkspaceSvg | null = null;
+
 	onMount(() => {
-		let workspace: import('blockly').WorkspaceSvg | null = null;
 		let disposed = false;
 		let saveTimer: ReturnType<typeof setTimeout> | null = null;
 		let loading = false;
@@ -33,22 +55,25 @@
 			try {
 				const Blockly = await import('blockly');
 				if (disposed) return;
+				blocklyMod = Blockly;
 
-				const reg: BlockRegistry = buildBlockRegistry(powerSchema, refSchemas);
+				// Build the registry with the CURRENT palette so the first paint
+				// matches the persisted choice; the `$effect` keeps it in sync after.
+				const reg: BlockRegistry = buildBlockRegistry(powerSchema, refSchemas, get(palette));
 				// Definitions are static per session — register once globally.
 				Blockly.common.defineBlocksWithJsonArray(reg.defs);
 
 				workspace = Blockly.inject(host, {
 					toolbox: reg.toolbox as import('blockly').utils.toolbox.ToolboxDefinition,
 					renderer: 'zelos',
-					theme: Blockly.Themes.Classic,
+					theme: buildBlocklyTheme(Blockly, get(palette)),
 					trashcan: true,
 					zoom: { controls: true, wheel: true, startScale: 0.85, minScale: 0.4, maxScale: 1.5 },
 					move: { scrollbars: true, drag: true, wheel: false },
 					grid: { spacing: 24, length: 2, colour: 'rgba(255,255,255,0.05)', snap: false }
 				});
 
-				const initialPowers = get(draft).powers;
+				const initialPowers = get(powersStore).powers;
 				// Off-schema power types can't be rendered — set them aside so the
 				// canvas neither shows nor clobbers them, and re-attach on save.
 				const preserved = initialPowers.filter((p) => !reg.blockTypeForId.has(p.type));
@@ -70,7 +95,7 @@
 				// Initial load from the current draft.
 				loading = true;
 				Blockly.serialization.workspaces.load(
-					draftToState(reg, get(draft).powers) as object,
+					draftToState(reg, get(powersStore).powers) as object,
 					workspace
 				);
 				loading = false;
@@ -82,7 +107,7 @@
 						typeof stateToDraft
 					>[1];
 					const powers = stateToDraft(reg, ws, preserveByBlockId);
-					draft.update((d) => ({ ...d, powers: [...powers, ...preserved] }));
+					powersStore.update((d) => ({ ...d, powers: [...powers, ...preserved] }));
 				};
 
 				workspace.addChangeListener((event: import('blockly').Events.Abstract) => {
@@ -100,7 +125,26 @@
 			disposed = true;
 			if (saveTimer) clearTimeout(saveTimer);
 			workspace?.dispose();
+			workspace = null;
+			blocklyMod = null;
 		};
+	});
+
+	// Live palette recolour. Blockly bakes block colour in JS at definition
+	// time and won't react to a CSS var change, so on a palette toggle we
+	// rebuild a Blockly.Theme (whose blockStyles map each kind's style name to
+	// the new colour) and swap it in with setTheme — the canvas recolours
+	// immediately without redefining or reloading blocks. setTheme only touches
+	// the canvas, so we ALSO rebuild the toolbox (whose category bars carry the
+	// palette colour) and push it with updateToolbox; otherwise the flyout would
+	// keep stale colours. Reading `$palette` registers the dependency; guarded
+	// until the workspace is ready.
+	$effect(() => {
+		const active = $palette;
+		if (!workspace || !blocklyMod) return;
+		workspace.setTheme(buildBlocklyTheme(blocklyMod, active));
+		const reg = buildBlockRegistry(powerSchema, refSchemas, active);
+		workspace.updateToolbox(reg.toolbox as import('blockly').utils.toolbox.ToolboxDefinition);
 	});
 </script>
 
@@ -116,7 +160,12 @@
 			or JSON Preview tab.
 		</p>
 	{/if}
-	<div class="canvas" bind:this={host}></div>
+	<div
+		class="canvas"
+		bind:this={host}
+		role="region"
+		aria-label="Visual block editor for powers — drag blocks from the palette to build powers, conditions and actions"
+	></div>
 	{#if status === 'ready'}
 		<p class="hint">
 			Drag blocks from the palette. Powers are standalone stacks; conditions plug into

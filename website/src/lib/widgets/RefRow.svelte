@@ -43,6 +43,14 @@
 	let collapsed = $state(false);
 
 	const id = $derived(`ref-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+	const descId = $derived(`${id}-desc`);
+	const errId = $derived(`${id}-err`);
+	const hasErr = $derived(!schemas || !!nested.error);
+	const describedBy = $derived(
+		[field.description ? descId : null, hasErr ? errId : null]
+			.filter(Boolean)
+			.join(' ') || undefined
+	);
 
 	function onTypeChange(next: string) {
 		// Wipe sibling fields on type change — the new branch's property set is
@@ -69,6 +77,8 @@
 		<select
 			{id}
 			value={currentType}
+			aria-invalid={hasErr || undefined}
+			aria-describedby={describedBy}
 			onchange={(e) => onTypeChange((e.currentTarget as HTMLSelectElement).value)}
 		>
 			<option value="">(none)</option>
@@ -81,6 +91,7 @@
 				type="button"
 				class="toggle"
 				aria-expanded={!collapsed}
+				aria-label={`Toggle ${field.label} details`}
 				onclick={() => (collapsed = !collapsed)}
 				title={collapsed ? 'Expand' : 'Collapse'}
 			>
@@ -90,13 +101,13 @@
 	</div>
 
 	{#if field.description}
-		<small class="desc">{field.description}</small>
+		<small class="desc" id={descId}>{field.description}</small>
 	{/if}
 
 	{#if !schemas}
-		<small class="err">Action/condition schema not loaded — cannot edit inline.</small>
+		<small class="err" id={errId}>Action/condition schema not loaded — cannot edit inline.</small>
 	{:else if nested.error}
-		<small class="err">{nested.error}</small>
+		<small class="err" id={errId}>{nested.error}</small>
 	{:else if currentType && nested.fields.length > 0 && !collapsed}
 		<div class="nested">
 			{#each nested.fields as f (f.path)}

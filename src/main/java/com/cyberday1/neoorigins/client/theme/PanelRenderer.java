@@ -17,6 +17,12 @@ public final class PanelRenderer {
     private PanelRenderer() {}
 
     public static void drawPanel(GuiGraphics g, UITheme theme, int x, int y, int w, int h) {
+        if (theme.flat()) {
+            // Original flat high-contrast skin: solid panel fill + 1px outline.
+            g.fill(x, y, x + w, y + h, theme.panelColor());
+            g.renderOutline(x, y, w, h, theme.borderColor());
+            return;
+        }
         ResourceLocation tex = theme.panelBackground();
         int tw = theme.textureWidth();
         int th = theme.textureHeight();

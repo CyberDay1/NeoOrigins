@@ -177,6 +177,12 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseHealth(json),
             List.of(comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Health value threshold (default 0).")));
+        // hardness — destroy-hardness of the block in context (raycast block_action
+        // gate, or the looked-at block as fallback). Used by Mage spell_break etc.
+        define("hardness",
+            (json, ctx) -> ConditionParser.parseHardness(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Block hardness threshold (default 0).")));
         define("food_level", List.of("food"),
             (json, ctx) -> ConditionParser.parseFoodLevel(json),
             List.of(comparison(">=", "Comparison operator (default >=)."),

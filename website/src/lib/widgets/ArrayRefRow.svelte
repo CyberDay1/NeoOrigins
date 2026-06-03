@@ -17,6 +17,8 @@
 
 	const items = $derived(Array.isArray(value) ? value : []);
 
+	const id = $derived(`arr-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
+
 	function elemField(i: number): RefFieldSpec {
 		return {
 			path: `${field.path}/${i}`,
@@ -44,7 +46,7 @@
 
 <div class="arr">
 	<div class="arr-head">
-		<span class="lbl">
+		<span class="lbl" {id}>
 			{field.label}
 			{#if field.required}<span class="req" aria-label="required">*</span>{/if}
 			<span class="kind">[{field.refDoc}[]]</span>
@@ -59,7 +61,7 @@
 	{#if items.length === 0}
 		<small class="empty">None yet.</small>
 	{:else}
-		<div class="nested">
+		<div class="nested" role="group" aria-labelledby={id}>
 			{#each items as item, i (i)}
 				<div class="elem">
 					<button

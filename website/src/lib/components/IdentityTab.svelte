@@ -9,6 +9,11 @@
 		TARGET_VERSIONS,
 		type TargetMcVersion
 	} from '$lib/stores/originDraft';
+	import { vanilla, ensureVanilla } from '$lib/data/vanilla';
+	import SuggestInput from '$lib/widgets/SuggestInput.svelte';
+
+	// Load the vanilla item list for the icon field's typeahead.
+	$effect(() => ensureVanilla($targetVersion));
 
 	const CLASS_LAYER_ID = 'neoorigins:class';
 
@@ -127,6 +132,8 @@
 				autocomplete="off"
 				spellcheck="false"
 				aria-label="Namespace"
+				aria-invalid={namespaceInvalid || undefined}
+				aria-describedby={`origin-id-hint${namespaceInvalid ? ' origin-namespace-err' : ''}`}
 			/>
 			<span class="colon" aria-hidden="true">:</span>
 			<input
@@ -140,18 +147,20 @@
 				autocomplete="off"
 				spellcheck="false"
 				aria-label="Path"
+				aria-invalid={pathInvalid || undefined}
+				aria-describedby={`origin-id-hint${pathInvalid ? ' origin-path-err' : ''}`}
 			/>
 		</div>
-		<small class="hint">
+		<small class="hint" id="origin-id-hint">
 			<strong>Namespace</strong> defaults to <code>neoorigins</code>;
 			<strong>path</strong> is the origin's id within that namespace, e.g.
 			<code>wizard</code>.
 		</small>
 		{#if namespaceInvalid}
-			<small class="err">namespace must match <code>{NAMESPACE_PATTERN.source}</code></small>
+			<small class="err" id="origin-namespace-err">namespace must match <code>{NAMESPACE_PATTERN.source}</code></small>
 		{/if}
 		{#if pathInvalid}
-			<small class="err">path must match <code>{PATH_PATTERN.source}</code></small>
+			<small class="err" id="origin-path-err">path must match <code>{PATH_PATTERN.source}</code></small>
 		{/if}
 		<small class="preview">Full id: <code>{previewFullId}</code></small>
 	</div>
@@ -179,14 +188,17 @@
 
 	<div class="row">
 		<label class="lbl" for="origin-icon">Icon</label>
-		<input
+		<SuggestInput
 			id="origin-icon"
-			type="text"
-			class="mono"
 			value={$draft.icon}
-			oninput={(e) => setIcon((e.currentTarget as HTMLInputElement).value)}
+			suggestions={$vanilla.items}
+			ariaLabel="Icon item id"
+			placeholder="minecraft:player_head"
+			oninput={(v) => setIcon(v)}
 		/>
-		<small class="hint">Single character or short text</small>
+		<small class="hint">
+			Item id shown next to the origin, e.g. <code>minecraft:player_head</code>.
+		</small>
 	</div>
 
 	<div class="row">

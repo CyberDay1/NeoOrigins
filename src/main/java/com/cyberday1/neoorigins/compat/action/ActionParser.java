@@ -32,11 +32,16 @@ public final class ActionParser {
     public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
         "neoorigins:actor_action", "neoorigins:add_to_set", "neoorigins:add_velocity",
         "neoorigins:add_xp", "neoorigins:and", "neoorigins:apply_effect",
-        "neoorigins:area_of_effect", "neoorigins:block_action_at", "neoorigins:cancel_event",
+        "neoorigins:area_of_effect", "neoorigins:block_action_at", "neoorigins:block_target_action",
+        "neoorigins:cancel_event",
         "neoorigins:chain_to_nearest", "neoorigins:chance", "neoorigins:change_resource",
         "neoorigins:choice", "neoorigins:clear_effect", "neoorigins:crafting_table",
         "neoorigins:damage", "neoorigins:damage_attacker", "neoorigins:dash",
-        "neoorigins:delay", "neoorigins:dismount", "neoorigins:drop_items",
+        "neoorigins:delay", "neoorigins:dismount", "neoorigins:drop_inventory",
+        "neoorigins:drop_items", "neoorigins:dye",
+        "neoorigins:force_drop", "neoorigins:shear", "neoorigins:steal_item",
+        "neoorigins:strip", "neoorigins:till", "neoorigins:path", "neoorigins:grow",
+        "neoorigins:transform_block",
         "neoorigins:effect_on_attacker", "neoorigins:emit_game_event",
         "neoorigins:equipped_item_action", "neoorigins:execute_command", "neoorigins:exhaust",
         "neoorigins:explode", "neoorigins:extinguish", "neoorigins:feed",
@@ -47,12 +52,15 @@ public final class ActionParser {
         "neoorigins:nothing", "neoorigins:offset", "neoorigins:passenger_action",
         "neoorigins:play_sound", "neoorigins:pull_entities", "neoorigins:random_teleport",
         "neoorigins:raycast", "neoorigins:remove_from_set", "neoorigins:revoke_power",
+        "neoorigins:riding_action", "neoorigins:spawn_particles",
         "neoorigins:set_block", "neoorigins:set_fall_distance", "neoorigins:set_on_fire",
         "neoorigins:set_resource", "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
         "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",
         "neoorigins:spawn_projectile", "neoorigins:spawn_tornado",
-        "neoorigins:swap_with_entity", "neoorigins:swing_hand", "neoorigins:target_action",
-        "neoorigins:teleport_to_marker", "neoorigins:throw_target", "neoorigins:toggle",
+        "neoorigins:swap_positions", "neoorigins:swap_with_entity", "neoorigins:swing_hand",
+        "neoorigins:target_action", "neoorigins:teleport_target_to_self",
+        "neoorigins:teleport_to_marker", "neoorigins:teleport_to_target",
+        "neoorigins:throw_target", "neoorigins:toggle",
         "neoorigins:trigger_cooldown", "neoorigins:kubejs_callback");
 
     public static EntityAction parse(JsonObject json, String contextId) {
@@ -60,12 +68,16 @@ public final class ActionParser {
             return failNoop("root", contextId, "missing action object");
         }
         String type = json.has("type") ? json.get("type").getAsString() : "";
-        // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:
-        // prefixes get a one-shot [2.0-legacy] warning then are rewritten to
-        // neoorigins: for dispatch. Canonical switch arms below are neoorigins:*.
+        // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:/apoli:
+        // prefixes (the Origins/Apoli ecosystem aliases — these verbs share schemas)
+        // get a one-shot [2.0-legacy] warning then are rewritten to neoorigins: for
+        // dispatch. Canonical switch arms below are neoorigins:*. Without apoli: here,
+        // packs that nest apoli:-namespaced verbs inside origins: powers (e.g. deanos
+        // apoli:and / apoli:raycast / apoli:change_resource) fell through to no-op
+        // even though the identical neoorigins: handler exists.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             type = "neoorigins:" + type;
-        } else if (type.startsWith("origins:") || type.startsWith("apace:")) {
+        } else if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
             String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
             com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
             type = canonical;
@@ -232,7 +244,18 @@ public final class ActionParser {
         double commandStep = json.has("command_step") ? json.get("command_step").getAsDouble() : 1.0;
         if (commandStep <= 0) commandStep = 1.0; // guard against infinite loops on bad config
         final double finalStep = commandStep;
+        // {@code before_action}: an entity_action run once, up-front, before the
+        // ray is cast — deanos spells use it to consume the offhand reagent (the
+        // ender pearl in Teleport) regardless of what the ray hits.
+        // {@code command_at_hit}: the command executed at the impact point when a
+        // block or entity is hit — this is the spell payload ("tp @s ~ ~ ~",
+        // "/Explosion @s ..."). Both sit alongside the already-supported
+        // command_along_ray / command_step deanos raycast extensions.
+        final EntityAction beforeAction = json.has("before_action") && json.get("before_action").isJsonObject()
+            ? parse(json.getAsJsonObject("before_action"), contextId) : EntityAction.noop();
+        final String commandAtHit = json.has("command_at_hit") ? json.get("command_at_hit").getAsString() : null;
         return player -> {
+            beforeAction.execute(player);
             Vec3 from = player.getEyePosition(1.0F);
             Vec3 look = player.getViewVector(1.0F);
             Vec3 to = from.add(look.x * distance, look.y * distance, look.z * distance);
@@ -274,7 +297,10 @@ public final class ActionParser {
                 if (entityHit != null && entityHit.getEntity() instanceof net.minecraft.world.entity.LivingEntity le) {
                     Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
                         new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(le));
-                    try { bientityAction.execute(player); }
+                    try {
+                        bientityAction.execute(player);
+                        runCommandAt(player, commandAtHit, le.position(), contextId);
+                    }
                     finally { com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev); }
                     return;
                 }
@@ -290,7 +316,12 @@ public final class ActionParser {
                     // execute_command's `~ ~ ~` resolves to the hit block.
                     Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
                         new RaycastBlockContext(pos));
-                    try { blockAction.execute(player); }
+                    try {
+                        blockAction.execute(player);
+                        // command_at_hit runs at the precise impact point (not the
+                        // block centre) so "tp @s ~ ~ ~" lands exactly where you aimed.
+                        runCommandAt(player, commandAtHit, hit.getLocation(), contextId);
+                    }
                     finally { com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev); }
                     return;
                 }
@@ -298,6 +329,27 @@ public final class ActionParser {
 
             missAction.execute(player);
         };
+    }
+
+    /**
+     * Run a single command at a fixed world position with the player as the
+     * command entity (so {@code @s} resolves to the caster and {@code ~ ~ ~}
+     * to {@code pos}). Used by raycast's {@code command_at_hit}. Suppressed
+     * output + permission level 2, matching command_along_ray.
+     */
+    private static void runCommandAt(net.minecraft.server.level.ServerPlayer player, String command,
+                                     Vec3 pos, String contextId) {
+        if (command == null || command.isEmpty() || player.getServer() == null) return;
+        var src = player.createCommandSourceStack()
+            .withPosition(pos)
+            .withSuppressedOutput()
+            .withPermission(2);
+        try {
+            player.getServer().getCommands().performPrefixedCommand(src, command);
+        } catch (Exception e) {
+            com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                "[CompatB] raycast {} command_at_hit failed: {}", contextId, e.getMessage());
+        }
     }
 
     /**
@@ -341,93 +393,38 @@ public final class ActionParser {
 
     // ---- Phase 2: New action parsers ----
 
-    private record FanoutEffect(net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> holder,
-                                int duration, int amplifier, boolean ambient,
-                                boolean particles, boolean icon) {}
-    private record FanoutDamage(float amount, String sourceName) {}
-
-    /**
-     * Walk an AoE inner-action JSON tree and collect every {@code apply_effect} /
-     * {@code damage} leaf as a fan-out task. Recurses through {@code and}/{@code or}
-     * so wrappers like
-     * <pre>{ "type": "neoorigins:and", "actions": [apply_effect, damage] }</pre>
-     * still fan out to mobs. Accepts the {@code neoorigins:}, {@code origins:},
-     * and {@code apace:} namespaces — without {@code neoorigins:} the four
-     * rewritten projectile actives (Kraken Ink Shot, Revenant Void Bolt,
-     * Sculkborn Sonic Bolt, Warden Sonic Boom) silently no-op against mobs
-     * because their player-side EntityAction has no living-entity targets.
-     */
-    private static void collectFanoutTasks(JsonObject inner,
-                                           java.util.List<FanoutEffect> effects,
-                                           java.util.List<FanoutDamage> damages) {
-        if (inner == null || !inner.has("type")) return;
-        String t = inner.get("type").getAsString();
-        switch (t) {
-            case "neoorigins:and", "origins:and", "apace:and",
-                 "neoorigins:or",  "origins:or",  "apace:or" -> {
-                if (inner.has("actions") && inner.get("actions").isJsonArray()) {
-                    for (var el : inner.getAsJsonArray("actions")) {
-                        if (el.isJsonObject()) collectFanoutTasks(el.getAsJsonObject(), effects, damages);
-                    }
-                }
-            }
-            case "neoorigins:apply_effect", "origins:apply_effect", "apace:apply_effect" -> {
-                String eid = inner.has("effect") ? inner.get("effect").getAsString()
-                           : inner.has("effect_id") ? inner.get("effect_id").getAsString() : null;
-                if (eid == null) return;
-                var holderOpt = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
-                    .getOptional(net.minecraft.resources.ResourceLocation.parse(eid))
-                    .map(net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT::wrapAsHolder);
-                if (holderOpt.isEmpty()) return;
-                int dur = inner.has("duration") ? inner.get("duration").getAsInt() : 200;
-                int amp = inner.has("amplifier") ? inner.get("amplifier").getAsInt() : 0;
-                boolean amb = inner.has("is_ambient") && inner.get("is_ambient").getAsBoolean();
-                boolean par = !inner.has("show_particles") || inner.get("show_particles").getAsBoolean();
-                boolean ico = !inner.has("show_icon") || inner.get("show_icon").getAsBoolean();
-                effects.add(new FanoutEffect(holderOpt.get(), dur, amp, amb, par, ico));
-            }
-            case "neoorigins:damage", "origins:damage", "apace:damage" -> {
-                float amt = inner.has("amount") ? inner.get("amount").getAsFloat() : 1.0f;
-                String src = inner.has("source") && inner.get("source").isJsonObject()
-                    && inner.getAsJsonObject("source").has("name")
-                    ? inner.getAsJsonObject("source").get("name").getAsString()
-                    : "generic";
-                damages.add(new FanoutDamage(amt, src));
-            }
-            default -> { /* not a fan-out leaf */ }
-        }
-    }
-
     static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
-        // AoE: run entity_action against every ServerPlayer within the radius,
-        // and for any apply_effect / damage leaves found in the inner action tree
-        // (recursing through and/or), ALSO apply the leaf to non-player mobs in
-        // radius — otherwise powers like Inferno Burst, Kraken Ink Shot, etc.
-        // have no combat impact because mobs are never EntityAction targets.
+        // AoE: scan every LivingEntity within radius once and dispatch the inner
+        // action per entity. The inner action is parsed two ways:
+        //   - as an EntityAction (player-typed) for the legacy player path, and
+        //   - as a TargetAction (LivingEntity + actor) when the verb is
+        //     generalizable (apply_effect, damage, heal, swap_positions,
+        //     teleport_to_target, shear, dye, ...).
+        // When a TargetAction form exists it runs on BOTH players and mobs
+        // (source = the caster). For overlapping verbs the observable outcome on
+        // an in-radius entity is identical to before; for the dual-actor verbs
+        // this is the new capability (previously only apply_effect/damage leaves
+        // were fanned out to mobs via a recursive hack).
         //
-        // [LOSSY] Other action verbs (launch, set_block, ...) still only affect
-        // ServerPlayer targets — broadening EntityAction to LivingEntity is a
-        // bigger refactor.
+        // When no TargetAction form exists (player-only verbs like launch /
+        // set_block), the legacy behaviour is kept: run the EntityAction only on
+        // ServerPlayer targets and skip mobs.
         float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16.0f;
         String shape = json.has("shape") ? json.get("shape").getAsString() : "sphere";
         boolean includeSelf = !json.has("include_source") || json.get("include_source").getAsBoolean();
 
         JsonObject innerJson = json.has("entity_action") ? json.getAsJsonObject("entity_action") : null;
         EntityAction action = innerJson != null ? parse(innerJson, contextId) : EntityAction.noop();
+        TargetAction targetAction = innerJson != null ? TargetActionParser.parse(innerJson, contextId) : null;
         EntityCondition targetCondition = json.has("entity_condition")
             ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), contextId)
             : EntityCondition.alwaysTrue();
-
-        java.util.List<FanoutEffect> fanoutEffects = new java.util.ArrayList<>();
-        java.util.List<FanoutDamage> fanoutDamages = new java.util.ArrayList<>();
-        collectFanoutTasks(innerJson, fanoutEffects, fanoutDamages);
-        final java.util.List<FanoutEffect> finalEffects = java.util.List.copyOf(fanoutEffects);
-        final java.util.List<FanoutDamage> finalDamages = java.util.List.copyOf(fanoutDamages);
 
         final float  finalRadius       = radius;
         final boolean finalIncludeSelf = includeSelf;
         final String  finalShape       = shape;
         final EntityAction finalAction = action;
+        final TargetAction finalTargetAction = targetAction;
         final EntityCondition finalCond = targetCondition;
 
         return source -> {
@@ -448,62 +445,51 @@ public final class ActionParser {
                 aabb = source.getBoundingBox().inflate(r);
             }
             double r2 = r * r;
+            java.util.UUID casterUuid = source.getUUID();
 
-            var playerCandidates = level.getEntitiesOfClass(net.minecraft.server.level.ServerPlayer.class, aabb);
-            for (var target : playerCandidates) {
-                if (target == source && !finalIncludeSelf) continue;
+            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb);
+            for (var entity : candidates) {
+                // Shape gate (both players and mobs).
                 if ("sphere".equalsIgnoreCase(finalShape)
-                        && target.position().distanceToSqr(srcPos) > r2) continue;
-                if (!finalCond.test(target)) continue;
-                finalAction.execute(target);
-            }
+                        && entity.position().distanceToSqr(srcPos) > r2) continue;
+                // include_source gate.
+                if (entity == source && !finalIncludeSelf) continue;
 
-            if (!finalEffects.isEmpty() || !finalDamages.isEmpty()) {
-                java.util.UUID casterUuid = source.getUUID();
-                var mobCandidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb);
-                for (var mob : mobCandidates) {
-                    if (mob instanceof net.minecraft.server.level.ServerPlayer) continue;
-                    if (mob == source) continue;
-                    if ("sphere".equalsIgnoreCase(finalShape)
-                            && mob.position().distanceToSqr(srcPos) > r2) continue;
-                    // Friendly-fire filter — each category is independently
-                    // configurable via [friendly_fire] in neoorigins-common.toml.
-                    // Defaults: pets/minions/villagers/iron golems protected;
-                    // passive animals (sheep, cow, pig, ...) NOT protected so
-                    // active combat AOEs (Hiveling Sting, Inferno Burst, ...)
-                    // can actually hit livestock.
+                boolean isPlayer = entity instanceof net.minecraft.server.level.ServerPlayer;
+                // entity_condition gate. EntityCondition is player-typed, so — as
+                // before — it can only be tested against ServerPlayer targets. Mobs
+                // were never condition-gated in the legacy fan-out, so they keep
+                // bypassing it here.
+                if (isPlayer && !finalCond.test((net.minecraft.server.level.ServerPlayer) entity)) continue;
+
+                if (!isPlayer) {
+                    // Friendly-fire filter applies ONLY to non-player mob targets —
+                    // each category is independently configurable via [friendly_fire]
+                    // in neoorigins-common.toml. Defaults: pets/minions/villagers/iron
+                    // golems protected; passive animals (sheep, cow, pig, ...) NOT
+                    // protected so active combat AOEs (Hiveling Sting, Inferno Burst,
+                    // ...) can actually hit livestock.
+                    if (entity == source) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectOwnedPets()
-                            && mob instanceof net.minecraft.world.entity.TamableAnimal tame
+                            && entity instanceof net.minecraft.world.entity.TamableAnimal tame
                             && tame.getOwnerUUID() != null
                             && tame.getOwnerUUID().equals(casterUuid)) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectMinions()
-                            && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(mob, casterUuid)) continue;
+                            && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(entity, casterUuid)) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectAnimals()
-                            && mob instanceof net.minecraft.world.entity.animal.Animal) continue;
+                            && entity instanceof net.minecraft.world.entity.animal.Animal) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectVillagers()
-                            && mob instanceof net.minecraft.world.entity.npc.AbstractVillager) continue;
+                            && entity instanceof net.minecraft.world.entity.npc.AbstractVillager) continue;
                     if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectIronGolems()
-                            && mob instanceof net.minecraft.world.entity.animal.IronGolem) continue;
-                    for (var fx : finalEffects) {
-                        mob.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                            fx.holder(), fx.duration(), fx.amplifier(),
-                            fx.ambient(), fx.particles(), fx.icon()));
-                    }
-                    for (var dmg : finalDamages) {
-                        if (dmg.amount() <= 0f) continue;
-                        var dmgSrc = switch (dmg.sourceName()) {
-                            case "fire", "on_fire", "in_fire" -> mob.level().damageSources().onFire();
-                            case "lava"   -> mob.level().damageSources().lava();
-                            case "magic"  -> mob.level().damageSources().magic();
-                            case "drown"  -> mob.level().damageSources().drown();
-                            case "freeze" -> mob.level().damageSources().freeze();
-                            case "wither" -> mob.level().damageSources().wither();
-                            default       -> source instanceof net.minecraft.server.level.ServerPlayer sp
-                                ? mob.level().damageSources().playerAttack(sp)
-                                : mob.level().damageSources().generic();
-                        };
-                        mob.hurt(dmgSrc, dmg.amount());
-                    }
+                            && entity instanceof net.minecraft.world.entity.animal.IronGolem) continue;
+                }
+
+                if (finalTargetAction != null) {
+                    // Generalizable verb — runs on players and mobs alike.
+                    finalTargetAction.execute(entity, source);
+                } else if (isPlayer) {
+                    // Player-only verb — legacy behaviour: players only, skip mobs.
+                    finalAction.execute((net.minecraft.server.level.ServerPlayer) entity);
                 }
             }
         };
@@ -696,6 +682,46 @@ public final class ActionParser {
                 && ehr.getEntity() instanceof net.minecraft.world.entity.LivingEntity le) {
                 return le;
             }
+        }
+        return null;
+    }
+
+    /**
+     * The resolved block target of the active dispatch context — the
+     * {@link ServerLevel} and {@link BlockPos} of the impacted block. The actor
+     * is supplied separately (the {@code EntityAction}/{@code BlockTargetAction}
+     * arg), so this carries only level+pos. Package-private record so the
+     * block-target verbs in {@link BuiltinActions} and the
+     * {@link BlockTargetActionParser} share one resolved shape.
+     */
+    record BlockTarget(ServerLevel level, BlockPos pos) {}
+
+    /**
+     * Resolve the impacted block of the active dispatch context, mirroring
+     * {@link #extractBientityTarget} for blocks. Recognizes:
+     * <ul>
+     *   <li>the dedicated {@link com.cyberday1.neoorigins.service.EventPowerIndex.BlockHitContext}
+     *       installed on projectile block impact;</li>
+     *   <li>a {@link com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext}
+     *       whose ray-trace result is a block hit (so block-target verbs work as a
+     *       projectile {@code on_hit_action} without extra plumbing);</li>
+     *   <li>the synthetic {@link RaycastBlockContext} published by {@code raycast}'s
+     *       block hit / {@code block_action_at} — level is taken from {@code fallbackLevel}
+     *       (the actor's level), since that context carries only the pos.</li>
+     * </ul>
+     * Returns {@code null} when no block context resolves.
+     */
+    static BlockTarget extractBlockTarget(Object ctx, ServerLevel fallbackLevel) {
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.BlockHitContext bhc) {
+            return new BlockTarget(bhc.level(), bhc.pos());
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc
+            && phc.result() instanceof net.minecraft.world.phys.BlockHitResult bhr
+            && phc.projectile().level() instanceof ServerLevel sl) {
+            return new BlockTarget(sl, bhr.getBlockPos());
+        }
+        if (ctx instanceof RaycastBlockContext rbc && fallbackLevel != null) {
+            return new BlockTarget(fallbackLevel, rbc.pos());
         }
         return null;
     }

@@ -1,5 +1,9 @@
 <script lang="ts">
 	import type { StringFieldSpec } from '$lib/schema/FormFieldSpec';
+	import { vanilla, ensureVanilla } from '$lib/data/vanilla';
+	import { suggestionsFor } from '$lib/data/suggestionKind';
+	import { targetVersion } from '$lib/stores/originDraft';
+	import SuggestInput from '$lib/widgets/SuggestInput.svelte';
 
 	let {
 		field,
@@ -8,8 +12,21 @@
 
 	const id = $derived(`f-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
 	let invalid = $derived(
-		field.pattern && value !== '' && !new RegExp(field.pattern).test(value)
+		!!(field.pattern && value !== '' && !new RegExp(field.pattern).test(value))
 	);
+	const descId = $derived(`${id}-desc`);
+	const patId = $derived(`${id}-pat`);
+	const describedBy = $derived(
+		[field.description ? descId : null, field.pattern ? patId : null]
+			.filter(Boolean)
+			.join(' ') || undefined
+	);
+
+	// Vanilla typeahead: resolve a suggestion list from the field name (e.g.
+	// `item` → items, `biome` → biomes). SuggestInput shows a custom dropdown;
+	// with no matching list it degrades to a plain text input.
+	let suggestions = $derived(suggestionsFor(field.name, $vanilla));
+	$effect(() => ensureVanilla($targetVersion));
 </script>
 
 <div class="row">
@@ -17,18 +34,20 @@
 		{field.label}
 		{#if field.required}<span class="req" aria-label="required">*</span>{/if}
 	</label>
-	<input
+	<SuggestInput
 		{id}
-		type="text"
-		class:invalid
-		pattern={field.pattern ?? undefined}
-		bind:value
+		{value}
+		{suggestions}
+		{invalid}
+		ariaDescribedby={describedBy}
+		mono={false}
+		oninput={(v) => (value = v)}
 	/>
 	{#if field.description}
-		<small class="desc">{field.description}</small>
+		<small class="desc" id={descId}>{field.description}</small>
 	{/if}
 	{#if field.pattern}
-		<small class="pat" class:invalid>pattern: {field.pattern}</small>
+		<small class="pat" id={patId} class:invalid>pattern: {field.pattern}</small>
 	{/if}
 </div>
 
@@ -61,27 +80,5 @@
 	}
 	.pat.invalid {
 		color: var(--color-danger);
-	}
-	input[type='text'] {
-		background: var(--color-bg-subtle);
-		color: var(--color-text);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		padding: 0.4rem 0.55rem;
-		font: inherit;
-		font-size: 0.86rem;
-		width: 100%;
-		max-width: 26rem;
-		transition: border-color 120ms ease, background 120ms ease;
-	}
-	input[type='text']:hover {
-		border-color: var(--color-border-strong);
-	}
-	input[type='text']:focus {
-		border-color: var(--color-accent);
-		background: var(--color-surface);
-	}
-	input[type='text'].invalid {
-		border-color: var(--color-danger);
 	}
 </style>

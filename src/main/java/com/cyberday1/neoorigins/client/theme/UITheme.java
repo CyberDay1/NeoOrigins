@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.client.theme;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -39,12 +40,41 @@ public final class UITheme {
         // 9-slice insets — left, top, right, bottom (px on a 256x256 source).
         // Burnt edges occupy roughly the outer 12px; tuned by eye.
         12, 12, 12, 12,
-        256, 256
+        256, 256,
+        false, 0
+    );
+
+    /**
+     * Original flat high-contrast skin (dark navy panels, light text, vanilla
+     * font). Used when {@code classic_picker_style} is enabled in the config as
+     * a readability fallback for the parchment theme. {@link #flat()} switches
+     * the panel/button renderers from textured 9-slice/scroll art to plain
+     * fill + outline.
+     */
+    public static final UITheme CLASSIC = new UITheme(
+        null,                // panelBackground unused in flat mode
+        0xCC060610,          // overlayColor — full-screen scrim
+        0xFFFFFFFF,          // nameColor — selected/origin name (white)
+        0xFF9999BB,          // descriptionColor — body / unselected row name
+        0xFF7AACDA,          // powerNameColor — soft blue
+        0xFF8892A8,          // powerDescriptionColor — light grey (bumped from the
+                             //   original 0xFF445566 for legibility on the dark panel)
+        0xFFCCCCDD,          // headerColor — section headers
+        0xFF2A2A44,          // borderColor — panel/button outline
+        0xFF666688,          // mutedColor — secondary hints
+        0xFF4A90D9,          // accentColor — accent bars, selected outline, dots
+        null,                // font — vanilla default (no decorative font)
+        0, 0, 0, 0,
+        0, 0,
+        true, 0xFF0E0E1C     // flat = true; panelColor — dark navy panel fill
     );
 
     private static UITheme current = PARCHMENT;
 
     public static UITheme current() {
+        // The classic-style config is an explicit accessibility override and
+        // takes precedence over any resource-pack-installed theme.
+        if (NeoOriginsConfig.isClassicPickerStyle()) return CLASSIC;
         return current;
     }
 
@@ -65,6 +95,8 @@ public final class UITheme {
     private final ResourceLocation font;
     private final int insetLeft, insetTop, insetRight, insetBottom;
     private final int textureWidth, textureHeight;
+    private final boolean flat;
+    private final int panelColor;
 
     public UITheme(ResourceLocation panelBackground,
                    int overlayColor,
@@ -78,7 +110,8 @@ public final class UITheme {
                    int accentColor,
                    ResourceLocation font,
                    int insetLeft, int insetTop, int insetRight, int insetBottom,
-                   int textureWidth, int textureHeight) {
+                   int textureWidth, int textureHeight,
+                   boolean flat, int panelColor) {
         this.panelBackground = panelBackground;
         this.overlayColor = overlayColor;
         this.nameColor = nameColor;
@@ -96,6 +129,8 @@ public final class UITheme {
         this.insetBottom = insetBottom;
         this.textureWidth = textureWidth;
         this.textureHeight = textureHeight;
+        this.flat = flat;
+        this.panelColor = panelColor;
     }
 
     public ResourceLocation panelBackground() { return panelBackground; }
@@ -115,4 +150,8 @@ public final class UITheme {
     public int insetBottom() { return insetBottom; }
     public int textureWidth() { return textureWidth; }
     public int textureHeight() { return textureHeight; }
+    /** True for the flat high-contrast skin: renderers paint plain fill + outline. */
+    public boolean flat() { return flat; }
+    /** Panel background fill colour used by the flat skin (ignored when textured). */
+    public int panelColor() { return panelColor; }
 }

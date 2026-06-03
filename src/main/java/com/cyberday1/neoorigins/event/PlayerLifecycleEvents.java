@@ -107,6 +107,10 @@ public class PlayerLifecycleEvents {
 
         repairCorruptedVitals(sp);
 
+        // Global power sets (apoli:global): grant/reconcile before onLogin so the
+        // freshly-granted powers receive their onLogin dispatch in the same pass.
+        com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
+
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
 
         // Clamp health to the (possibly changed) max — catches stale health
@@ -193,6 +197,9 @@ public class PlayerLifecycleEvents {
     @SubscribeEvent
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         event.getRelevantPlayers().forEach(sp -> {
+            // Re-apply global power sets so a /reload that added or removed an
+            // apoli:global set immediately grants/revokes for online players.
+            com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
             NeoOriginsNetwork.syncRegistryToPlayer(sp);
             NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
             NeoOriginsNetwork.syncActiveThemeToPlayer(sp);

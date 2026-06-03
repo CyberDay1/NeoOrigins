@@ -9,11 +9,13 @@
 		value,
 		options,
 		disabled = false,
+		id = undefined,
 		onChange
 	}: {
 		value: string;
 		options: string[];
 		disabled?: boolean;
+		id?: string;
 		onChange: (next: string) => void;
 	} = $props();
 
@@ -22,6 +24,7 @@
 
 <select
 	class="picker"
+	{id}
 	{value}
 	{disabled}
 	onchange={(e) => onChange((e.currentTarget as HTMLSelectElement).value)}

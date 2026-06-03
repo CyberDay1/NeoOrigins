@@ -55,10 +55,36 @@ export const STR_ITEM_TYPE = 'neo_str_item';
 /** Field name carrying a power block's local id. */
 export const POWER_ID_FIELD = '__id';
 
-/** Category colours (block backgrounds). Condition = teal, action = violet,
- *  block_condition = amber, item_condition = green, item_action = magenta
- *  (distinct so nested tests/actions read at a glance). */
-const COLOUR: Record<BlockKind, string> = {
+/**
+ * Category colours (block backgrounds), as JS maps.
+ *
+ * Blockly sets block colour in JS at definition/theme time — it does NOT
+ * read CSS custom properties — so the JS map is the source of truth for the
+ * canvas. The app.css `--color-blockly-*` tokens mirror these values for any
+ * HTML swatches/legend; keep the two in sync.
+ *
+ * Five palettes ship (Okabe-Ito-derived for the CVD modes):
+ *   - DEFAULT : the original nebula category colours.
+ *   - PROTAN  : red-deficient (protanopia) safe set.
+ *   - DEUTAN  : green-deficient (deuteranopia) safe set.
+ *   - TRITAN  : blue-deficient (tritanopia) safe set.
+ *   - MONO    : monochrome — every kind shares one neutral fill; the glyphs
+ *               carry all category meaning.
+ * The active map is chosen from the persisted palette setting; on change the
+ * canvas rebuilds a Blockly.Theme and calls setTheme() (see BlockCanvas).
+ *
+ * Glyph redundancy: each kind also carries an ASCII-safe glyph (owner-
+ * approved) prefixed onto BOTH the on-canvas block message and the toolbox
+ * category label, so category is readable without relying on colour. Glyphs
+ * are palette-independent.
+ *
+ * Luminance rule: every fill is kept in a mid range so the white on-block
+ * text stays legible. Keep these maps in sync with the app.css
+ * `[data-palette='…']` `--color-blockly-*` overrides.
+ */
+export type BlocklyPalette = 'default' | 'protan' | 'deutan' | 'tritan' | 'mono';
+
+const COLOUR_DEFAULT: Record<BlockKind, string> = {
 	power: '#5d6b87',
 	condition: '#15a89b',
 	action: '#7c5cff',
@@ -66,6 +92,103 @@ const COLOUR: Record<BlockKind, string> = {
 	item_condition: '#4f9d3a',
 	item_action: '#b5478f'
 };
+
+/** Protanopia (red-deficient) safe palette. */
+const COLOUR_PROTAN: Record<BlockKind, string> = {
+	power: '#0072b2',
+	condition: '#5a9bd4',
+	action: '#cc79a7',
+	block_condition: '#b5651d',
+	item_condition: '#117733',
+	item_action: '#d55e00'
+};
+
+/** Deuteranopia (green-deficient) safe palette. */
+const COLOUR_DEUTAN: Record<BlockKind, string> = {
+	power: '#1f6f9c',
+	condition: '#009e73',
+	action: '#cc79a7',
+	block_condition: '#c8881f',
+	item_condition: '#56789c',
+	item_action: '#d55e00'
+};
+
+/** Tritanopia (blue-deficient) safe palette. */
+const COLOUR_TRITAN: Record<BlockKind, string> = {
+	power: '#117733',
+	condition: '#cc6677',
+	action: '#aa4499',
+	block_condition: '#882255',
+	item_condition: '#44897a',
+	item_action: '#7a4fa0'
+};
+
+/** Monochrome — one neutral mid-grey for every kind; glyphs disambiguate. */
+const COLOUR_MONO: Record<BlockKind, string> = {
+	power: '#5b6470',
+	condition: '#5b6470',
+	action: '#5b6470',
+	block_condition: '#5b6470',
+	item_condition: '#5b6470',
+	item_action: '#5b6470'
+};
+
+export const BLOCKLY_PALETTES: Record<BlocklyPalette, Record<BlockKind, string>> = {
+	default: COLOUR_DEFAULT,
+	protan: COLOUR_PROTAN,
+	deutan: COLOUR_DEUTAN,
+	tritan: COLOUR_TRITAN,
+	mono: COLOUR_MONO
+};
+
+/** Resolve the colour map for a palette (defaults to DEFAULT for unknowns). */
+export function paletteColours(palette: BlocklyPalette): Record<BlockKind, string> {
+	return BLOCKLY_PALETTES[palette] ?? COLOUR_DEFAULT;
+}
+
+/** Owner-approved category glyphs — ASCII-safe, palette-independent. */
+export const KIND_GLYPH: Record<BlockKind, string> = {
+	power: '◆',
+	condition: '?',
+	action: '▸',
+	block_condition: '▦',
+	item_condition: '◈',
+	item_action: '▸◈'
+};
+
+/** Blockly block-style name for a kind. Blocks reference a style so a theme
+ *  swap (setTheme) recolours them live without redefining blocks. */
+export function blockStyleName(kind: BlockKind): string {
+	return `neo_${kind}_style`;
+}
+
+/**
+ * Build a `Blockly.Theme` whose `blockStyles` map every kind's style name to
+ * the chosen palette's colour. Passing the live `Blockly` module avoids a
+ * static import here (Blockly is loaded dynamically in BlockCanvas). Calling
+ * `workspace.setTheme(theme)` with this recolours the canvas immediately.
+ */
+export function buildBlocklyTheme(
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	Blockly: { Theme: { defineTheme: (name: string, opts: any) => any }; Themes: { Classic: any } },
+	palette: BlocklyPalette
+) {
+	const colours = paletteColours(palette);
+	const blockStyles: Record<string, { colourPrimary: string }> = {};
+	(Object.keys(colours) as BlockKind[]).forEach((kind) => {
+		blockStyles[blockStyleName(kind)] = { colourPrimary: colours[kind] };
+	});
+	// The str-item wrapper keeps its neutral grey (not a category kind).
+	blockStyles[STR_ITEM_STYLE] = { colourPrimary: STR_ITEM_COLOUR };
+	return Blockly.Theme.defineTheme(`neo_${palette}`, {
+		base: Blockly.Themes.Classic,
+		blockStyles
+	});
+}
+
+/** Neutral structural-wrapper colour + style (not a colourable category). */
+const STR_ITEM_COLOUR = '#8a8f99';
+const STR_ITEM_STYLE = 'neo_str_item_style';
 
 export interface BlockRegistry {
 	/** Block definition JSON to feed `defineBlocksWithJsonArray`. */
@@ -169,7 +292,8 @@ export function renderOf(field: FormFieldSpec): FieldRender {
 function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): object {
 	const args: Record<string, unknown>[] = [];
 	const statementRows: { label: string; arg: Record<string, unknown> }[] = [];
-	let message = shortName(typeId);
+	// Glyph prefix makes the category legible without colour.
+	let message = `${KIND_GLYPH[kind]} ${shortName(typeId)}`;
 	let n = 0;
 
 	if (kind === 'power') {
@@ -208,7 +332,11 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 
 	const def: Record<string, unknown> = {
 		type: blockTypeId(kind, typeId),
-		colour: COLOUR[kind],
+		// `style` (not `colour`) drives the block background, so a theme swap
+		// (setTheme) recolours live. Blockly forbids setting BOTH `colour` and
+		// `style` on one block — the initial colour comes from the theme that
+		// BlockCanvas builds for the active palette at inject time.
+		style: blockStyleName(kind),
 		inputsInline: true,
 		tooltip: typeId,
 		message0: message,
@@ -242,11 +370,11 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 function condItemDef(): object {
 	return {
 		type: COND_ITEM_TYPE,
-		colour: COLOUR.condition,
+		style: blockStyleName('condition'),
 		inputsInline: true,
 		previousStatement: 'CondItem',
 		nextStatement: 'CondItem',
-		message0: 'condition %1',
+		message0: `${KIND_GLYPH.condition} condition %1`,
 		args0: [{ type: 'input_value', name: 'ITEM', check: 'Condition' }]
 	};
 }
@@ -255,11 +383,11 @@ function condItemDef(): object {
 function blockCondItemDef(): object {
 	return {
 		type: BLOCK_COND_ITEM_TYPE,
-		colour: COLOUR.block_condition,
+		style: blockStyleName('block_condition'),
 		inputsInline: true,
 		previousStatement: 'BlockCondItem',
 		nextStatement: 'BlockCondItem',
-		message0: 'block condition %1',
+		message0: `${KIND_GLYPH.block_condition} block condition %1`,
 		args0: [{ type: 'input_value', name: 'ITEM', check: 'BlockCondition' }]
 	};
 }
@@ -268,11 +396,11 @@ function blockCondItemDef(): object {
 function itemCondItemDef(): object {
 	return {
 		type: ITEM_COND_ITEM_TYPE,
-		colour: COLOUR.item_condition,
+		style: blockStyleName('item_condition'),
 		inputsInline: true,
 		previousStatement: 'ItemCondItem',
 		nextStatement: 'ItemCondItem',
-		message0: 'item condition %1',
+		message0: `${KIND_GLYPH.item_condition} item condition %1`,
 		args0: [{ type: 'input_value', name: 'ITEM', check: 'ItemCondition' }]
 	};
 }
@@ -282,7 +410,7 @@ function itemCondItemDef(): object {
 function strItemDef(): object {
 	return {
 		type: STR_ITEM_TYPE,
-		colour: '#8a8f99',
+		style: STR_ITEM_STYLE,
 		inputsInline: true,
 		previousStatement: 'StrItem',
 		nextStatement: 'StrItem',
@@ -298,21 +426,27 @@ function strItemDef(): object {
  */
 export function buildBlockRegistry(
 	powerSchema: object,
-	schemas: RefSchemas
+	schemas: RefSchemas,
+	palette: BlocklyPalette = 'default'
 ): BlockRegistry {
+	// `colours` drives only the toolbox category bars below — block bodies are
+	// coloured by their `style` via the injected theme (see BlockCanvas).
+	const colours = paletteColours(palette);
 	const defs: object[] = [condItemDef(), blockCondItemDef(), itemCondItemDef(), strItemDef()];
 	const blockTypeForId = new Map<string, string>();
 	const idForBlockType = new Map<string, string>();
 	const fieldsByTypeId = new Map<string, FormFieldSpec[]>();
 	const kindByTypeId = new Map<string, BlockKind>();
 
+	// Toolbox category labels carry the same glyph prefix as their blocks so
+	// the category is legible without relying on colour.
 	const toolboxCats: { kind: string; name: string; colour: string; contents: object[] }[] = [
-		{ kind: 'category', name: 'Powers', colour: COLOUR.power, contents: [] },
-		{ kind: 'category', name: 'Conditions', colour: COLOUR.condition, contents: [] },
-		{ kind: 'category', name: 'Actions', colour: COLOUR.action, contents: [] },
-		{ kind: 'category', name: 'Block Conditions', colour: COLOUR.block_condition, contents: [] },
-		{ kind: 'category', name: 'Item Conditions', colour: COLOUR.item_condition, contents: [] },
-		{ kind: 'category', name: 'Item Actions', colour: COLOUR.item_action, contents: [] }
+		{ kind: 'category', name: `${KIND_GLYPH.power} Powers`, colour: colours.power, contents: [] },
+		{ kind: 'category', name: `${KIND_GLYPH.condition} Conditions`, colour: colours.condition, contents: [] },
+		{ kind: 'category', name: `${KIND_GLYPH.action} Actions`, colour: colours.action, contents: [] },
+		{ kind: 'category', name: `${KIND_GLYPH.block_condition} Block Conditions`, colour: colours.block_condition, contents: [] },
+		{ kind: 'category', name: `${KIND_GLYPH.item_condition} Item Conditions`, colour: colours.item_condition, contents: [] },
+		{ kind: 'category', name: `${KIND_GLYPH.item_action} Item Actions`, colour: colours.item_action, contents: [] }
 	];
 
 	const register = (

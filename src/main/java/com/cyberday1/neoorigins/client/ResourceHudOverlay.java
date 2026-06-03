@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.client;
 import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -19,8 +20,17 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
 @EventBusSubscriber(value = Dist.CLIENT, modid = NeoOrigins.MOD_ID)
 public class ResourceHudOverlay {
 
-    private static final int BAR_WIDTH = 81;
-    private static final int BAR_HEIGHT = 5;
+    // ---- Apoli resource_bar.png sprite-sheet geometry (mirrors PowerHudRenderer) ----
+    private static final ResourceLocation RESOURCE_BAR_TEX =
+        ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "textures/gui/resource_bar.png");
+    private static final int TEX_SIZE = 256;
+    private static final int BAR_WIDTH = 71;
+    private static final int BAR_HEIGHT = 8;          // fill row height in the sheet
+    private static final int FRAME_HEIGHT = 5;        // background frame height in the sheet
+    private static final int ICON_SIZE = 8;
+    private static final int BAR_INDEX_OFFSET = BAR_HEIGHT + 2;   // 10 — vertical stride between fill rows
+    private static final int ICON_INDEX_OFFSET = ICON_SIZE + 1;   // 9  — horizontal stride between icons
+
     private static final int BAR_SPACING = 16;  // vertical gap between stacked bars (default layout)
     private static final int BG_COLOR = 0xAA000000;
     private static final int BORDER_COLOR = 0xFF333333;
@@ -66,15 +76,34 @@ public class ResourceHudOverlay {
                 y = defaultBaseY - (defaultIdx * BAR_SPACING);
             }
 
-            // Border + background
-            g.fill(x - 1, y - 1, x + BAR_WIDTH + 1, y + BAR_HEIGHT + 1, BORDER_COLOR);
-            g.fill(x, y, x + BAR_WIDTH, y + BAR_HEIGHT, BG_COLOR);
-
-            // Fill bar
             float frac = res.fraction();
             int fillW = Math.round(BAR_WIDTH * frac);
-            if (fillW > 0) {
-                g.fill(x, y, x + fillW, y + BAR_HEIGHT, res.color());
+
+            if (res.barIndex() >= 0) {
+                // Faithful Apoli render. Honour a pack-declared sprite_location (community
+                // sheets are restyled bars at the same coordinates); fall back to our
+                // vendored default sheet when none is given or the id is malformed.
+                ResourceLocation tex = resolveSheet(res.spriteLocation());
+                int barV = BAR_HEIGHT + res.barIndex() * BAR_INDEX_OFFSET;          // fill row v
+                int iconU = (BAR_WIDTH + 2) + res.iconIndex() * ICON_INDEX_OFFSET;  // icon column u
+                // Background frame — top 71x5 strip of the sheet.
+                g.blit(tex, x, y, BAR_WIDTH, FRAME_HEIGHT, 0.0f, 0.0f,
+                    BAR_WIDTH, FRAME_HEIGHT, TEX_SIZE, TEX_SIZE);
+                // Fill portion — overhangs the frame upward by 2px, exactly as Apoli draws it.
+                if (fillW > 0) {
+                    g.blit(tex, x, y - 2, fillW, BAR_HEIGHT, 0.0f, (float) barV,
+                        fillW, BAR_HEIGHT, TEX_SIZE, TEX_SIZE);
+                }
+                // Icon — to the left of the bar, on the same row as the fill.
+                g.blit(tex, x - ICON_SIZE - 2, y - 2, ICON_SIZE, ICON_SIZE,
+                    (float) iconU, (float) barV, ICON_SIZE, ICON_SIZE, TEX_SIZE, TEX_SIZE);
+            } else {
+                // Native NeoOrigins resource (no Apoli sprite index): color-tinted fill in a plain frame.
+                g.fill(x - 1, y - 1, x + BAR_WIDTH + 1, y + FRAME_HEIGHT + 1, BORDER_COLOR);
+                g.fill(x, y, x + BAR_WIDTH, y + FRAME_HEIGHT, BG_COLOR);
+                if (fillW > 0) {
+                    g.fill(x, y, x + fillW, y + FRAME_HEIGHT, res.color());
+                }
             }
 
             // Label above bar
@@ -85,9 +114,21 @@ public class ResourceHudOverlay {
             // Value readout below bar
             String readout = res.value() + "/" + res.max();
             int readoutW = mc.font.width(readout);
-            g.drawString(mc.font, readout, x + (BAR_WIDTH - readoutW) / 2, y + BAR_HEIGHT + 2, LABEL_COLOR, false);
+            g.drawString(mc.font, readout, x + (BAR_WIDTH - readoutW) / 2, y + FRAME_HEIGHT + 2, LABEL_COLOR, false);
 
             defaultIdx++;
         }
+    }
+
+    /**
+     * Resolves the sprite sheet to render a bar against. An empty/blank id (native
+     * resources, or Apoli resources with no {@code sprite_location}) uses the vendored
+     * default sheet. A pack-declared id is passed through verbatim — the texture is
+     * normally provided by the source mod/datapack; a malformed id falls back to default.
+     */
+    private static ResourceLocation resolveSheet(String spriteLocation) {
+        if (spriteLocation == null || spriteLocation.isBlank()) return RESOURCE_BAR_TEX;
+        ResourceLocation parsed = ResourceLocation.tryParse(spriteLocation);
+        return parsed != null ? parsed : RESOURCE_BAR_TEX;
     }
 }

@@ -303,6 +303,20 @@ public final class EventPowerIndex {
     /** Context for breed / tame events. */
     public record EntityInteractContext(net.minecraft.world.entity.LivingEntity target) {}
 
+    /**
+     * Dispatch context for a <em>block</em> impact — the block on the other side
+     * of a projectile/raycast interaction. Sibling of {@link EntityInteractContext}
+     * (the entity equivalent) on the same {@link ActionContextHolder} seam. The
+     * block-target verbs ({@code strip}/{@code till}/{@code path}/{@code grow}/
+     * {@code transform_block}) and the {@code block_target_action} wrapper resolve
+     * it via {@link com.cyberday1.neoorigins.compat.action.ActionParser#extractBlockTarget}.
+     * Carries the {@link net.minecraft.server.level.ServerLevel} and the impacted
+     * {@link net.minecraft.core.BlockPos}; the actor arrives separately as the
+     * {@code EntityAction}/{@code BlockTargetAction} arg.
+     */
+    public record BlockHitContext(net.minecraft.server.level.ServerLevel level,
+                                  net.minecraft.core.BlockPos pos) {}
+
     /** Context for trade events. */
     public record TradeContext(net.minecraft.world.item.trading.MerchantOffer offer) {}
 
