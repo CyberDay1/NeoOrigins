@@ -8,6 +8,7 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
 |---|---|
 | `origin_layer.schema.json` | `data/<namespace>/origins/origin_layers/*.json` |
 | `origin.schema.json` | `data/<namespace>/origins/origins/*.json` |
+| `mob_origin.schema.json` | `data/<namespace>/origins/mob_origins/*.json` |
 | `power.schema.json` | `data/<namespace>/origins/powers/*.json` |
 | `condition.schema.json` | Referenced internally by `power.schema.json` — no direct file mapping. |
 | `action.schema.json` | Referenced internally by `power.schema.json` — no direct file mapping. |
@@ -26,6 +27,10 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
     {
       "fileMatch": ["data/*/origins/origins/*.json"],
       "url": "./docs/schema/origin.schema.json"
+    },
+    {
+      "fileMatch": ["data/*/origins/mob_origins/*.json"],
+      "url": "./docs/schema/mob_origin.schema.json"
     },
     {
       "fileMatch": ["data/*/origins/origin_layers/*.json"],

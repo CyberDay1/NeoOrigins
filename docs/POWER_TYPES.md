@@ -13,6 +13,27 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 
 ---
 
+## `neoorigins:simple`
+
+Does nothing. A display-only marker power — the direct equivalent of `origins:simple` from the original Origins mod.
+
+It has no gameplay effect, no capabilities, and no behavior. Its only purpose is to appear as an entry in the origin info panel so you can attach a `name` + `description` (the heading + body text every power carries) without also granting an ability. Use it for flavor text, lore lines, or to describe an effect that is implemented elsewhere (a mixin, datapack, command, or another mod).
+
+No additional fields beyond `name` and `description`.
+
+**Example:**
+```json
+{
+  "type": "neoorigins:simple",
+  "name": "Cold Blooded",
+  "description": "You feel the chill of the deep more keenly than others."
+}
+```
+
+> Imported `origins:simple` / `apace:simple` (and `origins:tooltip`) powers translate to this type automatically when no specific id-override applies, so their text still shows in the GUI.
+
+---
+
 ## `neoorigins:attribute_modifier`
 
 Adds or multiplies a player attribute while the origin is active. Optionally gated on an environment condition, an equipped-item condition, or both (AND).
@@ -1670,7 +1691,7 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 
 - Lifecycle: `GAINED`, `REVOKED`, `RESPAWN`, `GAMEMODE_CHANGE`
 - Combat: `KILL`, `HIT_TAKEN`, `DAMAGE_DEALT`, `MOD_KNOCKBACK`, `MOD_THORNS`
-- Food: `FOOD_EATEN`, `MOD_FOOD_NUTRITION`, `MOD_EXHAUSTION`, `MOD_NATURAL_REGEN`
+- Food: `FOOD_EATEN`, `FOOD_FINISHED`, `MOD_EXHAUSTION`, `MOD_NATURAL_REGEN`, `MOD_CRAFTED_FOOD_SATURATION`
 - Mining / crafting: `BLOCK_BREAK`, `CRAFT_ITEM`, `ITEM_USE_FINISH`, `MOD_BREAK_SPEED`, `MOD_CRAFT_COUNT`
 - XP / economy: `XP_GAINED`, `MOD_XP_GAIN`, `TRADE_COMPLETE`, `MOD_BONEMEAL_GROWTH`
 - Interaction: `BLOCK_INTERACT`, `ENTITY_INTERACT`, `RIGHT_CLICK_ITEM`
@@ -2212,6 +2233,66 @@ Passively regenerates health on all tamed mobs (via `tame_mob`) on an interval. 
   "interval_ticks": 120,
   "name": "Pack Mender",
   "description": "Your tamed mobs regenerate out of combat."
+}
+```
+
+---
+
+## `neoorigins:mob_behavior`
+
+Rewrites a **mob origin's** AI so the mob hunts players (or another entity type). Unlike the player-facing tame/mount powers, this is applied to a mob origin and controls how that mob acquires and holds targets. On grant, a vanilla `NearestAttackableTargetGoal` (and, when `retaliate` is set, a `HurtByTargetGoal`) is added to the mob's target selector; both are stripped again on revoke, leaving the rest of the mob's vanilla AI intact. With `aggression: "conditional"` it behaves piglin-style — the mob only turns hostile toward a player while every `hostile_when` condition holds (the conditions are evaluated against the prospective player target, not the mob).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `aggression` | enum | no | `neutral` | `neutral` = vanilla AI unchanged (only `retaliate` applies); `hostile` = always target the target type on sight; `conditional` = target a player only while every `hostile_when` condition holds. |
+| `hostile_when` | array | no | `[]` | Conditions (AND-ed) tested against the **prospective player target** (e.g. "player not wearing gold"), not the mob. Only used when `aggression: "conditional"`; an empty list behaves like `hostile`. |
+| `retaliate` | bool | no | `true` | Also fight back against whatever damaged the mob (vanilla hurt-by-target). |
+| `anger_linger_ticks` | int | no | `200` | Keep the target this many ticks after the trigger stops holding, so the mob calms down gradually (200 = 10s). |
+| `aggro_range` | double | no | `16.0` | Max distance to acquire a target. |
+| `target_type` | resource id | no | players | Entity type id to be hostile toward; omitted = players. Conditions only apply to player targets. |
+| `call_for_help` | bool | no | `false` | When retaliating, alert nearby same-type mobs (vanilla pack aggro). |
+
+**Example — hostile to players only in daylight while not sneaking:**
+```json
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "conditional",
+  "aggro_range": 24.0,
+  "anger_linger_ticks": 300,
+  "call_for_help": true,
+  "hostile_when": [
+    { "type": "neoorigins:exposed_to_sun" },
+    { "type": "neoorigins:not", "condition": { "type": "neoorigins:sneaking" } }
+  ]
+}
+```
+
+---
+
+## `neoorigins:mount`
+
+Active keybind power that raycasts for the living entity in front of the player and seats the player on it. Press the skill key with a target in range to mount; press again while riding to dismount. Mobs are mounted immediately; **player** targets require consent according to the server's configured consent mode (`MountConsentManager`). Boss mobs and already-ridden entities are rejected, and the rider is dismounted automatically if the power is revoked. Good for tamer/druid origins that ride mobs (or other players) on demand.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `range` | double | no | `5.0` | Max distance in blocks to raycast for the entity to mount. |
+| `cooldown_ticks` | int | no | `100` | Ticks before the mount ability can be reused (100 = 5s). |
+| `hunger_cost` | int | no | `0` | Hunger consumed each time an entity is mounted. |
+| `allow_players` | bool | no | `true` | Whether this power can mount other players (subject to consent). |
+| `allow_mobs` | bool | no | `true` | Whether this power can mount mobs. |
+| `block_bosses` | bool | no | `true` | Prevent mounting boss mobs like the Ender Dragon or Wither. |
+| `mount_position` | enum | no | `centered` | Where the rider sits: `centered` (on top) or `shoulder` (offset to one side). |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:mount",
+  "range": 6.0,
+  "cooldown_ticks": 60,
+  "allow_players": false,
+  "mount_position": "shoulder",
+  "name": "Mount Beast",
+  "description": "Leap onto the creature you're looking at."
 }
 ```
 

@@ -1,6 +1,6 @@
 # Origin-Gated Recipes
 
-*Added in 2.1.6.*
+*Added in 2.2.0.*
 
 Pack authors can gate crafting recipes on a player's current origin / power
 state. Gated recipes still load and still appear in the recipe book; they

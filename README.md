@@ -70,6 +70,23 @@ See [`docs/MOB_ORIGINS.md`](docs/MOB_ORIGINS.md) for the pack-author reference.
 
 ---
 
+## Global Power Sets
+
+Grant powers to entities **without an origin assignment** — NeoOrigins' port of
+Apoli's `apoli:global` feature. A global power set is a JSON file under
+`data/<ns>/global_powers/<id>.json` that lists `powers` and an optional
+`entity_types` filter (mixing literal ids and `#tags`); when the filter is absent
+the powers apply to every player and mob.
+
+- **Players** — granted on login and re-reconciled on `/reload`; persisted like
+  any other dynamically-granted power
+- **Mobs** — mob-applicable powers applied at spawn (`FinalizeSpawnEvent`)
+- **`order`** — optional load/apply ordering (lower applies first)
+
+See [`docs/GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) for the pack-author reference.
+
+---
+
 ## Built-in Origins
 
 | Origin | Impact | Strengths | Weaknesses |

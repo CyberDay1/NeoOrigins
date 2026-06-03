@@ -219,26 +219,30 @@ food and edible-item-promoted items).
 
 ### 3c. "Food restores more hunger and saturation"
 
-Use `action_on_event` with the `MOD_FOOD_NUTRITION` event to boost how
-much hunger and saturation every food item restores. The modifier
-multiplies the base nutrition value, so `2.0` doubles all food.
+Use the dedicated `neoorigins:modify_food_nutrition` power type. It
+**overrides** the nutrition of matching food to an absolute target value
+(it is not a multiplier), and rescales saturation proportionally to the
+food's original saturation-to-nutrition ratio. Filter to a single item with
+`food_item` or to a group with `food_tag`; omit both to retune every food.
 
 ```json
 {
-  "type": "neoorigins:action_on_event",
-  "name": "Iron Stomach",
-  "description": "All food restores 50% more hunger.",
-  "event": "MOD_FOOD_NUTRITION",
-  "modifier": {
-    "operation": "multiply",
-    "value": 1.5
-  }
+  "type": "neoorigins:modify_food_nutrition",
+  "name": "Hearty Bread",
+  "description": "Bread fills more hunger; saturation scales with it.",
+  "food_item": "minecraft:bread",
+  "nutrition": 8
 }
 ```
 
-To also boost saturation, add a second power with `MOD_FOOD_NUTRITION`
-targeting saturation, or pair with `neoorigins:modify_food` in a
-`FOOD_EATEN` action for a flat bonus on top:
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `nutrition` | int | no | `1` | Target hunger value matching food is set to. Saturation rescales proportionally. |
+| `food_item` | string | no | — | Restrict to this exact item id. |
+| `food_tag` | string | no | — | Restrict to this item tag (leading `#` optional). |
+
+To add a flat bonus on top of normal eating instead of overriding, pair
+`neoorigins:modify_food` with a `food_eaten` action:
 
 ```json
 {
@@ -718,6 +722,122 @@ keybind (an event, a hit, a tick condition).
 
 ---
 
+## New in 2.2
+
+The 2.2 spell-caster kit: gravity-free projectiles with full visual
+control, one-line elemental cast powers, conditional mob aggression for
+mob origins, and a ride-anything mount power.
+
+### 16. "Arcane bolt" — a straight-flying spell projectile (no gravity)
+
+Recipe #11 fires a projectile that arcs under gravity. Set
+`no_gravity: true` and it flies dead straight along your aim like a laser
+bolt — and the 2.1 visual fields let you style the orb without any Java.
+Here it's a cyan sphere with a soul-fire trail that deals magic damage on
+hit.
+
+```json
+{
+  "type": "neoorigins:active_ability",
+  "name": "Arcane Bolt",
+  "description": "Fire a straight bolt of arcane energy.",
+  "cooldown_ticks": 40,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "speed": 2.2,
+    "no_gravity": true,
+    "orb_color": "#30E0FF",
+    "glow_color": "#1060FF",
+    "shape": "sphere",
+    "size": 0.35,
+    "trail_particle": "minecraft:soul_fire_flame",
+    "on_hit_action": {
+      "type": "neoorigins:damage",
+      "amount": 6.0,
+      "source": { "name": "magic" }
+    }
+  }
+}
+```
+
+`no_gravity` works on **any** projectile entity (vanilla `minecraft:arrow`
+included), not just the magic orb — it sets the vanilla no-gravity flag so
+drag still applies but the projectile never drops.
+
+### 17. "Elemental cast" — one-line fireball / wind bolt
+
+For a quick spell without wiring up `spawn_projectile` yourself, the
+dedicated active cast powers fire a styled projectile on the skill key.
+`active_fireball` lobs small fireballs; `active_bolt` throws a wind charge.
+
+```json
+{
+  "type": "neoorigins:active_fireball",
+  "name": "Fire Cast",
+  "description": "Hurl a small fireball.",
+  "speed": 1.6,
+  "cooldown_ticks": 80
+}
+```
+
+Swap to `"type": "neoorigins:active_bolt"` for a knockback wind charge
+(`speed` default 1.2, `cooldown_ticks` default 80). Both bind to the
+primary skill key; pair with `key: "secondary"` to put one on the second
+slot.
+
+### 18. "Hunting predator" — conditional mob aggression (mob origins)
+
+`mob_behavior` rewrites a mob origin's AI so the mob hunts players. With
+`aggression: "conditional"` the mob only turns hostile when **all**
+`hostile_when` conditions hold against the prospective target — here, only
+players who are in daylight and *not* sneaking. It still retaliates when
+struck (`retaliate` defaults true) and calls nearby packmates.
+
+```json
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "conditional",
+  "aggro_range": 24.0,
+  "anger_linger_ticks": 300,
+  "call_for_help": true,
+  "hostile_when": [
+    { "type": "neoorigins:exposed_to_sun" },
+    { "type": "neoorigins:not",
+      "condition": { "type": "neoorigins:sneaking" } }
+  ]
+}
+```
+
+Set `aggression: "hostile"` to always hunt (skip `hostile_when`), or leave
+it `"neutral"` to keep vanilla AI and only fight back when hit.
+`target_type` lets the mob hunt another entity type instead of players.
+
+### 19. "Beast rider" — mount entities on demand
+
+`mount` raycasts for an entity in front of you and seats you on it. Great
+for a tamer/druid origin: ride mobs (and optionally players) with one key.
+
+```json
+{
+  "type": "neoorigins:mount",
+  "name": "Mount Beast",
+  "description": "Leap onto the creature you're looking at.",
+  "range": 6.0,
+  "cooldown_ticks": 60,
+  "allow_mobs": true,
+  "allow_players": false,
+  "mount_position": "shoulder"
+}
+```
+
+`block_bosses` (default true) keeps players off the Ender Dragon and Wither.
+`mount_position: "shoulder"` offsets the rider to one side instead of
+sitting centered on top.
+
+---
+
 ### Bare-hand stone mining (Caveborn pattern)
 
 Make the player's empty hand behave as a vanilla tool at any tier,
@@ -1145,9 +1265,9 @@ drop the payload on the client side.
 
 - **[POWER_TYPES.md](POWER_TYPES.md)** — every power type with full field
   tables. When a recipe here mentions a type, the details live there.
-- **[CONDITIONS.md](CONDITIONS.md)** — the 80+ condition verbs you can
+- **[CONDITIONS.md](CONDITIONS.md)** — the 90+ condition verbs you can
   use in `condition` fields.
-- **[ACTIONS.md](ACTIONS.md)** — the 40+ action verbs you can use in
+- **[ACTIONS.md](ACTIONS.md)** — the 60+ action verbs you can use in
   `entity_action` fields.
 - **[EVENTS.md](EVENTS.md)** — the event keys for `action_on_event`.
 - **[MIGRATION.md](MIGRATION.md)** — if you're porting a pre-2.0 pack or
