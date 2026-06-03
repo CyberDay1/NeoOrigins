@@ -3,6 +3,26 @@
 Copy this whole folder, rename the placeholders, and you have an addon pack
 that re-skins NeoOrigins's selection / info screens without writing any Java.
 
+## Getting this folder
+
+This template lives inside the NeoOrigins repo at `docs/theme-template/`.
+GitHub has no "download one subfolder" button, so grab it one of these ways:
+
+- **Whole-repo ZIP** — on the [repo page](https://github.com/CyberDay1/NeoOrigins),
+  click **Code → Download ZIP**, unzip, and find this folder under
+  `docs/theme-template/`.
+- **Just this folder** — paste this README's URL into
+  [download-directory.github.io](https://download-directory.github.io/)
+  (third-party tool) to get a ZIP of only `docs/theme-template/`.
+- **git clone** — `git clone https://github.com/CyberDay1/NeoOrigins.git`,
+  then copy `docs/theme-template/` out.
+- **Release asset** — from **2.2.0** onward, a ready-to-edit
+  `neoorigins-theme-template.zip` is attached to each
+  [release](https://github.com/CyberDay1/NeoOrigins/releases); that zip *is*
+  this folder, so you can skip the repo entirely.
+
+Once you have the folder, continue below.
+
 ## What you get
 
 A combined **resource pack + data pack** that:
