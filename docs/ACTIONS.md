@@ -289,7 +289,18 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 | `speed` | float | no | `1.5` | Launch speed |
 | `inaccuracy` | float | no | `0.0` | Random spread |
 | `vertical_offset` | float | no | `0.0` | Added to the spawn Y (relative to eye height) |
-| `effect_type` | string | no | `""` | Colour key from `VfxEffectTypes` (applied to `neoorigins:magic_orb` and custom VFX projectiles) |
+| `effect_type` | string | no | `""` | Colour key from `VfxEffectTypes`. Sets **defaults** for `orb_color`/`glow_color`/`shape`/`trail_particle`; explicit fields below override it. |
+| `orb_color` | `[r,g,b]` or `"#RRGGBB"` | no | effect_type colour | Core orb colour. RGB array (0–255) or hex string. |
+| `glow_color` | `[r,g,b]` or `"#RRGGBB"` | no | `orb_color` | Outer-glow colour. RGB array or hex string. |
+| `size` | float | no | `0.3` | Core quad scale. |
+| `glow_size` | float | no | `0.7` | Glow base scale (pulse layered on top). |
+| `glow_alpha` | int 0–255 | no | `140` | Glow halo opacity. |
+| `shape` | enum | no | `cross` / effect_type default | One of `cross` / `cube` / `ring` / `sphere`. |
+| `trail_particle` | resource id | no | effect_type default | Vanilla particle id for the flight trail (e.g. `minecraft:witch`). |
+| `count` | int | no | `2` | Trail particles per tick. |
+| `spread` | float | no | `0.05` | Trail particle position spread. |
+| `trail_speed` | float | no | `0.0` | Trail particle speed/velocity. |
+| `no_gravity` | bool | no | `false` | When `true` the projectile ignores gravity and flies straight along its launch vector (drag still applies). Works for any projectile entity, not just the magic orb. |
 | `on_hit_action` | object | no | — | Action fired when the projectile impacts. `area_of_effect` inside this auto-rebases to the impact point. |
 
 **Example — magic-orb with impact-AoE:**
@@ -305,6 +316,21 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
       "effect": "minecraft:poison", "duration": 100, "amplifier": 1 }
   } }
 ```
+
+**Example — fully data-driven visuals (green sphere, purple trail):**
+```json
+{ "type": "neoorigins:spawn_projectile",
+  "entity_type": "neoorigins:magic_orb",
+  "orb_color": [60, 220, 90],
+  "glow_color": "#8030FF",
+  "shape": "sphere",
+  "size": 0.35,
+  "glow_alpha": 160,
+  "trail_particle": "minecraft:witch" }
+```
+`effect_type` and the explicit fields compose: `effect_type` fills any field
+you leave out, and any field you set wins. See
+[CUSTOM_PROJECTILES.md](CUSTOM_PROJECTILES.md) for the full visual model.
 
 ---
 
@@ -752,6 +778,88 @@ Iterates every `ServerPlayer` within the radius and runs `entity_action` against
 
 ---
 
+# Caster & target (bientity actions)
+
+Some call sites dispatch a **bientity action** — an action that runs against a *pair* of entities rather than one. The pair is always **(actor, target)**:
+
+- **actor** — the caster: the player who owns the power. Always a player.
+- **target** — the other entity in the interaction: the mob or player you hit, were hit by, or interacted with. May be a player **or** a non-player mob.
+
+Bientity actions are how a single power can affect *both* sides of an interaction. The call sites that supply a bientity pair are:
+
+- `action_on_hit.bientity_action` — actor = the attacker (you), target = the entity you hit
+- `action_on_hit_taken.bientity_action` — actor = you, target = the entity that hit you
+- `action_when_hit` / projectile on-hit (`action_on_hit` on a thrown/launched entity) — actor = the launcher, target = the entity struck
+- entity-interact powers — actor = you, target = the entity you interacted with
+
+Both the caster and the target are available at the same time. To route an effect to one side or the other, wrap it in `actor_action` or `target_action`.
+
+These wrapper verbs are Apoli-namespaced (`origins:` / `apoli:` / `apace:` prefixes are all accepted); the inner `action` they wrap is an ordinary entity-action from this reference.
+
+## `actor_action`
+
+Runs the inner entity-action against the **caster** (the power holder). While it runs, the target is published to the dispatch context, so context-reading verbs (e.g. set verbs, `damage_target`-style sub-actions) can resolve the hit entity.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | entity action | yes | noop | Action run against the actor (caster) |
+
+**Example — heal yourself when you land a hit:**
+```json
+{ "type": "apoli:actor_action", "action": { "type": "neoorigins:heal", "amount": 4.0 } }
+```
+
+## `target_action`
+
+Runs the inner entity-action against the **target** — the entity on the other side of the interaction, resolved from the active dispatch context (the entity you hit / were hit by / killed / interacted with, or the entity a projectile struck). If no target resolves, the action is a no-op.
+
+- When the target is a **player**, the full entity-action surface runs on it (PvP-style scenarios). The actor is published to the dispatch context while it runs.
+- When the target is a **non-player mob**, the entity-general verbs run directly on the mob: `apply_effect`, `clear_effect`, `damage`, `heal`, `set_on_fire`, `extinguish`, `add_velocity`, `play_sound`, `set_fall_distance`, `dismount`, `swing_hand`, `nothing`. Verbs that depend on player-only systems (powers, resources, XP, food, inventory, command execution) only apply when the target is a player.
+
+This verb also works directly as a `neoorigins:`-namespaced entity-action (e.g. inside a projectile `on_hit_action`), where it reads the same context target rather than being a transparent pass-through to the holder.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | entity action | yes | noop | Action run against the target entity |
+
+**Example — set the entity you hit on fire and poison it (works on mobs and players alike):**
+```json
+{ "type": "apoli:target_action", "action": { "type": "neoorigins:and", "actions": [
+  { "type": "neoorigins:set_on_fire", "ticks": 60 },
+  { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 100 }
+] } }
+```
+
+## `invert`
+
+Swaps actor and target, then runs the inner bientity action against the swapped pair. Because the actor slot must be a player, the swap only takes effect when the original target is itself a player.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | bientity action | no | noop | Action run with actor/target swapped |
+
+## `and` / `chance` (bientity form)
+
+`and` runs a list of bientity actions in order against the same (actor, target) pair; `chance` runs one with a probability (uses the actor's RNG). Both mirror their entity-action counterparts but operate on the pair.
+
+```json
+{ "type": "apoli:and", "actions": [
+  { "type": "apoli:actor_action",  "action": { "type": "neoorigins:heal", "amount": 2.0 } },
+  { "type": "apoli:target_action", "action": { "type": "neoorigins:damage", "amount": 4.0 } }
+] }
+```
+
+## `damage` (bientity form)
+
+Directly damages the target, attributed to the actor. Supports `amount` and an optional `damage_type` (defaults to `minecraft:generic`).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `amount` | float | no | `1.0` | Damage in half-hearts |
+| `damage_type` | resource id | no | `minecraft:generic` | Registered damage type; falls back to a player-attack source if unresolved |
+
+---
+
 # Set / capability verbs (2.0)
 
 These verbs are new in 2.0 and read from `ActionContextHolder` — the service that publishes the current dispatch context while `EventPowerIndex` walks handlers. They no-op outside a compatible context.
@@ -996,6 +1104,180 @@ Swaps positions and facing with the nearest matching living entity within `radiu
 **Example:**
 ```json
 { "type": "neoorigins:swap_with_entity", "radius": 10.0 }
+```
+
+---
+
+## `neoorigins:swap_positions`
+
+Atomically swaps the actor's and the **context target's** full transform (position, yaw, pitch). The target is the entity on the other side of the interaction (the mob/player hit, hit-by, killed, interacted-with, or struck by a projectile), not a radius search. Both transforms are snapshotted before either entity moves, so the two never collapse to one point. No-op if no target resolves.
+
+This is a dual-actor verb — pair it with a bientity context (e.g. a projectile `on_hit_action`).
+
+No fields.
+
+**Example — a projectile that swaps you with whatever it hits:**
+```json
+{ "type": "neoorigins:swap_positions" }
+```
+
+---
+
+## `neoorigins:teleport_to_target`
+
+Moves the **actor** to the context target's position and facing. No-op if no target resolves. No fields.
+
+**Example:**
+```json
+{ "type": "neoorigins:teleport_to_target" }
+```
+
+---
+
+## `neoorigins:teleport_target_to_self`
+
+Moves the **context target** to the actor's position and facing. No-op if no target resolves. No fields.
+
+**Example:**
+```json
+{ "type": "neoorigins:teleport_target_to_self" }
+```
+
+---
+
+## `neoorigins:shear`
+
+Shears the **context target** the way vanilla or modded shears would — sheep drop wool and go bald, mooshrooms convert to cows and drop their mushroom (or flower), snow golems lose their pumpkin, bogged and modded shearables behave correctly. Uses the NeoForge `IShearable` seam so any registered shearable is covered. No-op if no target resolves or the target isn't currently shearable (e.g. an already-sheared sheep or a non-shearable mob).
+
+This is a dual-actor verb — pair it with a bientity context (e.g. a projectile `on_hit_action`) or wrap it in `target_action` to hit an arbitrary mob target.
+
+No fields.
+
+**Example — a projectile that shears whatever it hits:**
+```json
+{ "type": "neoorigins:shear" }
+```
+
+---
+
+## `neoorigins:dye`
+
+Sets the colour of a dyeable **context target**. This dyes a sheep's wool colour; mobs with no public colour setter (wolf/cat collars) no-op cleanly. No-op if no target resolves, the target is non-dyeable, or `color` is an unknown dye name.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `color` | string | no | — | Dye colour name (e.g. `"red"`, `"light_blue"`). Unknown names no-op. |
+
+**Example — dye the sheep you hit red:**
+```json
+{ "type": "neoorigins:dye", "color": "red" }
+```
+
+---
+
+## `neoorigins:force_drop`
+
+Makes the **context target** drop the item in a named equipment slot as an item entity, then clears that slot. No-op if no target resolves or the slot is empty.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `slot` | string | no | `mainhand` | Equipment slot: `mainhand` / `offhand` / `head` / `chest` / `legs` / `feet`. Unknown names fall back to `mainhand`. |
+
+**Example — disarm the mob you hit:**
+```json
+{ "type": "neoorigins:force_drop", "slot": "mainhand" }
+```
+
+---
+
+## `neoorigins:steal_item`
+
+Like `force_drop`, but transfers the item from the **context target's** named slot to the **actor** (the power holder): added to the actor's inventory, or dropped at the actor if the inventory is full. No-op if no target resolves or the slot is empty.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `slot` | string | no | `mainhand` | Equipment slot: `mainhand` / `offhand` / `head` / `chest` / `legs` / `feet`. Unknown names fall back to `mainhand`. |
+
+**Example — steal the weapon out of the hand of whatever you hit:**
+```json
+{ "type": "neoorigins:steal_item", "slot": "mainhand" }
+```
+
+---
+
+## Block-target verbs
+
+These act on the **block on the other side of the interaction** — the block a projectile or raycast impacted — rather than on an entity. They resolve the impacted block from the active dispatch context (a projectile `on_hit_action` that lands on a block, or a `raycast` `block_action`), so you can write them directly as an `on_hit_action` / `block_action` and they self-resolve the hit block. Each no-ops cleanly when no block resolves or the block isn't applicable. To run one against a specific resolved block context explicitly, wrap it in [`block_target_action`](#neoorigins-block_target_action).
+
+## `neoorigins:strip`
+
+Axe-strips the **context block** — logs and wood (all vanilla wood families, including crimson/warped stems and hyphae, and bamboo blocks) become their stripped variant, preserving the pillar axis. No-op if the block has no strip mapping.
+
+No fields.
+
+**Example — a projectile that strips logs it hits:**
+```json
+{ "type": "neoorigins:strip" }
+```
+
+## `neoorigins:till`
+
+Hoe-tills the **context block** — grass / dirt / coarse-dirt / rooted-dirt / dirt-path become farmland (coarse dirt becomes plain dirt), but only when the block directly above is air (the vanilla hoe rule). No-op otherwise.
+
+No fields.
+
+**Example:**
+```json
+{ "type": "neoorigins:till" }
+```
+
+## `neoorigins:path`
+
+Shovels the **context block** into a dirt path — grass / dirt / podzol / mycelium / coarse-dirt / rooted-dirt, only when the block directly above is air (the vanilla shovel rule). No-op otherwise.
+
+No fields.
+
+**Example:**
+```json
+{ "type": "neoorigins:path" }
+```
+
+## `neoorigins:grow`
+
+Applies one bonemeal-style growth tick to the **context block** if it's a bonemealable block ready to grow (crops, saplings, grass, etc.), with the green growth particles. No-op when the block isn't bonemealable or isn't valid for growth right now.
+
+No fields.
+
+**Example — a projectile that fertilises crops it hits:**
+```json
+{ "type": "neoorigins:grow" }
+```
+
+## `neoorigins:transform_block`
+
+The generic primitive: sets the **context block** to `to`, optionally only when it currently matches `from`. Use this as the fallback for any block state swap not covered by the verbs above. No-op when `to` is missing/unknown or the `from` guard fails.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `from` | string | no | — | Optional block-id guard; only transform when the impacted block matches (e.g. `"minecraft:stone"`). |
+| `to` | string | yes | — | Block id to set the impacted block to (e.g. `"minecraft:gold_block"`). |
+
+**Example — turn the stone you hit into gold:**
+```json
+{ "type": "neoorigins:transform_block", "from": "minecraft:stone", "to": "minecraft:gold_block" }
+```
+
+## `neoorigins:block_target_action`
+
+The block-side analogue of [`target_action`](#target_action): resolves the impacted block from the active dispatch context and runs the inner block-target verb against it. No-op when no block context resolves or the inner action isn't a block-target verb (`strip` / `till` / `path` / `grow` / `transform_block`). The actor (the power holder) is the one running the power.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | object | no | — | Inner block-target verb to run on the resolved context block. |
+
+**Example — a projectile that strips the block it hits, via the wrapper:**
+```json
+{ "type": "neoorigins:block_target_action", "action": { "type": "neoorigins:strip" } }
 ```
 
 ---

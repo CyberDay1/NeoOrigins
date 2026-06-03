@@ -1,0 +1,42 @@
+// "Arcane Nebula" — custom just-the-docs color scheme for the NeoOrigins
+// docs site. Mirrors the web editor's app.css tokens (deep space-blue base,
+// teal/cyan glow accent #34e3c2, violet highlight #b07cff) so the docs and
+// the in-browser editor read as one product.
+//
+// Selected via `color_scheme: nebula` in _config.yml. just-the-docs imports
+// this file in place of the bundled light/dark variable sets, so every
+// color variable the theme relies on is defined explicitly below.
+
+// ── nebula palette ──────────────────────────────────────────────────────
+$nebula-bg:            #0a0e17; // page background
+$nebula-surface:       #121a2b; // cards / code / tables
+$nebula-surface-alt:   #0e1422; // sidebar / search
+$nebula-border:        #233149;
+$nebula-text:          #c9d4e3;
+$nebula-heading:       #e7edf6;
+$nebula-muted:         #9fb0c8;
+$nebula-subtle:        #8595af; // WCAG-AA fix: was #647590, now clears 4.5:1 on $nebula-bg
+$nebula-accent:        #34e3c2; // teal glow — links, active nav, primary btn
+$nebula-accent-2:      #b07cff; // violet highlight
+
+// ── just-the-docs variable overrides ────────────────────────────────────
+$body-background-color:     $nebula-bg;
+$sidebar-color:             $nebula-surface-alt;
+$search-background-color:   $nebula-surface-alt;
+$table-background-color:    $nebula-surface;
+$code-background-color:     $nebula-surface;
+$feedback-color:            darken($nebula-surface-alt, 2%);
+
+$body-text-color:           $nebula-text;
+$body-heading-color:        $nebula-heading;
+$nav-child-link-color:      $nebula-muted;
+$search-result-preview-color: $nebula-subtle;
+
+$link-color:                $nebula-accent;
+$btn-primary-color:         $nebula-accent;
+$base-button-color:         #18233a;
+
+$border-color:              $nebula-border;
+
+// Syntax highlighting (rouge) — harmonised with the editor's JSON preview.
+$code-linenumber-color:     $nebula-subtle;

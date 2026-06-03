@@ -13,6 +13,27 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 
 ---
 
+## `neoorigins:simple`
+
+Does nothing. A display-only marker power — the direct equivalent of `origins:simple` from the original Origins mod.
+
+It has no gameplay effect, no capabilities, and no behavior. Its only purpose is to appear as an entry in the origin info panel so you can attach a `name` + `description` (the heading + body text every power carries) without also granting an ability. Use it for flavor text, lore lines, or to describe an effect that is implemented elsewhere (a mixin, datapack, command, or another mod).
+
+No additional fields beyond `name` and `description`.
+
+**Example:**
+```json
+{
+  "type": "neoorigins:simple",
+  "name": "Cold Blooded",
+  "description": "You feel the chill of the deep more keenly than others."
+}
+```
+
+> Imported `origins:simple` / `apace:simple` (and `origins:tooltip`) powers translate to this type automatically when no specific id-override applies, so their text still shows in the GUI.
+
+---
+
 ## `neoorigins:attribute_modifier`
 
 Adds or multiplies a player attribute while the origin is active. Optionally gated on an environment condition, an equipped-item condition, or both (AND).
@@ -2227,28 +2248,28 @@ Passively regenerates health on all tamed mobs (via `tame_mob`) on an interval. 
 
 ## `neoorigins:mount`
 
-Active keybind power. On activation, the player mounts (rides) a nearby
-eligible entity within `range`. Useful for "ride your tamed beast" or
-piggyback mechanics.
+Active keybind power that raycasts for the living entity in front of the player and seats the player on it. Press the skill key with a target in range to mount; press again while riding to dismount. Mobs are mounted immediately; **player** targets require consent according to the server's configured consent mode (`MountConsentManager`). Boss mobs and already-ridden entities are rejected, and the rider is dismounted automatically if the power is revoked. Good for tamer/druid origins that ride mobs (or other players) on demand.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `range` | double | no | `5.0` | Max distance to an entity the player can mount |
-| `cooldown_ticks` | int | no | `100` | Cooldown after each use |
-| `hunger_cost` | int | no | `0` | Food points consumed per use |
-| `allow_players` | bool | no | `true` | Whether other players may be mounted |
-| `allow_mobs` | bool | no | `true` | Whether mobs may be mounted |
-| `block_bosses` | bool | no | `true` | If true, bosses cannot be mounted |
-| `mount_position` | string | no | `"centered"` | Seating placement on the ridden entity |
+| `range` | double | no | `5.0` | Max distance in blocks to raycast for the entity to mount. |
+| `cooldown_ticks` | int | no | `100` | Ticks before the mount ability can be reused (100 = 5s). |
+| `hunger_cost` | int | no | `0` | Hunger consumed each time an entity is mounted. |
+| `allow_players` | bool | no | `true` | Whether this power can mount other players (subject to consent). |
+| `allow_mobs` | bool | no | `true` | Whether this power can mount mobs. |
+| `block_bosses` | bool | no | `true` | Prevent mounting boss mobs like the Ender Dragon or Wither. |
+| `mount_position` | enum | no | `centered` | Where the rider sits: `centered` (on top) or `shoulder` (offset to one side). |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:mount",
-  "range": 5.0,
-  "cooldown_ticks": 100,
-  "name": "Saddle Up",
-  "description": "Mount the nearest creature."
+  "range": 6.0,
+  "cooldown_ticks": 60,
+  "allow_players": false,
+  "mount_position": "shoulder",
+  "name": "Mount Beast",
+  "description": "Leap onto the creature you're looking at."
 }
 ```
 
@@ -2256,31 +2277,30 @@ piggyback mechanics.
 
 ## `neoorigins:mob_behavior`
 
-Mob-applied power (it returns true from `appliesToMobs`, so it takes effect
-when granted to a **mob** rather than a player — see
-[MOB_ORIGINS.md](MOB_ORIGINS.md)). Rewrites the mob's AI: targeting,
-retaliation, aggression mode, and "call for help" alerting.
+Rewrites a **mob origin's** AI so the mob hunts players (or another entity type). Unlike the player-facing tame/mount powers, this is applied to a mob origin and controls how that mob acquires and holds targets. On grant, a vanilla `NearestAttackableTargetGoal` (and, when `retaliate` is set, a `HurtByTargetGoal`) is added to the mob's target selector; both are stripped again on revoke, leaving the rest of the mob's vanilla AI intact. With `aggression: "conditional"` it behaves piglin-style — the mob only turns hostile toward a player while every `hostile_when` condition holds (the conditions are evaluated against the prospective player target, not the mob).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `aggression` | string | no | `neutral` | One of `neutral`, `hostile`, `conditional`. `neutral` adds no targeting (only `retaliate` applies); `hostile` targets `target_type` on sight; `conditional` targets only players for whom every `hostile_when` condition holds. |
-| `hostile_when` | list of EntityCondition | no | `[]` | Conditions (DSL) gating `conditional` aggression. An empty list behaves like `hostile`. A single condition object is also accepted. |
-| `retaliate` | bool | no | `true` | Fight back against whatever recently damaged the mob. |
-| `anger_linger_ticks` | int ≥ 0 | no | `200` | How long retaliation anger persists after being hurt. |
-| `aggro_range` | double | no | `16.0` | Detection range for acquiring targets. |
-| `target_type` | entity type id | no | — | Entity type the mob targets when `hostile`/`conditional`. |
-| `call_for_help` | bool | no | `false` | When hurt, alert nearby mobs of the same type. |
+| `aggression` | enum | no | `neutral` | `neutral` = vanilla AI unchanged (only `retaliate` applies); `hostile` = always target the target type on sight; `conditional` = target a player only while every `hostile_when` condition holds. |
+| `hostile_when` | array | no | `[]` | Conditions (AND-ed) tested against the **prospective player target** (e.g. "player not wearing gold"), not the mob. Only used when `aggression: "conditional"`; an empty list behaves like `hostile`. |
+| `retaliate` | bool | no | `true` | Also fight back against whatever damaged the mob (vanilla hurt-by-target). |
+| `anger_linger_ticks` | int | no | `200` | Keep the target this many ticks after the trigger stops holding, so the mob calms down gradually (200 = 10s). |
+| `aggro_range` | double | no | `16.0` | Max distance to acquire a target. |
+| `target_type` | resource id | no | players | Entity type id to be hostile toward; omitted = players. Conditions only apply to player targets. |
+| `call_for_help` | bool | no | `false` | When retaliating, alert nearby same-type mobs (vanilla pack aggro). |
 
-**Example — a wolf that only turns hostile to players at night:**
+**Example — hostile to players only in daylight while not sneaking:**
 ```json
 {
   "type": "neoorigins:mob_behavior",
   "aggression": "conditional",
-  "hostile_when": [ { "type": "neoorigins:night" } ],
-  "aggro_range": 16.0,
+  "aggro_range": 24.0,
+  "anger_linger_ticks": 300,
   "call_for_help": true,
-  "name": "Nightstalker",
-  "description": "Hostile to players after dark."
+  "hostile_when": [
+    { "type": "neoorigins:exposed_to_sun" },
+    { "type": "neoorigins:not", "condition": { "type": "neoorigins:sneaking" } }
+  ]
 }
 ```
 
@@ -3318,68 +3338,3 @@ neoorigins_loot_pool_grant:<loot_table_id>
 routes through the same `LootPoolGrantPower#fireLootPoolGrant` pipeline on completion: the completing player receives the rolled stacks, with dedup keyed on `ftbq:<quest_id>:<table_id>`. Authors get vanilla loot-table reuse for both origin powers and quest rewards without any hard FTBQ dependency.
 
 This is a soft-compat layer — it is **not** an FTBQ `RewardType` registration (which would require Provider-API hooks that vary across FTBQ minor versions). The tag-marker path is the supported integration; a `RewardType` upgrade is reserved for v2.2 once that API stabilises.
-
----
-
-## `neoorigins:mount`
-
-Active keybind power that lets the player ride the living entity they're looking at. Press the skill key with a target in range to mount; press again while riding to dismount. Mobs are mounted immediately; **player** targets require consent according to the server's configured consent mode (`MountConsentManager`). Boss mobs and already-ridden entities are rejected.
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `range` | float | no | `5.0` | Raycast reach (blocks) used to pick the mount target |
-| `cooldown_ticks` | int | no | `100` | Cooldown between activations |
-| `hunger_cost` | int | no | `0` | Hunger/exhaustion cost per activation |
-| `allow_players` | bool | no | `true` | Whether other players may be mounted (subject to consent) |
-| `allow_mobs` | bool | no | `true` | Whether living mobs may be mounted |
-| `block_bosses` | bool | no | `true` | When true, entities that can't use portals (bosses) cannot be mounted |
-| `mount_position` | string | no | `"centered"` | Seat placement hint stored on the rider (e.g. `centered`) |
-
-Mounting is cleared on revoke (the player is dismounted if riding). The power takes a skill slot like other actives — bind it via the standard `active` keybind plumbing.
-
-**Example — ride any creature you look at:**
-```json
-{
-  "type": "neoorigins:mount",
-  "range": 6.0,
-  "cooldown_ticks": 40,
-  "allow_players": false,
-  "name": "Beast Rider",
-  "description": "Leap onto and ride the creature in your sights."
-}
-```
-
----
-
-## `neoorigins:mob_behavior`
-
-Configurable, piglin-style aggression for **mob origins** — it shapes how a mob-bodied origin *acts* rather than its stats. On grant, a vanilla `NearestAttackableTargetGoal` (and, when `retaliate` is set, a `HurtByTargetGoal`) is added to the mob's target selector; both are stripped again on revoke, leaving the rest of the mob's vanilla AI intact.
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `aggression` | string | no | `neutral` | `neutral` (no proactive targeting), `hostile` (always target on sight), or `conditional` (target only when `hostile_when` holds) |
-| `hostile_when` | list of EntityCondition | no | `[]` | `conditional` only — DSL conditions, **AND-ed**, evaluated against the *prospective player target* (not the mob). Empty list behaves like `hostile`. Also accepts a single inline condition object. |
-| `retaliate` | bool | no | `true` | Add a `HurtByTargetGoal` so the mob fights back when hit |
-| `anger_linger_ticks` | int | no | `200` | Grace period the target is kept after `hostile_when` stops holding, so the mob "calms down" gradually |
-| `aggro_range` | float | no | `16.0` | Target-acquisition range |
-| `target_type` | Identifier | no | _(players)_ | Entity-type ID to target. When omitted, only players are targeted. For a non-player target type, `hostile_when` conditions are ignored (no player to test). |
-| `call_for_help` | bool | no | `false` | When retaliating, alert nearby allies of the same type |
-
-> **Condition semantics:** `hostile_when` reuses the existing `EntityCondition` DSL verbatim and is evaluated against the candidate player, matching vanilla piglin logic ("hostile unless the player is wearing X"). Full goal-graph authoring is reserved for a later milestone.
-
-**Example — hostile to players not wearing gold (piglin-style):**
-```json
-{
-  "type": "neoorigins:mob_behavior",
-  "aggression": "conditional",
-  "hostile_when": [
-    { "type": "neoorigins:not", "condition": {
-        "type": "neoorigins:equipped_item", "slot": "head", "tag": "minecraft:gold_armor" } }
-  ],
-  "retaliate": true,
-  "call_for_help": true,
-  "aggro_range": 16.0,
-  "name": "Piglin Temper",
-  "description": "Attacks players who aren't wearing gold."
-}
-```

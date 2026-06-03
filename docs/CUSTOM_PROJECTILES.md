@@ -4,8 +4,11 @@ Guide for pack authors and mod developers who want to extend NeoOrigins's
 visual-effects pipeline beyond the built-in `magic_orb` / `lingering_area` /
 vanilla-projectile options.
 
-**Three levels of customisation** cover most cases:
+**Four levels of customisation** cover most cases:
 
+0. **[Datapack visuals](#level-0-datapack-data-driven-visuals)** — pick the
+   built-in `neoorigins:magic_orb`'s colour, shape, size, glow, and trail
+   directly in `spawn_projectile` JSON. **No Java, no companion mod.**
 1. **[Pack-author level](#level-1-pack-author-new-effect_type-color)** —
    register a custom `effect_type` color from a companion mod, no new entity.
 2. **[Procedural custom renderer](#level-2-procedural-custom-renderer)** —
@@ -15,9 +18,62 @@ vanilla-projectile options.
    ship a Bedrock `.geo.json` model + texture, use `GeoJsonModel` to load
    it, write a custom renderer that draws the baked mesh.
 
-Each builds on the previous. All three paths plug into the existing
+Each builds on the previous. All paths plug into the existing
 `spawn_projectile` / `spawn_lingering_area` DSL verbs — pack authors
 reference your entity by its registered ID.
+
+---
+
+## Level 0: Datapack — data-driven visuals
+
+**Goal:** a green orb that renders as a sphere with a purple glow and a witch
+particle trail — entirely from `spawn_projectile` JSON, no mod.
+
+The built-in `neoorigins:magic_orb` carries its visual config as synched entity
+data, so the client renderer reads it live. Set any of these fields on the
+`spawn_projectile` action:
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `orb_color` | `[r,g,b]` or `"#RRGGBB"` | effect_type colour | Core colour. |
+| `glow_color` | `[r,g,b]` or `"#RRGGBB"` | `orb_color` | Outer glow colour. |
+| `size` | float | `0.3` | Core scale. |
+| `glow_size` | float | `0.7` | Glow base scale. |
+| `glow_alpha` | int 0–255 | `140` | Glow opacity. |
+| `shape` | `cross`/`cube`/`ring`/`sphere` | `cross` | Procedural geometry. |
+| `trail_particle` | particle id | effect_type default | Flight trail. |
+| `count` / `spread` / `trail_speed` | int / float / float | `2` / `0.05` / `0` | Trail tuning. |
+| `no_gravity` | bool | `false` | Physics, not visual: `true` makes the projectile fly straight along its launch vector (ignores gravity; drag still applies). |
+
+**Colour formats.** Both colour fields accept either an RGB array
+`[60, 220, 90]` (components 0–255) or a hex string `"#8030FF"` (the `#` is
+optional; `#RGB` shorthand also expands). They parse to the same packed int.
+
+**`effect_type` is a shorthand for defaults.** `effect_type` still sets a
+colour *and* a default shape + trail particle (e.g. `fire` → orange sphere +
+flame trail, `void` → dark cube + portal trail). Any explicit field above
+**overrides** the effect_type default; fields you omit fall back to it, then to
+the hardcoded renderer default. So `effect_type` + a single explicit override
+compose cleanly.
+
+```json
+{ "type": "neoorigins:spawn_projectile",
+  "entity_type": "neoorigins:magic_orb",
+  "effect_type": "fire",
+  "orb_color": [60, 220, 90],
+  "shape": "sphere",
+  "glow_color": "#8030FF",
+  "trail_particle": "minecraft:witch" }
+```
+
+Here `effect_type: fire` would default to an orange sphere + flame trail, but
+the explicit `orb_color`, `glow_color`, and `trail_particle` win — yielding a
+green sphere with a purple glow and witch trail.
+
+The four shapes are all procedural quads (no model files): `cross` is the
+original two crossed billboards; `cube` is six box faces; `ring` is eight quads
+arranged in a circle; `sphere` is a multi-plane billboard cluster that reads
+round from any angle (a cheap faithful approximation, not a tessellated mesh).
 
 ---
 

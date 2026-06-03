@@ -20,3 +20,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Third-Party Asset Attribution
+
+assets/neoorigins/textures/gui/resource_bar.png is sourced from the Apoli
+project (https://github.com/apace100/apoli) by apace100 and contributors,
+used under the MIT License.

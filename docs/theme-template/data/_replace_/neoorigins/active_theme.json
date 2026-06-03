@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Datapack-side declaration: 'when this pack is loaded, use this UI theme'.",
+    "",
+    "The mod reads every data/<ns>/neoorigins/active_theme.json on the server",
+    "and picks the LAST one to load as the winner. The chosen id is synced to",
+    "every client at login + on /reload, so players never have to touch a",
+    "client-side config to see the right look.",
+    "",
+    "Rename '_replace_' below to your pack's namespace (matching the folder",
+    "above) and point 'theme' at the id you defined in",
+    "assets/<ns>/ui_themes/<file>.json."
+  ],
+  "theme": "_replace_:my_theme"
+}

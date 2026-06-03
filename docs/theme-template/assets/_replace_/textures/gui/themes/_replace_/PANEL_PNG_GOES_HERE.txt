@@ -1,0 +1,13 @@
+Drop a file named 'panel.png' here (delete this .txt placeholder once you do).
+
+Recommended specs:
+  - 256x256 PNG (any RGBA palette)
+  - The outer 12 px ring on every side acts as the 9-slice border. Put the
+    organic / textured part in that ring; the inner area is stretched to fill
+    the panel and should look fine smeared.
+  - If your texture isn't 256x256 or wants a different border thickness, edit
+    texture_width / texture_height / inset_* in ui_themes/my_theme.json.
+
+If you don't ship your own panel.png, the theme still works — it just keeps
+the built-in parchment panel (because panel_background defaults to
+neoorigins:textures/gui/themes/parchment/panel.png if you remove the field).

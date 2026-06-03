@@ -2,9 +2,11 @@ title: NeoOrigins
 description: A modern, ground-up reimplementation of the Origins experience for NeoForge.
 
 # Theme — just-the-docs via remote_theme (GitHub Pages safe-list supports
-# jekyll-remote-theme). Dark color scheme to take the edge off bright white.
+# jekyll-remote-theme). "Arcane Nebula" custom scheme (deep space-blue +
+# teal accent) defined in _sass/color_schemes/nebula.scss, matched to the
+# web editor's palette so docs + editor read as one product.
 remote_theme: just-the-docs/just-the-docs
-color_scheme: dark
+color_scheme: nebula
 
 plugins:
   - jekyll-remote-theme

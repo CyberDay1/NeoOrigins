@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Font provider for your theme. The simplest possible setup chains to",
+    "NeoOrigins's bundled parchment font, which itself chains to vanilla.",
+    "",
+    "To ship your own TTF instead, replace the providers array with:",
+    "",
+    "  \"providers\": [",
+    "    { \"type\": \"ttf\", \"file\": \"_replace_:font/your_font.ttf\",",
+    "      \"shift\": [0, 1], \"size\": 11, \"oversample\": 2, \"skip\": [] },",
+    "    { \"type\": \"reference\", \"id\": \"minecraft:default\" }",
+    "  ]",
+    "",
+    "Then drop your_font.ttf into this 'font/' folder. Honour the font's",
+    "license; if it's OFL you must ship the license file too."
+  ],
+  "providers": [
+    { "type": "reference", "id": "neoorigins:parchment" }
+  ]
+}

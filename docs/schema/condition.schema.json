@@ -12,209 +12,221 @@
       "type": "string",
       "description": "Fully-qualified condition verb. `apace:` aliases are accepted.",
       "enum": [
-        "neoorigins:and",
-        "neoorigins:or",
-        "neoorigins:not",
-        "neoorigins:constant",
-        "neoorigins:biome",
-        "neoorigins:dimension",
-        "neoorigins:in_tag",
-        "neoorigins:submerged_in",
-        "neoorigins:submerged_in_water",
-        "neoorigins:in_water",
-        "neoorigins:in_block",
-        "neoorigins:in_block_anywhere",
-        "neoorigins:on_block",
-        "neoorigins:block",
-        "neoorigins:block_collision",
-        "neoorigins:on_ground",
-        "neoorigins:on_fire",
-        "neoorigins:fire",
-        "neoorigins:in_rain",
-        "neoorigins:temperature",
-        "neoorigins:weather",
-        "neoorigins:brightness",
-        "neoorigins:light_level",
-        "neoorigins:exposed_to_sky",
-        "neoorigins:exposed_to_sun",
-        "neoorigins:daytime",
-        "neoorigins:time_of_day",
-        "neoorigins:moon_phase",
-        "neoorigins:height",
-        "neoorigins:fluid_height",
-        "neoorigins:distance",
-        "neoorigins:health",
-        "neoorigins:relative_health",
-        "neoorigins:food_level",
-        "neoorigins:food",
-        "neoorigins:armor_value",
-        "neoorigins:xp_level",
-        "neoorigins:xp_points",
-        "neoorigins:fall_distance",
-        "neoorigins:fall_flying",
-        "neoorigins:sneaking",
-        "neoorigins:sprinting",
-        "neoorigins:swimming",
-        "neoorigins:invisible",
-        "neoorigins:creative_flying",
-        "neoorigins:moving",
-        "neoorigins:passenger",
-        "neoorigins:riding",
-        "neoorigins:using_item",
-        "neoorigins:equipped_item",
-        "neoorigins:enchantment",
-        "neoorigins:resource",
-        "neoorigins:living",
-        "neoorigins:exists",
-        "neoorigins:ticking",
-        "neoorigins:entity_type",
-        "neoorigins:target_type",
-        "neoorigins:target_group",
-        "neoorigins:can_see",
-        "neoorigins:damage_type",
-        "neoorigins:damage_tag",
-        "neoorigins:damage_name",
-        "neoorigins:name",
-        "neoorigins:from_fire",
-        "neoorigins:from_projectile",
-        "neoorigins:from_explosion",
-        "neoorigins:power_active",
-        "neoorigins:power_type",
-        "neoorigins:in_set",
-        "neoorigins:nbt",
-        "neoorigins:scoreboard",
-        "neoorigins:command",
-        "neoorigins:predicate",
-        "neoorigins:amount",
-        "neoorigins:equal",
-        "neoorigins:in_set",
-        "neoorigins:no_minions_alive",
-        "neoorigins:hit_taken_amount",
-        "neoorigins:food_item_in_tag",
-        "neoorigins:food_item_id",
+        "apace:actor_condition",
+        "apace:advancement",
+        "apace:air",
+        "apace:amount",
         "apace:and",
-        "apace:or",
-        "apace:not",
-        "apace:constant",
+        "apace:armor_value",
         "apace:biome",
+        "apace:block",
+        "apace:block_collision",
+        "apace:block_in_radius",
+        "apace:brightness",
+        "apace:can_see",
+        "apace:climbing",
+        "apace:command",
+        "apace:config_flag",
+        "apace:constant",
+        "apace:cooldown",
+        "apace:creative_flying",
+        "apace:damage_name",
+        "apace:damage_tag",
+        "apace:damage_type",
+        "apace:daytime",
+        "apace:dimension",
+        "apace:distance",
         "apace:enchantment",
+        "apace:entity_type",
+        "apace:equal",
         "apace:equipped_item",
+        "apace:exists",
+        "apace:exposed_to_sky",
+        "apace:exposed_to_sun",
+        "apace:fall_distance",
+        "apace:fall_flying",
+        "apace:fire",
+        "apace:fluid_height",
+        "apace:food",
+        "apace:food_item_id",
+        "apace:food_item_in_tag",
+        "apace:food_level",
+        "apace:from_explosion",
+        "apace:from_fire",
+        "apace:from_projectile",
+        "apace:hardness",
+        "apace:has_effect",
+        "apace:health",
+        "apace:height",
+        "apace:hit_taken_amount",
+        "apace:in_block",
+        "apace:in_block_anywhere",
+        "apace:in_rain",
+        "apace:in_set",
+        "apace:in_tag",
+        "apace:in_water",
+        "apace:invisible",
+        "apace:light_level",
+        "apace:living",
+        "apace:moon_phase",
+        "apace:moving",
+        "apace:name",
         "apace:nbt",
+        "apace:near_block",
+        "apace:near_entity",
+        "apace:night",
+        "apace:no_minions_alive",
+        "apace:not",
+        "apace:on_block",
+        "apace:on_fire",
+        "apace:on_ground",
+        "apace:or",
+        "apace:out_of_combat",
+        "apace:passenger",
+        "apace:power",
+        "apace:power_active",
+        "apace:power_type",
+        "apace:predicate",
+        "apace:relative_health",
+        "apace:replacable",
+        "apace:replaceable",
+        "apace:resource",
+        "apace:resource_level",
+        "apace:riding",
+        "apace:saturation_level",
+        "apace:scoreboard",
+        "apace:sneaking",
+        "apace:sprinting",
+        "apace:status_effect",
         "apace:submerged_in",
+        "apace:submerged_in_water",
+        "apace:swimming",
+        "apace:target_group",
+        "apace:target_type",
+        "apace:temperature",
+        "apace:thundering",
+        "apace:ticking",
+        "apace:time_of_day",
+        "apace:using_item",
+        "apace:weather",
+        "apace:xp_level",
+        "apace:xp_levels",
+        "apace:xp_points",
+        "neoorigins:actor_condition",
+        "neoorigins:advancement",
+        "neoorigins:air",
+        "neoorigins:amount",
         "neoorigins:and",
-        "neoorigins:or",
-        "neoorigins:not",
-        "neoorigins:constant",
+        "neoorigins:armor_value",
         "neoorigins:biome",
-        "neoorigins:dimension",
-        "neoorigins:in_tag",
-        "neoorigins:submerged_in",
-        "neoorigins:submerged_in_water",
-        "neoorigins:in_water",
-        "neoorigins:in_block",
-        "neoorigins:in_block_anywhere",
-        "neoorigins:on_block",
         "neoorigins:block",
         "neoorigins:block_collision",
-        "neoorigins:on_ground",
-        "neoorigins:on_fire",
-        "neoorigins:fire",
-        "neoorigins:in_rain",
-        "neoorigins:temperature",
-        "neoorigins:weather",
+        "neoorigins:block_in_radius",
         "neoorigins:brightness",
-        "neoorigins:light_level",
+        "neoorigins:can_see",
+        "neoorigins:climbing",
+        "neoorigins:command",
+        "neoorigins:config_flag",
+        "neoorigins:constant",
+        "neoorigins:cooldown",
+        "neoorigins:creative_flying",
+        "neoorigins:damage_name",
+        "neoorigins:damage_tag",
+        "neoorigins:damage_type",
+        "neoorigins:daytime",
+        "neoorigins:dimension",
+        "neoorigins:distance",
+        "neoorigins:enchantment",
+        "neoorigins:entity_type",
+        "neoorigins:equal",
+        "neoorigins:equipped_item",
+        "neoorigins:exists",
         "neoorigins:exposed_to_sky",
         "neoorigins:exposed_to_sun",
-        "neoorigins:daytime",
-        "neoorigins:time_of_day",
-        "neoorigins:moon_phase",
-        "neoorigins:height",
-        "neoorigins:fluid_height",
-        "neoorigins:distance",
-        "neoorigins:health",
-        "neoorigins:relative_health",
-        "neoorigins:food_level",
-        "neoorigins:food",
-        "neoorigins:armor_value",
-        "neoorigins:xp_level",
-        "neoorigins:xp_points",
         "neoorigins:fall_distance",
         "neoorigins:fall_flying",
-        "neoorigins:sneaking",
-        "neoorigins:sprinting",
-        "neoorigins:swimming",
-        "neoorigins:invisible",
-        "neoorigins:creative_flying",
-        "neoorigins:moving",
-        "neoorigins:passenger",
-        "neoorigins:riding",
-        "neoorigins:using_item",
-        "neoorigins:equipped_item",
-        "neoorigins:enchantment",
-        "neoorigins:resource",
-        "neoorigins:living",
-        "neoorigins:exists",
-        "neoorigins:ticking",
-        "neoorigins:entity_type",
-        "neoorigins:target_type",
-        "neoorigins:target_group",
-        "neoorigins:can_see",
-        "neoorigins:damage_type",
-        "neoorigins:damage_tag",
-        "neoorigins:damage_name",
-        "neoorigins:name",
+        "neoorigins:fire",
+        "neoorigins:fluid_height",
+        "neoorigins:food",
+        "neoorigins:food_item_id",
+        "neoorigins:food_item_in_tag",
+        "neoorigins:food_level",
+        "neoorigins:from_explosion",
         "neoorigins:from_fire",
         "neoorigins:from_projectile",
-        "neoorigins:from_explosion",
+        "neoorigins:hardness",
+        "neoorigins:has_effect",
+        "neoorigins:health",
+        "neoorigins:height",
+        "neoorigins:hit_taken_amount",
+        "neoorigins:in_block",
+        "neoorigins:in_block_anywhere",
+        "neoorigins:in_rain",
+        "neoorigins:in_set",
+        "neoorigins:in_tag",
+        "neoorigins:in_water",
+        "neoorigins:invisible",
+        "neoorigins:light_level",
+        "neoorigins:living",
+        "neoorigins:moon_phase",
+        "neoorigins:moving",
+        "neoorigins:name",
+        "neoorigins:nbt",
+        "neoorigins:near_block",
+        "neoorigins:near_entity",
+        "neoorigins:night",
+        "neoorigins:no_minions_alive",
+        "neoorigins:not",
+        "neoorigins:on_block",
+        "neoorigins:on_fire",
+        "neoorigins:on_ground",
+        "neoorigins:or",
+        "neoorigins:out_of_combat",
+        "neoorigins:passenger",
+        "neoorigins:power",
         "neoorigins:power_active",
         "neoorigins:power_type",
-        "neoorigins:nbt",
-        "neoorigins:scoreboard",
-        "neoorigins:command",
         "neoorigins:predicate",
-        "neoorigins:amount",
-        "neoorigins:equal"
+        "neoorigins:relative_health",
+        "neoorigins:replacable",
+        "neoorigins:replaceable",
+        "neoorigins:resource",
+        "neoorigins:resource_level",
+        "neoorigins:riding",
+        "neoorigins:saturation_level",
+        "neoorigins:scoreboard",
+        "neoorigins:sneaking",
+        "neoorigins:sprinting",
+        "neoorigins:status_effect",
+        "neoorigins:submerged_in",
+        "neoorigins:submerged_in_water",
+        "neoorigins:swimming",
+        "neoorigins:target_group",
+        "neoorigins:target_type",
+        "neoorigins:temperature",
+        "neoorigins:thundering",
+        "neoorigins:ticking",
+        "neoorigins:time_of_day",
+        "neoorigins:using_item",
+        "neoorigins:weather",
+        "neoorigins:xp_level",
+        "neoorigins:xp_levels",
+        "neoorigins:xp_points"
       ]
     }
   },
   "oneOf": [
     {
-      "$comment": "neoorigins:and / origins:or",
+      "$comment": "neoorigins:actor_condition",
       "properties": {
         "type": {
           "enum": [
-            "neoorigins:and",
-            "neoorigins:or",
-            "apace:and",
-            "apace:or",
-            "neoorigins:and",
-            "neoorigins:or"
-          ]
-        },
-        "conditions": {
-          "type": "array",
-          "items": {
-            "$ref": "#"
-          }
-        }
-      },
-      "required": [
-        "type",
-        "conditions"
-      ]
-    },
-    {
-      "$comment": "neoorigins:not",
-      "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:not",
-            "apace:not",
-            "neoorigins:not"
+            "neoorigins:actor_condition",
+            "apace:actor_condition"
           ]
         },
         "condition": {
+          "description": "Inner condition evaluated on the actor (the player).",
           "$ref": "#"
         }
       },
@@ -224,17 +236,135 @@
       ]
     },
     {
-      "$comment": "neoorigins:constant",
+      "$comment": "neoorigins:advancement",
       "properties": {
         "type": {
           "enum": [
-            "neoorigins:constant",
-            "apace:constant",
-            "neoorigins:constant"
+            "neoorigins:advancement",
+            "apace:advancement"
           ]
         },
-        "value": {
-          "type": "boolean"
+        "advancement": {
+          "description": "Advancement id the player must have completed.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "advancement"
+      ]
+    },
+    {
+      "$comment": "neoorigins:air",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:air",
+            "apace:air"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Air-supply threshold 0..300 (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:amount",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:amount",
+            "apace:amount"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Threshold (standalone: compared against health; default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:and",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:and",
+            "apace:and"
+          ]
+        },
+        "conditions": {
+          "description": "List of sub-conditions; all must pass (absent/empty → true).",
+          "type": "array",
+          "items": {
+            "$ref": "#"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:armor_value",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:armor_value",
+            "apace:armor_value"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Armor-value threshold (default 0).",
+          "type": "number",
+          "default": 0.0
         }
       },
       "required": [
@@ -247,15 +377,309 @@
         "type": {
           "enum": [
             "neoorigins:biome",
-            "apace:biome",
-            "neoorigins:biome"
+            "apace:biome"
           ]
         },
         "biome": {
+          "description": "Exact biome id at the player's position (shape 1; highest precedence).",
           "type": "string"
         },
         "tag": {
+          "description": "Biome tag the player's biome must be in (shape 2).",
           "type": "string"
+        },
+        "biome_tag": {
+          "description": "Synonym for `tag` used by several built-in JSONs (shape 2).",
+          "type": "string"
+        },
+        "condition": {
+          "description": "Nested biome sub-condition (shape 3); `temperature` compares biome base temperature, other sub-types fail closed. Absent all of biome/tag/biome_tag/condition → always true.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:block",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:block",
+            "apace:block"
+          ]
+        },
+        "block_condition": {
+          "description": "Optional nested block condition wrapper; otherwise the fields are read off the root.",
+          "$ref": "block_condition.schema.json"
+        },
+        "block": {
+          "description": "Block id the block at the player's position must match (also accepts `id`).",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Block tag the block at the player's position must be in (absent block+tag → always true).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:block_collision",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:block_collision",
+            "apace:block_collision"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:brightness",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:brightness",
+            "apace:brightness"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Light-level threshold 0..15 (default 0).",
+          "type": "integer",
+          "default": 0
+        },
+        "light_type": {
+          "description": "Which light layer to sample (default any/max local brightness).",
+          "type": "string",
+          "enum": [
+            "sky",
+            "block",
+            "any"
+          ],
+          "default": "any"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:can_see",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:can_see",
+            "apace:can_see"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:climbing",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:climbing",
+            "apace:climbing"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:command",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:command",
+            "apace:command"
+          ]
+        },
+        "command": {
+          "description": "Command to run; compared against its return value (blank → false).",
+          "type": "string"
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Threshold for the command's return value (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:config_flag",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:config_flag",
+            "apace:config_flag"
+          ]
+        },
+        "key": {
+          "description": "Config-flag key whose live boolean to return (unknown key → true, with a warning).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:constant",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:constant",
+            "apace:constant"
+          ]
+        },
+        "value": {
+          "description": "Constant result this condition always returns (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:cooldown",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:cooldown",
+            "apace:cooldown"
+          ]
+        },
+        "power": {
+          "description": "Power id whose cooldown to test (absent → always true).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:creative_flying",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:creative_flying",
+            "apace:creative_flying"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage_name",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:damage_name",
+            "neoorigins:name",
+            "apace:damage_name",
+            "apace:name"
+          ]
+        },
+        "name": {
+          "description": "Damage-source message id to match, case-insensitive (absent → false).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage_tag",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:damage_tag",
+            "apace:damage_tag"
+          ]
+        },
+        "tag": {
+          "description": "Damage-type tag the incoming damage must be in (absent → false).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage_type",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:damage_type",
+            "apace:damage_type"
+          ]
+        },
+        "damage_type": {
+          "description": "Damage-type id the incoming damage must match (absent → false).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:daytime",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:daytime",
+            "apace:daytime"
+          ]
         }
       },
       "required": [
@@ -268,17 +692,48 @@
         "type": {
           "enum": [
             "neoorigins:dimension",
-            "apace:dimension",
-            "neoorigins:dimension"
+            "apace:dimension"
           ]
         },
         "dimension": {
+          "description": "Dimension id the player must be in (absent → always true).",
           "type": "string"
         }
       },
       "required": [
-        "type",
-        "dimension"
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:distance",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:distance",
+            "apace:distance"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default <=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": "<="
+        },
+        "compare_to": {
+          "description": "Distance threshold to the target (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -287,44 +742,51 @@
         "type": {
           "enum": [
             "neoorigins:enchantment",
-            "apace:enchantment",
-            "neoorigins:enchantment"
+            "apace:enchantment"
           ]
         },
         "enchantment": {
+          "description": "Enchantment id to look for across equipped items (absent → always true).",
           "type": "string"
         },
         "comparison": {
+          "description": "Comparison operator (default >=).",
           "type": "string",
           "enum": [
-            ">=",
-            "<=",
             "==",
             "!=",
             ">",
-            "<"
-          ]
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
         },
         "compare_to": {
-          "type": "integer"
+          "description": "Enchantment-level threshold (default 1).",
+          "type": "integer",
+          "default": 1
         }
       },
       "required": [
-        "type",
-        "enchantment"
+        "type"
       ]
     },
     {
-      "$comment": "neoorigins:submerged_in",
+      "$comment": "neoorigins:entity_type",
       "properties": {
         "type": {
           "enum": [
-            "neoorigins:submerged_in",
-            "apace:submerged_in",
-            "neoorigins:submerged_in"
+            "neoorigins:entity_type",
+            "apace:entity_type"
           ]
         },
-        "fluid": {
+        "entity_type": {
+          "description": "Entity-type id to match (player is always minecraft:player; absent → always true).",
+          "type": "string"
+        },
+        "type_id": {
+          "description": "Alias for entity_type (entity_type condition only).",
           "type": "string"
         }
       },
@@ -333,117 +795,13 @@
       ]
     },
     {
-      "$comment": "neoorigins:health / origins:relative_health / origins:food_level / origins:xp_level / origins:xp_points / origins:armor_value / origins:fall_distance / origins:height / origins:distance / origins:fluid_height / origins:temperature / origins:light_level / origins:brightness / origins:time_of_day / origins:amount / origins:fall_distance / neoorigins:hit_taken_amount \u00e2\u20ac\u201d numeric comparison.",
+      "$comment": "neoorigins:equal",
       "properties": {
         "type": {
           "enum": [
-            "neoorigins:health",
-            "neoorigins:relative_health",
-            "neoorigins:food_level",
-            "neoorigins:food",
-            "neoorigins:xp_level",
-            "neoorigins:xp_points",
-            "neoorigins:armor_value",
-            "neoorigins:fall_distance",
-            "neoorigins:height",
-            "neoorigins:distance",
-            "neoorigins:fluid_height",
-            "neoorigins:temperature",
-            "neoorigins:light_level",
-            "neoorigins:brightness",
-            "neoorigins:time_of_day",
-            "neoorigins:amount",
-            "neoorigins:hit_taken_amount",
-            "neoorigins:health",
-            "neoorigins:relative_health",
-            "neoorigins:food_level",
-            "neoorigins:food",
-            "neoorigins:xp_level",
-            "neoorigins:xp_points",
-            "neoorigins:armor_value",
-            "neoorigins:fall_distance",
-            "neoorigins:height",
-            "neoorigins:distance",
-            "neoorigins:fluid_height",
-            "neoorigins:temperature",
-            "neoorigins:light_level",
-            "neoorigins:brightness",
-            "neoorigins:time_of_day",
-            "neoorigins:amount"
+            "neoorigins:equal",
+            "apace:equal"
           ]
-        },
-        "comparison": {
-          "type": "string",
-          "enum": [
-            ">=",
-            "<=",
-            "==",
-            "!=",
-            ">",
-            "<"
-          ]
-        },
-        "compare_to": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "type"
-      ]
-    },
-    {
-      "$comment": "neoorigins:entity_type / origins:target_type",
-      "properties": {
-        "type": {"enum": ["neoorigins:entity_type", "apace:entity_type", "neoorigins:target_type"]},
-        "entity_type": {"type": "string", "description": "Entity type id, or #tag (target_type only)."},
-        "type_id": {"type": "string", "description": "Alias for entity_type (entity_type condition only)."}
-      },
-      "required": ["type"]
-    },
-    {
-      "$comment": "neoorigins:target_group",
-      "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:target_group",
-            "neoorigins:target_group"
-          ]
-        },
-        "group": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "type",
-        "group"
-      ]
-    },
-    {
-      "$comment": "neoorigins:in_set / neoorigins:in_set",
-      "properties": {
-        "type": {
-          "enum": [
-            "neoorigins:in_set",
-            "neoorigins:in_set"
-          ]
-        },
-        "set": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "type",
-        "set"
-      ]
-    },
-    {
-      "$comment": "neoorigins:no_minions_alive",
-      "properties": {
-        "type": {
-          "const": "neoorigins:no_minions_alive"
-        },
-        "key": {
-          "type": "string"
         }
       },
       "required": [
@@ -456,23 +814,25 @@
         "type": {
           "enum": [
             "neoorigins:equipped_item",
-            "apace:equipped_item",
-            "neoorigins:equipped_item"
+            "apace:equipped_item"
           ]
         },
         "equipment_slot": {
+          "description": "Equipment slot to inspect (default mainhand).",
           "type": "string",
           "enum": [
-            "mainhand",
-            "offhand",
             "head",
             "chest",
             "legs",
-            "feet"
-          ]
+            "feet",
+            "mainhand",
+            "offhand"
+          ],
+          "default": "mainhand"
         },
         "item_condition": {
-          "type": "object"
+          "description": "Nested item condition; absent → slot-presence check (any item present).",
+          "$ref": "item_condition.schema.json"
         }
       },
       "required": [
@@ -480,66 +840,271 @@
       ]
     },
     {
-      "$comment": "Boolean no-field conditions \u00e2\u20ac\u201d sneaking / sprinting / swimming / in_water / on_ground / etc.",
+      "$comment": "neoorigins:exists",
       "properties": {
         "type": {
           "enum": [
-            "neoorigins:sneaking",
-            "neoorigins:sprinting",
-            "neoorigins:swimming",
-            "neoorigins:invisible",
-            "neoorigins:in_water",
-            "neoorigins:submerged_in_water",
-            "neoorigins:on_ground",
-            "neoorigins:on_fire",
-            "neoorigins:fire",
-            "neoorigins:fall_flying",
-            "neoorigins:creative_flying",
-            "neoorigins:moving",
-            "neoorigins:in_rain",
-            "neoorigins:exposed_to_sky",
-            "neoorigins:exposed_to_sun",
-            "neoorigins:daytime",
-            "neoorigins:passenger",
-            "neoorigins:riding",
-            "neoorigins:using_item",
-            "neoorigins:living",
             "neoorigins:exists",
-            "neoorigins:ticking",
-            "neoorigins:sneaking",
-            "neoorigins:sprinting",
-            "neoorigins:swimming",
-            "neoorigins:invisible",
-            "neoorigins:in_water",
-            "neoorigins:submerged_in_water",
-            "neoorigins:on_ground",
-            "neoorigins:on_fire",
-            "neoorigins:fire",
-            "neoorigins:fall_flying",
-            "neoorigins:creative_flying",
-            "neoorigins:moving",
-            "neoorigins:in_rain",
-            "neoorigins:exposed_to_sky",
-            "neoorigins:exposed_to_sun",
-            "neoorigins:daytime",
-            "neoorigins:passenger",
-            "neoorigins:riding",
-            "neoorigins:using_item",
-            "neoorigins:living",
-            "neoorigins:exists",
-            "neoorigins:ticking",
-            "neoorigins:climbing",
-            "neoorigins:night",
-            "neoorigins:thundering",
-            "neoorigins:block_collision",
-            "neoorigins:from_explosion",
-            "neoorigins:from_fire",
-            "neoorigins:from_projectile",
-            "neoorigins:can_see",
-            "neoorigins:equal",
-            "neoorigins:replacable",
-            "neoorigins:replaceable"
+            "apace:exists"
           ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:exposed_to_sky",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:exposed_to_sky",
+            "apace:exposed_to_sky"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:exposed_to_sun",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:exposed_to_sun",
+            "apace:exposed_to_sun"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:fall_distance",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:fall_distance",
+            "apace:fall_distance"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Fall-distance threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:fall_flying",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:fall_flying",
+            "apace:fall_flying"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:fluid_height",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:fluid_height",
+            "apace:fluid_height"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Fluid-height threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "fluid": {
+          "description": "Fluid id to measure (minecraft:water / minecraft:lava).",
+          "type": "string",
+          "enum": [
+            "minecraft:water",
+            "minecraft:lava"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:food_item_id",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:food_item_id",
+            "apace:food_item_id"
+          ]
+        },
+        "id": {
+          "description": "Item id the eaten stack must match exactly (absent → false).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:food_item_in_tag",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:food_item_in_tag",
+            "apace:food_item_in_tag"
+          ]
+        },
+        "tag": {
+          "description": "Item tag (#-prefixed) the eaten stack must be in, or a bare item id to match exactly (absent → false).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:food_level",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:food_level",
+            "neoorigins:food",
+            "apace:food_level",
+            "apace:food"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Food-level threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:from_explosion",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:from_explosion",
+            "apace:from_explosion"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:from_fire",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:from_fire",
+            "apace:from_fire"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:from_projectile",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:from_projectile",
+            "apace:from_projectile"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:hardness",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:hardness",
+            "apace:hardness"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Block hardness threshold (default 0).",
+          "type": "number",
+          "default": 0.0
         }
       },
       "required": [
@@ -549,378 +1114,1403 @@
     {
       "$comment": "neoorigins:has_effect",
       "properties": {
-        "type": {"const": "neoorigins:has_effect"},
-        "effect": {"type": "string", "description": "Effect id, e.g. minecraft:luck."}
+        "type": {
+          "enum": [
+            "neoorigins:has_effect",
+            "apace:has_effect"
+          ]
+        },
+        "effect": {
+          "description": "Mob-effect id the player must currently have (absent → false).",
+          "type": "string"
+        }
       },
-      "required": ["type", "effect"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:status_effect",
+      "$comment": "neoorigins:health",
       "properties": {
-        "type": {"const": "neoorigins:status_effect"},
-        "effect": {"type": "string", "description": "Effect id, e.g. minecraft:speed."},
-        "amplifier": {"type": "integer", "minimum": 0, "description": "Exact amplifier (0 = level I)."},
-        "min_amplifier": {"type": "integer", "minimum": 0, "description": "Inclusive minimum amplifier (use without amplifier)."},
-        "max_amplifier": {"type": "integer", "minimum": 0, "description": "Inclusive maximum amplifier (use without amplifier)."}
+        "type": {
+          "enum": [
+            "neoorigins:health",
+            "apace:health"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Health value threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
       },
-      "required": ["type", "effect"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:block / on_block / in_block / in_block_anywhere",
+      "$comment": "neoorigins:height",
       "properties": {
-        "type": {"enum": ["neoorigins:block", "neoorigins:on_block", "neoorigins:in_block", "neoorigins:in_block_anywhere"]},
-        "block_condition": {"type": "object", "description": "Block sub-condition: {block: <id>} or {tag: <#tag>} or {type: and/or, conditions: [...]}."}
+        "type": {
+          "enum": [
+            "neoorigins:height",
+            "apace:height"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "World Y-position threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:near_block / block_in_radius",
+      "$comment": "neoorigins:hit_taken_amount",
       "properties": {
-        "type": {"enum": ["neoorigins:near_block", "neoorigins:block_in_radius"]},
-        "radius": {"type": "integer", "minimum": 1, "maximum": 8, "description": "Cubic scan radius in blocks (default 4, capped at 8)."},
-        "block": {"type": "string", "description": "Single block id to match."},
-        "blocks": {"type": "array", "items": {"type": "string"}, "description": "List of block ids; any match counts."},
-        "tag": {"type": "string", "description": "Single block tag (with or without leading #)."},
-        "tags": {"type": "array", "items": {"type": "string"}, "description": "List of block tags."},
-        "block_condition": {"type": "object", "description": "Origins-style nested {type: in_tag, tag: X} or {type: block, block: X}."}
+        "type": {
+          "enum": [
+            "neoorigins:hit_taken_amount",
+            "apace:hit_taken_amount"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Incoming-damage threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:near_entity",
+      "$comment": "neoorigins:in_block",
       "properties": {
-        "type": {"const": "neoorigins:near_entity"},
-        "entity_type": {"type": "string", "description": "Entity-type id (e.g. minecraft:creeper) or #tag (e.g. #minecraft:undead)."},
-        "distance": {"type": "number", "minimum": 1, "maximum": 64, "description": "Search radius in blocks (default 8, capped at 64)."}
+        "type": {
+          "enum": [
+            "neoorigins:in_block",
+            "neoorigins:in_block_anywhere",
+            "apace:in_block",
+            "apace:in_block_anywhere"
+          ]
+        },
+        "block_condition": {
+          "description": "Nested block condition with `block`/`id`; absent → always true.",
+          "$ref": "block_condition.schema.json"
+        }
       },
-      "required": ["type", "entity_type"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:damage_type",
+      "$comment": "neoorigins:in_rain",
       "properties": {
-        "type": {"const": "neoorigins:damage_type"},
-        "damage_type": {"type": "string", "description": "DamageType id, e.g. minecraft:lava."}
+        "type": {
+          "enum": [
+            "neoorigins:in_rain",
+            "apace:in_rain"
+          ]
+        }
       },
-      "required": ["type", "damage_type"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:damage_tag",
+      "$comment": "neoorigins:in_set",
       "properties": {
-        "type": {"const": "neoorigins:damage_tag"},
-        "tag": {"type": "string", "description": "DamageType tag (with or without leading #), e.g. minecraft:is_fire."}
+        "type": {
+          "enum": [
+            "neoorigins:in_set",
+            "apace:in_set"
+          ]
+        },
+        "set": {
+          "description": "Entity-set key on the actor; true iff the target's UUID is in it.",
+          "type": "string"
+        }
       },
-      "required": ["type", "tag"]
-    },
-    {
-      "$comment": "neoorigins:damage_name",
-      "properties": {
-        "type": {"enum": ["neoorigins:damage_name", "neoorigins:name"]},
-        "name": {"type": "string", "description": "DamageSource msg-id (vanilla key like cactus, drown, sweetBerryBush)."}
-      },
-      "required": ["type", "name"]
+      "required": [
+        "type",
+        "set"
+      ]
     },
     {
       "$comment": "neoorigins:in_tag",
       "properties": {
-        "type": {"const": "neoorigins:in_tag"},
-        "tag": {"type": "string", "description": "Biome tag id to match at the player's position."}
+        "type": {
+          "enum": [
+            "neoorigins:in_tag",
+            "apace:in_tag"
+          ]
+        },
+        "tag": {
+          "description": "Biome tag the player's biome must be in (absent → always true).",
+          "type": "string"
+        }
       },
-      "required": ["type", "tag"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:food_item_id",
+      "$comment": "neoorigins:in_water",
       "properties": {
-        "type": {"const": "neoorigins:food_item_id"},
-        "id": {"type": "string", "description": "Item id of the food being eaten in the current FOOD_EATEN context."}
+        "type": {
+          "enum": [
+            "neoorigins:in_water",
+            "apace:in_water"
+          ]
+        }
       },
-      "required": ["type", "id"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:food_item_in_tag",
+      "$comment": "neoorigins:invisible",
       "properties": {
-        "type": {"const": "neoorigins:food_item_in_tag"},
-        "tag": {"type": "string", "description": "Item tag (with or without leading #) the food must belong to."}
+        "type": {
+          "enum": [
+            "neoorigins:invisible",
+            "apace:invisible"
+          ]
+        }
       },
-      "required": ["type", "tag"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:air",
+      "$comment": "neoorigins:light_level",
       "properties": {
-        "type": {"const": "neoorigins:air"},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Comparison operator (default >=)."},
-        "compare_to": {"type": "number", "description": "Air-supply target (0..300 vanilla range)."}
+        "type": {
+          "enum": [
+            "neoorigins:light_level",
+            "apace:light_level"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Light-level threshold 0..15 (default 0).",
+          "type": "integer",
+          "default": 0
+        },
+        "light_type": {
+          "description": "Which light layer to sample (default any/max local brightness).",
+          "type": "string",
+          "enum": [
+            "sky",
+            "block",
+            "any"
+          ],
+          "default": "any"
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:living",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:living",
+            "apace:living"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
     },
     {
       "$comment": "neoorigins:moon_phase",
       "properties": {
-        "type": {"const": "neoorigins:moon_phase"},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Comparison operator (default ==)."},
-        "compare_to": {"type": "integer", "minimum": 0, "maximum": 7, "description": "Moon phase 0..7 (0 = full moon, 4 = new moon)."}
+        "type": {
+          "enum": [
+            "neoorigins:moon_phase",
+            "apace:moon_phase"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default ==).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": "=="
+        },
+        "compare_to": {
+          "description": "Moon phase 0..7 (0 = full moon, 4 = new moon; default 0).",
+          "type": "integer",
+          "default": 0
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:moving",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:moving",
+            "apace:moving"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
     },
     {
       "$comment": "neoorigins:nbt",
       "properties": {
-        "type": {"const": "neoorigins:nbt"},
-        "nbt": {"type": "string", "description": "NBT key on the player's persistent data; true when present."}
+        "type": {
+          "enum": [
+            "neoorigins:nbt",
+            "apace:nbt"
+          ]
+        },
+        "nbt": {
+          "description": "Key the player's persistent data must contain (absent → always true).",
+          "type": "string"
+        }
       },
-      "required": ["type", "nbt"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:scoreboard",
+      "$comment": "neoorigins:near_block",
       "properties": {
-        "type": {"const": "neoorigins:scoreboard"},
-        "objective": {"type": "string", "description": "Scoreboard objective name."},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
-        "compare_to": {"type": "integer", "description": "Score threshold."}
+        "type": {
+          "enum": [
+            "neoorigins:near_block",
+            "neoorigins:block_in_radius",
+            "apace:near_block",
+            "apace:block_in_radius"
+          ]
+        },
+        "radius": {
+          "description": "Scan radius in blocks (default 4, clamped 1..8).",
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 8
+        },
+        "block": {
+          "description": "Single block id to match.",
+          "type": "string"
+        },
+        "blocks": {
+          "description": "List of block ids to match (any → true).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
+        },
+        "tag": {
+          "description": "Single block tag to match (#-prefix optional).",
+          "type": "string"
+        },
+        "tags": {
+          "description": "List of block tags to match (any → true).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
+        },
+        "block_condition": {
+          "description": "Origins block_in_radius shape: nested in_tag/block condition. Requires at least one of block/blocks/tag/tags/block_condition.",
+          "$ref": "block_condition.schema.json"
+        }
       },
-      "required": ["type", "objective"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:command",
+      "$comment": "neoorigins:near_entity",
       "properties": {
-        "type": {"const": "neoorigins:command"},
-        "command": {"type": "string", "description": "Server command to execute (leading '/' optional); runs at perm level 2."},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
-        "compare_to": {"type": "integer", "description": "Compared against the command's return value (default 1)."}
+        "type": {
+          "enum": [
+            "neoorigins:near_entity",
+            "apace:near_entity"
+          ]
+        },
+        "entity_type": {
+          "description": "Entity-type id, or #tag, to look for nearby.",
+          "type": "string"
+        },
+        "distance": {
+          "description": "Search distance in blocks (default 8, clamped 1..64).",
+          "type": "number",
+          "default": 8.0,
+          "minimum": 1.0,
+          "maximum": 64.0
+        }
       },
-      "required": ["type", "command"]
+      "required": [
+        "type",
+        "entity_type"
+      ]
     },
     {
-      "$comment": "neoorigins:advancement",
+      "$comment": "neoorigins:night",
       "properties": {
-        "type": {"const": "neoorigins:advancement"},
-        "advancement": {"type": "string", "description": "Advancement id; true when player has completed it."}
+        "type": {
+          "enum": [
+            "neoorigins:night",
+            "apace:night"
+          ]
+        }
       },
-      "required": ["type", "advancement"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:weather",
+      "$comment": "neoorigins:no_minions_alive",
       "properties": {
-        "type": {"const": "neoorigins:weather"},
-        "state": {"enum": ["clear", "rain", "thunder"], "description": "Weather state to match."},
-        "value": {"enum": ["clear", "rain", "thunder"], "description": "Alias for state."}
+        "type": {
+          "enum": [
+            "neoorigins:no_minions_alive",
+            "apace:no_minions_alive"
+          ]
+        },
+        "key": {
+          "description": "Minion-tracker key to count (default tamer:tamed).",
+          "type": "string",
+          "default": "tamer:tamed"
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:cooldown",
+      "$comment": "neoorigins:not",
       "properties": {
-        "type": {"const": "neoorigins:cooldown"},
-        "power": {"type": "string", "description": "Power id to check cooldown for; true when the power is NOT on cooldown."}
+        "type": {
+          "enum": [
+            "neoorigins:not",
+            "apace:not"
+          ]
+        },
+        "condition": {
+          "description": "Nested condition whose result is negated.",
+          "$ref": "#"
+        }
       },
-      "required": ["type", "power"]
+      "required": [
+        "type",
+        "condition"
+      ]
     },
     {
-      "$comment": "neoorigins:resource / resource_level",
+      "$comment": "neoorigins:on_block",
       "properties": {
-        "type": {"enum": ["neoorigins:resource", "neoorigins:resource_level"]},
-        "resource": {"type": "string", "description": "Resource power id (matches the power that defines the bar)."},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
-        "compare_to": {"type": "integer", "description": "Resource value threshold."}
+        "type": {
+          "enum": [
+            "neoorigins:on_block",
+            "apace:on_block"
+          ]
+        },
+        "block_condition": {
+          "description": "Nested block condition (block id / in_tag / and / or) tested against the block below; absent → on any ground.",
+          "$ref": "block_condition.schema.json"
+        }
       },
-      "required": ["type", "resource"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:power",
+      "$comment": "neoorigins:on_fire",
       "properties": {
-        "type": {"const": "neoorigins:power"},
-        "power": {"type": "string", "description": "Power id; true when the player has it granted (origin or dynamic)."}
+        "type": {
+          "enum": [
+            "neoorigins:on_fire",
+            "neoorigins:fire",
+            "apace:on_fire",
+            "apace:fire"
+          ]
+        }
       },
-      "required": ["type", "power"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:power_active",
+      "$comment": "neoorigins:on_ground",
       "properties": {
-        "type": {"const": "neoorigins:power_active"},
-        "power": {"type": "string", "description": "Toggle power id; true when its current toggle state is on. Supports * wildcard for suffix matching."}
+        "type": {
+          "enum": [
+            "neoorigins:on_ground",
+            "apace:on_ground"
+          ]
+        }
       },
-      "required": ["type", "power"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:power_type",
+      "$comment": "neoorigins:or",
       "properties": {
-        "type": {"const": "neoorigins:power_type"},
-        "power_type": {"type": "string", "description": "Power-type id; true when the player has any granted power of this type."},
-        "id": {"type": "string", "description": "Alias for power_type."}
+        "type": {
+          "enum": [
+            "neoorigins:or",
+            "apace:or"
+          ]
+        },
+        "conditions": {
+          "description": "List of sub-conditions; at least one must pass (absent/empty → false).",
+          "type": "array",
+          "items": {
+            "$ref": "#"
+          }
+        }
       },
-      "required": ["type"]
-    },
-    {
-      "$comment": "neoorigins:predicate",
-      "properties": {
-        "type": {"const": "neoorigins:predicate"},
-        "predicate_type": {"enum": ["biome", "block_state", "entity_properties", "fluid_state", "item", "location"], "description": "Which vanilla predicate codec to compile against."},
-        "predicate": {"type": "object", "description": "Inner predicate JSON; shape depends on predicate_type."}
-      },
-      "required": ["type", "predicate_type", "predicate"]
-    },
-    {
-      "$comment": "neoorigins:actor_condition",
-      "properties": {
-        "type": {"const": "neoorigins:actor_condition"},
-        "condition": {"$ref": "#", "description": "Inner condition evaluated on the actor (the player in this codebase)."}
-      },
-      "required": ["type", "condition"]
-    },
-    {
-      "$comment": "neoorigins:config_flag",
-      "properties": {
-        "type": {"const": "neoorigins:config_flag"},
-        "key": {"type": "string", "description": "Config flag key, e.g. ocean_origins.fish_diet_required. Unknown keys default to true."}
-      },
-      "required": ["type", "key"]
+      "required": [
+        "type"
+      ]
     },
     {
       "$comment": "neoorigins:out_of_combat",
       "properties": {
-        "type": {"const": "neoorigins:out_of_combat"},
-        "ticks": {"type": "integer", "minimum": 0, "description": "Min ticks since last damage to count as out of combat (default 100 = 5s)."}
+        "type": {
+          "enum": [
+            "neoorigins:out_of_combat",
+            "apace:out_of_combat"
+          ]
+        },
+        "ticks": {
+          "description": "Ticks since last damage required (default 100 = 5 s).",
+          "type": "integer",
+          "default": 100,
+          "minimum": 0
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:fluid_height â€” numeric comparison + which fluid.",
+      "$comment": "neoorigins:passenger",
       "properties": {
-        "type": {"const": "neoorigins:fluid_height"},
-        "fluid": {"enum": ["minecraft:water", "minecraft:lava"], "description": "Which fluid's submerged-depth to measure."},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
-        "compare_to": {"type": "number", "description": "Threshold in blocks."}
+        "type": {
+          "enum": [
+            "neoorigins:passenger",
+            "neoorigins:riding",
+            "apace:passenger",
+            "apace:riding"
+          ]
+        }
       },
-      "required": ["type", "fluid"]
+      "required": [
+        "type"
+      ]
     },
     {
-      "$comment": "neoorigins:light_level / brightness â€” numeric comparison + which light source.",
+      "$comment": "neoorigins:power",
       "properties": {
-        "type": {"enum": ["neoorigins:light_level", "neoorigins:brightness"]},
-        "light_type": {"enum": ["sky", "block", "any"], "description": "sky = canSeeSky light; block = block-emitted light; any (default) = max raw brightness."},
-        "comparison": {"enum": ["==", "!=", ">", ">=", "<", "<="], "description": "Default >=."},
-        "compare_to": {"type": "integer", "minimum": 0, "maximum": 15, "description": "Light level 0..15."}
+        "type": {
+          "enum": [
+            "neoorigins:power",
+            "apace:power"
+          ]
+        },
+        "power": {
+          "description": "Power id the player must have been granted.",
+          "type": "string"
+        }
       },
-      "required": ["type"]
+      "required": [
+        "type",
+        "power"
+      ]
     },
     {
-      "$comment": "Fallback \u00e2\u20ac\u201d permissive for unlisted verbs.",
+      "$comment": "neoorigins:power_active",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:power_active",
+            "apace:power_active"
+          ]
+        },
+        "power": {
+          "description": "Toggle power id to test; `*` wildcard suffix-matches toggle keys.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:power_type",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:power_type",
+            "apace:power_type"
+          ]
+        },
+        "power_type": {
+          "description": "Power-type id to match across granted powers (also accepts `id`; bare → origins: prefixed).",
+          "type": "string"
+        },
+        "id": {
+          "description": "Alias for power_type.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:predicate",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:predicate",
+            "apace:predicate"
+          ]
+        },
+        "predicate_type": {
+          "description": "Which vanilla predicate to compile (damage fails closed; needs hit-context).",
+          "type": "string",
+          "enum": [
+            "biome",
+            "block_state",
+            "entity_properties",
+            "fluid_state",
+            "item",
+            "location",
+            "damage"
+          ]
+        },
+        "predicate": {
+          "description": "The predicate JSON, parsed against the matching vanilla codec.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "predicate_type",
+        "predicate"
+      ]
+    },
+    {
+      "$comment": "neoorigins:relative_health",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:relative_health",
+            "apace:relative_health"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Health ratio threshold 0..1 (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:replacable",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:replacable",
+            "neoorigins:replaceable",
+            "apace:replacable",
+            "apace:replaceable"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:resource",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:resource",
+            "neoorigins:resource_level",
+            "apace:resource",
+            "apace:resource_level"
+          ]
+        },
+        "resource": {
+          "description": "Resource power id whose stored value to read.",
+          "type": "string"
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Resource-value threshold (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type",
+        "resource"
+      ]
+    },
+    {
+      "$comment": "neoorigins:saturation_level",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:saturation_level",
+            "apace:saturation_level"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Saturation threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:scoreboard",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:scoreboard",
+            "apace:scoreboard"
+          ]
+        },
+        "objective": {
+          "description": "Scoreboard objective to read the player's score from (absent → false).",
+          "type": "string"
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Score threshold (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:sneaking",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:sneaking",
+            "apace:sneaking"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:sprinting",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:sprinting",
+            "apace:sprinting"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:status_effect",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:status_effect",
+            "apace:status_effect"
+          ]
+        },
+        "effect": {
+          "description": "Mob-effect id the player must have (absent → false).",
+          "type": "string"
+        },
+        "amplifier": {
+          "description": "Exact amplifier to require (sets both min and max).",
+          "type": "integer"
+        },
+        "min_amplifier": {
+          "description": "Lowest acceptable amplifier (default -1 = any).",
+          "type": "integer"
+        },
+        "max_amplifier": {
+          "description": "Highest acceptable amplifier (default unbounded).",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:submerged_in",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:submerged_in",
+            "apace:submerged_in"
+          ]
+        },
+        "fluid": {
+          "description": "Fluid id whose submersion to test (minecraft:water / minecraft:lava).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:submerged_in_water",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:submerged_in_water",
+            "apace:submerged_in_water"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:swimming",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:swimming",
+            "apace:swimming"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:target_group",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:target_group",
+            "apace:target_group"
+          ]
+        },
+        "group": {
+          "description": "Vanilla mob category/group the target must be in (absent → false).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:target_type",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:target_type",
+            "apace:target_type"
+          ]
+        },
+        "entity_type": {
+          "description": "Target entity-type id, or #tag (absent → false).",
+          "type": "string"
+        },
+        "type_id": {
+          "description": "Alias for entity_type (entity_type condition only).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:temperature",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:temperature",
+            "apace:temperature"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Biome base-temperature threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:thundering",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:thundering",
+            "apace:thundering"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:ticking",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:ticking",
+            "apace:ticking"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:time_of_day",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:time_of_day",
+            "apace:time_of_day"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Day-time tick threshold 0..23999 (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:using_item",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:using_item",
+            "apace:using_item"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:weather",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:weather",
+            "apace:weather"
+          ]
+        },
+        "state": {
+          "description": "Weather state to match (also accepts the `value` field; default clear).",
+          "type": "string",
+          "enum": [
+            "clear",
+            "rain",
+            "thunder"
+          ],
+          "default": "clear"
+        },
+        "value": {
+          "description": "Alias for state.",
+          "type": "string",
+          "enum": [
+            "clear",
+            "rain",
+            "thunder"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:xp_level",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:xp_level",
+            "apace:xp_level"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Experience-level threshold (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:xp_levels",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:xp_levels",
+            "apace:xp_levels"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Experience-level threshold (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:xp_points",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:xp_points",
+            "apace:xp_points"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Total-experience threshold (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
           "not": {
             "enum": [
-              "neoorigins:and",
-              "neoorigins:or",
-              "neoorigins:not",
-              "neoorigins:constant",
-              "neoorigins:biome",
-              "neoorigins:dimension",
-              "neoorigins:enchantment",
-              "neoorigins:submerged_in",
-              "neoorigins:health",
-              "neoorigins:relative_health",
-              "neoorigins:food_level",
-              "neoorigins:food",
-              "neoorigins:xp_level",
-              "neoorigins:xp_points",
-              "neoorigins:armor_value",
-              "neoorigins:fall_distance",
-              "neoorigins:height",
-              "neoorigins:distance",
-              "neoorigins:fluid_height",
-              "neoorigins:temperature",
-              "neoorigins:light_level",
-              "neoorigins:brightness",
-              "neoorigins:time_of_day",
-              "neoorigins:amount",
-              "neoorigins:hit_taken_amount",
-              "neoorigins:entity_type",
-              "apace:entity_type",
-              "neoorigins:target_type",
-              "neoorigins:target_group",
-              "neoorigins:in_set",
-              "neoorigins:in_set",
-              "neoorigins:no_minions_alive",
-              "neoorigins:equipped_item",
-              "apace:equipped_item",
-              "neoorigins:sneaking",
-              "neoorigins:sprinting",
-              "neoorigins:swimming",
-              "neoorigins:invisible",
-              "neoorigins:in_water",
-              "neoorigins:submerged_in_water",
-              "neoorigins:on_ground",
-              "neoorigins:on_fire",
-              "neoorigins:fire",
-              "neoorigins:fall_flying",
-              "neoorigins:creative_flying",
-              "neoorigins:moving",
-              "neoorigins:in_rain",
-              "neoorigins:exposed_to_sky",
-              "neoorigins:exposed_to_sun",
-              "neoorigins:daytime",
-              "neoorigins:passenger",
-              "neoorigins:riding",
-              "neoorigins:using_item",
-              "neoorigins:living",
-              "neoorigins:exists",
-              "neoorigins:ticking",
+              "apace:actor_condition",
+              "apace:advancement",
+              "apace:air",
+              "apace:amount",
               "apace:and",
-              "apace:or",
-              "apace:not",
-              "apace:constant",
+              "apace:armor_value",
               "apace:biome",
+              "apace:block",
+              "apace:block_collision",
+              "apace:block_in_radius",
+              "apace:brightness",
+              "apace:can_see",
+              "apace:climbing",
+              "apace:command",
+              "apace:config_flag",
+              "apace:constant",
+              "apace:cooldown",
+              "apace:creative_flying",
+              "apace:damage_name",
+              "apace:damage_tag",
+              "apace:damage_type",
+              "apace:daytime",
+              "apace:dimension",
+              "apace:distance",
               "apace:enchantment",
+              "apace:entity_type",
+              "apace:equal",
+              "apace:equipped_item",
+              "apace:exists",
+              "apace:exposed_to_sky",
+              "apace:exposed_to_sun",
+              "apace:fall_distance",
+              "apace:fall_flying",
+              "apace:fire",
+              "apace:fluid_height",
+              "apace:food",
+              "apace:food_item_id",
+              "apace:food_item_in_tag",
+              "apace:food_level",
+              "apace:from_explosion",
+              "apace:from_fire",
+              "apace:from_projectile",
+              "apace:hardness",
+              "apace:has_effect",
+              "apace:health",
+              "apace:height",
+              "apace:hit_taken_amount",
+              "apace:in_block",
+              "apace:in_block_anywhere",
+              "apace:in_rain",
+              "apace:in_set",
+              "apace:in_tag",
+              "apace:in_water",
+              "apace:invisible",
+              "apace:light_level",
+              "apace:living",
+              "apace:moon_phase",
+              "apace:moving",
+              "apace:name",
+              "apace:nbt",
+              "apace:near_block",
+              "apace:near_entity",
+              "apace:night",
+              "apace:no_minions_alive",
+              "apace:not",
+              "apace:on_block",
+              "apace:on_fire",
+              "apace:on_ground",
+              "apace:or",
+              "apace:out_of_combat",
+              "apace:passenger",
+              "apace:power",
+              "apace:power_active",
+              "apace:power_type",
+              "apace:predicate",
+              "apace:relative_health",
+              "apace:replacable",
+              "apace:replaceable",
+              "apace:resource",
+              "apace:resource_level",
+              "apace:riding",
+              "apace:saturation_level",
+              "apace:scoreboard",
+              "apace:sneaking",
+              "apace:sprinting",
+              "apace:status_effect",
               "apace:submerged_in",
-              "neoorigins:and",
-              "neoorigins:or",
-              "neoorigins:not",
-              "neoorigins:constant",
-              "neoorigins:biome",
-              "neoorigins:dimension",
-              "neoorigins:enchantment",
-              "neoorigins:submerged_in",
-              "neoorigins:health",
-              "neoorigins:relative_health",
-              "neoorigins:food_level",
-              "neoorigins:food",
-              "neoorigins:xp_level",
-              "neoorigins:xp_points",
-              "neoorigins:armor_value",
-              "neoorigins:fall_distance",
-              "neoorigins:height",
-              "neoorigins:distance",
-              "neoorigins:fluid_height",
-              "neoorigins:temperature",
-              "neoorigins:light_level",
-              "neoorigins:brightness",
-              "neoorigins:time_of_day",
+              "apace:submerged_in_water",
+              "apace:swimming",
+              "apace:target_group",
+              "apace:target_type",
+              "apace:temperature",
+              "apace:thundering",
+              "apace:ticking",
+              "apace:time_of_day",
+              "apace:using_item",
+              "apace:weather",
+              "apace:xp_level",
+              "apace:xp_levels",
+              "apace:xp_points",
+              "neoorigins:actor_condition",
+              "neoorigins:advancement",
+              "neoorigins:air",
               "neoorigins:amount",
-              "neoorigins:entity_type",
-              "neoorigins:target_type",
-              "neoorigins:target_group",
-              "neoorigins:equipped_item",
-              "neoorigins:sneaking",
-              "neoorigins:sprinting",
-              "neoorigins:swimming",
-              "neoorigins:invisible",
-              "neoorigins:in_water",
-              "neoorigins:submerged_in_water",
-              "neoorigins:on_ground",
-              "neoorigins:on_fire",
-              "neoorigins:fire",
-              "neoorigins:fall_flying",
+              "neoorigins:and",
+              "neoorigins:armor_value",
+              "neoorigins:biome",
+              "neoorigins:block",
+              "neoorigins:block_collision",
+              "neoorigins:block_in_radius",
+              "neoorigins:brightness",
+              "neoorigins:can_see",
+              "neoorigins:climbing",
+              "neoorigins:command",
+              "neoorigins:config_flag",
+              "neoorigins:constant",
+              "neoorigins:cooldown",
               "neoorigins:creative_flying",
-              "neoorigins:moving",
-              "neoorigins:in_rain",
+              "neoorigins:damage_name",
+              "neoorigins:damage_tag",
+              "neoorigins:damage_type",
+              "neoorigins:daytime",
+              "neoorigins:dimension",
+              "neoorigins:distance",
+              "neoorigins:enchantment",
+              "neoorigins:entity_type",
+              "neoorigins:equal",
+              "neoorigins:equipped_item",
+              "neoorigins:exists",
               "neoorigins:exposed_to_sky",
               "neoorigins:exposed_to_sun",
-              "neoorigins:daytime",
-              "neoorigins:passenger",
-              "neoorigins:riding",
-              "neoorigins:using_item",
+              "neoorigins:fall_distance",
+              "neoorigins:fall_flying",
+              "neoorigins:fire",
+              "neoorigins:fluid_height",
+              "neoorigins:food",
+              "neoorigins:food_item_id",
+              "neoorigins:food_item_in_tag",
+              "neoorigins:food_level",
+              "neoorigins:from_explosion",
+              "neoorigins:from_fire",
+              "neoorigins:from_projectile",
+              "neoorigins:hardness",
+              "neoorigins:has_effect",
+              "neoorigins:health",
+              "neoorigins:height",
+              "neoorigins:hit_taken_amount",
+              "neoorigins:in_block",
+              "neoorigins:in_block_anywhere",
+              "neoorigins:in_rain",
+              "neoorigins:in_set",
+              "neoorigins:in_tag",
+              "neoorigins:in_water",
+              "neoorigins:invisible",
+              "neoorigins:light_level",
               "neoorigins:living",
-              "neoorigins:exists",
-              "neoorigins:ticking"
+              "neoorigins:moon_phase",
+              "neoorigins:moving",
+              "neoorigins:name",
+              "neoorigins:nbt",
+              "neoorigins:near_block",
+              "neoorigins:near_entity",
+              "neoorigins:night",
+              "neoorigins:no_minions_alive",
+              "neoorigins:not",
+              "neoorigins:on_block",
+              "neoorigins:on_fire",
+              "neoorigins:on_ground",
+              "neoorigins:or",
+              "neoorigins:out_of_combat",
+              "neoorigins:passenger",
+              "neoorigins:power",
+              "neoorigins:power_active",
+              "neoorigins:power_type",
+              "neoorigins:predicate",
+              "neoorigins:relative_health",
+              "neoorigins:replacable",
+              "neoorigins:replaceable",
+              "neoorigins:resource",
+              "neoorigins:resource_level",
+              "neoorigins:riding",
+              "neoorigins:saturation_level",
+              "neoorigins:scoreboard",
+              "neoorigins:sneaking",
+              "neoorigins:sprinting",
+              "neoorigins:status_effect",
+              "neoorigins:submerged_in",
+              "neoorigins:submerged_in_water",
+              "neoorigins:swimming",
+              "neoorigins:target_group",
+              "neoorigins:target_type",
+              "neoorigins:temperature",
+              "neoorigins:thundering",
+              "neoorigins:ticking",
+              "neoorigins:time_of_day",
+              "neoorigins:using_item",
+              "neoorigins:weather",
+              "neoorigins:xp_level",
+              "neoorigins:xp_levels",
+              "neoorigins:xp_points"
             ]
           }
         }

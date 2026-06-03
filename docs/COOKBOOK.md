@@ -722,6 +722,122 @@ keybind (an event, a hit, a tick condition).
 
 ---
 
+## New in 2.2
+
+The 2.2 spell-caster kit: gravity-free projectiles with full visual
+control, one-line elemental cast powers, conditional mob aggression for
+mob origins, and a ride-anything mount power.
+
+### 16. "Arcane bolt" — a straight-flying spell projectile (no gravity)
+
+Recipe #11 fires a projectile that arcs under gravity. Set
+`no_gravity: true` and it flies dead straight along your aim like a laser
+bolt — and the 2.1 visual fields let you style the orb without any Java.
+Here it's a cyan sphere with a soul-fire trail that deals magic damage on
+hit.
+
+```json
+{
+  "type": "neoorigins:active_ability",
+  "name": "Arcane Bolt",
+  "description": "Fire a straight bolt of arcane energy.",
+  "cooldown_ticks": 40,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "speed": 2.2,
+    "no_gravity": true,
+    "orb_color": "#30E0FF",
+    "glow_color": "#1060FF",
+    "shape": "sphere",
+    "size": 0.35,
+    "trail_particle": "minecraft:soul_fire_flame",
+    "on_hit_action": {
+      "type": "neoorigins:damage",
+      "amount": 6.0,
+      "source": { "name": "magic" }
+    }
+  }
+}
+```
+
+`no_gravity` works on **any** projectile entity (vanilla `minecraft:arrow`
+included), not just the magic orb — it sets the vanilla no-gravity flag so
+drag still applies but the projectile never drops.
+
+### 17. "Elemental cast" — one-line fireball / wind bolt
+
+For a quick spell without wiring up `spawn_projectile` yourself, the
+dedicated active cast powers fire a styled projectile on the skill key.
+`active_fireball` lobs small fireballs; `active_bolt` throws a wind charge.
+
+```json
+{
+  "type": "neoorigins:active_fireball",
+  "name": "Fire Cast",
+  "description": "Hurl a small fireball.",
+  "speed": 1.6,
+  "cooldown_ticks": 80
+}
+```
+
+Swap to `"type": "neoorigins:active_bolt"` for a knockback wind charge
+(`speed` default 1.2, `cooldown_ticks` default 80). Both bind to the
+primary skill key; pair with `key: "secondary"` to put one on the second
+slot.
+
+### 18. "Hunting predator" — conditional mob aggression (mob origins)
+
+`mob_behavior` rewrites a mob origin's AI so the mob hunts players. With
+`aggression: "conditional"` the mob only turns hostile when **all**
+`hostile_when` conditions hold against the prospective target — here, only
+players who are in daylight and *not* sneaking. It still retaliates when
+struck (`retaliate` defaults true) and calls nearby packmates.
+
+```json
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "conditional",
+  "aggro_range": 24.0,
+  "anger_linger_ticks": 300,
+  "call_for_help": true,
+  "hostile_when": [
+    { "type": "neoorigins:exposed_to_sun" },
+    { "type": "neoorigins:not",
+      "condition": { "type": "neoorigins:sneaking" } }
+  ]
+}
+```
+
+Set `aggression: "hostile"` to always hunt (skip `hostile_when`), or leave
+it `"neutral"` to keep vanilla AI and only fight back when hit.
+`target_type` lets the mob hunt another entity type instead of players.
+
+### 19. "Beast rider" — mount entities on demand
+
+`mount` raycasts for an entity in front of you and seats you on it. Great
+for a tamer/druid origin: ride mobs (and optionally players) with one key.
+
+```json
+{
+  "type": "neoorigins:mount",
+  "name": "Mount Beast",
+  "description": "Leap onto the creature you're looking at.",
+  "range": 6.0,
+  "cooldown_ticks": 60,
+  "allow_mobs": true,
+  "allow_players": false,
+  "mount_position": "shoulder"
+}
+```
+
+`block_bosses` (default true) keeps players off the Ender Dragon and Wither.
+`mount_position: "shoulder"` offsets the rider to one side instead of
+sitting centered on top.
+
+---
+
 ### Bare-hand stone mining (Caveborn pattern)
 
 Make the player's empty hand behave as a vanilla tool at any tier,

@@ -119,6 +119,7 @@
         "neoorigins:scare_entities",
         "neoorigins:shader",
         "neoorigins:shadow_orb",
+        "neoorigins:simple",
         "neoorigins:size_scaling",
         "neoorigins:slime_death_save",
         "neoorigins:slime_level_hp",
@@ -258,7 +259,7 @@
         },
         "block_condition": {
           "description": "Block-position filter for block events (block_break, block_place, block_use). Ignored on other events.",
-          "type": "object"
+          "$ref": "block_condition.schema.json"
         },
         "effect": {
           "description": "EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events.",
@@ -623,11 +624,94 @@
         },
         "equipment_condition": {
           "description": "Optional gate matching a worn item by id/tag in a slot; active only while worn.",
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "slot": {
+              "description": "Equipment slot to inspect (default mainhand).",
+              "type": "string",
+              "enum": [
+                "mainhand",
+                "offhand",
+                "head",
+                "chest",
+                "legs",
+                "feet",
+                "body"
+              ],
+              "default": "mainhand"
+            },
+            "item": {
+              "description": "Exact item id the worn item must match (e.g. minecraft:elytra).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "tag": {
+              "description": "Item tag the worn item must be in (e.g. minecraft:swords).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            }
+          }
         },
         "location_condition": {
           "description": "Optional gate on dimension/biome/structure; active only while there.",
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "description": "Dimension the player must be in, e.g. minecraft:the_nether (combines with AND).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "biome": {
+              "description": "Exact biome id to match, e.g. minecraft:desert (biome fields OR-combine).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "biome_tag": {
+              "description": "Biome tag the current biome must be in, e.g. minecraft:is_forest (OR-combines with biome/biomes).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "biomes": {
+              "description": "List of biome ids; matching any one satisfies the biome requirement (OR-combines with biome/biome_tag).",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+              }
+            },
+            "structure": {
+              "description": "Exact structure id the position must be inside, e.g. minecraft:village_plains (combines with AND).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "structure_tag": {
+              "description": "Structure tag the position must be inside, e.g. minecraft:village (combines with AND).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "allow_water_surface": {
+              "description": "When resolving a spawn, allow standing on the water surface (default false).",
+              "type": "boolean",
+              "default": false
+            },
+            "allow_ocean_floor": {
+              "description": "When resolving a spawn, allow the ocean floor under water (default false).",
+              "type": "boolean",
+              "default": false
+            },
+            "min_y": {
+              "description": "Minimum Y for the spawn/location search band (optional).",
+              "type": "integer"
+            },
+            "max_y": {
+              "description": "Maximum Y for the spawn/location search band (optional).",
+              "type": "integer"
+            },
+            "can_see_sky": {
+              "description": "Require open sky (true) or allow caves/underground (false). Default: true on overworld-like dimensions, false in ceiling dimensions like the Nether.",
+              "type": "boolean"
+            }
+          }
         }
       },
       "required": [
@@ -915,12 +999,18 @@
         "items": {
           "description": "List of item ids that become edible (matches items OR tags).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "tags": {
           "description": "List of item-tag ids that become edible (matches items OR tags).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "nutrition": {
           "description": "Hunger points restored when consumed (default 4).",
@@ -1060,7 +1150,10 @@
         "sources": {
           "description": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -1225,17 +1318,26 @@
         "damage_types": {
           "description": "Damage-type ids (e.g. minecraft:fall) whose damage is cancelled.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "damage_tags": {
           "description": "Damage-type tag ids (e.g. minecraft:is_fire) whose damage is cancelled.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "msg_ids": {
           "description": "Vanilla damage msgId strings (e.g. inFire, fall) whose damage is cancelled.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -1272,12 +1374,18 @@
         "items": {
           "description": "Item ids to keep on death; empty (with empty tags) keeps everything.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "tags": {
           "description": "Item tag ids whose matching items are kept on death.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         }
       },
       "required": [
@@ -1490,7 +1598,10 @@
         "entity_types": {
           "description": "Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         },
         "passive": {
           "description": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).",
@@ -1640,7 +1751,64 @@
         },
         "location": {
           "description": "Nested LocationCondition object resolving the respawn target (its own dimension/biome/biome_tag/biomes/structure/structure_tag/etc. fields). Required — the power has no respawn target without it.",
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "dimension": {
+              "description": "Dimension the player must be in, e.g. minecraft:the_nether (combines with AND).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "biome": {
+              "description": "Exact biome id to match, e.g. minecraft:desert (biome fields OR-combine).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "biome_tag": {
+              "description": "Biome tag the current biome must be in, e.g. minecraft:is_forest (OR-combines with biome/biomes).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "biomes": {
+              "description": "List of biome ids; matching any one satisfies the biome requirement (OR-combines with biome/biome_tag).",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+              }
+            },
+            "structure": {
+              "description": "Exact structure id the position must be inside, e.g. minecraft:village_plains (combines with AND).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "structure_tag": {
+              "description": "Structure tag the position must be inside, e.g. minecraft:village (combines with AND).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "allow_water_surface": {
+              "description": "When resolving a spawn, allow standing on the water surface (default false).",
+              "type": "boolean",
+              "default": false
+            },
+            "allow_ocean_floor": {
+              "description": "When resolving a spawn, allow the ocean floor under water (default false).",
+              "type": "boolean",
+              "default": false
+            },
+            "min_y": {
+              "description": "Minimum Y for the spawn/location search band (optional).",
+              "type": "integer"
+            },
+            "max_y": {
+              "description": "Maximum Y for the spawn/location search band (optional).",
+              "type": "integer"
+            },
+            "can_see_sky": {
+              "description": "Require open sky (true) or allow caves/underground (false). Default: true on overworld-like dimensions, false in ceiling dimensions like the Nether.",
+              "type": "boolean"
+            }
+          }
         },
         "override_bed": {
           "description": "When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).",
@@ -2039,7 +2207,10 @@
         "projectile_types": {
           "description": "Projectiles blocked: arrow, fireball, trident, all, or an entity id (default arrow).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         },
         "chance": {
           "description": "Probability 0.0-1.0 an incoming matching projectile is negated (default 1.0).",
@@ -2209,7 +2380,10 @@
         "entity_types": {
           "description": "Entity ids or #tags that flee the player within 8 blocks.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -2262,6 +2436,17 @@
           "description": "Hunger points consumed per activation (default 0).",
           "type": "integer",
           "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:simple",
+      "properties": {
+        "type": {
+          "const": "neoorigins:simple"
         }
       },
       "required": [
@@ -2808,7 +2993,10 @@
         "blocked_blocks": {
           "description": "Block ids that cannot be phased through (default obsidian/bedrock).",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         },
         "exhaustion_per_tick": {
           "description": "Food exhaustion added each tick while phasing in solids (default 0.15).",
@@ -2907,6 +3095,7 @@
               "neoorigins:scare_entities",
               "neoorigins:shader",
               "neoorigins:shadow_orb",
+              "neoorigins:simple",
               "neoorigins:size_scaling",
               "neoorigins:slime_death_save",
               "neoorigins:slime_level_hp",

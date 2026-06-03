@@ -1,0 +1,26 @@
+{
+  "pack": {
+    "_comment": [
+      "Combined resource + data pack manifest for a NeoOrigins UI theme.",
+      "",
+      "pack_format values for 1.21.1:",
+      "  - 34  resource pack",
+      "  - 48  data pack",
+      "",
+      "The 'supported_formats' arrays below let one zip serve as both a",
+      "resource pack and a data pack without Minecraft complaining about a",
+      "version mismatch. Drop this whole 'theme-template' folder (renamed",
+      "to your pack's name) into a .zip with pack.mcmeta at the root, then",
+      "place the zip in:",
+      "",
+      "  - .minecraft/resourcepacks/   (so the textures/font/theme JSON load)",
+      "  - <world>/datapacks/          (so the active_theme.json applies)",
+      "",
+      "Or, even simpler: ship the theme as a NeoForge mod jar and the",
+      "originpacks/ folder will pick it up automatically on both sides."
+    ],
+    "description": "NeoOrigins UI theme",
+    "pack_format": 34,
+    "supported_formats": [34, 48]
+  }
+}

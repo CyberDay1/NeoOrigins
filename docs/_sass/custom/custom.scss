@@ -1,0 +1,189 @@
+// NeoOrigins docs — accessibility theme overrides.
+//
+// just-the-docs auto-imports this file AFTER the compiled `nebula` colour
+// scheme, so the rules here win at equal specificity. The no-flash script in
+// _includes/head_custom.html sets `data-theme` / `data-palette` on <html>;
+// this file maps those attributes to colours.
+//
+// Strategy: one block of CSS custom properties per theme/palette, then a
+// single set of consume-rules that re-paint just-the-docs' rendered
+// selectors from those properties. Light mode + the four Okabe-Ito
+// colourblind-safe palettes reuse the EXACT accent values from the editor's
+// website/src/app.css so docs and editor stay visually identical.
+//
+// Accessibility: every accent is paired with a non-colour cue (links are
+// underlined, active nav has a weight/inset-border change) so meaning is
+// never carried by hue alone — covers the `mono` palette and all CB users.
+
+// ── Dark / Nebula (implicit default — no data-theme attribute) ──────────
+:root {
+  --no-bg:        #0a0e17;
+  --no-surface:   #121a2b;
+  --no-surface-2: #0e1422;
+  --no-border:    #233149;
+  --no-text:      #c9d4e3;
+  --no-heading:   #e7edf6;
+  --no-muted:     #9fb0c8;
+  --no-code-bg:   #121a2b;
+  --no-accent:    #34e3c2;
+  --no-accent-2:  #b07cff;
+  --no-on-accent: #04211b;
+}
+
+// ── Light ───────────────────────────────────────────────────────────────
+html[data-theme='light'] {
+  --no-bg:        #f5f8fc;
+  --no-surface:   #ffffff;
+  --no-surface-2: #e9eef6;
+  --no-border:    #d3dcea;
+  --no-text:      #0e1726;
+  --no-heading:   #0e1726;
+  --no-muted:     #4c5a70;
+  --no-code-bg:   #eef3fa;
+  --no-accent:    #0d9488;
+  --no-accent-2:  #7c3aed;
+  --no-on-accent: #ffffff;
+}
+
+// ── Colourblind-safe accent overrides (Okabe-Ito) ───────────────────────
+// Only the accent pair changes; surfaces/text inherit from the theme above.
+// Dark variants target the implicit-dark default AND explicit dark choice.
+
+// protan
+html:not([data-theme='light'])[data-palette='protan'] { --no-accent: #5a9bd4; --no-accent-2: #e69f00; --no-on-accent: #051522; }
+html[data-theme='light'][data-palette='protan']        { --no-accent: #2f6fab; --no-accent-2: #9a6a00; --no-on-accent: #ffffff; }
+
+// deutan
+html:not([data-theme='light'])[data-palette='deutan'] { --no-accent: #2a8fcf; --no-accent-2: #e69f00; --no-on-accent: #04121d; }
+html[data-theme='light'][data-palette='deutan']        { --no-accent: #0072b2; --no-accent-2: #9a6a00; --no-on-accent: #ffffff; }
+
+// tritan
+html:not([data-theme='light'])[data-palette='tritan'] { --no-accent: #2e9c52; --no-accent-2: #cc6677; --no-on-accent: #03150a; }
+html[data-theme='light'][data-palette='tritan']        { --no-accent: #117733; --no-accent-2: #a83f50; --no-on-accent: #ffffff; }
+
+// mono — no hue cues; relies entirely on the non-colour redundancy below
+html:not([data-theme='light'])[data-palette='mono'] { --no-accent: #9aa3af; --no-accent-2: #c2c9d4; --no-on-accent: #0d1118; }
+html[data-theme='light'][data-palette='mono']        { --no-accent: #5a626f; --no-accent-2: #6b737f; --no-on-accent: #ffffff; }
+
+// ── Consume: re-paint just-the-docs surfaces ────────────────────────────
+
+body {
+  background-color: var(--no-bg);
+  color: var(--no-text);
+}
+
+.side-bar,
+.search {
+  background-color: var(--no-surface-2);
+}
+
+.main-content {
+  h1, h2, h3, h4, h5, h6,
+  .text-alpha, .text-beta, .text-gamma, .text-delta, .text-epsilon {
+    color: var(--no-heading);
+  }
+}
+
+// Links — colour PLUS a persistent underline so the cue survives mono /
+// any CB palette and greyscale printing.
+.main-content a:not(.btn),
+.site-title,
+a.nav-list-expander {
+  color: var(--no-accent);
+}
+.main-content a:not(.btn) {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+// Sidebar nav — active link gets an accent inset border (shape cue) in
+// addition to the accent colour + bold weight, so "you are here" reads
+// without relying on hue.
+.nav-list .nav-list-item .nav-list-link {
+  color: var(--no-text);
+  &:hover { background-color: var(--no-surface); }
+  &.active {
+    color: var(--no-accent);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 0 var(--no-accent);
+  }
+}
+.nav-list .nav-list-item .nav-list-expander svg { color: var(--no-muted); }
+
+// Code & tables.
+code {
+  background-color: var(--no-code-bg);
+  border-color: var(--no-border);
+}
+.highlight,
+div.highlighter-rouge,
+figure.highlight,
+pre.highlight {
+  background-color: var(--no-code-bg);
+}
+table { background-color: var(--no-surface); }
+th, td { border-color: var(--no-border); }
+tr:nth-child(2n) { background-color: var(--no-surface-2); }
+
+// Rules & borders.
+hr,
+.main-header,
+.site-header { border-color: var(--no-border); }
+
+// Search box.
+.search-input {
+  background-color: var(--no-surface);
+  color: var(--no-text);
+}
+.search-result { background-color: var(--no-surface); }
+.search-result:hover,
+.search-result.active { background-color: var(--no-surface-2); }
+
+// Primary button.
+.btn-primary {
+  background-color: var(--no-accent);
+  color: var(--no-on-accent);
+  background-image: none;
+  &:hover { filter: brightness(1.08); }
+}
+
+// ── The injected control bar (from head_custom.html) ────────────────────
+.no-a11y-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 1rem;
+  font-size: 0.75rem;
+}
+.no-a11y-btn {
+  cursor: pointer;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--no-border);
+  border-radius: 4px;
+  background-color: var(--no-surface);
+  color: var(--no-text);
+  font: inherit;
+  line-height: 1.6;
+}
+.no-a11y-btn:hover { border-color: var(--no-accent); }
+.no-a11y-palette {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.no-a11y-palette label { color: var(--no-muted); }
+.no-a11y-select {
+  padding: 0.1rem 0.3rem;
+  border: 1px solid var(--no-border);
+  border-radius: 4px;
+  background-color: var(--no-surface);
+  color: var(--no-text);
+  font: inherit;
+}
+
+// Visible keyboard focus on the injected controls (matches editor intent).
+.no-a11y-btn:focus-visible,
+.no-a11y-select:focus-visible {
+  outline: 2px solid var(--no-accent);
+  outline-offset: 2px;
+}

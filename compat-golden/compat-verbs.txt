@@ -6,7 +6,7 @@
 # files-scanned: 787   typed-objects: 1138   distinct-types: 115
 
 == RECOGNIZED VERBS ==
-[action] (67)
+[action] (83)
   neoorigins:actor_action
   neoorigins:add_to_set
   neoorigins:add_velocity
@@ -15,6 +15,7 @@
   neoorigins:apply_effect
   neoorigins:area_of_effect
   neoorigins:block_action_at
+  neoorigins:block_target_action
   neoorigins:cancel_event
   neoorigins:chain_to_nearest
   neoorigins:chance
@@ -27,7 +28,9 @@
   neoorigins:dash
   neoorigins:delay
   neoorigins:dismount
+  neoorigins:drop_inventory
   neoorigins:drop_items
+  neoorigins:dye
   neoorigins:effect_on_attacker
   neoorigins:emit_game_event
   neoorigins:equipped_item_action
@@ -36,9 +39,11 @@
   neoorigins:explode
   neoorigins:extinguish
   neoorigins:feed
+  neoorigins:force_drop
   neoorigins:gain_air
   neoorigins:give
   neoorigins:grant_power
+  neoorigins:grow
   neoorigins:heal
   neoorigins:if_else
   neoorigins:if_else_list
@@ -51,30 +56,41 @@
   neoorigins:nothing
   neoorigins:offset
   neoorigins:passenger_action
+  neoorigins:path
   neoorigins:play_sound
   neoorigins:pull_entities
   neoorigins:random_teleport
   neoorigins:raycast
   neoorigins:remove_from_set
   neoorigins:revoke_power
+  neoorigins:riding_action
   neoorigins:set_block
   neoorigins:set_fall_distance
   neoorigins:set_on_fire
   neoorigins:set_resource
+  neoorigins:shear
   neoorigins:spawn_black_hole
   neoorigins:spawn_effect_cloud
   neoorigins:spawn_entity
   neoorigins:spawn_lingering_area
+  neoorigins:spawn_particles
   neoorigins:spawn_projectile
   neoorigins:spawn_tornado
+  neoorigins:steal_item
+  neoorigins:strip
+  neoorigins:swap_positions
   neoorigins:swap_with_entity
   neoorigins:swing_hand
   neoorigins:target_action
+  neoorigins:teleport_target_to_self
   neoorigins:teleport_to_marker
+  neoorigins:teleport_to_target
   neoorigins:throw_target
+  neoorigins:till
   neoorigins:toggle
+  neoorigins:transform_block
   neoorigins:trigger_cooldown
-[condition] (93)
+[condition] (94)
   neoorigins:actor_condition
   neoorigins:advancement
   neoorigins:air
@@ -114,6 +130,7 @@
   neoorigins:from_explosion
   neoorigins:from_fire
   neoorigins:from_projectile
+  neoorigins:hardness
   neoorigins:has_effect
   neoorigins:health
   neoorigins:height
@@ -306,6 +323,7 @@ neoorigins:wraith_phase	x3	recognized=-	fields={blocked_blocks,exhaustion_per_ti
 == POWER COVERAGE ==
 # <power-type>	fields={...}  (spec-declared, from BuiltinPowers)
 neoorigins:cobweb_affinity	fields={}
+neoorigins:simple	fields={}
 neoorigins:ender_gaze_immunity	fields={}
 neoorigins:flight	fields={}
 neoorigins:ignore_water	fields={}
@@ -383,7 +401,7 @@ neoorigins:ground_slam	fields={cooldown_ticks,damage,knockback_strength,radius}
 neoorigins:tidal_wave	fields={cone_angle,cooldown_ticks,damage,hunger_cost,knockback_strength,range}
 neoorigins:model_color	fields={alpha,blue,condition,green,red}
 neoorigins:breath_in_fluid	fields={drain_interval_ticks,fluid}
-neoorigins:attribute_modifier	fields={amount,attribute,condition,equipment_condition,location_condition,operation}
+neoorigins:attribute_modifier	fields={amount,attribute,condition,equipment_condition{item,slot,tag},location_condition{allow_ocean_floor,allow_water_surface,biome,biome_tag,biomes,can_see_sky,dimension,max_y,min_y,structure,structure_tag},operation}
 neoorigins:action_on_event	fields={block_condition,condition,effect,effect_tag,entity_action,event,immunity_ticks,modifier}
 neoorigins:mob_behavior	fields={aggression,aggro_range,anger_linger_ticks,call_for_help,hostile_when,retaliate,target_type}
 neoorigins:modify_damage	fields={condition,damage_type,direction,multiplier,target_group}
@@ -393,7 +411,7 @@ neoorigins:active_ability	fields={condition,cooldown_ticks,entity_action,hunger_
 neoorigins:edible_item	fields={always_edible,consume_sound,items,nutrition,saturation,tags}
 neoorigins:loot_pool_grant	fields={active,bonus_rolls,cooldown,grant_id,loot_table,rolls}
 neoorigins:restrict_armor	fields={restrictions}
-neoorigins:modify_player_spawn	fields={location,override_bed}
+neoorigins:modify_player_spawn	fields={location{allow_ocean_floor,allow_water_surface,biome,biome_tag,biomes,can_see_sky,dimension,max_y,min_y,structure,structure_tag},override_bed}
 neoorigins:persistent_effect	fields={condition,default_off,effects,toggleable}
 neoorigins:effect_immunity	fields={effects}
 neoorigins:condition_passive	fields={condition,else_action,entity_action,interval}

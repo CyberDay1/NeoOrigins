@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/item_condition.schema.json",
+  "title": "NeoOrigins Item Condition",
+  "description": "A nested item condition used by equipped_item / modify_inventory. The `type` field discriminates.",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Item-condition verb (empty / nbt / enchantment / ingredient / not / and / or). `apace:` aliases are accepted.",
+      "enum": [
+        "apace:and",
+        "apace:custom_data",
+        "apace:empty",
+        "apace:enchantment",
+        "apace:ingredient",
+        "apace:nbt",
+        "apace:not",
+        "apace:or",
+        "neoorigins:and",
+        "neoorigins:custom_data",
+        "neoorigins:empty",
+        "neoorigins:enchantment",
+        "neoorigins:ingredient",
+        "neoorigins:nbt",
+        "neoorigins:not",
+        "neoorigins:or"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$comment": "neoorigins:and",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:and",
+            "apace:and"
+          ]
+        },
+        "conditions": {
+          "description": "Nested item conditions; all must match (evaluated against the same stack).",
+          "type": "array",
+          "items": {
+            "$ref": "item_condition.schema.json"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:empty",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:empty",
+            "apace:empty"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:enchantment",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:enchantment",
+            "apace:enchantment"
+          ]
+        },
+        "enchantment": {
+          "description": "Enchantment id checked on the stack itself (e.g. minecraft:sharpness).",
+          "type": "string"
+        },
+        "comparison": {
+          "description": "Comparison operator against the enchantment level (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Enchantment level threshold (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type",
+        "enchantment"
+      ]
+    },
+    {
+      "$comment": "neoorigins:ingredient",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:ingredient",
+            "apace:ingredient"
+          ]
+        },
+        "item": {
+          "description": "Exact item id to match (e.g. minecraft:diamond).",
+          "type": "string"
+        },
+        "tag": {
+          "description": "Item tag the stack must be in (e.g. minecraft:planks).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:nbt",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:nbt",
+            "neoorigins:custom_data",
+            "apace:nbt",
+            "apace:custom_data"
+          ]
+        },
+        "nbt": {
+          "description": "SNBT subtree the stack's minecraft:custom_data must contain (e.g. {foo:1}).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "nbt"
+      ]
+    },
+    {
+      "$comment": "neoorigins:not",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:not",
+            "apace:not"
+          ]
+        },
+        "condition": {
+          "description": "Nested item condition that must NOT match.",
+          "$ref": "item_condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:or",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:or",
+            "apace:or"
+          ]
+        },
+        "conditions": {
+          "description": "Nested item conditions; at least one must match.",
+          "type": "array",
+          "items": {
+            "$ref": "item_condition.schema.json"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "apace:and",
+              "apace:custom_data",
+              "apace:empty",
+              "apace:enchantment",
+              "apace:ingredient",
+              "apace:nbt",
+              "apace:not",
+              "apace:or",
+              "neoorigins:and",
+              "neoorigins:custom_data",
+              "neoorigins:empty",
+              "neoorigins:enchantment",
+              "neoorigins:ingredient",
+              "neoorigins:nbt",
+              "neoorigins:not",
+              "neoorigins:or"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

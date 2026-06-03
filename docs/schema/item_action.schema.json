@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/item_action.schema.json",
+  "title": "NeoOrigins Item Action",
+  "description": "A nested item action used by equipped_item_action / modify_inventory. The `type` field discriminates.",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Item-action verb (and / if_else / merge_nbt / consume / damage / set_count). `apace:` aliases are accepted.",
+      "enum": [
+        "apace:and",
+        "apace:consume",
+        "apace:damage",
+        "apace:if_else",
+        "apace:merge_nbt",
+        "apace:set_count",
+        "neoorigins:and",
+        "neoorigins:consume",
+        "neoorigins:damage",
+        "neoorigins:if_else",
+        "neoorigins:merge_nbt",
+        "neoorigins:set_count"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$comment": "neoorigins:and",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:and",
+            "apace:and"
+          ]
+        },
+        "actions": {
+          "description": "Nested item actions, run in order against the same stack.",
+          "type": "array",
+          "items": {
+            "$ref": "item_action.schema.json"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:consume",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:consume",
+            "apace:consume"
+          ]
+        },
+        "amount": {
+          "description": "Number of items to remove from the stack (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:damage",
+            "apace:damage"
+          ]
+        },
+        "amount": {
+          "description": "Durability damage to apply (default 1).",
+          "type": "integer",
+          "default": 1
+        },
+        "ignore_unbreaking": {
+          "description": "Apply damage even on items that would resist it (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:if_else",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:if_else",
+            "apace:if_else"
+          ]
+        },
+        "condition": {
+          "description": "Item condition tested against the stack (absent → always true).",
+          "$ref": "item_condition.schema.json"
+        },
+        "if_action": {
+          "description": "Item action run when the condition matches.",
+          "$ref": "item_action.schema.json"
+        },
+        "else_action": {
+          "description": "Item action run when the condition does not match.",
+          "$ref": "item_action.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:merge_nbt",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:merge_nbt",
+            "apace:merge_nbt"
+          ]
+        },
+        "nbt": {
+          "description": "SNBT merged into the stack (e.g. {CustomModelData:3}); unknown keys land in custom_data.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:set_count",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:set_count",
+            "apace:set_count"
+          ]
+        },
+        "count": {
+          "description": "New stack count (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": [
+              "apace:and",
+              "apace:consume",
+              "apace:damage",
+              "apace:if_else",
+              "apace:merge_nbt",
+              "apace:set_count",
+              "neoorigins:and",
+              "neoorigins:consume",
+              "neoorigins:damage",
+              "neoorigins:if_else",
+              "neoorigins:merge_nbt",
+              "neoorigins:set_count"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

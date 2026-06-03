@@ -1,0 +1,153 @@
+<!--
+  NeoOrigins docs — accessibility theming.
+
+  Mirrors the in-browser editor (website/src/app.css + themeStore.ts) so the
+  docs and editor share the same light/dark choice and colourblind-safe
+  palette. State lives in the SAME localStorage keys the editor uses, so a
+  preference set in one carries to the other:
+
+      neoorigins.ui.theme    -> "dark" (default) | "light"
+      neoorigins.ui.palette  -> "default" (Nebula) | protan | deutan | tritan | mono
+
+  Two parts:
+    1. A no-flash inline script that sets data-theme / data-palette on <html>
+       BEFORE first paint (identical contract to website/src/app.html).
+    2. A DOMContentLoaded script that injects an accessible control bar into
+       just-the-docs' aux-nav and persists changes.
+
+  The actual colours live in _sass/custom/custom.scss, keyed off these
+  attributes. Okabe-Ito CB-safe accents; colour is never the only cue.
+-->
+<script>
+  // ── 1. No-flash: apply saved prefs before paint ──────────────────────
+  (function () {
+    try {
+      var root = document.documentElement;
+
+      var theme = localStorage.getItem('neoorigins.ui.theme');
+      if (theme === 'light') root.setAttribute('data-theme', 'light');
+      else root.removeAttribute('data-theme'); // dark is the implicit default
+
+      var palette = localStorage.getItem('neoorigins.ui.palette');
+      if (palette === 'cb-safe') palette = 'deutan'; // legacy key migration
+      if (palette && palette !== 'default') {
+        root.setAttribute('data-palette', palette);
+      } else {
+        root.removeAttribute('data-palette');
+      }
+    } catch (e) {
+      /* localStorage blocked — fall back to default dark/nebula. */
+    }
+  })();
+</script>
+
+<script>
+  // ── 2. Inject + wire the control bar ─────────────────────────────────
+  (function () {
+    var THEME_KEY = 'neoorigins.ui.theme';
+    var PALETTE_KEY = 'neoorigins.ui.palette';
+
+    // Mirrors PALETTES in website/src/lib/stores/themeStore.ts.
+    var PALETTES = [
+      { id: 'default', label: 'Default', desc: 'Nebula colours' },
+      { id: 'protan', label: 'Protanopia', desc: 'Red-deficient safe palette' },
+      { id: 'deutan', label: 'Deuteranopia', desc: 'Green-deficient safe palette' },
+      { id: 'tritan', label: 'Tritanopia', desc: 'Blue-deficient safe palette' },
+      { id: 'mono', label: 'Monochrome', desc: 'No colour cues' }
+    ];
+
+    function read(key, fallback) {
+      try { return localStorage.getItem(key) || fallback; }
+      catch (e) { return fallback; }
+    }
+    function write(key, value) {
+      try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
+    }
+
+    function currentTheme() {
+      return read(THEME_KEY, 'dark') === 'light' ? 'light' : 'dark';
+    }
+    function currentPalette() {
+      var p = read(PALETTE_KEY, 'default');
+      if (p === 'cb-safe') p = 'deutan';
+      return p;
+    }
+
+    function applyTheme(theme) {
+      var root = document.documentElement;
+      if (theme === 'light') root.setAttribute('data-theme', 'light');
+      else root.removeAttribute('data-theme');
+      write(THEME_KEY, theme);
+    }
+    function applyPalette(palette) {
+      var root = document.documentElement;
+      if (palette && palette !== 'default') root.setAttribute('data-palette', palette);
+      else root.removeAttribute('data-palette');
+      write(PALETTE_KEY, palette);
+    }
+
+    function build() {
+      var host = document.querySelector('.aux-nav .aux-nav-list')
+        || document.querySelector('.aux-nav')
+        || document.querySelector('.site-header');
+      if (!host || document.getElementById('no-a11y-controls')) return;
+
+      var bar = document.createElement('div');
+      bar.id = 'no-a11y-controls';
+      bar.className = 'no-a11y-controls';
+
+      // Theme toggle — aria-pressed reflects "light is on".
+      var theme = currentTheme();
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'no-theme-toggle';
+      btn.className = 'no-a11y-btn';
+      btn.setAttribute('aria-pressed', String(theme === 'light'));
+      function labelFor(t) {
+        return t === 'light' ? 'Light theme (switch to dark)' : 'Dark theme (switch to light)';
+      }
+      function textFor(t) { return t === 'light' ? 'Light' : 'Dark'; }
+      btn.setAttribute('aria-label', labelFor(theme));
+      btn.textContent = textFor(theme);
+      btn.addEventListener('click', function () {
+        var next = currentTheme() === 'light' ? 'dark' : 'light';
+        applyTheme(next);
+        btn.setAttribute('aria-pressed', String(next === 'light'));
+        btn.setAttribute('aria-label', labelFor(next));
+        btn.textContent = textFor(next);
+      });
+
+      // Palette — native <select> with a visible label (fully accessible).
+      var wrap = document.createElement('span');
+      wrap.className = 'no-a11y-palette';
+      var lbl = document.createElement('label');
+      lbl.setAttribute('for', 'no-palette-select');
+      lbl.textContent = 'Palette';
+      var sel = document.createElement('select');
+      sel.id = 'no-palette-select';
+      sel.className = 'no-a11y-select';
+      var active = currentPalette();
+      PALETTES.forEach(function (p) {
+        var opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.label;
+        opt.title = p.desc;
+        if (p.id === active) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', function () { applyPalette(sel.value); });
+
+      wrap.appendChild(lbl);
+      wrap.appendChild(sel);
+      bar.appendChild(btn);
+      bar.appendChild(wrap);
+      host.appendChild(bar);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', build);
+    } else {
+      build();
+    }
+  })();
+</script>
