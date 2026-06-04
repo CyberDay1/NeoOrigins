@@ -1,3 +1,9 @@
+---
+title: "Events (action_on_event)"
+parent: "DSL Reference"
+nav_order: 5
+---
+
 # NeoOrigins 2.0 `action_on_event` Event Reference
 
 `neoorigins:action_on_event` listens for one of the event keys below. When the

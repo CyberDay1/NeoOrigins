@@ -1,3 +1,9 @@
+---
+title: Java API
+parent: "Scripting & Java"
+nav_order: 2
+---
+
 # NeoOrigins Java API
 
 For mods that want to integrate with NeoOrigins — check if a player has a

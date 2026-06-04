@@ -1,3 +1,9 @@
+---
+title: Mob Origins
+parent: "Origins & Content"
+nav_order: 4
+---
+
 # Mob Origins
 
 Mob origins are to mobs what player origins are to players: a JSON-defined bundle of

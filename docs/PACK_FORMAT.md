@@ -1,3 +1,9 @@
+---
+title: Pack Format
+parent: "DSL Reference"
+nav_order: 6
+---
+
 # NeoOrigins Pack Format Reference
 
 Packs are folders, ZIPs, or JARs dropped into `originpacks/` in the game directory. No `pack.mcmeta` is required, but it is good practice to include one.

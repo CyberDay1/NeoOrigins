@@ -1,3 +1,9 @@
+---
+title: Power Types
+parent: "DSL Reference"
+nav_order: 2
+---
+
 # NeoOrigins Power Types Reference
 
 All powers share three optional metadata fields:

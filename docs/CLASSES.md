@@ -1,3 +1,9 @@
+---
+title: Custom Classes
+parent: "Origins & Content"
+nav_order: 2
+---
+
 # Custom Classes
 
 In NeoOrigins, a **class** is not a separate system — it's an ordinary

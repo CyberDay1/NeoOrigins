@@ -1,3 +1,9 @@
+---
+title: Conditions
+parent: "DSL Reference"
+nav_order: 4
+---
+
 # NeoOrigins 2.0 Condition Reference
 
 Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, bientity interactions, and — as of v2.0.20 — **any power type** via the universal condition gate.

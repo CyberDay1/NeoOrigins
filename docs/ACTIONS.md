@@ -1,3 +1,9 @@
+---
+title: Entity Actions
+parent: "DSL Reference"
+nav_order: 3
+---
+
 # NeoOrigins 2.0 Entity Action Reference
 
 Entity actions run against an entity target (usually the player who owns the power, or a bientity target depending on the call site). They're the side-effect half of the DSL — conditions filter, actions mutate.

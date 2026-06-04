@@ -1,3 +1,9 @@
+---
+title: Cookbook
+parent: Guides
+nav_order: 1
+---
+
 # NeoOrigins Pack-Builder Cookbook
 
 A recipe-first tour of NeoOrigins 2.0 for datapack authors. The

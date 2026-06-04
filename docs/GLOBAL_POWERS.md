@@ -1,3 +1,9 @@
+---
+title: Global Power Sets
+parent: "Origins & Content"
+nav_order: 5
+---
+
 # Global Power Sets
 
 Global power sets grant a bundle of powers to entities **without an origin

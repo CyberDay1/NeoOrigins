@@ -1,6 +1,7 @@
 ---
-title: Origins
-nav_order: 5
+title: Origin Catalog
+parent: "Origins & Content"
+nav_order: 1
 ---
 
 # Origin Catalog

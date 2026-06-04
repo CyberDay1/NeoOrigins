@@ -1,3 +1,9 @@
+---
+title: Migration Guide
+parent: Guides
+nav_order: 2
+---
+
 # NeoOrigins 2.0 Migration Guide
 
 Reference for pack authors updating JSON from pre-2.0 types to the 2.0 generic / composable types.

@@ -1,3 +1,9 @@
+---
+title: API Overview
+parent: "DSL Reference"
+nav_order: 1
+---
+
 # NeoOrigins 2.0 API Reference
 
 Single landing page for the NeoOrigins datapack API. Every power type,

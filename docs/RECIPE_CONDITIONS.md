@@ -1,3 +1,9 @@
+---
+title: Origin-Gated Recipes
+parent: "DSL Reference"
+nav_order: 7
+---
+
 # Origin-Gated Recipes
 
 *Added in 2.2.0.*

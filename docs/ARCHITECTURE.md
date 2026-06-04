@@ -1,3 +1,9 @@
+---
+title: Architecture
+parent: "Project & Internals"
+nav_order: 1
+---
+
 # NeoOrigins — Architecture
 
 ## Overview

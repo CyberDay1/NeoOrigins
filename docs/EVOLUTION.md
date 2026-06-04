@@ -1,5 +1,6 @@
 ---
 title: Evolution System
+parent: "Origins & Content"
 nav_order: 6
 ---
 

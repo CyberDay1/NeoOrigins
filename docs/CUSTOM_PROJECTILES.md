@@ -1,3 +1,9 @@
+---
+title: "Custom Projectiles & VFX"
+parent: "DSL Reference"
+nav_order: 8
+---
+
 # Custom Projectiles & VFX Entities
 
 Guide for pack authors and mod developers who want to extend NeoOrigins's

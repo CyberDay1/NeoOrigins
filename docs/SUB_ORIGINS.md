@@ -1,3 +1,9 @@
+---
+title: Sub-Origins
+parent: "Origins & Content"
+nav_order: 3
+---
+
 # Sub-Origins (Conditioned Layers)
 
 Sub-origins let pack authors create origin trees where picking an origin in one layer unlocks sub-choices in a later layer. Think D&D race/subrace: pick **Elf** → then pick **High Elf / Wood Elf / Dark Elf** → then pick a **Cantrip**.
