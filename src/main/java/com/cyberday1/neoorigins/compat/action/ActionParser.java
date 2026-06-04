@@ -268,7 +268,8 @@ public final class ActionParser {
             // want hit-gated trails use block_action with execute_command.
             if (commandAlongRay != null && !commandAlongRay.isEmpty()
                     && player.level().getServer() != null
-                    && player.level() instanceof ServerLevel serverLevel) {
+                    && player.level() instanceof ServerLevel serverLevel
+                    && !commandBlocked(commandAlongRay, contextId + " command_along_ray")) {
                 int steps = (int) Math.floor(distance / finalStep);
                 var server = player.level().getServer();
                 var commands = server.getCommands();
@@ -371,6 +372,7 @@ public final class ActionParser {
     private static void runCommandAt(net.minecraft.server.level.ServerPlayer player, String command,
                                      Vec3 pos, String contextId) {
         if (command == null || command.isEmpty()) return;
+        if (commandBlocked(command, contextId + " command_at_hit")) return;
         if (!(player.level() instanceof ServerLevel serverLevel)) return;
         var server = serverLevel.getServer();
         if (server == null) return;
@@ -386,6 +388,18 @@ public final class ActionParser {
             com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
                 "[CompatB] raycast {} command_at_hit failed: {}", contextId, e.getMessage());
         }
+    }
+
+    /**
+     * Shared blacklist check for the raycast command extensions. Logs and
+     * returns true when the command's root is on the command-power blacklist.
+     */
+    private static boolean commandBlocked(String command, String contextId) {
+        if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(command)) {
+            com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(command, contextId);
+            return true;
+        }
+        return false;
     }
 
     private static net.minecraft.world.entity.EquipmentSlot mapEquipmentSlot(String slot) {

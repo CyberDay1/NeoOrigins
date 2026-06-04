@@ -2035,6 +2035,11 @@ public final class BuiltinActions {
                 return player -> {
                     if (player.level().getServer() == null || command.isBlank()) return;
                     try {
+                        String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
+                        if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
+                            com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
+                            return;
+                        }
                         net.minecraft.core.BlockPos blockPos = ActionParser.extractCommandBlockPos(
                             com.cyberday1.neoorigins.service.ActionContextHolder.get());
                         var pos = blockPos != null
@@ -2046,7 +2051,6 @@ public final class BuiltinActions {
                             .withPosition(pos)
                             .withRotation(player.getRotationVector())
                             .withLevel((net.minecraft.server.level.ServerLevel) player.level());
-                        String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
                         player.level().getServer().getCommands().performPrefixedCommand(serverSource, finalCmd);
                     } catch (Exception e) {
                         NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());

@@ -151,7 +151,7 @@ public class OriginInfoScreen extends Screen {
         }
         // The editor can additionally be ungated for all game modes via config
         // (ui.show_origin_editor) for pack authors who build origins in survival.
-        if (showDevGui || com.cyberday1.neoorigins.NeoOriginsConfig.isShowOriginEditor()) {
+        if (showDevGui || com.cyberday1.neoorigins.client.NeoOriginsClientConfig.isShowOriginEditor()) {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
                     b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
                 .bounds(width / 2 - 108, height - 24, 60, 20).build());

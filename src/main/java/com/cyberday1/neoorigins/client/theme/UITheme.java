@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.client.theme;
 
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.client.NeoOriginsClientConfig;
 import net.minecraft.resources.Identifier;
 
 /**
@@ -74,7 +74,7 @@ public final class UITheme {
     public static UITheme current() {
         // The classic-style config is an explicit accessibility override and
         // takes precedence over any resource-pack-installed theme.
-        if (NeoOriginsConfig.isClassicPickerStyle()) return CLASSIC;
+        if (NeoOriginsClientConfig.isClassicPickerStyle()) return CLASSIC;
         return current;
     }
 

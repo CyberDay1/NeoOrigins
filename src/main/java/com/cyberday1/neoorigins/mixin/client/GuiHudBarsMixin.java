@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.mixin.client;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.client.NeoOriginsClientConfig;
 import com.cyberday1.neoorigins.client.ClientActivePowers;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -23,7 +23,7 @@ public abstract class GuiHudBarsMixin {
 
     @Inject(method = "extractFoodLevel", at = @At("HEAD"), cancellable = true)
     private void neoorigins$maybeHideFood(GuiGraphicsExtractor guiGraphics, CallbackInfo ci) {
-        if (!NeoOriginsConfig.isHideHudBarsEnabled()) return;
+        if (!NeoOriginsClientConfig.isHideHudBarsEnabled()) return;
         if (ClientActivePowers.hasCapability("hide_hunger_bar")) {
             ci.cancel();
         }
@@ -31,7 +31,7 @@ public abstract class GuiHudBarsMixin {
 
     @Inject(method = "extractAirLevel", at = @At("HEAD"), cancellable = true)
     private void neoorigins$maybeHideAir(GuiGraphicsExtractor guiGraphics, CallbackInfo ci) {
-        if (!NeoOriginsConfig.isHideHudBarsEnabled()) return;
+        if (!NeoOriginsClientConfig.isHideHudBarsEnabled()) return;
         if (ClientActivePowers.hasCapability("hide_air_bar")) {
             ci.cancel();
             return;
