@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.compat.ftbultimine;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.UltiminePower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import dev.ftb.mods.ftbultimine.api.restriction.RegisterRestrictionHandlerEvent;
@@ -79,10 +80,27 @@ public final class FtbUltimineCompat {
      * power; vetoes everyone else. {@code canUltimine} returning {@code true} is
      * the neutral value, so a player who already has the power is unaffected and
      * other restriction handlers (FTB Ranks, tool/food checks) still apply.
+     *
+     * <p><b>Dormant when unused.</b> Because the restriction API is deny-only,
+     * an unconditional "non-holders get {@code false}" would disable vein-mining
+     * for everyone the moment NeoOrigins + FTB Ultimine are installed together —
+     * even when no loaded pack ever defines an ultimine power, violating the
+     * soft-dep "dormant if unused" contract. So this handler first asks
+     * {@link PowerDataManager#isUltiminePowerInUse()} (a cheap cached flag,
+     * recomputed on each datapack reload): if zero {@code neoorigins:ultimine}
+     * powers are loaded it returns {@code true} (neutral) for <i>everyone</i>,
+     * leaving FTB Ultimine exactly at its vanilla behaviour. Only once at least
+     * one ultimine power is loaded does the origin gating apply.
      */
     private static final class OriginUltimineRestriction implements RestrictionHandler {
         @Override
         public boolean canUltimine(Player player) {
+            // Dormant unless a loaded pack actually defines an ultimine power.
+            // Without this the deny-only API would gate vein-mining for everyone
+            // even when no pack opted in.
+            if (!PowerDataManager.INSTANCE.isUltiminePowerInUse()) {
+                return true; // no opinion — FTB Ultimine behaves as vanilla
+            }
             // Only server players carry origin data; the check runs server-side.
             if (!(player instanceof ServerPlayer sp)) {
                 return true; // no opinion on non-server contexts
