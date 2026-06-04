@@ -620,6 +620,42 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
+    /**
+     * Classified activation key for an Apoli "active" power (active_self, toggle, launch).
+     * A power's {@code "key"} is either a string or {@code {"key": ..., "continuous": ...}}.
+     * The key then falls into one of three buckets:
+     *   - slotKey: one of the 6 hardcoded skill slots (primary/secondary active, toolbar, pick)
+     *   - vanillaInputKey: a movement/use/attack key the server can poll directly
+     *   - namedHotkey: a pack-declared translation key (must be registered into PowerKeybindRegistry)
+     */
+    private record KeySpec(String key, boolean continuous, boolean slotKey, boolean vanillaInputKey) {
+        boolean namedHotkey() { return !slotKey && !vanillaInputKey; }
+    }
+
+    private static KeySpec classifyKey(JsonObject json, String defaultKey) {
+        String key = defaultKey;
+        boolean continuous = false;
+        if (json.has("key")) {
+            var keyEl = json.get("key");
+            if (keyEl.isJsonPrimitive()) {
+                key = keyEl.getAsString();
+            } else if (keyEl.isJsonObject()) {
+                var keyObj = keyEl.getAsJsonObject();
+                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
+            }
+        }
+        boolean slotKey = key.contains("primary_active") || key.contains("secondary_active")
+            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
+            || key.contains("pickItem");
+        boolean vanillaInputKey = switch (key) {
+            case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
+                 "key.forward", "key.back", "key.left", "key.right" -> true;
+            default -> false;
+        };
+        return new KeySpec(key, continuous, slotKey, vanillaInputKey);
+    }
+
     private CompatPower.Config parseActiveSelf(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         JsonObject actionJson = json.has("entity_action") ? json.getAsJsonObject("entity_action")
@@ -634,18 +670,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         // Key can be a string ("key.origins.primary_active") or an object
         // ({"key": "key.origins.primary_active", "continuous": true}).
-        String key = "key.origins.primary_active";
-        boolean continuous = false;
-        if (json.has("key")) {
-            var keyEl = json.get("key");
-            if (keyEl.isJsonPrimitive()) {
-                key = keyEl.getAsString();
-            } else if (keyEl.isJsonObject()) {
-                var keyObj = keyEl.getAsJsonObject();
-                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
-                continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
-            }
-        }
+        KeySpec ks = classifyKey(json, "key.origins.primary_active");
+        String key = ks.key();
+        boolean continuous = ks.continuous();
 
         // Parse the optional condition gate
         EntityCondition condition = json.has("condition")
@@ -655,9 +682,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Skill-slot keys: primary_active, secondary_active, and the two toolbar
         // keys (loadToolbarActivator, saveToolbarActivator) which have no server-side
         // input state and must be mapped to skill slots to be usable.
-        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
-            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
-            || key.contains("pickItem");
+        boolean isSlotKey = ks.slotKey();
         // Continuous slot powers DON'T use onActivated — they need every-tick
         // execution which onActivated (single-fire per keypress) can't provide.
         if (isSlotKey && !continuous) {
@@ -686,11 +711,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         final String finalIdStr = idStr;
         final boolean isContinuous = continuous;
 
-        boolean isVanillaInputKey = switch (finalKey) {
-            case "key.sneak", "key.use", "key.attack", "key.jump",
-                 "key.forward", "key.back", "key.left", "key.right" -> true;
-            default -> false;
-        };
+        boolean isVanillaInputKey = ks.vanillaInputKey();
 
         if (!isVanillaInputKey) {
             // Hotkey path: register into PowerKeybindRegistry so a client press
@@ -714,6 +735,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     // are cast. Read the right-click tick stamped by CompatEventPowers.
                     case "key.use"     -> CompatPlayerState.isUseKeyDown(player);
                     case "key.attack"  -> player.swinging;
+                    case "key.sprint"  -> player.isSprinting();
                     case "key.jump"    -> !player.onGround() && player.getDeltaMovement().y > 0;
                     case "key.forward" -> player.zza > 0;
                     case "key.back"    -> player.zza < 0;
@@ -965,22 +987,39 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     private CompatPower.Config parseToggle(ResourceLocation id, JsonObject json) {
-        String key = id.toString();
+        String stateKey = id.toString();
         boolean defaultActive = !json.has("active") || json.get("active").getAsBoolean();
 
         EntityAction activeAction   = json.has("active_action")
-            ? ActionParser.parse(json.getAsJsonObject("active_action"),   key) : EntityAction.noop();
+            ? ActionParser.parse(json.getAsJsonObject("active_action"),   stateKey) : EntityAction.noop();
         EntityAction inactiveAction = json.has("inactive_action")
-            ? ActionParser.parse(json.getAsJsonObject("inactive_action"), key) : EntityAction.noop();
+            ? ActionParser.parse(json.getAsJsonObject("inactive_action"), stateKey) : EntityAction.noop();
 
-        return CompatPower.Config.builder()
-            .onGranted(player -> player.getData(CompatAttachments.toggleState()).set(key, defaultActive))
-            .onActivated(player -> {
-                boolean next = player.getData(CompatAttachments.toggleState()).toggle(key, defaultActive);
-                if (next) activeAction.execute(player);
-                else inactiveAction.execute(player);
-            })
-            .build();
+        // The toggle behavior itself: flip the stored state, run the matching action.
+        EntityAction toggleAction = player -> {
+            boolean next = player.getData(CompatAttachments.toggleState()).toggle(stateKey, defaultActive);
+            if (next) activeAction.execute(player);
+            else inactiveAction.execute(player);
+        };
+
+        var builder = CompatPower.Config.builder()
+            .onGranted(player -> player.getData(CompatAttachments.toggleState()).set(stateKey, defaultActive));
+
+        // A toggle can declare a pack-defined hotkey ("key": "...") just like active_self.
+        // If it does, register it so a client press routes here; otherwise it defaults to
+        // the primary-active skill slot via onActivated.
+        KeySpec ks = classifyKey(json, "key.origins.primary_active");
+        if (ks.namedHotkey()) {
+            int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+            EntityCondition condition = json.has("condition")
+                ? ConditionParser.parse(json.getAsJsonObject("condition"), stateKey)
+                : EntityCondition.alwaysTrue();
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    id, toggleAction, condition, cooldown, ks.continuous()));
+            return builder.cooldownTicks(cooldown).build();
+        }
+        return builder.onActivated(toggleAction::execute).build();
     }
 
     private CompatPower.Config parseConditionedAttribute(ResourceLocation id, JsonObject json) {
@@ -1033,6 +1072,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         double value = modObj.has("value")  ? modObj.get("value").getAsDouble()
                      : modObj.has("amount") ? modObj.get("amount").getAsDouble() : 0.0;
         String op = modObj.has("operation") ? modObj.get("operation").getAsString() : "add_value";
+        // Apoli clamp/set ops (min/max/set) have no vanilla AttributeModifier
+        // equivalent — applying them as add_value corrupts the attribute (a cap
+        // becomes a flat bonus). Skip the power rather than mis-apply it.
+        if (!OriginsOperationMapper.isRepresentable(op)) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: attribute operation '{}' (clamp/set) has no vanilla "
+                + "equivalent — power will no-op", idStr, op);
+            CompatTranslationLog.skip(id, "origins:conditioned_attribute",
+                "operation '" + op + "' (clamp/set) cannot be represented as a vanilla attribute modifier");
+            return null;
+        }
         AttributeModifier.Operation operation = switch (OriginsOperationMapper.mapOperation(op)) {
             case "add_multiplied_base"  -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
             case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
@@ -1501,16 +1550,34 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
 
-        return CompatPower.Config.builder()
-            .cooldownTicks(cooldown)
+        EntityAction launchAction = player -> {
+            player.push(0, speed, 0);
+            player.hurtMarked = true;
+        };
+
+        var builder = CompatPower.Config.builder().cooldownTicks(cooldown);
+
+        // launch can be bound to a pack-declared hotkey; register it if so. Cooldown is
+        // enforced by PowerKeybindRegistry.dispatch for the named-key path, so the action
+        // itself stays cooldown-free there to avoid double-gating.
+        KeySpec ks = classifyKey(json, "key.origins.primary_active");
+        if (ks.namedHotkey()) {
+            EntityCondition condition = json.has("condition")
+                ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+                : EntityCondition.alwaysTrue();
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    id, launchAction, condition, cooldown, ks.continuous()));
+            return builder.build();
+        }
+        return builder
             .onActivated(player -> {
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
                     if (data.isOnCooldown(idStr, player.tickCount)) return;
                     data.setCooldown(idStr, player.tickCount, cooldown);
                 }
-                player.push(0, speed, 0);
-                player.hurtMarked = true;
+                launchAction.execute(player);
             })
             .build();
     }

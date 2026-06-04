@@ -1,10 +1,12 @@
 package com.cyberday1.neoorigins.screen;
 
+import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.client.ClientOriginState;
 import com.cyberday1.neoorigins.client.theme.PanelRenderer;
 import com.cyberday1.neoorigins.client.theme.UITheme;
+import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
@@ -517,7 +519,13 @@ public class OriginSelectionScreen extends Screen {
         var origins = ClientOriginState.getOrigins();
         boolean hasClass = origins.keySet().stream().anyMatch(CLASS_LAYER_ID::equals);
         boolean hasAnyOrigin = !origins.isEmpty();
-        if (hasAnyOrigin && !hasClass) {
+        // Only auto-assign nitwit when it's actually a selectable class. A pack
+        // can disable every class origin (including class_nitwit) — in that case
+        // the presenter skips the empty class layer entirely, and sending the
+        // nitwit choice anyway makes the server reject it with a "non-existent
+        // origin" warning. Mirror the presenter's availability filter so we stay
+        // silent when there's nothing to assign.
+        if (hasAnyOrigin && !hasClass && isNitwitAssignable()) {
             PacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
         }
         // Tell the server to cancel any pending orb-of-origin commit. If the
@@ -535,5 +543,26 @@ public class OriginSelectionScreen extends Screen {
             PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
         }
         Minecraft.getInstance().setScreen(null);
+    }
+
+    /**
+     * True only when {@code neoorigins:class_nitwit} is a real, selectable
+     * option right now — mirrors {@link OriginSelectionPresenter}'s availability
+     * filter so onClose() doesn't auto-assign a class the server will reject.
+     */
+    private boolean isNitwitAssignable() {
+        var layer = LayerDataManager.INSTANCE.getLayer(CLASS_LAYER_ID);
+        if (layer == null || layer.hidden()) return false;
+        var choices = ClientOriginState.getOrigins();
+        for (var co : layer.origins()) {
+            if (!co.origin().equals(NITWIT_ORIGIN_ID)) continue;
+            if (!co.isAvailable(choices)) return false;
+            if (NeoOriginsConfig.isOriginDisabled(co.origin())) return false;
+            if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) return false;
+            var origin = OriginDataManager.INSTANCE.getOrigin(co.origin());
+            if (origin != null && origin.unchoosable()) return false;
+            return true;
+        }
+        return false;
     }
 }

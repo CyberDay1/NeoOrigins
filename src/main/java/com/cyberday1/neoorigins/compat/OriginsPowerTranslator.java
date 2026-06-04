@@ -700,6 +700,19 @@ public final class OriginsPowerTranslator {
             mod = src.getAsJsonArray("modifiers").get(0).getAsJsonObject();
         }
         if (mod != null) {
+            // Apoli clamp/set operations (min/max/set, base or total) have NO vanilla
+            // AttributeModifier equivalent. Mapping them to add_value corrupts the
+            // attribute — e.g. a "max_total": 60 max-health CAP becomes a flat +60 HP
+            // bonus (this pinned Deano's mage at ~37 hearts instead of the intended 7).
+            // Drop the whole modifier rather than mis-apply it as a flat addition.
+            if (mod.has("operation")
+                && !OriginsOperationMapper.isRepresentable(mod.get("operation").getAsString())) {
+                NeoOrigins.LOGGER.debug(
+                    "OriginsCompat: dropping origins:modify_attribute with non-representable "
+                    + "operation '{}' (clamp/set ops have no vanilla modifier equivalent)",
+                    mod.get("operation").getAsString());
+                return Optional.empty();
+            }
             extractModifierFields(mod, out);
         }
 
@@ -1041,11 +1054,44 @@ public final class OriginsPowerTranslator {
         // [LOSSY] all Origins operations (addition, multiply_base, multiply_total) collapse to (1 + value).
         out.addProperty("multiplier", (float)(1.0 + value));
 
-        // [LOSSY] block_condition is dropped — break speed is applied via the
-        // vanilla player.block_break_speed attribute, which can't filter by block.
-        // The power applies to all blocks.
+        // Best-effort: lift a simple block_condition tag into block_tag so the
+        // multiplier is restricted to the same blocks. Apoli's block_condition is a
+        // full DSL; we only translate the common single-tag shape
+        // ({"type":"...:block","block":"#tag"} or {"tag":"..."}). Anything more
+        // complex (and/or/nesting, state predicates) is dropped and the power
+        // applies to all blocks — logged so the lossiness is visible.
+        if (src.has("block_condition") && src.get("block_condition").isJsonObject()) {
+            String tag = extractSimpleBlockTag(src.getAsJsonObject("block_condition"));
+            if (tag != null) {
+                out.addProperty("block_tag", tag);
+            } else {
+                NeoOrigins.LOGGER.debug("OriginsCompat: modify_break_speed block_condition is not a simple tag/block filter — block_tag dropped, multiplier applies to all blocks");
+            }
+        }
 
         return Optional.of(out);
+    }
+
+    /**
+     * Pull a single block tag (or block id) out of the common Apoli block_condition
+     * shapes, or {@code null} if the condition is anything more complex than a flat
+     * tag/block match. Recognised: a {@code "block"}/{@code "tag"}/{@code "blocks"}
+     * string field, with or without a {@code "type":"...:block"} wrapper. A leading
+     * {@code #} is preserved so the downstream filter treats it as tag-only.
+     */
+    private static String extractSimpleBlockTag(JsonObject cond) {
+        // Reject obviously-composite conditions outright.
+        if (cond.has("conditions") || cond.has("condition")) return null;
+        for (String key : new String[]{"tag", "block", "blocks"}) {
+            if (cond.has(key) && cond.get(key).isJsonPrimitive()) {
+                String val = cond.get(key).getAsString();
+                if (val == null || val.isBlank()) return null;
+                // "tag" is implicitly a tag even without the leading #.
+                if (key.equals("tag") && !val.startsWith("#")) return "#" + val;
+                return val;
+            }
+        }
+        return null;
     }
 
     private static Optional<JsonObject> translateEntityGroup(JsonObject src) {

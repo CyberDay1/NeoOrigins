@@ -240,7 +240,8 @@ public final class ActionParser {
         // at each {@code command_step}-block increment along the ray. Used by
         // packs for "trail of particles", "place a torch every N blocks",
         // etc. Step defaults to 1 block.
-        String commandAlongRay = json.has("command_along_ray") ? json.get("command_along_ray").getAsString() : null;
+        String commandAlongRay = forceParticleVisibility(
+            json.has("command_along_ray") ? json.get("command_along_ray").getAsString() : null);
         double commandStep = json.has("command_step") ? json.get("command_step").getAsDouble() : 1.0;
         if (commandStep <= 0) commandStep = 1.0; // guard against infinite loops on bad config
         final double finalStep = commandStep;
@@ -253,7 +254,8 @@ public final class ActionParser {
         // command_along_ray / command_step deanos raycast extensions.
         final EntityAction beforeAction = json.has("before_action") && json.get("before_action").isJsonObject()
             ? parse(json.getAsJsonObject("before_action"), contextId) : EntityAction.noop();
-        final String commandAtHit = json.has("command_at_hit") ? json.get("command_at_hit").getAsString() : null;
+        final String commandAtHit = forceParticleVisibility(
+            json.has("command_at_hit") ? json.get("command_at_hit").getAsString() : null);
         return player -> {
             beforeAction.execute(player);
             Vec3 from = player.getEyePosition(1.0F);
@@ -329,6 +331,29 @@ public final class ActionParser {
 
             missAction.execute(player);
         };
+    }
+
+    /**
+     * Origins packs commonly use {@code "command_along_ray": "/particle <id> ~ ~ ~"}
+     * (and the same for {@code command_at_hit}) expecting a visible trail / burst.
+     * Run verbatim through the command dispatcher, vanilla spawns the particle in
+     * NORMAL mode: it is culled by the client's particle video setting and only sent
+     * to players within 32 blocks. Deano's mage Flame trail rendered nothing because
+     * of this. When the command is a bare {@code /particle <id> <x> <y> <z>} with no
+     * explicit delta/speed/count, append {@code 0 0 0 0 1 force} so exactly one
+     * forced particle renders regardless of client settings or distance. Commands
+     * that already specify those args, multi-token particle ids (block/item/dust),
+     * or non-particle commands are returned untouched.
+     */
+    static String forceParticleVisibility(String command) {
+        if (command == null) return null;
+        String body = command.startsWith("/") ? command.substring(1) : command;
+        String[] parts = body.trim().split("\\s+");
+        // particle <id> <x> <y> <z> == exactly 5 tokens, nothing trailing.
+        if (parts.length == 5 && parts[0].equals("particle")) {
+            return command + " 0 0 0 0 1 force";
+        }
+        return command;
     }
 
     /**
