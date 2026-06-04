@@ -47,6 +47,7 @@ repositories {
     maven { url = 'https://maven.latvian.dev/releases' } // KubeJS
     maven { url = 'https://maven.terraformersmc.com/' }  // EMI
     maven { url = 'https://cursemaven.com' }             // Jade + The One Probe
+    maven { url = 'https://maven.ftb.dev/releases' }     // FTB Quests + FTB Library
 }
 
 dependencies {
@@ -72,6 +73,14 @@ dependencies {
 
     // The One Probe – probe overlay. Compile-only soft dep (CurseMaven).
     compileOnly "curse.maven:the-one-probe-245211:${property('deps.top')}"
+
+    // FTB Quests – "grant loot pool" reward type. Compile-only soft dep; the
+    // reward class is only classloaded when ftbquests is present at runtime.
+    // ftb-library + ftb-teams are FTBQ's own compile deps (Reward API touches
+    // FTB Library config types). architectury is already declared above.
+    compileOnly "dev.ftb.mods:ftb-quests-neoforge:${property('deps.ftbquests')}"
+    compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
+    compileOnly "dev.ftb.mods:ftb-teams-neoforge:${property('deps.ftbteams')}"
 }
 
 sourceSets {

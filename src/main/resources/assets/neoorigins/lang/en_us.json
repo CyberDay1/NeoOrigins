@@ -2169,5 +2169,8 @@
   "power.neoorigins.sylvan_vitality.description": "Life force drawn from nature.",
   "power.neoorigins.sporeling_vitality.name": "Vitality",
   "power.neoorigins.sporeling_vitality.description": "Life force drawn from nature.",
-  "container.neoorigins.extra_inventory": "Extra Inventory"
+  "container.neoorigins.extra_inventory": "Extra Inventory",
+  "reward.neoorigins.loot_pool": "NeoOrigins: Grant Loot Pool",
+  "reward.neoorigins.loot_pool.loot_table": "Loot Table",
+  "reward.neoorigins.loot_pool.rolls": "Rolls"
 }

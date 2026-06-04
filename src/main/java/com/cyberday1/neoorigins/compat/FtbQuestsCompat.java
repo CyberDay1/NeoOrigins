@@ -53,10 +53,6 @@ public final class FtbQuestsCompat {
 
     public static void register() {
         boolean eventOk = tryRegisterCompletedEventListener();
-        // TODO(v2.2): FTBQ soft-compat reward registration —
-        // wire registerRewardType() once FTBQ's RewardType.Provider API
-        // stabilises across versions. Tag-marker path covers the same use
-        // case in the meantime.
         if (eventOk) {
             NeoOrigins.LOGGER.info("[Compat] FTB Quests loot_pool_grant tag-marker listener active "
                 + "(use tag '{}<table_id>' on a quest to grant)", TAG_PREFIX);
@@ -165,18 +161,18 @@ public final class FtbQuestsCompat {
     }
 
     /**
-     * Reserved hook for the eventual {@code RewardType} registration path —
-     * intentionally a no-op today (see class doc). Pack authors who want
-     * book-integrated rewards can use the tag-marker path now and migrate
-     * trivially once this lights up.
+     * Registers the first-class {@code neoorigins:loot_pool} reward type with
+     * FTBQ's {@code RewardTypes} registry so pack authors can add a
+     * "NeoOrigins: grant loot pool" reward directly in the quest editor.
      *
-     * TODO(v2.2): implement registration against
-     * {@code dev.ftb.mods.ftbquests.quest.reward.RewardType} once the
-     * Provider API stabilises across FTBQ minor versions.
+     * <p>Must run after FTBQ's mod constructor (which calls
+     * {@code RewardTypes.init()}); {@link NeoOrigins} drives it from common
+     * setup. Indirected through
+     * {@link com.cyberday1.neoorigins.compat.ftbquests.FtbQuestsRewardRegistration}
+     * so the FTBQ-typed reward classes only classload behind this gated call.
      */
-    @SuppressWarnings("unused")
-    private static void registerRewardType() {
-        // No-op — see TODO above.
+    public static void registerRewardType() {
+        com.cyberday1.neoorigins.compat.ftbquests.FtbQuestsRewardRegistration.register();
     }
 
     // ── Reflection helpers ─────────────────────────────────────────────

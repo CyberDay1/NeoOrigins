@@ -178,6 +178,19 @@ public class NeoOrigins {
         // guarded by a ModList check (and all TOP-typed code is confined to the
         // compat.top package) so a missing TOP never NoClassDefFounds.
         modEventBus.addListener(NeoOrigins::onInterModEnqueue);
+
+        // Common setup — soft-compat registrations that must run after every
+        // mod constructor (e.g. FTBQ's RewardTypes.init()).
+        modEventBus.addListener(NeoOrigins::onCommonSetup);
+    }
+
+    private static void onCommonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
+        // FTB Quests reward type — registered after FTBQ's constructor has run
+        // RewardTypes.init(). Gated so a pack without FTBQ loads normally; the
+        // FTBQ-typed reward classes only classload inside registerRewardType().
+        if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
+            event.enqueueWork(com.cyberday1.neoorigins.compat.FtbQuestsCompat::registerRewardType);
+        }
     }
 
     private static void onInterModEnqueue(net.neoforged.fml.event.lifecycle.InterModEnqueueEvent event) {
