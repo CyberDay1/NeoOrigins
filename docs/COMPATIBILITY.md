@@ -29,7 +29,7 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 | **Accessories** | `accessories` | Wisp Forest's accessory system. The `equipped_item` condition's `accessory` slot (and umbrella detection) also reads worn Accessories, alongside Curios. Compile-only soft dependency; **1.21.1 only** (no 26.1 build exists). |
 | **Vampires Need Umbrellas** | `vampiresneedumbrellas` | Recognises that mod's umbrella items for umbrella-based conditions. |
 | **Ars Nouveau** | `ars_nouveau` | Undead-type origins are healed (rather than harmed) by Ars Nouveau harm spells, mirroring vanilla undead behaviour. |
-| **FTB Teams** | `ftbteams` | Players on the same FTB team are treated as trusted for mount consent — a teammate can ride your mountable origin without sending a consent request. |
+| **FTB Teams** | `ftbteams` | Players on the same or an allied FTB team are treated as trusted for mount consent — a teammate or ally can ride your mountable origin without sending a consent request. |
 | **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. |
 | **FTB Quests** | `ftbquests` | Adds a first-class "NeoOrigins: Grant Loot Pool" reward type to the quest editor — set the loot table id and roll count directly on the quest. Quests tagged `neoorigins_loot_pool_grant:<table_id>` grant a loot pool on completion too; both routes share the same roll-and-grant pipeline. |
 | **Pehkui** | `pehkui` | Origin body-scale powers drive the Pehkui scale system so resizing renders and collides correctly. See the caveat below. |
