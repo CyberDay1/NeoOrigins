@@ -44,6 +44,7 @@ repositories {
     maven { url = 'https://maven.blamejared.com' }      // JEI
     maven { url = 'https://maven.shedaniel.me' }         // REI
     maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
+    maven { url = 'https://api.modrinth.com/maven' }     // Jade
 }
 
 dependencies {
@@ -55,6 +56,10 @@ dependencies {
     // compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:VERSION"
     // compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:VERSION"
     // compileOnly "dev.architectury:architectury-neoforge:VERSION"
+
+    // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
+    // EMI + The One Probe are skipped on 26.1 — no 26.1 NeoForge build yet.
+    compileOnly "maven.modrinth:jade:${property('deps.jade')}"
 }
 
 sourceSets {

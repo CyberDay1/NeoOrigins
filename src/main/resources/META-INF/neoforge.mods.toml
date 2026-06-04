@@ -37,6 +37,17 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "CLIENT"
 
+# Jade soft-compat: shows the looked-at mob's origin in the Jade tooltip
+# overlay. Client-only, reflective via the @WailaPlugin entrypoint — the mod
+# runs unchanged when Jade is absent. (EMI + The One Probe are skipped on 26.1
+# until they ship 26.1 NeoForge builds.)
+[[dependencies.${mod_id}]]
+    modId = "jade"
+    type = "optional"
+    versionRange = "[26,)"
+    ordering = "AFTER"
+    side = "CLIENT"
+
 # FTB Quests soft-compat (v2.1.6 backlog #3): the loot_pool_grant power
 # accepts FTBQ quest tags of the form `neoorigins_loot_pool_grant:<table_id>`
 # and rolls that loot table for the completing player. Entirely reflective —
