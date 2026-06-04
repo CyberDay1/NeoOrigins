@@ -197,31 +197,40 @@ public final class SchemaFormModel {
             kind = FormFieldSpec.Kind.UNKNOWN;
         }
 
-        // For an array of REFs, capture items.$ref so the creator can render
-        // an ArrayRefRow list editor instead of a raw-JSON textbox.
+        // For an array of REFs, capture items.$ref so the creator can render an
+        // ArrayRefRow list editor; for an array of fixed-shape OBJECTS (e.g.
+        // starting_equipment.stacks, enchantments) capture the element's field
+        // list as `children` so an ArrayObjectRow renders a structured +/- list
+        // instead of a raw-JSON box. An OBJECT with a FIXED set of inline
+        // `properties` (item stack, effect instance, hud_render) captures the
+        // same way for an inline sub-form. Free-form objects / scalar-or-ref-less
+        // arrays keep an empty child list and fall to the raw-JSON box.
         String itemsRef = null;
+        List<FormFieldSpec> children = List.of();
         if (kind == FormFieldSpec.Kind.ARRAY && p.has("items")) {
             JsonObject items = p.getAsJsonObject("items");
-            if (items.has("$ref")) itemsRef = items.get("$ref").getAsString();
-        }
-
-        // An OBJECT with a FIXED set of inline `properties` (e.g. an item stack,
-        // an effect instance, hud_render) → render an inline sub-form: recurse
-        // into each child property the same way. Free-form objects (no
-        // `properties`) keep an empty child list and fall to the raw-JSON box.
-        List<FormFieldSpec> children = List.of();
-        if (kind == FormFieldSpec.Kind.OBJECT && p.has("properties")) {
-            JsonObject objProps = p.getAsJsonObject("properties");
-            Set<String> childReq = readRequired(p);
-            List<FormFieldSpec> kids = new ArrayList<>();
-            for (Map.Entry<String, JsonElement> e : objProps.entrySet()) {
-                if (e.getKey().equals("type")) continue;
-                kids.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
-                    childReq.contains(e.getKey())));
+            if (items.has("$ref")) {
+                itemsRef = items.get("$ref").getAsString();
+            } else if (items.has("properties")) {
+                children = mapChildren(items);
             }
-            children = kids;
+        } else if (kind == FormFieldSpec.Kind.OBJECT && p.has("properties")) {
+            children = mapChildren(p);
         }
         return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children);
+    }
+
+    /** Map an object node's {@code properties} into child {@link FormFieldSpec}s. */
+    private static List<FormFieldSpec> mapChildren(JsonObject objNode) {
+        JsonObject objProps = objNode.getAsJsonObject("properties");
+        Set<String> childReq = readRequired(objNode);
+        List<FormFieldSpec> kids = new ArrayList<>();
+        for (Map.Entry<String, JsonElement> e : objProps.entrySet()) {
+            if (e.getKey().equals("type")) continue;
+            kids.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
+                childReq.contains(e.getKey())));
+        }
+        return kids;
     }
 
     private static Object unwrap(JsonElement e) {

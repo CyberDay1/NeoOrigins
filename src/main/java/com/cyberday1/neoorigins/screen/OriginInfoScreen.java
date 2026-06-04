@@ -138,11 +138,15 @@ public class OriginInfoScreen extends Screen {
         // Creative. Survival players don't need the power tester or the
         // origin editor, and exposing them clutters the info screen.
         var lp = Minecraft.getInstance().player;
-        boolean showDevGui = lp != null && lp.isCreative();
-        if (showDevGui) {
+        boolean creative = lp != null && lp.isCreative();
+        if (creative) {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
                     b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
                 .bounds(width / 2 + 48, height - 24, 60, 20).build());
+        }
+        // The editor can additionally be ungated for all game modes via config
+        // (ui.show_origin_editor) for pack authors who build origins in survival.
+        if (creative || com.cyberday1.neoorigins.NeoOriginsConfig.isShowOriginEditor()) {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
                     b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
                 .bounds(width / 2 - 108, height - 24, 60, 20).build());

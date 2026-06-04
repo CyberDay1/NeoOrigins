@@ -45,9 +45,16 @@ public final class ScrollPanel {
         return scrollY != prev;
     }
 
-    /** True when a row at [{@code rowTop}, {@code rowTop+rowH}] fits fully in view. */
+    /**
+     * True when a row at [{@code rowTop}, {@code rowTop+rowH}] overlaps the
+     * viewport at all. Intersection — NOT full containment — so a variable-height
+     * row taller than the viewport (e.g. a starting_equipment stack sub-form with
+     * item/count/enchantments/…) still shows, clipped by the scissor, instead of
+     * vanishing the instant it grows past the view height (which also hid its
+     * own "+ add" button, making the list look frozen).
+     */
     public boolean rowVisible(int rowTop, int rowH) {
-        return rowTop >= viewY && rowTop + rowH <= viewY + viewH;
+        return rowTop < viewY + viewH && rowTop + rowH > viewY;
     }
 
     public void beginClip(GuiGraphics g) {

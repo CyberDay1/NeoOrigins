@@ -32,7 +32,11 @@ public final class IdentityTab implements CreatorTab {
     private static final ResourceLocation CLASS_LAYER =
         ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
 
-    private static final int LABEL_DX = 8, FIELD_DX = 100, ROW_H = 24, BOX_H = 16;
+    private static final int LABEL_DX = 8, FIELD_DX = 100, BOX_H = 16;
+    /** Field-row pitch, recomputed each {@link #init} so all rows + the Layer
+     *  block fit inside the panel instead of spilling onto the footer at high
+     *  GUI scales (tester report, 2.2). */
+    private int rowH = 24;
 
     private final LabeledField idPath = new LabeledField("id");
     private final LabeledField name = new LabeledField("name");
@@ -47,7 +51,7 @@ public final class IdentityTab implements CreatorTab {
     private CycleSelector<ResourceLocation> layer;
 
     private OriginCreatorScreen parent;
-    private int rowY, layerHdrY, layerRowY;
+    private int rowY, layerRowY;
 
     @Override public Component title() { return TITLE; }
     @Override public Component help() {
@@ -67,22 +71,25 @@ public final class IdentityTab implements CreatorTab {
         }
 
         rowY = y + 14;
+        // Shrink the row pitch so the 6 fields + the Layer row always fit the
+        // available height; clamp so boxes never overlap (>= BOX_H + 2).
+        int layerBlock = 4 /*gap*/ + 20 /*selector*/ + 12 /*hint*/;
+        rowH = Math.max(BOX_H + 2, Math.min(24, (h - 14 - layerBlock) / 6));
         int fieldW = Math.min(w - FIELD_DX - 8, 240);
         Font font = parent.font();
         int fx = x + FIELD_DX;
 
         parent.register(idPath.build(font, fx, rowY, fieldW, BOX_H));
-        parent.register(name.build(font, fx, rowY + ROW_H, fieldW, BOX_H));
-        parent.register(description.build(font, fx, rowY + ROW_H * 2, fieldW, BOX_H));
-        parent.register(icon.build(font, fx, rowY + ROW_H * 3, fieldW - 44, BOX_H));
+        parent.register(name.build(font, fx, rowY + rowH, fieldW, BOX_H));
+        parent.register(description.build(font, fx, rowY + rowH * 2, fieldW, BOX_H));
+        parent.register(icon.build(font, fx, rowY + rowH * 3, fieldW - 44, BOX_H));
         parent.register(Button.builder(Component.literal("pick"), b -> openPicker())
-            .bounds(fx + fieldW - 40, rowY + ROW_H * 3 - 2, 40, BOX_H + 4).build());
-        parent.register(impact.build(fx, rowY + ROW_H * 4, 90, 20));
-        parent.register(order.build(font, fx, rowY + ROW_H * 5, 60, BOX_H));
+            .bounds(fx + fieldW - 40, rowY + rowH * 3 - 2, 40, BOX_H + 4).build());
+        parent.register(impact.build(fx, rowY + rowH * 4, 90, 20));
+        parent.register(order.build(font, fx, rowY + rowH * 5, 60, BOX_H));
 
         // ── Layer (folded in from the old Layer tab) ──────────────────────
-        layerHdrY = rowY + ROW_H * 6 + 4;
-        layerRowY = layerHdrY + 16;
+        layerRowY = rowY + rowH * 6 + 4;
         layerNames.clear();
         List<OriginLayer> layers = LayerDataManager.INSTANCE.getSortedLayers();
         for (OriginLayer l : layers) layerNames.put(l.id(), l.name().getString());
@@ -162,25 +169,26 @@ public final class IdentityTab implements CreatorTab {
         int markY = rowY + 4;
         g.drawString(font, overrides ? "[!] ?" : "?", markX, markY,
             overrides ? CreatorStyle.ACCENT : CreatorStyle.TEXT_DIM, false);
-        name.drawLabel(g, font, lx, rowY + ROW_H + 4);
-        description.drawLabel(g, font, lx, rowY + ROW_H * 2 + 4);
-        icon.drawLabel(g, font, lx, rowY + ROW_H * 3 + 4);
-        g.drawString(font, "Impact", lx, rowY + ROW_H * 4 + 6, CreatorStyle.LABEL, false);
-        order.drawLabel(g, font, lx, rowY + ROW_H * 5 + 4);
+        name.drawLabel(g, font, lx, rowY + rowH + 4);
+        description.drawLabel(g, font, lx, rowY + rowH * 2 + 4);
+        icon.drawLabel(g, font, lx, rowY + rowH * 3 + 4);
+        g.drawString(font, "Impact", lx, rowY + rowH * 4 + 6, CreatorStyle.LABEL, false);
+        order.drawLabel(g, font, lx, rowY + rowH * 5 + 4);
 
-        CreatorStyle.sectionHeader(g, font, "Layer", lx, layerHdrY, w - LABEL_DX * 2);
+        // Layer row — one left label (no separate section header, which used to
+        // print a second "Layer" and pushed the selector onto the footer).
         g.drawString(font, "Layer", lx, layerRowY + 6, CreatorStyle.LABEL, false);
         boolean isClass = layer != null && CLASS_LAYER.equals(layer.value());
         g.drawString(font,
             isClass ? "This origin will be a CLASS (neoorigins:class layer)."
                     : "Appears as a normal origin in the chosen picker.",
-            lx, layerRowY + 26, isClass ? CreatorStyle.ACCENT : CreatorStyle.TEXT_DIM, false);
+            lx, layerRowY + 22, isClass ? CreatorStyle.ACCENT : CreatorStyle.TEXT_DIM, false);
 
         // Hover help for every Identity field.
         String tip = null;
         for (int i = 0; i < TIPS.length; i++) {
-            int top = rowY + ROW_H * i;
-            if (mouseY >= top && mouseY < top + ROW_H && mouseX >= lx && mouseX <= x + w) {
+            int top = rowY + rowH * i;
+            if (mouseY >= top && mouseY < top + rowH && mouseX >= lx && mouseX <= x + w) {
                 tip = TIPS[i];
                 break;
             }

@@ -85,15 +85,43 @@ public final class CreatorStyle {
     /**
      * Boxed multi-line hover tooltip near {@code (mx,my)}, clamped on screen.
      * Drawn by tabs after their widgets so it sits on top.
+     *
+     * <p>Each incoming line is word-wrapped to a sane max width so a long power
+     * description no longer renders a single mega-line that runs off the left
+     * edge (negative bx) and overlaps the Save/Apply/Close footer. The whole box
+     * is then clamped so it stays fully on-screen: it flips to the left of the
+     * cursor when it would overflow the right edge, and is pinned above the
+     * footer rather than under it.
      */
     public static void tooltip(GuiGraphics g, Font font, java.util.List<String> lines,
                                int mx, int my, int screenW, int screenH) {
         if (lines.isEmpty()) return;
+
+        // Target wrap width: comfortably narrow, but never wider than the screen.
+        int maxW = Math.min(220, Math.max(120, screenW - 24));
+        java.util.List<String> wrapped = new java.util.ArrayList<>();
+        java.util.List<Boolean> isHeader = new java.util.ArrayList<>();
+        for (int li = 0; li < lines.size(); li++) {
+            boolean header = (li == 0);
+            for (String piece : wrap(font, lines.get(li), maxW)) {
+                wrapped.add(piece);
+                isHeader.add(header);
+                header = false; // only the very first visual row is the title colour
+            }
+        }
+        if (wrapped.isEmpty()) return;
+
         int wMax = 0;
-        for (String s : lines) wMax = Math.max(wMax, font.width(s));
-        int bw = wMax + 8, bh = lines.size() * 10 + 4;
-        int bx = Math.min(mx + 12, screenW - bw - 6);
+        for (String s : wrapped) wMax = Math.max(wMax, font.width(s));
+        int bw = wMax + 8, bh = wrapped.size() * 10 + 4;
+
+        // Prefer to the right of the cursor; flip left if it would overflow.
+        int bx = mx + 12;
+        if (bx + bw + 6 > screenW) bx = mx - 12 - bw;
+        bx = Math.max(6, Math.min(bx, screenW - bw - 6));
         int by = Math.min(Math.max(my - 6, 4), screenH - bh - 6);
+        by = Math.max(4, by);
+
         // Fully opaque (0xFF) so the EditBox placeholder text and cycle-button
         // labels underneath don't bleed through; the box is drawn after a
         // g.flush() in OriginCreatorScreen, but a non-opaque fill still lets
@@ -101,10 +129,37 @@ public final class CreatorStyle {
         g.fill(bx - 3, by - 3, bx + bw + 3, by + bh + 3, 0xFF060612);
         g.renderOutline(bx - 3, by - 3, bw + 6, bh + 6, ACCENT);
         int ly = by + 2;
-        for (int i = 0; i < lines.size(); i++) {
-            g.drawString(font, lines.get(i), bx + 2, ly,
-                i == 0 ? SECTION : TEXT, false);
+        for (int i = 0; i < wrapped.size(); i++) {
+            g.drawString(font, wrapped.get(i), bx + 2, ly,
+                isHeader.get(i) ? SECTION : TEXT, false);
             ly += 10;
         }
+    }
+
+    /** Greedy word-wrap of {@code text} so no visual line exceeds {@code maxW} px. */
+    private static java.util.List<String> wrap(Font font, String text, int maxW) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (text == null || text.isEmpty()) { out.add(""); return out; }
+        StringBuilder cur = new StringBuilder();
+        for (String word : text.split(" ")) {
+            if (cur.length() == 0) {
+                cur.append(word);
+            } else if (font.width(cur + " " + word) <= maxW) {
+                cur.append(' ').append(word);
+            } else {
+                out.add(cur.toString());
+                cur.setLength(0);
+                cur.append(word);
+            }
+            // Hard-break a single word that is itself wider than the box.
+            while (font.width(cur.toString()) > maxW && cur.length() > 1) {
+                int cut = cur.length();
+                while (cut > 1 && font.width(cur.substring(0, cut)) > maxW) cut--;
+                out.add(cur.substring(0, cut));
+                cur.delete(0, cut);
+            }
+        }
+        if (cur.length() > 0) out.add(cur.toString());
+        return out;
     }
 }

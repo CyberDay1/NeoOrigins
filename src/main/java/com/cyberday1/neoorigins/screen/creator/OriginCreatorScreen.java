@@ -70,6 +70,12 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         return addRenderableWidget(widget);
     }
 
+    /** Input-only registration (no auto-render) — see {@link CreatorHost}. */
+    @Override
+    public <T extends GuiEventListener & Renderable & NarratableEntry> T registerInputOnly(T widget) {
+        return addWidget(widget);
+    }
+
     /**
      * Rebuild the active tab's widget set in place. Tabs whose widget set is
      * dynamic (the Powers tab: power list / type / raw-mode all change which
@@ -129,6 +135,16 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         addRenderableWidget(Button.builder(
                 Component.literal("Load template"), b -> openTemplatePicker())
             .bounds(panelX + panelW - loadBtnW, TITLE_Y - 2, loadBtnW, 14).build());
+
+        // Tooltip on/off — sits just left of "Load template". Some users find
+        // the hover boxes obstruct the fields underneath, so let them turn the
+        // boxes off without losing the rest of the header chrome.
+        int tipBtnW = 64, tipGap = 4;
+        addRenderableWidget(Button.builder(
+                Component.literal(com.cyberday1.neoorigins.client.ClientCreatorState.tooltipsEnabled()
+                    ? "Tips: On" : "Tips: Off"),
+                b -> { com.cyberday1.neoorigins.client.ClientCreatorState.toggleTooltips(); rebuild(); })
+            .bounds(panelX + panelW - loadBtnW - tipGap - tipBtnW, TITLE_Y - 2, tipBtnW, 14).build());
 
         CreatorTab tab = tabs.get(activeTab);
         tab.init(this, contentX, contentY + HELP_H, contentW, contentH - HELP_H);
@@ -227,10 +243,19 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
             g.drawCenteredString(font, Component.literal(msg), width / 2, height - 42, color);
         }
 
-        // Hover tooltip drawn dead last so it sits over every widget/box.
-        if (pendingTip != null && !pendingTip.isEmpty()) {
-            g.flush(); // commit batched widget text so the tooltip paints over it
+        // Hover tooltip drawn dead last so it sits over every widget/box —
+        // unless the user has switched tooltips off via the header toggle.
+        if (pendingTip != null && !pendingTip.isEmpty()
+                && com.cyberday1.neoorigins.client.ClientCreatorState.tooltipsEnabled()) {
+            // Lift the tooltip onto its own z-layer (vanilla tooltips use ~400)
+            // so the box + text paint cleanly over EditBox/button text instead
+            // of blending with it — g.flush() alone left field text bleeding
+            // through on some drivers.
+            g.pose().pushPose();
+            g.pose().translate(0, 0, 400);
             CreatorStyle.tooltip(g, font, pendingTip, tipX, tipY, width, height);
+            g.flush();
+            g.pose().popPose();
         }
     }
 

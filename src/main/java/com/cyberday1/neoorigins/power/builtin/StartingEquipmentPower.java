@@ -56,7 +56,9 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
 
     public record EnchantEntry(String id, int level) {
         public static final Codec<EnchantEntry> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.fieldOf("id").forGetter(EnchantEntry::id),
+            // Optional + default "" so a blank entry left in the in-game editor's
+            // enchantment list parses (and is skipped) rather than failing the power.
+            Codec.STRING.optionalFieldOf("id", "").forGetter(EnchantEntry::id),
             Codec.INT.optionalFieldOf("level", 1).forGetter(EnchantEntry::level)
         ).apply(inst, EnchantEntry::new));
     }
@@ -74,7 +76,9 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
         String components
     ) {
         public static final Codec<StackEntry> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.fieldOf("item").forGetter(StackEntry::item),
+            // Optional + default "" so a blank row added in the in-game editor's
+            // stack list parses (and is skipped at grant) rather than failing the power.
+            Codec.STRING.optionalFieldOf("item", "").forGetter(StackEntry::item),
             Codec.INT.optionalFieldOf("count", 1).forGetter(StackEntry::count),
             EnchantEntry.CODEC.listOf().optionalFieldOf("enchantments", List.of()).forGetter(StackEntry::enchantments),
             Codec.STRING.optionalFieldOf("legacy_tag", "").forGetter(StackEntry::legacyTag),
@@ -188,6 +192,13 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
     }
 
     private static boolean grantOneStack(ServerPlayer player, String grantId, int index, StackEntry entry) {
+        // A blank stack (e.g. an unfilled row left in the in-game editor) carries
+        // no item id — skip it quietly-ish rather than crash ResourceLocation.parse.
+        if (entry.item().isBlank()) {
+            com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                "[starting_equipment] empty item for grantId '{}' stack[{}] — skipped", grantId, index);
+            return false;
+        }
         var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(entry.item()));
         if (itemOpt.isEmpty()) {
             com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
@@ -202,6 +213,7 @@ public class StartingEquipmentPower extends PowerType<StartingEquipmentPower.Con
             var enchLookup = player.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
             ItemEnchantments.Mutable enchMutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
             for (var ench : entry.enchantments()) {
+                if (ench.id().isBlank()) continue; // skip a blank enchant row from the editor
                 ResourceKey<Enchantment> key = ResourceKey.create(Registries.ENCHANTMENT, ResourceLocation.parse(ench.id()));
                 enchLookup.get(key).ifPresent(h -> enchMutable.set(h, ench.level()));
             }
