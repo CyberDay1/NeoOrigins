@@ -191,7 +191,7 @@ public final class MountConsentManager {
     }
 
     private static boolean areTeammates(UUID player1, UUID player2) {
-        if (FTBTeamsCompat.isLoaded() && FTBTeamsCompat.areOnSameTeam(player1, player2)) {
+        if (FTBTeamsCompat.isLoaded() && FTBTeamsCompat.areTeamTrusted(player1, player2)) {
             return true;
         }
         return OpenPACCompat.isLoaded() && OpenPACCompat.areInSameParty(player1, player2);
