@@ -44,11 +44,12 @@ public class MovementPowerEvents {
         }
     }
 
-    // BreakSpeedModifierPower used to be handled here via PlayerEvent.BreakSpeed,
-    // but that event fires client-side for the local player and the
-    // ServerPlayer guard silently filtered every call → mining speed never
-    // applied. Powers now use the vanilla player.block_break_speed attribute,
-    // which auto-syncs to the client. See BreakSpeedModifierPower.
+    // BreakSpeedModifierPower used to share the vanilla player.block_break_speed
+    // attribute, but that attribute is global and cannot honour its block_tag
+    // filter, so it moved (back) to PlayerEvent.BreakSpeed in
+    // BreakSpeedModifierEvents — handled on BOTH sides (the earlier ServerPlayer
+    // guard that silently ate the client-side call is exactly what that handler
+    // avoids). See BreakSpeedModifierPower / BreakSpeedModifierEvents.
     //
     // TODO: UnderwaterMiningSpeedPower is still broken for the same reason —
     // it has a positional condition (in water + airborne) that attribute
