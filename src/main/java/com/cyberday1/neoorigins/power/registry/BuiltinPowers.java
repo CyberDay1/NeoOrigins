@@ -169,7 +169,9 @@ public final class BuiltinPowers {
         // the power still deserializes through its own Codec<Config>, untouched.
         define("break_speed_modifier", BreakSpeedModifierPower.class, List.of(
             new FieldSpec("multiplier", Kind.NUMBER, false)
-                .def(2.0).doc("Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0.")));
+                .def(2.0).doc("Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0."),
+            new FieldSpec("block_tag", Kind.STRING, false)
+                .doc("Restrict the multiplier to blocks in this block tag, or matching this block id; a leading # forces tag-only. Omit to speed up every block.")));
         define("crop_harvest_bonus", CropHarvestBonusPower.class, List.of(
             new FieldSpec("extra_drops", Kind.INTEGER, false)
                 .def(1).doc("Extra copies of the block's own loot when breaking crops/logs (default 1).")));

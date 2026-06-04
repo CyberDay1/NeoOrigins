@@ -1,40 +1,41 @@
 package com.cyberday1.neoorigins.power.builtin;
 
-import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
-import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
+
+import java.util.Set;
 
 /**
- * Multiplies the player's mining speed via the vanilla
- * {@code minecraft:player.block_break_speed} attribute. Combined multiplier
- * across all active break_speed_modifier powers is recomputed on grant/revoke
- * and applied as a single ADD_MULTIPLIED_TOTAL modifier so multiple powers
- * stack correctly (1.5x * 2.0x = 3.0x effective).
+ * Multiplies the player's mining speed, optionally restricted to blocks in a
+ * given block tag (or matching a single block id). When {@code block_tag} is
+ * absent or blank the multiplier applies to every block.
  *
- * Attribute-based instead of PlayerEvent.BreakSpeed because that event fires
- * client-side for the local player, where ServerPlayer-gated handlers never
- * see it. Attribute modifiers sync server→client automatically.
+ * <p>Applied through {@code PlayerEvent.BreakSpeed} (see
+ * {@link com.cyberday1.neoorigins.event.BreakSpeedModifierEvents}) rather than
+ * the vanilla {@code minecraft:player.block_break_speed} attribute. The attribute
+ * is global by construction — it scales <i>all</i> block breaking and cannot read
+ * the block being mined — so it could never honour {@code block_tag}. The break
+ * event carries the target {@link net.minecraft.world.level.block.state.BlockState},
+ * so per-tag filtering is possible there. The event fires client-side for the local
+ * player too, so the mining animation predicts at the boosted speed; the power's
+ * config is encoded into a capability tag ({@link #CAPABILITY_PREFIX}) so the client
+ * can reach the same multiplier without extra sync state, mirroring
+ * {@link BareHandToolPower}.
  *
- * Note: block_tag filtering was removed in v1.10.x — attributes apply to all
- * blocks. Only one power (Stoneguard's Stonecrusher) used the filter; it was
- * rebalanced to a smaller global multiplier.
+ * <p>Multiple active break_speed_modifier powers whose filters match the same block
+ * stack multiplicatively (1.5x * 2.0x = 3.0x).
  */
 public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.Config> {
 
-    private static final ResourceLocation MODIFIER_ID =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "break_speed_combined");
+    /** Capability-tag prefix; payload is {@code <multiplier>|<block_tag>} (tag may be empty). */
+    public static final String CAPABILITY_PREFIX = "break_speed_modifier|";
 
-    public record Config(float multiplier, String type) implements PowerConfiguration {
+    public record Config(float multiplier, String blockTag, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("multiplier", 2.0f).forGetter(Config::multiplier),
+            Codec.STRING.optionalFieldOf("block_tag", "").forGetter(Config::blockTag),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -43,67 +44,7 @@ public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.C
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public void onGranted(ServerPlayer player, Config config) {
-        refreshModifier(player);
-    }
-
-    @Override
-    public void onRevoked(ServerPlayer player, Config config) {
-        // Just remove; don't recompute from the active set. `revokeAllPowers`
-        // (used by /origin reset and Orb of Origin) fires onRevoked *before*
-        // the origin map is cleared, so an active-set recompute would still
-        // see the being-revoked powers and leave the modifier in place. If
-        // other break_speed_modifier powers remain after this revoke, the
-        // onTick self-heal re-applies with the correct product on the next
-        // 40-tick cycle.
-        AttributeInstance instance = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-        if (instance == null) return;
-        instance.removeModifier(MODIFIER_ID);
-    }
-
-    /**
-     * Recomputes the combined break-speed multiplier from all active
-     * break_speed_modifier powers and applies it as a single attribute modifier.
-     * Called on grant/revoke (and respawn via the default onRespawn → onGranted).
-     */
-    private static void refreshModifier(ServerPlayer player) {
-        AttributeInstance instance = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-        if (instance == null) {
-            NeoOrigins.LOGGER.warn(
-                "[break_speed_modifier] player {} has no BLOCK_BREAK_SPEED attribute — modifier cannot apply. "
-                + "This usually means the power was granted before attributes were registered. "
-                + "Fires once per grant attempt.",
-                player.getGameProfile().getName());
-            return;
-        }
-
-        instance.removeModifier(MODIFIER_ID);
-
-        double[] product = {1.0};
-        ActiveOriginService.forEachOfType(player, BreakSpeedModifierPower.class, cfg -> {
-            // Skip poison values from authored datapacks so one bad power
-            // can't corrupt the combined modifier for every other one.
-            float m = cfg.multiplier();
-            if (Float.isFinite(m) && m >= 0.0f) product[0] *= m;
-        });
-
-        if (product[0] != 1.0 && Double.isFinite(product[0])) {
-            // ADD_MULTIPLIED_TOTAL: applied as `* (1 + value)` at the final stage,
-            // so a 2.0x power contributes value=1.0 and stacks multiplicatively.
-            instance.addPermanentModifier(new AttributeModifier(
-                MODIFIER_ID, product[0] - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
-        }
-    }
-
-    // Safety net: re-apply the modifier periodically. The attribute is NOT on
-    // LivingEntity's default supplier for older NeoForge builds, and there
-    // have been reports of Miner's Hands appearing inert (#29). This self-
-    // heals any timing issue without being meaningfully expensive.
-    @Override
-    public void onTick(ServerPlayer player, Config config) {
-        if (player.tickCount % 40 != 0) return;
-        AttributeInstance instance = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-        if (instance == null) return;
-        if (instance.getModifier(MODIFIER_ID) == null) refreshModifier(player);
+    public Set<String> capabilities(Config config) {
+        return Set.of(CAPABILITY_PREFIX + config.multiplier() + "|" + config.blockTag());
     }
 }
