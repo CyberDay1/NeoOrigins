@@ -281,23 +281,23 @@ public class CombatPowerEvents {
                 Registries.DAMAGE_TYPE, Identifier.parse(f.substring(1))));
             return source.is(tag);
         }
-        // Match against both the msgId (camelCase, e.g. "flyIntoWall") and
-        // the registry key path (snake_case, e.g. "fly_into_wall") so pack
+        var typeKey = source.typeHolder().unwrapKey();
+        // If the filter explicitly specifies a namespace (e.g. "irons_spellbooks:fire_magic"),
+        // compare against the full registry-key Identifier so cross-mod damage types
+        // match unambiguously. Detect an explicit namespace by the presence of a ':' BEFORE
+        // parsing, since Identifier.parse would inject the default "minecraft:" namespace.
+        if (filter.indexOf(':') >= 0) {
+            var parsed = Identifier.tryParse(filter);
+            return parsed != null
+                && typeKey.isPresent()
+                && typeKey.get().identifier().equals(parsed);
+        }
+        // Bare path: match against both the msgId (camelCase, e.g. "flyIntoWall")
+        // and the registry key path (snake_case, e.g. "fly_into_wall") so pack
         // authors can use either convention.
         if (source.getMsgId().equalsIgnoreCase(filter)) return true;
-        // Also check against the registry key path (snake_case) so pack
-        // authors can use "fly_into_wall" instead of "flyIntoWall".
-        // ResourceKey.toString() = "ResourceKey[minecraft:damage_type / minecraft:fly_into_wall]"
-        // Extract the path after the last '/' and ':'
-        String keyStr = source.typeHolder().unwrapKey().map(Object::toString).orElse("");
-        int slash = keyStr.lastIndexOf('/');
-        if (slash >= 0) {
-            String loc = keyStr.substring(slash + 1).replace("]", "").trim();
-            int colon = loc.indexOf(':');
-            String path = colon >= 0 ? loc.substring(colon + 1) : loc;
-            if (path.equalsIgnoreCase(filter)) return true;
-        }
-        return false;
+        return typeKey.isPresent()
+            && typeKey.get().identifier().getPath().equalsIgnoreCase(filter);
     }
 
     /**
