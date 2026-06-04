@@ -304,11 +304,23 @@ public class CombatPowerEvents {
                 Registries.DAMAGE_TYPE, ResourceLocation.parse(f.substring(1))));
             return source.is(tag);
         }
-        // Match against both the msgId (camelCase, e.g. "flyIntoWall") and
-        // the registry key path (snake_case, e.g. "fly_into_wall") so pack
+        var typeKey = source.typeHolder().unwrapKey();
+        // If the filter explicitly specifies a namespace (e.g.
+        // "irons_spellbooks:fire_magic"), compare against the full registry-key
+        // ResourceLocation so cross-mod damage types match unambiguously. A bare
+        // path like "fire_magic" would otherwise be silently dropped. Detect an
+        // explicit namespace by the presence of a ':' BEFORE parsing, since
+        // ResourceLocation.parse would inject the default "minecraft:" namespace.
+        if (filter.indexOf(':') >= 0) {
+            var parsed = ResourceLocation.tryParse(filter);
+            return parsed != null
+                && typeKey.isPresent()
+                && typeKey.get().location().equals(parsed);
+        }
+        // Bare path: match against both the msgId (camelCase, e.g. "flyIntoWall")
+        // and the registry key path (snake_case, e.g. "fly_into_wall") so pack
         // authors can use either convention.
         if (source.getMsgId().equalsIgnoreCase(filter)) return true;
-        var typeKey = source.typeHolder().unwrapKey();
         return typeKey.isPresent()
             && typeKey.get().location().getPath().equalsIgnoreCase(filter);
     }
