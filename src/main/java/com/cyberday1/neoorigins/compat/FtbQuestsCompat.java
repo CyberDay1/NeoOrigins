@@ -35,11 +35,18 @@ import java.util.Collection;
  * {@code ftbquests:types}). Doing that safely via reflection across FTBQ
  * versions is brittle — the public RewardType API has shifted between minor
  * versions, and a registration mistake silently breaks every FTBQ quest book.
- * Tag-markers go through FTBQ's stable {@code QuestCompletedEvent} contract
- * (Architectury event, surfaces both client and server) and require pack
- * authors to add one tag string — trading reward-GUI integration for soft-dep
- * robustness, which is the right call for a backlog item that explicitly
- * permits "ship the standalone power" if the reward route is too unstable.
+ * Tag-markers go through FTBQ's stable {@code ObjectCompletedEvent.QUEST}
+ * contract (Architectury event) and require pack authors to add one tag string
+ * — trading reward-GUI integration for soft-dep robustness, which is the right
+ * call for a backlog item that explicitly permits "ship the standalone power"
+ * if the reward route is too unstable.
+ *
+ * <p><b>Reflection (not typed) on this branch:</b> there is no FTB Quests build
+ * for this MC version, so FTBQ is not on the compile classpath here and the
+ * event is bound by reflection. The class/field names below are verified
+ * against {@code ftb-quests-neoforge-2101.1.25} (the 1.21.1 line), whose
+ * package layout FTBQ keeps stable across MC versions; the gate means none of
+ * it classloads at runtime unless an {@code ftbquests} build is ever present.
  *
  * <p>If a future version of FTBQ stabilises {@code RewardType.Provider}, the
  * {@link #registerRewardType()} stub below is the hook to wire it up.
@@ -61,7 +68,7 @@ public final class FtbQuestsCompat {
             NeoOrigins.LOGGER.info("[Compat] FTB Quests loot_pool_grant tag-marker listener active "
                 + "(use tag '{}<table_id>' on a quest to grant)", TAG_PREFIX);
         } else {
-            NeoOrigins.LOGGER.warn("[Compat] FTB Quests detected but the QuestCompletedEvent hook "
+            NeoOrigins.LOGGER.warn("[Compat] FTB Quests detected but the quest-completed hook "
                 + "could not be wired — pack-side tag-marker rewards will be inert. "
                 + "loot_pool_grant still works as a normal active power.");
         }
@@ -71,27 +78,37 @@ public final class FtbQuestsCompat {
 
     private static boolean tryRegisterCompletedEventListener() {
         try {
+            // The real completion event is ObjectCompletedEvent; its per-quest
+            // variant is the static QUEST field — an Event<EventActor<QuestEvent>>.
+            // (The old api.event.QuestCompletedEvent class never existed in any
+            // shipped FTBQ build, so the hook silently never registered.)
             Class<?> eventClass = Class.forName(
-                "dev.ftb.mods.ftbquests.api.event.QuestCompletedEvent");
-            // Architectury Event field is the static EVENT singleton.
-            Field eventField = eventClass.getField("EVENT");
-            Object archEvent = eventField.get(null);
+                "dev.ftb.mods.ftbquests.events.ObjectCompletedEvent");
+            Field questField = eventClass.getField("QUEST");
+            Object archEvent = questField.get(null);
             Method register = archEvent.getClass().getMethod("register", Object.class);
 
-            // The Architectury event parameter type is QuestCompletedEvent itself
-            // (single-method consumer-style functional interface). Build a Proxy
-            // implementing that interface that just dispatches every invoke into
-            // our handler.
-            Class<?> listenerType = findListenerInterface(eventClass);
-            if (listenerType == null) {
-                NeoOrigins.LOGGER.debug("[Compat] FTBQ QuestCompletedEvent: no listener interface located");
-                return false;
-            }
+            // Listener contract is Architectury's EventActor functional interface
+            // (single method: EventResult act(T)). Proxy it.
+            Class<?> listenerType = Class.forName("dev.architectury.event.EventActor");
+
+            // act(T) MUST return an EventResult — returning null NPEs Architectury's
+            // event combiner. Resolve EventResult.pass() (the neutral value) once.
+            Object passResult = Class.forName("dev.architectury.event.EventResult")
+                .getMethod("pass").invoke(null);
 
             InvocationHandler handler = (proxy, method, args) -> {
-                if (args == null || args.length == 0) return null;
-                onQuestCompleted(args[0]);
-                return null;
+                if ("act".equals(method.getName()) && args != null && args.length == 1) {
+                    onQuestCompleted(args[0]);
+                    return passResult;
+                }
+                // Object methods (toString/hashCode/equals) on the proxy.
+                return switch (method.getName()) {
+                    case "toString" -> "NeoOriginsFtbqQuestCompletedActor";
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> null;
+                };
             };
             Object proxy = Proxy.newProxyInstance(
                 FtbQuestsCompat.class.getClassLoader(),
@@ -100,7 +117,7 @@ public final class FtbQuestsCompat {
             register.invoke(archEvent, proxy);
             return true;
         } catch (ClassNotFoundException cnf) {
-            NeoOrigins.LOGGER.debug("[Compat] FTBQ QuestCompletedEvent class not present — soft-compat inert");
+            NeoOrigins.LOGGER.debug("[Compat] FTBQ ObjectCompletedEvent class not present — soft-compat inert");
             return false;
         } catch (Throwable t) {
             NeoOrigins.LOGGER.warn("[Compat] FTBQ event hook failed to register: {}", t.toString());
@@ -108,36 +125,23 @@ public final class FtbQuestsCompat {
         }
     }
 
-    /**
-     * Architectury events conventionally use a single-method nested
-     * functional interface (often named like the event itself). We search the
-     * event class for any inner interface to use as the proxy contract.
-     */
-    private static Class<?> findListenerInterface(Class<?> eventClass) {
-        for (Class<?> inner : eventClass.getDeclaredClasses()) {
-            if (inner.isInterface()) return inner;
-        }
-        // Some FTBQ versions expose the listener as the event class itself
-        // (used as a functional interface). Accept that as a fallback.
-        if (eventClass.isInterface()) return eventClass;
-        return null;
-    }
-
     // ── Event handler ──────────────────────────────────────────────────
 
     private static void onQuestCompleted(Object event) {
         try {
-            Object questData = reflectGet(event, "getQuest", "quest", "questObject", "object");
+            Object questData = reflectGet(event, "getQuest", "getObject", "quest", "object");
             if (questData == null) return;
-            Object player = reflectGet(event, "getPlayer", "player", "getServerPlayer");
-            if (!(player instanceof ServerPlayer sp)) return;
 
-            // FTBQ quests expose tags as List<String>; some versions return a
-            // Collection. Walk reflectively so we don't bind to either.
+            // FTBQ quests expose tags as Set<String> (QuestObjectBase.getTags()).
             Object tagsRaw = reflectGet(questData, "getTags", "tags");
             if (!(tagsRaw instanceof Collection<?> tags) || tags.isEmpty()) return;
 
-            String questId = stringFrom(reflectGet(questData, "getId", "id", "getCodeString"));
+            // FTBQ completion is team-based: no single player. Grant to every
+            // online team member (ObjectProgressEvent.getOnlineMembers()).
+            Object membersRaw = reflectGet(event, "getOnlineMembers", "getNotifiedPlayers");
+            if (!(membersRaw instanceof Collection<?> members) || members.isEmpty()) return;
+
+            String questId = stringFrom(reflectGet(questData, "getCodeString", "getId", "id"));
             if (questId == null) questId = "ftbq_unknown";
 
             for (Object t : tags) {
@@ -155,7 +159,11 @@ public final class FtbQuestsCompat {
                     continue;
                 }
                 String grantId = "ftbq:" + questId + ":" + tableIdRaw;
-                LootPoolGrantPower.fireLootPoolGrant(sp, tableId, grantId);
+                for (Object m : members) {
+                    if (m instanceof ServerPlayer sp) {
+                        LootPoolGrantPower.fireLootPoolGrant(sp, tableId, grantId);
+                    }
+                }
             }
         } catch (Throwable t) {
             // Best-effort; never throw out of an FTBQ event listener.
