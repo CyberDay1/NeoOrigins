@@ -429,8 +429,10 @@ public final class BuiltinConditions {
         define("equipped_item",
             (json, ctx) -> ConditionParser.parseEquippedItem(json, ctx),
             List.of(new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false)
-                        .options("head", "chest", "legs", "feet", "mainhand", "offhand").def("mainhand")
-                        .doc("Equipment slot to inspect (default mainhand)."),
+                        .options("head", "chest", "legs", "feet", "mainhand", "offhand", "accessory").def("mainhand")
+                        .doc("Equipment slot to inspect (default mainhand). `accessory` inspects equipped Curios/Accessories slots (soft-dep, 1.21.1 only)."),
+                    new FieldSpec("slot_type", FormFieldSpec.Kind.STRING, false)
+                        .doc("Only used when equipment_slot is `accessory`: narrows to a named accessory/curio slot type (e.g. ring, belt, hands); absent → any accessory slot."),
                     new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
                         .ref("item_condition.schema.json")
                         .doc("Nested item condition; absent → slot-presence check (any item present).")));

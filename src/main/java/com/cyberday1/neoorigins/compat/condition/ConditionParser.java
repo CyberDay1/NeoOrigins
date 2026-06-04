@@ -484,7 +484,6 @@ public final class ConditionParser {
 
     static EntityCondition parseEquippedItem(JsonObject json, String contextId) {
         String slot = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
-        EquipmentSlot eqSlot = mapEquipmentSlot(slot);
 
         // Delegate the per-stack predicate to the shared ItemConditionParser so
         // packs get the full item-condition vocabulary (and/or/not, nbt subtree
@@ -492,6 +491,31 @@ public final class ConditionParser {
         // instead of the previous inline-and-only id/tag/empty path.
         JsonObject itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
             ? json.getAsJsonObject("item_condition") : null;
+
+        // Accessory branch — intercept BEFORE mapEquipmentSlot (which would
+        // otherwise fall through to MAINHAND). Inspects equipped Curios/Accessories
+        // stacks via the shared, soft-dep AccessoryInspector. Optional slot_type
+        // narrows to a named accessory/curio slot (e.g. ring, belt, hands).
+        if ("accessory".equalsIgnoreCase(slot)) {
+            String slotType = json.has("slot_type") && !json.get("slot_type").isJsonNull()
+                ? json.get("slot_type").getAsString() : null;
+            if (itemCond == null) {
+                // No item_condition — slot-presence check: any accessory equipped
+                // (optionally in the named slot type).
+                return player -> !AccessoryInspector.getEquippedAccessories(player, slotType).isEmpty();
+            }
+            com.cyberday1.neoorigins.compat.condition.ItemCondition accPredicate =
+                com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(itemCond);
+            return player -> {
+                for (net.minecraft.world.item.ItemStack stack
+                        : AccessoryInspector.getEquippedAccessories(player, slotType)) {
+                    if (accPredicate.test(stack)) return true;
+                }
+                return false;
+            };
+        }
+
+        EquipmentSlot eqSlot = mapEquipmentSlot(slot);
         if (itemCond == null) {
             // No item_condition supplied — treat as a slot-presence check (vanilla
             // Apoli behaviour: equipped_item with just a slot matches when ANY
@@ -1440,7 +1464,6 @@ public final class ConditionParser {
 
     /** Cached result of mod-loaded check so we don't query ModList every tick. */
     private static final boolean VNU_LOADED = neoorigins$modLoaded("vampiresneedumbrellas");
-    private static final boolean CURIOS_LOADED = neoorigins$modLoaded("curios");
 
     /**
      * Null-safe mod-loaded check. {@code ModList.get()} returns null outside a
@@ -1457,13 +1480,19 @@ public final class ConditionParser {
     /**
      * Returns true if the player has an umbrella from Vampires Need Umbrellas
      * equipped — either hand or any Curios/Accessories slot.
+     *
+     * <p>The accessory-slot scan is delegated to {@link AccessoryInspector},
+     * which aggregates both Curios (reflection) and Accessories (typed) sources,
+     * so an umbrella worn in an Accessories slot now also blocks sun damage.
+     * Hand checks and the umbrella item-detection predicate are unchanged.
      */
     static boolean neoorigins$isHoldingUmbrella(net.minecraft.world.entity.LivingEntity entity) {
         if (!VNU_LOADED) return false;
         if (neoorigins$isUmbrella(entity.getMainHandItem())) return true;
         if (neoorigins$isUmbrella(entity.getOffhandItem())) return true;
-        if (CURIOS_LOADED) {
-            return neoorigins$checkCuriosForUmbrella(entity);
+        for (net.minecraft.world.item.ItemStack stack
+                : AccessoryInspector.getEquippedAccessories(entity, null)) {
+            if (neoorigins$isUmbrella(stack)) return true;
         }
         return false;
     }
@@ -1473,42 +1502,5 @@ public final class ConditionParser {
         net.minecraft.resources.ResourceLocation id =
             net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
         return "vampiresneedumbrellas".equals(id.getNamespace());
-    }
-
-    /**
-     * Scan all equipped Curios slots for an umbrella via reflection.
-     * Curios is not a compile-time dependency so we resolve the API at
-     * runtime. The reflected method handle is cached after the first call.
-     */
-    private static java.lang.reflect.Method CURIOS_GET_INVENTORY;
-    private static java.lang.reflect.Method CURIOS_GET_EQUIPPED;
-    private static boolean CURIOS_REFLECT_FAILED = false;
-
-    private static boolean neoorigins$checkCuriosForUmbrella(net.minecraft.world.entity.LivingEntity entity) {
-        if (CURIOS_REFLECT_FAILED) return false;
-        try {
-            if (CURIOS_GET_INVENTORY == null) {
-                Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");
-                CURIOS_GET_INVENTORY = api.getMethod("getCuriosInventory", net.minecraft.world.entity.LivingEntity.class);
-                // ICuriosItemHandler.getEquippedCurios() returns IItemHandlerModifiable
-                Class<?> handlerClass = Class.forName("top.theillusivec4.curios.api.type.capability.ICuriosItemHandler");
-                CURIOS_GET_EQUIPPED = handlerClass.getMethod("getEquippedCurios");
-            }
-            // CuriosApi.getCuriosInventory(entity) -> Optional<ICuriosItemHandler>
-            @SuppressWarnings("unchecked")
-            java.util.Optional<?> opt = (java.util.Optional<?>) CURIOS_GET_INVENTORY.invoke(null, entity);
-            if (opt.isPresent()) {
-                Object handler = opt.get();
-                // handler.getEquippedCurios() -> IItemHandlerModifiable
-                var equipped = (net.neoforged.neoforge.items.IItemHandlerModifiable) CURIOS_GET_EQUIPPED.invoke(handler);
-                for (int i = 0; i < equipped.getSlots(); i++) {
-                    if (neoorigins$isUmbrella(equipped.getStackInSlot(i))) return true;
-                }
-            }
-        } catch (Exception e) {
-            // Curios API not available or changed — disable further attempts
-            CURIOS_REFLECT_FAILED = true;
-        }
-        return false;
     }
 }

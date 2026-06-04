@@ -48,6 +48,7 @@ repositories {
     maven { url = 'https://maven.terraformersmc.com/' }  // EMI
     maven { url = 'https://cursemaven.com' }             // Jade + The One Probe
     maven { url = 'https://maven.ftb.dev/releases' }     // FTB Quests + FTB Library
+    maven { url = 'https://api.modrinth.com/maven' }     // Accessories (Wisp Forest)
 }
 
 dependencies {
@@ -81,6 +82,13 @@ dependencies {
     compileOnly "dev.ftb.mods:ftb-quests-neoforge:${property('deps.ftbquests')}"
     compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
     compileOnly "dev.ftb.mods:ftb-teams-neoforge:${property('deps.ftbteams')}"
+
+    // Accessories (Wisp Forest) – equipped-accessory inspection for the
+    // equipped_item condition + umbrella detection. Compile-only soft dep; all
+    // Accessories-typed code is isolated in compat/condition/AccessoriesCompat
+    // and only classloaded behind a ModList.isLoaded("accessories") gate
+    // (Modrinth maven; group maven.modrinth). 1.21.1-only — no 26.1 build exists.
+    compileOnly "maven.modrinth:accessories:${property('deps.accessories')}"
 }
 
 sourceSets {

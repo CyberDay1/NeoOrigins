@@ -818,7 +818,7 @@
           ]
         },
         "equipment_slot": {
-          "description": "Equipment slot to inspect (default mainhand).",
+          "description": "Equipment slot to inspect (default mainhand). `accessory` inspects equipped Curios/Accessories slots (soft-dep, 1.21.1 only).",
           "type": "string",
           "enum": [
             "head",
@@ -826,9 +826,14 @@
             "legs",
             "feet",
             "mainhand",
-            "offhand"
+            "offhand",
+            "accessory"
           ],
           "default": "mainhand"
+        },
+        "slot_type": {
+          "description": "Only used when equipment_slot is `accessory`: narrows to a named accessory/curio slot type (e.g. ring, belt, hands); absent → any accessory slot.",
+          "type": "string"
         },
         "item_condition": {
           "description": "Nested item condition; absent → slot-presence check (any item present).",

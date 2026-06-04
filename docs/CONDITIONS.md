@@ -375,7 +375,8 @@ Inspects an item in a given equipment slot.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, or `"mainhand"` |
+| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, `"mainhand"`, or `"accessory"` |
+| `slot_type` | string | no | — | Only used when `equipment_slot` is `"accessory"`: narrows to a named accessory/curio slot type (e.g. `ring`, `belt`, `hands`); absent → any accessory slot |
 | `item_condition` | object | no | — | Nested condition (see below) |
 
 **Unusual:** `item_condition` has its own internal shape. Accepts any of:
@@ -385,6 +386,8 @@ Inspects an item in a given equipment slot.
 - `{ "ingredient": { "item": "..." } }` or `{ "ingredient": { "tag": "..." } }` — ingredient-style wrapper
 
 Always-true when `item_condition` is absent.
+
+**Accessory slots:** `"accessory"` inspects worn trinkets from Curios and/or Accessories (Wisp Forest), aggregating both. Each is a soft dependency — with neither installed the `accessory` slot matches nothing. When `item_condition` is present it passes if *any* equipped accessory stack matches; absent, it is a presence check (any accessory equipped). This integration is **1.21.1 only** — Accessories has no 26.1 build.
 
 ## `neoorigins:enchantment`
 
