@@ -48,6 +48,38 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     private int version = 0;
     public int version() { return version; }
 
+    /** Cached: does any loaded power (native or Route-B injected) have type
+     *  {@code neoorigins:ultimine}? Recomputed whenever the power set changes
+     *  (datapack reload in {@link #apply} or Route-B injection in
+     *  {@link #injectExternalPowers}). Lets the FTB Ultimine bridge stay
+     *  completely dormant unless a loaded pack actually defines an ultimine
+     *  power — without this flag the deny-only restriction API would disable
+     *  vein-mining for non-holders even when no pack uses the power. */
+    private boolean ultiminePowerInUse = false;
+
+    /** True if at least one loaded power has type {@code neoorigins:ultimine}. */
+    public boolean isUltiminePowerInUse() { return ultiminePowerInUse; }
+
+    /** Rescan the loaded power set for any {@code neoorigins:ultimine} power. */
+    private void recomputeUltiminePowerInUse() {
+        boolean found = false;
+        for (PowerHolder<?> holder : powers.values()) {
+            if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.UltiminePower) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            for (PowerHolder<?> holder : injectedPowers.values()) {
+                if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.UltiminePower) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        this.ultiminePowerInUse = found;
+    }
+
     @Override
     protected Map<Identifier, JsonElement> prepare(ResourceManager resourceManager, ProfilerFiller profiler) {
         Map<Identifier, JsonElement> map = new HashMap<>();
@@ -148,6 +180,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         this.rawPowerJson = Collections.unmodifiableMap(rawSnapshot);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         this.version++;
+        recomputeUltiminePowerInUse();
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
         // Per-namespace breakdown — toggled via config/neoorigins-common.toml
@@ -242,6 +275,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     public void injectExternalPowers(Map<Identifier, PowerHolder<?>> external) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
         this.version++;
+        recomputeUltiminePowerInUse();
     }
 
     /** Returns all powers including Route B injected ones (used for registry sync). */

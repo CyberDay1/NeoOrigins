@@ -2532,6 +2532,27 @@ When the player breaks a log, BFS/DFS upward to break all connected logs. Skippe
 
 ---
 
+## `neoorigins:ultimine`
+
+Grants [FTB Ultimine](https://www.curseforge.com/minecraft/mc-mods/ftb-ultimine) vein-mining to the holder. Soft dependency on `ftbultimine`: when that mod is absent this power is an inert marker and does nothing.
+
+When FTB Ultimine is installed, NeoOrigins registers a restriction handler that permits vein-mining only for players with an **active** `neoorigins:ultimine` power and denies it for everyone else. Because FTB Ultimine treats restriction handlers as an AND-gate (the first handler that disallows wins), adding this power to any origin turns vein-mining into an origin-gated ability — only that origin's holders may ultimine.
+
+The integration is completely dormant unless a loaded pack defines a `neoorigins:ultimine` power. While no pack uses it, FTB Ultimine behaves exactly as vanilla (the AND-gate handler stays out of the way for everyone). Once at least one `ultimine` power is loaded, vein-mining is restricted to players who hold an ultimine power. This keeps the soft dependency truly opt-in: installing both mods together changes nothing until a pack adds the power.
+
+This power carries no config. FTB Ultimine's restriction hook is a coarse allow/deny permission check with no setter for the per-player block limit, the require-tool toggle, or the mining shape — so those are **not** exposed here. The block count, tool requirement, cooldown, exhaustion/XP cost, and shape all follow FTB Ultimine's own server config (and any FTB Ranks / attribute overrides). Modeling fields the API cannot honour would be misleading, so the power is deliberately config-light: "while this power is active you may vein-mine."
+
+**Example:**
+```json
+{
+  "type": "neoorigins:ultimine",
+  "name": "Excavator",
+  "description": "Hold the ultimine key and break a block to vein-mine the whole vein. Limits follow the server's FTB Ultimine config."
+}
+```
+
+---
+
 ## `neoorigins:craft_amount_bonus`
 
 Grants bonus items when crafting a specific output (e.g., more planks per log). Hooks `PlayerEvent.ItemCraftedEvent` directly, so bonuses only trigger on genuine crafting operations.

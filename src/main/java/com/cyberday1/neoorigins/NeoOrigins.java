@@ -171,6 +171,13 @@ public class NeoOrigins {
         if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
             com.cyberday1.neoorigins.compat.FtbQuestsCompat.register();
         }
+        // FTB Ultimine soft-compat — registers a RestrictionHandler so vein-mining
+        // is gated to players with an active neoorigins:ultimine power. All
+        // FTB-Ultimine-typed code lives in compat.ftbultimine and only classloads
+        // behind this gate, so a pack without FTB Ultimine loads normally.
+        if (net.neoforged.fml.ModList.get().isLoaded("ftbultimine")) {
+            com.cyberday1.neoorigins.compat.ftbultimine.FtbUltimineCompat.register();
+        }
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {

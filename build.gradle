@@ -45,6 +45,7 @@ repositories {
     maven { url = 'https://maven.shedaniel.me' }         // REI
     maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
     maven { url = 'https://api.modrinth.com/maven' }     // Jade
+    maven { url = 'https://maven.ftb.dev/releases' }     // FTB Ultimine / FTB Library
 }
 
 dependencies {
@@ -60,6 +61,16 @@ dependencies {
     // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
     // EMI + The One Probe are skipped on 26.1 — no 26.1 NeoForge build yet.
     compileOnly "maven.modrinth:jade:${property('deps.jade')}"
+
+    // FTB Ultimine – the `ultimine` vein-mining power grants ultimine to active
+    // origin holders via a registered RestrictionHandler. Compile-only soft dep;
+    // all FTB-Ultimine-typed code is isolated in compat/ftbultimine and only
+    // classloaded behind a ModList.isLoaded("ftbultimine") gate. On 26.1 the
+    // restriction-handler event (FTBUltimineEvent.RegisterRestrictionHandler)
+    // extends FTB Library's BaseEventWithData, so ftb-library must be on the
+    // compile classpath too.
+    compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
+    compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
 }
 
 sourceSets {
