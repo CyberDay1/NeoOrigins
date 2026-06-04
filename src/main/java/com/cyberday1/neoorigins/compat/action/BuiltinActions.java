@@ -7,6 +7,11 @@ import com.cyberday1.neoorigins.compat.registry.ActionType;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.schemaform.FormFieldSpec;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3f;
+import org.joml.Vector3f;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -68,6 +73,87 @@ public final class BuiltinActions {
         DESCRIPTORS.put(id, type);
         BY_KEY.put(id.toString(), type);
         for (Identifier alias : aliases) BY_KEY.put(alias.toString(), type);
+    }
+
+    /**
+     * Transform an {@code add_velocity} {@code (x,y,z)} authored in an Apoli "space"
+     * into world-space delta movement.
+     *
+     * <p>Faithful port of {@code io.github.apace100.apoli.util.Space#toGlobal} — same matrix
+     * construction, transpose-multiply, and length/normalize semantics — so packs that
+     * authored {@code "space"} on add_velocity behave exactly as on real Apoli.
+     *
+     * <p>{@code world} (or unknown) returns the vector unchanged. {@code local*} uses the
+     * player's look direction as the forward (+z) base; {@code velocity*} uses current
+     * delta movement. {@code _horizontal} zeroes the base's Y; non-{@code _normalized}
+     * scales the result by the base vector's length.
+     */
+    static Vec3 spaceToGlobal(String space, double x, double y, double z, ServerPlayer player) {
+        if (space == null || space.equals("world")) return new Vec3(x, y, z);
+        Vec3 base;
+        boolean normalizeBase;
+        switch (space) {
+            case "local", "local_horizontal", "local_horizontal_normalized" -> {
+                base = player.getLookAngle();
+                if (!space.equals("local")) base = new Vec3(base.x, 0, base.z);
+                normalizeBase = space.equals("local_horizontal_normalized");
+            }
+            case "velocity", "velocity_normalized",
+                 "velocity_horizontal", "velocity_horizontal_normalized" -> {
+                base = player.getDeltaMovement();
+                if (space.equals("velocity_horizontal") || space.equals("velocity_horizontal_normalized"))
+                    base = new Vec3(base.x, 0, base.z);
+                normalizeBase = space.equals("velocity_normalized")
+                    || space.equals("velocity_horizontal_normalized");
+            }
+            default -> { return new Vec3(x, y, z); }
+        }
+        Vector3f vec = new Vector3f((float) x, (float) y, (float) z);
+        transformVectorToBase(base, vec, player.getYRot(), normalizeBase);
+        return new Vec3(vec.x(), vec.y(), vec.z());
+    }
+
+    /** Apoli {@code Space#transformVectorToBase} — rotate {@code vec} so +z follows {@code base}. */
+    private static void transformVectorToBase(Vec3 base, Vector3f vec, float baseYaw, boolean normalizeBase) {
+        double baseScaleD = base.length();
+        if (baseScaleD <= 0.007D) {
+            vec.zero();
+            return;
+        }
+        float baseScale = (float) baseScaleD;
+        Vec3 normalizedBase = base.normalize();
+        Matrix3f m = baseTransformMatrix(normalizedBase, baseYaw);
+        if (!normalizeBase) m.scale(baseScale, baseScale, baseScale);
+        vec.mulTranspose(m);
+    }
+
+    /** Apoli {@code Space#getBaseTransformMatrixFromNormalizedDirectionVector}. */
+    private static Matrix3f baseTransformMatrix(Vec3 vector, float yaw) {
+        double xX, xZ, zX = 0.0D, zY = vector.y, zZ = 0.0D;
+        if (Math.abs(zY) != 1.0F) {
+            zX = vector.x;
+            zZ = vector.z;
+            xX = vector.z;
+            xZ = -vector.x;
+            float xFactor = (float) (1 / Math.sqrt(xX * xX + xZ * xZ));
+            xX *= xFactor;
+            xZ *= xFactor;
+        } else {
+            float trigonometricYaw = -yaw * 0.0174532925F;
+            xX = Mth.cos(trigonometricYaw);
+            xZ = -Mth.sin(trigonometricYaw);
+        }
+        Matrix3f res = new Matrix3f();
+        res.set(0, 0, (float) xX);
+        res.set(1, 0, 0.0F);
+        res.set(2, 0, (float) xZ);
+        res.set(0, 1, (float) (zY * xZ));
+        res.set(1, 1, (float) (zZ * xX - zX * xZ));
+        res.set(2, 1, (float) (-zY * xX));
+        res.set(0, 2, (float) zX);
+        res.set(1, 2, (float) zY);
+        res.set(2, 2, (float) zZ);
+        return res;
     }
 
     static {
@@ -192,9 +278,11 @@ public final class BuiltinActions {
                 double y = json.has("y") ? json.get("y").getAsDouble() : 0;
                 double z = json.has("z") ? json.get("z").getAsDouble() : 0;
                 boolean set = json.has("set") && json.get("set").getAsBoolean();
+                String space = json.has("space") ? json.get("space").getAsString() : "world";
                 return player -> {
-                    if (set) player.setDeltaMovement(x, y, z);
-                    else player.push(x, y, z);
+                    Vec3 v = spaceToGlobal(space, x, y, z, player);
+                    if (set) player.setDeltaMovement(v.x, v.y, v.z);
+                    else player.push(v.x, v.y, v.z);
                     player.hurtMarked = true;
                 };
             },
@@ -206,7 +294,17 @@ public final class BuiltinActions {
                 new FieldSpec("z", FormFieldSpec.Kind.NUMBER, false).def(0.0)
                     .doc("Z velocity component (default 0)."),
                 new FieldSpec("set", FormFieldSpec.Kind.BOOLEAN, false).def(false)
-                    .doc("If true, replaces delta movement instead of pushing additively.")));
+                    .doc("If true, replaces delta movement instead of pushing additively."),
+                new FieldSpec("space", FormFieldSpec.Kind.ENUM, false)
+                    .options("world", "local", "local_horizontal", "local_horizontal_normalized",
+                             "velocity", "velocity_normalized",
+                             "velocity_horizontal", "velocity_horizontal_normalized")
+                    .def("world")
+                    .doc("Coordinate space for x/y/z. world = absolute axes (default); "
+                       + "local = relative to look direction (+z = forward); "
+                       + "velocity = relative to current movement direction. "
+                       + "_horizontal variants ignore vertical look/velocity; "
+                       + "_normalized variants ignore the base vector's length.")));
 
         // dash — impulse along the player's look vector. Lift-and-shift of
         // parseDash. All fields optional (strength 1.5, allow_vertical true,
@@ -1359,9 +1457,14 @@ public final class BuiltinActions {
                     .doc("{x,y,z} per-axis gaussian spread radius (default 0).")));
 
         // drop_inventory — drop the holder's vanilla inventory as item entities.
-        // LIMITATION: the Apoli `slots` selector is not honoured — the whole player
-        // inventory is dropped. Every observed pack either lists all slots or leaves
-        // `slots` empty (Apoli treats empty as "all"), so drop-all matches intent.
+        // The optional `item_condition` filters which stacks drop (Apoli semantics) —
+        // e.g. a "drop totems" power passes an item_condition matching totems of
+        // undying, so only those leave the inventory. Without a filter, all stacks
+        // drop (Apoli treats an absent condition as "everything").
+        // The optional `slots` selector restricts the scan to the named Apoli/vanilla
+        // slots (e.g. "weapon.mainhand", "weapon.offhand", "armor.head"); absent or
+        // empty means "every slot" (Apoli's default). Deano's totem_restrict power
+        // relies on this to drop totems from the hands only, not the whole inventory.
         // Apoli "power" inventories (virtual per-power containers) aren't modelled.
         define("drop_inventory",
             (json, ctx) -> {
@@ -1372,15 +1475,32 @@ public final class BuiltinActions {
                     NeoOrigins.LOGGER.warn("[CompatB] drop_inventory: inventory_type '{}' unsupported (only 'inventory') — no-op", invType);
                     return EntityAction.noop();
                 }
+                var itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
+                    ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(json.getAsJsonObject("item_condition"))
+                    : com.cyberday1.neoorigins.compat.condition.ItemCondition.alwaysTrue();
+                // null = no selector → scan the whole inventory; otherwise the resolved
+                // command-slot ids (possibly empty if every listed name was unknown).
+                final int[] slotIds = parseDropInventorySlots(json);
                 return player -> {
-                    var inv = player.getInventory();
                     boolean dropped = false;
-                    for (int i = 0; i < inv.getContainerSize(); i++) {
-                        net.minecraft.world.item.ItemStack s = inv.getItem(i);
-                        if (s.isEmpty()) continue;
-                        player.drop(s, throwRandomly, retainOwnership);
-                        inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
-                        dropped = true;
+                    if (slotIds == null) {
+                        var inv = player.getInventory();
+                        for (int i = 0; i < inv.getContainerSize(); i++) {
+                            net.minecraft.world.item.ItemStack s = inv.getItem(i);
+                            if (s.isEmpty() || !itemCond.test(s)) continue;
+                            player.drop(s, throwRandomly, retainOwnership);
+                            inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+                            dropped = true;
+                        }
+                    } else {
+                        for (int id : slotIds) {
+                            var acc = player.getSlot(id);
+                            net.minecraft.world.item.ItemStack s = acc.get();
+                            if (s.isEmpty() || !itemCond.test(s)) continue;
+                            player.drop(s, throwRandomly, retainOwnership);
+                            acc.set(net.minecraft.world.item.ItemStack.EMPTY);
+                            dropped = true;
+                        }
                     }
                     if (dropped) player.containerMenu.broadcastChanges();
                 };
@@ -1388,6 +1508,12 @@ public final class BuiltinActions {
             List.of(
                 new FieldSpec("inventory_type", FormFieldSpec.Kind.STRING, false).def("inventory")
                     .doc("Only 'inventory' (the vanilla player inventory) is supported; 'power' inventories no-op."),
+                new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("item_condition.schema.json")
+                    .doc("Only drop stacks matching this item_condition. Omit to drop everything."),
+                new FieldSpec("slots", FormFieldSpec.Kind.ARRAY, false)
+                    .itemPattern("^[a-z0-9_.]+$")
+                    .doc("Restrict to these vanilla/Apoli slot names (e.g. weapon.mainhand, weapon.offhand, armor.head). Omit or leave empty to scan every slot."),
                 new FieldSpec("throw_randomly", FormFieldSpec.Kind.BOOLEAN, false).def(true)
                     .doc("Scatter the dropped items (default true)."),
                 new FieldSpec("retain_ownership", FormFieldSpec.Kind.BOOLEAN, false).def(false)
@@ -2382,6 +2508,33 @@ public final class BuiltinActions {
                 yield net.minecraft.world.entity.EquipmentSlot.MAINHAND;
             }
         };
+    }
+
+    /**
+     * Resolve a {@code drop_inventory} {@code slots} selector to vanilla command-slot
+     * ids ({@link net.minecraft.world.entity.Entity#getSlot(int)} numbering, shared
+     * with Apoli's slot names via {@link net.minecraft.world.inventory.SlotRanges}).
+     * Returns {@code null} when no selector is present or the list is empty (Apoli
+     * treats that as "every slot"); otherwise the resolved ids, which may be empty if
+     * every listed name was unknown (drop nothing — safer than falling back to all).
+     */
+    static int[] parseDropInventorySlots(com.google.gson.JsonObject json) {
+        if (!json.has("slots") || !json.get("slots").isJsonArray()) return null;
+        com.google.gson.JsonArray arr = json.getAsJsonArray("slots");
+        if (arr.isEmpty()) return null;
+        it.unimi.dsi.fastutil.ints.IntList ids = new it.unimi.dsi.fastutil.ints.IntArrayList();
+        for (com.google.gson.JsonElement el : arr) {
+            if (!el.isJsonPrimitive()) continue;
+            String name = el.getAsString();
+            net.minecraft.world.inventory.SlotRange range =
+                net.minecraft.world.inventory.SlotRanges.nameToIds(name);
+            if (range == null) {
+                NeoOrigins.LOGGER.warn("[CompatB] drop_inventory: unknown slot '{}' — ignored", name);
+                continue;
+            }
+            ids.addAll(range.slots());
+        }
+        return ids.toIntArray();
     }
 
     // ── Item 5: block-target verb implementations ───────────────────────────

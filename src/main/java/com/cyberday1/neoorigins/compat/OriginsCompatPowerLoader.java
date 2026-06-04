@@ -971,6 +971,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         double value = modObj.has("value")  ? modObj.get("value").getAsDouble()
                      : modObj.has("amount") ? modObj.get("amount").getAsDouble() : 0.0;
         String op = modObj.has("operation") ? modObj.get("operation").getAsString() : "add_value";
+        // Apoli clamp/set ops (min/max/set) have no vanilla AttributeModifier
+        // equivalent — applying them as add_value corrupts the attribute (a cap
+        // becomes a flat bonus). Skip the power rather than mis-apply it.
+        if (!OriginsOperationMapper.isRepresentable(op)) {
+            NeoOrigins.LOGGER.warn("[CompatB] {}: attribute operation '{}' (clamp/set) has no vanilla "
+                + "equivalent — power will no-op", idStr, op);
+            CompatTranslationLog.skip(id, "origins:conditioned_attribute",
+                "operation '" + op + "' (clamp/set) cannot be represented as a vanilla attribute modifier");
+            return null;
+        }
         AttributeModifier.Operation operation = switch (OriginsOperationMapper.mapOperation(op)) {
             case "add_multiplied_base"  -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
             case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;

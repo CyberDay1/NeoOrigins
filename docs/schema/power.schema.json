@@ -746,6 +746,10 @@
           "description": "Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0.",
           "type": "number",
           "default": 2.0
+        },
+        "block_tag": {
+          "description": "Restrict the multiplier to blocks in this block tag, or matching this block id; a leading # forces tag-only. Omit to speed up every block.",
+          "type": "string"
         }
       },
       "required": [
