@@ -171,6 +171,19 @@ public class NeoOrigins {
         if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
             com.cyberday1.neoorigins.compat.FtbQuestsCompat.register();
         }
+
+        // The One Probe soft-compat — registers an entity provider that shows a
+        // looked-at mob's NeoOrigins origin in the probe overlay. TOP uses the
+        // IMC handshake, so wire the enqueue listener here; the actual send is
+        // guarded by a ModList check (and all TOP-typed code is confined to the
+        // compat.top package) so a missing TOP never NoClassDefFounds.
+        modEventBus.addListener(NeoOrigins::onInterModEnqueue);
+    }
+
+    private static void onInterModEnqueue(net.neoforged.fml.event.lifecycle.InterModEnqueueEvent event) {
+        if (net.neoforged.fml.ModList.get().isLoaded("theoneprobe")) {
+            com.cyberday1.neoorigins.compat.top.TopIntegration.enqueueImc();
+        }
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {

@@ -48,6 +48,27 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "BOTH"
 
+[[dependencies.${mod_id}]]
+    modId = "emi"
+    type = "optional"
+    versionRange = "[1.1,)"
+    ordering = "AFTER"
+    side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId = "jade"
+    type = "optional"
+    versionRange = "[15,)"
+    ordering = "AFTER"
+    side = "CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId = "theoneprobe"
+    type = "optional"
+    versionRange = "[12,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
 [[mixins]]
     config = "neoorigins.mixins.json"
 

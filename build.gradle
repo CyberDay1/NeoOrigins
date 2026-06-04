@@ -45,6 +45,8 @@ repositories {
     maven { url = 'https://maven.shedaniel.me' }         // REI
     maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
     maven { url = 'https://maven.latvian.dev/releases' } // KubeJS
+    maven { url = 'https://maven.terraformersmc.com/' }  // EMI
+    maven { url = 'https://cursemaven.com' }             // Jade + The One Probe
 }
 
 dependencies {
@@ -60,6 +62,16 @@ dependencies {
     // KubeJS – compile-only soft dep. Plugin entry + event group only
     // classloaded when KubeJS is installed at runtime (KubeJSCompat.isLoaded()).
     compileOnly "dev.latvian.mods:kubejs-neoforge:${property('deps.kubejs')}"
+
+    // EMI – recipe viewer. API compile-only; full jar runtimeOnly for dev testing.
+    compileOnly "dev.emi:emi-neoforge:${property('deps.emi')}:api"
+    runtimeOnly "dev.emi:emi-neoforge:${property('deps.emi')}"
+
+    // Jade – entity tooltip overlay. Compile-only soft dep (CurseMaven).
+    compileOnly "curse.maven:jade-324717:${property('deps.jade')}"
+
+    // The One Probe – probe overlay. Compile-only soft dep (CurseMaven).
+    compileOnly "curse.maven:the-one-probe-245211:${property('deps.top')}"
 }
 
 sourceSets {
