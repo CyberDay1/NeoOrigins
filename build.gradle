@@ -83,6 +83,14 @@ dependencies {
     compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
     compileOnly "dev.ftb.mods:ftb-teams-neoforge:${property('deps.ftbteams')}"
 
+    // FTB Ultimine – the `ultimine` vein-mining power grants ultimine to active
+    // origin holders via a registered RestrictionHandler. Compile-only soft dep;
+    // all FTB-Ultimine-typed code is isolated in compat/ftbultimine and only
+    // classloaded behind a ModList.isLoaded("ftbultimine") gate. The Ultimine
+    // API references FTB Library types, so ftb-library is on the compile
+    // classpath (already declared above for FTBQ). 1.21.1 line (2101.1.x).
+    compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
+
     // Accessories (Wisp Forest) – equipped-accessory inspection for the
     // equipped_item condition + umbrella detection. Compile-only soft dep; all
     // Accessories-typed code is isolated in compat/condition/AccessoriesCompat

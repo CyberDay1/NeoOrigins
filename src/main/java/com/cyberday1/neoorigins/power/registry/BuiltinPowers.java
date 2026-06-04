@@ -148,6 +148,11 @@ public final class BuiltinPowers {
         // `record Config(String type)` (type is internal plumbing, not a field).
         define("cobweb_affinity",          CobwebAffinityPower.class,         List.of());
         define("simple",                   SimplePower.class,                 List.of());
+        // Marker power: grants FTB Ultimine vein-mining to active holders via the
+        // ftbultimine soft-compat bridge. The restriction API exposes no setter for
+        // block-count / require-tool / shape, so this power carries no config — those
+        // follow FTB Ultimine's own server config. See docs/POWER_TYPES.md.
+        define("ultimine",                 UltiminePower.class,               List.of());
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
         define("flight",                   FlightPower.class,                 List.of());
         define("ignore_water",             IgnoreWaterPower.class,            List.of());

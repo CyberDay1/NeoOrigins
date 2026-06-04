@@ -144,6 +144,7 @@
         "neoorigins:trade_availability",
         "neoorigins:tree_felling",
         "neoorigins:twin_breeding",
+        "neoorigins:ultimine",
         "neoorigins:underwater_mining_speed",
         "neoorigins:walk_on_fluid",
         "neoorigins:wall_climbing",
@@ -3074,6 +3075,17 @@
       ]
     },
     {
+      "$comment": "neoorigins:ultimine",
+      "properties": {
+        "type": {
+          "const": "neoorigins:ultimine"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:underwater_mining_speed",
       "properties": {
         "type": {
@@ -3259,6 +3271,7 @@
               "neoorigins:trade_availability",
               "neoorigins:tree_felling",
               "neoorigins:twin_breeding",
+              "neoorigins:ultimine",
               "neoorigins:underwater_mining_speed",
               "neoorigins:walk_on_fluid",
               "neoorigins:wall_climbing",

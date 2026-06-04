@@ -139,6 +139,9 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, SneakyPower>                SNEAKY                 = reg("sneaky",                 new SneakyPower());
     public static final DeferredHolder<PowerType<?>, StealthPower>               STEALTH                = reg("stealth",                new StealthPower());
     public static final DeferredHolder<PowerType<?>, TreeFellingPower>           TREE_FELLING           = reg("tree_felling",           new TreeFellingPower());
+    // Soft-dep on ftbultimine — marker power; the FtbUltimineCompat bridge gates
+    // FTB Ultimine vein-mining to active holders. Inert when ftbultimine is absent.
+    public static final DeferredHolder<PowerType<?>, UltiminePower>              ULTIMINE               = reg("ultimine",               new UltiminePower());
     public static final DeferredHolder<PowerType<?>, CraftAmountBonusPower>      CRAFT_AMOUNT_BONUS     = reg("craft_amount_bonus",     new CraftAmountBonusPower());
     public static final DeferredHolder<PowerType<?>, TamedAnimalBoostPower>      TAMED_ANIMAL_BOOST     = reg("tamed_animal_boost",     new TamedAnimalBoostPower());
     public static final DeferredHolder<PowerType<?>, TamedPotionDiffusalPower>   TAMED_POTION_DIFFUSAL  = reg("tamed_potion_diffusal",  new TamedPotionDiffusalPower());
