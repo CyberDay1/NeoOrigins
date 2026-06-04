@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.data.OriginClaimsData;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
@@ -27,6 +28,7 @@ import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload;
+import com.cyberday1.neoorigins.network.payload.SyncOriginClaimsPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
 import com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry;
 import com.cyberday1.neoorigins.api.origin.Origin;
@@ -147,6 +149,12 @@ public class NeoOriginsNetwork {
             SyncActiveThemePayload.TYPE,
             SyncActiveThemePayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncActiveTheme
+        );
+
+        registrar.playToClient(
+            SyncOriginClaimsPayload.TYPE,
+            SyncOriginClaimsPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncOriginClaims
         );
 
         registrar.playToServer(
@@ -345,6 +353,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncMoisture(SyncMoisturePayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientMoistureState.set(payload.moisture())
+        );
+    }
+
+    private static void handleSyncOriginClaims(SyncOriginClaimsPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientOriginClaims.set(payload.claims())
         );
     }
 
@@ -726,6 +740,21 @@ public class NeoOriginsNetwork {
                 return;
             }
 
+            // Unique-origin enforcement. For layers configured as unique
+            // (unique_origin_layers), an origin already claimed by another
+            // player cannot be taken. An operator in creative mode bypasses
+            // the lock (the admin override path). Checked BEFORE any orb is
+            // consumed below so a rejected pick never wastes the player's orb.
+            boolean uniqueLayer = NeoOriginsConfig.isUniqueLayer(layerId);
+            boolean uniqueBypass = sp.hasPermissions(2) && sp.isCreative();
+            if (uniqueLayer && !uniqueBypass
+                    && OriginClaimsData.get(sp.getServer()).isClaimedByOther(layerId, originId, sp.getUUID())) {
+                sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "That origin has already been claimed by another player on this server.")
+                    .withStyle(net.minecraft.ChatFormatting.RED));
+                return;
+            }
+
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
 
             // First commit after an orb-of-origin use: perform the deferred
@@ -735,7 +764,16 @@ public class NeoOriginsNetwork {
             // anything is a free cancel — the player keeps their orb and
             // origins.
             if (data.isPendingOrbCommit()) {
+                // An orb re-pick clears every layer, so it also releases all of
+                // this player's unique-origin claims. Capture them before the
+                // commit wipes the player's origin map.
+                java.util.Map<ResourceLocation, ResourceLocation> preOrbOrigins =
+                    new java.util.HashMap<>(data.getOrigins());
                 commitOrbUse(sp, data);
+                OriginClaimsData claimsData = OriginClaimsData.get(sp.getServer());
+                preOrbOrigins.forEach((l, o) -> {
+                    if (NeoOriginsConfig.isUniqueLayer(l)) claimsData.releaseIfOwner(l, o, sp.getUUID());
+                });
             }
 
             // Any pick re-engages the player — a previous picker-abandon no
@@ -774,6 +812,9 @@ public class NeoOriginsNetwork {
             if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
 
             data.setOrigin(layerId, event.getNewOrigin());
+            if (uniqueLayer) {
+                OriginClaimsData.get(sp.getServer()).claim(layerId, event.getNewOrigin(), sp.getUUID());
+            }
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
@@ -1058,7 +1099,39 @@ public class NeoOriginsNetwork {
 
     /** Open the origin selection screen, optionally forcing re-selection of filled layers. */
     public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect) {
+        syncClaimsToPlayer(player);
         PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect));
+    }
+
+    /**
+     * Send the set of origins locked for {@code player} (claimed by someone else in a
+     * unique-enforced layer) so the picker can grey them out. The player's own claims are
+     * excluded so they can re-pick their current origin; an OP in creative bypasses the lock
+     * entirely and receives an empty map.
+     */
+    public static void syncClaimsToPlayer(ServerPlayer player) {
+        Map<ResourceLocation, Map<ResourceLocation, String>> locked = new java.util.HashMap<>();
+        boolean bypass = player.hasPermissions(2) && player.isCreative();
+        if (!bypass) {
+            OriginClaimsData claimsData = OriginClaimsData.get(player.getServer());
+            claimsData.view().forEach((layer, byOrigin) -> {
+                if (!NeoOriginsConfig.isUniqueLayer(layer)) return;
+                byOrigin.forEach((origin, owner) -> {
+                    if (owner.equals(player.getUUID())) return;
+                    locked.computeIfAbsent(layer, k -> new java.util.HashMap<>())
+                          .put(origin, ownerName(player.getServer(), owner));
+                });
+            });
+        }
+        PacketDistributor.sendToPlayer(player, new SyncOriginClaimsPayload(locked));
+    }
+
+    private static String ownerName(net.minecraft.server.MinecraftServer server, java.util.UUID id) {
+        ServerPlayer online = server.getPlayerList().getPlayer(id);
+        if (online != null) return online.getGameProfile().getName();
+        return server.getProfileCache() != null
+            ? server.getProfileCache().get(id).map(com.mojang.authlib.GameProfile::getName).orElse(id.toString())
+            : id.toString();
     }
 
     private static void handleSyncKeybindRegistry(SyncKeybindRegistryPayload payload, IPayloadContext ctx) {

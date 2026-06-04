@@ -133,6 +133,23 @@ public final class NeoOriginsConfig {
 
     static { BUILDER.pop(); }
 
+    // ── Unique Origins ─────────────────────────────────────────────────────
+    // Make origins server-unique within specific layers: once a player claims
+    // an origin in a listed layer, no other player may pick that same origin
+    // there. Per-layer — only the layer IDs listed below are affected.
+
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> UNIQUE_ORIGIN_LAYERS =
+        BUILDER
+            .comment(
+                "Layers in which each origin can be claimed by only one player on the server.",
+                "List the layer IDs that should enforce uniqueness; layers not listed are unaffected.",
+                "Once a player picks an origin in a listed layer, no one else can pick that same",
+                "origin there. Claims are released only by /neoorigins unlock, an Orb of Origin",
+                "re-pick, or /neoorigins reset. Operators in creative mode — and /neoorigins set —",
+                "bypass the lock and take over the claim.",
+                "Format: list of layer IDs. Example: [\"neoorigins:origin\"]")
+            .defineListAllowEmpty("unique_origin_layers", List.of(), o -> o instanceof String);
+
     // ── Power Overrides ───────────────────────────────────────────────────
     // Allows modpack creators to tweak specific power parameters without
     // creating custom datapacks. Edit the values directly — only values you
@@ -836,6 +853,13 @@ public final class NeoOriginsConfig {
     /** True if any player (not just OPs) may run {@code /neoorigins get <player>}. */
     public static boolean isPublicOriginGetAllowed() {
         return PUBLIC_ORIGIN_GET.get();
+    }
+
+    /** True if origins in {@code layerId} are server-unique (one player per origin). */
+    public static boolean isUniqueLayer(ResourceLocation layerId) {
+        if (layerId == null) return false;
+        List<? extends String> list = UNIQUE_ORIGIN_LAYERS.get();
+        return !list.isEmpty() && list.contains(layerId.toString());
     }
 
     /**
