@@ -901,6 +901,7 @@ public final class NeoOriginsConfig {
     // Visual style fallback for the origin/class selection screens.
 
     public static final ModConfigSpec.BooleanValue CLASSIC_PICKER_STYLE;
+    public static final ModConfigSpec.BooleanValue SHOW_ORIGIN_EDITOR;
 
     static {
         BUILDER.comment(
@@ -914,11 +915,22 @@ public final class NeoOriginsConfig {
                      "low-contrast brown-on-paper text is hard to read.")
             .define("classic_picker_style", false);
 
+        SHOW_ORIGIN_EDITOR = BUILDER
+            .comment("Show the in-game Origin Editor button on the origin info screen for",
+                     "ALL players, not just those in Creative mode. The editor is a",
+                     "pack-authoring tool that is creative-only by default to keep it out",
+                     "of survival players' way. Enable this if you author origins in",
+                     "survival or want testers to reach the editor without /gamemode.")
+            .define("show_origin_editor", false);
+
         BUILDER.pop();
     }
 
     /** True if the selection screens should use the original flat high-contrast skin. */
     public static boolean isClassicPickerStyle() { return CLASSIC_PICKER_STYLE.get(); }
+
+    /** True if the in-game Origin Editor button should be shown regardless of game mode. */
+    public static boolean isShowOriginEditor() { return SHOW_ORIGIN_EDITOR.get(); }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
 

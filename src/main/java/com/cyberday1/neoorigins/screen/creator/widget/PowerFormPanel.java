@@ -10,6 +10,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -38,8 +39,38 @@ public final class PowerFormPanel {
 
     private final ScrollPanel scroll = new ScrollPanel();
     private final List<FieldRow> rows = new ArrayList<>();
+    /** Field-row widgets registered input-only, drawn by us inside the scroll
+     *  scissor (see {@link #formHost}) so they can't bleed past the viewport. */
+    private final List<AbstractWidget> clipped = new ArrayList<>();
+    private final CreatorHost formHost = new FormHost();
     private EditBox rawBox;
     private final SearchPickerOverlay refPicker = new SearchPickerOverlay();
+
+    /**
+     * Host wrapper handed to the field rows during {@link #buildForm}. It routes
+     * each widget to the real host as INPUT-ONLY (so {@code Screen.render} won't
+     * auto-draw it unclipped) and collects it into {@link #clipped} for this
+     * panel to render inside {@link ScrollPanel#beginClip}/{@link ScrollPanel#endClip}.
+     * Everything else delegates straight through to the owning screen.
+     */
+    private final class FormHost implements CreatorHost {
+        @Override
+        public <T extends AbstractWidget> T register(T widget) {
+            clipped.add(widget);
+            return parent.registerInputOnly(widget);
+        }
+        @Override
+        public <T extends AbstractWidget> T registerInputOnly(T widget) {
+            return parent.registerInputOnly(widget);
+        }
+        @Override public Font font() { return parent.font(); }
+        @Override public void requestRebuild() { parent.requestRebuild(); }
+        @Override public int hostWidth() { return parent.hostWidth(); }
+        @Override public int hostHeight() { return parent.hostHeight(); }
+        @Override public void queueTooltip(List<String> lines, int mx, int my) {
+            parent.queueTooltip(lines, mx, my);
+        }
+    }
 
     /** True when this panel is showing the raw-JSON escape instead of fields. */
     public boolean isRaw() { return rawMode; }
@@ -62,14 +93,25 @@ public final class PowerFormPanel {
         this.target = target;
         this.rawMode = rawMode;
         this.x = x; this.y = y; this.w = w; this.h = h;
-        rows.clear();
         rawBox = null;
 
         if (refPicker.isOpen()) {                 // overlay owns input
+            // Keep `rows` INTACT while the overlay is up. The sink-based registry
+            // and type pickers (openRegistryPick / openTypePicker) mutate a live
+            // row's widget and then push() the whole row tree on close. Clearing
+            // rows here would orphan that widget and make the close-time push()
+            // serialise an EMPTY form — wiping the power's config. That is exactly
+            // why a freshly-added starting_equipment stack vanished the instant you
+            // picked its item (tester report, 2.2.0). Only `clipped` is cleared so
+            // stale form widgets don't linger; the tab skips form.render() while
+            // the overlay owns the screen, so the preserved rows aren't drawn.
+            clipped.clear();
             int pw = Math.min(w - 20, 360), ph = h - 16;
             refPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
+        rows.clear();
+        clipped.clear();
         scroll.setViewport(x, y, w, h);
 
         if (target == null) { scroll.setContentHeight(0); return; }
@@ -101,17 +143,74 @@ public final class PowerFormPanel {
         // list is built from the current type / array, so the JSON must be
         // known before layout() runs.
         JsonObject body = parseObject(target.rawJson);
+
+        // starting_equipment carries BOTH a legacy singular shape (item/count/…
+        // at the root) and the plural `stacks` array. Showing all five singular
+        // fields above the array buries the "+ add" and confuses authors about
+        // where to add a second item (tester report, 2.2.0). In the in-game
+        // editor we present ONLY grant_id + stacks: any existing singular config
+        // is folded into a one-entry `stacks` so nothing is lost, and the
+        // singular field rows are filtered out below.
+        if (type != null && "neoorigins:starting_equipment".equals(type.toString())) {
+            specs = collapseStartingEquipment(specs, body);
+            target.rawJson = body.toString();
+        }
         Runnable rebuildCb = () -> { push(); parent.requestRebuild(); };
         for (FormFieldSpec spec : specs) {
             FieldRow row = FieldWidgetFactory.create(spec, this::openRefPicker, this::openEnumPicker,
-                this::openTypePicker, rebuildCb);
-            row.build(parent, font, fieldW, 16);
+                this::openTypePicker, rebuildCb, this::openRegistryPick);
+            // Build against formHost so the row's EditBoxes/Buttons register
+            // input-only and land in `clipped` — rendered inside the scissor by
+            // render(), never auto-drawn unclipped by Screen.super.render().
+            row.build(formHost, font, fieldW, 16);
             row.fromJson(body.get(spec.name()));
             rows.add(row);
         }
         int total = 4;
         for (FieldRow row : rows) total += row.height();
         scroll.setContentHeight(total);
+    }
+
+    /**
+     * For starting_equipment: fold any legacy singular root config into a
+     * one-entry {@code stacks} array (so authored singular packs survive into
+     * the array editor) and return a spec list with the singular fields removed,
+     * leaving just {@code grant_id} and {@code stacks}. Mutates {@code body} in
+     * place. The runtime still accepts both shapes — this is purely an editor
+     * presentation choice so there's exactly one obvious place to add items.
+     */
+    private static List<FormFieldSpec> collapseStartingEquipment(List<FormFieldSpec> specs, JsonObject body) {
+        boolean hasStacks = body.has("stacks") && body.get("stacks").isJsonArray()
+            && !body.getAsJsonArray("stacks").isEmpty();
+        String singularItem = body.has("item") && body.get("item").isJsonPrimitive()
+            ? body.get("item").getAsString() : "";
+        if (!hasStacks && !singularItem.isBlank()) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("item", singularItem);
+            if (body.has("count")) entry.add("count", body.get("count"));
+            if (body.has("enchantments")) entry.add("enchantments", body.get("enchantments"));
+            if (body.has("legacy_tag")) entry.add("legacy_tag", body.get("legacy_tag"));
+            if (body.has("components")) entry.add("components", body.get("components"));
+            com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+            arr.add(entry);
+            body.add("stacks", arr);
+        }
+        // Drop the singular keys from the body so the JSON tab is clean and the
+        // hidden fields can't shadow the stacks the editor now owns.
+        body.remove("item");
+        body.remove("count");
+        body.remove("enchantments");
+        body.remove("legacy_tag");
+        body.remove("components");
+
+        List<FormFieldSpec> kept = new ArrayList<>();
+        for (FormFieldSpec spec : specs) {
+            switch (spec.name()) {
+                case "item", "count", "enchantments", "legacy_tag", "components" -> { /* hidden */ }
+                default -> kept.add(spec);
+            }
+        }
+        return kept;
     }
 
     /**
@@ -152,6 +251,26 @@ public final class PowerFormPanel {
         refPicker.open("pick " + field, () -> values,
             picked -> applyString(field, picked),
             parent::requestRebuild);
+        parent.requestRebuild();
+    }
+
+    /**
+     * Sink-based registry picker for a field nested inside a sub-form (an item
+     * stack's {@code item}, etc.). The row's {@code sink} sets its own widget
+     * value; while the overlay is open {@link #init} early-returns on
+     * {@code refPicker.isOpen()} WITHOUT clearing {@link #rows}, so the live row
+     * tree survives to receive the pick. On close we {@link #push()} that intact
+     * tree — serialising the new value through the nesting — and rebuild. This is
+     * the depth-safe counterpart to {@link #openRefPicker}, which writes a flat
+     * root key and can't address a sub-path.
+     */
+    private void openRegistryPick(String kind, java.util.function.Consumer<String> sink) {
+        push();
+        java.util.List<String> src = com.cyberday1.neoorigins.screen.creator.CreatorAssets
+            .registryList(kind); // already sorted
+        refPicker.open("pick " + kind, () -> src,
+            sink::accept,
+            () -> { push(); parent.requestRebuild(); });
         parent.requestRebuild();
     }
 
@@ -222,8 +341,15 @@ public final class PowerFormPanel {
             if (rawBox != null) rawBox.setValue(target.rawJson == null ? "{}" : target.rawJson);
             return;
         }
-        JsonObject body = parseObject(target.rawJson);
-        for (FieldRow row : rows) row.fromJson(body.get(row.fieldName()));
+        // Form mode is a no-op: buildForm() already seeded every row from
+        // target.rawJson during init(), and pull() always runs immediately after
+        // init() (screen.rebuild → tab.init → form.init/buildForm, then
+        // tab.pullFromDraft → form.pull) with the SAME JSON. Re-seeding here would
+        // be redundant — and for array/object rows fromJson() RE-INSTANTIATES the
+        // sub-rows, registering a fresh widget set while the previous one stays
+        // registered with the screen (input-only) and in `clipped` as orphans.
+        // Those orphans only show once layout() repositions the live tree on
+        // scroll, producing the duplicated/overlapping fields. So: don't re-seed.
     }
 
     public void push() {
@@ -259,16 +385,28 @@ public final class PowerFormPanel {
         }
 
         scroll.beginClip(g);
+        // Field widgets (EditBox/Button) are registered input-only, so we draw
+        // them here, inside the scissor — that's what keeps a partially-scrolled
+        // or oversized row clipped to the viewport instead of bleeding over the
+        // header / save bar / neighbouring rows. Off-view rows have visible=false
+        // (set in layout()) so their widgets self-skip.
+        for (AbstractWidget widget : clipped) {
+            widget.extractRenderState(g, mouseX, mouseY, 0f);
+        }
         int rowTop = scroll.contentTop();
         FieldRow hovered = null;
         for (FieldRow row : rows) {
             int rh = row.height();
             if (scroll.rowVisible(rowTop, rh)) {
                 row.drawLabel(g, font, x + LABEL_DX, rowTop + 4);
-                int headerH = Math.min(rh, FieldWidgetFactory.DEFAULT_ROW_H);
-                if (mouseX >= x && mouseX <= x + w
-                        && mouseY >= rowTop && mouseY < rowTop + headerH) {
-                    hovered = row;
+                // Recurse the row tree so a nested sub-form field (an item
+                // stack's Item/Count, a REF's body field, …) reports its own
+                // tooltip; container rows return the deepest hovered child and
+                // fall back to their own header. Mirror drawLabel's origin.
+                if (hovered == null) {
+                    FieldRow hit = row.hoveredRow(
+                        x + LABEL_DX, rowTop + 4, x + w, mouseX, mouseY);
+                    if (hit != null) hovered = hit;
                 }
             }
             rowTop += rh;

@@ -18,6 +18,13 @@ public interface CreatorHost {
      *  true override; Button/EditBox satisfy all three on both branches. */
     <T extends AbstractWidget> T register(T widget);
 
+    /** Register a widget for INPUT ONLY (delegates to {@code addWidget}, NOT
+     *  {@code addRenderableWidget}). The screen will route clicks/keys to it but
+     *  will NOT auto-render it — the caller owns drawing it, e.g. clipped inside
+     *  a scroll viewport. Used by {@link PowerFormPanel} so its field widgets
+     *  render inside the scissor instead of bleeding past the panel. */
+    <T extends AbstractWidget> T registerInputOnly(T widget);
+
     Font font();
 
     /** Rebuild the active tab's widgets (after a state change alters them). */

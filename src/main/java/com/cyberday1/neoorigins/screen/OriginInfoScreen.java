@@ -148,6 +148,10 @@ public class OriginInfoScreen extends Screen {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
                     b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
                 .bounds(width / 2 + 48, height - 24, 60, 20).build());
+        }
+        // The editor can additionally be ungated for all game modes via config
+        // (ui.show_origin_editor) for pack authors who build origins in survival.
+        if (showDevGui || com.cyberday1.neoorigins.NeoOriginsConfig.isShowOriginEditor()) {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
                     b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
                 .bounds(width / 2 - 108, height - 24, 60, 20).build());

@@ -68,6 +68,12 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         return addRenderableWidget(widget);
     }
 
+    /** Input-only registration (no auto-render) — see {@link CreatorHost}. */
+    @Override
+    public <T extends AbstractWidget> T registerInputOnly(T widget) {
+        return addWidget(widget);
+    }
+
     /**
      * Rebuild the active tab's widget set in place. Tabs whose widget set is
      * dynamic (the Powers tab: power list / type / raw-mode all change which

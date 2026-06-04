@@ -47,6 +47,12 @@ public class MobOriginCreatorScreen extends Screen implements CreatorHost {
         return addRenderableWidget(widget);
     }
 
+    /** Input-only registration (no auto-render) — see {@link CreatorHost}. */
+    @Override
+    public <T extends AbstractWidget> T registerInputOnly(T widget) {
+        return addWidget(widget);
+    }
+
     @Override public void requestRebuild() { rebuild(); }
     @Override public int hostWidth()  { return width; }
     @Override public int hostHeight() { return height; }
