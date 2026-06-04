@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the client receives a sorted snapshot via
  * {@link com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload}
  * and assigns each declared key to an anonymous KeyMapping slot from the pool
- * sized by {@code NeoOriginsConfig.HOTKEY_POOL_SIZE}.
+ * sized by {@code NeoOriginsClientConfig.HOTKEY_POOL_SIZE}.
  *
  * <p>When the player presses an assigned slot, the client sends
  * {@link com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload}

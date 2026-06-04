@@ -1,6 +1,5 @@
 package com.cyberday1.neoorigins.client;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 import net.minecraft.client.KeyMapping;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
@@ -15,7 +14,7 @@ public class NeoOriginsKeybindings {
 
     /**
      * Anonymous KeyMappings backing pack-declared {@code "key": "..."} bindings.
-     * Sized at {@link #onRegisterKeyMappings} from {@link NeoOriginsConfig#hotkeyPoolSize()}
+     * Sized at {@link #onRegisterKeyMappings} from {@link NeoOriginsClientConfig#hotkeyPoolSize()}
      * — config is loaded by the time {@code RegisterKeyMappingsEvent} fires, so
      * the read is stable for the lifetime of the client JVM.
      *
@@ -108,7 +107,7 @@ public class NeoOriginsKeybindings {
         // "key.neoorigins.hotkey.<n>" (1-indexed for player friendliness) — lang
         // files supply human-readable names up to slot 64; beyond that the raw
         // key shows in Controls but the slot still works.
-        int poolSize = NeoOriginsConfig.hotkeyPoolSize();
+        int poolSize = NeoOriginsClientConfig.hotkeyPoolSize();
         HOTKEY_POOL = new KeyMapping[poolSize];
         for (int i = 0; i < poolSize; i++) {
             HOTKEY_POOL[i] = new KeyMapping(

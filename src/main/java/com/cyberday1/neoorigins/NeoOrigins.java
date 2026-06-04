@@ -61,8 +61,21 @@ public class NeoOrigins {
     public NeoOrigins(IEventBus modEventBus, ModContainer modContainer) {
         LOGGER.info("NeoOrigins initializing...");
 
-        // Register TOML config (config/neoorigins-common.toml)
+        // Two-spec gameplay config split:
+        //  • COMMON (config/neoorigins-common.toml) — server-side tuning/debug
+        //    values consumed during the boot-time datapack reload (power
+        //    overrides, compat ratio, dimension restrictions, debug flags).
+        //    COMMON loads early enough to be read at datapack load; it is not
+        //    synced, which is fine because these are baked into the synced
+        //    power/origin data, not read by the client directly.
+        //  • SERVER (<world>/serverconfig/neoorigins-server.toml) — origin/class
+        //    enable toggles and the resource-bar disable. NeoForge auto-syncs
+        //    SERVER configs to connecting clients, so disabling an origin
+        //    server-side now correctly hides it on remote clients. These values
+        //    are only read after a world is active, so the SERVER load-timing
+        //    restriction (not loaded during boot-time datapack reload) is moot.
         modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.SERVER, NeoOriginsConfig.SERVER_SPEC);
 
         // Client TOML config (config/neoorigins-client.toml) — currently just
         // the UI theme override. Registered on physical-client side only so the

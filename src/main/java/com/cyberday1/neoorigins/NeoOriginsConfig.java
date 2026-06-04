@@ -10,13 +10,38 @@ import java.util.*;
 
 /**
  * NeoForge TOML config for NeoOrigins.
- * Stored at config/neoorigins-common.toml in the game directory.
+ *
+ * <p>This class owns two specs:
+ * <ul>
+ *   <li>{@link #SPEC} (COMMON, {@code config/neoorigins-common.toml}) — server-side
+ *       gameplay/tuning values consumed entirely on the logical server, most of
+ *       them at datapack-load time (power overrides, compat ratio, debug flags,
+ *       dimension restrictions, …). COMMON loads early enough to be readable
+ *       during the boot-time datapack reload; it is NOT network-synced, which is
+ *       fine because these values are baked into the power/origin data that is
+ *       synced separately.</li>
+ *   <li>{@link #SERVER_SPEC} (SERVER, {@code <world>/serverconfig/neoorigins-server.toml})
+ *       — gameplay toggles the client must observe: origin/class enable toggles
+ *       and the global resource-bar disable. NeoForge auto-syncs SERVER configs
+ *       to every connecting client, so disabling an origin server-side now
+ *       correctly hides it on remote clients. These values are only read after a
+ *       world is active, so the SERVER load-timing restriction does not bite.</li>
+ * </ul>
+ * Client-only display preferences live in {@code NeoOriginsClientConfig}.
  */
 public final class NeoOriginsConfig {
 
     private NeoOriginsConfig() {}
 
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+
+    /**
+     * Builder for the SERVER spec — values that must be synced to connecting
+     * clients (origin/class toggles, resource-bar disable). Kept separate from
+     * {@link #BUILDER} so the bulk of the config stays COMMON and readable during
+     * the boot-time datapack reload (SERVER configs are not loaded that early).
+     */
+    public static final ModConfigSpec.Builder SERVER_BUILDER = new ModConfigSpec.Builder();
 
     public static final ModConfigSpec.BooleanValue DEBUG_POWER_LOADING =
         BUILDER
@@ -33,15 +58,8 @@ public final class NeoOriginsConfig {
     /** Convenience accessor for hot-path checks. */
     public static boolean isDebugCompatActions() { return DEBUG_COMPAT_ACTIONS.get(); }
 
-    public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS =
-        BUILDER
-            .comment("Hide hunger / air HUD bars for origins that don't consume them",
-                     "(e.g. Automaton hunger, Merling / Kraken / Automaton air).",
-                     "Turn off to keep vanilla bars visible regardless of origin.")
-            .define("hide_hud_bars", true);
-
     public static final ModConfigSpec.BooleanValue DISABLE_RESOURCE_BARS =
-        BUILDER
+        SERVER_BUILDER
             .comment("Disable all resource bars (mana, stamina, rage, etc.) globally.",
                      "When true, resource bars are hidden from the HUD and any active",
                      "power that would normally cost a resource falls back to costing",
@@ -69,7 +87,7 @@ public final class NeoOriginsConfig {
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;
 
     static {
-        BUILDER.comment(
+        SERVER_BUILDER.comment(
             "Enable or disable built-in origins.",
             "Set to false to hide an origin from the selection screen.",
             "Disabled origins can still be assigned via /neoorigins set.",
@@ -78,10 +96,10 @@ public final class NeoOriginsConfig {
 
         Map<String, ModConfigSpec.BooleanValue> toggles = new LinkedHashMap<>();
         for (String name : BUILT_IN_ORIGINS) {
-            toggles.put(name, BUILDER.define(name, true));
+            toggles.put(name, SERVER_BUILDER.define(name, true));
         }
         ORIGIN_TOGGLES = Collections.unmodifiableMap(toggles);
-        BUILDER.pop();
+        SERVER_BUILDER.pop();
     }
 
     // ── Disabled Classes ────────────────────────────────────────────────
@@ -100,7 +118,7 @@ public final class NeoOriginsConfig {
     public static final Map<String, ModConfigSpec.BooleanValue> CLASS_TOGGLES;
 
     static {
-        BUILDER.comment(
+        SERVER_BUILDER.comment(
             "Enable or disable built-in classes.",
             "Set to false to remove a class from the selection screen.",
             "If all classes are disabled, the class selection screen is skipped entirely."
@@ -108,10 +126,10 @@ public final class NeoOriginsConfig {
 
         Map<String, ModConfigSpec.BooleanValue> toggles = new LinkedHashMap<>();
         for (String name : BUILT_IN_CLASSES) {
-            toggles.put(name, BUILDER.define(name, true));
+            toggles.put(name, SERVER_BUILDER.define(name, true));
         }
         CLASS_TOGGLES = Collections.unmodifiableMap(toggles);
-        BUILDER.pop();
+        SERVER_BUILDER.pop();
     }
 
     // ── Dimension Power Restrictions ────────────────────────────────────
@@ -892,33 +910,6 @@ public final class NeoOriginsConfig {
         return OCEAN_ORIGINS_DROWN_DAMAGE.get().floatValue();
     }
 
-    // ── Hotkeys ─────────────────────────────────────────────────────────
-    // Pool of anonymous KeyMappings used to back pack-declared `"key": "..."`
-    // bindings on Apoli-style active powers. Each declared translation key
-    // claims one slot in this pool; if the pool runs out, additional powers
-    // log a warning and remain dormant. Increase if you run packs that
-    // declare many named hotkeys (e.g. Deano's pack uses 10).
-
-    public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
-
-    static {
-        BUILDER.comment(
-            "Hotkey pool. Each pack-declared `\"key\": \"translation.key.id\"` on an active",
-            "power consumes one slot. The Controls screen shows N unassigned \"Hotkey N\"",
-            "entries; assignments happen at login from the server-side registry, so",
-            "rebinding a slot affects whichever power currently occupies it.",
-            "Larger pool = more named hotkeys can coexist, but more rows in Controls."
-        ).push("hotkeys");
-
-        HOTKEY_POOL_SIZE = BUILDER
-            .comment("Number of named-keybind slots to register at client startup.",
-                     "Default 32. Increase if packs declare more than 32 distinct keys.")
-            .defineInRange("pool_size", 32, 1, 256);
-
-        BUILDER.pop();
-    }
-
-    public static int hotkeyPoolSize() { return HOTKEY_POOL_SIZE.get(); }
 
     // ── Mount Power ───────────────────────────────────────────────────────
     // Consent mode for player-to-player mounting.
@@ -951,42 +942,57 @@ public final class NeoOriginsConfig {
     public static ConsentMode mountConsentMode() { return MOUNT_CONSENT_MODE.get(); }
     public static int mountRequestTimeoutSeconds() { return MOUNT_REQUEST_TIMEOUT_SECONDS.get(); }
 
-    // ── UI ──────────────────────────────────────────────────────────────
-    // Visual style fallback for the origin/class selection screens.
+    // ── Command-power blacklist ─────────────────────────────────────────
+    // Datapack powers can run arbitrary server commands (the `command`/
+    // `execute_command` actions, the raycast command_along_ray/command_at_hit
+    // extensions, and the `command` condition). Without a guard, a pack could
+    // ship `/op @s` and silently escalate any player to operator. This list
+    // names command roots that are refused at execution time regardless of the
+    // power's permission level. Matching is case-insensitive on the effective
+    // command root, and `execute ... run <cmd>` is unwrapped so a blacklisted
+    // command can't be smuggled behind an execute chain.
 
-    public static final ModConfigSpec.BooleanValue CLASSIC_PICKER_STYLE;
-    public static final ModConfigSpec.BooleanValue SHOW_ORIGIN_EDITOR;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> COMMAND_POWER_BLACKLIST;
 
     static {
         BUILDER.comment(
-            "User-interface style options."
-        ).push("ui");
+            "Commands that NeoOrigins powers are NEVER allowed to run.",
+            "Applies to the command/execute_command actions, the raycast",
+            "command_along_ray and command_at_hit extensions, and the command",
+            "condition. A blocked command is refused and logged instead of run.",
+            "Match is case-insensitive on the command root; `execute ... run X`",
+            "is unwrapped so X is what gets checked. List the root only (no slash)."
+        ).push("command_powers");
 
-        CLASSIC_PICKER_STYLE = BUILDER
-            .comment("Revert the origin/class selection screens to the original flat",
-                     "high-contrast style (dark panels, light text, vanilla font) instead",
-                     "of the parchment scroll skin. Enable this if the parchment theme's",
-                     "low-contrast brown-on-paper text is hard to read.")
-            .define("classic_picker_style", false);
-
-        SHOW_ORIGIN_EDITOR = BUILDER
-            .comment("Show the in-game Origin Editor button on the origin info screen for",
-                     "ALL players, not just those in Creative mode. The editor is a",
-                     "pack-authoring tool that is creative-only by default to keep it out",
-                     "of survival players' way. Enable this if you author origins in",
-                     "survival or want testers to reach the editor without /gamemode.")
-            .define("show_origin_editor", false);
+        COMMAND_POWER_BLACKLIST = BUILDER
+            .comment("Command roots forbidden from power execution.")
+            .defineList("command_power_blacklist",
+                List.of("op", "deop", "ban", "ban-ip", "pardon", "pardon-ip",
+                        "kick", "whitelist", "stop", "save-all", "save-off",
+                        "save-on", "setidletimeout", "debug", "perf", "datapack",
+                        "reload"),
+                obj -> obj instanceof String);
 
         BUILDER.pop();
     }
 
-    /** True if the selection screens should use the original flat high-contrast skin. */
-    public static boolean isClassicPickerStyle() { return CLASSIC_PICKER_STYLE.get(); }
-
-    /** True if the in-game Origin Editor button should be shown regardless of game mode. */
-    public static boolean isShowOriginEditor() { return SHOW_ORIGIN_EDITOR.get(); }
+    /**
+     * True if the given command root is blacklisted from power execution.
+     * {@code root} should already be the unwrapped, slash-stripped first token
+     * (see {@code CommandPowerGuard.extractRoot}); matching is case-insensitive.
+     */
+    public static boolean isCommandPowerBlocked(String root) {
+        if (root == null || root.isEmpty()) return false;
+        for (String blocked : COMMAND_POWER_BLACKLIST.get()) {
+            if (blocked.equalsIgnoreCase(root)) return true;
+        }
+        return false;
+    }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
+
+    /** SERVER spec — origin/class toggles + resource-bar disable, auto-synced to clients. */
+    public static final ModConfigSpec SERVER_SPEC = SERVER_BUILDER.build();
 
     public static RandomMode getRandomMode() {
         return RANDOM_MODE.get();
@@ -998,13 +1004,6 @@ public final class NeoOriginsConfig {
     private static volatile Map<String, Set<ResourceKey<Level>>> parsedRestrictions;
     private static volatile int lastConfigHash;
     private static volatile int restrictionsVersionCounter;
-
-    /**
-     * Returns true if the given power ID is restricted in the player's current dimension.
-     */
-    public static boolean isHideHudBarsEnabled() {
-        return HIDE_HUD_BARS.get();
-    }
 
     public static boolean isResourceBarsDisabled() {
         return DISABLE_RESOURCE_BARS.get();

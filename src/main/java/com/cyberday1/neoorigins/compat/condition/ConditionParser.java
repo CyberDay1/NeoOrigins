@@ -631,6 +631,13 @@ public final class ConditionParser {
         ComparisonType comparison = ComparisonType.fromString(comp);
         return player -> {
             if (player.level().getServer() == null) return false;
+            // Refuse blacklisted command roots — the command condition is an
+            // execution vector too (a pack could probe with `/op @s`). A blocked
+            // command evaluates as if it returned 0 (ran nothing).
+            if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(command)) {
+                com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(command, "command condition");
+                return comparison.test(0, target);
+            }
             try {
                 // Permission level 2 matches execute_command action and vanilla's
                 // function-permission-level — required for entity selectors (@e).
