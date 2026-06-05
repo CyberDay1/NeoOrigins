@@ -409,6 +409,8 @@ Numeric comparison against a named resource power's stored value.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Threshold |
 
+> ⚠️ `resource` must be the **full** namespaced power ID (e.g. `mypack:thorns/resource`). Unlike `power_active`, the `*:` / `*:*` self-reference wildcard is **not** resolved here — a reference containing `*` silently reads as `0` (and is warned about at load). The same applies to the `change_resource` / `set_resource` actions.
+
 ## `neoorigins:power_active`
 
 Whether a named toggle power is currently active (toggled on) on this entity. Works with:

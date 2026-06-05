@@ -634,6 +634,8 @@ Mutates a `resource` power's stored integer. The resource state lives on a playe
 
 Clamped to `[Integer.MIN_VALUE, Integer.MAX_VALUE]` on add.
 
+> ⚠️ `resource` must be the **full** namespaced power id. The `*:` / `*:*` self-reference wildcard is **not** resolved for resources (only `power_active` and `origins:multiple` sub-powers support it) — a reference containing `*` targets a non-existent key and is warned about at load. This applies equally to `set_resource` and the `neoorigins:resource` condition.
+
 ---
 
 ## `neoorigins:trigger_cooldown`

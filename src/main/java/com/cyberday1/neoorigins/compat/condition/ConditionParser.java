@@ -296,6 +296,12 @@ public final class ConditionParser {
         String comp   = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target    = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         ComparisonType comparison = ComparisonType.fromString(comp);
+        if (powerId.contains("*")) {
+            NeoOrigins.LOGGER.warn(
+                "[CompatB] resource condition references '{}' (in {}) — the '*' wildcard is NOT resolved for " +
+                "resources (only power_active toggles and origins:multiple sub-powers support it). Use the full " +
+                "namespaced power id; otherwise this comparison reads the resource as 0.", powerId, contextId);
+        }
         return player -> {
             int cur = player.getData(CompatAttachments.resourceState()).get(powerId, 0);
             return comparison.test(cur, target);
