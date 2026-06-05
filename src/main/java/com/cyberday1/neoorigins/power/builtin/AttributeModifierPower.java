@@ -379,6 +379,40 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         return null;
     }
 
+    /**
+     * True if {@code raw} resolves to a registered attribute under the same
+     * prefix tolerance {@link #resolveAttribute} applies at load (raw,
+     * {@code generic.}, {@code player.}, the stripped form, and the
+     * forge→neoforge rebrand). Exposed so the Save-time validator
+     * ({@code DraftSanity}) accepts exactly the attribute ids the loader
+     * accepts. 26.1 registers vanilla attributes de-prefixed so the raw lookup
+     * usually wins, but keeping the tolerance here matches the loader for packs
+     * that still write the generic./player. form.
+     */
+    public static boolean attributeResolvable(Identifier raw) {
+        if (BuiltInRegistries.ATTRIBUTE.get(raw).isPresent()) return true;
+        String ns = raw.getNamespace();
+        String path = raw.getPath();
+        if (BuiltInRegistries.ATTRIBUTE.get(
+                Identifier.fromNamespaceAndPath(ns, "generic." + path)).isPresent()) return true;
+        if (BuiltInRegistries.ATTRIBUTE.get(
+                Identifier.fromNamespaceAndPath(ns, "player." + path)).isPresent()) return true;
+        if ((path.startsWith("generic.") || path.startsWith("player."))
+                && BuiltInRegistries.ATTRIBUTE.get(
+                    Identifier.fromNamespaceAndPath(ns, path.substring(path.indexOf('.') + 1))).isPresent()) {
+            return true;
+        }
+        if ("forge".equals(ns)) {
+            String basePath = path.startsWith("generic.") || path.startsWith("player.")
+                ? path.substring(path.indexOf('.') + 1) : path;
+            for (String candidatePath : new String[] { basePath, "generic." + basePath, "player." + basePath }) {
+                if (BuiltInRegistries.ATTRIBUTE.get(
+                        Identifier.fromNamespaceAndPath("neoforge", candidatePath)).isPresent()) return true;
+            }
+        }
+        return false;
+    }
+
     private record ResolvedAttribute(Identifier id, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> holder) {}
 
     private Identifier modIdFor(Identifier attrId, Config config) {
