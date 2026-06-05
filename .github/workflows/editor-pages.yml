@@ -14,10 +14,11 @@ name: Build Web Editor (and trigger Pages deploy)
 #      the new editor.
 #
 # Step 2 needs a PAT, because a workflow's default GITHUB_TOKEN cannot trigger
-# another workflow run. Create a fine-grained PAT with "Contents: read" on this
-# repo and add it as the repo secret PAGES_DISPATCH_TOKEN. Without that secret
-# the notify step no-ops with a warning; publish editor changes by running the
-# "Deploy Docs + Web Editor to GitHub Pages" workflow on master manually.
+# another workflow run. Create a fine-grained PAT scoped to this repo with
+# "Contents: Read and write" (the repository_dispatch endpoint is a write op;
+# read-only 403s) and add it as the repo secret PAGES_DISPATCH_TOKEN. Without
+# that secret the notify step no-ops with a warning; publish editor changes by
+# running the "Deploy Docs + Web Editor to GitHub Pages" workflow on master.
 
 on:
   push:
