@@ -951,15 +951,33 @@ public final class ConditionParser {
     static EntityCondition parseFoodItemInTag(JsonObject json) {
         String tag = json.has("tag") ? json.get("tag").getAsString() : null;
         if (tag == null) return CompatPolicy.FALSE_CONDITION;
-        TagKey<net.minecraft.world.item.Item> itemTag =
-            TagKey.create(Registries.ITEM, Identifier.parse(tag));
-        return p -> {
-            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
-            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
-                return false;
-            }
-            return fc.stack().is(itemTag);
-        };
+        // If the entry starts with '#', treat as a tag; otherwise match a specific item id.
+        // The leading '#' MUST be stripped before Identifier.parse — leaving it in
+        // yields a TagKey that matches nothing, which (via the food_restriction if_else)
+        // cancels every eat. Mirrors the 1.21.1 branch.
+        if (tag.startsWith("#")) {
+            TagKey<net.minecraft.world.item.Item> itemTag =
+                TagKey.create(Registries.ITEM, Identifier.parse(tag.substring(1)));
+            return p -> {
+                Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
+                    return false;
+                }
+                return fc.stack().is(itemTag);
+            };
+        } else {
+            Identifier itemId = Identifier.parse(tag);
+            var itemHolderOpt = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemId);
+            if (itemHolderOpt.isEmpty()) return CompatPolicy.FALSE_CONDITION;
+            net.minecraft.world.item.Item targetItem = itemHolderOpt.get().value();
+            return p -> {
+                Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
+                    return false;
+                }
+                return fc.stack().getItem() == targetItem;
+            };
+        }
     }
 
     /**
