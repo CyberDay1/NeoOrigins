@@ -65,7 +65,8 @@ public final class TargetActionParser {
                 yield (t, a) -> t.fallDistance = distance;
             }
             case "neoorigins:set_on_fire" -> {
-                int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 20;
+                int ticks = json.has("ticks") ? json.get("ticks").getAsInt()
+                          : json.has("duration") ? json.get("duration").getAsInt() : 20;
                 yield (t, a) -> t.setRemainingFireTicks(ticks);
             }
             case "neoorigins:add_velocity" -> {

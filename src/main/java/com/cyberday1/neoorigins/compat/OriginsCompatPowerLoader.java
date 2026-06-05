@@ -753,8 +753,22 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     }
                 };
                 if (isContinuous) {
-                    // Fire every tick while held
+                    // Honour a declared cooldown even on a continuous (held-key)
+                    // power: previously this fired EVERY tick while held, ignoring
+                    // `cooldown` entirely. Gating here throttles to once per
+                    // `cooldown` ticks. It also breaks the swing_hand self-feedback
+                    // loop on key.attack: the action's own swing_hand re-arms
+                    // `player.swinging` (the held signal), so without a gate it kept
+                    // firing after release until the resource drained. Because the
+                    // cooldown (e.g. 10) outlasts the ~6-tick swing animation, the
+                    // re-armed swing lapses before the next cooldown window opens,
+                    // so release actually stops it.
                     if (pressed && condition.test(player)) {
+                        if (cooldown > 0) {
+                            PlayerOriginData data = player.getData(OriginAttachments.originData());
+                            if (data.isOnCooldown(idStr, player.tickCount)) return;
+                            data.setCooldown(idStr, player.tickCount, cooldown);
+                        }
                         action.execute(player);
                     }
                 } else {
