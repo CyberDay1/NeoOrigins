@@ -635,19 +635,23 @@ Multiplies knockback dealt or received.
 
 ---
 
-## `neoorigins:xp_gain_modifier`
+## `origins:modify_xp_gain`
 
-Multiplies experience points gained. Wired to `PlayerXpEvent.XpChange` via the `NumericModifierRegistry`. Uses Apoli modifier math (addition + multiply_base/multiply_total).
+Multiplies experience points gained. Wired to `PlayerXpEvent.XpChange` via the `NumericModifierRegistry`. Uses Apoli modifier math (`addition` / `multiply_base` / `multiply_total`).
+
+> **Use `origins:modify_xp_gain`, not `neoorigins:xp_gain_modifier`.** There is no native `neoorigins:` XP-gain type — the only working implementation is this Apoli compat (Route B) verb. A power whose `type` is unregistered is dropped entirely at load (its name and description vanish from the picker too), so the `neoorigins:xp_gain_modifier` name in older docs never worked.
+
+Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` array). Each entry is `{ "operation": ..., "value": ... }` (`value` may also be written `amount`).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `multiplier` | float | no | `1.0` | XP gain multiplier |
+| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s): `operation` (`addition`, `multiply_base`, `multiply_total`) + `value` |
 
-**Example:**
+**Example — gain 50% more XP:**
 ```json
 {
-  "type": "neoorigins:xp_gain_modifier",
-  "multiplier": 1.5,
+  "type": "origins:modify_xp_gain",
+  "modifier": { "operation": "multiply_base", "value": 0.5 },
   "name": "Quick Learner",
   "description": "Gains experience faster."
 }
@@ -2627,7 +2631,7 @@ Recipes that compose existing power types to cover use cases the built-in types 
 
 ## Periodic feed / heal via `neoorigins:action_over_time`
 
-NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_ON_DAMAGE` behaviour. For any other periodic action — periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action — use `neoorigins:action_over_time` from the Apoli compat layer.
+NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_ON_DAMAGE` behaviour. For any other periodic action — periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action — use `neoorigins:action_over_time`. It is an alias for [`neoorigins:condition_passive`](#neoorigins_condition_passive) (identical fields), so an optional `condition` gates whether the action runs each interval.
 
 **Periodic hunger restoration** (e.g. for an origin that doesn't eat conventionally):
 ```json
@@ -2654,7 +2658,7 @@ NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_O
 }
 ```
 
-`interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. Any verb supported by `ActionParser` works (`neoorigins:apply_effect`, `neoorigins:damage`, `neoorigins:execute_command`, `neoorigins:if_else` for conditional wrapping, etc.).
+`interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. An optional `condition` (any `ConditionParser` verb, e.g. `neoorigins:exposed_to_sun`) gates each run. Any verb supported by `ActionParser` works (`neoorigins:apply_effect`, `neoorigins:damage`, `neoorigins:execute_command`, `neoorigins:if_else` for conditional wrapping, etc.).
 
 ## `neoorigins:cobweb_affinity`
 
