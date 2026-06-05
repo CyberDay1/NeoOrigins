@@ -86,6 +86,15 @@ public final class TargetActionParser {
             case "neoorigins:play_sound"   -> parsePlaySound(json);
             case "neoorigins:damage"       -> parseDamage(json);
 
+            // and — compose child target-actions. Generalizable ONLY when every
+            // child is generalizable; if any child is player-only we return null
+            // so the caller keeps the player-only EntityAction path for the whole
+            // `and` (players run the full list, mobs are skipped — legacy behaviour).
+            // Without this, AoE powers that wrap their leaves in `and` (e.g. Golem
+            // Ground Slam = and[damage, apply_effect]) produced a null TargetAction
+            // and silently did nothing to mobs.
+            case "neoorigins:and" -> parseAnd(json, contextId);
+
             // Item 4 entity-target spells. These are entity-general (they touch only
             // the LivingEntity target + the actor that TargetAction already supplies),
             // so target_action can run them on an arbitrary mob target. The actual
@@ -128,6 +137,29 @@ public final class TargetActionParser {
             // Not generalizable (player-only systems, or needs richer context) —
             // caller keeps the existing player-target / skip behaviour.
             default -> null;
+        };
+    }
+
+    /**
+     * Compose {@code neoorigins:and} into a single {@link TargetAction}. Returns
+     * {@code null} unless EVERY child verb is itself generalizable — that keeps
+     * the player-only path intact for any `and` containing a player-only verb
+     * (the caller then runs the full list on players and skips mobs, as before).
+     */
+    private static TargetAction parseAnd(JsonObject json, String contextId) {
+        if (!json.has("actions") || !json.get("actions").isJsonArray()) return null;
+        JsonArray arr = json.getAsJsonArray("actions");
+        java.util.List<TargetAction> children = new java.util.ArrayList<>(arr.size());
+        for (var el : arr) {
+            if (!el.isJsonObject()) return null;
+            TargetAction child = parse(el.getAsJsonObject(), contextId);
+            if (child == null) return null; // any non-generalizable child → stay player-only
+            children.add(child);
+        }
+        if (children.isEmpty()) return null;
+        final java.util.List<TargetAction> fChildren = children;
+        return (t, a) -> {
+            for (TargetAction c : fChildren) c.execute(t, a);
         };
     }
 
