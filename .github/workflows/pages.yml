@@ -59,6 +59,11 @@ jobs:
           source: ./docs
           destination: ./_site
 
+      # jekyll-build-pages runs in a container and writes _site as root, so
+      # later host steps can't mkdir/cp into it. Hand ownership back.
+      - name: Fix _site ownership
+        run: sudo chown -R "$(id -u):$(id -g)" _site
+
       - name: Checkout editor source (1.21.1)
         uses: actions/checkout@v4
         with:
