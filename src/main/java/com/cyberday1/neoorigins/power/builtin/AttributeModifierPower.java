@@ -419,6 +419,40 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         return null;
     }
 
+    /**
+     * True if {@code raw} resolves to a registered attribute under the same
+     * prefix tolerance {@link #resolveAttribute} applies at load (raw,
+     * {@code generic.}, {@code player.}, the stripped form, and the
+     * forge→neoforge rebrand). Exposed so the Save-time validator
+     * ({@code DraftSanity}) accepts exactly the attribute ids the loader
+     * accepts — otherwise de-prefixed ids like {@code minecraft:max_health}
+     * (which 1.21.1 registers as {@code minecraft:generic.max_health}) are
+     * false-flagged as "not a registered id".
+     */
+    public static boolean attributeResolvable(ResourceLocation raw) {
+        if (BuiltInRegistries.ATTRIBUTE.getOptional(raw).isPresent()) return true;
+        String ns = raw.getNamespace();
+        String path = raw.getPath();
+        if (BuiltInRegistries.ATTRIBUTE.getOptional(
+                ResourceLocation.fromNamespaceAndPath(ns, "generic." + path)).isPresent()) return true;
+        if (BuiltInRegistries.ATTRIBUTE.getOptional(
+                ResourceLocation.fromNamespaceAndPath(ns, "player." + path)).isPresent()) return true;
+        if ((path.startsWith("generic.") || path.startsWith("player."))
+                && BuiltInRegistries.ATTRIBUTE.getOptional(
+                    ResourceLocation.fromNamespaceAndPath(ns, path.substring(path.indexOf('.') + 1))).isPresent()) {
+            return true;
+        }
+        if ("forge".equals(ns)) {
+            String basePath = path.startsWith("generic.") || path.startsWith("player.")
+                ? path.substring(path.indexOf('.') + 1) : path;
+            for (String candidatePath : new String[] { basePath, "generic." + basePath, "player." + basePath }) {
+                if (BuiltInRegistries.ATTRIBUTE.getOptional(
+                        ResourceLocation.fromNamespaceAndPath("neoforge", candidatePath)).isPresent()) return true;
+            }
+        }
+        return false;
+    }
+
     private record ResolvedAttribute(ResourceLocation id, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> holder) {}
 
     private ResourceLocation modIdFor(ResourceLocation attrId, Config config) {

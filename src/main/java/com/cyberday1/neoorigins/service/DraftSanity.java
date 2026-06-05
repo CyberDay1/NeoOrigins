@@ -58,8 +58,13 @@ public final class DraftSanity {
                     .get(ResourceKey.create(Registries.ITEM, rl)).isPresent();
                 case "entity", "entity_type" -> ra.lookupOrThrow(Registries.ENTITY_TYPE)
                     .get(ResourceKey.create(Registries.ENTITY_TYPE, rl)).isPresent();
-                case "attribute" -> ra.lookupOrThrow(Registries.ATTRIBUTE)
-                    .get(ResourceKey.create(Registries.ATTRIBUTE, rl)).isPresent();
+                // Attributes need the same prefix tolerance the loader applies
+                // (1.21.1 registers vanilla attributes as generic.*/player.*, but
+                // pack JSON writes the de-prefixed form). Delegate to the shared
+                // resolver so the Save gate matches what AttributeModifierPower
+                // actually accepts at load.
+                case "attribute" -> com.cyberday1.neoorigins.power.builtin.AttributeModifierPower
+                    .attributeResolvable(rl);
                 case "effect", "status_effect", "mob_effect" -> ra.lookupOrThrow(Registries.MOB_EFFECT)
                     .get(ResourceKey.create(Registries.MOB_EFFECT, rl)).isPresent();
                 default -> true; // not an id field we check
