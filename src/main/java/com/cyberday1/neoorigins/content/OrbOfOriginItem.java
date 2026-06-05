@@ -26,6 +26,11 @@ public class OrbOfOriginItem extends Item {
 
     /** Compute the XP level cost for an orb use based on config and prior use count. */
     public static int computeCost(int orbUseCount) {
+        // Flat mode: every use (including the first) costs a fixed levels_per_use.
+        if (!NeoOriginsConfig.orbScaleCost()) {
+            return NeoOriginsConfig.orbLevelsPerUse();
+        }
+        // Scaling mode: first use free, then ramps with prior use count.
         return orbUseCount * NeoOriginsConfig.orbLevelsPerUse();
     }
 
