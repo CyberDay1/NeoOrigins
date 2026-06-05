@@ -108,7 +108,7 @@ True while horizontal delta-movement is nonzero. No fields.
 
 ## `neoorigins:in_rain`
 
-True when rain is falling at the entity's block position (server-side only).
+True when rain is falling at the entity's block position with sky access (server-side only); returns false while mounted. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios/Accessories slot blocks the rain entirely (mirroring `exposed_to_sun`), so rain/water-damage origins like Wet Fur and True Hydrophobia stop hurting while you carry one.
 
 ## `neoorigins:daytime`
 
@@ -120,7 +120,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios slot blocks sun damage entirely (checked before helmets).
+True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios/Accessories slot blocks sun damage entirely (checked before helmets).
 
 ## `neoorigins:on_fire` (alias `neoorigins:fire`)
 
