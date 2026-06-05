@@ -71,6 +71,7 @@
         "apace:remove_from_set",
         "apace:revoke_power",
         "apace:riding_action",
+        "apace:selector_action",
         "apace:set_block",
         "apace:set_fall_distance",
         "apace:set_on_fire",
@@ -156,6 +157,7 @@
         "neoorigins:remove_from_set",
         "neoorigins:revoke_power",
         "neoorigins:riding_action",
+        "neoorigins:selector_action",
         "neoorigins:set_block",
         "neoorigins:set_fall_distance",
         "neoorigins:set_on_fire",
@@ -251,6 +253,21 @@
           "description": "If true, replaces delta movement instead of pushing additively.",
           "type": "boolean",
           "default": false
+        },
+        "space": {
+          "description": "Coordinate space for x/y/z. world = absolute axes (default); local = relative to look direction (+z = forward); velocity = relative to current movement direction. _horizontal variants ignore vertical look/velocity; _normalized variants ignore the base vector's length.",
+          "type": "string",
+          "enum": [
+            "world",
+            "local",
+            "local_horizontal",
+            "local_horizontal_normalized",
+            "velocity",
+            "velocity_normalized",
+            "velocity_horizontal",
+            "velocity_horizontal_normalized"
+          ],
+          "default": "world"
         }
       },
       "required": [
@@ -732,6 +749,18 @@
           "type": "string",
           "default": "inventory"
         },
+        "item_condition": {
+          "description": "Only drop stacks matching this item_condition. Omit to drop everything.",
+          "$ref": "item_condition.schema.json"
+        },
+        "slots": {
+          "description": "Restrict to these vanilla/Apoli slot names (e.g. weapon.mainhand, weapon.offhand, armor.head). Omit or leave empty to scan every slot.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.]+$"
+          }
+        },
         "throw_randomly": {
           "description": "Scatter the dropped items (default true).",
           "type": "boolean",
@@ -1068,6 +1097,11 @@
               "description": "Stack size (default 1).",
               "type": "integer",
               "default": 1,
+              "minimum": 1
+            },
+            "amount": {
+              "description": "Apoli alias for count (stack size).",
+              "type": "integer",
               "minimum": 1
             }
           }
@@ -1649,6 +1683,32 @@
       ]
     },
     {
+      "$comment": "neoorigins:selector_action",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:selector_action",
+            "apace:selector_action"
+          ]
+        },
+        "selector": {
+          "description": "Vanilla entity selector (e.g. @e[type=area_effect_cloud,tag=foo,limit=2,sort=nearest]) resolved relative to the holder.",
+          "type": "string"
+        },
+        "bientity_action": {
+          "description": "Action run once per selected entity; the entity is published as the action's source (origin + rotation).",
+          "$ref": "#"
+        },
+        "entity_action": {
+          "description": "Alias for bientity_action.",
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:set_block",
       "properties": {
         "type": {
@@ -1701,9 +1761,14 @@
           ]
         },
         "ticks": {
-          "description": "Fire duration in ticks (default 20 = 1s).",
+          "description": "Fire duration in ticks (default 20 = 1s). Apoli `duration` is also accepted.",
           "type": "integer",
           "default": 20,
+          "minimum": 0
+        },
+        "duration": {
+          "description": "Apoli alias for ticks.",
+          "type": "integer",
           "minimum": 0
         }
       },
@@ -1992,7 +2057,7 @@
           "$ref": "#"
         },
         "projectile_action": {
-          "description": "Alias for on_hit_action.",
+          "description": "Entity action applied to the spawned projectile itself (actor = projectile), immediately on launch.",
           "$ref": "#"
         },
         "effect_type": {
@@ -2039,10 +2104,14 @@
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
         },
         "count": {
-          "description": "Trail particles emitted per tick (default 2).",
+          "description": "Number of projectiles to fire (default 1; combine with divergence for a spread). For MagicOrb projectiles this keeps its legacy meaning: trail particles emitted per tick.",
           "type": "integer",
-          "default": 2,
+          "default": 1,
           "minimum": 0
+        },
+        "tag": {
+          "description": "SNBT compound merged onto each spawned projectile (e.g. \"{pickup:1b}\" so fired arrows can be picked up).",
+          "type": "string"
         },
         "spread": {
           "description": "Trail particle position spread (default 0.05).",
@@ -2483,6 +2552,7 @@
               "apace:remove_from_set",
               "apace:revoke_power",
               "apace:riding_action",
+              "apace:selector_action",
               "apace:set_block",
               "apace:set_fall_distance",
               "apace:set_on_fire",
@@ -2568,6 +2638,7 @@
               "neoorigins:remove_from_set",
               "neoorigins:revoke_power",
               "neoorigins:riding_action",
+              "neoorigins:selector_action",
               "neoorigins:set_block",
               "neoorigins:set_fall_distance",
               "neoorigins:set_on_fire",
