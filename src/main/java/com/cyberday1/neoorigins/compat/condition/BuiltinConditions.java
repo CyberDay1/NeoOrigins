@@ -152,9 +152,13 @@ public final class BuiltinConditions {
         define("night",
             (json, ctx) -> p -> p.level().getDefaultClockTime() % 24000L >= 13000L, List.of());
         // in_rain — raining at the player's exposed position (canSeeSky-gated).
+        // Umbrella-aware: holding a Vampires Need Umbrellas umbrella shields the
+        // player from rain, mirroring exposed_to_sun's sun shielding, so rain-damage
+        // origins (Wet Fur, True Hydrophobia) stop hurting while carrying one.
         define("in_rain", (json, ctx) -> p -> {
             if (!(p.level() instanceof ServerLevel sl)) return false;
             if (p.isPassenger()) return false;
+            if (ConditionParser.neoorigins$isHoldingUmbrella(p)) return false;
             BlockPos pos = p.blockPosition();
             return sl.isRainingAt(pos) && sl.canSeeSky(pos);
         }, List.of());
