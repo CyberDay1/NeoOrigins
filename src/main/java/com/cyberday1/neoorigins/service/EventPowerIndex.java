@@ -304,6 +304,19 @@ public final class EventPowerIndex {
     public record EntityInteractContext(net.minecraft.world.entity.LivingEntity target) {}
 
     /**
+     * Dispatch context naming a non-actor <em>Entity</em> that should act as the
+     * origin of a sub-action — published by {@code selector_action} for each
+     * entity its vanilla selector resolved. Unlike {@link EntityInteractContext}
+     * (which is {@link net.minecraft.world.entity.LivingEntity}-typed and feeds the
+     * bientity {@code target_action} chain), this carries a bare {@link net.minecraft.world.entity.Entity}
+     * so non-living origins such as {@code area_effect_cloud} can be the source of a
+     * {@code fire_projectile} (the Toxophilite hyper_multishot AEC-rotation trick).
+     * The actor (power holder) still arrives as the {@code EntityAction} arg; this
+     * only redirects the spatial origin/rotation.
+     */
+    public record SourceEntityContext(net.minecraft.world.entity.Entity sourceEntity) {}
+
+    /**
      * Dispatch context for a <em>block</em> impact — the block on the other side
      * of a projectile/raycast interaction. Sibling of {@link EntityInteractContext}
      * (the entity equivalent) on the same {@link ActionContextHolder} seam. The

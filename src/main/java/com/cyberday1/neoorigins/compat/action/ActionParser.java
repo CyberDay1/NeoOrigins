@@ -52,7 +52,7 @@ public final class ActionParser {
         "neoorigins:nothing", "neoorigins:offset", "neoorigins:passenger_action",
         "neoorigins:play_sound", "neoorigins:pull_entities", "neoorigins:random_teleport",
         "neoorigins:raycast", "neoorigins:remove_from_set", "neoorigins:revoke_power",
-        "neoorigins:riding_action", "neoorigins:spawn_particles",
+        "neoorigins:riding_action", "neoorigins:selector_action", "neoorigins:spawn_particles",
         "neoorigins:set_block", "neoorigins:set_fall_distance", "neoorigins:set_on_fire",
         "neoorigins:set_resource", "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
         "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",

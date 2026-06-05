@@ -1,8 +1,10 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.RegistryOps;
@@ -97,7 +99,8 @@ public final class InlineRecipeRegistry {
             // Skip if already present (e.g. server-start re-injection after /reload preserved them).
             if (recipeManager.byKey(id).isPresent()) continue;
             try {
-                var parsed = Recipe.CODEC.parse(ops, e.getValue());
+                JsonObject normalized = normalizeApoliRecipe(e.getValue());
+                var parsed = Recipe.CODEC.parse(ops, normalized);
                 if (parsed.error().isPresent()) {
                     NeoOrigins.LOGGER.warn("[CompatB] inline recipe {} failed to decode: {}",
                         id, parsed.error().get().message());
@@ -114,5 +117,86 @@ public final class InlineRecipeRegistry {
             recipeManager.replaceRecipes(all);
             NeoOrigins.LOGGER.info("[CompatB] injected {} inline recipe(s) into RecipeManager", injected);
         }
+    }
+
+    /**
+     * Apoli ships inline recipes in the pre-1.20.5 Fabric crafting format, which
+     * the 1.21.1 vanilla {@link Recipe#CODEC} no longer accepts. Two breaking
+     * changes are bridged here:
+     * <ul>
+     *   <li><b>Ingredients</b> are now bare strings — {@code "minecraft:flint"} or
+     *       {@code "#minecraft:planks"} — not {@code {"item": ...}} /
+     *       {@code {"tag": ...}} objects.</li>
+     *   <li><b>Result</b> is now an {@code ItemStack} keyed by {@code "id"} (was
+     *       {@code "item"}); {@code "count"} is unchanged.</li>
+     * </ul>
+     * Mutates a deep copy so the registered source JSON is left intact for
+     * re-injection after subsequent reloads.
+     */
+    private static JsonObject normalizeApoliRecipe(JsonObject src) {
+        JsonObject out = src.deepCopy();
+
+        // Shapeless / smithing: ingredients[]
+        if (out.get("ingredients") instanceof JsonArray arr) {
+            JsonArray fixed = new JsonArray();
+            for (JsonElement el : arr) fixed.add(normalizeIngredient(el));
+            out.add("ingredients", fixed);
+        }
+        // Smelting / stonecutting / single-ingredient: ingredient
+        if (out.has("ingredient")) {
+            out.add("ingredient", normalizeIngredient(out.get("ingredient")));
+        }
+        // Shaped: key{ char -> ingredient }
+        if (out.get("key") instanceof JsonObject key) {
+            JsonObject fixedKey = new JsonObject();
+            for (Map.Entry<String, JsonElement> k : key.entrySet()) {
+                fixedKey.add(k.getKey(), normalizeIngredient(k.getValue()));
+            }
+            out.add("key", fixedKey);
+        }
+        // Result: rename item -> id (object form) or wrap bare string.
+        if (out.has("result")) {
+            out.add("result", normalizeResult(out.get("result")));
+        }
+        return out;
+    }
+
+    /** {@code {"item": X}} → {@code "X"}; {@code {"tag": T}} → {@code "#T"}; passes strings/arrays through. */
+    private static JsonElement normalizeIngredient(JsonElement el) {
+        if (el.isJsonObject()) {
+            JsonObject o = el.getAsJsonObject();
+            if (o.has("item")) return new JsonPrimitive(o.get("item").getAsString());
+            if (o.has("tag")) return new JsonPrimitive("#" + o.get("tag").getAsString());
+            return el;
+        }
+        if (el.isJsonArray()) {
+            JsonArray fixed = new JsonArray();
+            for (JsonElement e : el.getAsJsonArray()) fixed.add(normalizeIngredient(e));
+            return fixed;
+        }
+        return el; // already a bare id or "#tag" string
+    }
+
+    /** {@code {"item": X, "count": N}} → {@code {"id": X, "count": N}}; bare {@code "X"} → {@code {"id": "X"}}. */
+    private static JsonElement normalizeResult(JsonElement el) {
+        if (el.isJsonPrimitive()) {
+            JsonObject o = new JsonObject();
+            o.add("id", el);
+            return o;
+        }
+        if (el.isJsonObject()) {
+            JsonObject o = el.getAsJsonObject();
+            if (o.has("item") && !o.has("id")) {
+                o.add("id", o.get("item"));
+                o.remove("item");
+            }
+            // Apoli's "amount" alias for stack size, if a pack used it.
+            if (o.has("amount") && !o.has("count")) {
+                o.add("count", o.get("amount"));
+                o.remove("amount");
+            }
+            return o;
+        }
+        return el;
     }
 }

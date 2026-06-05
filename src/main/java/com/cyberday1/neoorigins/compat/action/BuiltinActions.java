@@ -1322,10 +1322,20 @@ public final class BuiltinActions {
                 EntityAction playerAction = ActionParser.parse(inner, ctx);
                 TargetAction mobAction = TargetActionParser.parse(inner, ctx);
                 return actor -> {
+                    Object holderCtx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
                     net.minecraft.world.entity.LivingEntity target =
-                        ActionParser.extractBientityTarget(
-                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
-                    if (target == null) return; // no resolvable target — no-op
+                        ActionParser.extractBientityTarget(holderCtx);
+                    if (target == null) {
+                        // A selector_action over non-living entities (e.g. area_effect_cloud)
+                        // publishes a SourceEntityContext rather than a LivingEntity target.
+                        // There's nothing to "retarget" onto a non-living entity, but the
+                        // inner action still needs to run so a nested fire_projectile reads
+                        // that context and fires FROM the selected entity. Pass through.
+                        if (holderCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.SourceEntityContext) {
+                            playerAction.execute(actor);
+                        }
+                        return; // otherwise no resolvable target — no-op
+                    }
                     if (target instanceof net.minecraft.server.level.ServerPlayer tp) {
                         // Player target: run the full EntityAction on it, with the actor
                         // published so any nested actor-facing sub-action resolves.
@@ -1343,6 +1353,62 @@ public final class BuiltinActions {
             List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
                 .ref("#")
                 .doc("Inner action to run on the resolved context target (player → full action; mob → entity-general subset).")));
+
+        // selector_action — resolve a vanilla entity selector relative to the holder's
+        // command source and run `bientity_action` once per resolved entity, publishing
+        // each as a SourceEntityContext so a nested fire_projectile (directly, or via a
+        // target_action wrapper) fires FROM that entity using its position + rotation.
+        // This is the seam the Toxophilite "hyper_multishot" pack relies on: it summons
+        // rotated area_effect_clouds and fires arrow volleys out of each. sort / limit /
+        // tag predicates inside the selector string are honoured by vanilla's parser.
+        define("selector_action",
+            (json, ctx) -> {
+                final String selector = json.has("selector") ? json.get("selector").getAsString() : null;
+                if (selector == null || selector.isBlank()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] selector_action: missing 'selector' — no-op");
+                    return EntityAction.noop();
+                }
+                final EntityAction inner =
+                    json.has("bientity_action") && json.get("bientity_action").isJsonObject()
+                        ? ActionParser.parse(json.getAsJsonObject("bientity_action"), ctx)
+                    : json.has("entity_action") && json.get("entity_action").isJsonObject()
+                        ? ActionParser.parse(json.getAsJsonObject("entity_action"), ctx)
+                        : null;
+                if (inner == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] selector_action: missing bientity_action/entity_action — no-op");
+                    return EntityAction.noop();
+                }
+                return player -> {
+                    if (player.getServer() == null) return;
+                    java.util.List<? extends net.minecraft.world.entity.Entity> selected;
+                    try {
+                        var reader = new com.mojang.brigadier.StringReader(selector);
+                        var parser = new net.minecraft.commands.arguments.selector.EntitySelectorParser(reader, true);
+                        net.minecraft.commands.arguments.selector.EntitySelector sel = parser.parse();
+                        var src = player.createCommandSourceStack().withPermission(2).withSuppressedOutput();
+                        selected = sel.findEntities(src);
+                    } catch (Exception e) {
+                        NeoOrigins.LOGGER.warn("[CompatB] selector_action: selector '{}' failed: {}", selector, e.getMessage());
+                        return;
+                    }
+                    for (net.minecraft.world.entity.Entity e : selected) {
+                        Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                            new com.cyberday1.neoorigins.service.EventPowerIndex.SourceEntityContext(e));
+                        try {
+                            inner.execute(player);
+                        } finally {
+                            com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
+                        }
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("selector", FormFieldSpec.Kind.STRING, false)
+                    .doc("Vanilla entity selector (e.g. @e[type=area_effect_cloud,tag=foo,limit=2,sort=nearest]) resolved relative to the holder."),
+                new FieldSpec("bientity_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Action run once per selected entity; the entity is published as the action's source (origin + rotation)."),
+                new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Alias for bientity_action.")));
 
         // actor_action — bientity unwrapper that runs the inner `action` on the actor.
         // Lift-and-shift of parseActorAction (delegates to the inner action).
@@ -1966,51 +2032,79 @@ public final class BuiltinActions {
                 final float trailSpeed = json.has("speed_particle") ? json.get("speed_particle").getAsFloat()
                     : json.has("trail_speed") ? json.get("trail_speed").getAsFloat() : 0.0f;
                 final boolean noGravity = json.has("no_gravity") && json.get("no_gravity").getAsBoolean();
+                // Apoli `count`: number of projectiles to spawn in one fire (shotgun
+                // spread when combined with divergence). Only applies to plain
+                // projectiles — for MagicOrb the `count` key keeps its trail-particle
+                // meaning (one orb, N trail particles), so spell visuals are unchanged.
+                final int rawCount = json.has("count") ? json.get("count").getAsInt() : 1;
+                // Apoli `tag`: SNBT merged onto each spawned projectile (e.g.
+                // "{pickup:1b}" so fired arrows can be picked back up).
+                final String nbtTag = json.has("tag") ? json.get("tag").getAsString() : null;
                 return player -> {
                     if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
-                    var entity = entityType.create(sl);
-                    if (entity == null) return;
-                    entity.setPos(player.getX(), player.getEyeY() + verticalOffset, player.getZ());
-                    // no_gravity: vanilla Entity flag — getGravity() returns 0 when set, so the
-                    // projectile flies straight along its launch vector (drag still applies).
-                    if (noGravity) entity.setNoGravity(true);
-                    if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb) {
-                        if (effectType != null) orb.setEffectType(effectType);
-                        if (orbColor != com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET) orb.setOrbColor(orbColor);
-                        if (glowColor != com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET) orb.setGlowColor(glowColor);
-                        if (size >= 0) orb.setSize(size);
-                        if (glowSize >= 0) orb.setGlowSize(glowSize);
-                        if (glowAlpha >= 0) orb.setGlowAlpha(glowAlpha);
-                        if (shape != null && !shape.isEmpty()) orb.setShape(shape);
-                        // Trail particle: explicit JSON id, else the effect_type shorthand default.
-                        String resolvedTrail = trailParticle;
-                        if ((resolvedTrail == null || resolvedTrail.isEmpty())) {
-                            String d = com.cyberday1.neoorigins.api.content.vfx.VfxEffectTypes
-                                .defaults(orb.getEffectType()).trailParticle();
-                            if (d != null) resolvedTrail = d;
+                    // Spatial origin: selector_action may publish a SourceEntityContext
+                    // (e.g. an area_effect_cloud) that the projectile should fire FROM,
+                    // using that entity's position + rotation. Owner stays the player so
+                    // kill credit / arrow pickup ownership resolve to the caster.
+                    Object fpCtx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+                    final net.minecraft.world.entity.Entity origin =
+                        fpCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.SourceEntityContext sec
+                            ? sec.sourceEntity() : player;
+                    double ox = origin.getX();
+                    double oy = (origin == player ? player.getEyeY() : origin.getY()) + verticalOffset;
+                    double oz = origin.getZ();
+                    float xRot = origin.getXRot();
+                    float yRot = origin.getYRot();
+                    var probe = entityType.create(sl);
+                    if (probe == null) return;
+                    boolean isOrb = probe instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile;
+                    int shots = isOrb ? 1 : Math.max(1, rawCount);
+                    for (int i = 0; i < shots; i++) {
+                        var entity = (i == 0) ? probe : entityType.create(sl);
+                        if (entity == null) continue;
+                        entity.setPos(ox, oy, oz);
+                        // no_gravity: vanilla Entity flag — getGravity() returns 0 when set, so the
+                        // projectile flies straight along its launch vector (drag still applies).
+                        if (noGravity) entity.setNoGravity(true);
+                        if (nbtTag != null) applyEntityTag(entity, nbtTag);
+                        if (entity instanceof com.cyberday1.neoorigins.content.MagicOrbProjectile orb) {
+                            if (effectType != null) orb.setEffectType(effectType);
+                            if (orbColor != com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET) orb.setOrbColor(orbColor);
+                            if (glowColor != com.cyberday1.neoorigins.content.MagicOrbProjectile.COLOR_UNSET) orb.setGlowColor(glowColor);
+                            if (size >= 0) orb.setSize(size);
+                            if (glowSize >= 0) orb.setGlowSize(glowSize);
+                            if (glowAlpha >= 0) orb.setGlowAlpha(glowAlpha);
+                            if (shape != null && !shape.isEmpty()) orb.setShape(shape);
+                            // Trail particle: explicit JSON id, else the effect_type shorthand default.
+                            String resolvedTrail = trailParticle;
+                            if ((resolvedTrail == null || resolvedTrail.isEmpty())) {
+                                String d = com.cyberday1.neoorigins.api.content.vfx.VfxEffectTypes
+                                    .defaults(orb.getEffectType()).trailParticle();
+                                if (d != null) resolvedTrail = d;
+                            }
+                            if (resolvedTrail != null && !resolvedTrail.isEmpty()) orb.setTrailParticle(resolvedTrail);
+                            orb.setTrailCount(Math.max(0, trailCount));
+                            orb.setTrailSpread(trailSpread);
+                            orb.setTrailSpeed(trailSpeed);
                         }
-                        if (resolvedTrail != null && !resolvedTrail.isEmpty()) orb.setTrailParticle(resolvedTrail);
-                        orb.setTrailCount(Math.max(0, trailCount));
-                        orb.setTrailSpread(trailSpread);
-                        orb.setTrailSpeed(trailSpeed);
-                    }
-                    if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
-                        proj.setOwner(player);
-                        proj.shootFromRotation(player, player.getXRot(), player.getYRot(), 0f, speed, inaccuracy);
-                    } else {
-                        var look = player.getLookAngle();
-                        entity.setDeltaMovement(look.x * speed, look.y * speed, look.z * speed);
-                    }
-                    sl.addFreshEntity(entity);
-                    // Apoli projectile_action: run immediately on the spawned
-                    // projectile (actor = projectile), e.g. set_on_fire lights the
-                    // ARROW, not the shooter.
-                    if (projectileActionJson != null) {
-                        applyProjectileAction(entity, player, projectileActionJson, sl);
-                    }
-                    if (onHitAction != null) {
-                        com.cyberday1.neoorigins.service.ProjectileActionRegistry.register(
-                            entity.getUUID(), onHitAction, player.tickCount);
+                        if (entity instanceof net.minecraft.world.entity.projectile.Projectile proj) {
+                            proj.setOwner(player);
+                            proj.shootFromRotation(origin, xRot, yRot, 0f, speed, inaccuracy);
+                        } else {
+                            var look = origin.getLookAngle();
+                            entity.setDeltaMovement(look.x * speed, look.y * speed, look.z * speed);
+                        }
+                        sl.addFreshEntity(entity);
+                        // Apoli projectile_action: run immediately on the spawned
+                        // projectile (actor = projectile), e.g. set_on_fire lights the
+                        // ARROW, not the shooter.
+                        if (projectileActionJson != null) {
+                            applyProjectileAction(entity, player, projectileActionJson, sl);
+                        }
+                        if (onHitAction != null) {
+                            com.cyberday1.neoorigins.service.ProjectileActionRegistry.register(
+                                entity.getUUID(), onHitAction, player.tickCount);
+                        }
                     }
                 };
             },
@@ -2049,8 +2143,11 @@ public final class BuiltinActions {
                 new FieldSpec("trail_particle", FormFieldSpec.Kind.STRING, false)
                     .pattern("^[a-z0-9_.-]+:[a-z0-9_./-]+$")
                     .doc("Vanilla particle id for the flight trail (e.g. minecraft:witch). Overrides the effect_type trail."),
-                new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(2).range(0.0, null)
-                    .doc("Trail particles emitted per tick (default 2)."),
+                new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1).range(0.0, null)
+                    .doc("Number of projectiles to fire (default 1; combine with divergence for a spread). "
+                       + "For MagicOrb projectiles this keeps its legacy meaning: trail particles emitted per tick."),
+                new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                    .doc("SNBT compound merged onto each spawned projectile (e.g. \"{pickup:1b}\" so fired arrows can be picked up)."),
                 new FieldSpec("spread", FormFieldSpec.Kind.NUMBER, false).def(0.05).range(0.0, null)
                     .doc("Trail particle position spread (default 0.05)."),
                 new FieldSpec("trail_speed", FormFieldSpec.Kind.NUMBER, false).def(0.0)
@@ -2589,6 +2686,25 @@ public final class BuiltinActions {
                 NeoOrigins.LOGGER.debug(
                     "[CompatB] projectile_action: verb '{}' not applicable to a projectile — skipped", type);
             }
+        }
+    }
+
+    /**
+     * Merge an SNBT {@code tag} string (Apoli {@code fire_projectile.tag}) onto a
+     * freshly-created entity before it is added to the world. Saves the entity's
+     * current NBT, merges the parsed tag over it (so position/motion already set
+     * are preserved unless the tag overrides them), then reloads — mirroring how
+     * vanilla {@code /summon ... <tag>} applies its compound.
+     */
+    static void applyEntityTag(net.minecraft.world.entity.Entity entity, String snbt) {
+        if (entity == null || snbt == null || snbt.isBlank()) return;
+        try {
+            net.minecraft.nbt.CompoundTag parsed = net.minecraft.nbt.TagParser.parseTag(snbt);
+            net.minecraft.nbt.CompoundTag full = entity.saveWithoutId(new net.minecraft.nbt.CompoundTag());
+            full.merge(parsed);
+            entity.load(full);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.warn("[CompatB] fire_projectile: unparseable tag NBT '{}': {}", snbt, e.getMessage());
         }
     }
 
