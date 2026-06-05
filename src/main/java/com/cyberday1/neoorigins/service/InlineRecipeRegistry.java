@@ -1,10 +1,8 @@
 package com.cyberday1.neoorigins.service;
 
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.RegistryOps;
@@ -120,61 +118,27 @@ public final class InlineRecipeRegistry {
     }
 
     /**
-     * Apoli ships inline recipes in the pre-1.20.5 Fabric crafting format, which
-     * the 1.21.1 vanilla {@link Recipe#CODEC} no longer accepts. Two breaking
-     * changes are bridged here:
-     * <ul>
-     *   <li><b>Ingredients</b> are now bare strings — {@code "minecraft:flint"} or
-     *       {@code "#minecraft:planks"} — not {@code {"item": ...}} /
-     *       {@code {"tag": ...}} objects.</li>
-     *   <li><b>Result</b> is now an {@code ItemStack} keyed by {@code "id"} (was
-     *       {@code "item"}); {@code "count"} is unchanged.</li>
-     * </ul>
-     * Mutates a deep copy so the registered source JSON is left intact for
+     * Apoli ships inline recipes in the pre-1.20.5 crafting JSON shape. On
+     * NeoForge 1.21.1 the <b>ingredient</b> object form — {@code {"item": ...}} /
+     * {@code {"tag": ...}} — is still what the (either-list-or-object) ingredient
+     * codec wants, so ingredients are left untouched. The one breaking change is
+     * the <b>result</b>: it is now an {@code ItemStack} keyed by {@code "id"}
+     * (was {@code "item"}), with {@code "count"} unchanged. (An earlier attempt
+     * also rewrote ingredients to bare {@code "id"}/{@code "#tag"} strings — that
+     * is the <em>vanilla</em> shape, which NeoForge's codec rejects, so it broke
+     * every inline recipe. Only the result is rewritten here.)
+     *
+     * <p>Mutates a deep copy so the registered source JSON is left intact for
      * re-injection after subsequent reloads.
      */
     private static JsonObject normalizeApoliRecipe(JsonObject src) {
         JsonObject out = src.deepCopy();
-
-        // Shapeless / smithing: ingredients[]
-        if (out.get("ingredients") instanceof JsonArray arr) {
-            JsonArray fixed = new JsonArray();
-            for (JsonElement el : arr) fixed.add(normalizeIngredient(el));
-            out.add("ingredients", fixed);
-        }
-        // Smelting / stonecutting / single-ingredient: ingredient
-        if (out.has("ingredient")) {
-            out.add("ingredient", normalizeIngredient(out.get("ingredient")));
-        }
-        // Shaped: key{ char -> ingredient }
-        if (out.get("key") instanceof JsonObject key) {
-            JsonObject fixedKey = new JsonObject();
-            for (Map.Entry<String, JsonElement> k : key.entrySet()) {
-                fixedKey.add(k.getKey(), normalizeIngredient(k.getValue()));
-            }
-            out.add("key", fixedKey);
-        }
-        // Result: rename item -> id (object form) or wrap bare string.
+        // Result: rename item -> id (object form) or wrap a bare string. Ingredients
+        // (ingredients[] / ingredient / key{}) keep their {"item"|"tag":...} objects.
         if (out.has("result")) {
             out.add("result", normalizeResult(out.get("result")));
         }
         return out;
-    }
-
-    /** {@code {"item": X}} → {@code "X"}; {@code {"tag": T}} → {@code "#T"}; passes strings/arrays through. */
-    private static JsonElement normalizeIngredient(JsonElement el) {
-        if (el.isJsonObject()) {
-            JsonObject o = el.getAsJsonObject();
-            if (o.has("item")) return new JsonPrimitive(o.get("item").getAsString());
-            if (o.has("tag")) return new JsonPrimitive("#" + o.get("tag").getAsString());
-            return el;
-        }
-        if (el.isJsonArray()) {
-            JsonArray fixed = new JsonArray();
-            for (JsonElement e : el.getAsJsonArray()) fixed.add(normalizeIngredient(e));
-            return fixed;
-        }
-        return el; // already a bare id or "#tag" string
     }
 
     /** {@code {"item": X, "count": N}} → {@code {"id": X, "count": N}}; bare {@code "X"} → {@code {"id": "X"}}. */
