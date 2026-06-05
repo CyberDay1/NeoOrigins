@@ -4,7 +4,7 @@
 
 ## v2.2.0
 
-> This release is a large compatibility + UI pass — a major Origins / Apoli / Apugli compatibility overhaul, a parchment-scroll UI, a browser-based pack editor, and a long list of new powers, actions, and fixes. If you hit a rough edge, please report it on the [GitHub issue tracker](https://github.com/CyberDay1/NeoOrigins/issues).
+> This release is a large compatibility + UI pass — a major Origins / Apoli / Apugli compatibility overhaul, first-class integrations with EMI / Jade / The One Probe / FTB Quests / FTB Teams / FTB Ultimine / Accessories, a parchment-scroll UI, a browser-based pack editor, config hardening, and a long list of new powers, actions, and fixes. If you hit a rough edge, please report it on the [GitHub issue tracker](https://github.com/CyberDay1/NeoOrigins/issues).
 >
 > **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 1.21.1 (Java 21)
 
@@ -20,6 +20,23 @@ The headline of this release is a big jump in **Origins / Apoli / Apugli pack co
 - **Right-click (`key.use`) active powers now fire.** Apoli `active_self` powers bound to `key.use` — cast by right-clicking with a plain or empty hand, the way most spell packs work — previously never triggered, because the server only saw item-use *animations* (food/bow/shield) and not a plain tap. The server now tracks the right-click tick so these powers cast.
 - **Nested bientity actions resolve instead of no-op'ing.** Entity-actions tucked inside a bientity `and` (`add_velocity`, `mount`, `if_else`, `spawn_particles`, …) now run on the actor with the hit entity as context. Genuinely-unknown verbs still warn (and don't double-warn).
 - **Plural modifier arrays accepted.** Conditioned `modify_damage_taken` / `modify_damage_dealt` and `modify_xp_gain` now accept Apoli's plural `modifiers` / `amount` forms in addition to the legacy singular fields.
+- **Apoli attribute-operation mapping is safer.** The operation mapper now **drops** clamp-style operations that have no vanilla `AttributeModifier` equivalent (`set_base`, `min_total`, `max_total`, …) instead of silently mismapping them onto an unrelated vanilla operation. `modify_attribute` and conditioned-attribute powers skip any non-representable op rather than apply a wrong one.
+- **`add_velocity` honors the Apoli `space` transform** (`world` / `local` / `velocity`), so directional knockback/launch verbs push along the intended frame instead of always in world space.
+- **Inline Apoli recipes now decode on NeoForge.** `origins:recipe` powers that ship pre-1.20.5 recipe JSON (e.g. Toxophilite's makeshift arrows) are normalized to the 1.21.1 codec shape. Ingredient objects are left in NeoForge's `either(list, object)` form (rewriting them to bare strings made the codec reject every inline recipe); only the `result`'s Apoli `item` key is rewritten to the 1.21.1 `id` key.
+- **Iron's Spells damage types match by full id.** Namespaced damage-type ids (e.g. `irons_spellbooks:fire_magic`) now compare on the full registry key in `modify_damage` / `action_on_hit`, so spell-school damage conditions resolve instead of dropping the namespace.
+- **The `/resource` command matches Apoli.** Brought to parity with apace100/apoli's `ResourceCommand` — `has` / `get` / `set` / `change` / `operation` subcommands, single-target, "power not granted" errors, vanilla scoreboard feedback messages, correct return values, and resource-name suggestions scoped to the target. A load-time warning is also logged when a `resource` reference (in the condition or `change_resource` / `set_resource`) uses the `*:` self-reference wildcard, which is only resolved for `power_active` and `origins:multiple` — never for resources (see Documentation).
+
+### Mod Integrations
+
+A batch of new out-of-the-box integrations with popular mods. Each is a **soft dependency** — gated behind a mod-list check or reflection, so none of these mods are required and the integration silently no-ops when its mod is absent. The full catalogue lives in the new [`COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+
+- **EMI** *(1.21.1)* — adds an information panel for the Orb of Origin item.
+- **Jade / The One Probe** — looking at a player shows their origin in the block/entity tooltip (Jade on both builds; The One Probe on 1.21.1).
+- **FTB Quests** — a first-class **"NeoOrigins: Grant Loot Pool"** reward type (set a loot-table id + roll count directly on the quest) *(1.21.1)*, plus a quest-tag route: quests tagged `neoorigins_loot_pool_grant:<table_id>` grant a loot pool on completion (both builds). The tag route now hooks FTBQ's real completion event and grants to every online team member.
+- **FTB Teams** — players on an **allied** team (not just the same team) are now trusted for mount consent, so an ally can ride your mountable origin without sending a request.
+- **FTB Ultimine** — new zero-config marker power **`neoorigins:ultimine`**. FTB Ultimine's restriction API is deny-only, so the power works by denying vein-mining to non-holders; it stays fully **dormant until at least one `ultimine` power is present in loaded data**, so simply installing both mods never disables vein-mining for everyone.
+- **Accessories** *(1.21.1)* — the `equipped_item` condition gains an `accessory` slot value plus an optional `slot_type` to narrow to a named curio/accessory slot; it aggregates equipped stacks from both Curios (reflection) and Accessories (typed).
+- **Vampires Need Umbrellas** — holding an umbrella now shields the holder from **both** weather-damage gates: `exposed_to_sun` (sun-burn origins) *and* `in_rain` (rain/water-damage origins like Wet Fur and True Hydrophobia). The umbrella is detected in either hand or any Curios/Accessories slot.
 
 ### New / Changed Powers, Actions & Conditions
 
@@ -32,6 +49,9 @@ The headline of this release is a big jump in **Origins / Apoli / Apugli pack co
 - **`starting_equipment` multi-item** — accepts a list of item stacks (`stacks`) instead of just one; the legacy singular `item` form still works. Each entry carries full per-item data — `components` (`item[...]`-style data components: custom name, enchantments, custom model data, lore) and a structured `enchantments` list — and a new **`legacy_tag`** field bridges pre-1.21 flat SNBT onto the component system.
 - **`tame_mob` owner-aware goals** — tamed-mob aggro/defend goals are split into owner-aware targeting, so a tamed mob defends its owner and won't target them.
 - **`spawn_projectile` gains `no_gravity`.** When `true`, the projectile flies dead-straight along its launch vector instead of arcing (drag still applies). Works for *any* projectile entity, not just the magic orb.
+- **`selector_action` action** — resolves a vanilla entity selector relative to the holder and runs a bientity-action per selected entity, publishing each as a source-entity context. A nested `fire_projectile` can then fire *from* each selected entity using its position and rotation — the basis of fan-out volleys like Toxophilite's `hyper_multishot`.
+- **`fire_projectile` honors Apoli `count` + `tag`.** Non-orb projectiles spawn `count` copies (default 1), and an Apoli `tag` SNBT compound (e.g. `{pickup:1b}`) is applied to each spawned projectile. For the magic orb, `count` keeps its trail-particle meaning.
+- **`break_speed_modifier` now respects `block_tag`.** The power advertised a `block_tag` filter but ignored it, scaling mining speed on every block. It is reimplemented through `PlayerEvent.BreakSpeed` (fired client + server so mining prediction matches) and now actually filters by the target block's tag/id — a leading `#` forces tag-only.
 
 ### Dual-Actor Spells & Data-Driven Projectiles
 
@@ -53,7 +73,8 @@ A new family of "caster + target" spell building blocks. Previously a projectile
 - **Parchment scroll buttons.** The origin picker's list rows, the top-right sort button, and the Random / Back / Confirm row now render as parchment scrolls — rolled up at rest, unrolled with a warm glow on hover/selection — drawn with a horizontal 3-slice so the rolled ends never distort at any width. A compact "short" scroll variant is used for the list rows and the sort button so they don't look oversized. Replaces the old flat-fill + outline buttons.
 - **Live Essence Evolution progress** now shows on the Origin Info screen — your current kill-count toward the next evolution tier.
 - **Themed fonts across the picker.** The bundled Newsreader font (shipped under the OFL) is now applied consistently across screen titles, body text, power names/descriptions, headers, and button labels, instead of only the layer title.
-- **In-game creator polish.** The existing in-game `/neoorigins editor` and mob editor pick up the parchment widget/font theming, and raw-JSON fields gained shape-hint placeholders.
+- **In-game creator polish.** The existing in-game `/neoorigins editor` and mob editor pick up the parchment widget/font theming, and raw-JSON fields gained shape-hint placeholders. The editor also gained a per-session tooltip toggle and now tolerates blank item/enchantment rows in `starting_equipment` (skipping the row instead of failing the whole power).
+- **Classic-picker accessibility fallback.** A `classic_picker_style` client option swaps the parchment skin for a flat, high-contrast picker for players who find the textured UI hard to read.
 - **Named keybind / hotkey support** for pack-defined keybinds.
 
 ### Web Editor (new) — https://cyberday1.github.io/NeoOrigins/
@@ -79,11 +100,22 @@ A browser-based datapack editor, complementing the existing in-game `/neoorigins
 - **Water breathing no longer lets the bubble bar drain while submerged.** The power gated on `isUnderWater()`, which also requires the *body* to be in water; on ticks where the body briefly read as out-of-water while the eye stayed under (surface-swimming, currents, edges), vanilla drained a bubble the power didn't refill — visible bar drift with no actual drowning. It now gates on the **eye** being in water, the exact condition under which air depletes, so the bar holds steady.
 - **`pack.mcmeta` pack_format corrected to 48** for MC 1.21.1 packs and editor exports.
 - **JSON-preview layer-id namespace leak** and **Evolution Path glyph rendering / transparent parchment background** fixed.
+- **Projectile `projectile_action` ran on the shooter, not the projectile.** `spawn_projectile` / `fire_projectile` now apply `projectile_action` to the spawned projectile itself (actor = projectile), with `on_hit_action` routed separately to the hit registry — so "set the arrow on fire" affects the arrow, not the caster.
+- **Resource HUD bar didn't update on `change_resource` / `set_resource`.** Those actions mutated server-side state only; they now sync to the client so the bar value visibly updates.
+- **`active_self` with `continuous: true` fired every tick.** Holding the key now fires every `<cooldown>` ticks as intended, gated behind the declared cooldown instead of once per tick.
+- **`give` ignored the Apoli `amount` alias** and always granted a single item; the requested stack size is now honored.
+- **Curios-slot umbrellas weren't detected.** A wrong `ICurioStacksHandler` class path (the class moved package in Curios 9.5.1) failed the reflection block and poisoned the whole Curios scan, so umbrellas worn in Curios slots never shielded against sun or rain (only the hand worked). Corrected — Curios-slot umbrellas shield again.
+- **The origin picker could strand the player on a nitwit-only layer.** The auto-skip logic no longer skips (or gets stuck on) a layer whose only visible option is Nitwit.
 
 ### Commands & Config
 
 - **Origin-gated recipe conditions** — recipes can be gated on a player's origin.
 - **Sort dropdown on the origin selection screen** (re-skinned this release as the parchment scroll button).
+- **Config split into CLIENT / SERVER / COMMON specs.** Origin/class enable toggles and the global resource-bar disable moved to a **server** spec, so NeoForge auto-syncs them to connecting clients — server-side origin toggles now correctly apply on remote clients instead of desyncing. Client-only display prefs (hotkey pool size, classic-picker style, show-editor button, hidden HUD bars) moved to a client config.
+- **Command-power blacklist (security).** Datapack powers can execute server commands at permission level 2 — an escalation vector (e.g. a power running `/op @s`). A configurable `COMMAND_POWER_BLACKLIST` now guards `execute_command`, `command_along_ray`, `command_at_hit`, and the `command` condition; blocked roots are refused and warned (the guard unwraps `execute … run <cmd>` to the real command token).
+- **Per-layer unique origins (server claims).** An optional uniqueness lock: in layers listed under the new `unique_origin_layers` config, an origin can be held by only one player at a time. Includes saved-data + client sync, `/neoorigins claims` / `unlock` admin commands, and pick-time enforcement (the Orb of Origin is **not** consumed on a rejected pick). Creative-mode ops and `/set` bypass the lock and take over the claim.
+- **`show_origin_editor` config** — expose the in-game editor button outside Creative mode.
+- **`/resource` parity with Apoli** — see Compat Improvements (`has` / `get` / `set` / `change` / `operation`).
 
 ### Under the Hood
 
@@ -98,6 +130,9 @@ A browser-based datapack editor, complementing the existing in-game `/neoorigins
 - **Global Power Sets** documented in the new [`GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) pack-author reference (linked from the README).
 - **`mob_behavior` and `mount` power types fully documented** in `POWER_TYPES.md` — including the target-goal lifecycle (a `NearestAttackableTargetGoal`, plus a `HurtByTargetGoal` when `retaliate` is set, added on grant and stripped on revoke) and mount consent / dismount-on-revoke behavior.
 - **Four new cookbook recipes** in `COOKBOOK.md`: "Arcane bolt" (straight-flying `no_gravity` projectile), "Elemental cast" (one-line fireball / wind bolt), "Hunting predator" (conditional mob aggression for mob origins), and "Beast rider" (mount entities on demand).
+- **New [`COMPATIBILITY.md`](docs/COMPATIBILITY.md)** cataloguing every out-of-the-box mod integration (EMI, Jade, The One Probe, FTB Quests/Teams/Ultimine, Accessories, Curios, Vampires Need Umbrellas, Ars Nouveau, Pehkui, Epic Fight, JEI/REI, and the Origins/Apoli/Apugli importer), with honest notes on each integration's caveats and which build it targets. Linked from the docs index.
+- **Resource-wildcard limitation documented** in `CONDITIONS.md` and `ACTIONS.md`: the `*:` / `*:*` self-reference wildcard is resolved only for `power_active` toggles and `origins:multiple` sub-powers, never for the `resource` condition or `change_resource` / `set_resource` actions — a `*` there reads as `0` and now warns at load.
+- **Theme-template download guide** added to the theme-template README (how to grab just that folder from the repo).
 - **Attribution:** `LICENSE` now credits the Apoli / apace100 project for the bundled `resource_bar.png` (MIT).
 
 ### Breaking / Migration Notes
@@ -107,5 +142,11 @@ No hard data-format breaks — existing packs load without edits — but a few o
 - **Attribute stacking.** Packs that (knowingly or not) relied on the old de-duplicating behavior will now see two identical attribute grants **stack**. Review any power that double-grants the same attribute.
 - **Conditioned prevention.** `prevent_item_use` / `prevent_block_use` now honor the holder `condition`. A pack that leaned on the old unconditional behavior will see prevention fire only when the condition is met.
 - **pack_format.** Datapacks/exports generated by older editor builds may need their `pack.mcmeta` corrected to `48` for MC 1.21.1.
+- **Config moved between files.** Origin/class enable toggles and the resource-bar disable are now in the **server** config (so they sync to clients); client display prefs (hotkey pool size, classic-picker style, show-editor button, hidden HUD bars) are in the **client** config. Defaults are unchanged, but admins who previously hand-edited these in the common config should set them in their new homes.
+- **Command-powers can be blacklisted.** Datapack powers that run server commands now pass through `COMMAND_POWER_BLACKLIST`. The default list blocks obvious escalation roots; a pack that legitimately relies on a blocked command will need it removed from the blacklist.
+
+### Credits
+
+Huge thanks to our testers on the [Discord](https://discord.gg/Ukph2budfy) for burning through the 2.2 betas — catching the compat edge cases, broken hitboxes, and silently-misbehaving powers that this release fixes.
 
 ---
