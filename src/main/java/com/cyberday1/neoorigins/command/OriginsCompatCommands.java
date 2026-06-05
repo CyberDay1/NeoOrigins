@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.compat.LegacyCommandRewriter;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
@@ -13,14 +14,14 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.ObjectiveArgument;
+import net.minecraft.commands.arguments.ScoreHolderArgument;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.CommandEvent;
-
-import java.util.Collection;
 
 /**
  * Registers top-level {@code /resource} and {@code /power} commands that
@@ -42,28 +43,49 @@ public class OriginsCompatCommands {
      * {@link OriginCommand#register}.
      */
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // /resource change <target> <power> <amount>
-        // /resource set <target> <power> <amount>
-        // /resource get <target> <power>
+        // Mirrors Apoli's /resource command (apace100/apoli ResourceCommand):
+        //   has       <target> <resource>                              -> 1/0 conditional
+        //   get       <target> <resource>                              -> current value
+        //   set       <target> <resource> <value>                      -> new value
+        //   change    <target> <resource> <value>                      -> new value
+        //   operation <target> <resource> <op> <source> <objective>    -> new value
+        // Single-target like Apoli; <resource> must already be granted to the
+        // target (a power applied it), otherwise the command fails the way
+        // Apoli's POWER_NOT_GRANTED does. Return values mirror vanilla
+        // /scoreboard so /execute store result works.
         dispatcher.register(Commands.literal("resource")
             .requires(Commands.hasPermission(new net.minecraft.server.permissions.PermissionCheck.Require(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)))
-            .then(Commands.literal("change")
-                .then(Commands.argument("targets", EntityArgument.players())
-                    .then(Commands.argument("power", IdentifierArgument.id())
-                        .suggests(SUGGEST_POWERS)
-                        .then(Commands.argument("amount", IntegerArgumentType.integer())
-                            .executes(OriginsCompatCommands::executeResourceChange)))))
-            .then(Commands.literal("set")
-                .then(Commands.argument("targets", EntityArgument.players())
-                    .then(Commands.argument("power", IdentifierArgument.id())
-                        .suggests(SUGGEST_POWERS)
-                        .then(Commands.argument("amount", IntegerArgumentType.integer())
-                            .executes(OriginsCompatCommands::executeResourceSet)))))
+            .then(Commands.literal("has")
+                .then(Commands.argument("target", EntityArgument.player())
+                    .then(Commands.argument("resource", IdentifierArgument.id())
+                        .suggests(SUGGEST_TARGET_RESOURCES)
+                        .executes(OriginsCompatCommands::executeResourceHas))))
             .then(Commands.literal("get")
-                .then(Commands.argument("targets", EntityArgument.players())
-                    .then(Commands.argument("power", IdentifierArgument.id())
-                        .suggests(SUGGEST_POWERS)
-                        .executes(OriginsCompatCommands::executeResourceGet)))));
+                .then(Commands.argument("target", EntityArgument.player())
+                    .then(Commands.argument("resource", IdentifierArgument.id())
+                        .suggests(SUGGEST_TARGET_RESOURCES)
+                        .executes(OriginsCompatCommands::executeResourceGet))))
+            .then(Commands.literal("set")
+                .then(Commands.argument("target", EntityArgument.player())
+                    .then(Commands.argument("resource", IdentifierArgument.id())
+                        .suggests(SUGGEST_TARGET_RESOURCES)
+                        .then(Commands.argument("value", IntegerArgumentType.integer())
+                            .executes(OriginsCompatCommands::executeResourceSet)))))
+            .then(Commands.literal("change")
+                .then(Commands.argument("target", EntityArgument.player())
+                    .then(Commands.argument("resource", IdentifierArgument.id())
+                        .suggests(SUGGEST_TARGET_RESOURCES)
+                        .then(Commands.argument("value", IntegerArgumentType.integer())
+                            .executes(OriginsCompatCommands::executeResourceChange)))))
+            .then(Commands.literal("operation")
+                .then(Commands.argument("target", EntityArgument.player())
+                    .then(Commands.argument("resource", IdentifierArgument.id())
+                        .suggests(SUGGEST_TARGET_RESOURCES)
+                        .then(Commands.argument("operation", StringArgumentType.word())
+                            .suggests(SUGGEST_OPERATIONS)
+                            .then(Commands.argument("source", ScoreHolderArgument.scoreHolder())
+                                .then(Commands.argument("objective", ObjectiveArgument.objective())
+                                    .executes(OriginsCompatCommands::executeResourceOperation))))))));
 
         // /power grant <target> <power>
         // /power revoke <target> <power>
@@ -81,55 +103,162 @@ public class OriginsCompatCommands {
                         .executes(OriginsCompatCommands::executePowerRevoke)))));
     }
 
-    // ── resource change ───────────────────────────────────────────────────
+    // ── /resource (Apoli parity) ───────────────────────────────────────────
 
-    private static int executeResourceChange(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "targets");
-        Identifier power = IdentifierArgument.getId(ctx, "power");
-        int amount = IntegerArgumentType.getInteger(ctx, "amount");
-        String key = power.toString();
+    /** Thrown when the target player doesn't have the named resource granted. */
+    private static final com.mojang.brigadier.exceptions.DynamicCommandExceptionType RESOURCE_NOT_PRESENT =
+        new com.mojang.brigadier.exceptions.DynamicCommandExceptionType(res ->
+            net.minecraft.network.chat.Component.literal("That player has no resource '" + res + "'"));
 
-        int count = 0;
-        for (ServerPlayer player : players) {
-            var state = player.getData(CompatAttachments.resourceState());
-            var meta = CompatAttachments.getResourceMeta(key);
-            int min = meta != null ? meta.min() : 0;
-            int max = meta != null ? meta.max() : Integer.MAX_VALUE;
-            state.clampedAdd(key, amount, min, max);
-            CompatAttachments.syncResourcesToClient(player);
-            count++;
+    private static final com.mojang.brigadier.exceptions.SimpleCommandExceptionType ERROR_DIVIDE_BY_ZERO =
+        new com.mojang.brigadier.exceptions.SimpleCommandExceptionType(
+            net.minecraft.network.chat.Component.literal("Cannot divide by zero"));
+
+    private static final com.mojang.brigadier.exceptions.DynamicCommandExceptionType ERROR_INVALID_OPERATION =
+        new com.mojang.brigadier.exceptions.DynamicCommandExceptionType(op ->
+            net.minecraft.network.chat.Component.literal("Invalid operation '" + op + "'"));
+
+    /** Suggest the scoreboard-style operators Apoli's /resource operation accepts. */
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_OPERATIONS =
+        (ctx, builder) -> SharedSuggestionProvider.suggest(
+            java.util.List.of("=", "+=", "-=", "*=", "/=", "%=", "<", ">", "><"), builder);
+
+    /** Suggest only the resources the resolved target currently has (Apoli parity). */
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_TARGET_RESOURCES =
+        (ctx, builder) -> {
+            try {
+                ServerPlayer p = EntityArgument.getPlayer(ctx, "target");
+                return SharedSuggestionProvider.suggest(
+                    p.getData(CompatAttachments.resourceState()).getAll().keySet(), builder);
+            } catch (Exception ignored) {
+                return SharedSuggestionProvider.suggestResource(
+                    PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+            }
+        };
+
+    /** Resolve the resource key for a player, failing like Apoli if it isn't granted. */
+    private static String requireResource(ServerPlayer player, Identifier resource)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        String key = resource.toString();
+        if (!player.getData(CompatAttachments.resourceState()).has(key)) {
+            throw RESOURCE_NOT_PRESENT.create(key);
         }
-        return count;
+        return key;
     }
 
-    private static int executeResourceSet(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "targets");
-        Identifier power = IdentifierArgument.getId(ctx, "power");
-        int amount = IntegerArgumentType.getInteger(ctx, "amount");
-        String key = power.toString();
-
-        int count = 0;
-        for (ServerPlayer player : players) {
-            var state = player.getData(CompatAttachments.resourceState());
-            state.set(key, amount);
-            CompatAttachments.syncResourcesToClient(player);
-            count++;
-        }
-        return count;
+    /** Clamp a value into the resource's registered [min, max] (no-op if meta unknown). */
+    private static int clampToMeta(String key, int value) {
+        var meta = CompatAttachments.getResourceMeta(key);
+        if (meta == null) return value;
+        return Math.max(meta.min(), Math.min(meta.max(), value));
     }
 
-    private static int executeResourceGet(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "targets");
-        Identifier power = IdentifierArgument.getId(ctx, "power");
-        String key = power.toString();
-
-        int total = 0;
-        for (ServerPlayer player : players) {
-            var state = player.getData(CompatAttachments.resourceState());
-            int value = state.get(key, 0);
-            total += value;
+    private static int executeResourceHas(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        Identifier resource = IdentifierArgument.getId(ctx, "resource");
+        boolean has = player.getData(CompatAttachments.resourceState()).has(resource.toString());
+        if (has) {
+            ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+                "commands.execute.conditional.pass"), false);
+            return 1;
         }
-        return total;
+        ctx.getSource().sendFailure(net.minecraft.network.chat.Component.translatable(
+            "commands.execute.conditional.fail"));
+        return 0;
+    }
+
+    private static int executeResourceGet(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        Identifier resource = IdentifierArgument.getId(ctx, "resource");
+        String key = requireResource(player, resource);
+        int value = player.getData(CompatAttachments.resourceState()).get(key, 0);
+        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+            "commands.scoreboard.players.get.success", player.getDisplayName(), value, key), false);
+        return value;
+    }
+
+    private static int executeResourceSet(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        Identifier resource = IdentifierArgument.getId(ctx, "resource");
+        int value = IntegerArgumentType.getInteger(ctx, "value");
+        String key = requireResource(player, resource);
+        int newValue = clampToMeta(key, value);
+        player.getData(CompatAttachments.resourceState()).set(key, newValue);
+        CompatAttachments.syncResourcesToClient(player);
+        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+            "commands.scoreboard.players.set.success.single", key, player.getDisplayName(), newValue), true);
+        return newValue;
+    }
+
+    private static int executeResourceChange(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        Identifier resource = IdentifierArgument.getId(ctx, "resource");
+        int delta = IntegerArgumentType.getInteger(ctx, "value");
+        String key = requireResource(player, resource);
+        var state = player.getData(CompatAttachments.resourceState());
+        var meta = CompatAttachments.getResourceMeta(key);
+        int min = meta != null ? meta.min() : 0;
+        int max = meta != null ? meta.max() : Integer.MAX_VALUE;
+        state.clampedAdd(key, delta, min, max);
+        int newValue = state.get(key, 0);
+        CompatAttachments.syncResourcesToClient(player);
+        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+            "commands.scoreboard.players.add.success.single", delta, key, player.getDisplayName(), newValue), true);
+        return newValue;
+    }
+
+    private static int executeResourceOperation(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        Identifier resource = IdentifierArgument.getId(ctx, "resource");
+        String op = StringArgumentType.getString(ctx, "operation");
+        net.minecraft.world.scores.ScoreHolder sourceHolder = ScoreHolderArgument.getName(ctx, "source");
+        net.minecraft.world.scores.Objective objective = ObjectiveArgument.getObjective(ctx, "objective");
+        String key = requireResource(player, resource);
+
+        var state = player.getData(CompatAttachments.resourceState());
+        net.minecraft.world.scores.Scoreboard scoreboard = ctx.getSource().getServer().getScoreboard();
+        net.minecraft.world.scores.ScoreAccess sourceScore = scoreboard.getOrCreatePlayerScore(sourceHolder, objective);
+
+        int cur = state.get(key, 0);
+        int src = sourceScore.get();
+        int result;
+        if (op.equals("><")) {
+            // swap: resource takes the source score, source score takes the old resource value
+            result = src;
+            sourceScore.set(cur);
+        } else {
+            result = applyOperation(op, cur, src);
+        }
+        int newValue = clampToMeta(key, result);
+        state.set(key, newValue);
+        CompatAttachments.syncResourcesToClient(player);
+        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+            "commands.scoreboard.players.operation.success.single", key, player.getDisplayName(), newValue), true);
+        return newValue;
+    }
+
+    private static int applyOperation(String op, int cur, int src)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        switch (op) {
+            case "=":  return src;
+            case "+=": return cur + src;
+            case "-=": return cur - src;
+            case "*=": return cur * src;
+            case "/=":
+                if (src == 0) throw ERROR_DIVIDE_BY_ZERO.create();
+                return Math.floorDiv(cur, src);
+            case "%=":
+                if (src == 0) throw ERROR_DIVIDE_BY_ZERO.create();
+                return Math.floorMod(cur, src);
+            case "<":  return Math.min(cur, src);
+            case ">":  return Math.max(cur, src);
+            default:   throw ERROR_INVALID_OPERATION.create(op);
+        }
     }
 
     // ── power grant / revoke ──────────────────────────────────────────────
