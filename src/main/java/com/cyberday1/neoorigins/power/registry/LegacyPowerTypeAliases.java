@@ -142,6 +142,16 @@ public final class LegacyPowerTypeAliases {
         ResourceLocation.fromNamespaceAndPath("neoorigins", "condition_passive");
 
     private static void registerConditionPassiveAliases() {
+        // action_over_time: documented neoorigins: name (POWER_TYPES.md) for the
+        // tick-driven "run entity_action every <interval> ticks while <condition>"
+        // pattern. It is a structural twin of condition_passive (same
+        // interval/condition/entity_action fields), but was never registered as a
+        // real type — so packs copied straight from the docs silently dropped the
+        // whole power (name + description vanished from the picker). Direct alias,
+        // no field remap: the fields line up 1:1.
+        register(ResourceLocation.fromNamespaceAndPath("neoorigins", "action_over_time"),
+                 ID_CONDITION_PASSIVE);
+
         // biome_buff: apply mob effect while in a biome tag.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "biome_buff"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
