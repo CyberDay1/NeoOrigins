@@ -27,7 +27,7 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 |---|---|---|
 | **Curios API** | `curios` | Lets conditions inspect equipped curio slots — the `equipped_item` condition's `accessory` slot and umbrella detection both read worn curios. Reflection-based, no hard dependency. |
 | **Accessories** | `accessories` | Wisp Forest's accessory system. The `equipped_item` condition's `accessory` slot (and umbrella detection) also reads worn Accessories, alongside Curios. Compile-only soft dependency; **1.21.1 only** (no 26.1 build exists). |
-| **Vampires Need Umbrellas** | `vampiresneedumbrellas` | Recognises that mod's umbrella items for umbrella-based conditions. |
+| **Vampires Need Umbrellas** | `vampiresneedumbrellas` | An equipped umbrella shields the holder from both weather-damage conditions: `exposed_to_sun` (sun-burn origins) and `in_rain` (rain/water-damage origins like Wet Fur and True Hydrophobia). The umbrella is detected in either hand or any Curios/Accessories slot. |
 | **Ars Nouveau** | `ars_nouveau` | Undead-type origins are healed (rather than harmed) by Ars Nouveau harm spells, mirroring vanilla undead behaviour. |
 | **FTB Teams** | `ftbteams` | Players on the same or an allied FTB team are treated as trusted for mount consent — a teammate or ally can ride your mountable origin without sending a consent request. |
 | **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. |
