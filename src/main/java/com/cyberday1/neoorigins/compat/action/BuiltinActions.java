@@ -1917,6 +1917,11 @@ public final class BuiltinActions {
             (json, ctx) -> {
                 String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
                 if (resourceId == null) return EntityAction.noop();
+                if (resourceId.contains("*")) {
+                    NeoOrigins.LOGGER.warn(
+                        "[CompatB] change_resource references '{}' — the '*' wildcard is NOT resolved for resources; " +
+                        "use the full namespaced power id, or this targets a non-existent resource key.", resourceId);
+                }
                 String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
                 int change = json.has("change") ? json.get("change").getAsInt() : 0;
                 final String key = resourceId;
@@ -1958,6 +1963,11 @@ public final class BuiltinActions {
             (json, ctx) -> {
                 String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
                 if (resourceId == null) return EntityAction.noop();
+                if (resourceId.contains("*")) {
+                    NeoOrigins.LOGGER.warn(
+                        "[CompatB] set_resource references '{}' — the '*' wildcard is NOT resolved for resources; " +
+                        "use the full namespaced power id, or this targets a non-existent resource key.", resourceId);
+                }
                 int value = json.has("value") ? json.get("value").getAsInt()
                            : json.has("change") ? json.get("change").getAsInt() : 0;
                 final String key = resourceId;
