@@ -95,7 +95,7 @@ public final class AccessoryInspector {
                 CURIOS_GET_EQUIPPED = handlerClass.getMethod("getEquippedCurios");
                 CURIOS_GET_CURIOS = handlerClass.getMethod("getCurios");
                 Class<?> stacksClass = Class.forName(
-                    "top.theillusivec4.curios.api.type.ICurioStacksHandler");
+                    "top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler");
                 CURIO_STACKS_GET_STACKS = stacksClass.getMethod("getStacks");
             }
             // CuriosApi.getCuriosInventory(entity) -> Optional<ICuriosItemHandler>
