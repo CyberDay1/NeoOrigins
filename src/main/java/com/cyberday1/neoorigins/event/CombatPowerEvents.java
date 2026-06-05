@@ -107,9 +107,20 @@ public class CombatPowerEvents {
         // If the player dismissed the picker without committing any origin,
         // `pickerAbandoned` is set by the client and invulnerability drops so
         // they can't stay immortal forever by escaping.
+        //
+        // The invuln window must end the instant the player has actually
+        // committed an origin — NOT only when hadAllOrigins flips. On servers
+        // with multi/conditional/hidden layers, handleChooseOrigin's allFilled
+        // check can fail to set hadAllOrigins live even though the player has
+        // picked everything the picker showed them; the player then stayed
+        // immortal until a relog, where checkAndPromptOrigin backfills
+        // hadAllOrigins from the (non-empty) stored origins. Mirror that same
+        // "has any committed origin ⇒ done picking" signal here so the live
+        // behaviour matches the post-relog behaviour and no relog is needed.
         com.cyberday1.neoorigins.attachment.PlayerOriginData pod =
             sp.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-        if (!pod.isHadAllOrigins() && pod.getOrbUseCount() == 0 && !pod.isPickerAbandoned()) {
+        boolean stillFirstPicking = !pod.isHadAllOrigins() && pod.getOrigins().isEmpty();
+        if (stillFirstPicking && pod.getOrbUseCount() == 0 && !pod.isPickerAbandoned()) {
             event.setCanceled(true);
             return;
         }
