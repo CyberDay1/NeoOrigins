@@ -1,22 +1,23 @@
-name: Deploy Web Editor to GitHub Pages
+name: Build Web Editor (and trigger Pages deploy)
 
-# Builds the SvelteKit web editor at `website/` and deploys it to
-# GitHub Pages under cyberday1.github.io/NeoOrigins/editor/.
+# The web editor lives only on this branch (1.21.1), but the repo's GitHub
+# Pages site is built and deployed by a single combined workflow on `master`
+# (.github/workflows/pages.yml on master), which serves the Jekyll docs at the
+# site root and this editor under /editor/. GitHub Pages allows one artifact
+# per repo, so the editor cannot deploy independently from here.
 #
-# Schema sync: on every run, `docs/schema/*.json` is copied into
-# `website/static/schemas/` so the editor's runtime fetch hits the
-# current source-of-truth schemas. Drift between the committed
-# `static/schemas/` copy and `docs/schema/` is surfaced as a warning.
+# This workflow therefore:
+#   1. Builds the editor on every 1.21.1 push that touches it — a fast CI
+#      sanity check that the editor still compiles (no deploy).
+#   2. Notifies master's combined workflow (via repository_dispatch) so the
+#      published site at cyberday1.github.io/NeoOrigins/editor/ is rebuilt with
+#      the new editor.
 #
-# Pages-deploy collision note:
-#   The `master` branch's `.github/workflows/pages.yml` currently
-#   publishes the mkdocs docs site to the same Pages environment.
-#   The build job here always runs (so the editor stays buildable on
-#   1.21.1 pushes), but the deploy job is gated `if: false` until the
-#   mkdocs deploy pipeline is consolidated with this one — otherwise
-#   running both would have the editor clobber the docs site (or vice
-#   versa) on every push. See planning/web_editor_scope.md, "Docs site
-#   host-branch decision" for the follow-up plan.
+# Step 2 needs a PAT, because a workflow's default GITHUB_TOKEN cannot trigger
+# another workflow run. Create a fine-grained PAT with "Contents: read" on this
+# repo and add it as the repo secret PAGES_DISPATCH_TOKEN. Without that secret
+# the notify step no-ops with a warning; publish editor changes by running the
+# "Deploy Docs + Web Editor to GitHub Pages" workflow on master manually.
 
 on:
   push:
@@ -29,15 +30,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# Only one Pages deploy at a time; cancel queued runs so the latest
-# push wins (editor is single-source-of-truth, no value in replaying
-# older builds).
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -63,16 +55,13 @@ jobs:
         working-directory: website
         run: npm ci
 
-      - name: Sync schemas from docs/schema/ → website/static/schemas/
+      - name: Sync schemas from docs/schema/ -> website/static/schemas/
         run: |
           mkdir -p website/static/schemas
           cp docs/schema/*.json website/static/schemas/
           ls -la website/static/schemas/
 
-      # Drift check: if the committed `website/static/schemas/` ever
-      # diverges from `docs/schema/`, fail the build so the dev knows
-      # to recommit. On the very first run (before the editor agent
-      # has committed `website/static/schemas/`), skip with a warning.
+      # Drift check: committed website/static/schemas/ must match docs/schema/.
       - name: Detect schema drift
         run: |
           if git ls-files --error-unmatch website/static/schemas/ > /dev/null 2>&1; then
@@ -81,31 +70,27 @@ jobs:
             echo "::warning::website/static/schemas/ not yet committed; skipping drift check"
           fi
 
-      - name: Build SvelteKit static site
+      - name: Build SvelteKit static site (CI check)
         working-directory: website
+        env:
+          NODE_ENV: production
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: website/build
-
-  deploy:
-    # Gated off until the master-branch mkdocs pages workflow is
-    # consolidated with this one (see planning/web_editor_scope.md).
-    # Flip to `if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/1.21.1'`
-    # once the docs deploy moves to a release branch or is folded into
-    # this workflow.
-    if: false
+  notify-pages:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if: github.event_name == 'push'
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Trigger combined Pages deploy on master
+        env:
+          DISPATCH_TOKEN: ${{ secrets.PAGES_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$DISPATCH_TOKEN" ]; then
+            echo "::warning::PAGES_DISPATCH_TOKEN not set; skipping auto-deploy. Run the 'Deploy Docs + Web Editor to GitHub Pages' workflow on master to publish editor changes."
+            exit 0
+          fi
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $DISPATCH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            -d '{"event_type":"editor-updated"}'
