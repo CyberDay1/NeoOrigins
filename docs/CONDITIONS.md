@@ -171,7 +171,7 @@ True while horizontal delta-movement is nonzero. No fields.
 
 ## `neoorigins:in_rain`
 
-True when rain is falling at the entity's block position (server-side only).
+True when rain is falling at the entity's block position with sky access (server-side only); returns false while mounted. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios slot blocks the rain entirely (mirroring `exposed_to_sun`), so rain/water-damage origins like Wet Fur and True Hydrophobia stop hurting while you carry one.
 
 ## `neoorigins:daytime`
 
