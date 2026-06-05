@@ -506,6 +506,7 @@ public final class NeoOriginsConfig {
 
     // ── Orb of Origins ──────────────────────────────────────────────────
     public static final ModConfigSpec.IntValue ORB_LEVELS_PER_USE;
+    public static final ModConfigSpec.BooleanValue ORB_SCALE_COST;
 
     static {
         BUILDER.comment(
@@ -513,16 +514,24 @@ public final class NeoOriginsConfig {
             "Controls XP cost behaviour when a player uses an Orb of Origin."
         ).push("orb_of_origins");
 
+        ORB_SCALE_COST = BUILDER
+            .comment("Whether the XP cost scales with the number of prior orb uses.",
+                     "true  (default): Cost = levels_per_use * previous orb uses (first use free, then ramps).",
+                     "false: flat cost — every use (including the first) costs exactly levels_per_use levels.")
+            .define("scale_cost", true);
+
         ORB_LEVELS_PER_USE = BUILDER
-            .comment("XP levels charged per prior orb use.",
-                     "Cost = this value * number of previous orb uses.",
-                     "First use is always free. Set to 0 to disable XP cost entirely.")
+            .comment("XP levels charged per orb use.",
+                     "When scale_cost=true:  Cost = this value * number of previous orb uses (first use free).",
+                     "When scale_cost=false: Cost = this value, flat, on every use.",
+                     "Set to 0 to disable XP cost entirely.")
             .defineInRange("levels_per_use", 5, 0, 1000);
 
         BUILDER.pop();
     }
 
     public static int orbLevelsPerUse() { return ORB_LEVELS_PER_USE.get(); }
+    public static boolean orbScaleCost() { return ORB_SCALE_COST.get(); }
 
     // ── Auto-Human Mode ───────────────────────────────────────────────
     public static final ModConfigSpec.BooleanValue AUTO_HUMAN;
