@@ -37,7 +37,7 @@ public class OriginsCompatCommands {
 
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_POWERS =
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
-            PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+            PowerDataManager.INSTANCE.getAllPowers().keySet(), builder);
 
     /**
      * Register the Origins-mod compat commands. Called from
@@ -133,7 +133,7 @@ public class OriginsCompatCommands {
                     p.getData(CompatAttachments.resourceState()).getAll().keySet(), builder);
             } catch (Exception ignored) {
                 return SharedSuggestionProvider.suggestResource(
-                    PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+                    PowerDataManager.INSTANCE.getAllPowers().keySet(), builder);
             }
         };
 

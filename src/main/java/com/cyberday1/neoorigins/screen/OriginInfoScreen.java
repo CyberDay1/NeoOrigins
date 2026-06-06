@@ -53,6 +53,9 @@ public class OriginInfoScreen extends Screen {
     private List<List<FormattedCharSequence>> wrappedPowerDescs = List.of();
     private int detailScrollOffset = 0;
     private int detailContentH = 0;
+    // Scrollbar thumb drag state
+    private boolean draggingThumb = false;
+    private double dragGrabY = 0;
 
     public OriginInfoScreen() {
         super(Component.translatable("screen.neoorigins.origin_info"));
@@ -464,6 +467,70 @@ public class OriginInfoScreen extends Screen {
             return true;
         }
         return super.mouseScrolled(mx, my, sx, sy);
+    }
+
+    @Override
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (button == 0) {
+            int scrollTop = PANEL_TOP + HEADER_H;
+            int scrollBottom = panelBottom - PANEL_INSET;
+            int scrollAreaH = scrollBottom - scrollTop;
+            int maxScroll = Math.max(0, detailContentH - scrollAreaH);
+            if (maxScroll > 0) {
+                int barX = panelX + panelW - PANEL_INSET;
+                int thumbH = Math.max(10, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
+                int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
+                // Widen the clickable rail by a few px so the 1px-wide bar is grabbable.
+                if (mx >= barX - 3 && mx <= barX + 4 && my >= scrollTop && my <= scrollBottom) {
+                    if (my >= thumbY && my <= thumbY + thumbH) {
+                        // Grab the thumb where the user clicked.
+                        draggingThumb = true;
+                        dragGrabY = my - thumbY;
+                    } else {
+                        // Track click: center the thumb on the cursor and start dragging.
+                        draggingThumb = true;
+                        dragGrabY = thumbH / 2.0;
+                        setScrollFromThumbTop(my - dragGrabY, scrollTop, scrollAreaH, thumbH, maxScroll);
+                    }
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+        if (draggingThumb && button == 0) {
+            int scrollTop = PANEL_TOP + HEADER_H;
+            int scrollBottom = panelBottom - PANEL_INSET;
+            int scrollAreaH = scrollBottom - scrollTop;
+            int maxScroll = Math.max(0, detailContentH - scrollAreaH);
+            if (maxScroll > 0) {
+                int thumbH = Math.max(10, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
+                setScrollFromThumbTop(my - dragGrabY, scrollTop, scrollAreaH, thumbH, maxScroll);
+            }
+            return true;
+        }
+        return super.mouseDragged(mx, my, button, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) {
+        if (button == 0 && draggingThumb) {
+            draggingThumb = false;
+            return true;
+        }
+        return super.mouseReleased(mx, my, button);
+    }
+
+    /** Inverse of the render-side thumbY formula: map a desired thumb-top pixel
+     *  back to a scroll offset, clamped to the valid range. */
+    private void setScrollFromThumbTop(double thumbTop, int scrollTop, int scrollAreaH, int thumbH, int maxScroll) {
+        int travel = scrollAreaH - thumbH;
+        if (travel <= 0) { detailScrollOffset = 0; return; }
+        double frac = Mth.clamp((thumbTop - scrollTop) / travel, 0.0, 1.0);
+        detailScrollOffset = (int) Math.round(frac * maxScroll);
     }
 
     @Override

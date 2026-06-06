@@ -55,7 +55,7 @@ public class OriginCommand {
 
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_POWERS =
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
-            PowerDataManager.INSTANCE.getPowers().keySet(), builder);
+            PowerDataManager.INSTANCE.getAllPowers().keySet(), builder);
 
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_MOB_ORIGINS =
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
