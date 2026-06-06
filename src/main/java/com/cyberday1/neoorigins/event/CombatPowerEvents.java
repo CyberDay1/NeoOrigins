@@ -90,6 +90,15 @@ public class CombatPowerEvents {
                 if (!ActionOnHitPower.rollChance(config)) return;
                 ActionOnHitPower.execute(outAttacker, config, outTarget);
             });
+
+            // Route B self_action_on_hit / action_on_hit — fires when the holder
+            // deals damage; passes the victim directly so the parsed
+            // bientity_action can resolve (actor=holder, target=victim).
+            final LivingEntity dealTarget = outTarget;
+            ActiveOriginService.forEachOfType(outAttacker,
+                com.cyberday1.neoorigins.compat.CompatPower.class, cfg -> {
+                    if (cfg.onDealDamage() != null) cfg.onDealDamage().accept(outAttacker, dealTarget);
+                });
         }
 
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
