@@ -51,9 +51,11 @@ public class MovementPowerEvents {
     // guard that silently ate the client-side call is exactly what that handler
     // avoids). See BreakSpeedModifierPower / BreakSpeedModifierEvents.
     //
-    // TODO: UnderwaterMiningSpeedPower is still broken for the same reason —
-    // it has a positional condition (in water + airborne) that attribute
-    // modifiers can't express, so it needs a client-aware fix.
+    // UnderwaterMiningSpeedPower ("aqua affinity") is NOT handled here either: it
+    // uses the vanilla minecraft:submerged_mining_speed attribute (auto-syncs to
+    // the client), which vanilla only applies while the eye is in water — so a
+    // permanent modifier raising it to 1.0 is automatically positional and needs
+    // no event. See UnderwaterMiningSpeedPower.
 
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
