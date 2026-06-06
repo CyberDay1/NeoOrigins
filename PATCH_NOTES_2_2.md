@@ -2,6 +2,32 @@
 
 ---
 
+## v2.2.1
+
+### Compat Improvements
+
+- **`origins:recipe` craft-gating now works on Minecraft 26.1.** 26.1 made the recipe map immutable and dropped the `replaceRecipes` hook 1.21.1 relies on, so inline and referenced `origins:recipe` powers were globally craftable. A new RecipeManager mixin restores the replace path: every gated recipe is wrapped with a `has_power` check keyed to the owning power, so only holders can craft it — exact parity with 1.21.1.
+- **`origins:simple` / `origins:tooltip` now show their name and description.** These display-only powers were being skipped during compat translation, so they rendered blank in the power list. They now translate to `neoorigins:simple` and carry their text through.
+- **`origins:aqua_affinity` maps to the speed-based underwater mining power.** It now cancels the submerged mining-speed penalty through the vanilla `minecraft:submerged_mining_speed` attribute — positional and client-synced by vanilla, so Aqua Affinity behaves like the real enchantment instead of no-op'ing.
+- **`self_action_on_hit` / `action_on_hit` fire when the holder deals damage.** The victim is passed directly as the target, so wrapped bientity actions resolve (actor = holder, target = victim) instead of silently doing nothing.
+- **The `hidden` flag survives compat translation.** Powers flagged hidden in the original Origins JSON stay hidden in the power list after translation.
+- **(26.1) `food_item_in_tag` strips a leading `#`,** so tag-based diets (fish, etc.) match.
+
+### Bug Fixes
+
+- **The View Origin scrollbar is now grab-and-drag.** Click-drag the thumb, or click the track to page to that spot — previously the bar was display-only.
+- **Hidden powers stay out of the power list but remain command-targetable.** The power grant/revoke autocomplete now lists all powers (including hidden ones), so you can still administer them.
+- **First-pick invulnerability clears once an origin is committed,** instead of lingering after the pick.
+- **`neoorigins:and` in an AoE applies wrapped damage/effects to mobs,** not just players.
+- **`neoorigins:action_over_time` alias registered;** corrected a couple of phantom entries in the power-type docs.
+- **Save-validator loader-attribute prefix tolerance,** so packs authored against either loader's attribute prefixing validate cleanly.
+
+### New / Changed Powers
+
+- **`orb_of_origins.scale_cost`** — flat XP cost option for the orb.
+
+---
+
 ## v2.2.0
 
 > This release is a large compatibility + UI pass — a major Origins / Apoli / Apugli compatibility overhaul, first-class integrations with EMI / Jade / The One Probe / FTB Quests / FTB Teams / FTB Ultimine / Accessories, a parchment-scroll UI, a browser-based pack editor, config hardening, and a long list of new powers, actions, and fixes. If you hit a rough edge, please report it on the [GitHub issue tracker](https://github.com/CyberDay1/NeoOrigins/issues).
