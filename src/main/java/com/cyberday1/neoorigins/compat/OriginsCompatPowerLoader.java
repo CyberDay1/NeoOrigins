@@ -256,7 +256,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:like_water",          () -> json("neoorigins:ignore_water")),
             Map.entry("origins:aquatic",             () -> json("neoorigins:dries_out")),
             Map.entry("origins:water_vision",        () -> json("neoorigins:lava_vision")),
-            Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining")),
+            Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining_speed")),
             Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power")),
             Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
             Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
@@ -438,11 +438,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:conditioned_status_effect",  "apace:conditioned_status_effect"  -> parseConditionedStatusEffect(id, json);
             case "origins:action_on_being_hit",        "apace:action_on_being_hit",
                  "origins:self_action_when_hit",       "apace:self_action_when_hit",
-                 "origins:self_action_on_hit",         "apace:self_action_on_hit",
-                 "origins:action_on_hit",              "apace:action_on_hit",
                  "origins:action_when_hit",            "apace:action_when_hit",
                  "origins:action_when_damage_taken",   "apace:action_when_damage_taken",
                  "origins:attacker_action_when_hit",   "apace:attacker_action_when_hit"   -> parseSelfActionWhenHit(id, json);
+            // self_action_on_hit / action_on_hit fire when the HOLDER DEALS damage —
+            // a different direction from the "when hit" group above.
+            case "origins:self_action_on_hit",         "apace:self_action_on_hit",
+                 "origins:action_on_hit",              "apace:action_on_hit"              -> parseSelfActionOnHit(id, json);
             case "origins:damage_over_time",           "apace:damage_over_time"           -> parseDamageOverTime(id, json);
             // Phase 3: New Route B types
             case "origins:fire_projectile",            "apace:fire_projectile"            -> parseFireProjectile(id, json);
@@ -1313,6 +1315,43 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
+    /**
+     * Apoli {@code self_action_on_hit} / {@code action_on_hit} — fires when the
+     * HOLDER deals damage to a living entity. {@code entity_action} runs on the
+     * holder; {@code bientity_action} runs with (actor=holder, target=victim).
+     * Dispatched from CombatPowerEvents' player-as-attacker block via the
+     * CompatPower {@code onDealDamage} hook, which passes the victim directly.
+     */
+    private CompatPower.Config parseSelfActionOnHit(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+        EntityAction action = json.has("entity_action")
+            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
+            : EntityAction.noop();
+        com.cyberday1.neoorigins.compat.action.BiEntityAction biAction = json.has("bientity_action")
+            ? com.cyberday1.neoorigins.compat.action.BiEntityActionParser.parse(
+                json.getAsJsonObject("bientity_action"), idStr)
+            : com.cyberday1.neoorigins.compat.action.BiEntityAction.noop();
+        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+        EntityCondition condition = json.has("condition")
+            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            : EntityCondition.alwaysTrue();
+        return CompatPower.Config.builder()
+            .cooldownTicks(cooldown)
+            .onDealDamage((player, target) -> {
+                if (!condition.test(player)) return;
+                if (cooldown > 0) {
+                    PlayerOriginData data = player.getData(OriginAttachments.originData());
+                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    data.setCooldown(idStr, player.tickCount, cooldown);
+                }
+                action.execute(player);
+                if (biAction != com.cyberday1.neoorigins.compat.action.BiEntityAction.NOOP) {
+                    biAction.execute(player, target);
+                }
+            })
+            .build();
+    }
+
     private CompatPower.Config parseDamageOverTime(Identifier id, JsonObject json) {
         String idStr = id.toString();
         int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
@@ -2020,10 +2059,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      *       + {@code result} shape). The inline recipe is registered via
      *       {@link com.cyberday1.neoorigins.service.InlineRecipeRegistry}
      *       under a synthesized id, then the power gates {@code awardRecipes}
-     *       on that id. Caveat: the recipe ends up globally craftable; the
-     *       inline form only controls recipe-book visibility, not the craft
-     *       gate. Most packs ship Origins-specific items as ingredients so
-     *       this matches their expected semantics anyway.</li>
+     *       on that id. The injected recipe is wrapped in an
+     *       {@code OriginGatedRecipe(has_power)} so only holders of this power
+     *       can craft it (recipe-book visibility plus the craft-time gate).</li>
      * </ul>
      */
     private CompatPower.Config parseRecipe(Identifier id, JsonObject json) {
@@ -2040,13 +2078,20 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     id, recipeEl.getAsString());
                 return null;
             }
+            // Gate the referenced recipe so only holders of this power can craft
+            // it. Wraps the live recipe in an OriginGatedRecipe(has_power) after
+            // the reload completes (via InlineRecipeRegistry + the 26.1
+            // RecipeManager replace mixin).
+            com.cyberday1.neoorigins.service.InlineRecipeRegistry.registerRefGate(recipeLoc, id);
         } else if (recipeEl.isJsonObject()) {
             // Inline recipe: register under a synthesized id and treat as
             // if the pack had shipped a separate recipe data file pointed to
             // by that id. InlineRecipeRegistry handles the actual injection
-            // into RecipeManager once the datapack reload completes.
+            // into RecipeManager once the datapack reload completes, wrapping
+            // it in an OriginGatedRecipe(has_power) on both branches.
             recipeLoc = com.cyberday1.neoorigins.service.InlineRecipeRegistry.syntheticId(id);
             com.cyberday1.neoorigins.service.InlineRecipeRegistry.register(recipeLoc, recipeEl.getAsJsonObject());
+            com.cyberday1.neoorigins.service.InlineRecipeRegistry.registerInlinePower(recipeLoc, id);
         } else {
             NeoOrigins.LOGGER.warn("[CompatB] {}: origins:recipe 'recipe' field must be string id or inline object — got {}",
                 id, recipeEl);

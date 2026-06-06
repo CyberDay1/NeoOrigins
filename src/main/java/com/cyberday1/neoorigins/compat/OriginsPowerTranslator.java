@@ -90,9 +90,10 @@ public final class OriginsPowerTranslator {
         "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
         "origins:freeze",                "apace:freeze",
         "origins:modify_harvest",        "apace:modify_harvest",
-        // Display-only, no gameplay effect
-        "origins:tooltip",               "apace:tooltip",
-        "origins:simple",                "apace:simple",
+        // Display-only, no gameplay effect.
+        // NOTE: origins:simple / origins:tooltip are NOT skipped — they are
+        // translated to neoorigins:simple in doTranslate() so their name/
+        // description still render in the GUI (a SKIP here would discard them).
         "origins:cooldown",              "apace:cooldown"
     );
 
@@ -158,7 +159,7 @@ public final class OriginsPowerTranslator {
         Map.entry("origins:like_water",         () -> simpleType("neoorigins:ignore_water")),
         Map.entry("origins:aquatic",            () -> simpleType("neoorigins:dries_out")),
         Map.entry("origins:water_vision",       () -> simpleType("neoorigins:lava_vision")),
-        Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining")),
+        Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining_speed")),
         Map.entry("origins:conduit_power_on_land", () -> simpleType("neoorigins:conduit_power")),
         Map.entry("origins:air_from_potions",   () -> simpleType("neoorigins:water_breathing")),
         Map.entry("origins:water_breathing",    () -> simpleType("neoorigins:water_breathing")),
@@ -228,6 +229,7 @@ public final class OriginsPowerTranslator {
             JsonObject out = override.get();
             if (json.has("name") && !out.has("name"))               out.add("name", json.get("name"));
             if (json.has("description") && !out.has("description")) out.add("description", json.get("description"));
+            if (json.has("hidden") && !out.has("hidden"))           out.add("hidden", json.get("hidden"));
             String mappedType = out.has("type") ? out.get("type").getAsString() : "?";
             CompatTranslationLog.pass(id, type + " -> " + mappedType + " (simple override)");
             return Optional.of(out);
@@ -242,9 +244,10 @@ public final class OriginsPowerTranslator {
             Optional<JsonObject> result = doTranslate(id, type, json);
             if (result.isPresent()) {
                 JsonObject out = result.get();
-                // Preserve display name and description from the original Origins JSON.
+                // Preserve display name, description and the hidden flag from the original Origins JSON.
                 if (json.has("name") && !out.has("name"))               out.add("name", json.get("name"));
                 if (json.has("description") && !out.has("description")) out.add("description", json.get("description"));
+                if (json.has("hidden") && !out.has("hidden"))           out.add("hidden", json.get("hidden"));
                 String mappedType = out.has("type") ? out.get("type").getAsString() : "?";
                 CompatTranslationLog.pass(id, type + " -> " + mappedType);
             }
