@@ -24,7 +24,8 @@
     "EntityMountPositionMixin",
     "AbstractVillagerTradePriceMixin",
     "CraftingMenuCraftAmountMixin",
-    "recipe.CraftingMenuOriginContextMixin"
+    "recipe.CraftingMenuOriginContextMixin",
+    "recipe.RecipeManagerReplaceMixin"
   ],
   "client": [
     "client.LightTextureMixin",
