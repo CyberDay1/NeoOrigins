@@ -34,6 +34,21 @@ public class ClientResourceState {
         }
     }
 
+    /**
+     * Apply a value-only update onto existing entries. Metadata is kept from
+     * the last full sync. Unknown keys are ignored — entry creation always
+     * arrives via a full {@link #apply(Map)} (login/grant/origin-change/reload),
+     * so an unknown key here is just a packet-ordering edge.
+     */
+    public static void applyValues(Map<String, Integer> incoming) {
+        for (var e : incoming.entrySet()) {
+            ResourceEntry old = resources.get(e.getKey());
+            if (old == null) continue;
+            resources.put(e.getKey(), new ResourceEntry(e.getValue(), old.min(), old.max(), old.label(),
+                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint()));
+        }
+    }
+
     public static Map<String, ResourceEntry> getResources() {
         return Collections.unmodifiableMap(resources);
     }

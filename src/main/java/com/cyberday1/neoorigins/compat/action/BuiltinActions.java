@@ -1931,18 +1931,18 @@ public final class BuiltinActions {
                         int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
                         int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
                         player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
-                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourcesToClient(player);
+                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                     };
                     case "set" -> player -> {
                         player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).set(key, change);
-                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourcesToClient(player);
+                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                     };
                     default -> player -> {
                         var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
                         int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
                         int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
                         player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
-                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourcesToClient(player);
+                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                     };
                 };
             },
@@ -1973,7 +1973,7 @@ public final class BuiltinActions {
                 final String key = resourceId;
                 return player -> {
                     player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).set(key, value);
-                    com.cyberday1.neoorigins.compat.CompatAttachments.syncResourcesToClient(player);
+                    com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                 };
             },
             List.of(

@@ -187,7 +187,7 @@ public class OriginsCompatCommands {
         String key = requireResource(player, resource);
         int newValue = clampToMeta(key, value);
         player.getData(CompatAttachments.resourceState()).set(key, newValue);
-        CompatAttachments.syncResourcesToClient(player);
+        CompatAttachments.syncResourceValuesToClient(player);
         ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
             "commands.scoreboard.players.set.success.single", key, player.getDisplayName(), newValue), true);
         return newValue;
@@ -205,7 +205,7 @@ public class OriginsCompatCommands {
         int max = meta != null ? meta.max() : Integer.MAX_VALUE;
         state.clampedAdd(key, delta, min, max);
         int newValue = state.get(key, 0);
-        CompatAttachments.syncResourcesToClient(player);
+        CompatAttachments.syncResourceValuesToClient(player);
         ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
             "commands.scoreboard.players.add.success.single", delta, key, player.getDisplayName(), newValue), true);
         return newValue;
@@ -236,7 +236,7 @@ public class OriginsCompatCommands {
         }
         int newValue = clampToMeta(key, result);
         state.set(key, newValue);
-        CompatAttachments.syncResourcesToClient(player);
+        CompatAttachments.syncResourceValuesToClient(player);
         ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
             "commands.scoreboard.players.operation.success.single", key, player.getDisplayName(), newValue), true);
         return newValue;
