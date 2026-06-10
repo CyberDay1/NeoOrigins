@@ -138,6 +138,11 @@ public class NeoOriginsClientEvents {
         // a disconnect/reconnect within the same client JVM.
         com.cyberday1.neoorigins.client.ClientMorphState.clear();
         com.cyberday1.neoorigins.client.MorphRenderHandler.clearCache();
+        // Drop named-hotkey assignments so a stale map can't fire the previous
+        // server's powers on the next one. (Was previously cleared in
+        // handleSyncOrigins, which raced the login keybind-registry sync and
+        // left named-hotkey actives dead after every login — #99.)
+        com.cyberday1.neoorigins.client.HotkeyAssignments.clear();
     }
 
     @SubscribeEvent

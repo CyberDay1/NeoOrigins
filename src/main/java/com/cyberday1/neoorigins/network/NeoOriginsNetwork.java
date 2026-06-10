@@ -338,11 +338,16 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.client.ClientMoistureState.clear();
             com.cyberday1.neoorigins.client.ClientResourceState.clear();
             com.cyberday1.neoorigins.client.ClientCooldownState.clear();
-            // Clear stale hotkey assignments — the incoming SyncKeybindRegistryPayload
-            // (sent immediately after this on login / reload) will repopulate them.
-            // Without this, a relog into a server with fewer declared keys would
-            // leave high-index pool slots still firing the previous server's powers.
-            com.cyberday1.neoorigins.client.HotkeyAssignments.clear();
+            // Do NOT clear HotkeyAssignments here. On login the server sends
+            // SyncKeybindRegistryPayload BEFORE this payload (OnDatapackSyncEvent
+            // fires before PlayerLoggedInEvent in PlayerList.placeNewPlayer, and
+            // onPlayerLogin sends the keybind sync before syncToPlayer), so
+            // clearing here wiped the just-applied assignments and left every
+            // named-hotkey active power dead until a /reload — and every other
+            // SyncOriginsPayload (origin change, respawn, dimension change) wiped
+            // them again mid-session (#99). Cross-server staleness is handled by
+            // the clear in NeoOriginsClientEvents.onClientPlayerLoggingOut, and
+            // each registry payload replaces the assignment set wholesale anyway.
         });
     }
 
