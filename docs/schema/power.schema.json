@@ -1869,7 +1869,7 @@
           "default": "addition"
         },
         "value": {
-          "description": "Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava).",
+          "description": "Amount applied to lava movement speed (vanilla factor is 0.02; addition ~0.04 ≈ water-swim pace).",
           "type": "number"
         }
       },

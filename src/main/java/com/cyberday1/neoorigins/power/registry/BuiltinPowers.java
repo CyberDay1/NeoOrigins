@@ -388,7 +388,7 @@ public final class BuiltinPowers {
                 .options("addition", "multiply_base", "multiply_total")
                 .def("addition").doc("How value combines with the vanilla lava factor: addition, multiply_base, multiply_total."),
             new FieldSpec("value", Kind.NUMBER, true)
-                .doc("Amount applied to lava movement speed (addition ~0.4 ≈ walking pace in lava).")));
+                .doc("Amount applied to lava movement speed (vanilla factor is 0.02; addition ~0.04 ≈ water-swim pace).")));
         define("overlay", OverlayPower.class, List.of(
             new FieldSpec("texture", Kind.STRING, true)
                 .doc("Resource location of the full-screen texture rendered over the view."),
