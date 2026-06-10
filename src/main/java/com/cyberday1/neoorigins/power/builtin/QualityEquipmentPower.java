@@ -206,10 +206,20 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
             }
         }
         if (quality.isEmpty()) return;
-        // Drop the stale snapshot so getAttributeModifiers() resolves to the
-        // OUTPUT item's own defaults, then re-add the quality modifiers on top.
-        result.remove(DataComponents.ATTRIBUTE_MODIFIERS);
-        ItemAttributeModifiers fresh = result.getAttributeModifiers();
+        // Rebuild from the OUTPUT item's PROTOTYPE component. 1.21.1 tools and
+        // armor bake their base attack-damage/speed/armor entries into the
+        // item's default component map — NOT Item#getDefaultAttributeModifiers()
+        // (which is EMPTY for them). ItemStack#remove() writes a REMOVAL patch
+        // over the prototype rather than restoring it, so the previous
+        // remove() + stack.getAttributeModifiers() rebuild resolved to EMPTY and
+        // produced a quality-only component: the upgraded item lost its base
+        // attribute lines (tooltip) and stats.
+        ItemAttributeModifiers fresh = result.getItem().components()
+            .getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
+        if (fresh.modifiers().isEmpty()) {
+            // Component-less items (modded, stack-sensitive defaults).
+            fresh = result.getItem().getDefaultAttributeModifiers(result);
+        }
         for (var entry : quality) {
             fresh = fresh.withModifierAdded(entry.attribute(), entry.modifier(), entry.slot());
         }
