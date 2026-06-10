@@ -21,12 +21,26 @@ import java.util.List;
  * loops still work. Set {@code "passive": true} to disable that and make
  * the ignore unconditional (the mob never targets this player, even if
  * the player attacks first).
+ *
+ * <p>Exclusions: boss-tier mobs (Warden, Ender Dragon, Wither), entities on
+ * the {@code tame_scare_entity_blacklist} global config list, and entities in
+ * this power's optional {@code entity_blacklist} are never affected — they
+ * target the player normally even when {@code entity_types} matches them
+ * (including the empty match-all case). See
+ * {@link com.cyberday1.neoorigins.service.EntityExclusions}.
  */
 public class MobsIgnorePlayerPower extends PowerType<MobsIgnorePlayerPower.Config> {
 
-    public record Config(List<String> entityTypes, boolean passive, String type) implements PowerConfiguration {
+    public record Config(List<String> entityTypes, List<String> entityBlacklist, boolean passive, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("entity_types", List.of()).forGetter(Config::entityTypes),
+            // Per-power blocklist of entity ids ("minecraft:warden") and tag
+            // refs ("#mymod:relentless") that always keep targeting the player
+            // even when they match entity_types (notably the empty match-all
+            // list). Checked on top of the shared boss-tier + global-config
+            // exclusions (EntityExclusions).
+            Codec.STRING.listOf().optionalFieldOf("entity_blacklist", List.of())
+                .forGetter(Config::entityBlacklist),
             Codec.BOOL.optionalFieldOf("passive", false).forGetter(Config::passive),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));

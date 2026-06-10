@@ -1694,6 +1694,14 @@
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
         },
+        "entity_blacklist": {
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
         "passive": {
           "description": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).",
           "type": "boolean",
@@ -2475,6 +2483,14 @@
             "type": "string",
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
+        },
+        "entity_blacklist": {
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:fearless\") this power never scares, even when they match entity_types. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
@@ -2818,9 +2834,12 @@
           "default": true
         },
         "entity_blacklist": {
-          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither are always excluded regardless of this list.",
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
         }
       },
       "required": [
