@@ -1698,17 +1698,18 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`). Ignored on other events. |
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
+| `power` | id or list | no | — | `power_activated` only: pre-dispatch filter on the activated power's id (single id or array). Omit to fire on any activation. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
-- Lifecycle: `GAINED`, `REVOKED`, `RESPAWN`, `GAMEMODE_CHANGE`
-- Combat: `KILL`, `HIT_TAKEN`, `DAMAGE_DEALT`, `MOD_KNOCKBACK`, `MOD_THORNS`
-- Food: `FOOD_EATEN`, `FOOD_FINISHED`, `MOD_EXHAUSTION`, `MOD_NATURAL_REGEN`, `MOD_CRAFTED_FOOD_SATURATION`
-- Mining / crafting: `BLOCK_BREAK`, `CRAFT_ITEM`, `ITEM_USE_FINISH`, `MOD_BREAK_SPEED`, `MOD_CRAFT_COUNT`
-- XP / economy: `XP_GAINED`, `MOD_XP_GAIN`, `TRADE_COMPLETE`, `MOD_BONEMEAL_GROWTH`
-- Interaction: `BLOCK_INTERACT`, `ENTITY_INTERACT`, `RIGHT_CLICK_ITEM`
-- Status effects: `EFFECT_APPLIED`
+- Lifecycle: `gained`, `lost`, `chosen`, `power_activated`, `respawn`, `death`, `dimension_change`, `advancement_earned`
+- Combat: `attack`, `hit_taken`, `kill`, `projectile_hit`, `mod_knockback`, `mod_fall_damage`
+- Food: `food_eaten`, `food_finished`, `mod_exhaustion`, `mod_natural_regen`, `mod_crafted_food_saturation`
+- Mining / crafting: `block_break`, `block_place`, `craft_item`, `smelt_item`, `enchant_item`, `anvil_repair`, `mod_craft_amount`, `mod_enchant_level`, `mod_harvest_drops`, `mod_anvil_cost`
+- Economy / villagers: `trade_completed`, `villager_interact`, `mod_trade_price`
+- Interaction / movement: `item_use`, `item_use_finish`, `item_pickup`, `block_use`, `entity_use`, `breed`, `tame`, `bonemeal`, `mod_bonemeal_extra`, `wake_up`, `land`, `jump`, `climb`, `tick`, `mod_teleport_range`, `mod_potion_duration`
+- Status effects: `effect_applied`
 
 For action-style events set `entity_action`; for modifier-style events set `modifier`. A single power may declare both — the action path fires on `dispatch` sites and the modifier path chains on `dispatchModifier` sites.
 
