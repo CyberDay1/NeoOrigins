@@ -340,6 +340,9 @@ public final class BuiltinPowers {
             new FieldSpec("entity_types", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob."),
+            new FieldSpec("entity_blacklist", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list."),
             new FieldSpec("passive", Kind.BOOLEAN, false)
                 .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).")));
         define("modify_food_nutrition", ModifyFoodNutritionPower.class, List.of(
@@ -426,7 +429,10 @@ public final class BuiltinPowers {
         define("scare_entities", ScareEntitiesPower.class, List.of(
             new FieldSpec("entity_types", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
-                .doc("Entity ids or #tags that flee the player within 8 blocks.")));
+                .doc("Entity ids or #tags that flee the player within 8 blocks."),
+            new FieldSpec("entity_blacklist", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:fearless\") this power never scares, even when they match entity_types. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.")));
         define("shader", ShaderPower.class, List.of(
             new FieldSpec("shader", Kind.STRING, true)
                 .doc("Resource location of the post shader to apply (e.g. minecraft:spider).")));
@@ -521,7 +527,8 @@ public final class BuiltinPowers {
             new FieldSpec("hostile_only", Kind.BOOLEAN, false)
                 .def(true).doc("When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers)."),
             new FieldSpec("entity_blacklist", Kind.ARRAY, false)
-                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither are always excluded regardless of this list.")));
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.")));
         define("tamed_animal_boost", TamedAnimalBoostPower.class, List.of(
             new FieldSpec("health_bonus", Kind.NUMBER, false)
                 .def(4.0).doc("Flat max-health added to your tamed animals (half-hearts; default 4)."),

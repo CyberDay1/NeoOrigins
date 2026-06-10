@@ -27,9 +27,15 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
     private static final int TICK_INTERVAL = 5;
     private static final double FLEE_SPEED = 1.3;
 
-    public record Config(List<String> entityTypes, String type) implements PowerConfiguration {
+    public record Config(List<String> entityTypes, List<String> entityBlacklist, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("entity_types", List.of()).forGetter(Config::entityTypes),
+            // Per-power blocklist of entity ids ("minecraft:warden") and tag
+            // refs ("#mymod:fearless") that are never scared even when they
+            // match entity_types. Checked on top of the shared boss-tier +
+            // global-config exclusions (EntityExclusions).
+            Codec.STRING.listOf().optionalFieldOf("entity_blacklist", List.of())
+                .forGetter(Config::entityBlacklist),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -58,6 +64,10 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
                 }
             }
             if (!matches) continue;
+            // Exclusions: boss-tier (Warden/Ender Dragon/Wither — never
+            // scareable), the global config blacklist, and this power's own
+            // entity_blacklist. Excluded entities are silently skipped.
+            if (com.cyberday1.neoorigins.service.EntityExclusions.isExcluded(le, config.entityBlacklist())) continue;
             // Drop aggro unconditionally — not just when targeting this player.
             // Mobs like Phantoms use shared targeting goals that pick ANY nearby
             // player; if we only clear when target == this player, a Phantom

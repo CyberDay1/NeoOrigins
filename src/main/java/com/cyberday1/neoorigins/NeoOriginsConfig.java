@@ -1003,6 +1003,43 @@ public final class NeoOriginsConfig {
         return false;
     }
 
+    // ── Taming / scare entity exclusions ────────────────────────────────
+    // Global blacklist for the mob-control power family: tame_mob,
+    // scare_entities and mobs_ignore_player. Entities listed here can never
+    // be tamed, scared or made to ignore a player by ANY power, on top of
+    // the hardcoded boss-tier exclusion (Warden, Ender Dragon, Wither) and
+    // any per-power entity_blacklist. Shared matching lives in
+    // EntityExclusions.
+
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> TAME_SCARE_ENTITY_BLACKLIST;
+
+    static {
+        BUILDER.comment(
+            "Global entity exclusions for taming and scare powers (tame_mob,",
+            "scare_entities, mobs_ignore_player). Listed entities can never be",
+            "tamed, scared, or made to ignore a player by any power. The Warden,",
+            "Ender Dragon and Wither are ALWAYS excluded and need not be listed.",
+            "Format: entity ids (e.g. \"minecraft:elder_guardian\") or entity-type",
+            "tags (e.g. \"#mymod:untameable\")."
+        ).push("entity_exclusions");
+
+        TAME_SCARE_ENTITY_BLACKLIST = BUILDER
+            .comment("Entity ids / #tags excluded from all taming and scare powers.")
+            .defineList("tame_scare_entity_blacklist",
+                List.of(),
+                obj -> obj instanceof String);
+
+        BUILDER.pop();
+    }
+
+    /**
+     * Raw global taming/scare blacklist entries (entity ids and {@code #tags}).
+     * Matching is done by {@code EntityExclusions.isConfigBlacklisted}.
+     */
+    public static List<? extends String> tameScareEntityBlacklist() {
+        return TAME_SCARE_ENTITY_BLACKLIST.get();
+    }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     /** SERVER spec — origin/class toggles + resource-bar disable, auto-synced to clients. */

@@ -205,6 +205,12 @@ rules = [
 [commands]
 # Allow non-OP players to run /neoorigins get <player> (OPs always can)
 public_origin_get = true
+
+# Global taming/scare exclusions
+[entity_exclusions]
+# Entity ids / #tags that can never be tamed, scared, or made to ignore a
+# player by any power (the Warden, Ender Dragon and Wither always are)
+tame_scare_entity_blacklist = []
 ```
 
 ---

@@ -50,9 +50,14 @@ public class WorldPowerEvents {
         // still works: if the mob is the last hurt-by source for the player
         // within vanilla's timer, we allow the target change so combat
         // feedback loops work.
+        // Boss-tier mobs, the global tame_scare_entity_blacklist config and a
+        // power's own entity_blacklist are exempt (EntityExclusions): they
+        // target the player normally regardless of scare/ignore powers.
         if (ActiveOriginService.has(sp, com.cyberday1.neoorigins.power.builtin.ScareEntitiesPower.class,
                 cfg -> cfg.entityTypes().stream().anyMatch(id ->
-                    com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id)))) {
+                        com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id))
+                    && !com.cyberday1.neoorigins.service.EntityExclusions.isExcluded(
+                        event.getEntity(), cfg.entityBlacklist()))) {
             if (event.getEntity().getLastHurtByMob() == sp) return;
             event.setCanceled(true);
             return;
@@ -68,6 +73,14 @@ public class WorldPowerEvents {
             boolean typeMatch = cfg.entityTypes().isEmpty()
                 || cfg.entityTypes().stream().anyMatch(id ->
                     com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id));
+            // Shared exclusions (boss-tier / global config / per-power
+            // entity_blacklist) override the match — the mob targets normally.
+            // Matters especially for the empty match-all entity_types case,
+            // which would otherwise let a player stand in front of the Warden.
+            if (typeMatch && com.cyberday1.neoorigins.service.EntityExclusions.isExcluded(
+                    event.getEntity(), cfg.entityBlacklist())) {
+                typeMatch = false;
+            }
             if (typeMatch && cfg.passive()) passiveMatch[0] = true;
             return typeMatch;
         });

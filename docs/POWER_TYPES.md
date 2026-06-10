@@ -459,6 +459,9 @@ Causes listed entity types to flee from the player on sight.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_types` | list of Identifier | no | `[]` | Entity types to scare, e.g. `["minecraft:creeper"]` |
+| `entity_blacklist` | string[] | no | `[]` | Entity ids (`"minecraft:elder_guardian"`) and tag refs (`"#mymod:fearless"`) this power never scares, even when they match `entity_types`. Checked on top of the built-in exclusions below. |
+
+Boss-tier mobs — the Warden, Ender Dragon and Wither — are never scared, regardless of `entity_types`. Server operators can extend that exclusion to arbitrary mobs across all taming and scare powers at once via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)). Excluded entities are simply skipped — no message is shown.
 
 **Example — creepers flee from the player:**
 ```json
@@ -1135,7 +1138,10 @@ briefly. Set `passive: true` to make the ignore unconditional.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_types` | list of Identifier or `#tag` | no | `[]` | Entity types that will ignore the player. Accepts raw ids (`"minecraft:zombie"`) and tag references (`"#minecraft:skeletons"`). When empty, every mob ignores. |
+| `entity_blacklist` | string[] | no | `[]` | Entity ids and tag refs this power never affects — they target the player normally even when `entity_types` matches (including the empty match-all case). Checked on top of the built-in exclusions below. |
 | `passive` | bool | no | `false` | When true, the ignore is unconditional — even attacking the mob does not provoke retaliation. |
+
+Boss-tier mobs — the Warden, Ender Dragon and Wither — never ignore the player, regardless of `entity_types` (an empty match-all list won't make the Warden docile). Server operators can extend that exclusion via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)).
 
 **Example — only creepers ignore (with retaliation):**
 ```json
@@ -2184,7 +2190,7 @@ Active power that tames a hostile mob the player is looking at. The mob's AI is 
 | `hostile_only` | bool | no | `true` | If `true`, only hostile mobs (implementing `Enemy`) can be tamed — the Monster Tamer default. Set to `false` to allow taming any non-player `Mob` (animals, golems, villagers, etc.). |
 | `entity_blacklist` | string[] | no | `[]` | Entity ids (`"minecraft:warden"`) and tag refs (`"#mymod:untameable"`) this power can never tame. Checked on top of the built-in boss exclusion. |
 
-Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs — the Warden, Ender Dragon and Wither — are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs.
+Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs — the Warden, Ender Dragon and Wither — are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs, and server operators can do the same for all taming and scare powers at once via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)). A blocked tame shows the "That creature cannot be tamed!" actionbar message.
 
 **Example (blacklist):**
 ```json
@@ -2205,6 +2211,24 @@ Target must be a non-player `Mob`. With the default `hostile_only: true`, only m
   "description": "Tames hostile mobs to your will."
 }
 ```
+
+### Global taming/scare exclusions
+
+All taming and scare powers — `tame_mob`, `scare_entities` and `mobs_ignore_player` — share one exclusion rule. An entity is excluded when **any** of these hold:
+
+1. **Boss-tier** — the Warden, Ender Dragon and Wither. Hardcoded; cannot be overridden.
+2. **Global config blacklist** — the `tame_scare_entity_blacklist` list in the `[entity_exclusions]` section of `config/neoorigins-common.toml`. Lets a server or pack operator extend the exclusion to arbitrary mobs across every taming and scare power at once:
+
+```toml
+[entity_exclusions]
+    # Entity ids and #tags that can never be tamed, scared,
+    # or made to ignore a player by any power. Default: []
+    tame_scare_entity_blacklist = ["minecraft:elder_guardian", "#mymod:untouchable"]
+```
+
+3. **Per-power `entity_blacklist`** — the optional JSON field on the individual power.
+
+Excluded entities can't be tamed (`tame_mob` shows its actionbar message) and aren't affected by `scare_entities` or `mobs_ignore_player` (silently skipped — they flee or target the player exactly as vanilla dictates).
 
 ---
 
