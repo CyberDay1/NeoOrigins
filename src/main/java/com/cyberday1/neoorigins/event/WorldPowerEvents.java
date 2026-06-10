@@ -251,7 +251,7 @@ public class WorldPowerEvents {
         if (child != null) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.BREED,
-                new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(child));
+                new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(child, event));
         }
 
         if (!ActiveOriginService.has(sp, TwinBreedingPower.class, c -> true)) return;
@@ -274,7 +274,7 @@ public class WorldPowerEvents {
         if (!(event.getTamer() instanceof ServerPlayer sp)) return;
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
             com.cyberday1.neoorigins.service.EventPowerIndex.Event.TAME,
-            new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(event.getAnimal()));
+            new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(event.getAnimal(), event));
     }
 
     /**

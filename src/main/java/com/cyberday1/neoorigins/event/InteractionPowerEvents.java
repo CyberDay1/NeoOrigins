@@ -63,21 +63,25 @@ public class InteractionPowerEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.BLOCK_USE,
             new EventPowerIndex.BlockInteractContext(event.getPos(),
-                event.getLevel().getBlockState(event.getPos())));
+                event.getLevel().getBlockState(event.getPos()), event));
     }
 
     @SubscribeEvent
     public static void onEntityUse(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (!(event.getTarget() instanceof net.minecraft.world.entity.LivingEntity target)) return;
+        // Pass the cancellable EntityInteract event through the context so
+        // neoorigins:cancel_event can veto the interaction (Discord report:
+        // cancel_event was a no-op on villager_interact because the context
+        // never carried the event).
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ENTITY_USE,
-            new EventPowerIndex.EntityInteractContext(target));
+            new EventPowerIndex.EntityInteractContext(target, event));
         // VILLAGER_INTERACT is a narrower alias for right-clicking a villager
         // or wandering trader (AbstractVillager covers both). Fired after the
         // generic ENTITY_USE so a power can target either granularity.
         if (target instanceof net.minecraft.world.entity.npc.AbstractVillager) {
             EventPowerIndex.dispatch(sp, EventPowerIndex.Event.VILLAGER_INTERACT,
-                new EventPowerIndex.EntityInteractContext(target));
+                new EventPowerIndex.EntityInteractContext(target, event));
         }
     }
 
