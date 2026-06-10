@@ -29,6 +29,11 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
         }
+        // Toggles count as activations in BOTH directions — the keypress always
+        // does something. Listeners that care about direction can pair with a
+        // power_active condition on the toggled power.
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatchPowerActivated(
+            player, com.cyberday1.neoorigins.api.power.PowerHolder.currentDispatchId());
     }
 
     @Override

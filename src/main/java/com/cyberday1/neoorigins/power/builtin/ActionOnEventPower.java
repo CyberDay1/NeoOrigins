@@ -39,7 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *   "event": "food_eaten",
  *   "condition": { ... optional EntityCondition ... },
  *   "entity_action": { ... optional side-effect action ... },
- *   "modifier": { ... optional FloatModifier (or array of them) ... }
+ *   "modifier": { ... optional FloatModifier (or array of them) ... },
+ *   "power": "neoorigins:ground_slam"  // POWER_ACTIVATED only: id or array of ids
  * }
  * }</pre>
  *
@@ -70,6 +71,11 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         // equals `effect` OR is in `effectTag`. Ignored on all other events.
         java.util.Optional<net.minecraft.resources.Identifier> effect,
         java.util.Optional<net.minecraft.tags.TagKey<net.minecraft.world.effect.MobEffect>> effectTag,
+        // Optional power-id filter for the POWER_ACTIVATED event. `power`
+        // accepts a single id string or an array of ids; the action fires only
+        // when the activated power's id is in the set. Empty = fire on ANY
+        // power activation. Ignored on all other events.
+        java.util.Optional<java.util.Set<net.minecraft.resources.Identifier>> powerFilter,
         // Post-cleanse grace window in level ticks. When >0 AND the action
         // successfully cancels an EFFECT_APPLIED event (sets DO_NOT_APPLY),
         // grant `immunityTicks` ticks of full immunity to the same effect id
@@ -146,9 +152,32 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     ? Math.max(0, obj.get("immunity_ticks").getAsInt())
                     : 0;
 
+                // Optional POWER_ACTIVATED filter: `power` is a single power id
+                // or an array of ids. Unparseable ids are skipped with a warn so
+                // a typo narrows the filter instead of silently matching all.
+                java.util.Optional<java.util.Set<net.minecraft.resources.Identifier>> powerFilter =
+                    java.util.Optional.empty();
+                if (obj.has("power")) {
+                    java.util.Set<net.minecraft.resources.Identifier> ids = new java.util.HashSet<>();
+                    JsonElement pf = obj.get("power");
+                    java.util.List<JsonElement> raw = pf.isJsonArray()
+                        ? pf.getAsJsonArray().asList()
+                        : java.util.List.of(pf);
+                    for (JsonElement el : raw) {
+                        if (!el.isJsonPrimitive()) continue;
+                        net.minecraft.resources.Identifier rl =
+                            net.minecraft.resources.Identifier.tryParse(el.getAsString());
+                        if (rl != null) ids.add(rl);
+                        else NeoOrigins.LOGGER.warn(
+                            "action_on_event ({}): unparseable power id '{}' in `power` filter",
+                            t, el.getAsString());
+                    }
+                    if (!ids.isEmpty()) powerFilter = java.util.Optional.of(java.util.Set.copyOf(ids));
+                }
+
                 return DataResult.success(Pair.of(
                     new Config(ev, cond, action, modifier, blockCond,
-                        effectFilter, effectTagFilter, immunity, t),
+                        effectFilter, effectTagFilter, powerFilter, immunity, t),
                     ops.empty()));
             }
 
@@ -207,6 +236,13 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                             match = ec.effectInstance().getEffect().is(config.effectTag().get());
                         }
                         if (!match) return;
+                    }
+                    // POWER_ACTIVATED filter gate: only consulted for that
+                    // event. No filter = fire on any activation.
+                    if (config.event() == EventPowerIndex.Event.POWER_ACTIVATED
+                            && config.powerFilter().isPresent()) {
+                        if (!(ctx instanceof EventPowerIndex.PowerActivatedContext pc)) return;
+                        if (!config.powerFilter().get().contains(pc.powerId())) return;
                     }
                     if (!config.condition().test(sp)) return;
                     // block_condition gate: extract the BlockPos from a known

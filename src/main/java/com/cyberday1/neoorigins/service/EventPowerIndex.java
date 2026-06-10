@@ -69,6 +69,11 @@ public final class EventPowerIndex {
         GAINED,                 // power was just granted to the player
         LOST,                   // power was just revoked from the player
         CHOSEN,                 // player chose an origin (ChooseOriginPayload)
+        POWER_ACTIVATED,        // another power was SUCCESSFULLY activated (active fired past
+                                // cooldown/cost gates, or a toggle flipped either direction).
+                                // Context: PowerActivatedContext. Nested activations triggered
+                                // from inside a POWER_ACTIVATED handler do NOT re-dispatch
+                                // (recursion guard in dispatchPowerActivated).
 
         // ----- Extended interaction / movement -----
         WAKE_UP,                // player woke from sleeping
@@ -313,6 +318,37 @@ public final class EventPowerIndex {
         public BlockInteractContext(net.minecraft.core.BlockPos pos,
                                     net.minecraft.world.level.block.state.BlockState state) {
             this(pos, state, null);
+        }
+    }
+
+    /** Context for {@link Event#POWER_ACTIVATED}: the id of the power that just fired. */
+    public record PowerActivatedContext(net.minecraft.resources.Identifier powerId) {}
+
+    /**
+     * Re-entrancy guard for {@link #dispatchPowerActivated}. True while a
+     * POWER_ACTIVATED dispatch is running on this thread, so a listener whose
+     * entity_action activates another power (e.g. via {@code execute_command}
+     * running an activation command) can't loop A→B→A forever. The nested
+     * activation itself still happens — it just doesn't re-notify listeners.
+     */
+    private static final ThreadLocal<Boolean> IN_POWER_ACTIVATED_DISPATCH =
+        ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+    /**
+     * Notify listeners that {@code powerId} was successfully activated.
+     * Single chokepoint for all activation success paths (AbstractActivePower,
+     * AbstractTogglePower, CompatPower). No-ops when called re-entrantly from
+     * inside another POWER_ACTIVATED dispatch.
+     */
+    public static void dispatchPowerActivated(ServerPlayer player,
+                                              net.minecraft.resources.Identifier powerId) {
+        if (powerId == null) return;
+        if (IN_POWER_ACTIVATED_DISPATCH.get()) return;
+        IN_POWER_ACTIVATED_DISPATCH.set(Boolean.TRUE);
+        try {
+            dispatch(player, Event.POWER_ACTIVATED, new PowerActivatedContext(powerId));
+        } finally {
+            IN_POWER_ACTIVATED_DISPATCH.set(Boolean.FALSE);
         }
     }
 
