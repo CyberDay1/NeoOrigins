@@ -50,6 +50,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ElytraBoostPower>         ELYTRA_BOOST         = reg("elytra_boost",         new ElytraBoostPower());
     public static final DeferredHolder<PowerType<?>, NaturalGlidePower>        NATURAL_GLIDE        = reg("natural_glide",        new NaturalGlidePower());
     public static final DeferredHolder<PowerType<?>, SizeScalingPower>         SIZE_SCALING         = reg("size_scaling",         new SizeScalingPower());
+    public static final DeferredHolder<PowerType<?>, BounceOnLandPower>        BOUNCE_ON_LAND       = reg("bounce_on_land",       new BounceOnLandPower());
     public static final DeferredHolder<PowerType<?>, ItemMagnetismPower>       ITEM_MAGNETISM       = reg("item_magnetism",       new ItemMagnetismPower());
     // food_restriction retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, BreakSpeedModifierPower>  BREAK_SPEED_MODIFIER = reg("break_speed_modifier", new BreakSpeedModifierPower());
@@ -70,6 +71,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ModifyLavaSpeedPower>    MODIFY_LAVA_SPEED    = reg("modify_lava_speed",   new ModifyLavaSpeedPower());
     public static final DeferredHolder<PowerType<?>, OverlayPower>             OVERLAY              = reg("overlay",             new OverlayPower());
     public static final DeferredHolder<PowerType<?>, ModelColorPower>          MODEL_COLOR          = reg("model_color",         new ModelColorPower());
+    public static final DeferredHolder<PowerType<?>, EntityModelPower>         ENTITY_MODEL         = reg("entity_model",        new EntityModelPower());
     public static final DeferredHolder<PowerType<?>, ShaderPower>              SHADER               = reg("shader",              new ShaderPower());
 
     // --- Passive: combat ---
@@ -145,6 +147,13 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, CraftAmountBonusPower>      CRAFT_AMOUNT_BONUS     = reg("craft_amount_bonus",     new CraftAmountBonusPower());
     public static final DeferredHolder<PowerType<?>, TamedAnimalBoostPower>      TAMED_ANIMAL_BOOST     = reg("tamed_animal_boost",     new TamedAnimalBoostPower());
     public static final DeferredHolder<PowerType<?>, TamedPotionDiffusalPower>   TAMED_POTION_DIFFUSAL  = reg("tamed_potion_diffusal",  new TamedPotionDiffusalPower());
+
+    // --- Dragon Survival soft-compat ---
+    // Hooks DS's dragon state when `dragonsurvival` is loaded: turns the holder
+    // into the configured species and reverts on revoke. Inert (no-op) when DS
+    // is absent; dragon origins also gate on `required_mods` so neither the
+    // origin nor this power loads without the mod present.
+    public static final DeferredHolder<PowerType<?>, BecomeDragonPower>       BECOME_DRAGON        = reg("become_dragon",       new BecomeDragonPower());
 
     // --- Minion summoning ---
     public static final DeferredHolder<PowerType<?>, SummonMinionPower> SUMMON_MINION = reg("summon_minion", new SummonMinionPower());

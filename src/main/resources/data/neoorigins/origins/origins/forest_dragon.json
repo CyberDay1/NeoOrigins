@@ -1,0 +1,41 @@
+{
+  "name": "origins.neoorigins.forest_dragon.name",
+  "description": "origins.neoorigins.forest_dragon.description",
+  "icon": "minecraft:moss_block",
+  "impact": "high",
+  "order": 19,
+  "required_mods": ["dragonsurvival"],
+  "powers": [
+    "neoorigins:forest_dragon_form"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:forest_dragon_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:forest_dragon_ascended_might"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:forest_dragon_apex_hp"
+      ],
+      "remove": [
+        "neoorigins:forest_dragon_evolved_hp"
+      ]
+    }
+  ],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_forest"
+  }
+}

@@ -25,6 +25,8 @@ import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.network.payload.SyncPlayerMorphPayload;
+import com.cyberday1.neoorigins.power.builtin.EntityModelPower;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.NeoOriginsConfig;
@@ -170,6 +172,12 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload.TYPE,
             com.cyberday1.neoorigins.network.payload.SyncActiveThemePayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncActiveTheme
+        );
+
+        registrar.playToClient(
+            SyncPlayerMorphPayload.TYPE,
+            SyncPlayerMorphPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncPlayerMorph
         );
 
         registrar.playToServer(
@@ -1010,6 +1018,53 @@ public class NeoOriginsNetwork {
         Set<String> capabilities = new HashSet<>();
         collectActivePowers(player, powerMap, capabilities);
         PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
+        // Morph state (entity_model power) must reach every client that can see
+        // this player, not just the player themselves — broadcast it separately.
+        broadcastMorphState(player, morphTypeFrom(capabilities));
+    }
+
+    /**
+     * Extract the {@code entity_model} target type from a capability set, or
+     * empty if the player isn't morphed. Reuses the same caps already computed
+     * for {@link #syncActivePowersToPlayer} so morph detection stays in lockstep
+     * with the power's actual active state (toggles, dimension restrictions).
+     */
+    private static java.util.Optional<Identifier> morphTypeFrom(Set<String> capabilities) {
+        for (String cap : capabilities) {
+            if (cap.startsWith(EntityModelPower.CAP_PREFIX)) {
+                String id = cap.substring(EntityModelPower.CAP_PREFIX.length());
+                Identifier parsed = Identifier.tryParse(id);
+                if (parsed != null) return java.util.Optional.of(parsed);
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /** Broadcast a player's morph state to all tracking clients and the player. */
+    private static void broadcastMorphState(ServerPlayer player,
+                                            java.util.Optional<Identifier> morphType) {
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+            new SyncPlayerMorphPayload(player.getId(), morphType));
+    }
+
+    /**
+     * Send {@code tracked}'s current morph state to a single observer who just
+     * started tracking them (so a late-joining viewer sees an existing morph).
+     */
+    public static void sendMorphStateTo(ServerPlayer observer, ServerPlayer tracked) {
+        Map<Identifier, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(tracked, powerMap, capabilities);
+        java.util.Optional<Identifier> morphType = morphTypeFrom(capabilities);
+        if (morphType.isEmpty()) return;
+        PacketDistributor.sendToPlayer(observer,
+            new SyncPlayerMorphPayload(tracked.getId(), morphType));
+    }
+
+    private static void handleSyncPlayerMorph(SyncPlayerMorphPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientMorphState.set(
+                payload.entityId(), payload.entityType().orElse(null)));
     }
 
     /**

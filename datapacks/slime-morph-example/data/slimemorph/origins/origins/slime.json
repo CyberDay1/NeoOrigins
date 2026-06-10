@@ -1,0 +1,16 @@
+{
+  "name": "Slime (Morph Demo)",
+  "description": "You are a slime. You look like one, you bounce like one, and you shrug off the falls that would break a lesser body.",
+  "icon": "minecraft:slime_ball",
+  "impact": "medium",
+  "order": 60,
+  "powers": [
+    "slimemorph:slime_form",
+    "slimemorph:smol",
+    "slimemorph:bouncy",
+    "slimemorph:bounce",
+    "slimemorph:no_fall_damage"
+  ],
+  "upgrades": [],
+  "tier_powers": []
+}

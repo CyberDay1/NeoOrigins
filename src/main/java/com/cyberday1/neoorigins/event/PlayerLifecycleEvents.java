@@ -206,6 +206,19 @@ public class PlayerLifecycleEvents {
     }
 
     /**
+     * When an observer starts tracking another player, push that player's
+     * current morph state (entity_model power) so a late-joining viewer sees
+     * an already-active morph instead of the vanilla body. {@code getEntity()}
+     * is the observer; {@code getTarget()} is the entity now being tracked.
+     */
+    @SubscribeEvent
+    public static void onStartTracking(PlayerEvent.StartTracking event) {
+        if (!(event.getEntity() instanceof ServerPlayer observer)) return;
+        if (!(event.getTarget() instanceof ServerPlayer tracked)) return;
+        NeoOriginsNetwork.sendMorphStateTo(observer, tracked);
+    }
+
+    /**
      * Dimension restrictions filter the active-powers map, so any dimension
      * transition invalidates the client's mirror. Push a fresh sync.
      */

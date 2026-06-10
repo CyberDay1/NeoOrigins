@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "fall_damage",
+  "name": "Gelatinous Landing",
+  "description": "Your squishy body absorbs all fall damage."
+}

@@ -59,6 +59,17 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "BOTH"
 
+# Dragon Survival soft-compat: the built-in Cave/Forest/Sea Dragon origins are
+# gated behind `required_mods: ["dragonsurvival"]` and drive DS's own dragon
+# state via the neoorigins:become_dragon power (reflective bridge, no build dep).
+# Optional + ordered AFTER so DS registries exist before our origins resolve.
+[[dependencies.${mod_id}]]
+    modId = "dragonsurvival"
+    type = "optional"
+    versionRange = "[2.0,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
 [[mixins]]
     config = "neoorigins.mixins.json"
 
