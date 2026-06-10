@@ -427,6 +427,8 @@ Spawns a tornado that pulls entities inward, lifts them upward, and spins them t
 
 Runs a server command at permission level 2 (vanilla's function-permission-level default). Works for non-op players — mirrors upstream Origins behaviour. Output is suppressed.
 
+Also accepted under the alias `command` (Apoli's verb name, same field shape), so `apoli:command` / `origins:command` actions in imported packs dispatch here directly. The alias is the same factory: the server-config command blacklist (`command_power_blacklist` under `[command_powers]`) applies identically to both spellings.
+
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `command` | string | yes | — | Command line (no leading slash) |

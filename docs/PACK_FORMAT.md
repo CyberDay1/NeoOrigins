@@ -62,6 +62,7 @@ Loaded as: `<namespace>:<id>`
 | `order` | int | no | `0` | Sort order in the selection screen (lower appears first) |
 | `powers` | list of Identifier | no | `[]` | Powers granted by this origin |
 | `upgrades` | list | no | `[]` | Reserved for future use |
+| `required_mods` | list of mod ids | no | `[]` | Load gate: the origin only loads (and only appears in the picker) when every listed mod is present. Used by the built-in Dragon Survival origins (`"required_mods": ["dragonsurvival"]`). |
 
 ---
 
@@ -80,6 +81,7 @@ See [POWER_TYPES.md](POWER_TYPES.md) for the full reference.
 | `type` | Identifier | yes | — | Power type, e.g. `neoorigins:status_effect` |
 | `name` | string or component | no | _(derived from ID)_ | Display name in the selection screen |
 | `description` | string or component | no | _(derived from ID)_ | Description text |
+| `required_mods` | list of mod ids | no | `[]` | Load gate: the power only loads when every listed mod is present. Same semantics as the origin-level field. |
 
 ### Name/description resolution order
 
@@ -223,6 +225,7 @@ Powers of type `neoorigins:resource` display a HUD bar. The appearance is config
 |---|---|---|---|
 | `label` | string | `"Resource"` | Display name shown above the bar. |
 | `color` | string (hex) | `"#55AAFF"` | Fill colour as `#RRGGBB`. |
+| `animated` | string (preset id) | — | Animated bar FX preset to render instead of the flat fill, e.g. `"neoorigins:fire"`. Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json` — see [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource) for the preset format and [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture authoring. |
 
 Bars automatically **hide when full** and reappear when the resource drops below max. Players can reposition bars via the **Edit HUD** keybind (unbound by default). Positions persist across sessions in `config/neoorigins-hud.json`.
 

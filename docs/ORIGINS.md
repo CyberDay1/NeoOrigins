@@ -203,6 +203,26 @@ A creature of wind born in the Trial Chambers — fast, airborne, and armed with
 | 2 - Ascended | +4 HP, Slow Falling | Evolved HP |
 | 3 - Apex | +6 HP, Jump Boost | Ascended HP |
 
+### Cave Dragon
+
+**Impact:** High  
+**Icon:** Magma Block  
+**Requires:** [Dragon Survival](https://www.curseforge.com/minecraft/mc-mods/dragon-survival) — the origin only loads (and only appears in the picker) when the mod is installed
+
+A dragon of fire and stone, born deep beneath the world. Thrives in heat and darkness, and grows into its full power over time.
+
+**Base powers**
+
+- *Cave Dragon Form* — become a Dragon Survival cave dragon; traits, growth and abilities are managed by Dragon Survival
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Hardened Scales (+2 HP) | — |
+| 2 - Ascended | Draconic Might (+2 attack) | — |
+| 3 - Apex | Apex Wyrm (+6 HP) | Evolved HP |
+
 ### Caveborn
 
 **Impact:** Medium  
@@ -496,6 +516,27 @@ A volatile pyromancer wreathed in flame — hurls fireballs, bursts into an infe
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, Fire Resistance | Evolved HP |
 | 3 - Apex | +6 HP, +2 Attack Damage | Ascended HP |
+
+### Forest Dragon
+
+**Impact:** High  
+**Icon:** Moss Block  
+**Requires:** [Dragon Survival](https://www.curseforge.com/minecraft/mc-mods/dragon-survival) — the origin only loads (and only appears in the picker) when the mod is installed  
+**Spawn:** Forest biomes
+
+A dragon of root and thorn, at home among ancient trees. Patient and resilient, it grows stronger as it matures.
+
+**Base powers**
+
+- *Forest Dragon Form* — become a Dragon Survival forest dragon; traits, growth and abilities are managed by Dragon Survival
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Bark Hide (+2 HP) | — |
+| 2 - Ascended | Verdant Fury (+2 attack) | — |
+| 3 - Apex | Elder Wyrm (+6 HP) | Evolved HP |
 
 ### Frostborn
 
@@ -885,6 +926,27 @@ A being of the deep dark — armored, resistant, and armed with sonic power — 
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, Night Vision | Evolved HP |
 | 3 - Apex | +6 HP, +2 Armor | Ascended HP |
+
+### Sea Dragon
+
+**Impact:** High  
+**Icon:** Prismarine Crystals  
+**Requires:** [Dragon Survival](https://www.curseforge.com/minecraft/mc-mods/dragon-survival) — the origin only loads (and only appears in the picker) when the mod is installed  
+**Spawn:** Ocean biomes (ocean floor allowed)
+
+A dragon of tide and storm, born to the open water. Swift beneath the waves, it comes into its full strength with age.
+
+**Base powers**
+
+- *Sea Dragon Form* — become a Dragon Survival sea dragon; traits, growth and abilities are managed by Dragon Survival
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Tidal Hide (+2 HP) | — |
+| 2 - Ascended | Riptide Fury (+2 attack) | — |
+| 3 - Apex | Leviathan (+6 HP) | Evolved HP |
 
 ### Shulk
 

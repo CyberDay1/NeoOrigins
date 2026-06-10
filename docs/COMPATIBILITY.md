@@ -13,7 +13,7 @@ If a prose doc disagrees with the code, the code wins.
 
 | Mod / format | What NeoOrigins does | Notes |
 |---|---|---|
-| **Origins / Apoli** | Reads Origins-format origin and power datapacks and translates them into NeoOrigins powers at load time. | Most power types are supported directly; a few translate with reduced fidelity. Unsupported types are logged at reload and become no-ops rather than crashing the pack. |
+| **Origins / Apoli** | Reads Origins-format origin and power datapacks and translates them into NeoOrigins powers at load time. | Most power types are supported directly; a few translate with reduced fidelity. Unsupported types are logged at reload and become no-ops rather than crashing the pack. Action and condition fields are accepted in both Apoli forms: a single object or an array (an array is an implicit all-of). Apoli's `command` action verb dispatches as `execute_command`, subject to the same command blacklist. |
 | **Apugli / Apace** | Legacy power-type vocabularies are remapped to the 2.0 type names. | See [MIGRATION.md](MIGRATION.md) for the remap table and the known DSL gaps. |
 
 You do not need any of these mods installed — NeoOrigins reads their pack format
@@ -32,6 +32,7 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 | **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. |
 | **FTB Quests** | `ftbquests` | Quests tagged `neoorigins_loot_pool_grant:<table_id>` grant a loot pool from that table on completion, routed through the same roll-and-grant pipeline as the `loot_pool_grant` power. |
 | **FTB Ultimine** | `ftbultimine` | Powers the `neoorigins:ultimine` power: NeoOrigins registers a restriction handler so vein-mining is gated to players holding an active `ultimine` power. The integration is completely dormant unless a loaded pack defines a `neoorigins:ultimine` power — while no pack uses it, FTB Ultimine behaves exactly as vanilla. Once at least one `ultimine` power is loaded, vein-mining is restricted to players who hold one. Block count, tool requirement, and shape follow FTB Ultimine's own server config — the restriction API exposes no override for them. Compile-only soft dependency. |
+| **Dragon Survival** | `dragonsurvival` | The `neoorigins:become_dragon` power drives Dragon Survival's own dragon state, so an origin can make its holder a DS dragon of a configured species and stage — DS supplies the actual traits, growth, abilities, altar economy and hunters. Ships with three built-in origins (Cave / Forest / Sea Dragon) gated behind `"required_mods": ["dragonsurvival"]`, so they only load and appear in the picker when DS is installed. Reflection-based, no hard dependency. See the caveat below. |
 | **Pehkui** | `pehkui` | Origin body-scale powers drive the Pehkui scale system so resizing renders and collides correctly. See the caveat below. |
 | **Epic Fight** | `epicfight` | Origin scaling is applied to Epic Fight's custom entity renderer via a mixin, so scaled origins render correctly with Epic Fight installed. |
 | **Modded attributes** | (any) | `attribute_modifier` powers can target attributes added by other mods (e.g. Iron's Spells, Apothic Attributes). Attribute IDs resolve with or without the `generic.`/`player.` prefix. |
@@ -69,6 +70,11 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
   for `geckolib`; the planned `AnimatedProjectileRenderer` has not shipped, so
   projectiles fall back to standard item rendering. Listed here so its absence
   from the table above isn't mistaken for an oversight.
+- **Dragon Survival binds reflectively.** DS exposes no public addon API, so
+  the bridge resolves its internal classes and methods by name at runtime. If a
+  future DS release renames them, `become_dragon` logs one warning and stops
+  transforming players (everything else keeps working) — report the DS version
+  and the bridge gets re-pointed.
 - **Lossy datapack translation.** Some Origins/Apoli modifier types translate
   with reduced fidelity, and a handful of types are unsupported. These are
   logged at reload — check the log if an imported pack behaves unexpectedly.

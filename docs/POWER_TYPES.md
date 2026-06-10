@@ -6,13 +6,14 @@ nav_order: 2
 
 # NeoOrigins Power Types Reference
 
-All powers share three optional metadata fields:
+All powers share four optional top-level fields:
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | string or `{"text":"..."}` / `{"translate":"..."}` | Display name shown in the origin selection screen. A plain string is treated as a translation key. |
 | `description` | string or `{"text":"..."}` / `{"translate":"..."}` | Description shown below the power name. Same resolution rules as `name`. |
 | `hidden` | bool (default `false`) | When `true`, this power is excluded from the origin info panel. The mechanical effect still applies — only the display row is suppressed. Useful for purely-internal flag/glue powers (e.g. `neoorigins:toggle`, on-hit setters wired under a `multiple`). |
+| `required_mods` | list of mod ids (default `[]`) | Load gate: the power only loads when every listed mod is present. Use it for content that targets an optional mod (e.g. the built-in Dragon Survival dragon forms carry `"required_mods": ["dragonsurvival"]`). Origins accept the same field — see [PACK_FORMAT.md](PACK_FORMAT.md). |
 
 If neither `name` nor `description` is present, NeoOrigins falls back to the lang key convention:
 `power.<namespace>.<path>.name` / `power.<namespace>.<path>.description`
@@ -1858,18 +1859,18 @@ The colon in `name` is allowed and carries no mechanical meaning — it's a soft
 
 ## `neoorigins:enhanced_vision`
 
-> **Status (2.0.8):** still available for direct authoring, but the 22
-> built-in origins that briefly used `enhanced_vision` in 2.0.4–2.0.7
-> are temporarily back on `neoorigins:night_vision` while we sort out
-> shader and mod-compat issues with the LightTexture path. The cleaner
-> enhanced-vision look is still the long-term direction; this is a
-> rollback for stability, not a deprecation.
+> **Status (2.2.x):** active again. On 26.x the brightness boost is applied
+> through the lightmap render state (`LightmapRenderStateExtractor` mixin) at
+> higher priority, so it survives other mods (Alex's Caves, etc.) that touch
+> the same pipeline. A handful of built-in powers (Avian keen sight, the
+> Archer / Cleric / Miner class sights) use `enhanced_vision`; most origin
+> night vision remains on `neoorigins:night_vision`.
 
 Passive low-light vision: emits an `enhanced_vision` capability tag and scales the client brightness curve directly via a `LightTexture` mixin. Unlike the full `minecraft:night_vision` status effect, there's no screen tint, HUD icon, or max-brightness ramp at end of duration — just exposure-style compensation.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `exposure` | float (0.0–1.0) | no | `0.7` | Target brightness scalar (advisory in v1 — the client mixin currently hardcodes 0.7) |
+| `exposure` | float (0.0–1.0) | no | `0.7` | Target brightness scalar (advisory — the client mixin currently hardcodes 0.7; a real Night Vision effect still wins where stronger) |
 
 **Example:**
 ```json
@@ -2459,6 +2460,8 @@ Equipment the player crafts or upgrades at a smithing table receives bonus attri
 ```
 
 Bonuses are applied at craft/smelt time via attribute modifiers stored on the item. Items already carrying the quality modifier are not double-buffed.
+
+Smithing-table upgrades are part of the buffed surface: when a quality item is upgraded (e.g. diamond → netherite), the attribute snapshot is rebuilt from the upgraded item's own base stats and the durability bonus is recomputed against the upgraded item's base durability, so the bonus scales with the new material instead of carrying the old item's stale values.
 
 ---
 
@@ -3183,6 +3186,34 @@ Notes:
 
 ---
 
+## `neoorigins:become_dragon`
+
+Soft-compat hook for the [Dragon Survival](https://www.curseforge.com/minecraft/mc-mods/dragon-survival) mod: while the power is granted, the holder is a Dragon Survival dragon of the configured species; revoking it reverts them to human form. The power is a pure hook — Dragon Survival supplies all of the resulting traits, growth, abilities and hunters. The form is re-applied on login and respawn, so it survives relog and death.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `species` | string | yes | — | Dragon Survival species id, e.g. `dragonsurvival:cave_dragon`. |
+| `stage` | string | no | `dragonsurvival:newborn` | Starting growth stage. Blank or unresolvable ids fall back to the species default. |
+
+Notes:
+
+- **Inert without Dragon Survival.** The power no-ops when the mod is absent. Always pair it (and the origin that grants it) with `"required_mods": ["dragonsurvival"]` so the content never loads — or appears in the picker — without the target mod. The three built-in dragon origins (Cave, Forest, Sea Dragon) follow this pattern.
+- The bridge binds to Dragon Survival's internals reflectively (the mod exposes no addon API): if a future Dragon Survival release renames those internals, the power logs one warning and stops transforming players rather than crashing. See [COMPATIBILITY.md](COMPATIBILITY.md).
+
+**Example — cave dragon form:**
+```json
+{
+  "type": "neoorigins:become_dragon",
+  "species": "dragonsurvival:cave_dragon",
+  "stage": "dragonsurvival:newborn",
+  "required_mods": ["dragonsurvival"],
+  "name": "Cave Dragon Form",
+  "description": "Take the shape of a cave dragon."
+}
+```
+
+---
+
 ## `neoorigins:lava_vision`
 
 Increases the player's vision distance while submerged in lava by pushing back the lava fog planes (both fog start and fog end scale with `strength`). Holders also lose the first-person burning-screen fire overlay: the power is meant for fire-immune origins, where the flame animation is noise. Client-side rendering is handled by `VisualEffectsHandler` via `ViewportEvent.RenderFog` and `RenderBlockScreenEffectEvent`. (26.1 note: the fog-plane scaling is pending a 26.1-native fog implementation; the fire-overlay suppression is active.)
@@ -3283,6 +3314,34 @@ A named, persistent, HUD-visible resource bar. Values are stored per-player and 
 | `label` | string | no | `"Resource"` | Display label on the HUD bar |
 | `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
 | `should_render` | bool | no | `true` | Origins compat — when false, hides the bar |
+| `animated` | string | no | — | Id of an animated bar FX preset, e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar fill renders as an animated texture strip instead of the flat `color`. |
+
+**Animated bar FX presets:**
+
+Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`, looked up by the `animated` id. Because the bar render is entirely client-side, the preset and its texture ship in a resource pack — only the preset id travels in the power JSON; clients without the preset fall back to the flat `color` fill.
+
+```json
+{
+  "texture": "neoorigins:textures/gui/bar_fx/fire.png",
+  "mode": "scroll",
+  "tile_width": 213,
+  "tile_height": 16,
+  "scroll_speed": 24,
+  "track_color": "#AA2B0900",
+  "level_color": "#B3551500"
+}
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `texture` | resource location | required | The strip texture to scroll across the bar. |
+| `mode` | string | `"scroll"` | Animation mode; only `scroll` is supported today. |
+| `tile_width` / `tile_height` | int | `64` / `8` | Source texture dimensions in texels. |
+| `scroll_speed` | float | `24` | On-screen pixels per second the strip drifts left. |
+| `track_color` | hex color | `#AA000000` | ARGB backing drawn under the empty remainder of the bar. |
+| `level_color` | hex color | `track_color` | ARGB backing under the filled portion — pick a brighter tone so the current level reads through transparent gaps in the texture. |
+
+See [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture-authoring guidance.
 
 **Example — mana bar that regens while not in combat:**
 ```json

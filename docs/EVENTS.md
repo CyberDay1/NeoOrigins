@@ -318,10 +318,12 @@ cost preview.
 
 ## `bonemeal`
 
-Fires when the player applies bone meal to a block.
+Fires when the player applies bone meal to a block. **Cancellable** via
+`neoorigins:cancel_event` (the bone meal is not consumed and nothing grows).
 
-**Context:** `BlockInteractContext(pos, state)` — the bonemealed block's
-position and state. `block_condition` filters by block type.
+**Context:** `BlockInteractContext(pos, state, event)` — the bonemealed
+block's position and state; carries the underlying cancellable
+`BonemealEvent`. `block_condition` filters by block type.
 
 **Dispatch site:** `CraftingPowerEvents.onBonemeal` (`BonemealEvent`).
 
@@ -333,10 +335,11 @@ number of extra growth applications.
 
 ## `breed`
 
-Fires when two animals the player bred produce a baby.
+Fires when two animals the player bred produce a baby. **Cancellable** via
+`neoorigins:cancel_event` (vetoes the baby spawn).
 
-**Context:** `EntityInteractContext(child)` — the spawned baby
-`LivingEntity`.
+**Context:** `EntityInteractContext(child, event)` — the spawned baby
+`LivingEntity`; carries the underlying cancellable `BabyEntitySpawnEvent`.
 
 **Dispatch site:** `WorldPowerEvents.onBabyEntitySpawn`
 (`BabyEntitySpawnEvent`, gated on a causing `ServerPlayer`). Dispatched before
@@ -349,9 +352,11 @@ breeding-streak counters.
 
 ## `tame`
 
-Fires when an animal is tamed by the player.
+Fires when an animal is tamed by the player. **Cancellable** via
+`neoorigins:cancel_event` (the taming fails).
 
-**Context:** `EntityInteractContext(animal)` — the tamed `LivingEntity`.
+**Context:** `EntityInteractContext(animal, event)` — the tamed
+`LivingEntity`; carries the underlying cancellable `AnimalTameEvent`.
 
 **Dispatch site:** `WorldPowerEvents.onAnimalTame` (`AnimalTameEvent`, gated on
 `getTamer() instanceof ServerPlayer`).
@@ -428,9 +433,12 @@ trade-completion sound / particle.
 Fires when the player right-clicks a villager or wandering trader — a narrower
 alias for `entity_use` that only matches `AbstractVillager` targets. Fired
 *after* the generic `entity_use` so a power can target either granularity.
+**Cancellable** via `neoorigins:cancel_event` (vetoes the interaction before
+the trade screen opens).
 
-**Context:** `EntityInteractContext(target)` — the villager / trader
-`LivingEntity`.
+**Context:** `EntityInteractContext(target, event)` — the villager / trader
+`LivingEntity`; carries the underlying cancellable
+`PlayerInteractEvent.EntityInteract` event.
 
 **Dispatch site:** `InteractionPowerEvents.onEntityUse` (the
 `AbstractVillager` branch).
@@ -542,6 +550,76 @@ and `bonemeal` dispatches share this pattern and are likewise cancellable.
 
 **Typical use:** healing touch, taming-by-class, entity-hug particle,
 trade-lock origins (`villager_interact` + `cancel_event`).
+
+---
+
+## `villager_interact`
+
+Fires when the player right-clicks a villager or wandering trader
+(`AbstractVillager` covers both) — a narrower alias of `entity_use`, fired
+immediately after it so a power can target either granularity.
+**Cancellable** via `neoorigins:cancel_event` (vetoes the interaction before
+the trade screen opens).
+
+**Context:** `EntityInteractContext(target, event)` — carries the underlying
+cancellable `PlayerInteractEvent.EntityInteract` event.
+
+**Dispatch site:** `InteractionPowerEvents.onEntityUse`.
+
+**Typical use:** trade-lock origins (pillager-friendly origins that villagers
+refuse to deal with), reputation hooks.
+
+---
+
+## `breed`
+
+Fires when the player causes a baby animal to spawn (feeding two parents).
+Fires regardless of any `twin_breeding` power. **Cancellable** via
+`neoorigins:cancel_event` (vetoes the baby spawn).
+
+**Context:** `EntityInteractContext(child, event)` — the target is the
+newborn `AgeableMob`; carries the underlying cancellable
+`BabyEntitySpawnEvent`.
+
+**Dispatch site:** `WorldPowerEvents.onBabyEntitySpawn`.
+
+**Typical use:** shepherd-class bonuses on breeding, sterile-origin breeding
+bans (`cancel_event`).
+
+---
+
+## `tame`
+
+Fires when the player tames an animal (wolf, cat, horse, parrot, etc. — any
+`AnimalTameEvent`). Distinct from the `tame_mob` power, which tames via its
+own active-ability pipeline. **Cancellable** via `neoorigins:cancel_event`
+(the taming fails).
+
+**Context:** `EntityInteractContext(animal, event)` — carries the underlying
+cancellable `AnimalTameEvent`.
+
+**Dispatch site:** `WorldPowerEvents.onAnimalTame`.
+
+**Typical use:** beastmaster buffs on tame, feral origins that animals refuse
+to bond with (`cancel_event`).
+
+---
+
+## `bonemeal`
+
+Fires when the player applies bone meal to a block. Distinct from
+`mod_bonemeal_extra`, which only scales the extra-application count.
+**Cancellable** via `neoorigins:cancel_event` (the bone meal is not
+consumed and nothing grows).
+
+**Context:** `BlockInteractContext(pos, state, event)` — the bonemealed
+block; carries the underlying cancellable `BonemealEvent`. Supports
+`block_condition` like the other block events.
+
+**Dispatch site:** `CraftingPowerEvents.onBonemeal`.
+
+**Typical use:** druid growth side-effects, blighted origins that kill
+instead of grow (`cancel_event` + replacement action).
 
 ---
 

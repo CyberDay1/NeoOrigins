@@ -154,6 +154,8 @@ Network payloads:
 | `ChooseOriginPayload` | C→S | Player confirms an origin selection |
 | `OpenOriginScreenPayload` | S→C | Server tells client to open the selection screen |
 | `ActivatePowerPayload` | C→S | Player pressed a skill keybind |
+| `SyncResourcePayload` | S→C | Full resource-bar sync (values plus label/bounds/color/FX metadata); sent at the chokepoints that can create or remove bars — login, power grant/revoke, datapack reload |
+| `SyncResourceValuesPayload` | S→C | Lightweight value-only resource sync (key → value); sent on the high-frequency paths (10-tick dirty sync, immediate mutations from actions/commands) where only values change |
 
 ---
 
