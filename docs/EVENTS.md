@@ -6,9 +6,8 @@ event fires, the power's `entity_action` (for action-style events) or
 
 Source of truth for the key list:
 [`EventPowerIndex.Event`](../src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java).
-Events with no `EventPowerIndex.dispatch(...)` call site anywhere in the tree
-are flagged in the **Not yet wired** section at the bottom — pack-authored
-powers that reference them will parse and register but never fire.
+Keys wired in the 2.2.0 wave that don't have a full section yet are
+summarised in the **Re-wired in 2.2.0** table at the bottom.
 
 ## Event shape
 
@@ -369,6 +368,76 @@ trade-lock origins (`villager_interact` + `cancel_event`).
 
 ---
 
+## `villager_interact`
+
+Fires when the player right-clicks a villager or wandering trader
+(`AbstractVillager` covers both) — a narrower alias of `entity_use`, fired
+immediately after it so a power can target either granularity.
+**Cancellable** via `neoorigins:cancel_event` (vetoes the interaction before
+the trade screen opens).
+
+**Context:** `EntityInteractContext(target, event)` — carries the underlying
+cancellable `PlayerInteractEvent.EntityInteract` event.
+
+**Dispatch site:** `InteractionPowerEvents.onEntityUse`.
+
+**Typical use:** trade-lock origins (pillager-friendly origins that villagers
+refuse to deal with), reputation hooks.
+
+---
+
+## `breed`
+
+Fires when the player causes a baby animal to spawn (feeding two parents).
+Fires regardless of any `twin_breeding` power. **Cancellable** via
+`neoorigins:cancel_event` (vetoes the baby spawn).
+
+**Context:** `EntityInteractContext(child, event)` — the target is the
+newborn `AgeableMob`; carries the underlying cancellable
+`BabyEntitySpawnEvent`.
+
+**Dispatch site:** `WorldPowerEvents.onBabyEntitySpawn`.
+
+**Typical use:** shepherd-class bonuses on breeding, sterile-origin breeding
+bans (`cancel_event`).
+
+---
+
+## `tame`
+
+Fires when the player tames an animal (wolf, cat, horse, parrot, etc. — any
+`AnimalTameEvent`). Distinct from the `tame_mob` power, which tames via its
+own active-ability pipeline. **Cancellable** via `neoorigins:cancel_event`
+(the taming fails).
+
+**Context:** `EntityInteractContext(animal, event)` — carries the underlying
+cancellable `AnimalTameEvent`.
+
+**Dispatch site:** `WorldPowerEvents.onAnimalTame`.
+
+**Typical use:** beastmaster buffs on tame, feral origins that animals refuse
+to bond with (`cancel_event`).
+
+---
+
+## `bonemeal`
+
+Fires when the player applies bone meal to a block. Distinct from
+`mod_bonemeal_extra`, which only scales the extra-application count.
+**Cancellable** via `neoorigins:cancel_event` (the bone meal is not
+consumed and nothing grows).
+
+**Context:** `BlockInteractContext(pos, state, event)` — the bonemealed
+block; carries the underlying cancellable `BonemealEvent`. Supports
+`block_condition` like the other block events.
+
+**Dispatch site:** `CraftingPowerEvents.onBonemeal`.
+
+**Typical use:** druid growth side-effects, blighted origins that kill
+instead of grow (`cancel_event` + replacement action).
+
+---
+
 ## `item_pickup`
 
 Fires when the player picks up an item entity off the ground.
@@ -605,25 +674,29 @@ via `NumericModifierRegistry`).
 
 ---
 
-# Previously unwired — now removed
+# Re-wired in 2.2.0
 
-The earlier draft enum included 15 keys that were parseable in JSON but had
-**no runtime dispatch site**. Exposing a handler that never fires is worse
-for pack authors than not offering it, so they were removed from the enum
-rather than left as silent no-ops: `CLIMB`, `CRAFT_ITEM`, `SMELT_ITEM`,
-`ENCHANT_ITEM`, `ANVIL_REPAIR`, `BREED`, `TAME`, `ADVANCEMENT_EARNED`,
-`TRADE_COMPLETED`, `VILLAGER_INTERACT`, `MOD_BREAK_SPEED`,
-`MOD_TRADE_PRICE`, `MOD_CRAFT_AMOUNT`, `MOD_FALL_DAMAGE`. Several of these
-remain useful and will be added back the same day their dispatch site
-lands. If you need one for a pack you're building, file an issue and the
-wiring is usually a few lines on the matching NeoForge event.
+An earlier draft of the enum included keys that were parseable in JSON but
+had no runtime dispatch site; they were removed rather than left as silent
+no-ops. The 2.2.0 wave wired them back up. `breed`, `tame`,
+`villager_interact` and `bonemeal` have full sections above; the rest in
+brief:
 
-Partial substitutes that already work today:
+| Event | Context | Dispatch site | Notes |
+|---|---|---|---|
+| `climb` | none (the player is the subject) | `PlayerLifecycleEvents` player tick | Fires once per tick while the player is on a climbable block (ladder/vine/scaffolding). No NeoForge event exists for this, so it rides the tick — gate frequency with a cooldown or condition. |
+| `craft_item` | `CraftContext(stack)` | `CraftingPowerEvents.onItemCrafted` | Item taken from a crafting result. |
+| `smelt_item` | `CraftContext(stack)` | `CraftingPowerEvents.onItemSmelted` | Item taken from furnace / smoker output. |
+| `enchant_item` | `CraftContext(stack)` | `CraftingPowerEvents.onItemEnchanted` | Enchantment applied at a table (post-apply). Distinct from `mod_enchant_level`, which modifies the offered level. |
+| `anvil_repair` | `CraftContext(output)` | `CraftingPowerEvents.onAnvilRepair` | Repaired/combined output taken from an anvil. Distinct from `mod_anvil_cost`, which previews the cost. |
+| `advancement_earned` | `AdvancementContext(id)` | `PlayerLifecycleEvents.onAdvancementEarn` | Any advancement, including recipe unlocks — filter with a condition. |
+| `trade_completed` | `TradeContext(offer)` | `InteractionPowerEvents.onTradeCompleted` | Villager trade finished. Post-hoc — not cancellable (veto trading with `villager_interact` + `cancel_event` instead). |
+| `mod_trade_price` | modifier | `AbstractVillagerTradePriceMixin` | Villager trade cost multiplier. |
+| `mod_craft_amount` | modifier | `CraftingMenuOriginContextMixin` | Crafting output count multiplier. |
+| `mod_fall_damage` | modifier | `MovementPowerEvents` (`LivingFallEvent`) | Chains on the event's damage multiplier, so it stacks with Feather Falling etc. For outright immunity use `prevent_action: FALL_DAMAGE`. |
 
-- `MOD_BREAK_SPEED` → use the `break_speed_modifier` power (attribute-backed).
-- `MOD_FALL_DAMAGE` cancellation → `prevent_action: FALL_DAMAGE`.
-- `BREED` → a dedicated `twin_breeding` power already covers the common case.
-- `TAME` → inspect `tame_mob`'s own `MinionTracker` integration.
+Still unwired: `MOD_BREAK_SPEED` — use the `break_speed_modifier` power
+(attribute-backed) instead.
 
 ---
 

@@ -29,6 +29,8 @@ Highlights this release:
 - **130+ power types** — attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
 - **Random origin mode** — server config to randomly assign origins on first join or every death
 - **Cooldown HUD overlay** — shows active ability cooldown bars above the hotbar
+- **Animated resource bars** — a resource power can name an animated FX preset (`"animated": "neoorigins:fire"` in its `hud_render` block) and the bar fill renders as a scrolling texture strip instead of a flat colour. Presets are resource-pack JSON under `assets/<ns>/bar_fx/` — see [docs/PACK_FORMAT.md](docs/PACK_FORMAT.md#resource-bar-hud)
+- **Dragon Survival integration** — three built-in dragon origins (Cave / Forest / Sea) turn the player into a Dragon Survival dragon via the `become_dragon` power; content gated behind `required_mods` only loads when the target mod is installed. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 - **Origin info screen** — press O to view your current origin and class details. Shows the origin's evolution path (tier names + add/remove powers) when the origin declares `tier_powers`
 - **Named-keybind pool** — packs can declare more than six active abilities; each `"key"` translation id on a power gets a labelled hotkey slot the player can rebind from *Controls → Key Binds → NeoOrigins (Hotkeys)*. See [docs/API.md#named-keybinds](docs/API.md#named-keybinds)
 - **Skinnable UI** — origin selection / info screens read colours, panel texture, font and 9-slice insets from a datapack-and-resourcepack theme. Ships with `neoorigins:parchment` (bundled Newsreader OFL font); addon packs can register their own theme and activate it via `data/<ns>/neoorigins/active_theme.json`. See [docs/THEMING.md](docs/THEMING.md) and the copy-and-edit skeleton at [`docs/theme-template/`](docs/theme-template)
@@ -137,6 +139,11 @@ See [`docs/GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) for the pack-author referen
 | **Air Mage** | high | Wind charge, updraft launch, no fall damage, slow fall, +20% speed | −4 hearts, +50% knockback taken |
 | **Gravity Mage** | high | Gravity well vortex (pull + damage), repulse blast, slow fall, no fall damage | +75% knockback taken, −25% melee |
 | **Darkness Mage** | high | Shadow orbs (Darkness AoE), shadow step teleport, night vision, stealth | Burns in sunlight, −30% mining speed |
+| **Cave Dragon*** | high | Become a Dragon Survival cave dragon — DS supplies traits, growth and abilities | Managed by Dragon Survival |
+| **Forest Dragon*** | high | Become a Dragon Survival forest dragon — DS supplies traits, growth and abilities | Managed by Dragon Survival |
+| **Sea Dragon*** | high | Become a Dragon Survival sea dragon — DS supplies traits, growth and abilities | Managed by Dragon Survival |
+
+\* The dragon origins require the [Dragon Survival](https://www.curseforge.com/minecraft/mc-mods/dragon-survival) mod: they declare `"required_mods": ["dragonsurvival"]` and only load (and only appear in the picker) when it is installed.
 
 ---
 
@@ -281,6 +288,8 @@ NeoOrigins runs two translation passes over Origins-format JSON at load time.
 | `origins:conditioned_status_effect` | Status effect gated on a condition |
 | `origins:action_on_being_hit` | Triggers an action when the player takes damage |
 | `origins:action_on_hit` | Triggers an action when the player deals damage |
+
+Route B accepts action and condition fields in both Apoli forms: a single object or an array (an array is treated as an implicit all-of). Apoli's `command` action verb is an alias of `execute_command` and goes through the same command blacklist.
 
 ### What is skipped
 
