@@ -2171,7 +2171,11 @@ public final class BuiltinActions {
         // When the dispatch context carries a BlockPos (BLOCK_BREAK/PLACE/USE or a
         // synthetic raycast hit), the command source is repositioned at that block's
         // centre so `~ ~ ~` resolves to "this block".
-        define("execute_command",
+        // Aliased as `command`: the compat translator emits Apoli's verb name
+        // (apoli:command, same field shape — a `command` string), which previously
+        // fell through to the unsupported-action no-op. The alias dispatches the
+        // SAME factory, so the CommandPowerGuard blacklist applies identically.
+        define("execute_command", List.of("command"),
             (json, ctx) -> {
                 String command = json.has("command") ? json.get("command").getAsString() : "";
                 return player -> {
@@ -2676,7 +2680,7 @@ public final class BuiltinActions {
                 else projectile.push(x, y, z);
                 projectile.hurtMarked = true;
             }
-            case "neoorigins:execute_command" -> {
+            case "neoorigins:execute_command", "neoorigins:command" -> {
                 String cmd = json.has("command") ? json.get("command").getAsString() : "";
                 if (!cmd.isBlank() && sl.getServer() != null) {
                     var src = projectile.createCommandSourceStack().withSuppressedOutput()
