@@ -86,6 +86,18 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 boolean toggleable = !obj.has("toggleable") || obj.get("toggleable").getAsBoolean();
                 boolean defaultOff = obj.has("default_off") && obj.get("default_off").getAsBoolean();
 
+                // Config kill-switch: a top-level "enabled":false (injected by the
+                // power_overrides system when a server admin disables this power)
+                // collapses the power to a no-op — no effects to apply, and not
+                // toggleable so it never claims a keybind slot. Used by the Warden
+                // dark-vision config toggles (issue #101).
+                boolean enabled = !obj.has("enabled") || obj.get("enabled").getAsBoolean();
+                if (!enabled) {
+                    return DataResult.success(Pair.of(
+                        new Config(List.of(), EntityCondition.alwaysTrue(), false, false, t),
+                        ops.empty()));
+                }
+
                 // Top-level "amplifier" is a config-override hook: the
                 // power_overrides system writes fields at the JSON root, so
                 // a top-level amplifier lets server admins re-tune the

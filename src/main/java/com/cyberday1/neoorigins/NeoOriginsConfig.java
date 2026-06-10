@@ -467,6 +467,11 @@ public final class NeoOriginsConfig {
         p("warden_hulking_frame");      f("scale", 1.15, 0.1, 10); ep();
         p("warden_lumbering");          f("amount", -0.30, -1, 1); ep();
         p("warden_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
+        // Dark-vision powers (issue #101): players can toggle these in-game via the
+        // skill keybind; admins set enabled:false here to remove them entirely.
+        p("warden_night_vision");       fb("enabled", true); ep();
+        p("warden_echolocation");       fb("enabled", true); ep();
+        p("warden_tremor_sense");       fb("enabled", true); ep();
 
         // ── Classes ──
         p("class_warrior_damage");      f("amount", 1.0, -100, 100); ep();
