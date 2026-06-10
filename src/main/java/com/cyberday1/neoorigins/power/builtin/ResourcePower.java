@@ -221,10 +221,12 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
             if (cur >= config.max() && prev < config.max()) config.maxAction().execute(player);
         }
 
-        // Sync to client every 10 ticks when dirty
+        // Sync to client every 10 ticks when dirty — value-only payload; the
+        // static display metadata was already pushed by the full sync at
+        // grant/login/origin change.
         if (state.isDirty() && player.tickCount % 10 == 0) {
             state.clearDirty();
-            CompatAttachments.syncResourcesToClient(player);
+            CompatAttachments.syncResourceValuesToClient(player);
         }
     }
 

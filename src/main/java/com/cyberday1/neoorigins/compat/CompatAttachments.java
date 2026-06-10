@@ -176,4 +176,24 @@ public class CompatAttachments {
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
             new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));
     }
+
+    /**
+     * Build and send a value-only {@link com.cyberday1.neoorigins.network.payload.SyncResourceValuesPayload}
+     * for this player. Used on the high-frequency paths (10-tick dirty sync,
+     * change/set actions and commands) where only values change — the client
+     * already holds the display metadata from a prior full
+     * {@link #syncResourcesToClient(net.minecraft.server.level.ServerPlayer)}.
+     * Entry creation/removal must still go through the full sync.
+     */
+    public static void syncResourceValuesToClient(net.minecraft.server.level.ServerPlayer player) {
+        var state = player.getData(resourceState());
+        var values = new HashMap<String, Integer>();
+        for (var e : state.getAll().entrySet()) {
+            ResourceMeta meta = getResourceMeta(e.getKey());
+            if (meta == null || meta.hidden()) continue;
+            values.put(e.getKey(), e.getValue());
+        }
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncResourceValuesPayload(values));
+    }
 }

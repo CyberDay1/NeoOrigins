@@ -1065,10 +1065,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     if (cur <= min && prevVal > min) minAction.execute(player);
                     if (cur >= max && prevVal < max) maxAction.execute(player);
                 }
-                // Sync to client every 10 ticks when dirty
+                // Sync to client every 10 ticks when dirty — value-only payload;
+                // metadata was already pushed by the full sync at grant/login.
                 if (state.isDirty() && player.tickCount % 10 == 0) {
                     state.clearDirty();
-                    CompatAttachments.syncResourcesToClient(player);
+                    CompatAttachments.syncResourceValuesToClient(player);
                 }
             })
             .build();

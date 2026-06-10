@@ -24,6 +24,7 @@ import com.cyberday1.neoorigins.network.payload.SyncEvolutionConfigPayload;
 import com.cyberday1.neoorigins.network.payload.SyncEvolutionProgressPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMoisturePayload;
 import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
+import com.cyberday1.neoorigins.network.payload.SyncResourceValuesPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
@@ -121,6 +122,12 @@ public class NeoOriginsNetwork {
             SyncResourcePayload.TYPE,
             SyncResourcePayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncResource
+        );
+
+        registrar.playToClient(
+            SyncResourceValuesPayload.TYPE,
+            SyncResourceValuesPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncResourceValues
         );
 
         registrar.playToClient(
@@ -378,6 +385,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncResource(SyncResourcePayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientResourceState.apply(payload.resources())
+        );
+    }
+
+    private static void handleSyncResourceValues(SyncResourceValuesPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientResourceState.applyValues(payload.values())
         );
     }
 
