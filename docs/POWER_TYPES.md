@@ -1669,6 +1669,8 @@ Generic condition-gated periodic action — "a passive with a trigger". Part of 
 | `condition` | EntityCondition | no | always-true | DSL condition to test each interval |
 | `entity_action` | EntityAction | no | noop | Action run against the player when condition is true |
 | `else_action` | EntityAction | no | noop | Action run when condition is false |
+| `toggleable` | bool | no | `false` | When true, binds a skill keybind that flips the periodic action on/off (chat feedback via `neoorigins.toggle.on`/`off`). While off the interval action never runs. |
+| `default_off` | bool | no | `false` | Toggleable powers only: when true the power starts disabled so the player opts in via the keybind. |
 
 See [EVENTS.md](EVENTS.md) / the Apoli compat docs for the full condition and action DSL.
 
@@ -3089,6 +3091,60 @@ Origins compat: translates `origins:model_color`.
   "condition": { "type": "neoorigins:health", "comparison": "<=", "value": 6 },
   "name": "Blood Rage",
   "description": "Your body glows red when near death."
+}
+```
+
+---
+
+## `neoorigins:entity_model`
+
+Overrides the player's rendered model with another entity's model — a cosmetic "morph". The server emits a per-player capability tag and the client renders a cached dummy of the target entity type in place of the player, for both the morphed player (third-person) and everyone who can see them. The morphed player's first-person hands are hidden.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_type` | string | yes | — | Entity id whose model replaces the player's, e.g. `minecraft:slime`. |
+
+Notes:
+
+- **Cosmetic only.** This power does *not* change the hitbox or eye height. Pair it with `neoorigins:size_scaling` (which writes the vanilla `minecraft:scale` attribute) when you want the collision box to match the morph silhouette.
+- **Held items** are still rendered on the morph. The target entity often has no hand bone (slime does not), so the item floats just above/in front of the body. This is a best-effort placement; humanoid targets can later attach to a real hand bone.
+- **Nameplate** is preserved — the player's display name still renders above the morph under the same visibility rules vanilla uses.
+- v1 is tuned for **`minecraft:slime`**. Other entity ids will still load and render through their own vanilla renderer, but only slime has bespoke animation/held-item tuning.
+
+**Example — slime morph:**
+```json
+{
+  "type": "neoorigins:entity_model",
+  "entity_type": "minecraft:slime",
+  "name": "Slime Form",
+  "description": "You appear as a slime to yourself and others."
+}
+```
+
+---
+
+## `neoorigins:bounce_on_land`
+
+Reflects the player's downward impact velocity back upward on landing, mimicking a slime block — a slime-morphed player springs off the ground after a fall. The bounce fires only on the airborne→ground transition, using the impact speed captured the tick before landing (by the landing tick the player's own velocity has already been collision-clamped to ~0). The new velocity is pushed to the client through the same packet path vanilla uses for server-applied knockback, so the launch feels responsive.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `restitution` | number | no | `0.8` | Fraction of downward impact velocity reflected back up on landing; `<1` damps each successive bounce so the player settles. |
+| `min_velocity` | number | no | `0.3` | Minimum downward speed (blocks/tick) needed to trigger a bounce, so walking and small steps don't micro-bounce. |
+| `max_velocity` | number | no | `1.6` | Cap on the upward launch speed (blocks/tick) so terminal-velocity falls don't fling the player absurdly high. |
+
+Notes:
+
+- **Sneaking suppresses the bounce** — matching slime-block behavior and giving players a deliberate way to stop bouncing.
+- Pair with `neoorigins:no_fall_damage` so the impact driving the bounce doesn't also hurt.
+
+**Example — springy slime body:**
+```json
+{
+  "type": "neoorigins:bounce_on_land",
+  "restitution": 0.8,
+  "name": "Springy Body",
+  "description": "Like a slime, you rebound off the ground after a fall. Hold sneak to stay put."
 }
 ```
 

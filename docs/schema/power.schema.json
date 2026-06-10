@@ -23,6 +23,7 @@
         "neoorigins:action_on_hit",
         "neoorigins:action_on_hit_taken",
         "neoorigins:action_on_kill",
+        "neoorigins:action_over_time",
         "neoorigins:active_ability",
         "neoorigins:active_aoe_effect",
         "neoorigins:active_bolt",
@@ -36,10 +37,12 @@
         "neoorigins:active_teleport",
         "neoorigins:attribute_modifier",
         "neoorigins:bare_hand_tool",
+        "neoorigins:become_dragon",
         "neoorigins:better_bone_meal",
         "neoorigins:better_crafted_food",
         "neoorigins:better_enchanting",
         "neoorigins:biome_buff",
+        "neoorigins:bounce_on_land",
         "neoorigins:break_speed_modifier",
         "neoorigins:breath_in_fluid",
         "neoorigins:breath_out_of_fluid",
@@ -63,6 +66,7 @@
         "neoorigins:ender_gaze_immunity",
         "neoorigins:enhanced_vision",
         "neoorigins:entity_group",
+        "neoorigins:entity_model",
         "neoorigins:entity_set",
         "neoorigins:exhaustion_filter",
         "neoorigins:extra_inventory",
@@ -176,6 +180,13 @@
       "description": "When true, this power is excluded from the origin info panel. Useful for purely-internal flag/glue powers (e.g. neoorigins:toggle, action_on_hit setters under a multiple).",
       "type": "boolean",
       "default": false
+    },
+    "required_mods": {
+      "description": "Array of mod ids that must ALL be loaded for this power to load at all. If any listed mod is absent, the power is skipped at datapack load — it never registers, syncs, or appears in the origin panel. Use for soft-compat powers that drive another mod (e.g. [\"dragonsurvival\"]).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "oneOf": [
@@ -738,6 +749,55 @@
       ]
     },
     {
+      "$comment": "neoorigins:become_dragon",
+      "properties": {
+        "type": {
+          "const": "neoorigins:become_dragon"
+        },
+        "species": {
+          "description": "Dragon Survival species id the holder becomes while this power is granted, e.g. dragonsurvival:cave_dragon. Reverts to human form when the power is revoked. Requires the Dragon Survival mod — pair with a top-level \"required_mods\": [\"dragonsurvival\"] so the power never loads without it.",
+          "type": "string"
+        },
+        "stage": {
+          "description": "Dragon Survival growth stage to start at, e.g. dragonsurvival:newborn. Optional; defaults to dragonsurvival:newborn.",
+          "type": "string",
+          "default": "dragonsurvival:newborn"
+        }
+      },
+      "required": [
+        "type",
+        "species"
+      ]
+    },
+    {
+      "$comment": "neoorigins:bounce_on_land",
+      "properties": {
+        "type": {
+          "const": "neoorigins:bounce_on_land"
+        },
+        "restitution": {
+          "description": "Fraction of downward impact velocity reflected back up on landing; <1 damps so the player settles (default 0.8).",
+          "type": "number",
+          "default": 0.8,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "min_velocity": {
+          "description": "Minimum downward speed (blocks/tick) needed to trigger a bounce, so walking and small steps don't micro-bounce (default 0.3).",
+          "type": "number",
+          "default": 0.3
+        },
+        "max_velocity": {
+          "description": "Cap on the upward launch speed (blocks/tick) so terminal-velocity falls don't fling the player absurdly high (default 1.6).",
+          "type": "number",
+          "default": 1.6
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:break_speed_modifier",
       "properties": {
         "type": {
@@ -883,6 +943,16 @@
         "else_action": {
           "description": "EntityAction run on the player each interval while the condition does NOT pass (defaults to noop).",
           "$ref": "action.schema.json"
+        },
+        "toggleable": {
+          "description": "When true the power binds a keybind that flips its periodic action on/off; while off the interval action never runs (default false — condition_passive powers are passive unless opted in).",
+          "type": "boolean",
+          "default": false
+        },
+        "default_off": {
+          "description": "Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1128,6 +1198,22 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:entity_model",
+      "properties": {
+        "type": {
+          "const": "neoorigins:entity_model"
+        },
+        "entity_type": {
+          "description": "Entity id whose model replaces the player's, e.g. minecraft:slime. Cosmetic only — pair with size_scaling to match the hitbox.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "entity_type"
       ]
     },
     {
@@ -3048,6 +3134,8 @@
               "neoorigins:active_teleport",
               "neoorigins:attribute_modifier",
               "neoorigins:bare_hand_tool",
+              "neoorigins:become_dragon",
+              "neoorigins:bounce_on_land",
               "neoorigins:break_speed_modifier",
               "neoorigins:breath_in_fluid",
               "neoorigins:breath_out_of_fluid",
@@ -3066,6 +3154,7 @@
               "neoorigins:ender_gaze_immunity",
               "neoorigins:enhanced_vision",
               "neoorigins:entity_group",
+              "neoorigins:entity_model",
               "neoorigins:entity_set",
               "neoorigins:exhaustion_filter",
               "neoorigins:extra_inventory",
