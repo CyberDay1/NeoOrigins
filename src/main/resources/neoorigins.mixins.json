@@ -23,6 +23,7 @@
     "PlayerPhaseOverrideMixin",
     "EntityMountPositionMixin",
     "AbstractVillagerTradePriceMixin",
+    "SmithingMenuTakeMixin",
     "CraftingMenuCraftAmountMixin",
     "recipe.CraftingMenuOriginContextMixin",
     "recipe.RecipeManagerReplaceMixin"

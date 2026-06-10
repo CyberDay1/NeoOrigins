@@ -109,12 +109,113 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
 
         stack.set(DataComponents.ATTRIBUTE_MODIFIERS, modifiers);
 
-        // Durability boost — increase max damage (durability) by the configured multiplier
+        // Durability boost — increase max damage (durability) by the configured
+        // multiplier, computed against the ITEM'S OWN default durability (the
+        // prototype value), never the stack's current component. Reading
+        // stack.getMaxDamage() here re-reads any previously applied absolute
+        // value, which compounds on re-application and goes stale after a
+        // smithing upgrade (GitHub #103).
         if (stack.isDamageableItem() && config.durabilityMultiplier > 0) {
-            int baseDurability = stack.getMaxDamage();
-            int bonus = (int) Math.ceil(baseDurability * config.durabilityMultiplier);
-            stack.set(DataComponents.MAX_DAMAGE, baseDurability + bonus);
+            applyDurabilityBonus(stack, config.durabilityMultiplier);
         }
+    }
+
+    /** CUSTOM_DATA key recording the quality durability multiplier applied to a stack. */
+    private static final String DURABILITY_MULTIPLIER_KEY = "neoorigins:quality_durability_multiplier";
+
+    /**
+     * Recompute quality data when a smithing-table upgrade is taken (GitHub #103).
+     * Vanilla smithing copies the source item's components onto the output, so the
+     * absolute {@code MAX_DAMAGE} / {@code ATTRIBUTE_MODIFIERS} snapshots written
+     * at craft time carry the OLD material's values — a netherite pickaxe kept
+     * diamond-level durability forever. Re-derives both against the upgraded
+     * item's own base stats. Called from
+     * {@link com.cyberday1.neoorigins.mixin.SmithingMenuTakeMixin} via
+     * {@link com.cyberday1.neoorigins.event.CraftingPowerEvents#onSmithingTake}
+     * BEFORE the input slots shrink, so {@code baseInput} is the pre-upgrade item.
+     */
+    public static void onSmithingUpgrade(ItemStack baseInput, ItemStack result) {
+        if (result.isEmpty()) return;
+        refreshAttributeSnapshot(result);
+        refreshDurability(baseInput, result);
+    }
+
+    /**
+     * Apply the durability bonus relative to the item's prototype max damage and
+     * record the multiplier in CUSTOM_DATA so a later smithing upgrade can
+     * recompute against the upgraded item's base. Idempotent.
+     */
+    private static void applyDurabilityBonus(ItemStack stack, double multiplier) {
+        int base = defaultMaxDamage(stack);
+        if (base <= 0) return;
+        int bonus = (int) Math.ceil(base * multiplier);
+        stack.set(DataComponents.MAX_DAMAGE, base + bonus);
+        net.minecraft.world.item.component.CustomData.update(DataComponents.CUSTOM_DATA, stack,
+            tag -> tag.putDouble(DURABILITY_MULTIPLIER_KEY, multiplier));
+    }
+
+    /** The item's own (prototype) MAX_DAMAGE, ignoring any stack component patch. */
+    private static int defaultMaxDamage(ItemStack stack) {
+        return stack.getItem().components().getOrDefault(DataComponents.MAX_DAMAGE, 0);
+    }
+
+    /**
+     * Re-derive the stack's durability after a smithing upgrade. With the
+     * recorded multiplier the bonus is recomputed against the OUTPUT item's
+     * prototype durability. Items quality-crafted before the marker existed
+     * carry a locked absolute value with no way to recover the multiplier — for
+     * those, when the copied component still equals the SOURCE item's modified
+     * value but not the output's default, the component is dropped so the
+     * upgraded item falls back to its own base durability (a blacksmith taking
+     * the upgrade re-applies their bonus right after).
+     */
+    private static void refreshDurability(ItemStack baseInput, ItemStack result) {
+        Integer component = result.get(DataComponents.MAX_DAMAGE);
+        if (component == null) return;
+        var tag = result.getOrDefault(DataComponents.CUSTOM_DATA,
+            net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        if (tag.contains(DURABILITY_MULTIPLIER_KEY)) {
+            applyDurabilityBonus(result, tag.getDoubleOr(DURABILITY_MULTIPLIER_KEY, 0.0));
+            return;
+        }
+        int outputDefault = defaultMaxDamage(result);
+        if (outputDefault > 0 && component != outputDefault
+                && !baseInput.isEmpty()
+                && component == baseInput.getMaxDamage()
+                && baseInput.getMaxDamage() != defaultMaxDamage(baseInput)) {
+            result.remove(DataComponents.MAX_DAMAGE);
+        }
+    }
+
+    /**
+     * Rebuild the ATTRIBUTE_MODIFIERS snapshot after a smithing upgrade. The
+     * craft-time snapshot is absolute — it bakes the SOURCE item's base stats in
+     * alongside the quality modifiers, so an upgraded item kept e.g. diamond
+     * attack damage. When the copied component contains quality modifiers, it is
+     * rebuilt from the output item's own effective defaults plus the carried
+     * quality modifiers (which are relative/flat bonuses and stay valid).
+     * Components without any quality modifier are not ours — left untouched.
+     */
+    private static void refreshAttributeSnapshot(ItemStack result) {
+        ItemAttributeModifiers component = result.get(DataComponents.ATTRIBUTE_MODIFIERS);
+        if (component == null) return;
+        java.util.List<ItemAttributeModifiers.Entry> quality = new java.util.ArrayList<>();
+        for (var entry : component.modifiers()) {
+            Identifier id = entry.modifier().id();
+            if (id.equals(QUALITY_MINING_SPEED) || id.equals(QUALITY_ATTACK_DAMAGE)
+                    || id.equals(QUALITY_ARMOR_TOUGHNESS)) {
+                quality.add(entry);
+            }
+        }
+        if (quality.isEmpty()) return;
+        // Drop the stale snapshot so getAttributeModifiers() resolves to the
+        // OUTPUT item's own defaults, then re-add the quality modifiers on top.
+        result.remove(DataComponents.ATTRIBUTE_MODIFIERS);
+        ItemAttributeModifiers fresh = result.getAttributeModifiers();
+        for (var entry : quality) {
+            fresh = fresh.withModifierAdded(entry.attribute(), entry.modifier(), entry.slot());
+        }
+        result.set(DataComponents.ATTRIBUTE_MODIFIERS, fresh);
     }
 
     private static boolean isArmorSlot(EquipmentSlot slot) {

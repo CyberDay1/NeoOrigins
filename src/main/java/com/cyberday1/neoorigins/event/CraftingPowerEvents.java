@@ -168,6 +168,21 @@ public class CraftingPowerEvents {
     }
 
     /**
+     * Smithing-table upgrade taken — called from
+     * {@link com.cyberday1.neoorigins.mixin.SmithingMenuTakeMixin}, since NeoForge
+     * fires no event for smithing output. Vanilla smithing copies the source
+     * item's components, so the absolute durability/attribute snapshots written by
+     * the blacksmith quality power went stale on upgrade (GitHub #103): first
+     * re-derive the carried-over quality data against the upgraded item's own base
+     * stats, then let the upgrading player's quality power (if any) re-apply —
+     * smithing upgrades are part of the power's documented surface.
+     */
+    public static void onSmithingTake(ServerPlayer sp, ItemStack baseInput, ItemStack result) {
+        QualityEquipmentPower.onSmithingUpgrade(baseInput, result);
+        applyQualityAttributes(sp, result);
+    }
+
+    /**
      * Grants bonus copies of the crafted item for CraftAmountBonusPower holders.
      * Only fires on actual crafting events — no false positives from pickups/hoppers.
      */
