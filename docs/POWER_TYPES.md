@@ -1716,10 +1716,11 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
+| `power` | id or list | no | — | `power_activated` only: pre-dispatch filter on the activated power's id (single id or array). Omit to fire on any activation. |
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
-- Lifecycle: `GAINED`, `LOST`, `CHOSEN`, `RESPAWN`, `DEATH`, `DIMENSION_CHANGE`, `ADVANCEMENT_EARNED`
+- Lifecycle: `GAINED`, `LOST`, `CHOSEN`, `POWER_ACTIVATED`, `RESPAWN`, `DEATH`, `DIMENSION_CHANGE`, `ADVANCEMENT_EARNED`
 - Combat: `ATTACK`, `HIT_TAKEN`, `KILL`, `PROJECTILE_HIT`, `MOD_KNOCKBACK`
 - Food: `FOOD_EATEN`, `FOOD_FINISHED`, `MOD_EXHAUSTION`, `MOD_NATURAL_REGEN`, `MOD_CRAFTED_FOOD_SATURATION`
 - Mining / blocks: `BLOCK_BREAK`, `BLOCK_PLACE`, `BLOCK_USE`, `BONEMEAL`, `MOD_HARVEST_DROPS`, `MOD_BONEMEAL_EXTRA`
