@@ -1,5 +1,7 @@
 {
   "type": "neoorigins:condition_passive",
+  "toggleable": true,
+  "default_off": false,
   "interval": 20,
   "entity_action": {
     "type": "neoorigins:area_of_effect",
