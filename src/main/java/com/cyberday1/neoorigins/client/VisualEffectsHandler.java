@@ -8,6 +8,7 @@ import net.minecraft.resources.Identifier;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderBlockScreenEffectEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -81,8 +82,22 @@ public final class VisualEffectsHandler {
 
     // ---- Lava Vision ----
     // TODO: 26.1 ViewportEvent.RenderFog is no longer cancellable, and the
-    // fog pipeline changed. Lava vision capability is synced but visual effect
-    // is not yet applied on this branch.
+    // fog pipeline changed. Lava vision capability is synced but the fog-plane
+    // scaling (near + far) is not yet applied on this branch.
+
+    /**
+     * Suppresses the first-person burning-screen overlay for {@code lava_vision}
+     * holders. The power is granted to fire-immune origins (Draconic, Blazeborn
+     * compat) where the full-screen flame animation is pure noise — they take no
+     * damage from the fire it warns about.
+     */
+    @SubscribeEvent
+    public static void onRenderBlockScreenEffect(RenderBlockScreenEffectEvent event) {
+        if (event.getOverlayType() != RenderBlockScreenEffectEvent.OverlayType.FIRE) return;
+        if (findCapabilityData("lava_vision") != null) {
+            event.setCanceled(true);
+        }
+    }
 
     // ---- Shader ----
 

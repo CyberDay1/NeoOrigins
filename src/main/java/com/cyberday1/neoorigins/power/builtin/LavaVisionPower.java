@@ -10,7 +10,8 @@ import java.util.Set;
 
 /**
  * Increases the player's vision distance while submerged in lava by
- * pushing back the lava fog far plane. Client-side rendering is handled
+ * pushing back the lava fog planes, and suppresses the first-person
+ * burning-screen fire overlay. Client-side rendering is handled
  * by {@code VisualEffectsHandler} which checks for the {@code lava_vision}
  * capability.
  *
