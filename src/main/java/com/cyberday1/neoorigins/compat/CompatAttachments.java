@@ -90,19 +90,30 @@ public class CompatAttachments {
      * fill inside the bar frame instead of an Apoli sprite row).
      */
     public record ResourceMeta(int min, int max, String label, int color, boolean hidden,
-                               int barIndex, int iconIndex, String spriteLocation) {
+                               int barIndex, int iconIndex, String spriteLocation,
+                               String animated, int tint) {
         /** Convenience constructor — visible, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color) {
-            this(min, max, label, color, false, -1, -1, null);
+            this(min, max, label, color, false, -1, -1, null, "", 0);
         }
         /** Convenience constructor — explicit visibility, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden) {
-            this(min, max, label, color, hidden, -1, -1, null);
+            this(min, max, label, color, hidden, -1, -1, null, "", 0);
+        }
+        /** Convenience constructor — explicit visibility + animated FX preset (native bar). */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                            String animated, int tint) {
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint);
         }
         /** Convenience constructor — Apoli sprite indices against the default sheet. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             int barIndex, int iconIndex) {
-            this(min, max, label, color, hidden, barIndex, iconIndex, null);
+            this(min, max, label, color, hidden, barIndex, iconIndex, null, "", 0);
+        }
+        /** Convenience constructor — Apoli sprite indices against a pack-declared sheet. */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                            int barIndex, int iconIndex, String spriteLocation) {
+            this(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0);
         }
     }
 
@@ -159,7 +170,8 @@ public class CompatAttachments {
             entries.put(e.getKey(), new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
-                meta.spriteLocation() == null ? "" : meta.spriteLocation()));
+                meta.spriteLocation() == null ? "" : meta.spriteLocation(),
+                meta.animated() == null ? "" : meta.animated(), meta.tint()));
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
             new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));

@@ -1,0 +1,9 @@
+{
+  "texture": "neoorigins:textures/gui/bar_fx/fire.png",
+  "mode": "scroll",
+  "tile_width": 213,
+  "tile_height": 16,
+  "scroll_speed": 22,
+  "track_color": "#CC140300",
+  "level_color": "#CC5A1500"
+}
