@@ -519,7 +519,9 @@ public final class BuiltinPowers {
             new FieldSpec("death_damage", Kind.NUMBER, false)
                 .def(0.5).doc("Damage dealt to the player when a tamed mob dies (half-hearts)."),
             new FieldSpec("hostile_only", Kind.BOOLEAN, false)
-                .def(true).doc("When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).")));
+                .def(true).doc("When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers)."),
+            new FieldSpec("entity_blacklist", Kind.ARRAY, false)
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither are always excluded regardless of this list.")));
         define("tamed_animal_boost", TamedAnimalBoostPower.class, List.of(
             new FieldSpec("health_bonus", Kind.NUMBER, false)
                 .def(4.0).doc("Flat max-health added to your tamed animals (half-hearts; default 4)."),

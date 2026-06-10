@@ -28,6 +28,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Active power that tames a hostile mob the player is looking at.
@@ -38,6 +39,16 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
     private static final String TAMED_MOB_KEY = "tamer:tamed";
 
+    /**
+     * Boss-grade mobs that are never tameable regardless of config. The Ender
+     * Dragon and Wither are also caught by the {@code canUsePortal} gate; the
+     * Warden is the one that slipped through (it can use portals).
+     */
+    private static final Set<net.minecraft.world.entity.EntityType<?>> BOSS_TIER = Set.of(
+        net.minecraft.world.entity.EntityType.WARDEN,
+        net.minecraft.world.entity.EntityType.ENDER_DRAGON,
+        net.minecraft.world.entity.EntityType.WITHER);
+
     public record Config(
         double range,
         int maxTamed,
@@ -46,6 +57,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         int despawnTicks,
         float deathDamage,
         boolean hostileOnly,
+        List<String> entityBlacklist,
         String type
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -59,6 +71,11 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             // Packs that want to tame any non-player Mob (animals, golems,
             // villagers, etc.) can set "hostile_only": false in their power JSON.
             Codec.BOOL.optionalFieldOf("hostile_only", true).forGetter(Config::hostileOnly),
+            // Per-power blocklist of entity ids ("minecraft:warden") and tag
+            // refs ("#mymod:untameable"). Checked on top of the built-in
+            // boss-tier exclusion below.
+            Codec.STRING.listOf().optionalFieldOf("entity_blacklist", List.of())
+                .forGetter(Config::entityBlacklist),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -111,14 +128,30 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
                 "power.neoorigins.tame_mob.not_hostile").withStyle(ChatFormatting.RED), true);
             return false;
         }
-        if (!mob.canUsePortal(false)) {
-            // Boss mobs (Ender Dragon, Wither) cannot use portals
-            NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} ({}) failed canUsePortal — boss or leashed",
+        if (!mob.canUsePortal(false) || BOSS_TIER.contains(mob.getType())) {
+            // canUsePortal(false) is the legacy "can't tame bosses" gate (Ender
+            // Dragon, Wither). BOSS_TIER adds boss-grade mobs that pass that
+            // check — the Warden was tameable because it isn't portal-locked
+            // (Discord report), and the dragon stays listed explicitly so the
+            // exclusion no longer depends on a portal-flag side effect.
+            NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} ({}) is boss-tier or portal-locked",
                 player.getName().getString(), mob.getName().getString(),
                 mob.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.boss").withStyle(ChatFormatting.RED), true);
             return false;
+        }
+        // Pack-author blocklist: entity ids and #tag refs, same syntax as
+        // entity_types filters elsewhere (scare_entities, action_on_hit).
+        for (String idOrTag : config.entityBlacklist()) {
+            if (com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(mob, idOrTag)) {
+                NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} ({}) blocked by entity_blacklist entry {}",
+                    player.getName().getString(), mob.getName().getString(),
+                    mob.getClass().getSimpleName(), idOrTag);
+                player.sendSystemMessage(Component.translatable(
+                    "power.neoorigins.tame_mob.blacklisted").withStyle(ChatFormatting.RED), true);
+                return false;
+            }
         }
 
         // Rewrite AI

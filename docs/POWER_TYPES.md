@@ -2196,8 +2196,17 @@ Active power that tames a hostile mob the player is looking at. The mob's AI is 
 | `despawn_ticks` | int | no | `36000` | Lifespan of each tamed mob (30 min default) |
 | `death_damage` | float | no | `0.5` | Damage taken by owner when a tamed mob dies |
 | `hostile_only` | bool | no | `true` | If `true`, only hostile mobs (implementing `Enemy`) can be tamed — the Monster Tamer default. Set to `false` to allow taming any non-player `Mob` (animals, golems, villagers, etc.). |
+| `entity_blacklist` | string[] | no | `[]` | Entity ids (`"minecraft:warden"`) and tag refs (`"#mymod:untameable"`) this power can never tame. Checked on top of the built-in boss exclusion. |
 
-Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Bosses are always rejected via a `canUsePortal` check.
+Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs — the Warden, Ender Dragon and Wither — are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs.
+
+**Example (blacklist):**
+```json
+{
+  "type": "neoorigins:tame_mob",
+  "entity_blacklist": ["minecraft:elder_guardian", "#mymod:untameable"]
+}
+```
 
 **Example:**
 ```json

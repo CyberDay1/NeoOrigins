@@ -1042,6 +1042,7 @@
   "power.neoorigins.tame_mob.no_target": "No mob in sight.",
   "power.neoorigins.tame_mob.not_hostile": "Can only tame hostile mobs!",
   "power.neoorigins.tame_mob.boss": "Cannot tame boss mobs!",
+  "power.neoorigins.tame_mob.blacklisted": "That creature cannot be tamed!",
   "power.neoorigins.tame_mob.success": "Tamed %s!",
   "power.neoorigins.mount.no_target": "No entity in range.",
   "power.neoorigins.mount.not_allowed_players": "This power cannot target players.",
