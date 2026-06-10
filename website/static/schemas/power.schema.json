@@ -2955,6 +2955,11 @@
           "description": "When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers).",
           "type": "boolean",
           "default": true
+        },
+        "entity_blacklist": {
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither are always excluded regardless of this list.",
+          "type": "array",
+          "items": {}
         }
       },
       "required": [
