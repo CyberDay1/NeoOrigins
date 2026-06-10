@@ -192,9 +192,15 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 int beforeSize = loaded.size();
                 parsePower(id, type, json, loaded);
                 if (loaded.size() > beforeSize) {
-                    // Power parsed cleanly — keep a deep copy of the post-
-                    // translation body for the creator's template loader.
-                    rawSnapshot.put(id, json.deepCopy());
+                    // Power parsed cleanly — keep the post-translation body for
+                    // the creator's template loader. Stored by REFERENCE: every
+                    // pipeline mutation (canonicalize, translate, config
+                    // overrides, alias remap) happens before this point, and
+                    // parsePower only mutates its own deepCopy (configJson), so
+                    // the object is final here. getRawPowerJson() deep-copies on
+                    // read instead, shifting the cost from every datapack reload
+                    // (~840 copies) to the rare creator-open path.
+                    rawSnapshot.put(id, json);
                 }
             } catch (Exception e) {
                 NeoOrigins.LOGGER.error("Error loading power {}", id, e);
@@ -324,8 +330,13 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     /** Post-translation raw power JSON for the creator's template loader.
      *  Returns null when this power was only loaded on the client (powers
-     *  aren't synced with their bodies) or wasn't loaded at all. */
+     *  aren't synced with their bodies) or wasn't loaded at all.
+     *
+     *  <p>Returns a deep copy: the snapshot map holds references to the
+     *  loader's working objects (see the reload loop), so callers get an
+     *  isolated object they may freely mutate. */
     public JsonObject getRawPowerJson(ResourceLocation id) {
-        return rawPowerJson.get(id);
+        JsonObject json = rawPowerJson.get(id);
+        return json != null ? json.deepCopy() : null;
     }
 }
