@@ -236,16 +236,16 @@ Modifies the player's movement speed while submerged in lava. Uses the `NumericM
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `operation` | string | no | `"addition"` | `"addition"` or `"multiply"` |
-| `value` | double | yes | — | Amount to add or multiply. Vanilla lava-swim factor is `0.02`; an addition of `0.4` gives roughly walking speed. |
+| `value` | double | yes | — | Amount to add or multiply. Vanilla lava-swim factor is `0.02`; an addition of `0.04` (3× vanilla) feels like swimming in water. |
 
-**Example — strider-like lava swimming:**
+**Example — water-swim-pace lava swimming:**
 ```json
 {
   "type": "neoorigins:modify_lava_speed",
   "operation": "addition",
-  "value": 0.4,
+  "value": 0.04,
   "name": "Molten Stride",
-  "description": "Swims through lava at normal walking speed."
+  "description": "Swims through lava as easily as others swim through water."
 }
 ```
 
