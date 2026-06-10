@@ -543,9 +543,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             }
         }
 
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         final float  finalMultiplier = multiplier;
         final String finalDmgFilter  = damageTypeFilter;
@@ -592,9 +590,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             }
         }
 
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         final float finalMultiplier = multiplier;
         final String finalDmgFilter = damageTypeFilter;
@@ -660,14 +656,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseActiveSelf(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        JsonObject actionJson = json.has("entity_action") ? json.getAsJsonObject("entity_action")
-            : json.has("action") ? json.getAsJsonObject("action") : null;
-        if (actionJson == null) {
+        boolean hasAction = json.has("entity_action") || json.has("action");
+        if (!hasAction) {
             NeoOrigins.LOGGER.warn("[CompatB] {}: active_self power missing 'entity_action' or 'action' field — power will not be registered", id);
             return null;
         }
 
-        EntityAction action = ActionParser.parse(actionJson, idStr);
+        EntityAction action = json.has("entity_action")
+            ? parseActionField(json, "entity_action", idStr)
+            : parseActionField(json, "action", idStr);
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
 
         // Key can be a string ("key.origins.primary_active") or an object
@@ -677,9 +674,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         boolean continuous = ks.continuous();
 
         // Parse the optional condition gate
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         // Skill-slot keys: primary_active, secondary_active, and the two toolbar
         // keys (loadToolbarActivator, saveToolbarActivator) which have no server-side
@@ -795,9 +790,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String idStr = id.toString();
         int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 1);
 
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
         // Apoli/MoR/Mido pack convention is `condition` (player-side gate);
         // apace and a few origins-classes packs use `entity_condition`.
         // Accept both — without this, packs like MoR Pixie's flight resource
@@ -805,10 +798,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // condition, defaulting to alwaysTrue and firing every interval.
         CompatPolicy.resetFailClosedCount();
         EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : json.has("entity_condition")
-                ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), idStr)
-                : EntityCondition.alwaysTrue();
+            ? parseConditionField(json, "condition", idStr)
+            : parseConditionField(json, "entity_condition", idStr);
         // If any condition in the tree used an unsupported type, refuse to compile
         // this power. Running an action_over_time unconditionally (because its gate
         // condition silently failed) causes disasters like entity-per-tick spawns.
@@ -838,11 +829,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // our own `respawn_action`. Accept both; merge if present.
         EntityAction respawnAction = EntityAction.noop();
         if (json.has("respawn_entity_action")) {
-            respawnAction = ActionParser.parse(json.getAsJsonObject("respawn_entity_action"), idStr);
+            respawnAction = parseActionField(json, "respawn_entity_action", idStr);
         }
         if (json.has("respawn_action")) {
             respawnAction = mergeActions(respawnAction,
-                ActionParser.parse(json.getAsJsonObject("respawn_action"), idStr));
+                parseActionField(json, "respawn_action", idStr));
         }
 
         // Removal: upstream Apoli uses `entity_action_lost` (and some forks use
@@ -850,15 +841,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Accept all three; merge if multiple are present.
         EntityAction removedAction = EntityAction.noop();
         if (json.has("entity_action_lost")) {
-            removedAction = ActionParser.parse(json.getAsJsonObject("entity_action_lost"), idStr);
+            removedAction = parseActionField(json, "entity_action_lost", idStr);
         }
         if (json.has("entity_action_removed")) {
             removedAction = mergeActions(removedAction,
-                ActionParser.parse(json.getAsJsonObject("entity_action_removed"), idStr));
+                parseActionField(json, "entity_action_removed", idStr));
         }
         if (json.has("removed_action")) {
             removedAction = mergeActions(removedAction,
-                ActionParser.parse(json.getAsJsonObject("removed_action"), idStr));
+                parseActionField(json, "removed_action", idStr));
         }
 
         // Upstream Origins has separate triggers for "gained" (every grant, including
@@ -868,15 +859,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // /function) and the commands are typically idempotent.
         EntityAction addedAction = EntityAction.noop();
         if (json.has("entity_action_chosen")) {
-            addedAction = ActionParser.parse(json.getAsJsonObject("entity_action_chosen"), idStr);
+            addedAction = parseActionField(json, "entity_action_chosen", idStr);
         }
         if (json.has("entity_action_gained")) {
             addedAction = mergeActions(addedAction,
-                ActionParser.parse(json.getAsJsonObject("entity_action_gained"), idStr));
+                parseActionField(json, "entity_action_gained", idStr));
         }
         if (json.has("added_action")) {
             addedAction = mergeActions(addedAction,
-                ActionParser.parse(json.getAsJsonObject("added_action"), idStr));
+                parseActionField(json, "added_action", idStr));
         }
 
         EntityAction finalAdded = addedAction;
@@ -894,6 +885,90 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return player -> { first.execute(player); second.execute(player); };
     }
 
+    // ---- Array-or-object field helpers ------------------------------------
+    // Apoli/Origins lets every action/condition slot hold EITHER a single
+    // object OR an array of objects; an array is an implicit "do all of these"
+    // (all-of). The old getAsJsonObject(field) casts threw a ClassCastException
+    // on the array form, failing the whole power. These helpers accept both:
+    // a single object parses via the existing path; an array is aggregated the
+    // same way the native neoorigins:and verbs do — sequential execution for
+    // actions, all-must-pass for conditions.
+
+    /**
+     * Parse an action field that may be absent, a single object, or an array.
+     * Returns {@link EntityAction#noop()} when the field is absent or holds a
+     * non-object/array element; an array is run sequentially (Apoli all-of).
+     */
+    private static EntityAction parseActionField(JsonObject parent, String field, String idStr) {
+        if (!parent.has(field)) return EntityAction.noop();
+        JsonElement el = parent.get(field);
+        if (el.isJsonObject()) {
+            return ActionParser.parse(el.getAsJsonObject(), idStr);
+        }
+        if (el.isJsonArray()) {
+            EntityAction combined = EntityAction.noop();
+            for (JsonElement item : el.getAsJsonArray()) {
+                if (item.isJsonObject()) {
+                    combined = mergeActions(combined, ActionParser.parse(item.getAsJsonObject(), idStr));
+                }
+            }
+            return combined;
+        }
+        return EntityAction.noop();
+    }
+
+    /**
+     * Parse a condition field that may be absent, a single object, or an array.
+     * Returns {@link EntityCondition#alwaysTrue()} when absent; an array is
+     * combined as logical AND (Apoli all-of: every element must pass).
+     */
+    private static EntityCondition parseConditionField(JsonObject parent, String field, String idStr) {
+        if (!parent.has(field)) return EntityCondition.alwaysTrue();
+        JsonElement el = parent.get(field);
+        if (el.isJsonObject()) {
+            return ConditionParser.parse(el.getAsJsonObject(), idStr);
+        }
+        if (el.isJsonArray()) {
+            java.util.List<EntityCondition> list = new java.util.ArrayList<>();
+            for (JsonElement item : el.getAsJsonArray()) {
+                if (item.isJsonObject()) {
+                    list.add(ConditionParser.parse(item.getAsJsonObject(), idStr));
+                }
+            }
+            return player -> {
+                for (EntityCondition c : list) if (!c.test(player)) return false;
+                return true;
+            };
+        }
+        return EntityCondition.alwaysTrue();
+    }
+
+    /**
+     * Parse a bientity-action field that may be absent, a single object, or an
+     * array. Returns {@link com.cyberday1.neoorigins.compat.action.BiEntityAction#noop()}
+     * when absent; an array runs sequentially (Apoli all-of).
+     */
+    private static com.cyberday1.neoorigins.compat.action.BiEntityAction parseBiEntityActionField(
+            JsonObject parent, String field, String idStr) {
+        if (!parent.has(field)) return com.cyberday1.neoorigins.compat.action.BiEntityAction.noop();
+        JsonElement el = parent.get(field);
+        if (el.isJsonObject()) {
+            return com.cyberday1.neoorigins.compat.action.BiEntityActionParser.parse(el.getAsJsonObject(), idStr);
+        }
+        if (el.isJsonArray()) {
+            java.util.List<com.cyberday1.neoorigins.compat.action.BiEntityAction> list = new java.util.ArrayList<>();
+            for (JsonElement item : el.getAsJsonArray()) {
+                if (item.isJsonObject()) {
+                    list.add(com.cyberday1.neoorigins.compat.action.BiEntityActionParser.parse(item.getAsJsonObject(), idStr));
+                }
+            }
+            return (actor, target) -> {
+                for (var a : list) a.execute(actor, target);
+            };
+        }
+        return com.cyberday1.neoorigins.compat.action.BiEntityAction.noop();
+    }
+
     private CompatPower.Config parseResource(ResourceLocation id, JsonObject json) {
         String key       = id.toString();
         String idStr     = key;
@@ -903,12 +978,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int interval     = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
         int offset       = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
 
-        EntityAction minAction  = json.has("min_action")
-            ? ActionParser.parse(json.getAsJsonObject("min_action"),  idStr) : EntityAction.noop();
-        EntityAction maxAction  = json.has("max_action")
-            ? ActionParser.parse(json.getAsJsonObject("max_action"),  idStr) : EntityAction.noop();
-        EntityAction tickAction = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr) : EntityAction.noop();
+        EntityAction minAction  = parseActionField(json, "min_action",     idStr);
+        EntityAction maxAction  = parseActionField(json, "max_action",     idStr);
+        EntityAction tickAction = parseActionField(json, "entity_action",  idStr);
 
         // HUD display metadata — parse from hud_render block or fall back to defaults.
         String label = "Resource";
@@ -1006,10 +1078,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String stateKey = id.toString();
         boolean defaultActive = !json.has("active") || json.get("active").getAsBoolean();
 
-        EntityAction activeAction   = json.has("active_action")
-            ? ActionParser.parse(json.getAsJsonObject("active_action"),   stateKey) : EntityAction.noop();
-        EntityAction inactiveAction = json.has("inactive_action")
-            ? ActionParser.parse(json.getAsJsonObject("inactive_action"), stateKey) : EntityAction.noop();
+        EntityAction activeAction   = parseActionField(json, "active_action",   stateKey);
+        EntityAction inactiveAction = parseActionField(json, "inactive_action", stateKey);
 
         // The toggle behavior itself: flip the stored state, run the matching action.
         EntityAction toggleAction = player -> {
@@ -1027,9 +1097,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         KeySpec ks = classifyKey(json, "key.origins.primary_active");
         if (ks.namedHotkey()) {
             int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
-            EntityCondition condition = json.has("condition")
-                ? ConditionParser.parse(json.getAsJsonObject("condition"), stateKey)
-                : EntityCondition.alwaysTrue();
+            EntityCondition condition = parseConditionField(json, "condition", stateKey);
             com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
                 new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
                     id, toggleAction, condition, cooldown, ks.continuous()));
@@ -1104,9 +1172,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             default                     -> AttributeModifier.Operation.ADD_VALUE;
         };
 
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         // Stable modifier ID derived from the power ID.
         String safeKey = id.getPath().replace('/', '_');
@@ -1134,9 +1200,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     /** origins:shaking — makes the player model shake (like zombie-to-drowned conversion).
      *  Implemented via freeze ticks which trigger the same visual. */
     private CompatPower.Config parseShaking(ResourceLocation id, JsonObject json) {
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), id.toString())
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", id.toString());
         return CompatPower.Config.builder()
             .onTick(player -> {
                 // Set freeze ticks just above the threshold to trigger shaking
@@ -1263,9 +1327,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // the player. If the condition can't be parsed, fail closed (no-op power)
         // rather than risk applying it always.
         CompatPolicy.resetFailClosedCount();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         if (CompatPolicy.failClosedCount() > 0) {
             NeoOrigins.LOGGER.warn("[CompatB] modify_velocity {} has unsupported condition(s) — refusing to compile", idStr);
             return null;
@@ -1336,9 +1398,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (effectId == null) return null;
 
         CompatPolicy.resetFailClosedCount();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         if (CompatPolicy.failClosedCount() > 0) {
             NeoOrigins.LOGGER.warn("[CompatB] conditioned_status_effect {} has unsupported condition(s) — refusing to compile", idStr);
             return null;
@@ -1379,20 +1439,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseSelfActionWhenHit(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
         // bientity_action: (actor=player, target=attacker). The attacker is
         // resolved from HitTakenContext, which CombatPowerEvents publishes to
         // ActionContextHolder around the onHit dispatch.
-        com.cyberday1.neoorigins.compat.action.BiEntityAction biAction = json.has("bientity_action")
-            ? com.cyberday1.neoorigins.compat.action.BiEntityActionParser.parse(
-                json.getAsJsonObject("bientity_action"), idStr)
-            : com.cyberday1.neoorigins.compat.action.BiEntityAction.noop();
+        com.cyberday1.neoorigins.compat.action.BiEntityAction biAction =
+            parseBiEntityActionField(json, "bientity_action", idStr);
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         return CompatPower.Config.builder()
             .cooldownTicks(cooldown)
             .onHit(player -> {
@@ -1424,17 +1478,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      */
     private CompatPower.Config parseSelfActionOnHit(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
-        com.cyberday1.neoorigins.compat.action.BiEntityAction biAction = json.has("bientity_action")
-            ? com.cyberday1.neoorigins.compat.action.BiEntityActionParser.parse(
-                json.getAsJsonObject("bientity_action"), idStr)
-            : com.cyberday1.neoorigins.compat.action.BiEntityAction.noop();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
+        com.cyberday1.neoorigins.compat.action.BiEntityAction biAction =
+            parseBiEntityActionField(json, "bientity_action", idStr);
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         return CompatPower.Config.builder()
             .cooldownTicks(cooldown)
             .onDealDamage((player, target) -> {
@@ -1467,9 +1515,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
 
         CompatPolicy.resetFailClosedCount();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         if (CompatPolicy.failClosedCount() > 0) {
             NeoOrigins.LOGGER.warn("[CompatB] damage_over_time {} has unsupported condition(s) — refusing to compile", idStr);
             return null;
@@ -1509,9 +1555,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                      : 0.1f;
 
         CompatPolicy.resetFailClosedCount();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         if (CompatPolicy.failClosedCount() > 0) {
             NeoOrigins.LOGGER.warn("[CompatB] exhaust {} has unsupported condition(s) — refusing to compile", idStr);
             return null;
@@ -1575,9 +1619,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     private CompatPower.Config parseTargetActionOnHit(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         // [LOSSY] target_action_on_hit fires on kill, not on every hit (no hit event for target entity)
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
         return CompatPower.Config.builder()
             .onKill(action::execute)
             .build();
@@ -1585,12 +1627,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseSelfActionOnKill(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         return CompatPower.Config.builder()
             .onKill(player -> {
                 if (condition.test(player)) action.execute(player);
@@ -1615,9 +1653,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // itself stays cooldown-free there to avoid double-gating.
         KeySpec ks = classifyKey(json, "key.origins.primary_active");
         if (ks.namedHotkey()) {
-            EntityCondition condition = json.has("condition")
-                ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-                : EntityCondition.alwaysTrue();
+            EntityCondition condition = parseConditionField(json, "condition", idStr);
             com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
                 new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
                     id, launchAction, condition, cooldown, ks.continuous()));
@@ -1637,9 +1673,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseEntityGlow(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         return CompatPower.Config.builder()
             .onTick(player -> {
@@ -1652,9 +1686,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parsePreventDeath(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
 
         // Prevent death by clamping health at 1hp each tick when it would drop below
         return CompatPower.Config.builder()
@@ -1676,9 +1708,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseActionOnLand(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityAction action = json.has("entity_action")
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
 
         // Detect ground transition: was airborne, now grounded
         String airborneKey = idStr + "/_airborne";
@@ -1705,7 +1735,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // item is being used). Both must be honoured, or the prevention fires
         // unconditionally — which is exactly the Mage "blocks randomly" bug.
         EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
+            ? parseConditionField(json, "condition", idStr) : null;
         var itemPred = json.has("item_condition")
             ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
         var data = new CompatPlayerState.EventPowerData(
@@ -1757,7 +1787,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     private CompatPower.Config parsePreventSleep(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
         EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
+            ? parseConditionField(json, "condition", idStr) : null;
         // Origins prevent_sleep supports block_condition to gate on the bed's
         // position (e.g. height < 70 = can't sleep below Y 70).
         java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> blockCond = null;
@@ -1798,7 +1828,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // gate. Dropping the holder gate made block-use prevention fire whenever
         // the power was granted (the Mage "can't place blocks" bug).
         EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr) : null;
+            ? parseConditionField(json, "condition", idStr) : null;
         var blockPred = json.has("block_condition")
             ? compileBlockPredicate(json.getAsJsonObject("block_condition")) : null;
         var data = new CompatPlayerState.EventPowerData(
@@ -1921,9 +1951,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      */
     private CompatPower.Config parsePreventSprinting(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
         return CompatPower.Config.builder()
             .onTick(player -> {
                 if (!player.isSprinting()) return;
@@ -2112,7 +2140,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Parse optional condition gate — if present, modifier is applied/removed
         // each tick based on condition state (e.g. only while sneaking).
         EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
+            ? parseConditionField(json, "condition", idStr)
             : null;
 
         // Parse optional entity_action to fire on jump. Previously this was
@@ -2120,9 +2148,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // boost (and any other configured action) silently no-op'd. Now
         // registered with JumpActionRegistry on grant and unregistered on
         // revoke; JumpEventHandler fires it from LivingJumpEvent.
-        EntityAction jumpAction = json.has("entity_action") && json.get("entity_action").isJsonObject()
-            ? ActionParser.parse(json.getAsJsonObject("entity_action"), idStr)
-            : EntityAction.noop();
+        EntityAction jumpAction = parseActionField(json, "entity_action", idStr);
         boolean hasJumpAction = jumpAction != EntityAction.NOOP;
 
         if (condition != null) {
@@ -2182,9 +2208,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      */
     private CompatPower.Config parseConditionedRestrictArmor(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         // Build the same slot/item predicates as restrict_armor
         var data = buildRestrictArmorData(idStr, json);
@@ -2386,9 +2410,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      */
     private CompatPower.Config parseFreeze(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        EntityCondition condition = json.has("condition")
-            ? ConditionParser.parse(json.getAsJsonObject("condition"), idStr)
-            : EntityCondition.alwaysTrue();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         return CompatPower.Config.builder()
             .onTick(player -> {
