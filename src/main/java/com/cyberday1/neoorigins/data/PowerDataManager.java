@@ -154,6 +154,10 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                     continue;
                 }
 
+                // Top-level required_mods gate — skip powers whose target mod(s)
+                // are absent so they never load, sync, or appear (see ModGate).
+                if (!ModGate.satisfied(json.get("required_mods"))) continue;
+
                 // Canonicalize apoli:/apugli: -> origins: here too, to cover the
                 // synthetic sub-powers emitted by multiple-expansion (which never
                 // pass through the first loop).
@@ -251,6 +255,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         configJson.remove("hidden");
         configJson.remove("power_condition");
         configJson.remove("power_condition_mode");
+        configJson.remove("required_mods");
         // Inject power ID for types that need it at codec-decode time (e.g. ResourcePower).
         configJson.addProperty("_power_id", id.toString());
 

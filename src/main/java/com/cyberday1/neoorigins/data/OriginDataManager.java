@@ -93,6 +93,10 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject json = entry.getValue().getAsJsonObject();
 
+                // Top-level required_mods gate — skip origins whose target mod(s)
+                // are absent so they never load or appear in the picker (see ModGate).
+                if (!ModGate.satisfied(json.get("required_mods"))) continue;
+
                 // Normalize Origins-format origin fields to NeoOrigins format
                 if (OriginsFormatDetector.isOriginsOriginFormat(json)) {
                     json = OriginsOriginTranslator.normalize(id, json);
