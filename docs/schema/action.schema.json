@@ -27,6 +27,7 @@
         "apace:change_resource",
         "apace:choice",
         "apace:clear_effect",
+        "apace:command",
         "apace:crafting_table",
         "apace:damage",
         "apace:damage_attacker",
@@ -113,6 +114,7 @@
         "neoorigins:change_resource",
         "neoorigins:choice",
         "neoorigins:clear_effect",
+        "neoorigins:command",
         "neoorigins:crafting_table",
         "neoorigins:damage",
         "neoorigins:damage_attacker",
@@ -920,7 +922,9 @@
         "type": {
           "enum": [
             "neoorigins:execute_command",
-            "apace:execute_command"
+            "neoorigins:command",
+            "apace:execute_command",
+            "apace:command"
           ]
         },
         "command": {
@@ -2508,6 +2512,7 @@
               "apace:change_resource",
               "apace:choice",
               "apace:clear_effect",
+              "apace:command",
               "apace:crafting_table",
               "apace:damage",
               "apace:damage_attacker",
@@ -2594,6 +2599,7 @@
               "neoorigins:change_resource",
               "neoorigins:choice",
               "neoorigins:clear_effect",
+              "neoorigins:command",
               "neoorigins:crafting_table",
               "neoorigins:damage",
               "neoorigins:damage_attacker",
