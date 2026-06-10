@@ -2,6 +2,23 @@
 
 ---
 
+## v2.2.2
+
+### Localization
+
+- **NeoOrigins is now accepting community translations.** A first Russian (`ru_ru`) translation has landed, contributed by [@Nienya972](https://github.com/Nienya972) — thank you! To contribute a language, open a pull request (or an issue with the file attached) adding a `<locale>.json` to `src/main/resources/assets/neoorigins/lang/`. Missing keys fall back to English, so partial translations are welcome too.
+- **Machine-translated starting points added for Simplified Chinese (`zh_cn`), Spanish (`es_es`), German (`de_de`), and Brazilian Portuguese (`pt_br`).** These are unreviewed machine translations meant as a head start — native-speaker corrections are especially appreciated.
+
+### Compat Improvements
+
+- **Array-form action and condition fields now compile.** Apoli lets a single `entity_action` / `condition` field be written as either one object or an array (an implicit "all-of" / AND). The Route B power compiler assumed an object everywhere, so packs that authored these as arrays hit a cast error and failed to load. Array and single-object forms are now both accepted across the compiled power types.
+
+### New / Changed Powers
+
+- **Warden dark-vision is now toggleable and config-disableable.** The Warden's persistent night-vision, tremor-sense, and echolocation powers can be turned on/off in-game (`toggleable`), and each can be force-disabled in the config for servers that don't want them.
+
+---
+
 ## v2.2.1
 
 ### Compat Improvements
