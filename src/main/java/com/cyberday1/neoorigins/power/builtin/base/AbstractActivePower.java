@@ -89,6 +89,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
             ResourceLocation activatedId = PowerHolder.currentDispatchId();
             if (activatedId != null) {
                 com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerActivated(player, activatedId);
+                com.cyberday1.neoorigins.service.EventPowerIndex.dispatchPowerActivated(player, activatedId);
             }
         }
     }

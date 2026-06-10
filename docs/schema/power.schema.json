@@ -236,6 +236,7 @@
             "entity_use",
             "item_pickup",
             "item_use_finish",
+            "power_activated",
             "effect_applied",
             "mod_exhaustion",
             "mod_natural_regen",
@@ -282,6 +283,17 @@
         "effect_tag": {
           "description": "EFFECT_APPLIED filter: only fire for effects in this tag (e.g. '#minecraft:harmful'). Combine with 'effect' (OR-matched). Ignored on other events.",
           "type": "string"
+        },
+        "power": {
+          "description": "POWER_ACTIVATED filter: only fire when the activated power's id matches. Single id string or array of ids (e.g. 'neoorigins:ground_slam'). Omit to fire on ANY power activation. Ignored on other events.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "immunity_ticks": {
           "description": "EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace).",

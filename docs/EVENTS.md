@@ -467,6 +467,48 @@ which fires at use-start). Also synthetically fired by
 
 ---
 
+## `power_activated`
+
+Fires when **another power on the same player is successfully activated** —
+an active power fired past its cooldown / hunger / resource gates, or a
+toggle power flipped (either direction; pair with a `power_active` condition
+on the toggled power if you only want one direction). Compat-layer (Route B)
+actives fire per dispatched attempt, since their gating lives inside the
+compat consumer and exposes no success signal.
+
+**Context:** `EventPowerIndex.PowerActivatedContext` — carries the activated
+power's id.
+
+**Dispatch sites:** `AbstractActivePower.onActivated` (success branch),
+`AbstractTogglePower.onActivated`, `CompatPower.onActivated` — all via
+`EventPowerIndex.dispatchPowerActivated`.
+
+**Filter (`power`, optional):** a single power id or an array of ids; the
+action only fires when the activated power's id matches. Omit to fire on
+**any** activation.
+
+**Re-entrancy:** if a `power_activated` listener's action itself activates a
+power (e.g. via a command), that nested activation does **not** re-dispatch
+`power_activated` — A→B→A loops are cut at the first level. The nested
+activation itself still happens.
+
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "power_activated",
+  "power": "neoorigins:ground_slam",
+  "entity_action": {
+    "type": "neoorigins:execute_command",
+    "command": "say Ground slam unleashed!"
+  }
+}
+```
+
+**Typical use:** announce ability use in chat, chain a secondary effect onto
+another ability, build combo systems (resource gain on each activation).
+
+---
+
 ## `effect_applied`
 
 Fires when a `MobEffect` is about to be added to the player, after vanilla

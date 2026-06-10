@@ -827,6 +827,7 @@ public final class BuiltinPowers {
                     "bonemeal", "breed", "tame", "food_eaten", "food_finished", "advancement_earned",
                     "trade_completed", "villager_interact", "gained", "lost", "chosen", "wake_up",
                     "land", "block_use", "entity_use", "item_pickup", "item_use_finish",
+                    "power_activated",
                     "effect_applied", "mod_exhaustion", "mod_natural_regen", "mod_trade_price",
                     "mod_craft_amount", "mod_enchant_level", "mod_harvest_drops", "mod_teleport_range",
                     "mod_fall_damage", "mod_knockback", "mod_potion_duration", "mod_anvil_cost",
@@ -844,6 +845,8 @@ public final class BuiltinPowers {
                 .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
             new FieldSpec("effect_tag", Kind.STRING, false)
                 .doc("EFFECT_APPLIED filter: only fire for effects in this tag (e.g. '#minecraft:harmful'). Combine with 'effect' (OR-matched). Ignored on other events."),
+            new FieldSpec("power", Kind.MIXED, false).boundTo("powerFilter")
+                .doc("POWER_ACTIVATED filter: only fire when the activated power's id matches. Single id string or array of ids (e.g. 'neoorigins:ground_slam'). Omit to fire on ANY power activation. Ignored on other events."),
             new FieldSpec("immunity_ticks", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
                 .doc("EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace).")));

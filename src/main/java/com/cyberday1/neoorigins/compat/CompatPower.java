@@ -96,7 +96,14 @@ public class CompatPower extends PowerType<CompatPower.Config> {
 
     @Override
     public void onActivated(ServerPlayer player, Config config) {
-        if (config.onActivated() != null) config.onActivated().accept(player);
+        if (config.onActivated() != null) {
+            config.onActivated().accept(player);
+            // Compat consumers gate internally (cooldown/resource checks live
+            // inside the lambda) and expose no success signal, so this fires
+            // per dispatched attempt — best available fidelity for Route B.
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatchPowerActivated(
+                player, com.cyberday1.neoorigins.api.power.PowerHolder.currentDispatchId());
+        }
     }
 
     @Override
