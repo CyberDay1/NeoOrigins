@@ -617,8 +617,15 @@ public final class CompatTestHarness {
         String base = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
         return switch (base) {
             case "active_self" -> {
-                if (!json.has("entity_action") || !json.get("entity_action").isJsonObject())
-                    yield "missing 'entity_action' object";
+                // entity_action (or legacy `action`) may be a single object OR an
+                // array of objects — Apoli's implicit all-of. The loader's
+                // parseActionField accepts both; mirror that tolerance here.
+                boolean hasObj = (json.has("entity_action") && json.get("entity_action").isJsonObject())
+                    || (json.has("action") && json.get("action").isJsonObject());
+                boolean hasArr = (json.has("entity_action") && json.get("entity_action").isJsonArray())
+                    || (json.has("action") && json.get("action").isJsonArray());
+                if (!hasObj && !hasArr)
+                    yield "missing 'entity_action' object or array";
                 yield null;
             }
             case "action_over_time" -> {
