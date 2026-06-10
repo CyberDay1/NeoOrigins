@@ -103,6 +103,22 @@ public final class PowerSchemaGenerator {
         properties.add("description", currentProps.get("description"));
         properties.add("hidden", currentProps.get("hidden"));
 
+        // required_mods — universal soft-compat gate read by the datapack loader
+        // for EVERY power type, so it is emitted as a fourth common property.
+        // Constructed in code (not copied from the current file) because it used
+        // to be a hand edit that every regen dropped.
+        JsonObject requiredMods = new JsonObject();
+        requiredMods.addProperty("description",
+            "Array of mod ids that must ALL be loaded for this power to load at all. "
+            + "If any listed mod is absent, the power is skipped at datapack load \u2014 it "
+            + "never registers, syncs, or appears in the origin panel. Use for soft-compat "
+            + "powers that drive another mod (e.g. [\"dragonsurvival\"]).");
+        requiredMods.addProperty("type", "array");
+        JsonObject requiredModsItems = new JsonObject();
+        requiredModsItems.addProperty("type", "string");
+        requiredMods.add("items", requiredModsItems);
+        properties.add("required_mods", requiredMods);
+
         root.add("properties", properties);
 
         // ── 3. oneOf — one branch per registered power, sorted by id, with the

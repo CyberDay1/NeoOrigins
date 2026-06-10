@@ -721,6 +721,18 @@ public final class BuiltinPowers {
         define("entity_model", EntityModelPower.class, List.of(
             new FieldSpec("entity_type", Kind.STRING, true)
                 .doc("Entity id whose model replaces the player's, e.g. minecraft:slime. Cosmetic only — pair with size_scaling to match the hitbox.")));
+        // become_dragon: previously had NO define, so its schema branch (plus its
+        // type-enum and fallback not-enum entries) were hand-edited back in after
+        // every generatePowerSchema run. SCHEMA = PARSER: the codec reads
+        // `species` (Codec.STRING.fieldOf — the only hard-fail, required=true)
+        // and `stage` (optional, default dragonsurvival:newborn); `type` is
+        // internal plumbing like everywhere else.
+        define("become_dragon", BecomeDragonPower.class, List.of(
+            new FieldSpec("species", Kind.STRING, true)
+                .doc("Dragon Survival species id the holder becomes while this power is granted, e.g. dragonsurvival:cave_dragon. Reverts to human form when the power is revoked. Requires the Dragon Survival mod — pair with a top-level \"required_mods\": [\"dragonsurvival\"] so the power never loads without it."),
+            new FieldSpec("stage", Kind.STRING, false)
+                .def("dragonsurvival:newborn")
+                .doc("Dragon Survival growth stage to start at, e.g. dragonsurvival:newborn. Optional; defaults to dragonsurvival:newborn.")));
         define("bounce_on_land", BounceOnLandPower.class, List.of(
             new FieldSpec("restitution", Kind.NUMBER, false)
                 .def(0.8).range(0.0, 1.0).doc("Fraction of downward impact velocity reflected back up on landing; <1 damps so the player settles (default 0.8)."),
@@ -1030,7 +1042,12 @@ public final class BuiltinPowers {
         //     reads (only `interval`) — and omitted `else_action` entirely; both
         //     corrected here. The power.schema.json branch + field_docs entry
         //     collapse onto this spec (the power still deserializes via its own
-        //     Codec<Config>, untouched).
+        //     Codec<Config>, untouched). The opt-in toggle pair (toggleable /
+        //     default_off, both default false in the codec) is specced here so
+        //     generatePowerSchema emits it — it used to be a hand edit dropped
+        //     on every regen. The codec's `enabled` component is runtime toggle
+        //     state, not an authored field, so it stays unspecced (the audit
+        //     WARNs but doesn't fail on codec-reflection fallback components).
         define("condition_passive", ConditionPassivePower.class, List.of(
             new FieldSpec("interval", Kind.INTEGER, false)
                 .def(20).range(1.0, null)
@@ -1040,7 +1057,13 @@ public final class BuiltinPowers {
             new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
                 .doc("EntityAction run on the player each interval while the condition passes (defaults to noop)."),
             new FieldSpec("else_action", Kind.REF, false).ref("action.schema.json")
-                .doc("EntityAction run on the player each interval while the condition does NOT pass (defaults to noop).")));
+                .doc("EntityAction run on the player each interval while the condition does NOT pass (defaults to noop)."),
+            new FieldSpec("toggleable", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("When true the power binds a keybind that flips its periodic action on/off; while off the interval action never runs (default false — condition_passive powers are passive unless opted in)."),
+            new FieldSpec("default_off", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false).")));
 
         //   • prevent_death: NO schema branch (already on the permissive fallback),
         //     so this is a pure register-to-codec + field_docs collapse. The codec
