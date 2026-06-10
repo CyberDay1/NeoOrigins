@@ -140,12 +140,19 @@ public class NeoOrigins {
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onRegisterRenderers);
-            // UI theme reload listener — client resources only (NOT server-side).
+            // UI theme + animated resource-bar FX reload listeners — client
+            // resources only (NOT server-side). FX presets live in assets/
+            // because the whole bar render is client-side; only the preset id
+            // is synced from the server.
             modEventBus.addListener(
-                (net.neoforged.neoforge.client.event.AddClientReloadListenersEvent ev) ->
+                (net.neoforged.neoforge.client.event.AddClientReloadListenersEvent ev) -> {
                     ev.addListener(
                         net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "ui_themes"),
-                        com.cyberday1.neoorigins.client.theme.UIThemeManager.INSTANCE));
+                        com.cyberday1.neoorigins.client.theme.UIThemeManager.INSTANCE);
+                    ev.addListener(
+                        net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "bar_fx"),
+                        com.cyberday1.neoorigins.client.BarFxManager.INSTANCE);
+                });
         }
 
         // Auto-register items from originpacks/ before the registry freezes

@@ -990,6 +990,13 @@ public class NeoOriginsNetwork {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         PacketDistributor.sendToPlayer(player,
             new SyncOriginsPayload(data.getOrigins(), data.isHadAllOrigins()));
+        // SyncOriginsPayload wipes the client's ClientResourceState (handleSyncOrigins)
+        // to drop stale HUD state from a previous session. That clear assumed the
+        // server's tick-sync would re-send current values — but a static resource
+        // (regen_rate 0, never spent) is never dirty, so its bar would vanish and
+        // never return. Re-push resources right after the origins payload; packets
+        // on this connection are ordered, so this always lands after the clear.
+        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourcesToClient(player);
     }
 
     /**

@@ -62,6 +62,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         String label,
         int color,
         boolean hidden,
+        String animated,
+        int tint,
         String type
     ) implements PowerConfiguration {
 
@@ -96,6 +98,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 // HUD render
                 String label = "Resource";
                 int color = 0xFF55AAFF;
+                String animated = "";
+                int tint = 0;
                 boolean hidden = obj.has("hidden") && obj.get("hidden").getAsBoolean();
                 if (obj.has("hud_render") && obj.get("hud_render").isJsonObject()) {
                     JsonObject hud = obj.getAsJsonObject("hud_render");
@@ -104,6 +108,10 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                         String cs = hud.get("color").getAsString();
                         color = parseColor(cs);
                     }
+                    // Animated FX preset id (client resolves it against bar_fx/ presets);
+                    // optional tint multiplies the preset art so one strip can be recoloured.
+                    if (hud.has("animated")) animated = hud.get("animated").getAsString();
+                    if (hud.has("tint")) tint = parseColor(hud.get("tint").getAsString());
                     // Origins compat: should_render=false hides the bar
                     if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
                         hidden = true;
@@ -112,7 +120,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
                 return DataResult.success(Pair.of(new Config(
                     powerId, min, max, startValue, regenRate, regenInterval,
-                    regenCond, minAction, maxAction, label, color, hidden, t
+                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, t
                 ), ops.empty()));
             }
 
@@ -146,7 +154,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         String key = storageKey(player, config);
         player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(), config.hidden()));
+            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
+                config.hidden(), config.animated(), config.tint()));
         CompatAttachments.syncResourcesToClient(player);
     }
 
@@ -171,7 +180,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         // client (so the bar renders) while leaving the persisted value in
         // the attachment untouched. GitHub #90.
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(), config.hidden()));
+            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
+                config.hidden(), config.animated(), config.tint()));
         // Seed the state attachment if it has no entry for this key. Hits two
         // cases: (a) players granted this power before resource_state shipped,
         // who never had their state seeded by onGranted; (b) a state map that
