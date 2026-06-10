@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderBlockScreenEffectEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
@@ -150,7 +151,24 @@ public final class VisualEffectsHandler {
         }
 
         event.setFarPlaneDistance(event.getFarPlaneDistance() * multiplier);
+        // Push the fog START out too — vanilla starts lava fog at 0.25 blocks,
+        // which keeps the screen hazy no matter how far the far plane goes.
+        event.setNearPlaneDistance(event.getNearPlaneDistance() * multiplier);
         event.setCanceled(true);
+    }
+
+    /**
+     * Suppresses the first-person burning-screen overlay for {@code lava_vision}
+     * holders. The power is granted to fire-immune origins (Draconic, Blazeborn
+     * compat) where the full-screen flame animation is pure noise — they take no
+     * damage from the fire it warns about.
+     */
+    @SubscribeEvent
+    public static void onRenderBlockScreenEffect(RenderBlockScreenEffectEvent event) {
+        if (event.getOverlayType() != RenderBlockScreenEffectEvent.OverlayType.FIRE) return;
+        if (findCapabilityData("lava_vision") != null) {
+            event.setCanceled(true);
+        }
     }
 
     // ---- Shader ----
