@@ -396,6 +396,13 @@ Original Origins mod:
 - https://www.curseforge.com/minecraft/mc-mods/origins
 - https://github.com/apace100/origins-fabric
 
+### Translations
+
+- **Russian (`ru_ru`)** — community translation by [@Nienya972](https://github.com/Nienya972)
+- **Simplified Chinese (`zh_cn`), Spanish (`es_es`), German (`de_de`), Brazilian Portuguese (`pt_br`)** — machine-translated starting points, pending community review
+
+Community translations are welcome: open a pull request (or an issue with the file attached) adding a `<locale>.json` to `src/main/resources/assets/neoorigins/lang/`. Native-speaker corrections to the machine-translated locales are especially appreciated.
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
