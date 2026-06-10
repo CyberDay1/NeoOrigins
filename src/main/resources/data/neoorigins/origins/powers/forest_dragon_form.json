@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:become_dragon",
+  "species": "dragonsurvival:forest_dragon",
+  "stage": "dragonsurvival:newborn",
+  "required_mods": ["dragonsurvival"],
+  "name": "power.neoorigins.forest_dragon_form.name",
+  "description": "power.neoorigins.forest_dragon_form.description"
+}

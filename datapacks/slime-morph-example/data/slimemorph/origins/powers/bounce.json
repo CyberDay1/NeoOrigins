@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:bounce_on_land",
+  "restitution": 0.8,
+  "name": "Springy Body",
+  "description": "Like a slime, you rebound off the ground after a fall. Hold sneak to stay put."
+}

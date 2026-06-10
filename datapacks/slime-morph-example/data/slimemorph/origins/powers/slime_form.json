@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:entity_model",
+  "entity_type": "minecraft:slime",
+  "name": "Slime Form",
+  "description": "You appear as a slime to yourself and to everyone around you."
+}

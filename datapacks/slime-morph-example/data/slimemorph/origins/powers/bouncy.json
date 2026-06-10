@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:jump_strength",
+  "amount": 0.4,
+  "operation": "add_value",
+  "name": "Bouncy",
+  "description": "Springy slime legs give you a noticeably higher jump."
+}

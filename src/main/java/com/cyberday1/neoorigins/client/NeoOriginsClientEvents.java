@@ -8,12 +8,16 @@ import com.cyberday1.neoorigins.network.payload.ActivatePowerPayload;
 import com.cyberday1.neoorigins.network.payload.AirJumpPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.entity.ThrownItemRenderer;
+import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -130,6 +134,28 @@ public class NeoOriginsClientEvents {
         // Drop the cached template bundle — it's keyed to the server's loaded
         // origins, not to anything persistent on the client.
         com.cyberday1.neoorigins.client.ClientTemplateCache.clear();
+        // Drop morph state + cached dummy entities so they don't leak across
+        // a disconnect/reconnect within the same client JVM.
+        com.cyberday1.neoorigins.client.ClientMorphState.clear();
+        com.cyberday1.neoorigins.client.MorphRenderHandler.clearCache();
+    }
+
+    @SubscribeEvent
+    public static void onScreenInit(ScreenEvent.Init.Post event) {
+        // Re-add the "Edit HUD" button to the pause (Esc) menu. Only show it when
+        // the player actually has resource bars to lay out — otherwise the editor
+        // has nothing to edit.
+        if (!(event.getScreen() instanceof PauseScreen pause)) return;
+        if (ClientResourceState.getResources().isEmpty()) return;
+
+        // Tuck it in the top-left corner so it doesn't fight the centered vanilla
+        // button column.
+        Button btn = Button.builder(
+                Component.translatable("button.neoorigins.edit_hud"),
+                b -> Minecraft.getInstance().setScreen(new ResourceHudEditorScreen()))
+            .bounds(8, 8, 80, 20)
+            .build();
+        event.addListener(btn);
     }
 
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {

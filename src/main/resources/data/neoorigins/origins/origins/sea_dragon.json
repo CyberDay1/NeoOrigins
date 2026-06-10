@@ -1,0 +1,42 @@
+{
+  "name": "origins.neoorigins.sea_dragon.name",
+  "description": "origins.neoorigins.sea_dragon.description",
+  "icon": "minecraft:prismarine_crystals",
+  "impact": "high",
+  "order": 20,
+  "required_mods": ["dragonsurvival"],
+  "powers": [
+    "neoorigins:sea_dragon_form"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:sea_dragon_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:sea_dragon_ascended_might"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:sea_dragon_apex_hp"
+      ],
+      "remove": [
+        "neoorigins:sea_dragon_evolved_hp"
+      ]
+    }
+  ],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_ocean_floor": true
+  }
+}

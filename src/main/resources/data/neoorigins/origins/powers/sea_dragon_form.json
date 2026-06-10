@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:become_dragon",
+  "species": "dragonsurvival:sea_dragon",
+  "stage": "dragonsurvival:newborn",
+  "required_mods": ["dragonsurvival"],
+  "name": "power.neoorigins.sea_dragon_form.name",
+  "description": "power.neoorigins.sea_dragon_form.description"
+}
