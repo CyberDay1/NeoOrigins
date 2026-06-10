@@ -513,8 +513,10 @@ streak reset.
 
 Fires when the player right-clicks a block (general — runs for every
 `RightClickBlock` event, including cancelled ones from other mods' gates).
+**Cancellable** via `neoorigins:cancel_event` (vetoes the interaction).
 
-**Context:** `BlockInteractContext(pos, state)`.
+**Context:** `BlockInteractContext(pos, state, event)` — carries the
+underlying cancellable `RightClickBlock` event.
 
 **Dispatch site:** `InteractionPowerEvents.onBlockUse`.
 
@@ -525,14 +527,21 @@ interactions.
 
 ## `entity_use`
 
-Fires when the player right-clicks a living entity.
+Fires when the player right-clicks a living entity. The narrower
+`villager_interact` alias fires immediately after, only when the target is a
+villager or wandering trader. Both are **cancellable** via
+`neoorigins:cancel_event` (vetoes the interaction — e.g. blocking villager
+trading for an origin).
 
-**Context:** `EntityInteractContext(target)`.
+**Context:** `EntityInteractContext(target, event)` — carries the underlying
+cancellable `PlayerInteractEvent.EntityInteract` event. The `breed`, `tame`
+and `bonemeal` dispatches share this pattern and are likewise cancellable.
 
 **Dispatch site:** `InteractionPowerEvents.onEntityUse` (filtered to
 `LivingEntity` targets).
 
-**Typical use:** healing touch, taming-by-class, entity-hug particle.
+**Typical use:** healing touch, taming-by-class, entity-hug particle,
+trade-lock origins (`villager_interact` + `cancel_event`).
 
 ---
 

@@ -926,7 +926,7 @@ See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#togglea
 
 Cancels the currently dispatched event. Used internally by the `food_restriction` alias to reject food consumption.
 
-**Gotcha — context-only:** works only when the current `ActionContextHolder` value is a `FoodContext` (wraps the underlying `ICancellableEvent`) or is itself an `ICancellableEvent`. No-op elsewhere.
+**Gotcha — context-only:** works only when the current `ActionContextHolder` value carries a cancellable event. That covers `food_eaten` (`FoodContext`), `effect_applied` (`EffectAppliedContext`), `entity_use` / `villager_interact` / `breed` / `tame` (`EntityInteractContext`), `block_use` / `bonemeal` (`BlockInteractContext`), and any dispatch whose context is itself an `ICancellableEvent` (e.g. `block_place`). No-op elsewhere — post-hoc events like `food_finished`, `trade_completed` or `kill` cannot be cancelled.
 
 **Example:**
 ```json

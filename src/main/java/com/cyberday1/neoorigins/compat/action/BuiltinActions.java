@@ -374,6 +374,20 @@ public final class BuiltinActions {
                         .Applicable.Result.DO_NOT_APPLY);
                     return;
                 }
+                // EntityInteractContext / BlockInteractContext carry the
+                // cancellable wrapper event for entity_use, villager_interact,
+                // block_use, breed, tame and bonemeal dispatches (Discord
+                // report: cancel_event was a no-op on villager_interact).
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext eic
+                    && eic.event() != null) {
+                    eic.event().setCanceled(true);
+                    return;
+                }
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.BlockInteractContext bic
+                    && bic.event() != null) {
+                    bic.event().setCanceled(true);
+                    return;
+                }
                 if (actionCtx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
                     ce.setCanceled(true);
                 }

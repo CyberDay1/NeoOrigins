@@ -300,12 +300,35 @@ public final class EventPowerIndex {
         public FoodContext(net.minecraft.world.item.ItemStack stack) { this(stack, null); }
     }
 
-    /** Context for bonemeal / crop events. */
+    /**
+     * Context for bonemeal / crop / block-use events. Carries the position and
+     * state plus (when the dispatch site's underlying NeoForge event is
+     * cancellable) the wrapper event so {@code neoorigins:cancel_event} can
+     * veto the interaction. Mirrors the {@link FoodContext} pattern.
+     */
     public record BlockInteractContext(net.minecraft.core.BlockPos pos,
-                                        net.minecraft.world.level.block.state.BlockState state) {}
+                                        net.minecraft.world.level.block.state.BlockState state,
+                                        net.neoforged.bus.api.ICancellableEvent event) {
+        /** Pos+state-only ctor for call sites that don't need cancel semantics. */
+        public BlockInteractContext(net.minecraft.core.BlockPos pos,
+                                    net.minecraft.world.level.block.state.BlockState state) {
+            this(pos, state, null);
+        }
+    }
 
-    /** Context for breed / tame events. */
-    public record EntityInteractContext(net.minecraft.world.entity.LivingEntity target) {}
+    /**
+     * Context for breed / tame / entity-use / villager-interact events. Carries
+     * the target plus (when the dispatch site's underlying NeoForge event is
+     * cancellable) the wrapper event so {@code neoorigins:cancel_event} can
+     * veto the interaction. Mirrors the {@link FoodContext} pattern.
+     */
+    public record EntityInteractContext(net.minecraft.world.entity.LivingEntity target,
+                                        net.neoforged.bus.api.ICancellableEvent event) {
+        /** Target-only ctor for call sites that don't need cancel semantics. */
+        public EntityInteractContext(net.minecraft.world.entity.LivingEntity target) {
+            this(target, null);
+        }
+    }
 
     /**
      * Dispatch context naming a non-actor <em>Entity</em> that should act as the

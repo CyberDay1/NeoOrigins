@@ -36,7 +36,7 @@ public class CraftingPowerEvents {
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
             com.cyberday1.neoorigins.service.EventPowerIndex.Event.BONEMEAL,
             new com.cyberday1.neoorigins.service.EventPowerIndex.BlockInteractContext(
-                pos, sl.getBlockState(pos)));
+                pos, sl.getBlockState(pos), event));
         // better_bone_meal moved to action_on_event (MOD_BONEMEAL_EXTRA).
         float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_BONEMEAL_EXTRA,
