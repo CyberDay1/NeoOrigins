@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:prevent_action",
+  "name": "Fixture: Condition Alias Gate",
+  "description": "Harness fixture: native prevent_action gated via top-level 'condition' (alias for power_condition, mode ALLOW) — fire immunity only while armor value >= 10.",
+  "hidden": true,
+  "action": "fire",
+  "condition": {
+    "type": "neoorigins:armor_value",
+    "comparison": ">=",
+    "compare_to": 10
+  }
+}
