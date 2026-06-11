@@ -1,0 +1,24 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Compat Fixture: all_of / any_of Aliases",
+  "description": "Harness fixture: Apoli 2.9+ renamed meta types — condition all_of/any_of (formerly and/or) and action all_of (formerly and) must dispatch to the native combinators instead of failing closed.",
+  "hidden": true,
+  "condition": {
+    "type": "origins:all_of",
+    "conditions": [
+      { "type": "origins:any_of", "conditions": [
+        { "type": "origins:sneaking" },
+        { "type": "apoli:any_of", "conditions": [ { "type": "origins:on_ground" } ] }
+      ] },
+      { "type": "apoli:all_of", "conditions": [ { "type": "origins:living" } ] }
+    ]
+  },
+  "entity_action": {
+    "type": "origins:all_of",
+    "actions": [
+      { "type": "origins:exhaust", "amount": 0.1 },
+      { "type": "apoli:all_of", "actions": [ { "type": "origins:heal", "amount": 0.5 } ] }
+    ]
+  },
+  "interval": 100
+}

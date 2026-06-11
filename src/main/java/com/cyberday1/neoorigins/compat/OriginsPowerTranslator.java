@@ -215,6 +215,58 @@ public final class OriginsPowerTranslator {
     private OriginsPowerTranslator() {}
 
     /**
+     * Top-level keys that are safe to copy verbatim onto the translated output
+     * when the type-specific translator did not already emit them. Unlike
+     * {@link OriginsOriginTranslator}'s "everything not handled" passthrough,
+     * this is a deliberately CURATED allowlist: the per-type translate* methods
+     * frequently RENAME source fields during translation (modifier →
+     * attribute_modifier shapes, block_condition → block_tag/blocked_blocks,
+     * hidden → kept as hidden but value-checked, ...), and each type consumes a
+     * different key set — a blanket copy would reintroduce already-translated
+     * source keys under their old names and could change behavior. The keys
+     * here are read by PowerDataManager at the top level (required_mods,
+     * power_condition, power_condition_mode) or are harmless Apoli metadata the
+     * native codec ignores (badges, loading_priority), and are never renamed
+     * by any per-type translator.
+     */
+    private static final Set<String> PASSTHROUGH_KEYS = Set.of(
+        "required_mods",        // ModGate top-level gate + creator raw-snapshot fidelity
+        "badges",               // Apoli display metadata; codec ignores unknown keys
+        "loading_priority",     // Apoli load-order metadata; harmless if unused
+        "power_condition",      // native top-level condition gate (hybrid files)
+        "power_condition_mode"  // native gate mode (hybrid files)
+    );
+
+    /**
+     * Copies curated unhandled top-level keys from the source power onto the
+     * translated output, and routes an Apoli power-level {@code condition} to
+     * the native {@code power_condition} gate. Apoli semantics are "power is
+     * active while the condition holds", which is the native ALLOW mode (the
+     * native default is DENY), and power_condition is parsed at load time by
+     * the compat ConditionParser, so origins:/apace:/apoli: condition DSL is
+     * honored rather than copied somewhere it would be ignored. Both steps
+     * skip keys the type-specific translator already consumed (e.g. the
+     * translators that fold {@code condition} into the native type's own
+     * condition field, or bail out entirely when one is present).
+     */
+    private static void passThroughUnhandledKeys(JsonObject src, JsonObject out) {
+        for (String key : PASSTHROUGH_KEYS) {
+            if (src.has(key) && !out.has(key)) {
+                out.add(key, src.get(key));
+            }
+        }
+        // condition → power_condition: must NOT be copied under its source name —
+        // the native loader deliberately uses "power_condition" to avoid colliding
+        // with power types whose own config codecs read a "condition" field.
+        if (src.has("condition") && !out.has("condition") && !out.has("power_condition")) {
+            out.add("power_condition", src.get("condition"));
+            if (!out.has("power_condition_mode")) {
+                out.addProperty("power_condition_mode", "ALLOW");
+            }
+        }
+    }
+
+    /**
      * Translate an Origins-format power JSON to NeoOrigins format.
      * Returns Optional.empty() for skip/fail cases — these are already logged.
      * Does NOT handle origins:multiple — that is handled by OriginsMultipleExpander before this is called.
@@ -230,6 +282,7 @@ public final class OriginsPowerTranslator {
             if (json.has("name") && !out.has("name"))               out.add("name", json.get("name"));
             if (json.has("description") && !out.has("description")) out.add("description", json.get("description"));
             if (json.has("hidden") && !out.has("hidden"))           out.add("hidden", json.get("hidden"));
+            passThroughUnhandledKeys(json, out);
             String mappedType = out.has("type") ? out.get("type").getAsString() : "?";
             CompatTranslationLog.pass(id, type + " -> " + mappedType + " (simple override)");
             return Optional.of(out);
@@ -248,6 +301,7 @@ public final class OriginsPowerTranslator {
                 if (json.has("name") && !out.has("name"))               out.add("name", json.get("name"));
                 if (json.has("description") && !out.has("description")) out.add("description", json.get("description"));
                 if (json.has("hidden") && !out.has("hidden"))           out.add("hidden", json.get("hidden"));
+                passThroughUnhandledKeys(json, out);
                 String mappedType = out.has("type") ? out.get("type").getAsString() : "?";
                 CompatTranslationLog.pass(id, type + " -> " + mappedType);
             }
@@ -1227,7 +1281,7 @@ public final class OriginsPowerTranslator {
                 String tag = bc.has("tag") ? bc.get("tag").getAsString() : null;
                 if (tag != null) out.add("#" + (tag.startsWith("#") ? tag.substring(1) : tag));
             }
-            case "and", "or" -> {
+            case "and", "or", "all_of", "any_of" -> {
                 JsonArray conditions = bc.has("conditions") ? bc.getAsJsonArray("conditions") : new JsonArray();
                 for (JsonElement el : conditions) {
                     if (el.isJsonObject()) extractBlockIdsFromCondition(el.getAsJsonObject(), out);

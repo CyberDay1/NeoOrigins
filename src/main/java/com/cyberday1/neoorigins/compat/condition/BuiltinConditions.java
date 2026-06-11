@@ -123,6 +123,11 @@ public final class BuiltinConditions {
         define("living", (json, ctx) -> p -> p.isAlive(), List.of());
         // creative_flying — player's flying ability is active.
         define("creative_flying", (json, ctx) -> p -> p.getAbilities().flying, List.of());
+        // creative_mode — player is in creative or spectator gamemode. MoR's
+        // medievalorigins:creative_mode dispatches here via the parsers'
+        // namespace fallback; required for Pixie-style "drain flight resource
+        // unless creative" gates to evaluate correctly.
+        define("creative_mode", (json, ctx) -> p -> p.isCreative() || p.isSpectator(), List.of());
         // climbing — player is on a climbable block.
         define("climbing", (json, ctx) -> p -> p.onClimbable(), List.of());
         // moving — player has nonzero horizontal delta movement.
@@ -323,10 +328,10 @@ public final class BuiltinConditions {
         define("weather",
             (json, ctx) -> ConditionParser.parseWeather(json),
             List.of(new FieldSpec("state", FormFieldSpec.Kind.ENUM, false)
-                        .options("clear", "rain", "thunder").def("clear")
-                        .doc("Weather state to match (also accepts the `value` field; default clear)."),
+                        .options("clear", "rain", "raining", "thunder", "thundering").def("clear")
+                        .doc("Weather state to match — rain/raining and thunder/thundering are synonyms (also accepts the `value` field; default clear)."),
                     new FieldSpec("value", FormFieldSpec.Kind.ENUM, false)
-                        .options("clear", "rain", "thunder")
+                        .options("clear", "rain", "raining", "thunder", "thundering")
                         .doc("Alias for state.")));
         define("moon_phase",
             (json, ctx) -> ConditionParser.parseMoonPhase(json),
@@ -472,6 +477,14 @@ public final class BuiltinConditions {
                 .doc("Minion-tracker key to count (default tamer:tamed).")));
 
         // ---- Proximity / combat / Origins++ conditions (delegate to ConditionParser) ----
+        // cover / covered_by_block — a solid block within `distance` blocks above
+        // the player (sky-blocked overhead). Apoli-parity pair: MoR Wood Elf uses
+        // medievalorigins:cover via the namespace fallback. `covered_by_block` is
+        // a true synonym → alias.
+        define("cover", List.of("covered_by_block"),
+            (json, ctx) -> ConditionParser.parseCovered(json),
+            List.of(new FieldSpec("distance", FormFieldSpec.Kind.INTEGER, false).def(8)
+                .doc("How many blocks above the player to scan for a non-air block (default 8, min 1).")));
         // near_block / block_in_radius — a matching block within radius (cubic scan).
         // `block_in_radius` is a true synonym (absent from KNOWN_TYPES) → alias.
         define("near_block", List.of("block_in_radius"),
@@ -549,12 +562,18 @@ public final class BuiltinConditions {
                 new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
                     .doc("Nested biome sub-condition (shape 3); `temperature` compares biome base temperature, other sub-types fail closed. Absent all of biome/tag/biome_tag/condition → always true.")));
 
-        define("and",
+        // and — every sub-condition in `conditions` must pass (empty/absent → true).
+        // `all_of` is the Apoli 2.9+ rename of `and` (Origins 1.10+ packs use it);
+        // alias, not a counted type — origins:all_of/apoli:all_of canonicalize to
+        // neoorigins:all_of and dispatch here.
+        define("and", List.of("all_of"),
             (json, ctx) -> ConditionParser.parseAnd(json, ctx),
             List.of(new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef("#")
                 .doc("List of sub-conditions; all must pass (absent/empty → true).")));
-        define("or",
+        // or — at least one sub-condition in `conditions` must pass (empty/absent → false).
+        // `any_of` is the Apoli 2.9+ rename of `or` — alias, same factory.
+        define("or", List.of("any_of"),
             (json, ctx) -> ConditionParser.parseOr(json, ctx),
             List.of(new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef("#")

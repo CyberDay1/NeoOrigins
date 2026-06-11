@@ -49,7 +49,8 @@ public final class ConditionParser {
         "neoorigins:biome", "neoorigins:block", "neoorigins:block_collision",
         "neoorigins:brightness", "neoorigins:can_see", "neoorigins:climbing",
         "neoorigins:command", "neoorigins:config_flag", "neoorigins:constant",
-        "neoorigins:cooldown", "neoorigins:creative_flying", "neoorigins:damage_name",
+        "neoorigins:cooldown", "neoorigins:cover", "neoorigins:creative_flying",
+        "neoorigins:creative_mode", "neoorigins:damage_name",
         "neoorigins:damage_tag", "neoorigins:damage_type", "neoorigins:daytime",
         "neoorigins:dimension", "neoorigins:distance", "neoorigins:enchantment",
         "neoorigins:entity_type", "neoorigins:equal", "neoorigins:equipped_item",
@@ -107,7 +108,13 @@ public final class ConditionParser {
         // nested in deanos powers fell through to fail-closed despite a matching handler.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             type = "neoorigins:" + type;
-        } else if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
+        } else if (!type.isEmpty() && !type.startsWith("neoorigins:")) {
+            // Generic namespace fallback for any non-canonical prefix
+            // (origins:, apace:, apoli:, apugli:, medievalorigins:,
+            // origins-classes:, ...) — rewrite to neoorigins:<leaf> and
+            // dispatch. Earlier versions whitelisted origins/apace/apoli only,
+            // silently fail-closing conditions from other Apoli-derivative
+            // namespaces (e.g. MoR's medievalorigins:creative_mode).
             String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
             com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
             type = canonical;
@@ -127,6 +134,26 @@ public final class ConditionParser {
         } catch (Exception e) {
             return failClosed(type, contextId, "parse error: " + e.getMessage());
         }
+    }
+
+    /**
+     * cover / covered_by_block: true when the column above the player has a
+     * non-air block within {@code distance} (default 8) blocks — the
+     * inverse-of-canSeeSky check, scoped to directly overhead. Default 8
+     * matches Apoli's covered_by_block; distance is clamped to at least 1 to
+     * avoid a silent always-false.
+     */
+    static EntityCondition parseCovered(JsonObject json) {
+        int distance = Math.max(1, json.has("distance") ? json.get("distance").getAsInt() : 8);
+        return p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+            BlockPos pos = p.blockPosition();
+            int top = Math.min(sl.getMaxY(), pos.getY() + distance);
+            for (int y = pos.getY() + 2; y <= top; y++) {
+                if (!sl.getBlockState(new BlockPos(pos.getX(), y, pos.getZ())).isAir()) return true;
+            }
+            return false;
+        };
     }
 
     static EntityCondition parseAnd(JsonObject json, String ctx) {
@@ -293,14 +320,28 @@ public final class ConditionParser {
         String comp   = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target    = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
         ComparisonType comparison = ComparisonType.fromString(comp);
-        if (powerId.contains("*")) {
-            NeoOrigins.LOGGER.warn(
-                "[CompatB] resource condition references '{}' (in {}) — the '*' wildcard is NOT resolved for " +
-                "resources (only power_active toggles and origins:multiple sub-powers support it). Use the full " +
-                "namespaced power id; otherwise this comparison reads the resource as 0.", powerId, contextId);
-        }
+        boolean wildcard = CompatAttachments.ResourceState.isWildcard(powerId);
         return player -> {
-            int cur = player.getData(CompatAttachments.resourceState()).get(powerId, 0);
+            var state = player.getData(CompatAttachments.resourceState());
+            // Wildcard semantics: condition holds if ANY matching key satisfies
+            // the comparison. Used by Apoli-derivative packs that author
+            // resource selectors like `*:*_flight_resource` (MoR Pixie etc.).
+            if (wildcard) {
+                var keys = state.matchingKeys(powerId);
+                if (keys.isEmpty()) {
+                    // No resource has been written yet — compare against the
+                    // default (0) so an unmet-resource bar is treated the
+                    // same as an empty one. Without this branch, conditions
+                    // like `<= 0` would silently never match because
+                    // matchingKeys returned nothing.
+                    return comparison.test(0, target);
+                }
+                for (String k : keys) {
+                    if (comparison.test(state.get(k, 0), target)) return true;
+                }
+                return false;
+            }
+            int cur = state.get(powerId, 0);
             return comparison.test(cur, target);
         };
     }
@@ -365,10 +406,12 @@ public final class ConditionParser {
             };
         }
         // Boolean combinators: { "type": "origins:and/or", "conditions": [...] }
-        if (bareType.equals("and") || bareType.equals("or")) {
+        // all_of/any_of are the Apoli 2.9+ renames of and/or — same shapes.
+        if (bareType.equals("and") || bareType.equals("or")
+                || bareType.equals("all_of") || bareType.equals("any_of")) {
             // Block conditions don't map cleanly to entity conditions, but we can
             // evaluate them against the block below the player.
-            boolean isAnd = bareType.equals("and");
+            boolean isAnd = bareType.equals("and") || bareType.equals("all_of");
             JsonArray conditions = blockCond.has("conditions") ? blockCond.getAsJsonArray("conditions") : new JsonArray();
             List<EntityCondition> subconds = new ArrayList<>();
             for (JsonElement el : conditions) {

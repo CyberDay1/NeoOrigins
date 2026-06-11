@@ -78,7 +78,12 @@ public final class ActionParser {
         // even though the identical neoorigins: handler exists.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             type = "neoorigins:" + type;
-        } else if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
+        } else if (!type.isEmpty() && !type.startsWith("neoorigins:")) {
+            // Generic namespace fallback for any non-canonical prefix
+            // (origins:, apace:, apoli:, apugli:, medievalorigins:, ...) —
+            // rewrite to neoorigins:<leaf> and dispatch. Earlier versions
+            // whitelisted origins/apace/apoli only, silently no-opping actions
+            // from other Apoli-derivative namespaces.
             String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
             com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
             type = canonical;

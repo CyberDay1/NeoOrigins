@@ -100,6 +100,13 @@ public final class OriginsMultipleExpander {
             // a multiple refers to the sibling sub-power "parentId/subkey".
             subPowerJson = resolveSelfReferences(subPowerJson, id);
 
+            // Canonicalize apoli:/apugli: sub-power types to origins: BEFORE the
+            // format check — top-level powers are canonicalized by the loaders,
+            // but nested sub-powers only pass through here. Without this, an
+            // apoli:-typed sub-power is misclassified as "native format" below
+            // and a nested apoli:multiple is never recursed into.
+            OriginsFormatDetector.canonicalizePowerType(subPowerJson);
+
             if (!OriginsFormatDetector.isOriginsFormat(subPowerJson)) {
                 // Sub-power is already NeoOrigins format (unusual but pass through)
                 NeoOrigins.LOGGER.debug("OriginsCompat: multiple sub-power {} is not Origins format, using as-is", syntheticId);
@@ -145,6 +152,73 @@ public final class OriginsMultipleExpander {
             MULTIPLE_EXPANSION_MAP.put(id, Collections.unmodifiableList(syntheticIds));
         }
 
+        return result;
+    }
+
+    /**
+     * Expands an {@code origins:attribute} power that ships a {@code modifiers}
+     * array (multiple modifiers in one power) into N synthetic
+     * single-modifier {@code origins:attribute} powers — one per array entry.
+     *
+     * <p>{@code OriginsPowerTranslator.translateAttribute} can only emit one
+     * {@code neoorigins:attribute_modifier} per call; multi-modifier authors
+     * (very common in Apoli-derivative packs — MoR Pixie pixie_properties has
+     * 7 modifiers in one power) would silently lose all but the first
+     * modifier without this pre-pass.
+     *
+     * <p>Synthetic IDs use the {@code <originalPath>/mod_<index>} pattern,
+     * matching the {@code origins:multiple} convention so the expansion map
+     * and origin power-list rewrite work uniformly.
+     *
+     * <p>Returns an empty map (and does not record an expansion) if the JSON
+     * has fewer than two modifiers — caller can fall through to the normal
+     * single-power translation path.
+     */
+    public static Map<Identifier, JsonObject> expandAttributeMulti(Identifier id, JsonObject src) {
+        if (!src.has("modifiers") || !src.get("modifiers").isJsonArray()) return Map.of();
+        com.google.gson.JsonArray modifiers = src.getAsJsonArray("modifiers");
+        if (modifiers.size() < 2) return Map.of();
+
+        Map<Identifier, JsonObject> result = new HashMap<>();
+        List<Identifier> syntheticIds = new ArrayList<>();
+
+        if (src.has("name") || src.has("description")) {
+            JsonObject display = new JsonObject();
+            if (src.has("name"))        display.add("name",        src.get("name"));
+            if (src.has("description")) display.add("description", src.get("description"));
+            MULTIPLE_DISPLAY_MAP.put(id, display);
+        }
+
+        for (int i = 0; i < modifiers.size(); i++) {
+            JsonElement el = modifiers.get(i);
+            if (!el.isJsonObject()) continue;
+
+            Identifier syntheticId = Identifier.fromNamespaceAndPath(
+                id.getNamespace(),
+                id.getPath() + "/mod_" + i
+            );
+
+            // Build a single-modifier origins:attribute that the regular
+            // translator path will compile into a neoorigins:attribute_modifier.
+            JsonObject sub = new JsonObject();
+            sub.addProperty("type", "origins:attribute");
+            sub.add("modifier", el);
+            // Carry top-level condition / equipment_condition / location_condition
+            // through verbatim — they apply to every modifier in the original.
+            for (String passthrough : new String[] {"condition", "equipment_condition", "location_condition"}) {
+                if (src.has(passthrough)) sub.add(passthrough, src.get(passthrough));
+            }
+
+            syntheticIds.add(syntheticId);
+            Optional<JsonObject> translated = OriginsPowerTranslator.translate(syntheticId, sub);
+            if (translated.isPresent()) {
+                result.put(syntheticId, translated.get());
+            }
+        }
+
+        if (!syntheticIds.isEmpty()) {
+            MULTIPLE_EXPANSION_MAP.put(id, Collections.unmodifiableList(syntheticIds));
+        }
         return result;
     }
 

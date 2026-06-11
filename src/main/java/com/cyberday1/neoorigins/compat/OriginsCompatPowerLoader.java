@@ -47,6 +47,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     public static final OriginsCompatPowerLoader INSTANCE = new OriginsCompatPowerLoader();
 
     private static final java.util.Map<String, Integer> PREV_RESOURCE_VALUES = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Edge-detection tracker for action_over_time rising/falling_action transitions.
+     *  Key: {@code <playerUUID>:<powerId>}. Value: previous tick's condition result. */
+    private static final java.util.Map<String, Boolean> PREV_AOT_CONDITIONS = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Power types that Route B handles (Route A SKIPs these). */
     private static final Set<String> ROUTE_B_TYPES = Set.of(
@@ -715,6 +718,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 1);
 
         EntityAction action = parseActionField(json, "entity_action", idStr);
+        // Apoli action_over_time also supports edge-triggered actions:
+        //   rising_action  — fires once when the condition transitions false→true
+        //   falling_action — fires once when the condition transitions true→false
+        // Both matter for "release to commit" patterns (e.g. a charge power that
+        // commits on release) and one-shot setup/teardown when entering/leaving
+        // a state. Without these, packs that depend on edge transitions silently
+        // no-op their release/setup logic.
+        boolean hasEdgeActions = json.has("rising_action") || json.has("falling_action");
+        EntityAction risingAction  = json.has("rising_action")
+            ? parseActionField(json, "rising_action", idStr)  : EntityAction.noop();
+        EntityAction fallingAction = json.has("falling_action")
+            ? parseActionField(json, "falling_action", idStr) : EntityAction.noop();
         // Apoli/MoR/Mido pack convention is `condition` (player-side gate);
         // apace and a few origins-classes packs use `entity_condition`.
         // Accept both — without this, packs like MoR Pixie's flight resource
@@ -739,6 +754,24 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .onTick(player -> {
                 if (player.level().getServer() == null) return;
                 long tick = player.level().getServer().getTickCount();
+                // Edge transitions are only tracked when the power declares
+                // rising_action/falling_action — powers without them keep the
+                // cheaper interval-gated condition evaluation below.
+                if (hasEdgeActions) {
+                    boolean cur = condition.test(player);
+                    String edgeKey = player.getUUID() + ":" + idStr;
+                    // Default-prev = false matches Apoli: rising_action fires on
+                    // grant if the condition is already true (a transition from
+                    // "no prior state" = false).
+                    Boolean prev = PREV_AOT_CONDITIONS.put(edgeKey, cur);
+                    boolean prevVal = prev != null && prev;
+                    if (cur && !prevVal) risingAction.execute(player);
+                    else if (!cur && prevVal) fallingAction.execute(player);
+                    if ((tick + offset) % interval == 0 && cur) {
+                        action.execute(player);
+                    }
+                    return;
+                }
                 if ((tick + offset) % interval == 0 && condition.test(player)) {
                     action.execute(player);
                 }
