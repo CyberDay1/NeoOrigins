@@ -16,14 +16,24 @@ import java.util.concurrent.ConcurrentHashMap;
  * upward, mimicking a slime block, so a slime-morphed player springs off the
  * ground after a fall.
  *
- * <p>Server-side: each tick we remember the player's vertical velocity. On the
- * tick the player transitions from airborne to on-ground, the velocity captured
- * the previous tick (the genuine impact speed — by the landing tick the
- * player's own {@code deltaMovement.y} has already been collision-clamped to
- * ~0) is reflected upward, scaled by {@code restitution}. The new velocity is
- * pushed to the client via {@code hurtMarked}, the same path vanilla uses for
- * server-applied knockback, so the bounce is applied client-side and feels
- * responsive.
+ * <p>Server-side: each tick we remember the player's Y <b>position</b> and the
+ * per-tick position delta derived from it. On the tick the player transitions
+ * from airborne to on-ground, the larger downward step of the last two ticks
+ * (the previous tick's full in-air step is the genuine impact speed — the
+ * landing tick's own step is truncated at ground contact) is reflected upward,
+ * scaled by {@code restitution}. The new velocity is pushed to the client via
+ * {@code hurtMarked}, the same path vanilla uses for server-applied knockback,
+ * so the bounce is applied client-side and feels responsive.
+ *
+ * <p><b>Why positions and not {@code getDeltaMovement()}:</b> player movement
+ * is client-authoritative — the server never simulates player gravity, and
+ * {@code ServerGamePacketListenerImpl.handleMovePlayer} only <i>reads</i>
+ * {@code deltaMovement} (cheat detection), never writes it. A falling
+ * ServerPlayer therefore reports {@code deltaMovement.y ≈ 0} every tick, so the
+ * first shipped version of this power (which sampled {@code deltaMovement})
+ * never reached {@code min_velocity} and silently no-opped (GitHub #102,
+ * "Slime origin does not bounce"). Positions ARE updated from the client's
+ * move packets, so per-tick position deltas track real fall speed.
  *
  * <p>Impacts below {@code min_velocity} are ignored so walking and small steps
  * don't produce micro-bounces, and the launch is capped at {@code max_velocity}
@@ -41,13 +51,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BounceOnLandPower extends PowerType<BounceOnLandPower.Config> {
 
+    /** Previous-tick absolute Y position, per player — source of the deltas. */
+    private static final Map<UUID, Double> LAST_POS_Y = new ConcurrentHashMap<>();
+
     /**
-     * Previous-tick vertical velocity, per player. On the landing tick the
-     * player's own {@code deltaMovement.y} is already clamped to ~0 by the
-     * ground collision, so the real impact speed is the value we recorded the
-     * tick before.
+     * Previous-tick Y position delta, per player. On the landing tick the
+     * current tick's step is truncated by the ground collision, so the real
+     * impact speed is the full in-air step we recorded the tick before.
      */
-    private static final Map<UUID, Double> LAST_Y = new ConcurrentHashMap<>();
+    private static final Map<UUID, Double> LAST_DELTA_Y = new ConcurrentHashMap<>();
 
     /**
      * Previous-tick ground state, per player — so the bounce fires only on the
@@ -77,10 +89,16 @@ public class BounceOnLandPower extends PowerType<BounceOnLandPower.Config> {
         UUID id = player.getUUID();
         boolean onGroundNow = player.onGround();
         boolean wasOnGround = LAST_ON_GROUND.getOrDefault(id, true);
-        double lastY = LAST_Y.getOrDefault(id, 0.0);
+
+        double y = player.getY();
+        Double lastPosY = LAST_POS_Y.get(id);
+        double deltaNow = lastPosY != null ? y - lastPosY : 0.0;
+        double lastDelta = LAST_DELTA_Y.getOrDefault(id, 0.0);
 
         if (onGroundNow && !wasOnGround && !player.isShiftKeyDown()) {
-            double impact = -lastY; // positive = downward speed at impact
+            // positive = downward speed at impact; the landing tick's own step
+            // is collision-truncated, so prefer the previous tick's full step.
+            double impact = Math.max(-lastDelta, -deltaNow);
             if (impact >= config.minVelocity()) {
                 double bounce = Math.min(impact * config.restitution(), config.maxVelocity());
                 Vec3 v = player.getDeltaMovement();
@@ -94,13 +112,15 @@ public class BounceOnLandPower extends PowerType<BounceOnLandPower.Config> {
             }
         }
 
-        LAST_Y.put(id, player.getDeltaMovement().y);
+        LAST_POS_Y.put(id, y);
+        LAST_DELTA_Y.put(id, deltaNow);
         LAST_ON_GROUND.put(id, onGroundNow);
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        LAST_Y.remove(player.getUUID());
+        LAST_POS_Y.remove(player.getUUID());
+        LAST_DELTA_Y.remove(player.getUUID());
         LAST_ON_GROUND.remove(player.getUUID());
     }
 }

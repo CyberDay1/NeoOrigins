@@ -8,7 +8,8 @@
     "neoorigins:slime_moisture",
     "neoorigins:slime_death_save",
     "neoorigins:slime_level_hp",
-    "neoorigins:slime_no_fall_damage"
+    "neoorigins:slime_no_fall_damage",
+    "neoorigins:slime_bounce"
   ],
   "upgrades": [],
   "tier_powers": [
