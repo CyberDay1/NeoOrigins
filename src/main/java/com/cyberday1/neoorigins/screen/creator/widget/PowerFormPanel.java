@@ -325,15 +325,48 @@ public final class PowerFormPanel {
     }
 
     /** Re-place field widgets against the scroll offset; hide off-view rows.
-     *  Variable-height aware — RefRow expands by its sub-form's row count. */
+     *  Variable-height aware — RefRow expands by its sub-form's row count, and
+     *  any row grows by one line while it shows an inline validation error, so
+     *  the content height is re-derived here too (render() calls this per
+     *  frame to track live-typed validity changes). */
     public void layout() {
         int fieldX = x + FIELD_DX;
         int rowTop = scroll.contentTop();
+        int total = 4;
         for (FieldRow row : rows) {
             int rh = row.height();
             row.reposition(fieldX, rowTop);
             row.setVisible(!rawMode && scroll.rowVisible(rowTop, rh));
             rowTop += rh;
+            total += rh;
+        }
+        if (!rawMode && target != null) scroll.setContentHeight(total);
+    }
+
+    /**
+     * Live count of blocking field errors in the current form (recursive over
+     * sub-forms). In raw mode: 1 when the box isn't a valid JSON object, else 0.
+     * Tabs surface this near the form header; the Save gate re-validates the
+     * whole DRAFT (all powers) via DraftSanity, not just the visible form.
+     */
+    public int errorCount() {
+        if (target == null) return 0;
+        if (rawMode) return rawJsonError() == null ? 0 : 1;
+        int n = 0;
+        for (FieldRow row : rows) n += row.errorCount();
+        return n;
+    }
+
+    /** Raw-mode inline problem, or null when the box holds a JSON object. */
+    private String rawJsonError() {
+        if (rawBox == null) return null;
+        String s = rawBox.getValue().trim();
+        if (s.isEmpty()) return null; // treated as {}
+        try {
+            JsonElement el = JsonParser.parseString(s);
+            return el.isJsonObject() ? null : "must be a JSON object { … }";
+        } catch (RuntimeException e) {
+            return "not valid JSON";
         }
     }
 
@@ -360,10 +393,15 @@ public final class PowerFormPanel {
             if (rawBox != null) target.rawJson = rawBox.getValue();
             return;
         }
-        JsonObject body = new JsonObject();
+        // Patch-don't-replace: seed from the current JSON so keys the form does
+        // not model (common name/description/hidden/required_mods, hand-authored
+        // extras) survive a form edit. Each modeled row then owns its key —
+        // writing its value, or removing the key when the row is unset.
+        JsonObject body = parseObject(target.rawJson);
         for (FieldRow row : rows) {
             JsonElement v = row.toJson();
             if (v != null) body.add(row.fieldName(), v);
+            else body.remove(row.fieldName());
         }
         target.rawJson = body.toString();
     }
@@ -373,10 +411,18 @@ public final class PowerFormPanel {
         Font font = parent.font();
 
         if (rawMode) {
-            g.drawString(font,
-                "Editing this power's config as JSON — the \"type\" is added for you on save.",
-                x + LABEL_DX, y - 10,
-                com.cyberday1.neoorigins.screen.creator.CreatorStyle.TEXT_DIM, false);
+            // Live JSON shape check replaces the hint line while broken, so the
+            // problem is visible where the user is typing (not just at Save).
+            String err = rawJsonError();
+            if (err != null) {
+                g.drawString(font, "✕ " + err, x + LABEL_DX, y - 10,
+                    com.cyberday1.neoorigins.screen.creator.CreatorStyle.ERR, false);
+            } else {
+                g.drawString(font,
+                    "Editing this power's config as JSON — the \"type\" is added for you on save.",
+                    x + LABEL_DX, y - 10,
+                    com.cyberday1.neoorigins.screen.creator.CreatorStyle.TEXT_DIM, false);
+            }
             return;
         }
         if (rows.isEmpty()) {
@@ -385,6 +431,11 @@ public final class PowerFormPanel {
                 x + w / 2, y + 12);
             return;
         }
+
+        // Re-layout each frame: a row's height changes the moment its inline
+        // validation error appears/clears, and widget positions + the scroll
+        // content height must track that immediately (not just on scroll).
+        layout();
 
         scroll.beginClip(g);
         // Field widgets (EditBox/Button) are registered input-only, so we draw

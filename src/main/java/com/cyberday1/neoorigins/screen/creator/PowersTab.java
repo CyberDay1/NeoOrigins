@@ -195,6 +195,14 @@ public final class PowersTab implements CreatorTab {
                     + (rawMode ? "(editing JSON)" : "(editing form)"),
                 x + LABEL_DX, idY, CreatorStyle.TEXT_DIM, false);
         }
+        // Live field-problem counter for THIS power, right-aligned on the id
+        // line — glyph + text so it isn't color-only. Per-field detail renders
+        // inline under each offending widget (PowerFormPanel).
+        int errs = form.errorCount();
+        if (errs > 0) {
+            String e = "✕ " + errs + " field problem" + (errs == 1 ? "" : "s");
+            g.drawString(font, e, x + w - font.width(e) - 8, idY, CreatorStyle.ERR, false);
+        }
         CreatorStyle.divider(g, x + 4, idY + 12, w - 8);
         form.render(g, mouseX, mouseY);
     }

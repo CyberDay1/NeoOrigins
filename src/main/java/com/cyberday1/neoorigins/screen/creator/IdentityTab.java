@@ -172,6 +172,23 @@ public final class IdentityTab implements CreatorTab {
         name.drawLabel(g, font, lx, rowY + rowH + 4);
         description.drawLabel(g, font, lx, rowY + rowH * 2 + 4);
         icon.drawLabel(g, font, lx, rowY + rowH * 3 + 4);
+
+        // Inline validation, live from the widgets (not the draft): a compact
+        // "✕ reason" to the right of the offending box. Glyph prefix keeps it
+        // non-color-only. Same shape rules the server gate enforces, surfaced
+        // at type time instead of at Save.
+        int fieldW = Math.min(w - FIELD_DX - 8, 240);
+        int errX = x + FIELD_DX + fieldW + 6;
+        String idErr = idFieldError(idPath.value().trim());
+        if (idErr != null) {
+            g.drawString(font, "✕ " + idErr, errX, rowY + 4, CreatorStyle.ERR, false);
+        }
+        String iconErr = ResourceLocation.tryParse(icon.value().trim()) == null
+            ? "invalid item id" : null;
+        if (iconErr != null) {
+            g.drawString(font, "✕ " + iconErr, errX, rowY + rowH * 3 + 4,
+                CreatorStyle.ERR, false);
+        }
         g.drawString(font, "Impact", lx, rowY + rowH * 4 + 6, CreatorStyle.LABEL, false);
         order.drawLabel(g, font, lx, rowY + rowH * 5 + 4);
 
@@ -252,6 +269,22 @@ public final class IdentityTab implements CreatorTab {
             d.namespace = raw.substring(0, colon).trim();
             d.idPath = raw.substring(colon + 1).trim();
         }
+    }
+
+    /** Strict datapack-path grammar — mirrors CreatorValidator.SAFE_ID_PATH so
+     *  the inline hint and the server gate agree. */
+    private static final java.util.regex.Pattern SAFE_ID_PATH =
+        java.util.regex.Pattern.compile("[a-z0-9_-]+(?:/[a-z0-9_-]+)*");
+
+    /** Live error for the id field's raw text ("ns:path" or bare path), or null. */
+    private static String idFieldError(String raw) {
+        int colon = raw.indexOf(':');
+        String ns = colon < 0 ? OriginDraft.CUSTOM_NAMESPACE : raw.substring(0, colon).trim();
+        String path = (colon < 0 ? raw : raw.substring(colon + 1)).trim();
+        if (path.isEmpty()) return "required";
+        if (!SAFE_ID_PATH.matcher(path).matches()) return "a-z 0-9 _ - / only";
+        if (!ns.matches("[a-z0-9_.-]+")) return "bad namespace";
+        return null;
     }
 
     @Override

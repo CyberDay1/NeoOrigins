@@ -21,6 +21,10 @@ public final class MobIdentityTab implements MobCreatorTab {
 
     private static final int LABEL_DX = 8, FIELD_DX = 110, ROW_H = 24, BOX_H = 16;
 
+    /** Strict datapack-path grammar — mirrors MobCreatorValidator.SAFE_ID_PATH. */
+    private static final java.util.regex.Pattern SAFE_ID_PATH =
+        java.util.regex.Pattern.compile("[a-z0-9_-]+(?:/[a-z0-9_-]+)*");
+
     private final LabeledField idPath = new LabeledField("id path");
     private final LabeledField name = new LabeledField("name");
     private final LabeledField description = new LabeledField("description");
@@ -270,6 +274,40 @@ public final class MobIdentityTab implements MobCreatorTab {
         g.drawString(font, "Set ONE of: target entity (e.g. minecraft:zombie) "
                 + "or target tag (e.g. minecraft:undead).",
             lx, rowY + ROW_H * 6 + 6, CreatorStyle.TEXT_DIM, false);
+
+        // Inline validation, live from the widgets: compact "✕ reason" to the
+        // right of the offending box (glyph prefix → not color-only). Same
+        // rules MobCreatorValidator enforces at Save, surfaced at type time.
+        int fieldW = Math.min(w - FIELD_DX - 8, 240);
+        int errX = x + FIELD_DX + fieldW + 6;
+        String id = idPath.value().trim();
+        String idErr = id.isEmpty() ? "required"
+            : !SAFE_ID_PATH.matcher(id).matches() ? "a-z 0-9 _ - / only" : null;
+        if (idErr != null) {
+            g.drawString(font, "✕ " + idErr, errX, rowY + 4, CreatorStyle.ERR, false);
+        }
+        if (ResourceLocation.tryParse(icon.value().trim()) == null) {
+            g.drawString(font, "✕ invalid item id", errX, rowY + ROW_H * 3 + 4,
+                CreatorStyle.ERR, false);
+        }
+        boolean hasTarget = !targetType.value().trim().isEmpty()
+            || !targetTag.value().trim().isEmpty();
+        if (!hasTarget) {
+            g.drawString(font, "✕ set a target", errX, rowY + ROW_H * 4 + 4,
+                CreatorStyle.ERR, false);
+        } else {
+            String tv = targetType.value().trim();
+            String gv = targetTag.value().trim();
+            if (!tv.isEmpty() && ResourceLocation.tryParse(tv) == null) {
+                g.drawString(font, "✕ invalid entity id", errX, rowY + ROW_H * 4 + 4,
+                    CreatorStyle.ERR, false);
+            }
+            if (!gv.isEmpty() && ResourceLocation.tryParse(
+                    gv.startsWith("#") ? gv.substring(1) : gv) == null) {
+                g.drawString(font, "✕ invalid tag id", errX, rowY + ROW_H * 5 + 4,
+                    CreatorStyle.ERR, false);
+            }
+        }
 
         String[] tips = {
             "Datapack id (lowercase a-z/0-9/_). Becomes neoorigins_custom:<id>.",

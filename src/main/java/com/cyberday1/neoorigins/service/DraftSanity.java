@@ -164,8 +164,13 @@ public final class DraftSanity {
         catch (RuntimeException e) { return false; }
     }
 
-    /** Full client-side pre-save check: id path + layer + per-power. */
-    public static List<String> draftProblems(RegistryAccess ra, OriginDraft draft) {
+    /**
+     * BLOCKING client-side pre-save problems: id path + layer + per-power.
+     * This is the subset the in-game creator's Save button gates on — every
+     * entry here would also be rejected by the server gate, so blocking
+     * client-side never refuses a draft the server would accept.
+     */
+    public static List<String> blockingProblems(RegistryAccess ra, OriginDraft draft) {
         List<String> out = new ArrayList<>();
         try {
             draft.originId();
@@ -174,8 +179,15 @@ public final class DraftSanity {
                 + "\" is not valid (lowercase a-z, 0-9, _, /, -)");
         }
         if (draft.layerId == null) out.add("no target layer set");
-        if (draft.powers.isEmpty()) out.add("origin has no powers (it will do nothing)");
         out.addAll(powerProblems(ra, draft));
+        return out;
+    }
+
+    /** Full client-side pre-save check: {@link #blockingProblems} + advisory
+     *  warnings (shown in the JSON-tab problems panel, but never Save-blocking). */
+    public static List<String> draftProblems(RegistryAccess ra, OriginDraft draft) {
+        List<String> out = blockingProblems(ra, draft);
+        if (draft.powers.isEmpty()) out.add("origin has no powers (it will do nothing)");
         return out;
     }
 }

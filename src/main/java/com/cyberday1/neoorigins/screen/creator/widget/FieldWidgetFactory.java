@@ -38,6 +38,9 @@ public final class FieldWidgetFactory {
     /** Default height (in pixels) consumed by a single-line FieldRow. */
     public static final int DEFAULT_ROW_H = 22;
 
+    /** Extra height a row consumes while it has an inline validation error. */
+    public static final int ERR_LINE_H = 10;
+
     /** One labelled, value-bearing row in the form. */
     public interface FieldRow {
         String fieldName();
@@ -54,6 +57,17 @@ public final class FieldWidgetFactory {
         default List<String> tooltip() { return List.of(); }
         /** Vertical space (px) the row consumes; multi-row widgets override. */
         default int height() { return DEFAULT_ROW_H; }
+        /**
+         * This row's OWN live validation problem, or {@code null} when the
+         * current widget state is acceptable. Computed from the live widget
+         * value so it updates as the user types/clicks (no save round-trip).
+         * Container rows report only their empty/header-level problem here;
+         * child problems surface through the children themselves (each child
+         * draws its own error line) and are counted via {@link #errorCount()}.
+         */
+        default String validationError() { return null; }
+        /** Recursive count of blocking errors in this row's subtree. */
+        default int errorCount() { return validationError() == null ? 0 : 1; }
         /**
          * Deepest row whose header band contains the cursor, given this row was
          * drawn at {@code (labelX, y)} with its field column ending at
@@ -223,6 +237,41 @@ public final class FieldWidgetFactory {
         @Override public void drawLabel(GuiGraphics g, Font font, int labelX, int y) {
             com.cyberday1.neoorigins.screen.creator.CreatorStyle.label(
                 g, font, spec.name(), labelX, y, spec.required());
+            drawErrorLine(g, font, labelX, y);
+        }
+
+        /**
+         * Inline error line for this row's {@link #validationError()}, drawn
+         * under the widget at the label column. The "✕ " glyph prefix keeps it
+         * non-color-only (accessibility bar); {@link #height()} grows by
+         * {@link #ERR_LINE_H} while an error exists so the line never overlaps
+         * the next row. Leaf rows place it at {@code y + 12} (right under the
+         * 16px widget); rows that need it elsewhere override {@link #errorLineDy()}.
+         */
+        final void drawErrorLine(GuiGraphics g, Font font, int labelX, int y) {
+            String err = validationError();
+            if (err == null) return;
+            g.drawString(font, "✕ " + err, labelX + 4, y + errorLineDy(),
+                com.cyberday1.neoorigins.screen.creator.CreatorStyle.ERR, false);
+        }
+
+        /** Error-line y offset relative to the label y (see {@link #drawErrorLine}). */
+        int errorLineDy() { return 12; }
+
+        /** Single-line leaf height plus the error line when one is showing. */
+        final int leafHeight() {
+            return DEFAULT_ROW_H + (validationError() == null ? 0 : ERR_LINE_H);
+        }
+
+        /**
+         * Shared shape check for an id-bearing text value: tag refs ({@code #ns:path})
+         * have the marker stripped first; returns an error string when the rest
+         * is not a parseable ResourceLocation, else {@code null}.
+         */
+        static String idShapeError(String s) {
+            String bare = s.startsWith("#") ? s.substring(1) : s;
+            return net.minecraft.resources.ResourceLocation.tryParse(bare) == null
+                ? "not a valid id (namespace:path)" : null;
         }
         @Override public List<String> tooltip() {
             List<String> t = new java.util.ArrayList<>();
@@ -285,6 +334,8 @@ public final class FieldWidgetFactory {
                 }
                 default -> { }
             }
+            String err = validationError();
+            if (err != null) t.add("✕ " + err);
             return t;
         }
         private static String fmt(Double d) {
@@ -374,6 +425,27 @@ public final class FieldWidgetFactory {
             box.setValue(el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()
                 ? el.getAsString() : el.toString());
         }
+        @Override public String validationError() {
+            if (box == null) return null;
+            String s = box.getValue().trim();
+            if (s.isEmpty()) return spec.required() ? "required" : null;
+            if (rawJson) {
+                try { JsonParser.parseString(s); }
+                catch (RuntimeException e) { return "not valid JSON"; }
+                return null;
+            }
+            // Registry-id-shaped fields (item, block, particle, …): a value that
+            // can't even parse as a ResourceLocation would silently no-op at
+            // load, so flag the shape here. Existence is checked at Save (the
+            // registry scan in DraftSanity) — shape-only keeps this cheap and
+            // never false-flags modded/datapack ids.
+            if (com.cyberday1.neoorigins.screen.creator.CreatorAssets
+                    .registryKind(spec.name()) != null) {
+                return idShapeError(s);
+            }
+            return null;
+        }
+        @Override public int height() { return leafHeight(); }
     }
 
     // ── boolean ─────────────────────────────────────────────────────────────
@@ -434,6 +506,10 @@ public final class FieldWidgetFactory {
             }
             if (button != null) button.setMessage(label());
         }
+        @Override public String validationError() {
+            return spec.required() && values.get(idx).isEmpty() ? "required" : null;
+        }
+        @Override public int height() { return leafHeight(); }
     }
 
     // ── enum (search picker — for large enums) ──────────────────────────────
@@ -487,6 +563,10 @@ public final class FieldWidgetFactory {
             current = (el != null && el.isJsonPrimitive()) ? el.getAsString() : "";
             if (button != null) button.setMessage(label());
         }
+        @Override public String validationError() {
+            return spec.required() && current.isEmpty() ? "required — click to pick" : null;
+        }
+        @Override public int height() { return leafHeight(); }
     }
 
     // ── REF (entity_action / condition with inline sub-form) ────────────────
@@ -583,9 +663,23 @@ public final class FieldWidgetFactory {
         }
 
         @Override public int height() {
-            int h = HEADER_H;
+            // Own error only exists while no type is picked → no sub-rows, so
+            // the error line under the header never collides with children.
+            int h = HEADER_H + (validationError() == null ? 0 : ERR_LINE_H);
             for (FieldRow sub : subRows) h += sub.height();
             return h;
+        }
+
+        @Override public String validationError() {
+            return spec.required() && currentType.isEmpty()
+                ? "required — pick a " + (refKind == null ? "type" : refKind.replace('_', ' '))
+                : null;
+        }
+
+        @Override public int errorCount() {
+            int n = validationError() == null ? 0 : 1;
+            for (FieldRow sub : subRows) n += sub.errorCount();
+            return n;
         }
 
         @Override public void reposition(int fieldX, int y) {
@@ -732,9 +826,22 @@ public final class FieldWidgetFactory {
         }
 
         @Override public int height() {
-            int h = HEADER_H;
+            // Own error only exists while the list is empty (see validationError),
+            // so the error line under the header never collides with items.
+            int h = HEADER_H + (validationError() == null ? 0 : ERR_LINE_H);
             for (RefRow item : items) h += item.height();
             return h;
+        }
+
+        @Override public String validationError() {
+            return spec.required() && items.isEmpty() && pendingAdds.isEmpty()
+                ? "required — add at least one" : null;
+        }
+
+        @Override public int errorCount() {
+            int n = validationError() == null ? 0 : 1;
+            for (RefRow item : items) n += item.errorCount();
+            return n;
         }
 
         @Override public void reposition(int fieldX, int y) {
@@ -870,7 +977,26 @@ public final class FieldWidgetFactory {
         }
 
         @Override public int height() {
-            return HEADER_H + boxes.size() * ROW_H;
+            return HEADER_H + boxes.size() * ROW_H
+                + (validationError() == null ? 0 : ERR_LINE_H);
+        }
+
+        @Override public String validationError() {
+            if (spec.required() && boxes.isEmpty() && pendingAdds.isEmpty()) {
+                return "required — add at least one";
+            }
+            for (int i = 0; i < boxes.size(); i++) {
+                String v = boxes.get(i).getValue().trim();
+                if (!v.isEmpty() && idShapeError(v) != null) {
+                    return "entry " + (i + 1) + ": " + idShapeError(v);
+                }
+            }
+            return null;
+        }
+
+        /** Entries follow the header, so the error line goes after the LAST entry. */
+        @Override int errorLineDy() {
+            return boxes.isEmpty() ? 12 : HEADER_H - 4 + boxes.size() * ROW_H;
         }
 
         @Override public void reposition(int fieldX, int y) {
@@ -992,9 +1118,21 @@ public final class FieldWidgetFactory {
         }
 
         @Override public int height() {
-            int h = HEADER_H;
+            // Own error only exists while the list is empty (see validationError).
+            int h = HEADER_H + (validationError() == null ? 0 : ERR_LINE_H);
             for (ObjectRow row : items) h += ENTRY_GAP + row.height();
             return h;
+        }
+
+        @Override public String validationError() {
+            return spec.required() && items.isEmpty() && pendingAdds == 0
+                ? "required — add at least one" : null;
+        }
+
+        @Override public int errorCount() {
+            int n = validationError() == null ? 0 : 1;
+            for (ObjectRow row : items) n += row.errorCount();
+            return n;
         }
 
         @Override public void reposition(int fieldX, int y) {
@@ -1120,6 +1258,12 @@ public final class FieldWidgetFactory {
             int h = HEADER_H;
             for (FieldRow sub : subRows) h += sub.height();
             return h;
+        }
+
+        @Override public int errorCount() {
+            int n = 0;
+            for (FieldRow sub : subRows) n += sub.errorCount();
+            return n;
         }
 
         @Override public void reposition(int fieldX, int y) {
@@ -1275,5 +1419,35 @@ public final class FieldWidgetFactory {
             }
             if (modeToggle != null) modeToggle.setMessage(modeLabel());
         }
+
+        @Override public String validationError() {
+            if (box == null) return null;
+            String raw = box.getValue().trim();
+            if (raw.isEmpty()) return spec.required() ? "required" : null;
+            if (random) {
+                String[] parts = raw.split(",", 2);
+                if (parts.length != 2 || parts[1].isBlank()) return "enter \"min, max\"";
+                Number lo = parse(parts[0]), hi = parse(parts[1]);
+                if (lo == null || hi == null) {
+                    return integral ? "min and max must be whole numbers"
+                                    : "min and max must be numbers";
+                }
+                if (lo.doubleValue() > hi.doubleValue()) return "min is greater than max";
+                return rangeError(lo.doubleValue()) != null
+                    ? rangeError(lo.doubleValue()) : rangeError(hi.doubleValue());
+            }
+            Number n = parse(raw);
+            if (n == null) return integral ? "enter a whole number" : "enter a number";
+            return rangeError(n.doubleValue());
+        }
+
+        /** Schema min/max bounds check (either bound may be absent). */
+        private String rangeError(double v) {
+            if (spec.min() != null && v < spec.min()) return "must be at least " + Base.fmt(spec.min());
+            if (spec.max() != null && v > spec.max()) return "must be at most " + Base.fmt(spec.max());
+            return null;
+        }
+
+        @Override public int height() { return leafHeight(); }
     }
 }

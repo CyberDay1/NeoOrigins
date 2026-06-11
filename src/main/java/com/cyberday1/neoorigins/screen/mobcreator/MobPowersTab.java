@@ -187,6 +187,12 @@ public final class MobPowersTab implements MobCreatorTab {
                     + (rawMode ? "(editing JSON)" : "(editing form)"),
                 x + LABEL_DX, idY, CreatorStyle.TEXT_DIM, false);
         }
+        // Live field-problem counter for THIS power (mirrors PowersTab).
+        int errs = form.errorCount();
+        if (errs > 0) {
+            String e = "✕ " + errs + " field problem" + (errs == 1 ? "" : "s");
+            g.drawString(font, e, x + w - font.width(e) - 8, idY, CreatorStyle.ERR, false);
+        }
         CreatorStyle.divider(g, x + 4, idY + 12, w - 8);
         form.render(g, mouseX, mouseY);
     }
