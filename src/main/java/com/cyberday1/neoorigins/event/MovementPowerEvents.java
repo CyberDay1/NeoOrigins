@@ -31,8 +31,12 @@ public class MovementPowerEvents {
                 config.innerPower().getPath().contains("no_fall"))) {
             event.setCanceled(true);
         }
+        // Publish the cancellable LivingFallEvent itself as the LAND context so
+        // neoorigins:cancel_event can negate the fall damage (generic
+        // ICancellableEvent branch). Previously this passed the raw fall
+        // distance, which nothing consumed and which made cancel_event a no-op.
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND, event.getDistance());
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND, event);
         // MOD_FALL_DAMAGE scales the fall-damage multiplier. Chains on the
         // event's current multiplier so it stacks with feather-falling etc.
         float fallMult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(

@@ -831,7 +831,10 @@ public final class BuiltinPowers {
                 .doc("POWER_ACTIVATED filter: only fire when the activated power's id matches. Single id string or array of ids (e.g. 'neoorigins:ground_slam'). Omit to fire on ANY power activation. Ignored on other events."),
             new FieldSpec("immunity_ticks", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
-                .doc("EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace).")));
+                .doc("EFFECT_APPLIED only: after a successful cleanse (action cancels the event), grant this many ticks of full immunity to the same effect id before re-rolling. 20 = 1s; default 0 (no grace)."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("After entity_action fires, suppress further firings of this power for this many ticks (20 = 1s); default 0 = no cooldown. Only gates the action path — modifier chains are unaffected.")));
 
         // ── Group A — batch 2 (required↔optional flips: schema disagreed) ─────
         // These three powers' hand-rolled codecs treat as OPTIONAL a field the
@@ -1167,11 +1170,14 @@ public final class BuiltinPowers {
             new FieldSpec("regen_condition", Kind.REF, false).ref("condition.schema.json").doc("Optional EntityCondition gating regen; defaults always-true."),
             new FieldSpec("min_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches min."),
             new FieldSpec("max_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches max."),
+            new FieldSpec("hidden", Kind.BOOLEAN, false).def(false).doc("When true, hides the bar from the HUD (mechanics still apply)."),
             new FieldSpec("hud_render", Kind.OBJECT, false).virtualObject(
                 new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
                 new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color (hex, e.g. #55AAFF)."),
-                new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."))
-                .doc("Nested HUD-render block; its keys map to flat label/color/hidden components.")));
+                new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."),
+                new FieldSpec("animated", Kind.STRING, false).boundTo("animated").def("").doc("Animated bar-FX preset id (e.g. neoorigins:fire); empty = static bar."),
+                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted."))
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint components.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

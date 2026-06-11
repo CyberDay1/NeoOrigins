@@ -83,6 +83,17 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         // probabilistic cancels (random_chance gates) so a successful "cleanse"
         // sticks for a beat instead of re-rolling on every bite.
         int immunityTicks,
+        // Re-fire suppression window in ticks. When >0, after the entity_action
+        // fires the action path goes inert for this power instance until the
+        // cooldown elapses. Stored per-player in PlayerOriginData customFloats
+        // keyed by the injected _power_id (the PreventDeathPower pattern), so
+        // it survives respawn/relog and two action_on_event powers never share
+        // a timer. The modifier path is NOT gated — cooldowns only make sense
+        // for one-shot side effects, not value chains.
+        int cooldownTicks,
+        // Injected per power file by PowerDataManager (`_power_id`); uniquely
+        // identifies THIS power instance for cooldown-state keying.
+        String powerId,
         String type
     ) implements PowerConfiguration {
 
@@ -152,6 +163,12 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     ? Math.max(0, obj.get("immunity_ticks").getAsInt())
                     : 0;
 
+                int cooldown = (obj.has("cooldown_ticks") && obj.get("cooldown_ticks").isJsonPrimitive())
+                    ? Math.max(0, obj.get("cooldown_ticks").getAsInt())
+                    : 0;
+                String pid = obj.has("_power_id")
+                    ? obj.get("_power_id").getAsString() : "neoorigins:action_on_event";
+
                 // Optional POWER_ACTIVATED filter: `power` is a single power id
                 // or an array of ids. Unparseable ids are skipped with a warn so
                 // a typo narrows the filter instead of silently matching all.
@@ -177,7 +194,7 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
 
                 return DataResult.success(Pair.of(
                     new Config(ev, cond, action, modifier, blockCond,
-                        effectFilter, effectTagFilter, powerFilter, immunity, t),
+                        effectFilter, effectTagFilter, powerFilter, immunity, cooldown, pid, t),
                     ops.empty()));
             }
 
@@ -254,7 +271,21 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                         if (pos == null) return;
                         if (!config.blockCondition().get().test(sp, pos)) return;
                     }
+                    // cooldown_ticks gate: after the action fires, suppress
+                    // re-fires for this power instance until the persisted
+                    // per-player timer (decremented in onTick) runs out.
+                    // Checked LAST so a suppressed dispatch is exactly "all
+                    // gates passed but the timer is still running".
+                    if (config.cooldownTicks() > 0) {
+                        var data = sp.getData(
+                            com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                        if (data.getCustomFloat(cooldownKey(config), 0) > 0) return;
+                    }
                     config.action().execute(sp);
+                    if (config.cooldownTicks() > 0) {
+                        sp.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData())
+                            .setCustomFloat(cooldownKey(config), config.cooldownTicks());
+                    }
                     // Post-action grace: if this is an EFFECT_APPLIED dispatch
                     // AND the action actually cancelled it (setResult = DO_NOT_APPLY)
                     // AND the author asked for immunity_ticks, open the window so
@@ -314,16 +345,42 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         return null;
     }
 
+    /** Cooldown-state key in PlayerOriginData customFloats — per power instance
+     *  (keyed by the injected _power_id), mirroring PreventDeathPower. */
+    private static String cooldownKey(Config config) {
+        return "action_on_event_cd:" + config.powerId();
+    }
+
+    /** Decrement the persisted cooldown timer, PreventDeathPower-style. */
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (config.cooldownTicks() <= 0) return;
+        var data = player.getData(
+            com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+        float remaining = data.getCustomFloat(cooldownKey(config), 0);
+        if (remaining > 0) {
+            data.setCustomFloat(cooldownKey(config), remaining - 1);
+        }
+    }
+
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         var perConfig = tokens.get(player.getUUID());
-        if (perConfig == null) return;
-        Tokens t = perConfig.remove(config);
-        if (t != null) {
-            EventPowerIndex.unregister(t.action());
-            EventPowerIndex.unregister(t.modifier());
+        if (perConfig != null) {
+            Tokens t = perConfig.remove(config);
+            if (t != null) {
+                EventPowerIndex.unregister(t.action());
+                EventPowerIndex.unregister(t.modifier());
+            }
+            if (perConfig.isEmpty()) tokens.remove(player.getUUID());
         }
-        if (perConfig.isEmpty()) tokens.remove(player.getUUID());
+        // Clear the persisted cooldown so a stale timer doesn't carry over to
+        // the next holder of this power id (origin change / orb reroll) —
+        // same reasoning as PreventDeathPower.onRevoked.
+        if (config.cooldownTicks() > 0) {
+            player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData())
+                .setCustomFloat(cooldownKey(config), 0);
+        }
     }
 
     /**
