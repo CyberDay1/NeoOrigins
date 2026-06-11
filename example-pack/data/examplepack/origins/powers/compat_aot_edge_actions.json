@@ -1,0 +1,22 @@
+{
+  "type": "apoli:action_over_time",
+  "name": "Compat Fixture: Edge Actions",
+  "description": "Harness fixture: apoli:-prefixed action_over_time exercising rising_action/falling_action edge transitions.",
+  "hidden": true,
+  "condition": { "type": "apoli:submerged_in_water" },
+  "rising_action": {
+    "type": "apoli:apply_effect",
+    "effect": "minecraft:water_breathing",
+    "duration": 100,
+    "amplifier": 0
+  },
+  "falling_action": {
+    "type": "apoli:exhaust",
+    "amount": 0.5
+  },
+  "entity_action": {
+    "type": "apoli:heal",
+    "amount": 1.0
+  },
+  "interval": 40
+}

@@ -1,0 +1,6 @@
+{
+  "type": "apoli:climbing",
+  "name": "Compat Fixture: Apoli Prefix",
+  "description": "Harness fixture: apoli:-prefixed power type that must canonicalize to origins: and translate via Route A.",
+  "hidden": true
+}

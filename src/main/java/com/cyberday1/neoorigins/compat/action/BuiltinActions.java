@@ -386,6 +386,26 @@ public final class BuiltinActions {
                     bic.event().setCanceled(true);
                     return;
                 }
+                // HitTakenContext / KillContext / ProjectileHitContext carry
+                // the cancellable wrapper event for the hit_taken, kill and
+                // projectile_hit dispatches. The death / land / attack /
+                // block_break / block_place dispatches publish the NeoForge
+                // event itself and are handled by the generic branch below.
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc
+                    && htc.event() != null) {
+                    htc.event().setCanceled(true);
+                    return;
+                }
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.KillContext kc
+                    && kc.event() != null) {
+                    kc.event().setCanceled(true);
+                    return;
+                }
+                if (actionCtx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc
+                    && phc.event() != null) {
+                    phc.event().setCanceled(true);
+                    return;
+                }
                 if (actionCtx instanceof net.neoforged.bus.api.ICancellableEvent ce) {
                     ce.setCanceled(true);
                 }
@@ -1167,8 +1187,9 @@ public final class BuiltinActions {
 
         // and — run every action in `actions` in order. Lift-and-shift of parseAnd.
         // The inner actions are parsed once at load via ActionParser.parse with the
-        // same dispatch contextId.
-        define("and",
+        // same dispatch contextId. `all_of` is the Apoli 2.9+ rename of the `and`
+        // meta action (there is no any_of action) — alias, same factory.
+        define("and", List.of("all_of"),
             (json, ctx) -> {
                 com.google.gson.JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new com.google.gson.JsonArray();
                 List<EntityAction> actions = new java.util.ArrayList<>();
@@ -1930,43 +1951,75 @@ public final class BuiltinActions {
             (json, ctx) -> {
                 String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
                 if (resourceId == null) return EntityAction.noop();
-                if (resourceId.contains("*")) {
-                    NeoOrigins.LOGGER.warn(
-                        "[CompatB] change_resource references '{}' — the '*' wildcard is NOT resolved for resources; " +
-                        "use the full namespaced power id, or this targets a non-existent resource key.", resourceId);
+                // Apoli-derivative packs (Origins++, Medieval Origins Revival, etc.)
+                // ship origins:modify_resource as a nested {"modifier": {"operation":
+                // ..., "amount": ...}} shape rather than the flat {"operation",
+                // "change"} we author internally. Accept both layouts so aliased
+                // dispatch works without per-pack JSON edits.
+                String operation;
+                int change;
+                if (json.has("modifier") && json.get("modifier").isJsonObject()) {
+                    com.google.gson.JsonObject mod = json.getAsJsonObject("modifier");
+                    operation = mod.has("operation") ? mod.get("operation").getAsString() : "add";
+                    change = mod.has("amount") ? mod.get("amount").getAsInt()
+                          : mod.has("value")  ? mod.get("value").getAsInt()
+                          : 0;
+                } else {
+                    operation = json.has("operation") ? json.get("operation").getAsString() : "add";
+                    change = json.has("change") ? json.get("change").getAsInt() : 0;
                 }
-                String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
-                int change = json.has("change") ? json.get("change").getAsInt() : 0;
+                // Apoli's operation vocabulary maps onto our two ops. add_base_early /
+                // add_base / addition / add_value / multiply_* all reduce to additive
+                // for an integer resource (multipliers don't make sense at the bar
+                // level — Origins authors fold scaling into the amount). set_total /
+                // set / set_value snap to absolute. Anything else falls through to
+                // additive.
+                operation = switch (operation) {
+                    case "set_total", "set_value", "set" -> "set";
+                    default -> "add";
+                };
+                final int fChange = change;
                 final String key = resourceId;
-                return switch (operation) {
-                    case "add" -> player -> {
+                // Wildcard write semantics: apply to every key currently matching
+                // the selector (`*` glob; see ResourceState.matchingKeys). If no
+                // key matches yet, the action is a no-op — pack authors should
+                // ensure the matching resource power has been granted (and thus
+                // seeded) before the wildcard write fires.
+                final boolean wildcard = com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key);
+                if ("set".equals(operation)) {
+                    return player -> {
+                        var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
+                        if (wildcard) state.setAll(key, fChange);
+                        else state.set(key, fChange);
+                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
+                    };
+                }
+                return player -> {
+                    var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
+                    if (wildcard) {
+                        for (String k : state.matchingKeys(key)) {
+                            var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(k);
+                            int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
+                            int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
+                            state.clampedAdd(k, fChange, lo, hi);
+                        }
+                    } else {
                         var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
                         int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
                         int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
-                        player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
-                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
-                    };
-                    case "set" -> player -> {
-                        player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).set(key, change);
-                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
-                    };
-                    default -> player -> {
-                        var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
-                        int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
-                        int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
-                        player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).clampedAdd(key, change, lo, hi);
-                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
-                    };
+                        state.clampedAdd(key, fChange, lo, hi);
+                    }
+                    com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                 };
             },
             List.of(
                 new FieldSpec("resource", FormFieldSpec.Kind.STRING, false)
-                    .doc("Resource power id (matches the bar's defining power)."),
+                    .doc("Resource power id (matches the bar's defining power). `*` globs match any stored resource key."),
                 new FieldSpec("operation", FormFieldSpec.Kind.ENUM, false).def("add")
                     .options("add", "set")
-                    .doc("add (default) clamps within bar bounds; set assigns directly."),
+                    .doc("add (default) clamps within bar bounds; set assigns directly. Apoli synonyms (add_base, set_total, ...) are accepted."),
                 new FieldSpec("change", FormFieldSpec.Kind.INTEGER, false).def(0)
-                    .doc("Amount to add or value to set (default 0).")));
+                    .doc("Amount to add or value to set (default 0). Apoli's nested `modifier` {operation, amount} shape is also accepted.")));
 
         // set_resource — assign a resource-bar value directly (no clamp). Lift-and-
         // shift of parseSetResource. `resource` required-ish but parser silently
@@ -1976,16 +2029,16 @@ public final class BuiltinActions {
             (json, ctx) -> {
                 String resourceId = json.has("resource") ? json.get("resource").getAsString() : null;
                 if (resourceId == null) return EntityAction.noop();
-                if (resourceId.contains("*")) {
-                    NeoOrigins.LOGGER.warn(
-                        "[CompatB] set_resource references '{}' — the '*' wildcard is NOT resolved for resources; " +
-                        "use the full namespaced power id, or this targets a non-existent resource key.", resourceId);
-                }
                 int value = json.has("value") ? json.get("value").getAsInt()
                            : json.has("change") ? json.get("change").getAsInt() : 0;
                 final String key = resourceId;
+                // `*` glob selectors write every matching stored key (no-op when
+                // nothing matches yet) — see ResourceState.matchingKeys.
+                final boolean wildcard = com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key);
                 return player -> {
-                    player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).set(key, value);
+                    var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
+                    if (wildcard) state.setAll(key, value);
+                    else state.set(key, value);
                     com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                 };
             },
@@ -2436,10 +2489,14 @@ public final class BuiltinActions {
                     .doc("Action when an entity is hit (with the hit entity as target context)."),
                 new FieldSpec("miss_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Action when nothing is hit within range."),
+                new FieldSpec("before_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Entity action run once before the ray is cast, regardless of hit outcome (e.g. consume a reagent)."),
                 new FieldSpec("command_along_ray", FormFieldSpec.Kind.STRING, false)
                     .doc("Optional command run at each step along the ray (fires regardless of hit)."),
                 new FieldSpec("command_step", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
-                    .doc("Block increment between command_along_ray executions (default 1).")));
+                    .doc("Block increment between command_along_ray executions (default 1)."),
+                new FieldSpec("command_at_hit", FormFieldSpec.Kind.STRING, false)
+                    .doc("Optional command run at the precise impact point when the ray hits a block or entity.")));
 
         // equipped_item_action — read a slot's stack and run an ItemAction on it.
         define("equipped_item_action",

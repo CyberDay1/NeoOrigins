@@ -6,6 +6,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Normalizes Origins-format origin JSONs to NeoOrigins format.
  * Safe to call on both Origins-format and already-valid NeoOrigins-format origins;
@@ -14,6 +17,29 @@ import net.minecraft.resources.ResourceLocation;
 public final class OriginsOriginTranslator {
 
     private OriginsOriginTranslator() {}
+
+    /**
+     * Top-level keys that doNormalize actively translates or re-emits itself.
+     * These must NOT also be copied raw, or the translated value would be
+     * overwritten/duplicated. Everything outside this set is passed through
+     * verbatim so native NeoOrigins fields (tier_powers, required_mods,
+     * spawn_location, ...) and future additions survive translation of
+     * hybrid or Origins-format packs. The native CODEC ignores keys it
+     * doesn't know, so unknown Origins-only keys (e.g. loading_priority)
+     * are harmless when passed through.
+     */
+    private static final Set<String> HANDLED_KEYS = Set.of(
+        "name",        // re-emitted via extractLiteralOrDerive
+        "description", // re-emitted via extractLiteralOrDerive
+        "icon",        // re-emitted as-is when present
+        "impact",      // int → string translation
+        "hidden",      // Origins-only: renamed to "unchoosable" — must not leak raw
+        "unchoosable", // re-emitted (native spelling)
+        "order",       // re-emitted as-is
+        "special",     // re-emitted as-is
+        "upgrades",    // re-emitted as-is
+        "powers"       // multiple-power IDs rewritten to synthetic sub-power IDs
+    );
 
     /**
      * Normalize an origin JSON (Origins or NeoOrigins format) to NeoOrigins format.
@@ -99,6 +125,15 @@ public final class OriginsOriginTranslator {
                 }
             }
             out.add("powers", translatedPowers);
+        }
+
+        // ---- pass through all remaining keys verbatim ----
+        // Anything not actively translated above is copied as-is so native
+        // NeoOrigins fields and future keys are not silently dropped.
+        for (Map.Entry<String, JsonElement> entry : src.entrySet()) {
+            if (!HANDLED_KEYS.contains(entry.getKey())) {
+                out.add(entry.getKey(), entry.getValue());
+            }
         }
 
         return out;

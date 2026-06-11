@@ -79,6 +79,96 @@ public class CompatAttachments {
         public void clearDirty() { dirty = false; }
 
         public Map<String, Integer> getAll() { return Map.copyOf(values); }
+
+        // ---- Wildcard support ----
+        // Apoli-derivative packs (Origins++, Medieval Origins Revival, etc.)
+        // commonly write resource selectors with `*` segments — for example
+        // `*:*_flight_resource` to mean "any flight-resource bar in any
+        // namespace". Without wildcard support these never match anything,
+        // which silently breaks gameplay (Pixie's flight resource bar,
+        // Soul Seer's antivore, the Origins++ teleport ray).
+
+        /** True if the selector contains a `*` glob segment. */
+        public static boolean isWildcard(String selector) {
+            return selector != null && selector.indexOf('*') >= 0;
+        }
+
+        /**
+         * Returns all stored keys that glob-match the selector. `*` matches
+         * any run of characters (including the empty run). Used for reads
+         * and bulk writes against wildcard selectors.
+         *
+         * <p>Two-pass match: first the strict glob, then a second pass that
+         * normalises path separators (`/` → `_`) on each key before testing
+         * the same pattern. The second pass exists because Apoli-derivative
+         * packs commonly author selectors like `*:*_flight_resource` that
+         * expect to match a power's flat name (e.g. `flight_resource`),
+         * but our synthetic-ID format from {@code origins:multiple}
+         * expansion uses `/` as the segment separator
+         * ({@code pixie/flight/flight_resource}). Without the normalisation
+         * the pattern silently never matches and wildcard writes are no-ops.
+         */
+        public java.util.List<String> matchingKeys(String selector) {
+            if (!isWildcard(selector)) {
+                return values.containsKey(selector) ? java.util.List.of(selector) : java.util.List.of();
+            }
+            java.util.regex.Pattern p = globToPattern(selector);
+            java.util.List<String> out = new java.util.ArrayList<>();
+            for (String k : values.keySet()) {
+                if (p.matcher(k).matches() || p.matcher(k.replace('/', '_')).matches()) {
+                    out.add(k);
+                }
+            }
+            return out;
+        }
+
+        /** First matching value, or the default if no key matches. */
+        public int getAny(String selector, int defaultValue) {
+            if (!isWildcard(selector)) return get(selector, defaultValue);
+            java.util.regex.Pattern p = globToPattern(selector);
+            for (var entry : values.entrySet()) {
+                String k = entry.getKey();
+                if (p.matcher(k).matches() || p.matcher(k.replace('/', '_')).matches()) {
+                    return entry.getValue();
+                }
+            }
+            return defaultValue;
+        }
+
+        /** Apply a delta to every key matching the selector. No-op if none match. */
+        public void clampedAddAll(String selector, int delta, int min, int max) {
+            for (String k : matchingKeys(selector)) {
+                clampedAdd(k, delta, min, max);
+            }
+        }
+
+        /** Set every matching key to the same value. */
+        public void setAll(String selector, int value) {
+            for (String k : matchingKeys(selector)) set(k, value);
+        }
+
+        // Compiled patterns are cached to avoid recompiling the regex on
+        // every condition test / action dispatch. Selectors are pack-defined
+        // and low-cardinality (typically <50 unique strings), so the cache
+        // stays small. Concurrent because resource-state reads can fire from
+        // multiple ticks scheduled in parallel; ConcurrentHashMap is fine
+        // for this read-mostly workload.
+        private static final java.util.concurrent.ConcurrentHashMap<String, java.util.regex.Pattern> GLOB_PATTERN_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+        private static java.util.regex.Pattern globToPattern(String glob) {
+            return GLOB_PATTERN_CACHE.computeIfAbsent(glob, g -> {
+                StringBuilder sb = new StringBuilder("^");
+                for (int i = 0; i < g.length(); i++) {
+                    char c = g.charAt(i);
+                    if (c == '*')      sb.append(".*");
+                    else if ("\\.[]{}()+-?^$|".indexOf(c) >= 0) sb.append('\\').append(c);
+                    else               sb.append(c);
+                }
+                sb.append('$');
+                return java.util.regex.Pattern.compile(sb.toString());
+            });
+        }
     }
 
     /**

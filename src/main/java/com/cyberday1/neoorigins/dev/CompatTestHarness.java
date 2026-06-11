@@ -209,7 +209,11 @@ public final class CompatTestHarness {
     }
 
     private static void processJson(ResourceLocation id, JsonObject json, String path, List<Finding> findings) {
-        String type = OriginsFormatDetector.getType(json);
+        // Canonicalize apoli:/apugli: power types to origins: first, mirroring
+        // the runtime loaders (PowerDataManager and OriginsCompatPowerLoader
+        // both canonicalize before dispatch). Without this, apoli:-prefixed
+        // packs FAIL validation here even though the runtime handles them.
+        String type = OriginsFormatDetector.canonicalizePowerType(json);
         if (type == null || type.isBlank()) {
             // No type field — might be a layer or origin file that snuck in
             return;
@@ -476,11 +480,12 @@ public final class CompatTestHarness {
         return cats.isEmpty() ? "-" : String.join(",", cats);
     }
 
-    /** Entity action/condition canonicalization — mirrors ActionParser/ConditionParser. */
+    /** Entity action/condition canonicalization — mirrors ActionParser/ConditionParser
+     *  (generic namespace fallback: any non-neoorigins prefix rewrites to the leaf). */
     private static String canonEntity(String type) {
         if (type.isEmpty()) return type;
         if (type.indexOf(':') < 0) return "neoorigins:" + type;
-        if (type.startsWith("origins:") || type.startsWith("apace:"))
+        if (!type.startsWith("neoorigins:"))
             return "neoorigins:" + type.substring(type.indexOf(':') + 1);
         return type;
     }

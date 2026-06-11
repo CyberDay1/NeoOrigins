@@ -77,7 +77,13 @@ public final class ActionParser {
         // even though the identical neoorigins: handler exists.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             type = "neoorigins:" + type;
-        } else if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
+        } else if (!type.isEmpty() && !type.startsWith("neoorigins:")) {
+            // Generic namespace fallback — any non-canonical prefix rewrites to
+            // neoorigins:<leaf>. Lets `medievalorigins:execute_command`,
+            // `apugli:foo` etc. dispatch to the neoorigins:* handler without
+            // per-mod alias tables. Earlier versions whitelisted
+            // origins/apace/apoli only, silently no-oping actions from other
+            // Apoli-derivative namespaces.
             String canonical = "neoorigins:" + type.substring(type.indexOf(':') + 1);
             com.cyberday1.neoorigins.compat.LegacyVerbWarning.warn(type, canonical);
             type = canonical;
