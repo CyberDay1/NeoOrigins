@@ -264,7 +264,11 @@ public class CombatPowerEvents {
             // attacker_action_when_hit lambdas can resolve the attacker via
             // their parsed bientity_action — that path doesn't go through
             // EventPowerIndex.dispatch and previously had no context wiring.
-            var hitCtx = new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(amount, event.getSource());
+            // Pass the cancellable LivingIncomingDamageEvent through the context
+            // so neoorigins:cancel_event can negate the hit (tester report:
+            // cancel_event was a no-op on hit_taken).
+            var hitCtx = new com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext(
+                amount, event.getSource(), event);
             Object prevCtx = com.cyberday1.neoorigins.service.ActionContextHolder.set(hitCtx);
             try {
                 ActiveOriginService.forEach(sp, holder -> holder.onHit(sp, amount));
@@ -275,6 +279,10 @@ public class CombatPowerEvents {
                 sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.HIT_TAKEN,
                 hitCtx);
+            // A HIT_TAKEN handler may have cancelled the event via
+            // neoorigins:cancel_event — the hit never landed, so skip the
+            // post-hit reactions (thorns) too.
+            if (event.isCanceled()) return;
             // thorns_aura moved to action_on_event with a damage_attacker
             // entity_action (reads HitTakenContext.amount × amount_ratio).
             // The HIT_TAKEN dispatch above runs any such powers.
@@ -398,10 +406,22 @@ public class CombatPowerEvents {
             }
         }
 
-        // Dispatch DEATH event for the dying player (if applicable)
+        // Dispatch DEATH event for the dying player (if applicable). The
+        // cancellable LivingDeathEvent itself is the context, so
+        // neoorigins:cancel_event can veto the death (tester report: the
+        // dispatch used to carry no context, making cancel_event a silent
+        // no-op on event=death).
         if (event.getEntity() instanceof ServerPlayer dyingSp) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
-                dyingSp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DEATH);
+                dyingSp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DEATH, event);
+            if (event.isCanceled()) {
+                // Death was vetoed but the player is still at <= 0 HP — patch
+                // health to a small positive value (totem/prevent_death
+                // pattern, see PreventDeathPower.shouldPreventDeath) so they
+                // don't sit dead-at-0 and re-die next tick.
+                if (dyingSp.getHealth() <= 0.0f) dyingSp.setHealth(1.0f);
+                return;
+            }
             // ExtraInventoryPower drop-on-death: drop or clear extra inventory contents.
             handleExtraInventoryDeath(dyingSp);
         }
@@ -413,7 +433,13 @@ public class CombatPowerEvents {
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp,
             com.cyberday1.neoorigins.service.EventPowerIndex.Event.KILL,
-            new com.cyberday1.neoorigins.service.EventPowerIndex.KillContext(killed));
+            new com.cyberday1.neoorigins.service.EventPowerIndex.KillContext(killed, event));
+        // A KILL handler may have spared the victim via cancel_event — patch
+        // its health like the DEATH path above and skip the kill bookkeeping.
+        if (event.isCanceled()) {
+            if (killed.getHealth() <= 0.0f) killed.setHealth(1.0f);
+            return;
+        }
 
         // ── Essence Evolution: track mob kills ─────────────────────────
         if (!(killed instanceof net.minecraft.world.entity.player.Player)
@@ -453,7 +479,7 @@ public class CombatPowerEvents {
         if (proj.getOwner() instanceof ServerPlayer ownerSp) {
             com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext ctx =
                 new com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext(
-                    proj, event.getRayTraceResult());
+                    proj, event.getRayTraceResult(), event);
 
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 ownerSp,
@@ -520,10 +546,19 @@ public class CombatPowerEvents {
     @SubscribeEvent
     public static void onAttackEntity(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // AttackEntityEvent is cancellable, so wrap target + event in an
+        // EntityInteractContext (the established cancellable-context shape) —
+        // this both lets neoorigins:cancel_event veto the swing and lets
+        // bientity target_action resolve the attacked entity. Non-living
+        // targets (boats, item frames) fall back to the raw event so
+        // cancel_event still works via the generic ICancellableEvent branch.
+        Object ctx = event.getTarget() instanceof LivingEntity livingTarget
+            ? new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(livingTarget, event)
+            : event;
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp,
             com.cyberday1.neoorigins.service.EventPowerIndex.Event.ATTACK,
-            event.getTarget());
+            ctx);
     }
 
     @SubscribeEvent

@@ -39,8 +39,14 @@ public class CompatEventPowers {
             event.setCanceled(true);
             return;
         }
+        // Wrap stack + the cancellable Start event in a FoodContext (the
+        // established stack+event context shape) so neoorigins:cancel_event
+        // can veto the use and item-stack conditions can still read the held
+        // stack. Previously this passed the raw ItemStack, which nothing
+        // consumed and which made cancel_event a no-op on item_use.
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.ITEM_USE, event.getItem());
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.ITEM_USE,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext(event.getItem(), event));
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)

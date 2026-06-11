@@ -276,15 +276,48 @@ public final class EventPowerIndex {
         dispatch(player, event, null);
     }
 
-    /** Hint to consumer: event context for {@link Event#HIT_TAKEN} is a {@code Float} damage amount. */
-    public record HitTakenContext(float amount, net.minecraft.world.damagesource.DamageSource source) {}
+    /**
+     * Context for {@link Event#HIT_TAKEN}. Carries the damage amount/source plus
+     * (when available) the cancellable {@code LivingIncomingDamageEvent} so
+     * {@code neoorigins:cancel_event} can negate the hit. Mirrors the
+     * {@link FoodContext} pattern.
+     */
+    public record HitTakenContext(float amount, net.minecraft.world.damagesource.DamageSource source,
+                                   net.neoforged.bus.api.ICancellableEvent event) {
+        /** Amount+source ctor for call sites that don't need cancel semantics. */
+        public HitTakenContext(float amount, net.minecraft.world.damagesource.DamageSource source) {
+            this(amount, source, null);
+        }
+    }
 
-    /** Hint to consumer: event context for {@link Event#KILL} is the killed entity. */
-    public record KillContext(net.minecraft.world.entity.LivingEntity killed) {}
+    /**
+     * Context for {@link Event#KILL}: the killed entity plus (when available)
+     * the cancellable {@code LivingDeathEvent} so {@code neoorigins:cancel_event}
+     * can spare the victim. The dispatch site patches the victim's health back
+     * to a positive value after a cancel so it doesn't sit dead-at-0-HP.
+     */
+    public record KillContext(net.minecraft.world.entity.LivingEntity killed,
+                              net.neoforged.bus.api.ICancellableEvent event) {
+        /** Killed-only ctor for call sites that don't need cancel semantics. */
+        public KillContext(net.minecraft.world.entity.LivingEntity killed) {
+            this(killed, null);
+        }
+    }
 
-    /** Hint to consumer: event context for {@link Event#PROJECTILE_HIT}. */
+    /**
+     * Context for {@link Event#PROJECTILE_HIT}. Carries the projectile and hit
+     * result plus (when available) the cancellable {@code ProjectileImpactEvent}
+     * so {@code neoorigins:cancel_event} can negate the impact.
+     */
     public record ProjectileHitContext(net.minecraft.world.entity.projectile.Projectile projectile,
-                                        net.minecraft.world.phys.HitResult result) {}
+                                        net.minecraft.world.phys.HitResult result,
+                                        net.neoforged.bus.api.ICancellableEvent event) {
+        /** Projectile+result ctor for call sites that don't need cancel semantics. */
+        public ProjectileHitContext(net.minecraft.world.entity.projectile.Projectile projectile,
+                                    net.minecraft.world.phys.HitResult result) {
+            this(projectile, result, null);
+        }
+    }
 
     /** Context for crafting-table / inventory-crafting events. */
     public record CraftContext(net.minecraft.world.item.ItemStack result) {}
