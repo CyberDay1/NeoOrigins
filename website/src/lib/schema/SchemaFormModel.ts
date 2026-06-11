@@ -148,7 +148,11 @@ function parseDiscriminated(
 			mapProperty(root, name, propSchema, branchRequired.has(name), docs, typeId, selfDoc)
 		);
 	}
-	return [...commonFields, ...branchFields];
+	// Branch fields shadow same-named common-root fields (e.g. `neoorigins:resource`
+	// declares its own `hidden`) — keep the branch spec, drop the common one, so
+	// keyed each-blocks never see duplicate field paths.
+	const branchNames = new Set(branchFields.map((f) => f.name));
+	return [...commonFields.filter((f) => !branchNames.has(f.name)), ...branchFields];
 }
 
 // ── internals ───────────────────────────────────────────────────────────────

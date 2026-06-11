@@ -15,7 +15,9 @@ import {
 	STR_ITEM_TYPE,
 	objChildFieldName,
 	POWER_ID_FIELD,
+	regKey,
 	renderOf,
+	type BlockKind,
 	type BlockRegistry
 } from './blockRegistry';
 
@@ -52,7 +54,9 @@ export function powerBlockId(i: number): string {
 function encodeLeaf(field: FormFieldSpec, value: unknown): unknown {
 	switch (field.kind) {
 		case 'BOOLEAN':
-			return value === true || value === 'TRUE';
+			// Unauthored booleans must take the schema default — encoding them as
+			// unchecked silently flips default-true fields (e.g. `should_render`).
+			return typeof value === 'boolean' ? value : ((field.default ?? false) === true);
 		case 'INTEGER':
 		case 'NUMBER':
 			return typeof value === 'number' ? value : (field.default ?? 0);
@@ -68,15 +72,40 @@ function encodeLeaf(field: FormFieldSpec, value: unknown): unknown {
 	}
 }
 
-/** Build a non-power node (action/condition) from a `{type, …}` value object. */
-function buildNode(reg: BlockRegistry, value: Record<string, unknown>): BlockState | null {
+/** Build a non-power node from a `{type, …}` value object. `kind` is the kind
+ *  the containing slot expects — the bare typeId is ambiguous across kinds. */
+function buildNode(
+	reg: BlockRegistry,
+	kind: BlockKind,
+	value: Record<string, unknown>
+): BlockState | null {
 	const typeId = typeof value.type === 'string' ? value.type : '';
-	const blockType = reg.blockTypeForId.get(typeId);
-	const fields = reg.fieldsByTypeId.get(typeId);
+	const key = regKey(kind, typeId);
+	const blockType = reg.blockTypeForId.get(key);
+	const fields = reg.fieldsByTypeId.get(key);
 	if (!blockType || !fields) return null; // unknown type — skip (rare; custom packs)
 	const state: BlockState = { type: blockType };
 	fillNode(reg, state, fields, value);
 	return state;
+}
+
+/** The block kind a value/statement slot's `check` string accepts. */
+function kindForCheck(check: string): BlockKind {
+	switch (check) {
+		case 'Condition':
+		case 'CondItem':
+			return 'condition';
+		case 'BlockCondition':
+		case 'BlockCondItem':
+			return 'block_condition';
+		case 'ItemCondition':
+		case 'ItemCondItem':
+			return 'item_condition';
+		case 'ItemAction':
+			return 'item_action';
+		default:
+			return 'action';
+	}
 }
 
 /** Chain a list of statement nodes via `next` and return the head. */
@@ -115,22 +144,23 @@ function fillNode(
 		} else if (r.kind === 'value') {
 			// single condition reporter
 			if (v && typeof v === 'object') {
-				const child = buildNode(reg, v as Record<string, unknown>);
+				const child = buildNode(reg, kindForCheck(r.check), v as Record<string, unknown>);
 				if (child) inputsOut[f.name] = { block: child };
 			}
 		} else if (r.kind === 'statement' && (r.check === 'Action' || r.check === 'ItemAction')) {
 			// single action ref OR action array — both render as a statement stack
 			// (entity Action or ItemAction; both chain directly via `next`).
+			const childKind = kindForCheck(r.check);
 			if (Array.isArray(v)) {
 				const head = chain(
 					v
 						.filter((el): el is Record<string, unknown> => !!el && typeof el === 'object')
-						.map((el) => buildNode(reg, el))
+						.map((el) => buildNode(reg, childKind, el))
 						.filter((b): b is BlockState => b !== null)
 				);
 				if (head) inputsOut[f.name] = { block: head };
 			} else if (v && typeof v === 'object') {
-				const child = buildNode(reg, v as Record<string, unknown>);
+				const child = buildNode(reg, childKind, v as Record<string, unknown>);
 				if (child) inputsOut[f.name] = { block: child };
 			}
 		} else if (f.kind === 'ARRAY_STRING') {
@@ -157,10 +187,11 @@ function fillNode(
 						: r.kind === 'statement' && r.check === 'ItemCondItem'
 							? ITEM_COND_ITEM_TYPE
 							: COND_ITEM_TYPE;
+				const itemKind = kindForCheck(r.kind === 'statement' ? r.check : 'CondItem');
 				const items: BlockState[] = [];
 				for (const el of v) {
 					if (!el || typeof el !== 'object') continue;
-					const child = buildNode(reg, el as Record<string, unknown>);
+					const child = buildNode(reg, itemKind, el as Record<string, unknown>);
 					if (!child) continue;
 					items.push({ type: wrapperType, inputs: { ITEM: { block: child } } });
 				}
@@ -178,8 +209,8 @@ function fillNode(
 export function draftToState(reg: BlockRegistry, powers: PowerDraft[]): WorkspaceState {
 	const blocks: BlockState[] = [];
 	powers.forEach((power, i) => {
-		const blockType = reg.blockTypeForId.get(power.type);
-		const fields = reg.fieldsByTypeId.get(power.type);
+		const blockType = reg.blockTypeForId.get(regKey('power', power.type));
+		const fields = reg.fieldsByTypeId.get(regKey('power', power.type));
 		if (!blockType || !fields) return; // unknown power type — skipped in this view
 		const state: BlockState = {
 			type: blockType,
@@ -226,10 +257,10 @@ function decodeLeaf(field: FormFieldSpec, value: unknown): unknown {
 
 /** Read a node's value object (`{type, …}`) out of a block state. */
 function readNode(reg: BlockRegistry, state: BlockState): Record<string, unknown> | null {
-	const typeId = reg.idForBlockType.get(state.type);
-	if (!typeId) return null;
-	const fields = reg.fieldsByTypeId.get(typeId) ?? [];
-	const out: Record<string, unknown> = { type: typeId };
+	const entry = reg.idForBlockType.get(state.type);
+	if (!entry) return null;
+	const fields = reg.fieldsByTypeId.get(regKey(entry.kind, entry.typeId)) ?? [];
+	const out: Record<string, unknown> = { type: entry.typeId };
 	readInto(reg, out, fields, state);
 	return out;
 }
@@ -322,10 +353,12 @@ export function stateToDraft(
 ): PowerDraft[] {
 	const powers: PowerDraft[] = [];
 	for (const block of ws.blocks?.blocks ?? []) {
-		const typeId = reg.idForBlockType.get(block.type);
-		if (!typeId) continue;
-		const fields = reg.fieldsByTypeId.get(typeId) ?? [];
-		const valueObj: Record<string, unknown> = { type: typeId };
+		const entry = reg.idForBlockType.get(block.type);
+		// Only power blocks are roots — a stray condition/action left loose on the
+		// canvas must not be serialized as a power.
+		if (!entry || entry.kind !== 'power') continue;
+		const fields = reg.fieldsByTypeId.get(regKey('power', entry.typeId)) ?? [];
+		const valueObj: Record<string, unknown> = { type: entry.typeId };
 		readInto(reg, valueObj, fields, block);
 		delete valueObj.type;
 		const id = typeof block.fields?.[POWER_ID_FIELD] === 'string'
@@ -333,7 +366,7 @@ export function stateToDraft(
 			: '';
 		const preserved = block.id ? preserveByBlockId?.get(block.id) : undefined;
 		const merged = preserved ? { ...preserved, ...valueObj } : valueObj;
-		powers.push({ id, type: typeId, fields: merged });
+		powers.push({ id, type: entry.typeId, fields: merged });
 	}
 	return powers;
 }

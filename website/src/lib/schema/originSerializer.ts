@@ -174,8 +174,13 @@ export function serializeOrigin(draft: OriginDraft): SerializedDatapackBundle {
 	}
 	if (draft.order !== 0) origin.order = draft.order;
 	// Boolean flags: only emit when true (false is the schema default).
-	if (draft.unchoosable) origin.unchoosable = true;
-	if (draft.hidden) origin.hidden = true;
+	// `hidden` folds into `unchoosable`: the mod has no native origin-level
+	// `hidden` — a top-level `hidden` key trips OriginsFormatDetector, routing
+	// the file through the Origins-compat translator, which (a) maps hidden →
+	// unchoosable anyway and (b) DROPS native-only fields it doesn't whitelist
+	// (e.g. `tier_powers`, `required_mods`). Emitting `unchoosable` directly is
+	// semantics-identical and keeps the file on the native parse path.
+	if (draft.unchoosable || draft.hidden) origin.unchoosable = true;
 	// `powers` is REQUIRED by origin.schema.json — always emit, even if
 	// empty (the schema allows an empty array, the mod tolerates it).
 	origin.powers = powers.map((p) => p.fullId);

@@ -195,19 +195,27 @@ export interface BlockRegistry {
 	defs: object[];
 	/** Categorised toolbox JSON for `Blockly.inject`. */
 	toolbox: object;
-	/** typeId → generated Blockly block type. */
+	/** `regKey(kind, typeId)` → generated Blockly block type. Keys carry the kind
+	 *  because the same id can exist as several kinds (e.g. `neoorigins:resource`
+	 *  is both a power and a condition). */
 	blockTypeForId: Map<string, string>;
-	/** Generated Blockly block type → typeId. */
-	idForBlockType: Map<string, string>;
-	/** typeId → its parsed field list (for serialization). */
+	/** Generated Blockly block type → its typeId + kind. */
+	idForBlockType: Map<string, { typeId: string; kind: BlockKind }>;
+	/** `regKey(kind, typeId)` → its parsed field list (for serialization). */
 	fieldsByTypeId: Map<string, FormFieldSpec[]>;
-	/** typeId → which kind it is. */
-	kindByTypeId: Map<string, BlockKind>;
 }
 
-/** Sanitise a fully-qualified type id into a Blockly-legal block type. */
+/** Map key for the per-(kind, typeId) registry maps — bare typeIds collide
+ *  across kinds (power vs condition `neoorigins:resource`, etc.). */
+export function regKey(kind: BlockKind, typeId: string): string {
+	return `${kind}|${typeId}`;
+}
+
+/** Sanitise a fully-qualified type id into a Blockly-legal block type. Uses the
+ *  full kind name — single-letter prefixes collide (`item_condition` and
+ *  `item_action` would both be `i`). */
 function blockTypeId(kind: BlockKind, typeId: string): string {
-	return `neo_${kind[0]}_${typeId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+	return `neo_${kind}_${typeId.replace(/[^a-zA-Z0-9]/g, '_')}`;
 }
 
 function shortName(typeId: string): string {
@@ -434,9 +442,8 @@ export function buildBlockRegistry(
 	const colours = paletteColours(palette);
 	const defs: object[] = [condItemDef(), blockCondItemDef(), itemCondItemDef(), strItemDef()];
 	const blockTypeForId = new Map<string, string>();
-	const idForBlockType = new Map<string, string>();
+	const idForBlockType = new Map<string, { typeId: string; kind: BlockKind }>();
 	const fieldsByTypeId = new Map<string, FormFieldSpec[]>();
-	const kindByTypeId = new Map<string, BlockKind>();
 
 	// Toolbox category labels carry the same glyph prefix as their blocks so
 	// the category is legible without relying on colour.
@@ -456,10 +463,10 @@ export function buildBlockRegistry(
 		catIndex: number
 	) => {
 		const bt = blockTypeId(kind, typeId);
-		blockTypeForId.set(typeId, bt);
-		idForBlockType.set(bt, typeId);
-		fieldsByTypeId.set(typeId, fields);
-		kindByTypeId.set(typeId, kind);
+		const key = regKey(kind, typeId);
+		blockTypeForId.set(key, bt);
+		idForBlockType.set(bt, { typeId, kind });
+		fieldsByTypeId.set(key, fields);
 		defs.push(buildDef(kind, typeId, fields));
 		// Keep the palette readable: only surface neoorigins-namespaced ids
 		// (the `apace:` aliases share a branch and would just be noise), but
@@ -529,7 +536,6 @@ export function buildBlockRegistry(
 		toolbox: { kind: 'categoryToolbox', contents: toolboxCats },
 		blockTypeForId,
 		idForBlockType,
-		fieldsByTypeId,
-		kindByTypeId
+		fieldsByTypeId
 	};
 }

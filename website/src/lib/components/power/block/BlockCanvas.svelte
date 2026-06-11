@@ -15,6 +15,7 @@
 	import {
 		buildBlockRegistry,
 		buildBlocklyTheme,
+		regKey,
 		type BlockRegistry
 	} from '$lib/blockly/blockRegistry';
 	import { draftToState, stateToDraft, powerBlockId } from '$lib/blockly/blockState';
@@ -76,7 +77,7 @@
 				const initialPowers = get(powersStore).powers;
 				// Off-schema power types can't be rendered — set them aside so the
 				// canvas neither shows nor clobbers them, and re-attach on save.
-				const preserved = initialPowers.filter((p) => !reg.blockTypeForId.has(p.type));
+				const preserved = initialPowers.filter((p) => !reg.blockTypeForId.has(regKey('power', p.type)));
 				unsupported = preserved.map((p) => p.id || p.type);
 
 				// Renderable powers can still carry fields the schema doesn't model
@@ -87,7 +88,7 @@
 				// must match draftToState's enumeration of the same array.
 				const preserveByBlockId = new Map<string, Record<string, unknown>>();
 				initialPowers.forEach((p, i) => {
-					if (reg.blockTypeForId.has(p.type)) {
+					if (reg.blockTypeForId.has(regKey('power', p.type))) {
 						preserveByBlockId.set(powerBlockId(i), p.fields ?? {});
 					}
 				});
