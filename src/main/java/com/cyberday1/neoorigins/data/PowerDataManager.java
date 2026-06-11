@@ -12,6 +12,7 @@ import com.cyberday1.neoorigins.compat.CompatTranslationLog;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
+import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
 import com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases;
 import com.cyberday1.neoorigins.power.registry.PowerTypes;
 import com.google.gson.JsonElement;
@@ -126,6 +127,25 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                     NeoOrigins.LOGGER.warn("OriginsCompat: Failed to expand origins:multiple {}: {}", id, reason);
                     CompatTranslationLog.fail(id, "origins:multiple expansion error: " + reason);
                 }
+            } else if (("origins:attribute".equals(typeStr) || "apace:attribute".equals(typeStr))
+                && json.has("modifiers")
+                && json.get("modifiers").isJsonArray()
+                && json.getAsJsonArray("modifiers").size() > 1) {
+                // Multi-modifier origins:attribute — Apoli-style packs commonly
+                // ship 5–7 modifiers in one power (MoR Pixie pixie_properties).
+                // Pre-expand into one single-modifier synthetic per entry so
+                // the per-modifier translator path produces correct
+                // neoorigins:attribute_modifier instances. Without this the
+                // translator silently kept only modifiers[0].
+                working.remove(id);
+                try {
+                    Map<Identifier, JsonObject> synthetics = OriginsMultipleExpander.expandAttributeMulti(id, json);
+                    working.putAll(synthetics);
+                } catch (Exception e) {
+                    String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                    NeoOrigins.LOGGER.warn("OriginsCompat: Failed to expand multi-modifier origins:attribute {}: {}", id, reason);
+                    CompatTranslationLog.fail(id, "multi-modifier origins:attribute expansion error: " + reason);
+                }
             }
         }
 
@@ -171,7 +191,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                     continue;
                 }
                 int beforeSize = loaded.size();
-                parsePower(id, type, json, loaded);
+                parsePower(id, typeId, type, json, loaded);
                 if (loaded.size() > beforeSize) {
                     // Power parsed cleanly — keep the post-translation body for
                     // the creator's template loader. Stored by REFERENCE: every
@@ -206,7 +226,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
 
     @SuppressWarnings("unchecked")
     private <C extends PowerConfiguration> void parsePower(
-            Identifier id, PowerType<C> type, JsonObject json,
+            Identifier id, Identifier typeId, PowerType<C> type, JsonObject json,
             Map<Identifier, PowerHolder<?>> target) {
         // Apply config overrides before parsing
         applyConfigOverrides(id, json);
@@ -218,9 +238,11 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             && json.get("hidden").getAsBoolean();
 
         // Parse top-level condition gate (optional, works for all power types).
-        // Field is named "power_condition" (not "condition") to avoid colliding with
-        // power types that already use "condition" in their own config codecs
-        // (e.g. condition_passive, action_on_event, attribute_modifier, model_color).
+        // Field is canonically named "power_condition" (not "condition") to avoid
+        // colliding with power types that claim "condition" in their own config
+        // codecs (per BuiltinPowers FieldSpecs: model_color, attribute_modifier,
+        // action_on_event, modify_damage, active_ability, persistent_effect,
+        // condition_passive, prevent_death, conditional).
         EntityCondition condition = null;
         PowerHolder.ConditionMode conditionMode = PowerHolder.ConditionMode.DENY;
         if (json.has("power_condition") && json.get("power_condition").isJsonObject()) {
@@ -232,6 +254,35 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                 conditionMode = PowerHolder.ConditionMode.ALLOW;
             }
         }
+
+        // Alias: top-level "condition" acts as power_condition (default mode ALLOW)
+        // on types that do NOT declare "condition" as one of their own config fields.
+        // Type-field lookup goes through the BuiltinPowers FieldSpec table; if the
+        // type has no FieldSpec coverage we cannot prove the codec doesn't consume
+        // the key, so we fail safe: leave it alone and tell the author.
+        boolean aliasedCondition = false;
+        if (json.has("condition") && json.get("condition").isJsonObject()) {
+            BuiltinPowers.PowerSpec spec = BuiltinPowers.get(typeId);
+            if (spec == null) {
+                NeoOrigins.LOGGER.warn(
+                    "Power {}: top-level 'condition' is not a recognized gate here; use 'power_condition'",
+                    id);
+            } else if (spec.fields().stream().noneMatch(f -> "condition".equals(f.name()))) {
+                if (condition != null) {
+                    NeoOrigins.LOGGER.warn(
+                        "Power {}: both 'power_condition' and top-level 'condition' present; "
+                            + "'power_condition' wins, the redundant 'condition' key is ignored",
+                        id);
+                } else {
+                    condition = ConditionParser.parse(json.getAsJsonObject("condition"), id.toString());
+                    if (!json.has("power_condition_mode")) {
+                        conditionMode = PowerHolder.ConditionMode.ALLOW;
+                    }
+                    aliasedCondition = true;
+                }
+            }
+            // else: the type claims "condition" natively — its codec consumes it.
+        }
         final EntityCondition finalCondition = condition;
         final PowerHolder.ConditionMode finalConditionMode = conditionMode;
 
@@ -242,6 +293,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         configJson.remove("hidden");
         configJson.remove("power_condition");
         configJson.remove("power_condition_mode");
+        if (aliasedCondition) {
+            configJson.remove("condition");
+        }
         configJson.remove("required_mods");
         // Inject power ID for types that need it at codec-decode time (e.g. ResourcePower).
         configJson.addProperty("_power_id", id.toString());
