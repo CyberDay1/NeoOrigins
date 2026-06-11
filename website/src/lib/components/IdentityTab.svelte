@@ -10,6 +10,7 @@
 		type TargetMcVersion
 	} from '$lib/stores/originDraft';
 	import { vanilla, ensureVanilla } from '$lib/data/vanilla';
+	import { originValidation, type InlineIssue } from '$lib/stores/originValidation';
 	import SuggestInput from '$lib/widgets/SuggestInput.svelte';
 
 	// Load the vanilla item list for the icon field's typeahead.
@@ -37,6 +38,44 @@
 	);
 	let pathInvalid = $derived($draft.path !== '' && !PATH_PATTERN.test($draft.path));
 	let previewFullId = $derived(fullId($draft));
+
+	// ── live validation (AJV + export id gate), mapped to fields ─────────
+	// `originValidation` re-runs on every draft edit; `originFields` keys
+	// the issues by Identity-tab field. Keys we render inline are listed in
+	// INLINE_KEYS; anything else (plus the unmapped bucket) goes into the
+	// fallback summary block at the top of the tab so no error is dropped.
+	const INLINE_KEYS: readonly string[] = [
+		'namespace',
+		'path',
+		'name',
+		'description',
+		'icon',
+		'impact',
+		'order'
+	];
+	let vFields = $derived($originValidation.originFields);
+	function errsFor(key: string): InlineIssue[] {
+		return vFields[key] ?? [];
+	}
+	let nsVErrs = $derived(errsFor('namespace'));
+	let pathVErrs = $derived(errsFor('path'));
+	let nameVErrs = $derived(errsFor('name'));
+	let descVErrs = $derived(errsFor('description'));
+	let iconVErrs = $derived(errsFor('icon'));
+	let impactVErrs = $derived(errsFor('impact'));
+	let orderVErrs = $derived(errsFor('order'));
+	let summaryErrs = $derived.by(() => {
+		const out: Array<{ key: string; issue: InlineIssue }> = [];
+		for (const [k, list] of Object.entries(vFields)) {
+			if (!INLINE_KEYS.includes(k)) {
+				for (const issue of list) out.push({ key: k, issue });
+			}
+		}
+		for (const issue of $originValidation.originUnmapped) {
+			out.push({ key: 'origin', issue });
+		}
+		return out;
+	});
 
 	function setNamespace(v: string) {
 		draft.update((d) => ({ ...d, namespace: v }));
@@ -75,6 +114,17 @@
 
 <section aria-labelledby="identity-heading" class="tab">
 	<h2 id="identity-heading">Identity</h2>
+
+	{#if summaryErrs.length > 0}
+		<div class="err-summary" role="status" aria-label="Other origin validation errors">
+			<p class="err-summary-title">Origin validation errors not tied to a field on this tab:</p>
+			<ul>
+				{#each summaryErrs as { key, issue }, i (i)}
+					<li><code>{key}</code> {issue.message}</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
 	<div class="row">
 		<span class="lbl">Target Minecraft version</span>
@@ -125,30 +175,30 @@
 				id="origin-namespace"
 				type="text"
 				class="mono ns"
-				class:invalid={namespaceInvalid}
+				class:invalid={namespaceInvalid || nsVErrs.length > 0}
 				value={$draft.namespace}
 				oninput={(e) => setNamespace((e.currentTarget as HTMLInputElement).value)}
 				placeholder="neoorigins"
 				autocomplete="off"
 				spellcheck="false"
 				aria-label="Namespace"
-				aria-invalid={namespaceInvalid || undefined}
-				aria-describedby={`origin-id-hint${namespaceInvalid ? ' origin-namespace-err' : ''}`}
+				aria-invalid={namespaceInvalid || nsVErrs.length > 0 || undefined}
+				aria-describedby={`origin-id-hint${namespaceInvalid ? ' origin-namespace-err' : ''}${nsVErrs.length > 0 ? ' origin-namespace-verr' : ''}`}
 			/>
 			<span class="colon" aria-hidden="true">:</span>
 			<input
 				id="origin-path"
 				type="text"
 				class="mono path"
-				class:invalid={pathInvalid}
+				class:invalid={pathInvalid || pathVErrs.length > 0}
 				value={$draft.path}
 				oninput={(e) => setPath((e.currentTarget as HTMLInputElement).value)}
 				placeholder="wizard"
 				autocomplete="off"
 				spellcheck="false"
 				aria-label="Path"
-				aria-invalid={pathInvalid || undefined}
-				aria-describedby={`origin-id-hint${pathInvalid ? ' origin-path-err' : ''}`}
+				aria-invalid={pathInvalid || pathVErrs.length > 0 || undefined}
+				aria-describedby={`origin-id-hint${pathInvalid ? ' origin-path-err' : ''}${pathVErrs.length > 0 ? ' origin-path-verr' : ''}`}
 			/>
 		</div>
 		<small class="hint" id="origin-id-hint">
@@ -162,6 +212,16 @@
 		{#if pathInvalid}
 			<small class="err" id="origin-path-err">path must match <code>{PATH_PATTERN.source}</code></small>
 		{/if}
+		{#if nsVErrs.length > 0}
+			<small class="err" id="origin-namespace-verr" role="status">
+				{#each nsVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
+		{#if pathVErrs.length > 0}
+			<small class="err" id="origin-path-verr" role="status">
+				{#each pathVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
 		<small class="preview">Full id: <code>{previewFullId}</code></small>
 	</div>
 
@@ -170,10 +230,18 @@
 		<input
 			id="origin-name"
 			type="text"
+			class:invalid={nameVErrs.length > 0}
 			value={$draft.name}
 			oninput={(e) => setName((e.currentTarget as HTMLInputElement).value)}
+			aria-invalid={nameVErrs.length > 0 || undefined}
+			aria-describedby={nameVErrs.length > 0 ? 'origin-name-verr' : undefined}
 		/>
 		<small class="hint">Display name</small>
+		{#if nameVErrs.length > 0}
+			<small class="err" id="origin-name-verr" role="status">
+				{#each nameVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
 	</div>
 
 	<div class="row">
@@ -181,9 +249,17 @@
 		<textarea
 			id="origin-description"
 			rows="4"
+			class:invalid={descVErrs.length > 0}
 			value={$draft.description}
 			oninput={(e) => setDescription((e.currentTarget as HTMLTextAreaElement).value)}
+			aria-invalid={descVErrs.length > 0 || undefined}
+			aria-describedby={descVErrs.length > 0 ? 'origin-description-verr' : undefined}
 		></textarea>
+		{#if descVErrs.length > 0}
+			<small class="err" id="origin-description-verr" role="status">
+				{#each descVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
 	</div>
 
 	<div class="row">
@@ -199,6 +275,11 @@
 		<small class="hint">
 			Item id shown next to the origin, e.g. <code>minecraft:player_head</code>.
 		</small>
+		{#if iconVErrs.length > 0}
+			<small class="err" id="origin-icon-verr" role="status">
+				{#each iconVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
 	</div>
 
 	<div class="row">
@@ -207,11 +288,18 @@
 			id="origin-impact"
 			value={$draft.impact}
 			onchange={(e) => setImpact((e.currentTarget as HTMLSelectElement).value as Impact)}
+			aria-invalid={impactVErrs.length > 0 || undefined}
+			aria-describedby={impactVErrs.length > 0 ? 'origin-impact-verr' : undefined}
 		>
 			{#each IMPACTS as i (i)}
 				<option value={i}>{IMPACT_LABELS[i]}</option>
 			{/each}
 		</select>
+		{#if impactVErrs.length > 0}
+			<small class="err" id="origin-impact-verr" role="status">
+				{#each impactVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
 	</div>
 
 	<div class="row">
@@ -220,9 +308,17 @@
 			id="origin-order"
 			type="number"
 			step="1"
+			class:invalid={orderVErrs.length > 0}
 			value={$draft.order}
 			oninput={(e) => setOrder(parseInt((e.currentTarget as HTMLInputElement).value, 10))}
+			aria-invalid={orderVErrs.length > 0 || undefined}
+			aria-describedby={orderVErrs.length > 0 ? 'origin-order-verr' : undefined}
 		/>
+		{#if orderVErrs.length > 0}
+			<small class="err" id="origin-order-verr" role="status">
+				{#each orderVErrs as e, i (i)}<span class="err-line">{e.message}</span>{/each}
+			</small>
+		{/if}
 	</div>
 
 	<div class="row">
@@ -246,7 +342,7 @@
 			/>
 			<span>Hidden</span>
 		</label>
-		<small class="hint">Excluded from listings (developer/testing)</small>
+		<small class="hint">Origins-format synonym of Unchoosable — exports as unchoosable</small>
 	</div>
 </section>
 
@@ -288,6 +384,29 @@
 	.err {
 		color: var(--color-danger);
 		font-size: 0.78rem;
+	}
+	.err-line {
+		display: block;
+	}
+	.err-summary {
+		margin: 0;
+		padding: var(--space-2) var(--space-3);
+		background: var(--color-danger-subtle);
+		border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+		border-radius: var(--radius-md);
+		color: var(--color-text);
+		font-size: 0.82rem;
+	}
+	.err-summary-title {
+		margin: 0 0 var(--space-1);
+		font-weight: 600;
+	}
+	.err-summary ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 	.preview {
 		color: var(--color-text-muted);
@@ -358,7 +477,8 @@
 		border-color: var(--color-accent);
 		background: var(--color-surface);
 	}
-	input.invalid {
+	input.invalid,
+	textarea.invalid {
 		border-color: var(--color-danger);
 	}
 	input[type='checkbox'] {

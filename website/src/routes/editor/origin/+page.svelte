@@ -11,7 +11,7 @@
 		clearPersistedDraft,
 		type EditorTab
 	} from '$lib/stores/originDraft';
-	import { exportDatapack, suggestedFilename } from '$lib/datapack/export';
+	import { exportDatapack, suggestedFilename, ExportValidationError } from '$lib/datapack/export';
 	import { importDatapack, ImportError } from '$lib/datapack/import';
 	import { loadTemplate, type TemplateEntry } from '$lib/datapack/vanillaTemplates';
 	import VanillaTemplatePicker from '$lib/components/VanillaTemplatePicker.svelte';
@@ -27,6 +27,9 @@
 	});
 
 	let downloadMessage = $state<string>('');
+	// Export-gate failures (blank/duplicate ids). Rendered as a role="alert"
+	// list near the download button — screen readers announce it on refusal.
+	let exportBlockedIssues = $state<string[]>([]);
 
 	// Import state: warnings (non-fatal approximations) and a fatal error.
 	let importWarnings = $state<string[]>([]);
@@ -60,18 +63,24 @@
 
 	async function onDownload() {
 		downloadMessage = '';
+		exportBlockedIssues = [];
 		try {
 			const blob = await exportDatapack($draft, packFormatFor($targetVersion));
-			// Real download path — wired now so task #15 only has to remove the
-			// stub error. Currently unreachable because exportDatapack throws.
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
 			a.download = suggestedFilename($draft);
 			a.click();
 			URL.revokeObjectURL(url);
-		} catch {
-			downloadMessage = 'Export failed — see console for details.';
+		} catch (err) {
+			if (err instanceof ExportValidationError) {
+				// Validation gate refused the export — show every issue, not
+				// just the first, so the user can fix them in one pass.
+				exportBlockedIssues = err.issues;
+			} else {
+				console.error('exportDatapack failed:', err);
+				downloadMessage = 'Export failed — see console for details.';
+			}
 		}
 	}
 
@@ -227,6 +236,18 @@
 	</button>
 	{#if downloadMessage}
 		<p class="dl-msg">{downloadMessage}</p>
+	{/if}
+	{#if exportBlockedIssues.length > 0}
+		<div class="export-blocked" role="alert" aria-label="Export blocked">
+			<p class="export-blocked-title">
+				Export blocked — fix {exportBlockedIssues.length === 1 ? 'this issue' : 'these issues'} first:
+			</p>
+			<ul>
+				{#each exportBlockedIssues as issue, i (i)}
+					<li>{issue}</li>
+				{/each}
+			</ul>
+		</div>
 	{/if}
 	{#if importError}
 		<p class="import-error" role="alert">{importError}</p>
@@ -429,6 +450,30 @@
 		color: var(--color-danger);
 		font-size: 0.85rem;
 		font-weight: 500;
+	}
+	.export-blocked {
+		width: 100%;
+		padding: var(--space-3);
+		background: var(--color-danger-subtle);
+		border: 1px solid color-mix(in srgb, var(--color-danger) 40%, var(--color-border));
+		border-radius: var(--radius-md);
+	}
+	.export-blocked-title {
+		margin: 0 0 var(--space-2);
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--color-danger);
+	}
+	.export-blocked ul {
+		margin: 0;
+		padding-left: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.export-blocked li {
+		font-size: 0.82rem;
+		color: var(--color-text);
 	}
 	.import-warnings {
 		width: 100%;

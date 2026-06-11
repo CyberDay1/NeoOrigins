@@ -45,6 +45,99 @@ const DEFAULT_PACK_FORMAT = 48;
  */
 const FALLBACK_FILENAME = 'neoorigins_custom_datapack.zip';
 
+// ── export validation gate ──────────────────────────────────────────────────
+//
+// A blank origin path or blank power id would export broken files like
+// `data/<ns>/origins/origins/.json`, and duplicate power ids would collide
+// on the same `powers/<id>.json` entry (last write wins, silently). The
+// export is REFUSED in those cases — blocking was chosen over auto-default
+// ids so the user always names their content deliberately.
+
+/**
+ * One structured problem found by {@link validateDraftIds}. `scope` +
+ * `powerIndex` + `field` let the form editor pin the message to the exact
+ * offending input; `message` is the human-readable text shown in the UI.
+ */
+export interface DraftIssue {
+	scope: 'origin' | 'power';
+	/** Index into `draft.powers` when `scope === 'power'`. */
+	powerIndex?: number;
+	/** Draft field key: `namespace` / `path` for origin, `id` for powers. */
+	field: string;
+	message: string;
+}
+
+/**
+ * Check the draft's identifiers for problems that would produce a broken
+ * or self-colliding datapack: blank origin namespace/path, blank power
+ * ids, and duplicate power ids. Returns an empty array when exportable.
+ *
+ * Whitespace-only values count as blank. Shared by the export gate below
+ * and the live form validation (`$lib/stores/originValidation`).
+ */
+export function validateDraftIds(draft: OriginDraft): DraftIssue[] {
+	const issues: DraftIssue[] = [];
+
+	if (!draft.namespace?.trim()) {
+		issues.push({
+			scope: 'origin',
+			field: 'namespace',
+			message: 'Origin namespace is blank — fill it in on the Identity tab before exporting.'
+		});
+	}
+	if (!draft.path?.trim()) {
+		issues.push({
+			scope: 'origin',
+			field: 'path',
+			message:
+				'Origin path (id) is blank — a blank path would export a broken origins/.json file. Fill it in on the Identity tab.'
+		});
+	}
+
+	const firstIndexById = new Map<string, number>();
+	draft.powers.forEach((p, i) => {
+		const id = p.id?.trim() ?? '';
+		const label = `Power ${i + 1}`;
+		if (!id) {
+			issues.push({
+				scope: 'power',
+				powerIndex: i,
+				field: 'id',
+				message: `${label} has a blank id — it would export as a broken powers/.json file. Give it an id on the Powers tab.`
+			});
+			return;
+		}
+		const first = firstIndexById.get(id);
+		if (first === undefined) {
+			firstIndexById.set(id, i);
+		} else {
+			issues.push({
+				scope: 'power',
+				powerIndex: i,
+				field: 'id',
+				message: `${label} reuses the id "${id}" (same as power ${first + 1}) — both would export to powers/${id}.json and overwrite each other. Rename one.`
+			});
+		}
+	});
+
+	return issues;
+}
+
+/**
+ * Thrown by {@link exportDatapack} when the draft fails
+ * {@link validateDraftIds}. Carries the full human-readable issue list so
+ * the UI can show every problem at once instead of just the first.
+ */
+export class ExportValidationError extends Error {
+	readonly issues: string[];
+
+	constructor(issues: string[]) {
+		super(`Export blocked: ${issues.join(' | ')}`);
+		this.name = 'ExportValidationError';
+		this.issues = issues;
+	}
+}
+
 /**
  * Compute a suggested filename for the download. The shell wires this
  * into the `<a download>` attribute. Falls back to a neutral name when
@@ -68,11 +161,20 @@ export function suggestedFilename(draft: OriginDraft): string {
  * Pass `84` for MC 26.1 — the UI's version toggle plumbs the user's
  * choice through here (see `$lib/stores/originDraft.ts`'s
  * `TARGET_VERSIONS`).
+ *
+ * Throws {@link ExportValidationError} (with the full issue list) when the
+ * draft has a blank origin path/namespace, a blank power id, or colliding
+ * power ids — see {@link validateDraftIds}.
  */
 export async function exportDatapack(
 	draft: OriginDraft,
 	packFormat: number = DEFAULT_PACK_FORMAT
 ): Promise<Blob> {
+	const idIssues = validateDraftIds(draft);
+	if (idIssues.length > 0) {
+		throw new ExportValidationError(idIssues.map((i) => i.message));
+	}
+
 	const bundle = serializeOrigin(draft);
 
 	const description = (draft.name?.trim() || 'Custom NeoOrigins datapack') +

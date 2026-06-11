@@ -11,7 +11,12 @@
 
 import { unzipSync } from 'fflate';
 
-import { exportDatapack, suggestedFilename } from '../export.js';
+import {
+	exportDatapack,
+	suggestedFilename,
+	validateDraftIds,
+	ExportValidationError
+} from '../export.js';
 import type { OriginDraft } from '../../stores/originDraft.js';
 
 let failed = 0;
@@ -237,6 +242,87 @@ await check(
 		);
 	}
 );
+
+// ── export validation gate ─────────────────────────────────────────────────
+
+async function expectExportBlocked(
+	d: OriginDraft,
+	expectFragment: string
+): Promise<ExportValidationError> {
+	try {
+		await exportDatapack(d);
+	} catch (e) {
+		assert(
+			e instanceof ExportValidationError,
+			`expected ExportValidationError, got ${e instanceof Error ? e.name : typeof e}`
+		);
+		assert(
+			e.issues.some((m) => m.includes(expectFragment)),
+			`expected an issue mentioning "${expectFragment}", got: ${e.issues.join(' | ')}`
+		);
+		return e;
+	}
+	throw new Error('expected exportDatapack to throw, but it produced a zip');
+}
+
+await check('gate — blank origin path refuses export', async () => {
+	const d = makeDraft();
+	d.path = '   ';
+	await expectExportBlocked(d, 'Origin path');
+});
+
+await check('gate — blank namespace refuses export', async () => {
+	const d = makeDraft();
+	d.namespace = '';
+	await expectExportBlocked(d, 'namespace');
+});
+
+await check('gate — blank power id refuses export', async () => {
+	const d = makeDraft();
+	d.powers.push({ id: '', type: 'neoorigins:attribute_modifier', fields: {} });
+	await expectExportBlocked(d, 'blank id');
+});
+
+await check('gate — colliding power ids refuse export', async () => {
+	const d = makeDraft();
+	d.powers.push({ id: 'starter_robes', type: 'neoorigins:attribute_modifier', fields: {} });
+	const e = await expectExportBlocked(d, 'starter_robes');
+	assert(
+		e.issues.some((m) => m.includes('powers/starter_robes.json')),
+		`expected collision message to name the colliding file, got: ${e.issues.join(' | ')}`
+	);
+});
+
+await check('gate — multiple problems reported together', async () => {
+	const d = makeDraft();
+	d.path = '';
+	d.powers.push({ id: '', type: 'neoorigins:attribute_modifier', fields: {} });
+	try {
+		await exportDatapack(d);
+		throw new Error('expected exportDatapack to throw');
+	} catch (e) {
+		assert(e instanceof ExportValidationError, 'expected ExportValidationError');
+		assert(e.issues.length === 2, `expected 2 issues, got ${e.issues.length}`);
+	}
+});
+
+await check('gate — validateDraftIds maps issues to fields/indices', () => {
+	const d = makeDraft();
+	d.path = '';
+	d.powers.push({ id: 'starter_robes', type: 'neoorigins:attribute_modifier', fields: {} });
+	const issues = validateDraftIds(d);
+	assert(issues.length === 2, `expected 2 issues, got ${issues.length}`);
+	const pathIssue = issues.find((i) => i.scope === 'origin' && i.field === 'path');
+	assert(pathIssue, 'expected an origin/path issue');
+	const dupIssue = issues.find((i) => i.scope === 'power' && i.field === 'id');
+	assert(dupIssue, 'expected a power/id issue');
+	assert(dupIssue.powerIndex === 1, `expected powerIndex 1, got ${dupIssue.powerIndex}`);
+});
+
+await check('gate — clean draft passes validateDraftIds', () => {
+	const issues = validateDraftIds(makeDraft());
+	assert(issues.length === 0, `expected no issues, got: ${issues.map((i) => i.message).join(' | ')}`);
+});
 
 await check('suggestedFilename — populated id', () => {
 	const name = suggestedFilename(makeDraft());

@@ -15,6 +15,7 @@
 	import { base } from '$app/paths';
 	import type { Writable } from 'svelte/store';
 	import { draft as originDraftStore, powersView, type PowerDraft } from '$lib/stores/originDraft';
+	import { originValidation } from '$lib/stores/originValidation';
 	import { setRefSchemas, type RefSchemas } from '$lib/schema/refSchemaContext';
 	import PowerEditor from './power/PowerEditor.svelte';
 	import BlockCanvas from './power/block/BlockCanvas.svelte';
@@ -28,6 +29,14 @@
 	let {
 		powersStore = originDraftStore as unknown as Writable<{ powers: PowerDraft[] }>
 	}: { powersStore?: Writable<{ powers: PowerDraft[] }> } = $props();
+
+	// Live AJV/id validation is computed off the ORIGIN draft store
+	// (`originValidation`). When this tab is mounted over a different store
+	// (the Mob Origin editor), those issues describe the wrong draft — only
+	// wire them through when we're actually editing the origin draft.
+	let isOriginDraftStore = $derived(
+		(powersStore as unknown) === (originDraftStore as unknown)
+	);
 
 	// ── module-level schema cache ──────────────────────────────────────────────
 	// A single in-flight promise shared across tab mounts so we don't refetch
@@ -192,8 +201,20 @@
 		return `power_${n}`;
 	}
 
+	// Preferred default type for a fresh power. The enum is sorted
+	// alphabetically, so `typeOptions[0]` lands on a compat-namespace type
+	// (`apace:night_vision`) — confusing for new users. Prefer the simple,
+	// commonly-used `neoorigins:attribute_modifier`; fall back to the first
+	// `neoorigins:` type in the schema, then to whatever the enum offers.
+	const PREFERRED_DEFAULT_TYPE = 'neoorigins:attribute_modifier';
+
 	function addPower() {
-		const defaultType = schemaState.typeOptions[0] ?? 'neoorigins:attribute_modifier';
+		const opts = schemaState.typeOptions;
+		const defaultType =
+			opts.find((t) => t === PREFERRED_DEFAULT_TYPE) ??
+			opts.find((t) => t.startsWith('neoorigins:')) ??
+			opts[0] ??
+			PREFERRED_DEFAULT_TYPE;
 		powersStore.update((d) => {
 			const id = nextPowerId(d.powers);
 			const next: PowerDraft = { id, type: defaultType, fields: {} };
@@ -298,6 +319,7 @@
 					typeOptions={schemaState.typeOptions}
 					schema={schemaState.schema!}
 					fieldDocs={schemaState.fieldDocs!}
+					issues={isOriginDraftStore ? $originValidation.powers[i] : undefined}
 					collapsed={isCollapsed(i, $powersStore.powers.length)}
 					onToggleCollapsed={() => toggleCollapsed(i, $powersStore.powers.length)}
 					onIdChange={(v) => updatePowerId(i, v)}

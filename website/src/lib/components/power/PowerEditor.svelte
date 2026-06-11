@@ -12,6 +12,7 @@
 
 	import { untrack } from 'svelte';
 	import type { PowerDraft } from '$lib/stores/originDraft';
+	import type { PowerIssues } from '$lib/stores/originValidation';
 	import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
 	import { parsePowerSchema } from '$lib/schema/SchemaFormModel';
 	import PowerTypePicker from './PowerTypePicker.svelte';
@@ -24,6 +25,7 @@
 		schema,
 		fieldDocs,
 		collapsed,
+		issues = undefined,
 		onToggleCollapsed,
 		onIdChange,
 		onTypeChange,
@@ -36,12 +38,23 @@
 		schema: object;
 		fieldDocs: object;
 		collapsed: boolean;
+		/** Live validation issues for THIS power (from `originValidation`). */
+		issues?: PowerIssues;
 		onToggleCollapsed: () => void;
 		onIdChange: (next: string) => void;
 		onTypeChange: (next: string) => void;
 		onFieldChange: (fieldName: string, next: unknown) => void;
 		onRemove: () => void;
 	} = $props();
+
+	// Inline-error lookups. Issues are keyed by top-level form field name;
+	// the `id` key carries the draft-level blank/duplicate-id gate errors.
+	let idErrors = $derived(issues?.fields?.['id'] ?? []);
+	let typeErrors = $derived(issues?.fields?.['type'] ?? []);
+	let unmappedErrors = $derived(issues?.unmapped ?? []);
+	function fieldErrors(name: string) {
+		return issues?.fields?.[name] ?? [];
+	}
 
 	// Parse the schema-driven form spec for the current power type.
 	// `parsePowerSchema` throws when the type is not in the enum universe;
@@ -126,8 +139,18 @@
 					placeholder="power_1"
 					autocomplete="off"
 					spellcheck="false"
+					class:invalid={idErrors.length > 0}
+					aria-invalid={idErrors.length > 0 || undefined}
+					aria-describedby={idErrors.length > 0 ? `power-id-err-${index}` : undefined}
 				/>
 				<small class="hint">Local id within this origin.</small>
+				{#if idErrors.length > 0}
+					<small class="field-err" id={`power-id-err-${index}`} role="status">
+						{#each idErrors as err, ei (ei)}
+							<span class="field-err-line">{err.message}</span>
+						{/each}
+					</small>
+				{/if}
 			</div>
 
 			<div class="row">
@@ -141,7 +164,25 @@
 				{#if resetToastVisible}
 					<small class="toast">(form fields reset)</small>
 				{/if}
+				{#if typeErrors.length > 0}
+					<small class="field-err" id={`power-type-err-${index}`} role="status">
+						{#each typeErrors as err, ei (ei)}
+							<span class="field-err-line">{err.message}</span>
+						{/each}
+					</small>
+				{/if}
 			</div>
+
+			{#if unmappedErrors.length > 0}
+				<div class="err-summary" role="status" aria-label="Other validation errors for this power">
+					<p class="err-summary-title">Validation errors not tied to a single field:</p>
+					<ul>
+						{#each unmappedErrors as err, ei (ei)}
+							<li><code class="err-ptr">{err.pointer}</code> {err.message}</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 
 			{#if formSpec.error}
 				<p class="warn">
@@ -153,11 +194,38 @@
 			{#if formSpec.fields.length > 0}
 				<div class="fields">
 					{#each formSpec.fields as field (field.path)}
-						<FieldRowAdapter
-							{field}
-							value={power.fields[field.name]}
-							onUpdate={(v) => onFieldChange(field.name, v)}
-						/>
+						{@const errs = fieldErrors(field.name)}
+						<div
+							class="field-slot"
+							class:has-err={errs.length > 0}
+							role={errs.length > 0 ? 'group' : undefined}
+							aria-label={errs.length > 0 ? `${field.name} (has validation errors)` : undefined}
+							aria-describedby={errs.length > 0
+								? `power-${index}-field-err-${field.name}`
+								: undefined}
+						>
+							<FieldRowAdapter
+								{field}
+								value={power.fields[field.name]}
+								onUpdate={(v) => onFieldChange(field.name, v)}
+							/>
+							{#if errs.length > 0}
+								<small
+									class="field-err"
+									id={`power-${index}-field-err-${field.name}`}
+									role="status"
+								>
+									{#each errs as err, ei (ei)}
+										<span class="field-err-line">
+											{#if err.pointer !== `/${field.name}` && err.pointer !== '(root)'}
+												<code class="err-ptr">{err.pointer}</code>
+											{/if}
+											{err.message}
+										</span>
+									{/each}
+								</small>
+							{/if}
+						</div>
 					{/each}
 				</div>
 			{:else if !formSpec.error}
@@ -293,6 +361,54 @@
 		color: var(--color-text-muted);
 		font-size: 0.82rem;
 		font-style: italic;
+	}
+	/* Inline validation errors. Color is paired with text + border cues so
+	 * the state is never colour-only (CVD baseline). */
+	.field-err {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		color: var(--color-danger);
+		font-size: 0.78rem;
+	}
+	.field-err-line {
+		display: block;
+	}
+	.field-slot.has-err {
+		border-left: 3px solid var(--color-danger);
+		padding-left: var(--space-2);
+	}
+	.err-summary {
+		margin: 0;
+		padding: var(--space-2) var(--space-3);
+		background: var(--color-danger-subtle);
+		border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+		border-radius: var(--radius-md);
+		color: var(--color-text);
+		font-size: 0.82rem;
+	}
+	.err-summary-title {
+		margin: 0 0 var(--space-1);
+		font-weight: 600;
+	}
+	.err-summary ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.err-ptr {
+		font-family: var(--font-mono);
+		font-size: 0.74rem;
+		color: var(--color-text);
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.02rem 0.3rem;
+	}
+	input.invalid {
+		border-color: var(--color-danger);
 	}
 	input[type='text'] {
 		background: var(--color-bg);
