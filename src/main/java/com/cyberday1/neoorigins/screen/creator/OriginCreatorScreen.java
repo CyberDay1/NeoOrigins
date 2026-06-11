@@ -153,11 +153,35 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
             .bounds(bx + (bw + gap) * 2, by, bw, 20).build());
     }
 
+    /** Save-block reason shown above the button bar; "" when save is allowed. */
+    private String blockMsg = "";
+
     private void sendSave() {
         tabs.get(activeTab).pushToDraft();
+        // Inline save gate: run the SAME blocking checks the server gate runs
+        // (DraftSanity.blockingProblems is shared), so a draft the server would
+        // reject is stopped here with the reason visible at the buttons.
+        // Advisory warnings (e.g. "no powers") never block.
+        var conn = Minecraft.getInstance().getConnection();
+        var ra = conn != null ? conn.registryAccess()
+            : net.minecraft.core.RegistryAccess.EMPTY;
+        java.util.List<String> errs =
+            com.cyberday1.neoorigins.service.DraftSanity.blockingProblems(ra, draft);
+        if (!errs.isEmpty()) {
+            blockMsg = "✕ Can't save — " + errs.size() + " problem"
+                + (errs.size() == 1 ? "" : "s") + ": " + trim(errs.get(0))
+                + (errs.size() > 1 ? "  (full list on the JSON tab)" : "");
+            return;
+        }
+        blockMsg = "";
         net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(
             new com.cyberday1.neoorigins.network.payload.SaveCustomOriginPayload(
                 com.cyberday1.neoorigins.service.OriginDraftJson.toJson(draft)));
+    }
+
+    /** Keep the save-block line to one readable row. */
+    private static String trim(String s) {
+        return s.length() > 70 ? s.substring(0, 67) + "…" : s;
     }
 
     private void sendApply() {
@@ -223,12 +247,18 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
         active.render(g, mouseX, mouseY, partial,
             contentX, contentY + HELP_H, contentW, contentH - HELP_H);
 
-        // Latest server Save/Apply result, just above the button bar.
-        String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
-        if (!msg.isEmpty()) {
-            int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
-                ? CreatorStyle.OK : CreatorStyle.ERR;
-            g.centeredText(font, Component.literal(msg), width / 2, height - 42, color);
+        // Save-block reason (client gate) takes precedence over the latest
+        // server Save/Apply result, just above the button bar.
+        if (!blockMsg.isEmpty()) {
+            g.centeredText(font, Component.literal(blockMsg),
+                width / 2, height - 42, CreatorStyle.ERR);
+        } else {
+            String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
+            if (!msg.isEmpty()) {
+                int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
+                    ? CreatorStyle.OK : CreatorStyle.ERR;
+                g.centeredText(font, Component.literal(msg), width / 2, height - 42, color);
+            }
         }
 
         // Hover tooltip drawn dead last so it sits over every widget/box.

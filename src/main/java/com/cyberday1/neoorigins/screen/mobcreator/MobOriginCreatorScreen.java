@@ -98,11 +98,30 @@ public class MobOriginCreatorScreen extends Screen implements CreatorHost {
             .bounds(bx + (bw + gap) * 2, by, bw, 20).build());
     }
 
+    /** Save-block reason shown above the button bar; "" when save is allowed. */
+    private String blockMsg = "";
+
     private void sendSave() {
         tabs.get(activeTab).pushToDraft();
+        // Inline save gate: run the SAME validator the server gate runs (it is
+        // environment-neutral — codec + serializer only), so a draft the server
+        // would reject is stopped here with the reason visible at the buttons.
+        var result = com.cyberday1.neoorigins.service.MobCreatorValidator.validate(draft);
+        if (!result.ok()) {
+            java.util.List<String> errs = result.errors();
+            blockMsg = "✕ Can't save — " + errs.size() + " problem"
+                + (errs.size() == 1 ? "" : "s") + ": " + trim(errs.get(0));
+            return;
+        }
+        blockMsg = "";
         net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(
             new com.cyberday1.neoorigins.network.payload.SaveMobOriginPayload(
                 com.cyberday1.neoorigins.service.MobOriginDraftJson.toJson(draft)));
+    }
+
+    /** Keep the save-block line to one readable row. */
+    private static String trim(String s) {
+        return s.length() > 70 ? s.substring(0, 67) + "…" : s;
     }
 
     private void sendApply() {
@@ -141,11 +160,18 @@ public class MobOriginCreatorScreen extends Screen implements CreatorHost {
         active.render(g, mouseX, mouseY, partial,
             contentX, contentY + HELP_H, contentW, contentH - HELP_H);
 
-        String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
-        if (!msg.isEmpty()) {
-            int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
-                ? CreatorStyle.OK : CreatorStyle.ERR;
-            g.centeredText(font, Component.literal(msg), width / 2, height - 42, color);
+        // Save-block reason (client gate) takes precedence over the latest
+        // server Save/Apply result.
+        if (!blockMsg.isEmpty()) {
+            g.centeredText(font, Component.literal(blockMsg),
+                width / 2, height - 42, CreatorStyle.ERR);
+        } else {
+            String msg = com.cyberday1.neoorigins.client.ClientCreatorState.lastMessage();
+            if (!msg.isEmpty()) {
+                int color = com.cyberday1.neoorigins.client.ClientCreatorState.lastOk()
+                    ? CreatorStyle.OK : CreatorStyle.ERR;
+                g.centeredText(font, Component.literal(msg), width / 2, height - 42, color);
+            }
         }
         if (pendingTip != null && !pendingTip.isEmpty()) {
             CreatorStyle.tooltip(g, font, pendingTip, tipX, tipY, width, height);

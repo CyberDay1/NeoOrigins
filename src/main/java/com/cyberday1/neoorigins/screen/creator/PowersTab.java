@@ -195,6 +195,13 @@ public final class PowersTab implements CreatorTab {
                     + (rawMode ? "(editing JSON)" : "(editing form)"),
                 x + LABEL_DX, idY, CreatorStyle.TEXT_DIM, false);
         }
+        // Live field-problem counter for the current power (right-aligned on
+        // the id line). Advisory: the Save button's gate is the real block.
+        int errs = form.errorCount();
+        if (errs > 0) {
+            String e = "✕ " + errs + " field problem" + (errs == 1 ? "" : "s");
+            g.text(font, e, x + w - font.width(e) - 8, idY, CreatorStyle.ERR, false);
+        }
         CreatorStyle.divider(g, x + 4, idY + 12, w - 8);
         form.render(g, mouseX, mouseY);
     }
