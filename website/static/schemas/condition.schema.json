@@ -2191,12 +2191,14 @@
           ]
         },
         "state": {
-          "description": "Weather state to match (also accepts the `value` field; default clear).",
+          "description": "Weather state to match — rain/raining and thunder/thundering are synonyms (also accepts the `value` field; default clear).",
           "type": "string",
           "enum": [
             "clear",
             "rain",
-            "thunder"
+            "raining",
+            "thunder",
+            "thundering"
           ],
           "default": "clear"
         },
@@ -2206,7 +2208,9 @@
           "enum": [
             "clear",
             "rain",
-            "thunder"
+            "raining",
+            "thunder",
+            "thundering"
           ]
         }
       },

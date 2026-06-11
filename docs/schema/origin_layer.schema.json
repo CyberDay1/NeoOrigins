@@ -7,23 +7,100 @@
   "required": ["origins"],
   "properties": {
     "origins": {
-      "description": "Ordered list of origin IDs (namespace:path). First entry is the default selection.",
+      "description": "Ordered list of origin entries. First entry is the default selection. Each entry is either a plain origin ID string, or an object pairing an origin ID with a layer condition that gates its visibility based on choices made in other layers.",
       "type": "array",
-      "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+      "items": {
+        "oneOf": [
+          { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+          {
+            "type": "object",
+            "required": ["origin"],
+            "properties": {
+              "origin": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+              "condition": { "$ref": "#/$defs/layer_condition" }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
       "minItems": 1
     },
     "name": {
-      "description": "Optional display name for this layer (translation key or literal).",
+      "description": "Optional display name for this layer (translation key or literal). Defaults to the layer's path.",
       "type": "string"
     },
     "order": {
       "description": "Lower values render earlier in the picker. Default 0.",
       "type": "integer"
     },
+    "enabled": {
+      "description": "If false, the layer is loaded but skipped by the picker. Default true.",
+      "type": "boolean"
+    },
+    "allow_random": {
+      "description": "If true, this layer participates in random-origin assignment. Default false.",
+      "type": "boolean"
+    },
+    "default_origin": {
+      "description": "Origin ID auto-assigned when the layer is resolved without a player choice.",
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+    },
+    "auto_choose": {
+      "description": "If true, the layer auto-selects when only one origin is available, skipping the picker screen for it. Default false.",
+      "type": "boolean"
+    },
+    "hidden": {
+      "description": "If true, the layer is resolved but never shown as a picker tab. Default false.",
+      "type": "boolean"
+    },
     "replace": {
       "description": "If true, this file fully replaces earlier definitions of the same layer ID from lower-priority datapacks. Default false (merge).",
       "type": "boolean"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "layer_condition": {
+      "description": "Condition over the player's previous layer choices. Type namespaces origins:, apace: and neoorigins: are interchangeable.",
+      "type": "object",
+      "required": ["type"],
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "enum": ["origins:origin", "apace:origin", "neoorigins:origin"] },
+            "layer": {
+              "description": "Layer whose choice is tested. Defaults to neoorigins:origin (the main origin layer).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "origin": {
+              "description": "Origin that must have been chosen in that layer.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "inverted": {
+              "description": "If true, passes when the origin was NOT chosen. Default false.",
+              "type": "boolean"
+            }
+          },
+          "required": ["type", "origin"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "enum": ["origins:and", "apace:and", "neoorigins:and", "origins:or", "apace:or", "neoorigins:or"] },
+            "conditions": {
+              "description": "Sub-conditions: all must pass for and, any for or.",
+              "type": "array",
+              "items": { "$ref": "#/$defs/layer_condition" },
+              "minItems": 1
+            }
+          },
+          "required": ["type", "conditions"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
 }

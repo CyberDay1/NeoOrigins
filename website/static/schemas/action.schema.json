@@ -1625,6 +1625,10 @@
           "description": "Action when nothing is hit within range.",
           "$ref": "#"
         },
+        "before_action": {
+          "description": "Entity action run once before the ray is cast, regardless of hit outcome (e.g. consume a reagent).",
+          "$ref": "#"
+        },
         "command_along_ray": {
           "description": "Optional command run at each step along the ray (fires regardless of hit).",
           "type": "string"
@@ -1634,6 +1638,10 @@
           "type": "number",
           "default": 1.0,
           "minimum": 0.0
+        },
+        "command_at_hit": {
+          "description": "Optional command run at the precise impact point when the ray hits a block or entity.",
+          "type": "string"
         }
       },
       "required": [

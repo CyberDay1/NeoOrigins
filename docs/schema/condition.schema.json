@@ -15,8 +15,10 @@
         "apace:actor_condition",
         "apace:advancement",
         "apace:air",
+        "apace:all_of",
         "apace:amount",
         "apace:and",
+        "apace:any_of",
         "apace:armor_value",
         "apace:biome",
         "apace:block",
@@ -29,7 +31,10 @@
         "apace:config_flag",
         "apace:constant",
         "apace:cooldown",
+        "apace:cover",
+        "apace:covered_by_block",
         "apace:creative_flying",
+        "apace:creative_mode",
         "apace:damage_name",
         "apace:damage_tag",
         "apace:damage_type",
@@ -115,8 +120,10 @@
         "neoorigins:actor_condition",
         "neoorigins:advancement",
         "neoorigins:air",
+        "neoorigins:all_of",
         "neoorigins:amount",
         "neoorigins:and",
+        "neoorigins:any_of",
         "neoorigins:armor_value",
         "neoorigins:biome",
         "neoorigins:block",
@@ -129,7 +136,10 @@
         "neoorigins:config_flag",
         "neoorigins:constant",
         "neoorigins:cooldown",
+        "neoorigins:cover",
+        "neoorigins:covered_by_block",
         "neoorigins:creative_flying",
+        "neoorigins:creative_mode",
         "neoorigins:damage_name",
         "neoorigins:damage_tag",
         "neoorigins:damage_type",
@@ -324,7 +334,9 @@
         "type": {
           "enum": [
             "neoorigins:and",
-            "apace:and"
+            "neoorigins:all_of",
+            "apace:and",
+            "apace:all_of"
           ]
         },
         "conditions": {
@@ -603,12 +615,47 @@
       ]
     },
     {
+      "$comment": "neoorigins:cover",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:cover",
+            "neoorigins:covered_by_block",
+            "apace:cover",
+            "apace:covered_by_block"
+          ]
+        },
+        "distance": {
+          "description": "How many blocks above the player to scan for a non-air block (default 8, min 1).",
+          "type": "integer",
+          "default": 8
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:creative_flying",
       "properties": {
         "type": {
           "enum": [
             "neoorigins:creative_flying",
             "apace:creative_flying"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:creative_mode",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:creative_mode",
+            "apace:creative_mode"
           ]
         }
       },
@@ -1632,7 +1679,9 @@
         "type": {
           "enum": [
             "neoorigins:or",
-            "apace:or"
+            "neoorigins:any_of",
+            "apace:or",
+            "apace:any_of"
           ]
         },
         "conditions": {
@@ -2191,12 +2240,14 @@
           ]
         },
         "state": {
-          "description": "Weather state to match (also accepts the `value` field; default clear).",
+          "description": "Weather state to match — rain/raining and thunder/thundering are synonyms (also accepts the `value` field; default clear).",
           "type": "string",
           "enum": [
             "clear",
             "rain",
-            "thunder"
+            "raining",
+            "thunder",
+            "thundering"
           ],
           "default": "clear"
         },
@@ -2206,7 +2257,9 @@
           "enum": [
             "clear",
             "rain",
-            "thunder"
+            "raining",
+            "thunder",
+            "thundering"
           ]
         }
       },
@@ -2319,8 +2372,10 @@
               "apace:actor_condition",
               "apace:advancement",
               "apace:air",
+              "apace:all_of",
               "apace:amount",
               "apace:and",
+              "apace:any_of",
               "apace:armor_value",
               "apace:biome",
               "apace:block",
@@ -2333,7 +2388,10 @@
               "apace:config_flag",
               "apace:constant",
               "apace:cooldown",
+              "apace:cover",
+              "apace:covered_by_block",
               "apace:creative_flying",
+              "apace:creative_mode",
               "apace:damage_name",
               "apace:damage_tag",
               "apace:damage_type",
@@ -2419,8 +2477,10 @@
               "neoorigins:actor_condition",
               "neoorigins:advancement",
               "neoorigins:air",
+              "neoorigins:all_of",
               "neoorigins:amount",
               "neoorigins:and",
+              "neoorigins:any_of",
               "neoorigins:armor_value",
               "neoorigins:biome",
               "neoorigins:block",
@@ -2433,7 +2493,10 @@
               "neoorigins:config_flag",
               "neoorigins:constant",
               "neoorigins:cooldown",
+              "neoorigins:cover",
+              "neoorigins:covered_by_block",
               "neoorigins:creative_flying",
+              "neoorigins:creative_mode",
               "neoorigins:damage_name",
               "neoorigins:damage_tag",
               "neoorigins:damage_type",

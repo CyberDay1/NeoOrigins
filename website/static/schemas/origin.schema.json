@@ -64,8 +64,58 @@
       "type": "boolean"
     },
     "hidden": {
-      "description": "If true, origin is hidden from the picker but still valid if granted.",
+      "description": "Origins-format synonym for unchoosable — only honored when the file is detected as Origins-format and translated. NeoOrigins-format files should use unchoosable.",
       "type": "boolean"
+    },
+    "special": {
+      "description": "If true, marks the origin as special (e.g. evolution/upgrade targets) for picker presentation.",
+      "type": "boolean"
+    },
+    "required_mods": {
+      "description": "Mod ids that must all be loaded for this origin to load. When any are absent the origin is skipped entirely (never registered or shown).",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "spawn_location": {
+      "description": "Preferred first-spawn / respawn placement filter. dimension / structure / structure_tag combine with AND; biome, biome_tag and biomes combine with OR.",
+      "type": "object",
+      "properties": {
+        "dimension": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "biome": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "biome_tag": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "biomes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" }
+        },
+        "structure": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "structure_tag": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "allow_water_surface": { "type": "boolean", "default": false },
+        "allow_ocean_floor": { "type": "boolean", "default": false },
+        "min_y": { "type": "integer" },
+        "max_y": { "type": "integer" },
+        "can_see_sky": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "tier_powers": {
+      "description": "Evolution-tier power overlays. At a given tier, powers in add are granted and powers in remove are revoked. Overlays stack cumulatively (tier 2 includes tier 1's changes).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tier"],
+        "properties": {
+          "tier": { "type": "integer", "minimum": 1 },
+          "add": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" }
+          },
+          "remove": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

@@ -3,7 +3,28 @@
     "name": "Display name for this power (optional; overrides the default).",
     "description": "Tooltip/description text for this power (optional).",
     "hidden": "If true, this power is not listed on the origin screen.",
-    "condition": "Only applies while this condition passes (a DSL condition object — use pick)."
+    "condition": "Only applies while this condition passes (a DSL condition object — use pick). On power types without their own condition field, a top-level condition is an alias for power_condition with mode ALLOW.",
+    "power_condition": "Whole-power gate: an entity condition re-evaluated whenever the power would act (works on every power type). Pair with power_condition_mode.",
+    "power_condition_mode": "How power_condition gates: ALLOW = power active while the condition is true; DENY (default) = power disabled while the condition is true."
+  },
+  "origin": {
+    "spawn_location": "Preferred first-spawn / respawn placement filter (LocationCondition shape). dimension / structure / structure_tag combine with AND; biome / biome_tag / biomes combine with OR (any biome match passes). Optional extras: allow_water_surface, allow_ocean_floor (default false), min_y, max_y, can_see_sky. Resolved server-side; the teleport fires once, on the player's first origin pick.",
+    "tier_powers": "Evolution-tier power overlays: array of {tier, add, remove} objects. tier (required, min 1) is the evolution tier; at that tier, power ids in add are granted and ids in remove are revoked. Overlays stack cumulatively — tier 2 includes tier 1's changes."
+  },
+  "origin_layer": {
+    "allow_random": "If true, this layer participates in random-origin assignment (default false).",
+    "auto_choose": "If true, the layer auto-selects when only one origin is available, skipping its picker screen (default false).",
+    "condition": "Object-entry form: layer condition gating the entry's visibility — origins:/neoorigins:origin ({layer, origin, inverted}) or and/or over sub-conditions. Tests the player's choices in OTHER layers, not a DSL entity condition.",
+    "default_origin": "Origin ID auto-assigned when the layer is resolved without a player choice (optional).",
+    "enabled": "If false, the layer is loaded but skipped by the picker (default true).",
+    "hidden": "If true, the layer is resolved but never shown as a picker tab (default false).",
+    "origin": "Object-entry form: the origin ID this entry offers (required when the entry is an object).",
+    "origins": "Ordered list of origin entries (required, min 1). Each entry is a plain origin ID string, or an object {origin, condition} whose layer condition gates visibility based on choices made in other layers. First entry is the default selection.",
+    "replace": "If true, this file fully replaces earlier definitions of the same layer ID from lower-priority datapacks; default false = merge (origins append + dedup)."
+  },
+  "neoorigins:active_ability": {
+    "resource_cost": "Power id of a neoorigins:resource debited on activation; empty = no resource cost. If the player can't afford it the activation silently aborts (no cooldown consumed). When resource bars are globally disabled (disable_resource_bars), the cost falls back to hunger instead (resource_cost_amount food points).",
+    "resource_cost_amount": "Resource points deducted per successful activation (default 0; only used when resource_cost is set). Checked pre-flight — activation silently aborts if the current value is below this."
   },
   "neoorigins:breath_in_fluid": {
     "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
@@ -20,8 +41,13 @@
     "speed": "Particle motion speed passed to the spawn call (default 0.0 = still).",
     "spread": "[x,y,z] random spread radius in blocks (default [0.25,0.5,0.25])."
   },
+  "neoorigins:raycast": {
+    "before_action": "EntityAction run once on the actor before the ray is cast, regardless of hit outcome (e.g. consume a reagent).",
+    "command_at_hit": "Optional command run at the precise impact point when the ray hits a block or entity; not run on a miss."
+  },
   "neoorigins:resource": {
     "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill.",
+    "hidden": "If true, the HUD bar is not rendered but the resource still ticks, regens and can be spent (default false). Also forced true by hud_render.should_render=false (Origins compat).",
     "label": "Display name shown on the HUD resource bar (e.g. \"Mana\").",
     "max": "Maximum value the resource can hold (default 100).",
     "max_action": "EntityAction run once when the resource rises to its max.",

@@ -6,10 +6,10 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types) — 84 types
-- [Condition verbs](#condition-verbs) — 75 conditions
-- [Action verbs](#action-verbs) — 45 actions
-- [Event keys](#event-keys) — 33 events
+- [Power types](#power-types) — 106 types
+- [Condition verbs](#condition-verbs) — 94 conditions
+- [Action verbs](#action-verbs) — 85 actions
+- [Event keys](#event-keys) — 49 events
 - [Named keybinds](#named-keybinds)
 - [Active theme datapack file](#active-theme-datapack-file)
 - [Namespaces & prefixes](#namespaces--prefixes)

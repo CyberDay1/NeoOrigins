@@ -1,6 +1,6 @@
 # NeoOrigins Power Types Reference
 
-All powers share four optional top-level fields:
+All powers share six optional top-level fields:
 
 | Field | Type | Description |
 |---|---|---|
@@ -8,6 +8,15 @@ All powers share four optional top-level fields:
 | `description` | string or `{"text":"..."}` / `{"translate":"..."}` | Description shown below the power name. Same resolution rules as `name`. |
 | `hidden` | bool (default `false`) | When `true`, this power is excluded from the origin info panel. The mechanical effect still applies — only the display row is suppressed. Useful for purely-internal flag/glue powers (e.g. `neoorigins:toggle`, on-hit setters wired under a `multiple`). |
 | `required_mods` | list of mod ids (default `[]`) | Load gate: the power only loads when every listed mod is present. Use it for content that targets an optional mod (e.g. the built-in Dragon Survival dragon forms carry `"required_mods": ["dragonsurvival"]`). Origins accept the same field — see [PACK_FORMAT.md](PACK_FORMAT.md). |
+| `power_condition` | entity condition object | Runtime gate: the condition is re-evaluated against the power's holder every time the power would act, and the power only operates when the gate is satisfied. Works on every power type. See [CONDITIONS.md](CONDITIONS.md) for the condition format. |
+| `power_condition_mode` | `"ALLOW"` or `"DENY"` (default `"DENY"`) | How `power_condition` gates: `ALLOW` = the power is active **while the condition is true**; `DENY` = the power is disabled while the condition is true. |
+
+**`condition` as an alias.** On power types that don't have their own `condition` config field, a top-level `condition` is accepted as an alias for `power_condition` with mode `ALLOW` (so the power is active while the condition holds — the intuitive reading). Notes:
+
+- Nine types claim `condition` for their own config and are excluded from the alias: `model_color`, `attribute_modifier`, `action_on_event`, `modify_damage`, `active_ability`, `persistent_effect`, `condition_passive`, `prevent_death`, `conditional`. On those, write `power_condition` for the whole-power gate.
+- An explicit `power_condition_mode` is honored even when the gate comes in via the alias.
+- If both `power_condition` and an aliased `condition` are present, `power_condition` wins and a warning is logged.
+- Prefer `power_condition` in new packs; the alias exists so the common Apoli-style spelling doesn't get silently dropped.
 
 If neither `name` nor `description` is present, NeoOrigins falls back to the lang key convention:
 `power.<namespace>.<path>.name` / `power.<namespace>.<path>.description`
@@ -181,6 +190,7 @@ Prevents a specific harmful action or event from affecting the player.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `action` | string | yes | — | The action to prevent (see values below) |
+| `active_when` | string | no | `"always"` | Stance gate for the prevention: `"always"`, `"sneaking"`, `"not_sneaking"`, `"on_ground"`, or `"not_on_ground"`. The action is only prevented while the condition holds. |
 | `head` / `chest` / `legs` / `feet` | bool | no | `false` | Per-slot toggles for `armor_equip` only. When `true`, the matching armor slot rejects equip attempts (item snaps back to inventory, drops on the ground if full). |
 
 **Action values:**
@@ -230,7 +240,7 @@ Modifies the player's movement speed while submerged in lava. Uses the `NumericM
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `operation` | string | no | `"addition"` | `"addition"` or `"multiply"` |
+| `operation` | string | no | `"addition"` | `"addition"`, `"multiply_base"`, or `"multiply_total"` |
 | `value` | double | yes | — | Amount to add or multiply. Vanilla lava-swim factor is `0.02`; an addition of `0.04` (3× vanilla) feels like swimming in water. |
 
 **Example — water-swim-pace lava swimming:**
@@ -1700,6 +1710,7 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `power` | id or list | no | — | `power_activated` only: pre-dispatch filter on the activated power's id (single id or array). Omit to fire on any activation. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
+| `cooldown_ticks` | int ≥ 0 | no | 0 | After `entity_action` fires, suppress further firings of this power for this many ticks (20 = 1s). Tracked per player per power instance and persisted across respawn/relog. Only gates the action path: `modifier` chains are unaffected. |
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
@@ -1712,6 +1723,11 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 - Status effects: `effect_applied`
 
 For action-style events set `entity_action`; for modifier-style events set `modifier`. A single power may declare both — the action path fires on `dispatch` sites and the modifier path chains on `dispatchModifier` sites.
+
+**`neoorigins:cancel_event` support.** Using `cancel_event` as the `entity_action` vetoes the underlying game event, but only where NeoForge exposes a cancellable event:
+
+- **Cancellable**: `death` (the lethal blow is undone; if the player is still at 0 HP they are left at 1 HP, totem-style — pair with a `condition` or a healing `entity_action`, otherwise the next damage tick kills them again), `kill` (spares the victim, same 1-HP patch), `hit_taken` (negates the incoming damage), `attack` (stops the swing before damage), `land` (negates fall damage), `projectile_hit` (negates the impact), `item_use`, `food_eaten` (blocks the use/eat), `effect_applied` (blocks the effect), `block_break`, `block_place`, `block_use`, `entity_use`, `villager_interact`, `breed`, `tame`, `bonemeal`.
+- **Not cancellable** (the NeoForge event fires after the fact or cannot be cancelled — `cancel_event` is a silent no-op): `jump`, `item_use_finish`, `food_finished`, `item_pickup`, `craft_item`, `smelt_item`, `enchant_item`, `anvil_repair`, `trade_completed`, `advancement_earned`, `wake_up`, `respawn`, `dimension_change`, `climb`, `tick`, `gained`, `lost`, `chosen`, `power_activated`, and all `mod_*` modifier events.
 
 **Example — heal 1 heart on kill only while holding a wooden sword:**
 ```json
@@ -2056,7 +2072,9 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 |---|---|---|---|---|
 | `cooldown_ticks` | int | no | `60` | Cooldown after each use |
 | `hunger_cost` | int | no | `0` | Food points removed per use (1 shank = 2 points). Silently aborts if player has less food (cooldown not consumed). |
-| `entity_action` | EntityAction | yes | noop | Action tree fired on use (typically `neoorigins:and { actions: [...] }`) |
+| `resource_cost` | string | no | `""` | Id of a `neoorigins:resource` power to debit per use. Empty = no resource cost. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. Silently aborts (cooldown not consumed) if the resource can't cover it. If resource bars are globally disabled in config, the cost is charged as hunger instead. |
+| `entity_action` | EntityAction | no | noop | Action tree fired on use (typically `neoorigins:and { actions: [...] }`) |
 | `condition` | EntityCondition | no | always-true | DSL gate — skips firing (and the cooldown) if false |
 
 Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter — triggering one ability does not block another.
@@ -3157,7 +3175,7 @@ Reflects the player's downward impact velocity back upward on landing, mimicking
 Notes:
 
 - **Sneaking suppresses the bounce** — matching slime-block behavior and giving players a deliberate way to stop bouncing.
-- Pair with `neoorigins:no_fall_damage` so the impact driving the bounce doesn't also hurt.
+- Pair with `neoorigins:prevent_action` (`"action": "fall_damage"`) so the impact driving the bounce doesn't also hurt.
 
 **Example — springy slime body:**
 ```json
@@ -3300,6 +3318,7 @@ A named, persistent, HUD-visible resource bar. Values are stored per-player and 
 | `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
 | `should_render` | bool | no | `true` | Origins compat — when false, hides the bar |
 | `animated` | string | no | — | Id of an animated bar FX preset, e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar fill renders as an animated texture strip instead of the flat `color`. |
+| `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the animated preset art, so one texture strip can be recolored per power. Ignored when `animated` is unset. |
 
 **Animated bar FX presets:**
 
@@ -3502,3 +3521,65 @@ neoorigins_loot_pool_grant:<loot_table_id>
 routes through the same `LootPoolGrantPower#fireLootPoolGrant` pipeline on completion: the completing player receives the rolled stacks, with dedup keyed on `ftbq:<quest_id>:<table_id>`. Authors get vanilla loot-table reuse for both origin powers and quest rewards without any hard FTBQ dependency.
 
 This is a soft-compat layer — it is **not** an FTBQ `RewardType` registration (which would require Provider-API hooks that vary across FTBQ minor versions). The tag-marker path is the supported integration; a `RewardType` upgrade is reserved for v2.2 once that API stabilises.
+
+---
+
+# KubeJS bridge powers
+
+These two types delegate power behavior to JavaScript handlers registered from a KubeJS `startup_scripts/` file. They only function when KubeJS is on the mod list: the power JSON references a `js_id`, and the script registers the matching handler via the `NeoOrigins.*` bindings. If no handler is registered for the id, the power is inert.
+
+## `neoorigins:js_custom`
+
+A passive power whose lifecycle hooks run JS. Register the handler with `NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick})` — any hook the JS object doesn't supply defaults to a no-op.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `js_id` | string | yes | — | ID of the JS handler registered via `NeoOrigins.registerPower` |
+
+```json
+{
+  "type": "neoorigins:js_custom",
+  "name": "Scripted Aura",
+  "description": "Behavior supplied by the pack's startup script.",
+  "js_id": "mypack:aura"
+}
+```
+
+```js
+// startup_scripts/powers.js
+NeoOrigins.registerPower('mypack:aura', {
+    onTick: player => { /* runs each power tick */ }
+})
+```
+
+## `neoorigins:js_active`
+
+A keybind-activated power whose `onUse` runs JS. Register with `NeoOrigins.registerActivePower(id, {onUse, onGranted, onRevoked})`. `onUse(player)` must return a boolean: `true` consumes the cooldown and hunger cost, `false` is a no-op (nothing is consumed). Cooldown and hunger cost behave exactly like every other active power.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `js_id` | string | yes | — | ID of the JS handler registered via `NeoOrigins.registerActivePower` |
+| `cooldown_ticks` | int | no | `20` | Cooldown between uses in ticks (20 = 1s), consumed only when `onUse` returns `true` |
+| `hunger_cost` | int | no | `0` | Food/exhaustion points consumed on a successful activation (`onUse` returns `true`) |
+
+```json
+{
+  "type": "neoorigins:js_active",
+  "name": "Scripted Blink",
+  "description": "Teleports via the pack's startup script.",
+  "js_id": "mypack:blink",
+  "cooldown_ticks": 100
+}
+```
+
+```js
+// startup_scripts/powers.js
+NeoOrigins.registerActivePower('mypack:blink', {
+    onUse: player => {
+        // return true to consume cooldown + hunger, false to no-op
+        return true
+    }
+})
+```
+
+These types exist on the 1.21.1 branch only: the KubeJS integration is parked on 26.1 until KubeJS itself ships there.
