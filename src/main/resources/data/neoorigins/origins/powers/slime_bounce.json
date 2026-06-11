@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:bounce_on_land",
+  "hidden": true,
+  "restitution": 0.8
+}
