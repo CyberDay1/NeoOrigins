@@ -298,6 +298,12 @@
           "type": "integer",
           "default": 0,
           "minimum": 0
+        },
+        "cooldown_ticks": {
+          "description": "After entity_action fires, suppress further firings of this power for this many ticks (20 = 1s); default 0 = no cooldown. Only gates the action path — modifier chains are unaffected.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         }
       },
       "required": [
@@ -2440,8 +2446,13 @@
           "description": "Optional EntityAction fired when the value reaches max.",
           "$ref": "action.schema.json"
         },
+        "hidden": {
+          "description": "When true, hides the bar from the HUD (mechanics still apply).",
+          "type": "boolean",
+          "default": false
+        },
         "hud_render": {
-          "description": "Nested HUD-render block; its keys map to flat label/color/hidden components.",
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint components.",
           "type": "object",
           "properties": {
             "label": {
@@ -2458,6 +2469,16 @@
               "description": "When false, hides the bar (stored inverted as hidden=true).",
               "type": "boolean",
               "default": true
+            },
+            "animated": {
+              "description": "Animated bar-FX preset id (e.g. neoorigins:fire); empty = static bar.",
+              "type": "string",
+              "default": ""
+            },
+            "tint": {
+              "description": "Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted.",
+              "type": "string",
+              "default": ""
             }
           }
         }

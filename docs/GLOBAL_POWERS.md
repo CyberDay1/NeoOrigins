@@ -33,20 +33,22 @@ convention as player and mob origins.)
 
 ## Top-level fields
 
-- **`entity_types`** — _optional._ A list that may **mix** literal entity ids
-  (`"minecraft:creeper"`) and entity-type **tag refs** (`"#minecraft:skeletons"`)
-  in the same array. Each entry is matched individually: a leading `#` makes it a
-  tag, anything else is a literal id.
-  - When **absent or empty**, the set applies to **all entities** — every player
-    **and** every mob.
-  - Players are matched by the literal id `minecraft:player` (or a tag the player
-    type belongs to), or by an absent `entity_types`.
-- **`powers`** — required. An array of power ids to grant. Unknown ids are logged
-  and skipped.
-- **`order`** — _optional, default `0`._ Apply ordering across sets — **lower
-  applies first**. Powers referenced by multiple sets are granted once, in the
-  order the first referencing set produces them (sets ordered by `order`, then by
-  id; powers in declaration order within each set).
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_types` | string array | no | all entities | Entity ids and/or entity-type tag refs the set targets (see below). Absent or empty = every player **and** every mob. |
+| `powers` | string array | yes | — | Power ids to grant. Unknown ids are logged and skipped. |
+| `order` | int | no | `0` | Apply ordering across sets — **lower applies first**. |
+
+**`entity_types` matching** — the list may **mix** literal entity ids
+(`"minecraft:creeper"`) and entity-type **tag refs** (`"#minecraft:skeletons"`)
+in the same array. Each entry is matched individually: a leading `#` makes it a
+tag, anything else is a literal id. Players are matched by the literal id
+`minecraft:player` (or a tag the player type belongs to), or by an absent
+`entity_types`.
+
+**`order` semantics** — powers referenced by multiple sets are granted once, in
+the order the first referencing set produces them (sets ordered by `order`, then
+by id; powers in declaration order within each set).
 
 ## Who gets the powers, and when
 

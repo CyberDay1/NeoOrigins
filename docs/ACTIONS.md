@@ -287,7 +287,7 @@ Server-side only; on client worlds the action silently no-ops.
 
 ## `neoorigins:spawn_projectile`
 
-Spawns a projectile from the target's eye height, aimed along their look vector. Aliased to `neoorigins:spawn_projectile`. Non-projectile entity types fall back to a linear velocity shove along look.
+Spawns a projectile from the target's eye height, aimed along their look vector. `neoorigins:fire_projectile` is accepted as a legacy Apoli alias for the canonical `spawn_projectile`. Non-projectile entity types fall back to a linear velocity shove along look.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -303,10 +303,11 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 | `glow_alpha` | int 0–255 | no | `140` | Glow halo opacity. |
 | `shape` | enum | no | `cross` / effect_type default | One of `cross` / `cube` / `ring` / `sphere`. |
 | `trail_particle` | resource id | no | effect_type default | Vanilla particle id for the flight trail (e.g. `minecraft:witch`). |
-| `count` | int | no | `2` | Trail particles per tick. |
+| `count` | int | no | `1` | For plain projectiles: number spawned in one fire (shotgun spread when combined with `inaccuracy`). For the magic orb: trail particles per tick (always one orb). |
 | `spread` | float | no | `0.05` | Trail particle position spread. |
-| `trail_speed` | float | no | `0.0` | Trail particle speed/velocity. |
+| `trail_speed` | float | no | `0.0` | Trail particle speed/velocity. Also accepted under the Apoli legacy name `speed_particle`. |
 | `no_gravity` | bool | no | `false` | When `true` the projectile ignores gravity and flies straight along its launch vector (drag still applies). Works for any projectile entity, not just the magic orb. |
+| `projectile_action` | object | no | — | Entity action applied to the spawned projectile itself (actor = projectile), immediately on launch. |
 | `on_hit_action` | object | no | — | Action fired when the projectile impacts. `area_of_effect` inside this auto-rebases to the impact point. |
 
 **Example — magic-orb with impact-AoE:**
@@ -627,7 +628,7 @@ Restores air supply (bubbles), clamped to `getMaxAirSupply()`.
 
 ## `neoorigins:change_resource`
 
-Mutates a `resource` power's stored integer. The resource state lives on a player attachment, keyed by power id.
+Mutates a `resource` power's stored integer. The resource state lives on a player attachment, keyed by power id. Also accepted under the Apoli legacy alias `modify_resource` (same field shape).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -675,9 +676,9 @@ Explicit no-op. Useful as the default branch of `if_else` or for placeholder aut
 
 ---
 
-## `neoorigins:and`
+## `neoorigins:and` (alias `neoorigins:all_of`)
 
-Runs a sequence of actions in order against the same target.
+Runs a sequence of actions in order against the same target. `all_of` is Apoli 2.9+'s rename of the `and` meta action: imported packs using `origins:all_of` / `apoli:all_of` dispatch here unchanged (there is no `any_of` action).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1351,11 +1352,18 @@ Performs a block and/or entity raycast from the player's eye position along thei
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `distance` | double | no | `16.0` | Max raycast distance |
+| `distance` | double | no | `10.0` | Max raycast distance |
 | `block` | bool | no | `true` | Include block hits |
-| `entity` | bool | no | `true` | Include entity hits |
+| `entity` | bool | no | `false` | Include entity hits |
+| `fluid_handling` | enum | no | `none` | How fluids are treated: `none` / `source_only` / `any` |
+| `shape_type` | enum | no | `visual` | Block shape used for the trace: `visual` or `collider` |
 | `block_action` | object | no | — | Action to run at the hit block position (dispatched with `RaycastBlockContext` so `~ ~ ~` resolves to the hit block) |
-| `entity_action` | object | no | — | Action to run against the hit entity |
+| `bientity_action` | object | no | — | Action to run when an entity is hit (actor = caster, target = hit entity) |
+| `miss_action` | object | no | — | Action to run when nothing is hit within range |
+| `before_action` | object | no | — | Entity action run once before the ray is cast, regardless of hit outcome (e.g. consume a reagent) |
+| `command_along_ray` | string | no | — | Command run at each step along the ray, hit or miss. Bare `/particle <id> ~ ~ ~` commands are force-rendered so trails stay visible past the client particle setting |
+| `command_step` | double | no | `1.0` | Block increment between `command_along_ray` executions |
+| `command_at_hit` | string | no | — | Command run at the precise impact point when the ray hits a block or entity (same force-rendering as `command_along_ray`) |
 
 **Example — execute command at the looked-at block:**
 ```json

@@ -62,6 +62,23 @@ the dispatch so context-aware action verbs (`neoorigins:damage_attacker`,
 `neoorigins:cancel_event`, `neoorigins:food_item_in_tag`, ...) can read it
 without needing to be parameterised at JSON authoring time.
 
+## `cancel_event` support
+
+`neoorigins:cancel_event` as the `entity_action` vetoes the underlying game
+event, but only where NeoForge exposes a cancellable event:
+
+- **Cancellable**: `death` (lethal blow undone; a player still at 0 HP is left
+  at 1 HP, totem-style), `kill` (spares the victim, same 1-HP patch),
+  `hit_taken`, `attack`, `land` (negates fall damage), `projectile_hit`,
+  `item_use`, `food_eaten`, `effect_applied`, `block_break`, `block_place`,
+  `block_use`, `entity_use`, `villager_interact`, `breed`, `tame`, `bonemeal`.
+- **Not cancellable** (post-hoc or uncancellable NeoForge event —
+  `cancel_event` is a silent no-op): `jump`, `item_use_finish`,
+  `food_finished`, `item_pickup`, `craft_item`, `smelt_item`, `enchant_item`,
+  `anvil_repair`, `trade_completed`, `advancement_earned`, `wake_up`,
+  `respawn`, `dimension_change`, `climb`, `tick`, `gained`, `lost`, `chosen`,
+  `power_activated`, and all `mod_*` modifier events.
+
 ---
 
 # Action-style events
@@ -146,7 +163,7 @@ emulation.
 
 ## `block_place`
 
-Fires when the player places a block.
+Fires when the player places a block. Cancellable via `neoorigins:cancel_event` (vetoes the placement).
 
 **Context:** the `BlockEvent.EntityPlaceEvent`.
 

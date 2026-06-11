@@ -20,7 +20,7 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 
 Every power type — passive, toggle, active, persistent effect, compat — supports an optional top-level `power_condition` field and `power_condition_mode` field. This allows any power to be gated or blocked by entity conditions without needing per-type condition support.
 
-> **Note:** The field is named `power_condition` (not `condition`) to avoid colliding with power types that already use `condition` in their own config (e.g. `condition_passive`, `action_on_event`, `attribute_modifier`).
+> **Note:** The field is named `power_condition` (not `condition`) to avoid colliding with power types that already use `condition` in their own config (e.g. `condition_passive`, `action_on_event`, `attribute_modifier`). On types that do **not** claim `condition` for their own config, a top-level `condition` is accepted as an alias for `power_condition` with mode `allow` — see the common-fields table in [POWER_TYPES.md](POWER_TYPES.md) for the exact alias rules.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -90,9 +90,9 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 
 # Meta conditions
 
-## `neoorigins:and`
+## `neoorigins:and` (alias `neoorigins:all_of`)
 
-Logical AND of nested conditions.
+Logical AND of nested conditions. `all_of` is Apoli 2.9+'s rename of `and`: imported packs using `origins:all_of` / `apoli:all_of` dispatch here unchanged.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -103,9 +103,9 @@ Logical AND of nested conditions.
 { "type": "neoorigins:and", "conditions": [ {"type": "neoorigins:sneaking"}, {"type": "neoorigins:on_ground"} ] }
 ```
 
-## `neoorigins:or`
+## `neoorigins:or` (alias `neoorigins:any_of`)
 
-Logical OR of nested conditions.
+Logical OR of nested conditions. `any_of` is Apoli 2.9+'s rename of `or`: imported packs using `origins:any_of` / `apoli:any_of` dispatch here unchanged.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -118,6 +118,19 @@ Negates a single inner condition.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `condition` | condition object | yes | — | Condition to negate |
+
+## `neoorigins:actor_condition`
+
+Unwraps and evaluates the inner condition against the actor. In Apoli this filters the actor half of a bientity pair; here the inner condition is simply evaluated on the entity under test (the player). Fails closed when `condition` is missing.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `condition` | condition object | yes | — | Inner condition evaluated on the actor |
+
+**Example:**
+```json
+{ "type": "neoorigins:actor_condition", "condition": { "type": "neoorigins:sneaking" } }
+```
 
 ## `neoorigins:constant`
 
@@ -213,9 +226,22 @@ True when `isAlive()` returns true. No fields.
 
 True when creative flight is engaged. No fields.
 
+## `neoorigins:creative_mode`
+
+True when the player is in creative or spectator gamemode. No fields. Apoli-derivative packs (Medieval Origins Revival etc.) use this to gate resource drains so they don't run for creative players — `medievalorigins:creative_mode` dispatches here via the namespace fallback.
+
 ## `neoorigins:block_collision`
 
 Always true. Placeholder/stub for parity with Apoli. No fields.
+
+## `neoorigins:replacable` (alias `neoorigins:replaceable`)
+
+True when the block at the entity's block position is replaceable (air, short grass, snow layers, etc. — vanilla `canBeReplaced()`). Apoli-parity condition; the misspelled `replacable` is the canonical Apoli name, and the corrected `replaceable` spelling is accepted as a synonym. No fields.
+
+**Example:**
+```json
+{ "type": "neoorigins:replacable" }
+```
 
 ## `neoorigins:health`
 
@@ -243,6 +269,20 @@ Numeric comparison against food level (0–20).
 |---|---|---|---|---|
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Hunger threshold |
+
+## `neoorigins:saturation_level`
+
+Numeric comparison against the player's food saturation level.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Saturation threshold |
+
+**Example:**
+```json
+{ "type": "neoorigins:saturation_level", "comparison": "<", "compare_to": 2.0 }
+```
 
 ## `neoorigins:fall_distance`
 
@@ -282,7 +322,7 @@ Generic numeric wrapper. **Standalone fallback compares against current health**
 
 ## `neoorigins:xp_level`
 
-Numeric comparison against `experienceLevel`.
+Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_levels` (same fields, same behavior — both are canonical types, not aliases).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -298,6 +338,20 @@ Numeric comparison against `totalExperience`.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Points threshold |
 
+## `neoorigins:air`
+
+Numeric comparison against the entity's air supply (0–300; full air is 300, drowning starts at 0).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Air-supply threshold (0–300) |
+
+**Example:**
+```json
+{ "type": "neoorigins:air", "comparison": "<", "compare_to": 60 }
+```
+
 ## `neoorigins:dimension`
 
 Checks current dimension ID.
@@ -308,14 +362,24 @@ Checks current dimension ID.
 
 ## `neoorigins:biome`
 
-Checks biome at the entity's block position.
+Checks biome at the entity's block position. Precedence: `biome` > `tag`/`biome_tag` > `condition`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `biome` | resource location | no | — | Exact biome ID |
 | `tag` | resource location | no | — | Biome tag (used when `biome` absent) |
+| `biome_tag` | resource location | no | — | Synonym for `tag` (used by several built-in JSONs) |
+| `condition` | object | no | — | Nested biome sub-condition (used when no ID/tag present) |
 
-Always-true when neither field is present.
+Always-true when none of the fields are present.
+
+**Nested `condition`:** only the `temperature` sub-type is supported — it compares the biome's base temperature using the usual `comparison`/`compare_to` fields. Any other sub-condition type logs a warning and fails closed (use biome tags instead).
+
+**Example:**
+```json
+{ "type": "neoorigins:biome",
+  "condition": { "type": "neoorigins:temperature", "comparison": "<", "compare_to": 0.15 } }
+```
 
 ## `neoorigins:in_tag`
 
@@ -352,15 +416,17 @@ Numeric comparison against the biome's base temperature.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Temperature threshold |
 
-## `neoorigins:light_level` (alias `neoorigins:brightness`)
+## `neoorigins:light_level`
 
-Numeric comparison against ambient light at the entity's block position.
+Numeric comparison against ambient light at the entity's block position. Also registered as `neoorigins:brightness` (same fields, same behavior — both are canonical types, not aliases).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `light_type` | string | no | `""` | `"sky"`, `"block"`, or blank for combined max |
+| `light_type` | string | no | `"any"` | `"sky"`, `"block"`, or `"any"` |
 | `comparison` | string | no | `">="` | Comparison operator |
-| `compare_to` | int | no | `0` | Light threshold |
+| `compare_to` | int | no | `0` | Light threshold (0–15) |
+
+Omitting `light_type` (or any value other than `"sky"`/`"block"`) samples the max local brightness — the higher of the sky and block light layers.
 
 ## `neoorigins:time_of_day`
 
@@ -373,12 +439,12 @@ Numeric comparison against `level.getDayTime() % 24000`.
 
 ## `neoorigins:weather`
 
-Checks the current weather state. **Unusual:** accepts either `"state"` or `"value"`.
+Checks the current weather state against one of `clear`, `rain`, `raining`, `thunder`, or `thundering` — `rain`/`raining` and `thunder`/`thundering` are synonyms, matched case-insensitively. `clear` means neither raining nor thundering; `rain` means raining but not thundering; `thunder` matches any thunderstorm. **Unusual:** accepts either `"state"` or `"value"`; with both absent the state defaults to `"clear"`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `state` | string | no | — | `"clear"`, `"rain"`/`"raining"`, or `"thunder"`/`"thundering"` |
-| `value` | string | no | `"clear"` | Fallback if `state` absent |
+| `state` | string | no | `"clear"` | `"clear"`, `"rain"`/`"raining"`, or `"thunder"`/`"thundering"` (case-insensitive) |
+| `value` | string | no | — | Synonym for `state` (read when `state` absent) |
 
 ## `neoorigins:moon_phase`
 
@@ -391,12 +457,12 @@ Numeric comparison against the moon phase index 0–7. **Default comparison is `
 
 ## `neoorigins:on_block`
 
-True when the entity is on ground and the block directly below matches an ID.
+True when the entity is on ground and the block directly below matches the nested block condition. When `block_condition` is omitted entirely, the condition is just "standing on any block" (plain `onGround()` check).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | yes | — | Nested block condition |
-| `block_condition.id` | resource location | yes | — | Block ID to match |
+| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, or `and`/`or` combinator); absent → on any ground |
+| `block_condition.id` | resource location | no | — | Block ID to match (also accepts `block`) |
 
 ## `neoorigins:block`
 
@@ -420,6 +486,20 @@ Block check at the entity's current position via an optional wrapper.
 | `block_condition.block` / `block_condition.id` | resource location | no | — | Block ID |
 
 Always-true when the wrapper is absent or no ID is present (fail-open — use `neoorigins:not` + a specific block condition if you need strict gating).
+
+## `neoorigins:hardness`
+
+Numeric comparison against a block's destroy hardness. **Context-dependent:** inside a raycast `block_action` dispatch it tests the raycast-hit block; otherwise it falls back to the block the entity is looking at (20-block pick). False when no block is found. Used by spell-break-style powers (e.g. Mage `spell_break`).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Block hardness threshold |
+
+**Example:**
+```json
+{ "type": "neoorigins:hardness", "comparison": "<=", "compare_to": 1.5 }
+```
 
 ## `neoorigins:entity_type`
 
@@ -471,6 +551,19 @@ Numeric comparison against a named resource power's stored value.
 
 > ⚠️ `resource` must be the **full** namespaced power ID (e.g. `mypack:thorns/resource`). Unlike `power_active`, the `*:` / `*:*` self-reference wildcard is **not** resolved here — a reference containing `*` silently reads as `0` (and is warned about at load). The same applies to the `change_resource` / `set_resource` actions.
 
+## `neoorigins:power`
+
+True when the entity has the given power granted — either through any of its chosen origins' power lists or as a dynamic grant. Distinct from `power_active` (which tests whether a toggle power is currently on) and `power_type` (which matches by power *type* ID rather than power ID).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `power` | resource location | yes | — | Power ID to look for; always-false when absent |
+
+**Example:**
+```json
+{ "type": "neoorigins:power", "power": "mypack:night_vision" }
+```
+
 ## `neoorigins:power_active`
 
 Whether a named toggle power is currently active (toggled on) on this entity. Works with:
@@ -519,6 +612,19 @@ Whether any power granted to this entity has a matching `type` ID.
 
 Bare type names (no `:`) are auto-prefixed with `neoorigins:`.
 
+## `neoorigins:cooldown`
+
+**Inverted polarity:** true when the named power is **not** on cooldown (i.e. ready to use). Use `"inverted": true` to test "is on cooldown" instead. Always-true when `power` is absent.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `power` | resource location | no | — | Power ID whose cooldown to test; always-true when absent |
+
+**Example:**
+```json
+{ "type": "neoorigins:cooldown", "power": "mypack:fireball" }
+```
+
 ## `neoorigins:nbt`
 
 Simplified NBT presence check: true when the entity's persistent data contains a given top-level key.
@@ -546,6 +652,19 @@ Runs an arbitrary server command with suppressed output and returns true if no e
 | `command` | string | yes | — | Command text (no leading slash); always-false when blank |
 
 **Unusual:** this does *not* test exit code. It returns true unless the command threw — check the feasibility of any JSON-condition written this way carefully.
+
+## `neoorigins:advancement`
+
+True when the player has completed the given advancement (server-side only; unknown advancement IDs return false).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `advancement` | resource location | yes | — | Advancement ID the player must have completed; always-false when absent |
+
+**Example:**
+```json
+{ "type": "neoorigins:advancement", "advancement": "minecraft:story/enter_the_nether" }
+```
 
 ## `neoorigins:predicate`
 
@@ -756,6 +875,22 @@ True when the player has the specified MobEffect active. Useful for gating passi
 |---|---|---|---|---|
 | `effect` | resource location | yes | — | MobEffect ID (e.g. `minecraft:luck`, `minecraft:haste`) |
 
+## `neoorigins:status_effect`
+
+True when the player has the specified MobEffect active within an amplifier range. Apoli-parity sibling of `has_effect`: `has_effect` is presence-only, while `status_effect` can additionally gate on the effect's amplifier.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `effect` | resource location | yes | — | MobEffect ID; always-false when absent |
+| `amplifier` | int | no | — | Exact amplifier to require (sets both min and max; overrides the fields below) |
+| `min_amplifier` | int | no | `-1` | Lowest acceptable amplifier (`-1` = any) |
+| `max_amplifier` | int | no | unbounded | Highest acceptable amplifier |
+
+**Example — Strength II or higher:**
+```json
+{ "type": "neoorigins:status_effect", "effect": "minecraft:strength", "min_amplifier": 1 }
+```
+
 ## `neoorigins:climbing`
 
 True when the player is currently on a climbable block (vanilla ladder, vine, or any block with the wall-climb capability from origins like Arachnid).
@@ -780,6 +915,14 @@ Useful for gating rest / regen / out-of-combat-only buffs.
 ```
 
 Typically combined with `near_block` or `biome` in an `neoorigins:and` so the buff only applies when both safe *and* in the right spot (campfire, village, bed area, etc.).
+
+## `neoorigins:cover` (alias `neoorigins:covered_by_block`)
+
+True when the column directly above the player contains a non-air block within `distance` blocks — the "standing under cover" check (inverse of seeing the sky overhead, scoped to a single column). Apoli-parity pair; MoR Wood Elf uses `medievalorigins:cover`, which dispatches here via the namespace fallback.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `distance` | int | no | `8` | How many blocks above the player to scan (minimum 1) |
 
 ## `neoorigins:near_block`
 

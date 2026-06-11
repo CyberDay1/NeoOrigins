@@ -12,10 +12,10 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types) — 99 types
-- [Condition verbs](#condition-verbs) — 93 conditions
-- [Action verbs](#action-verbs) — 64 actions
-- [Event keys](#event-keys) — 48 events
+- [Power types](#power-types) — 104 types
+- [Condition verbs](#condition-verbs) — 94 conditions
+- [Action verbs](#action-verbs) — 84 actions
+- [Event keys](#event-keys) — 49 events
 - [Namespaces & prefixes](#namespaces--prefixes)
 - [JSON schemas](#json-schemas)
 

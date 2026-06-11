@@ -9,7 +9,9 @@ nav_order: 1
 A per-origin reference for the default NeoOrigins origins. Class origins
 (Warrior, Cleric, etc.) are documented separately in
 [`CLASSES.md`](CLASSES.md); evolution mechanics live in
-[`EVOLUTION.md`](EVOLUTION.md).
+[`EVOLUTION.md`](EVOLUTION.md), and authoring your own evolution tiers
+via the `tier_powers` origin field is covered in the
+[COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin).
 
 Origins are listed alphabetically by display name.
 
