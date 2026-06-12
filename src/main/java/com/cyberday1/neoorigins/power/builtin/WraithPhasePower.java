@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
+import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -29,24 +30,58 @@ import java.util.stream.Collectors;
  */
 public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Config> {
 
-    private static final Set<String> CAPS = Set.of("wall_phase");
+    /** Cached parsed blocked-block sets, keyed by the string list to avoid per-tick allocation. */
     private static final ConcurrentHashMap<List<String>, Set<Identifier>> BLOCKED_CACHE = new ConcurrentHashMap<>();
 
+    /**
+     * Cached capability sets per blocked-block list. Besides {@code wall_phase}
+     * the set carries one {@code phase_blocked:<block id>} tag per blacklisted
+     * block — that's how the client-predicted movement mixin
+     * ({@code LocalPlayerNoPhysicsMixin}) learns the blacklist, since power
+     * bodies are never synced to the client but capability tags are.
+     */
+    private static final ConcurrentHashMap<List<String>, Set<String>> CAPS_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * Players whose hitbox currently overlaps a blacklisted block, refreshed
+     * every {@link #tickEffect}. Consulted by {@code PlayerPhaseOverrideMixin}
+     * so it does NOT force {@code noPhysics} back on while the player is inside
+     * a blocked block — leaving vanilla collision free to push them out, which
+     * is the server-side half of the blacklist.
+     */
+    private static final Set<java.util.UUID> IN_BLOCKED_BLOCK = ConcurrentHashMap.newKeySet();
+
+    /** True if {@code player}'s last phase tick found them overlapping a blacklisted block. */
+    public static boolean isInBlockedBlock(net.minecraft.world.entity.player.Player player) {
+        return IN_BLOCKED_BLOCK.contains(player.getUUID());
+    }
+
     @Override
-    public Set<String> capabilities(Config config) { return CAPS; }
+    public Set<String> capabilities(Config config) {
+        return CAPS_CACHE.computeIfAbsent(config.blockedBlocks(), list -> {
+            java.util.Set<String> caps = new java.util.HashSet<>();
+            caps.add("wall_phase");
+            for (String block : list) caps.add("phase_blocked:" + block);
+            return Set.copyOf(caps);
+        });
+    }
 
     public record Config(
         List<String> blockedBlocks,
         float exhaustionPerTick,
         boolean alwaysOn,
-        String type
-    ) implements PowerConfiguration {
+        String type,
+        String cooldownIcon,
+        boolean alwaysShowIcon
+    ) implements PowerConfiguration, HudIconConfig {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("blocked_blocks", List.of("minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"))
                 .forGetter(Config::blockedBlocks),
             Codec.FLOAT.optionalFieldOf("exhaustion_per_tick", 0.15F).forGetter(Config::exhaustionPerTick),
             Codec.BOOL.optionalFieldOf("always_on", false).forGetter(Config::alwaysOn),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 
@@ -87,7 +122,13 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
 
         // Noclip -- always on so the server accepts client-predicted phased
         // positions. Disabled when inside a blocked block so vanilla collision
-        // pushes the player out.
+        // pushes the player out. PlayerPhaseOverrideMixin consults the
+        // IN_BLOCKED_BLOCK flag so its post-tick restore doesn't undo this.
+        if (inBlockedBlock) {
+            IN_BLOCKED_BLOCK.add(player.getUUID());
+        } else {
+            IN_BLOCKED_BLOCK.remove(player.getUUID());
+        }
         player.noPhysics = !inBlockedBlock;
 
         boolean insideSolid = isInsideSolid(player);
@@ -101,14 +142,49 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
             boolean changed = false;
             if (!abilities.mayfly)  { abilities.mayfly  = true;  changed = true; }
             if (!abilities.flying)  { abilities.flying  = true;  changed = true; }
-            if (changed) player.onUpdateAbilities();
+            if (changed) {
+                player.onUpdateAbilities();
+                if (com.cyberday1.neoorigins.config.AdminConfig.isDebugHud()) {
+                    com.cyberday1.neoorigins.NeoOrigins.LOGGER.info(
+                        "[debug_hud] wraith_phase GRANT flight for {} (insideSolid={}, crouching={})",
+                        player.getName().getString(), insideSolid, crouching);
+                }
+            }
         } else {
             // On surface, not crouching -- disable flight, walk normally.
+            // Check mayfly as well as flying: the client can toggle flying off
+            // (double-tap space) between our ticks, and if the player exits the
+            // block in that same window flying arrives false while mayfly is
+            // still true. Clearing only on flying left mayfly latched on, so
+            // spamming jump (= double-taps) on the surface re-entered vanilla
+            // flight. Clear whenever either flag is set.
             var abilities = player.getAbilities();
-            if (abilities.flying && !player.isCreative() && !player.isSpectator()) {
-                abilities.mayfly = false;
-                abilities.flying = false;
-                player.onUpdateAbilities();
+            // Don't fight other legitimate mayfly grantors: creative/spectator
+            // own their flight, and an active PhantomFormPower re-grants
+            // mayfly/flying every tick — clearing here would ping-pong
+            // abilities packets with it every tick.
+            if (!player.isCreative() && !player.isSpectator()
+                    && !PhantomFormPower.isActive(player)) {
+                if (abilities.flying || abilities.mayfly) {
+                    abilities.mayfly = false;
+                    abilities.flying = false;
+                    player.onUpdateAbilities();
+                    if (com.cyberday1.neoorigins.config.AdminConfig.isDebugHud()) {
+                        com.cyberday1.neoorigins.NeoOrigins.LOGGER.info(
+                            "[debug_hud] wraith_phase CLEAR flight for {} (surface, not crouching)",
+                            player.getName().getString());
+                    }
+                } else if (player.tickCount % 20 == 0) {
+                    // Belt-and-braces resync: even when the server-side flags
+                    // are already clear, the CLIENT's mayfly can be latched
+                    // true from an earlier in-block sync that raced a
+                    // double-tap-space abilities packet. The server then sees
+                    // nothing to change and never re-sends, leaving the client
+                    // free to enter vanilla flight by spamming jump. Pushing
+                    // the (clear) abilities once a second while phased on the
+                    // surface stomps any such client-side latch.
+                    player.onUpdateAbilities();
+                }
             }
             // Zero server-side vertical velocity while noPhysics is true.
             // The client handles actual movement via the mixin; the server
@@ -132,9 +208,11 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
 
     @Override
     protected void removeEffect(ServerPlayer player, Config config) {
+        IN_BLOCKED_BLOCK.remove(player.getUUID());
         player.noPhysics = false;
         var abilities = player.getAbilities();
-        if (!player.isCreative() && !player.isSpectator()) {
+        if (!player.isCreative() && !player.isSpectator()
+                && !PhantomFormPower.isActive(player)) {
             abilities.mayfly = false;
             abilities.flying = false;
         }
