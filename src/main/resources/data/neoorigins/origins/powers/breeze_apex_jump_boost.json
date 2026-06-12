@@ -1,1 +1,1 @@
-{ "type": "neoorigins:persistent_effect", "effect": "minecraft:jump_boost", "amplifier": 1, "ambient": true, "show_particles": false, "show_icon": false }
+{ "type": "neoorigins:persistent_effect", "cooldown_icon": "minecraft:slime_block", "effect": "minecraft:jump_boost", "amplifier": 1, "ambient": true, "show_particles": false, "show_icon": false }

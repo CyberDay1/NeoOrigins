@@ -20,13 +20,19 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
         int maxDepth,
         int cooldownTicks,
         int hungerCost,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("max_depth", 16).forGetter(Config::maxDepth),
             Codec.INT.optionalFieldOf("cooldown_ticks", 40).forGetter(Config::cooldownTicks),
             Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:tame_mob",
+  "cooldown_icon": "minecraft:bone",
   "range": 16.0,
   "max_tamed": 4,
   "cooldown_ticks": 200,

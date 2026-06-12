@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
+import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,7 +24,15 @@ import net.minecraft.world.effect.MobEffects;
  */
 public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Config> {
 
+    private static final PhantomFormPower INSTANCE = new PhantomFormPower();
     private static final java.util.Set<String> CAPS = java.util.Set.of("no_physics");
+
+    /** Returns true if the player has phantom form granted AND toggled on. */
+    public static boolean isActive(ServerPlayer player) {
+        return com.cyberday1.neoorigins.service.ActiveOriginService.has(
+            player, PhantomFormPower.class,
+            config -> !INSTANCE.isToggledOff(player, config));
+    }
 
     @Override
     public java.util.Set<String> capabilities(Config config) { return CAPS; }
@@ -31,12 +40,16 @@ public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Confi
     public record Config(
         boolean invisibility,
         boolean noGravity,
-        String type
-    ) implements PowerConfiguration {
+        String type,
+        String cooldownIcon,
+        boolean alwaysShowIcon
+    ) implements PowerConfiguration, HudIconConfig {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.BOOL.optionalFieldOf("invisibility", true).forGetter(Config::invisibility),
             Codec.BOOL.optionalFieldOf("no_gravity", true).forGetter(Config::noGravity),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

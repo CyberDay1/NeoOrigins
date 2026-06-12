@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:summon_minion",
+  "cooldown_icon": "minecraft:wither_skeleton_skull",
   "mob_type": "minecraft:wither_skeleton",
   "max_count": 2,
   "cooldown_ticks": 600,

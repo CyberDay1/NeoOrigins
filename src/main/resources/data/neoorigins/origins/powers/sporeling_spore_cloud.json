@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:brown_mushroom",
   "cooldown_ticks": 240,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",

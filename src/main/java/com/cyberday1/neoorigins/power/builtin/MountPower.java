@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.service.MountConsentManager;
@@ -19,7 +20,7 @@ import java.util.Optional;
  * Active power that lets the player mount (ride) any living entity.
  *
  * <p>Mobs are mounted immediately. Players require consent according
- * to the server's configured {@link com.cyberday1.neoorigins.NeoOriginsConfig.ConsentMode}.
+ * to the server's configured {@link GameplayConfig.ConsentMode}.
  *
  * <p>Pressing the keybind while already riding dismounts the player.
  */
@@ -33,7 +34,10 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
         boolean allowMobs,
         boolean blockBosses,
         String mountPosition,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("range", 5.0).forGetter(Config::range),
@@ -43,7 +47,10 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
             Codec.BOOL.optionalFieldOf("allow_mobs", true).forGetter(Config::allowMobs),
             Codec.BOOL.optionalFieldOf("block_bosses", true).forGetter(Config::blockBosses),
             Codec.STRING.optionalFieldOf("mount_position", "centered").forGetter(Config::mountPosition),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

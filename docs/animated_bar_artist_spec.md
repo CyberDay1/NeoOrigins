@@ -137,3 +137,49 @@ Format:                   PNG RGBA, straight alpha, sRGB, transparent bg
 Blend:                    additive/emissive — author as glow, no black box
 Style:                    pixel-art, native res, ships 1:1
 ```
+
+---
+
+## 10. Apoli-compat `sprite_location` sheets (static restyled bars)
+
+Separate from the animated fills above: Apoli-style resource powers can declare
+`hud_render.sprite_location` to swap the whole **static** bar sheet for a custom
+one. NeoOrigins honors that override — this section is the spec for authoring
+such a sheet.
+
+### Where the texture lives
+
+`sprite_location` is a full resource path used **verbatim**: e.g.
+`"sprite_location": "mypack:textures/gui/my_bars.png"` loads
+`assets/mypack/textures/gui/my_bars.png` from your resource pack / datapack
+assets. An empty or malformed id falls back to the vendored default sheet
+(`neoorigins:textures/gui/resource_bar.png`). Community Apoli restyle sheets use
+the same coordinates and drop in unchanged.
+
+### Required sheet dimensions
+
+**256 × 256 PNG.** The renderer samples UVs against a 256 × 256 texture — any
+other canvas size misaligns every element. Only the top-left region is used;
+leave the rest transparent.
+
+### Sheet layout (what `bar_index` / `icon_index` select)
+
+| Element | Position in sheet | Size | Selected by |
+|---|---|---|---|
+| Frame / backing | u 0, v 0 | 71 × 5 | fixed (shared by all bars) |
+| Fill row | u 0, v `8 + bar_index × 10` | 71 × 8 | `bar_index` (row) |
+| Icon | u `73 + icon_index × 9`, v `8 + bar_index × 10` | 8 × 8 | `icon_index` (column) + `bar_index` (row) |
+
+- Vertical stride between fill rows is **10 px** (8 px fill + 2 px gap):
+  `bar_index` 0 → v 8, 1 → v 18, 2 → v 28, …
+- Icons sit to the **right of the fill area** in the sheet (first column at
+  u 73), on the **same v row as their fill** — each bar row carries its own
+  icon variants, 9 px horizontal stride (8 px icon + 1 px gap).
+
+### How it draws in game
+
+The frame strip renders at the bar position; the fill renders clipped to the
+leftmost `round(71 × fill%)` pixels and overhangs the frame **upward by 2 px**
+(exactly as Apoli draws it); the icon renders 10 px left of the bar, top-aligned
+with the fill. Same authoring rules as the rest of this doc: pixel-art at native
+resolution, RGBA, transparent background, no black-halo edges.

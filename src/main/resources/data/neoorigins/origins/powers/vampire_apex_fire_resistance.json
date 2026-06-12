@@ -1,1 +1,1 @@
-{ "type": "neoorigins:persistent_effect", "effect": "minecraft:fire_resistance", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+{ "type": "neoorigins:persistent_effect", "cooldown_icon": "minecraft:magma_cream", "effect": "minecraft:fire_resistance", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }

@@ -1,1 +1,1 @@
-{ "type": "neoorigins:persistent_effect", "effect": "minecraft:dolphins_grace", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+{ "type": "neoorigins:persistent_effect", "cooldown_icon": "minecraft:heart_of_the_sea", "effect": "minecraft:dolphins_grace", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }

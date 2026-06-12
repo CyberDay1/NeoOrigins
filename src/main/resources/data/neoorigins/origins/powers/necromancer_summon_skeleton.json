@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:summon_minion",
+  "cooldown_icon": "minecraft:skeleton_skull",
   "mob_type": "minecraft:skeleton",
   "max_count": 3,
   "cooldown_ticks": 400,

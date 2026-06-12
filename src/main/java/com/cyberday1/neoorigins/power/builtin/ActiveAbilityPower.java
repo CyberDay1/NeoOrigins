@@ -49,7 +49,10 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
         int resourceCostAmount,
         EntityAction action,
         EntityCondition condition,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
 
         @Override public int cooldownTicks() { return cooldownTicks; }
@@ -81,7 +84,10 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 EntityCondition condition = obj.has("condition") && obj.get("condition").isJsonObject()
                     ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
                     : EntityCondition.alwaysTrue();
-                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, t), ops.empty()));
+                String cdIcon = obj.has("cooldown_icon") ? obj.get("cooldown_icon").getAsString() : "";
+                boolean cdCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
+                boolean alwaysShow = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
+                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, t, cdIcon, cdCountdown, alwaysShow), ops.empty()));
             }
 
             @Override

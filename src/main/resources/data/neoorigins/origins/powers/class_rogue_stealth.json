@@ -1,3 +1,4 @@
 {
-  "type": "neoorigins:stealth"
+  "type": "neoorigins:stealth",
+  "cooldown_icon": "minecraft:fermented_spider_eye"
 }

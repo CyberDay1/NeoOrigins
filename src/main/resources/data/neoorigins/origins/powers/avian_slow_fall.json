@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:persistent_effect",
+  "cooldown_icon": "minecraft:phantom_membrane",
   "toggleable": true,
   "default_off": true,
   "effects": [

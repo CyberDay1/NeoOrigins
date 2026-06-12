@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:shulker_box",
   "cooldown_ticks": 200,
   "entity_action": {
     "type": "neoorigins:random_teleport",

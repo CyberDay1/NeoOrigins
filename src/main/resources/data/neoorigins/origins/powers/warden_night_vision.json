@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:persistent_effect",
+  "cooldown_icon": "minecraft:golden_carrot",
   "toggleable": true,
   "default_off": false,
   "effects": [

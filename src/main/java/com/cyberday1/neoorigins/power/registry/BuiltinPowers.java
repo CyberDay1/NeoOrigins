@@ -25,7 +25,7 @@ import java.util.Map;
  * {@link FieldSpec} list that drives the JSON schema, the doc reference tables,
  * and both editors' forms — data that historically lived in four hand-maintained
  * side-tables ({@code power.schema.json}, {@code field_docs.json},
- * {@code EnumHints}, {@code NeoOriginsConfig} ranges) that silently drift.
+ * {@code EnumHints}, {@code PowerOverridesConfig} ranges) that silently drift.
  * Consolidating it here, beside a drift audit, is the permanent fix.
  *
  * <p><b>Why static, not the live registry?</b> Same reason as
@@ -76,6 +76,30 @@ public final class BuiltinPowers {
      * validated these fields against; surfaced by the web editor as a format hint.
      */
     private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
+
+    /**
+     * Shared cooldown-HUD specs appended to every cooldown-gated active
+     * (keybind) power type — the types whose cooldowns feed
+     * {@code CooldownHudOverlay}. Declared once so the doc strings cannot
+     * drift between the 19 actives.
+     */
+    private static final FieldSpec COOLDOWN_ICON_SPEC =
+        new FieldSpec("cooldown_icon", Kind.STRING, false)
+            .def("").doc("Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.");
+    private static final FieldSpec COOLDOWN_COUNTDOWN_SPEC =
+        new FieldSpec("cooldown_countdown", Kind.BOOLEAN, false)
+            .def(true).doc("If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.");
+    private static final FieldSpec ALWAYS_SHOW_ICON_SPEC =
+        new FieldSpec("always_show_icon", Kind.BOOLEAN, false)
+            .def(false).doc("If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.");
+    /**
+     * Toggle-power variant of {@link #COOLDOWN_ICON_SPEC}: same field name and
+     * shape, but the icon signals on/off state (full-bright vs dimmed) instead
+     * of a cooldown sweep.
+     */
+    private static final FieldSpec TOGGLE_ICON_SPEC =
+        new FieldSpec("cooldown_icon", Kind.STRING, false)
+            .def("").doc("Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.");
 
     /**
      * Looser hint for scalar-string lists whose entries are NOT strictly
@@ -154,7 +178,8 @@ public final class BuiltinPowers {
         // follow FTB Ultimine's own server config. See docs/POWER_TYPES.md.
         define("ultimine",                 UltiminePower.class,               List.of());
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
-        define("flight",                   FlightPower.class,                 List.of());
+        define("flight",                   FlightPower.class,                 List.of(
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
         define("natural_glide",            NaturalGlidePower.class,           List.of());
         define("no_natural_regen",         NoNaturalRegenPower.class,         List.of());
@@ -193,7 +218,8 @@ public final class BuiltinPowers {
                 .def("hunger").doc("Which HUD bar to hide: hunger/food or air/oxygen/breath (default hunger).")));
         define("item_magnetism", ItemMagnetismPower.class, List.of(
             new FieldSpec("radius", Kind.NUMBER, false)
-                .def(4.0).doc("Blocks around the player within which dropped items are pulled in (default 4.0).")));
+                .def(4.0).doc("Blocks around the player within which dropped items are pulled in (default 4.0)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("lava_vision", LavaVisionPower.class, List.of(
             new FieldSpec("strength", Kind.NUMBER, false)
                 .def(3.0).doc("Lava fog distance multiplier; higher sees farther in lava (default 3.0).")));
@@ -240,7 +266,10 @@ public final class BuiltinPowers {
             new FieldSpec("range", Kind.NUMBER, false)
                 .def(32.0).doc("Max block distance of the look-targeted entity your tamed mobs attack (default 32)."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(40).doc("Ticks before this ability can be triggered again (default 40).")));
+                .def(40).doc("Ticks before this ability can be triggered again (default 40)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("craft_amount_bonus", CraftAmountBonusPower.class, List.of(
             new FieldSpec("output_item", Kind.STRING, false)
                 .def("minecraft:oak_planks").doc("Item id whose crafting triggers the bonus (default oak_planks)."),
@@ -257,7 +286,10 @@ public final class BuiltinPowers {
             new FieldSpec("strength", Kind.NUMBER, false)
                 .def(1.5).doc("Multiplier on the forward impulse applied while elytra gliding (default 1.5)."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(40).doc("Ticks before the boost can be triggered again (default 40).")));
+                .def(40).doc("Ticks before the boost can be triggered again (default 40)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("exhaustion_filter", ExhaustionFilterPower.class, List.of(
             new FieldSpec("sources", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
@@ -366,12 +398,16 @@ public final class BuiltinPowers {
             new FieldSpec("block_bosses", Kind.BOOLEAN, false)
                 .def(true).doc("Prevent mounting boss mobs like the Ender Dragon or Wither (default true)."),
             new FieldSpec("mount_position", Kind.STRING, false)
-                .def("centered").doc("Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side).")));
+                .def("centered").doc("Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("no_mob_spawns_nearby", NoMobSpawnsNearbyPower.class, List.of(
             new FieldSpec("radius", Kind.INTEGER, false)
                 .def(24).doc("Block radius around the player where natural spawning is suppressed (default 24). Vanilla already blocks MONSTER-category natural spawns within 24 blocks of any player, so use a value above 24 to extend the safe zone meaningfully."),
             new FieldSpec("categories", Kind.ARRAY, false)
-                .doc("Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).")));
+                .doc("Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("no_slowdown", NoSlowdownPower.class, List.of(
             new FieldSpec("block_tag", Kind.STRING, false)
                 .doc("Block tag to limit slowdown immunity to; omit for immunity to all slowdown.")));
@@ -401,7 +437,8 @@ public final class BuiltinPowers {
             new FieldSpec("invisibility", Kind.BOOLEAN, false)
                 .def(true).doc("If true the player gains Invisibility while in phantom form (default true)."),
             new FieldSpec("no_gravity", Kind.BOOLEAN, false)
-                .def(true).doc("If true gravity is disabled so the player can free-fly (default true).")));
+                .def(true).doc("If true gravity is disabled so the player can free-fly (default true)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("projectile_immunity", ProjectileImmunityPower.class, List.of(
             new FieldSpec("projectile_types", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
@@ -446,7 +483,10 @@ public final class BuiltinPowers {
             new FieldSpec("tick_interval", Kind.INTEGER, false)
                 .def(20).doc("Ticks between each darkness pulse from orbs (20 = 1s; default 20)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(0).doc("Hunger points consumed per activation (default 0).")));
+                .def(0).doc("Hunger points consumed per activation (default 0)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("slime_death_save", SlimeDeathSavePower.class, List.of(
             new FieldSpec("moisture_threshold", Kind.NUMBER, false)
                 .def(0.75).doc("Min slime moisture (0-1) to split instead of dying (default 0.75)."),
@@ -484,7 +524,8 @@ public final class BuiltinPowers {
                 .def(40).doc("Ticks between drying-out damage ticks (20 = 1s; default 40).")));
         define("stealth", StealthPower.class, List.of(
             new FieldSpec("activation_ticks", Kind.INTEGER, false)
-                .def(200).doc("Ticks of continuous sneaking before invisibility kicks in (200 = 10s).")));
+                .def(200).doc("Ticks of continuous sneaking before invisibility kicks in (200 = 10s)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("summon_minion", SummonMinionPower.class, List.of(
             new FieldSpec("mob_type", Kind.STRING, true)
                 .doc("Entity type id to summon, e.g. minecraft:zombie.")
@@ -510,7 +551,10 @@ public final class BuiltinPowers {
             new FieldSpec("mainhand", Kind.STRING, false)
                 .doc("Item id placed in the summoned mob's main hand (optional)."),
             new FieldSpec("offhand", Kind.STRING, false)
-                .doc("Item id placed in the summoned mob's off hand (optional).")));
+                .doc("Item id placed in the summoned mob's off hand (optional)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("tame_mob", TameMobPower.class, List.of(
             new FieldSpec("range", Kind.NUMBER, false)
                 .def(16.0).doc("Max distance in blocks to raycast for the mob to tame (default 16)."),
@@ -528,7 +572,10 @@ public final class BuiltinPowers {
                 .def(true).doc("When true (default), only mobs implementing Enemy (zombies, skeletons, creepers, ...) can be tamed. Set false to allow taming any non-player Mob (animals, golems, villagers)."),
             new FieldSpec("entity_blacklist", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
-                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.")));
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("tamed_animal_boost", TamedAnimalBoostPower.class, List.of(
             new FieldSpec("health_bonus", Kind.NUMBER, false)
                 .def(4.0).doc("Flat max-health added to your tamed animals (half-hearts; default 4)."),
@@ -557,7 +604,8 @@ public final class BuiltinPowers {
             new FieldSpec("exhaustion_per_tick", Kind.NUMBER, false)
                 .def(0.15).doc("Food exhaustion added each tick while phasing in solids (default 0.15)."),
             new FieldSpec("always_on", Kind.BOOLEAN, false)
-                .def(false).doc("If true phasing is always-active instead of a toggle key (default false).")));
+                .def(false).doc("If true phasing is always-active instead of a toggle key (default false)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // ── Group R (cont.) — batch D ───────────────────────────────────────
         // Last two plain-record powers. action_on_hit's `action` is described
@@ -611,7 +659,10 @@ public final class BuiltinPowers {
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(20).doc("Cooldown between uses in ticks (20 = 1s), consumed only when the JS onUse returns true; default 20."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(0).doc("Food/exhaustion points consumed on a successful activation (JS onUse returns true); default 0.")));
+                .def(0).doc("Food/exhaustion points consumed on a successful activation (JS onUse returns true); default 0."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
 
         // ── Group N — batch 1 (Active* primitive RecordCodecBuilder powers) ──
         // These Active* powers share the AbstractActivePower contract but, unlike
@@ -626,7 +677,10 @@ public final class BuiltinPowers {
             new FieldSpec("speed", Kind.NUMBER, false)
                 .def(1.2).doc("Velocity of the launched wind charge along the look direction; default 1.2."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(80).doc("Cooldown between casts in ticks (20 = 1s); default 80.")));
+                .def(80).doc("Cooldown between casts in ticks (20 = 1s); default 80."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("active_dash", ActiveDashPower.class, List.of(
             new FieldSpec("power", Kind.NUMBER, false)
                 .def(1.5).doc("Magnitude of the dash velocity vector; default 1.5."),
@@ -635,19 +689,28 @@ public final class BuiltinPowers {
             new FieldSpec("allow_vertical", Kind.BOOLEAN, false)
                 .def(false).doc("If true the dash follows look pitch; if false it stays horizontal; default false."),
             new FieldSpec("set_velocity", Kind.BOOLEAN, false)
-                .def(false).doc("If true replace the player's velocity; if false add to it; default false.")));
+                .def(false).doc("If true replace the player's velocity; if false add to it; default false."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("active_fireball", ActiveFireballPower.class, List.of(
             new FieldSpec("speed", Kind.NUMBER, false)
                 .def(1.5).doc("Velocity applied to each of the spread small fireballs; default 1.5."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(100).doc("Cooldown between casts in ticks (20 = 1s); default 100.")));
+                .def(100).doc("Cooldown between casts in ticks (20 = 1s); default 100."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("active_phase", ActivePhasePower.class, List.of(
             new FieldSpec("max_depth", Kind.INTEGER, false)
                 .def(16).doc("Maximum wall thickness in blocks the phase can pass through; default 16."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(40).doc("Cooldown between phases in ticks (20 = 1s); default 40."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(0).doc("Food/exhaustion points consumed on a successful phase; default 0.")));
+                .def(0).doc("Food/exhaustion points consumed on a successful phase; default 0."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("active_place_block", ActivePlaceBlockPower.class, List.of(
             new FieldSpec("block_id", Kind.STRING, false)
                 .def("minecraft:glowstone").doc("Block id placed at the targeted face; default minecraft:glowstone."),
@@ -656,10 +719,16 @@ public final class BuiltinPowers {
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(100).doc("Cooldown between placements in ticks (20 = 1s); default 100."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(0).doc("Food/exhaustion points consumed on a successful placement; default 0.")));
+                .def(0).doc("Food/exhaustion points consumed on a successful placement; default 0."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("active_recall", ActiveRecallPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(600).doc("Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600.")));
+                .def(600).doc("Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
 
         // ── Group N — batch 2 (more Active* powers + two clean JsonOps powers) ─
         // active_swap/teleport/ground_slam/tidal_wave are the same all-optional
@@ -683,7 +752,10 @@ public final class BuiltinPowers {
             new FieldSpec("range", Kind.NUMBER, false)
                 .def(20.0).doc("Max distance in blocks to find the looked-at entity to swap with; default 20.0."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(80).doc("Cooldown between swaps in ticks (20 = 1s); default 80.")));
+                .def(80).doc("Cooldown between swaps in ticks (20 = 1s); default 80."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("active_teleport", ActiveTeleportPower.class, List.of(
             new FieldSpec("range", Kind.NUMBER, false)
                 .def(32.0).doc("Maximum teleport distance in blocks; default 32.0."),
@@ -693,7 +765,10 @@ public final class BuiltinPowers {
                 .options("target", "random")
                 .def("target").doc("\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(0).doc("Food/exhaustion points consumed on a successful teleport; default 0.")));
+                .def(0).doc("Food/exhaustion points consumed on a successful teleport; default 0."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("ground_slam", ActiveGroundSlamPower.class, List.of(
             new FieldSpec("damage", Kind.NUMBER, false)
                 .def(6.0).doc("Damage dealt to each entity caught in the slam (default 6.0)."),
@@ -702,7 +777,10 @@ public final class BuiltinPowers {
             new FieldSpec("radius", Kind.NUMBER, false)
                 .def(6.0).doc("Blocks around the player whose entities are hit (default 6.0)."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(120).doc("Ticks before the slam can be reused (default 120 = 6s).")));
+                .def(120).doc("Ticks before the slam can be reused (default 120 = 6s)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("tidal_wave", ActiveTidalWavePower.class, List.of(
             new FieldSpec("damage", Kind.NUMBER, false)
                 .def(4.0).doc("Damage dealt to each entity in the cone (half-hearts; default 4)."),
@@ -715,7 +793,10 @@ public final class BuiltinPowers {
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(100).doc("Ticks before the wave can be reused (100 = 5s)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(0).doc("Hunger consumed per use (default 0).")));
+                .def(0).doc("Hunger consumed per use (default 0)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("model_color", ModelColorPower.class, List.of(
             new FieldSpec("red", Kind.NUMBER, false)
                 .def(1.0).range(0.0, 1.0).doc("Red channel of the player model tint, 0.0 to 1.0 (default 1.0)."),
@@ -942,7 +1023,10 @@ public final class BuiltinPowers {
             new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
                 .doc("EntityAction tree executed on the player when the keybind fires (defaults to noop)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Optional DSL condition gating the ability; it only fires while this passes (default always).")));
+                .doc("Optional DSL condition gating the ability; it only fires while this passes (default always)."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
         define("edible_item", EdibleItemPower.class, List.of(
             new FieldSpec("items", Kind.ARRAY, false)
                 .itemPattern(RESOURCE_LOCATION_PATTERN)
@@ -971,7 +1055,10 @@ public final class BuiltinPowers {
             new FieldSpec("active", Kind.STRING, false)
                 .def("").doc("Optional display-only translation key advertising which keybind slot the power expects (e.g. 'key.use_skill_1'). Actual dispatch is via the skill-slot system."),
             new FieldSpec("cooldown", Kind.INTEGER, false).boundTo("cooldownTicks")
-                .def(0).range(0.0, null).doc("Cooldown in ticks between activations (20 = 1s); default 0.")));
+                .def(0).range(0.0, null).doc("Cooldown in ticks between activations (20 = 1s); default 0."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
 
         // ── Group C — shape-mismatch (nested object/array): schema STRUCTURE drifted ─
         // For these the power.schema.json branch's nested shape (objects/arrays)

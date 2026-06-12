@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_place_block",
+  "cooldown_icon": "minecraft:cobblestone",
   "block_id": "minecraft:cobblestone",
   "max_distance": 8.0,
   "cooldown_ticks": 40

@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_phase",
+  "cooldown_icon": "minecraft:phantom_membrane",
   "cooldown_ticks": 200,
   "resource_cost": "neoorigins:enderite_energy",
   "resource_cost_amount": 30

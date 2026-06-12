@@ -1,1 +1,1 @@
-{ "type": "neoorigins:item_magnetism" }
+{ "type": "neoorigins:item_magnetism", "cooldown_icon": "minecraft:lodestone" }

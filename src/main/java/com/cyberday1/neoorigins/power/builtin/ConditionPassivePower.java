@@ -51,8 +51,10 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
         boolean toggleable,
         boolean defaultOff,
         boolean enabled,
-        String type
-    ) implements PowerConfiguration {
+        String type,
+        String cooldownIcon,
+        boolean alwaysShowIcon
+    ) implements PowerConfiguration, com.cyberday1.neoorigins.power.builtin.base.HudIconConfig {
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -83,9 +85,15 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
                 if (!enabled) {
                     return DataResult.success(Pair.of(
                         new Config(interval, EntityCondition.alwaysTrue(),
-                            EntityAction.noop(), EntityAction.noop(), false, false, false, t),
+                            EntityAction.noop(), EntityAction.noop(), false, false, false, t, "", false),
                         ops.empty()));
                 }
+
+                // Optional HUD icon: lets toggleable condition_passives surface on the
+                // ability cluster like any other active power (bright/dim toggle pip).
+                String cooldownIcon = obj.has("cooldown_icon") && obj.get("cooldown_icon").isJsonPrimitive()
+                    ? obj.get("cooldown_icon").getAsString() : "";
+                boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
 
                 EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
                     ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
@@ -98,7 +106,7 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
                     : EntityAction.noop();
 
                 return DataResult.success(Pair.of(
-                    new Config(interval, cond, action, elseAction, toggleable, defaultOff, true, t),
+                    new Config(interval, cond, action, elseAction, toggleable, defaultOff, true, t, cooldownIcon, alwaysShowIcon),
                     ops.empty()));
             }
 
@@ -118,6 +126,12 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
      *  on one player don't share a single flag. */
     private String toggleKey(Config config) {
         return getClass().getName() + ':' + config.type() + ':' + config.interval();
+    }
+
+    /** Current toggle state for HUD sync: true when toggleable and switched off. */
+    public boolean isToggledOff(ServerPlayer player, Config config) {
+        if (!config.toggleable()) return false;
+        return player.getData(OriginAttachments.originData()).isPowerToggledOff(toggleKey(config));
     }
 
     @Override

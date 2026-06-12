@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:shulker_shell",
   "cooldown_ticks": 160,
   "entity_action": {
     "type": "neoorigins:area_of_effect",

@@ -87,7 +87,7 @@ public final class HotkeyAssignments {
             if (slotIdx >= pool.length) {
                 NeoOrigins.LOGGER.warn(
                     "[Hotkeys] Pool exhausted ({} slots) — key '{}' will be dormant. "
-                        + "Increase neoorigins-common.toml [hotkeys] pool_size or assign via keybindjs.",
+                        + "Increase config/neoorigins/client.toml [hotkeys] pool_size or assign via keybindjs.",
                     pool.length, key);
                 continue;
             }

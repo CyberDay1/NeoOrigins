@@ -68,7 +68,10 @@ public class LootPoolGrantPower extends AbstractActivePower<LootPoolGrantPower.C
         int rolls,
         int bonusRolls,
         String active,
-        int cooldownTicks
+        int cooldownTicks,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
         @Override public int cooldownTicks() { return cooldownTicks; }
 
@@ -85,7 +88,10 @@ public class LootPoolGrantPower extends AbstractActivePower<LootPoolGrantPower.C
             Codec.STRING.optionalFieldOf("active", "").forGetter(Config::active),
             // Field is named `cooldown` in JSON to match the requested shape;
             // mapped onto AbstractActivePower's cooldownTicks contract.
-            Codec.INT.optionalFieldOf("cooldown", 0).forGetter(Config::cooldownTicks)
+            Codec.INT.optionalFieldOf("cooldown", 0).forGetter(Config::cooldownTicks),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

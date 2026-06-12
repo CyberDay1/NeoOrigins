@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:dragon_breath",
   "cooldown_ticks": 80,
   "entity_action": {
     "type": "neoorigins:and",

@@ -43,6 +43,9 @@ public class OriginInfoScreen extends Screen {
 
     private record TabEntry(ResourceLocation layerId, String layerName, OriginDetailViewModel viewModel) {}
 
+    private static final ResourceLocation CLASS_LAYER_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
+
     private final List<TabEntry> tabs = new ArrayList<>();
     private int currentTab = 0;
 
@@ -74,7 +77,8 @@ public class OriginInfoScreen extends Screen {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
             if (origin == null) continue;
             String layerName = getLayerDisplayName(layer);
-            tabs.add(new TabEntry(layer.id(), layerName, OriginDetailViewModel.compute(originId)));
+            boolean classLayer = CLASS_LAYER_ID.equals(layer.id());
+            tabs.add(new TabEntry(layer.id(), layerName, OriginDetailViewModel.compute(originId, classLayer)));
         }
 
         panelW = Math.min(width - 40, 400);
@@ -415,7 +419,14 @@ public class OriginInfoScreen extends Screen {
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
                 g.fill(panelX + DETAIL_PAD, sy + 3, panelX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
-                g.drawString(font, themedBold(Component.literal(pNames.get(i))), panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                var pNameC = themedBold(Component.literal(pNames.get(i)));
+                g.drawString(font, pNameC, panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                // Hotkey tag (e.g. "[R]") — same slot logic as the HUD cluster.
+                List<String> pTags = vm.powerKeyTags();
+                if (i < pTags.size() && !pTags.get(i).isEmpty()) {
+                    g.drawString(font, themed(Component.literal(pTags.get(i))),
+                        panelX + DETAIL_PAD + 8 + font.width(pNameC) + 5, sy, theme.accentColor(), false);
+                }
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {

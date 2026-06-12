@@ -66,8 +66,10 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         EntityCondition condition,
         boolean toggleable,
         boolean defaultOff,
-        String type
-    ) implements PowerConfiguration {
+        String type,
+        String cooldownIcon,
+        boolean alwaysShowIcon
+    ) implements PowerConfiguration, com.cyberday1.neoorigins.power.builtin.base.HudIconConfig {
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -94,9 +96,15 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 boolean enabled = !obj.has("enabled") || obj.get("enabled").getAsBoolean();
                 if (!enabled) {
                     return DataResult.success(Pair.of(
-                        new Config(List.of(), EntityCondition.alwaysTrue(), false, false, t),
+                        new Config(List.of(), EntityCondition.alwaysTrue(), false, false, t, "", false),
                         ops.empty()));
                 }
+
+                // HUD icon for the ability cluster (toggleable powers occupy a
+                // keybind slot, so they're roster entries like any active).
+                String cooldownIcon = obj.has("cooldown_icon") && obj.get("cooldown_icon").isJsonPrimitive()
+                    ? obj.get("cooldown_icon").getAsString() : "";
+                boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
 
                 // Top-level "amplifier" is a config-override hook: the
                 // power_overrides system writes fields at the JSON root, so
@@ -143,7 +151,8 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     : EntityCondition.alwaysTrue();
 
                 return DataResult.success(Pair.of(
-                    new Config(List.copyOf(specs), cond, toggleable, defaultOff, t),
+                    new Config(List.copyOf(specs), cond, toggleable, defaultOff, t,
+                        cooldownIcon, alwaysShowIcon),
                     ops.empty()));
             }
 
@@ -187,6 +196,17 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
 
     @Override
     public boolean isActivePower(Config config) { return config.toggleable(); }
+
+    /**
+     * Whether the holder currently has this toggleable power switched off.
+     * Exposed so the network layer can mirror toggle state to the HUD ability
+     * cluster (bright = on, dimmed = off) the same way it does for
+     * {@code AbstractTogglePower}s.
+     */
+    public boolean isToggledOff(ServerPlayer player, Config config) {
+        if (!config.toggleable()) return false;
+        return player.getData(OriginAttachments.originData()).isPowerToggledOff(toggleKey(config));
+    }
 
     /**
      * Per-instance toggle key — includes the effect IDs so that multiple

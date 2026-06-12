@@ -23,7 +23,10 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         int cooldownTicks,
         String mode,
         int hungerCost,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
         @Override public int cooldownTicks() { return cooldownTicks; }
         @Override public int hungerCost() { return hungerCost; }
@@ -33,7 +36,10 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
             Codec.INT.optionalFieldOf("cooldown_ticks", 60).forGetter(Config::cooldownTicks),
             Codec.STRING.optionalFieldOf("mode", "target").forGetter(Config::mode),
             Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

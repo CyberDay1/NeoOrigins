@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:anvil",
   "cooldown_ticks": 140,
   "entity_action": {
     "type": "neoorigins:area_of_effect",

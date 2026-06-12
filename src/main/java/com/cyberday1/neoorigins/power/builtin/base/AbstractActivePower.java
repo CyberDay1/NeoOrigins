@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin.base;
 
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
@@ -35,7 +36,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
      * must keep {@code hungerCost()} at the default of 0 so the base class
      * doesn't double-charge.
      */
-    public interface Config extends PowerConfiguration {
+    public interface Config extends PowerConfiguration, HudIconConfig {
         int cooldownTicks();
         /** Food points debited on activation (not hunger bars). Default 0 = no cost. */
         default int hungerCost() { return 0; }
@@ -43,6 +44,8 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         default String resourceCost() { return ""; }
         /** Amount of resource to debit on activation. Only used when resourceCost is non-empty. */
         default int resourceCostAmount() { return 0; }
+        /** If true, the remaining cooldown seconds are drawn on the icon (default true). */
+        default boolean cooldownCountdown() { return true; }
     }
 
     @Override
@@ -60,7 +63,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         String resCostKey = config.resourceCost();
         int resCostAmt = config.resourceCostAmount();
         boolean hasResourceCost = !resCostKey.isEmpty() && resCostAmt > 0;
-        boolean resourceBarsDisabled = com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled();
+        boolean resourceBarsDisabled = ContentTogglesConfig.isResourceBarsDisabled();
         if (hasResourceCost && resourceBarsDisabled) {
             // Convert resource cost to hunger cost
             hungerCost += resCostAmt;

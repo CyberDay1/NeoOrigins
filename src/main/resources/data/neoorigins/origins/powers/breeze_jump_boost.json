@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:persistent_effect",
+  "cooldown_icon": "minecraft:rabbit_foot",
   "toggleable": true,
   "effects": [
     { "effect": "minecraft:jump_boost", "amplifier": 1, "ambient": true, "show_particles": false, "show_icon": false }
