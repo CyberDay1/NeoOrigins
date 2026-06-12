@@ -158,6 +158,29 @@ public final class GameplayConfig {
         };
     }
 
+    // ── Origin spawn location ───────────────────────────────────────────
+    // Global kill switch for spawn_location teleports, covering built-in,
+    // datapack and compat origins alike.
+
+    public static final ModConfigSpec.BooleanValue SPAWN_LOCATION_TELEPORTS_ENABLED;
+
+    static {
+        BUILDER.comment(
+            "Origin spawn location behaviour.",
+            "Origins may declare a spawn_location (e.g. ocean origins, Nether origins)",
+            "that teleports the player there when the origin is first picked."
+        ).push("spawn_location");
+
+        SPAWN_LOCATION_TELEPORTS_ENABLED = BUILDER
+            .comment("Master toggle for ALL origin spawn_location teleports.",
+                     "When false, no origin relocates the player on origin pick —",
+                     "built-in, datapack and compat origins all spawn at the world's",
+                     "normal spawn point. Overrides ocean_origins.spawn_in_ocean.")
+            .define("teleports_enabled", true);
+
+        BUILDER.pop();
+    }
+
     // ── Ocean Origins ───────────────────────────────────────────────────
     // Per-feature toggles for the built-in ocean origins (abyssal, kraken,
     // merling, siren). Both default on.
@@ -213,10 +236,13 @@ public final class GameplayConfig {
 
     /**
      * True if the spawn_location teleport should apply to this origin.
-     * Always true for non-ocean origins; for the four built-in ocean
-     * origins, controlled by {@link #OCEAN_ORIGINS_SPAWN_IN_OCEAN}.
+     * Gated first by the global {@link #SPAWN_LOCATION_TELEPORTS_ENABLED}
+     * kill switch (covers every origin: built-in, datapack, compat); then,
+     * for the four built-in ocean origins, by
+     * {@link #OCEAN_ORIGINS_SPAWN_IN_OCEAN}.
      */
     public static boolean shouldApplySpawnLocation(ResourceLocation originId) {
+        if (!SPAWN_LOCATION_TELEPORTS_ENABLED.get()) return false;
         if (!NeoOrigins.MOD_ID.equals(originId.getNamespace())) return true;
         if (!OCEAN_ORIGIN_PATHS.contains(originId.getPath())) return true;
         return OCEAN_ORIGINS_SPAWN_IN_OCEAN.get();
