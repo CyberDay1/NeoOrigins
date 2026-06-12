@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:phantom_form",
+  "cooldown_icon": "minecraft:phantom_membrane",
   "invisibility": true,
   "no_gravity": true,
   "name": "power.neoorigins.phantom_form.name",

@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:honeycomb",
   "cooldown_ticks": 120,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",

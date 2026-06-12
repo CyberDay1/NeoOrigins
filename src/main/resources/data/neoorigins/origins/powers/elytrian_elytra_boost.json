@@ -1,1 +1,1 @@
-{ "type": "neoorigins:elytra_boost", "name": "power.neoorigins.elytrian_elytra_boost.name", "description": "power.neoorigins.elytrian_elytra_boost.description" }
+{ "type": "neoorigins:elytra_boost", "cooldown_icon": "minecraft:firework_rocket", "name": "power.neoorigins.elytrian_elytra_boost.name", "description": "power.neoorigins.elytrian_elytra_boost.description" }

@@ -1,5 +1,8 @@
 package com.cyberday1.neoorigins.network;
 
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.event.OriginChangedEvent;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
@@ -16,6 +19,7 @@ import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.network.payload.EditorTogglePowerPayload;
 import com.cyberday1.neoorigins.network.payload.OpenEditorScreenPayload;
 import com.cyberday1.neoorigins.network.payload.OpenOriginScreenPayload;
+import com.cyberday1.neoorigins.network.payload.SyncAbilitySlotsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncActivePowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncCooldownPayload;
 import com.cyberday1.neoorigins.network.payload.SyncEvolutionConfigPayload;
@@ -30,8 +34,9 @@ import com.cyberday1.neoorigins.network.payload.SyncPlayerMorphPayload;
 import com.cyberday1.neoorigins.power.builtin.EntityModelPower;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.power.builtin.ConditionPassivePower;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
+import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import java.util.HashMap;
@@ -149,6 +154,12 @@ public class NeoOriginsNetwork {
             SyncActivePowersPayload.TYPE,
             SyncActivePowersPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncActivePowers
+        );
+
+        registrar.playToClient(
+            SyncAbilitySlotsPayload.TYPE,
+            SyncAbilitySlotsPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncAbilitySlots
         );
 
         registrar.playToClient(
@@ -330,6 +341,9 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.client.ClientMoistureState.clear();
             com.cyberday1.neoorigins.client.ClientResourceState.clear();
             com.cyberday1.neoorigins.client.ClientCooldownState.clear();
+            // Ability-slot roster is re-pushed by syncAbilitySlotsToPlayer right
+            // after the next SyncActivePowersPayload (syncToPlayer -> syncActivePowersToPlayer).
+            com.cyberday1.neoorigins.client.ClientAbilitySlots.clear();
         });
     }
 
@@ -341,7 +355,8 @@ public class NeoOriginsNetwork {
 
     private static void handleSyncCooldown(SyncCooldownPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientCooldownState.set(payload.slot(), payload.totalTicks(), payload.remainingTicks())
+            com.cyberday1.neoorigins.client.ClientCooldownState.set(payload.slot(), payload.totalTicks(), payload.remainingTicks(),
+                payload.icon(), payload.countdown())
         );
     }
 
@@ -417,11 +432,11 @@ public class NeoOriginsNetwork {
     public static void syncEvolutionToPlayer(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         PacketDistributor.sendToPlayer(sp, new SyncEvolutionConfigPayload(
-            NeoOriginsConfig.isEvolutionEnabled(),
-            NeoOriginsConfig.evolutionTier1Kills(),
-            NeoOriginsConfig.evolutionTier2Kills(),
-            NeoOriginsConfig.evolutionTier3Kills(),
-            NeoOriginsConfig.evolutionMessageInterval(),
+            GameplayConfig.isEvolutionEnabled(),
+            GameplayConfig.evolutionTier1Kills(),
+            GameplayConfig.evolutionTier2Kills(),
+            GameplayConfig.evolutionTier3Kills(),
+            GameplayConfig.evolutionMessageInterval(),
             data.getEssenceKills(),
             data.getEvolutionTier()
         ));
@@ -430,6 +445,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncActivePowers(SyncActivePowersPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers(), payload.capabilities())
+        );
+    }
+
+    private static void handleSyncAbilitySlots(SyncAbilitySlotsPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientAbilitySlots.set(payload.slots())
         );
     }
 
@@ -887,7 +908,7 @@ public class NeoOriginsNetwork {
             PowerHolder<?> holder = actives.get(slot);
             holder.onActivated(sp);
             syncCooldownIfStarted(sp, holder, slot);
-            if (holder.type() instanceof AbstractTogglePower<?>) {
+            if (isToggleLike(holder)) {
                 syncActivePowersToPlayer(sp);
             }
         });
@@ -904,7 +925,7 @@ public class NeoOriginsNetwork {
             PowerHolder<?> holder = classActives.get(0);
             holder.onActivated(sp);
             syncCooldownIfStarted(sp, holder, -1);
-            if (holder.type() instanceof AbstractTogglePower<?>) {
+            if (isToggleLike(holder)) {
                 syncActivePowersToPlayer(sp);
             }
         });
@@ -952,6 +973,8 @@ public class NeoOriginsNetwork {
     private static void syncCooldownIfStarted(ServerPlayer sp, PowerHolder<?> holder, int slot) {
         String key;
         int totalTicks;
+        String icon = "";
+        boolean countdown = false;
 
         if (holder.type() instanceof AbstractActivePower) {
             AbstractActivePower ap = (AbstractActivePower) holder.type();
@@ -965,6 +988,8 @@ public class NeoOriginsNetwork {
                     ? holder.id().toString()   // default impl fell back — use real ID
                     : candidateKey;            // subclass override (e.g. SummonMinionPower)
             totalTicks = cfg.cooldownTicks();
+            icon = cfg.cooldownIcon();
+            countdown = cfg.cooldownCountdown();
         } else if (holder.type() instanceof com.cyberday1.neoorigins.compat.CompatPower
                 && holder.config() instanceof com.cyberday1.neoorigins.compat.CompatPower.Config cc
                 && cc.cooldownTicks() > 0) {
@@ -983,7 +1008,7 @@ public class NeoOriginsNetwork {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         int remaining = data.remainingCooldown(key, sp.tickCount);
         if (remaining > 0) {
-            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, totalTicks, remaining));
+            PacketDistributor.sendToPlayer(sp, new SyncCooldownPayload(slot, totalTicks, remaining, icon, countdown));
         }
     }
 
@@ -1031,9 +1056,83 @@ public class NeoOriginsNetwork {
         Set<String> capabilities = new HashSet<>();
         collectActivePowers(player, powerMap, capabilities);
         PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
+        // Keep the HUD ability-slot roster in lockstep with the active-powers
+        // map — same change triggers, same connection ordering.
+        syncAbilitySlotsToPlayer(player);
         // Morph state (entity_model power) must reach every client that can see
         // this player, not just the player themselves — broadcast it separately.
         broadcastMorphState(player, morphTypeFrom(capabilities));
+    }
+
+    /**
+     * Push the player's keybind-slot ability roster (skill slots 0–5 + class
+     * active -1) for the cooldown/ability HUD cluster. Slot order mirrors
+     * {@link ActiveOriginService#activePowers} — the same list
+     * {@link #handleActivatePower} indexes into — so HUD slots, keybinds and
+     * activations all agree.
+     */
+    public static void syncAbilitySlotsToPlayer(ServerPlayer player) {
+        List<SyncAbilitySlotsPayload.Entry> entries = new java.util.ArrayList<>();
+        List<PowerHolder<?>> actives = ActiveOriginService.activePowers(player);
+        for (int i = 0; i < Math.min(actives.size(), 6); i++) {
+            entries.add(abilitySlotEntry(i, actives.get(i)));
+        }
+        List<PowerHolder<?>> classActives = ActiveOriginService.activeClassPowers(player);
+        if (!classActives.isEmpty()) {
+            entries.add(abilitySlotEntry(-1, classActives.get(0)));
+        }
+        PacketDistributor.sendToPlayer(player, new SyncAbilitySlotsPayload(entries));
+    }
+
+    private static SyncAbilitySlotsPayload.Entry abilitySlotEntry(int slot, PowerHolder<?> holder) {
+        String icon = "";
+        boolean alwaysShow = false;
+        boolean countdown = false;
+        if (holder.config() instanceof com.cyberday1.neoorigins.power.builtin.base.HudIconConfig hic) {
+            icon = hic.cooldownIcon();
+            alwaysShow = hic.alwaysShowIcon();
+        }
+        if (holder.config() instanceof AbstractActivePower.Config ac) {
+            countdown = ac.cooldownCountdown();
+        }
+        boolean toggleable = isToggleLike(holder);
+        return new SyncAbilitySlotsPayload.Entry(slot, holder.id(), icon, toggleable, alwaysShow, countdown);
+    }
+
+    /**
+     * True for powers whose keybind flips an on/off state the HUD should mirror:
+     * {@link AbstractTogglePower} subclasses, plus {@code persistent_effect} and
+     * {@code condition_passive} powers authored with {@code "toggleable": true}.
+     */
+    private static boolean isToggleLike(PowerHolder<?> holder) {
+        if (holder.type() instanceof AbstractTogglePower<?>) return true;
+        if (holder.type() instanceof PersistentEffectPower
+                && holder.config() instanceof PersistentEffectPower.Config pc) {
+            return pc.toggleable();
+        }
+        if (holder.type() instanceof ConditionPassivePower
+                && holder.config() instanceof ConditionPassivePower.Config cc) {
+            return cc.toggleable();
+        }
+        return false;
+    }
+
+    /** Current on/off state for a toggle-like power (true = currently switched off). */
+    private static boolean isToggleLikeOff(ServerPlayer player, PowerHolder<?> holder) {
+        if (holder.type() instanceof AbstractTogglePower<?>) {
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            AbstractTogglePower tp = (AbstractTogglePower) holder.type();
+            return tp.isToggledOff(player, holder.config());
+        }
+        if (holder.type() instanceof PersistentEffectPower pep
+                && holder.config() instanceof PersistentEffectPower.Config pc) {
+            return pep.isToggledOff(player, pc);
+        }
+        if (holder.type() instanceof ConditionPassivePower cpp
+                && holder.config() instanceof ConditionPassivePower.Config cc) {
+            return cpp.isToggledOff(player, cc);
+        }
+        return false;
     }
 
     /**
@@ -1096,15 +1195,10 @@ public class NeoOriginsNetwork {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
             for (Identifier powerId : origin.powers()) {
-                if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+                if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;
-                boolean toggledOn = true;
-                if (holder.type() instanceof AbstractTogglePower<?>) {
-                    @SuppressWarnings({"unchecked", "rawtypes"})
-                    AbstractTogglePower tp = (AbstractTogglePower) holder.type();
-                    toggledOn = !tp.isToggledOff(player, holder.config());
-                }
+                boolean toggledOn = !isToggleLike(holder) || !isToggleLikeOff(player, holder);
                 powerMapOut.put(powerId, toggledOn);
                 if (toggledOn) {
                     capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
@@ -1113,15 +1207,10 @@ public class NeoOriginsNetwork {
         }
         // Also include dynamically-granted powers (via /power grant or grant_power actions).
         for (Identifier powerId : data.getDynamicGrantedPowers()) {
-            if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+            if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;
-            boolean toggledOn = true;
-            if (holder.type() instanceof AbstractTogglePower<?>) {
-                @SuppressWarnings({"unchecked", "rawtypes"})
-                AbstractTogglePower tp = (AbstractTogglePower) holder.type();
-                toggledOn = !tp.isToggledOff(player, holder.config());
-            }
+            boolean toggledOn = !isToggleLike(holder) || !isToggleLikeOff(player, holder);
             powerMapOut.put(powerId, toggledOn);
             if (toggledOn) {
                 capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
@@ -1145,7 +1234,7 @@ public class NeoOriginsNetwork {
         java.util.Map<Identifier, com.cyberday1.neoorigins.client.ClientPowerCache.Entry> powerEntries = new java.util.HashMap<>();
         for (var entry : com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getAllPowers().entrySet()) {
             var holder = entry.getValue();
-            boolean isToggle = holder.type() instanceof AbstractTogglePower<?>;
+            boolean isToggle = isToggleLike(holder);
             powerEntries.put(entry.getKey(), new com.cyberday1.neoorigins.client.ClientPowerCache.Entry(
                 holder.name(), holder.description(), holder.isActive(), isToggle, holder.hidden()));
         }
@@ -1153,7 +1242,7 @@ public class NeoOriginsNetwork {
         // Filter out config-disabled origins from the client sync — they stay
         // registered server-side for /neoorigins set but shouldn't appear in the GUI.
         java.util.Map<Identifier, com.cyberday1.neoorigins.api.origin.Origin> visibleOrigins = new java.util.HashMap<>(OriginDataManager.INSTANCE.getOrigins());
-        visibleOrigins.entrySet().removeIf(e -> com.cyberday1.neoorigins.NeoOriginsConfig.isOriginDisabled(e.getKey()));
+        visibleOrigins.entrySet().removeIf(e -> ContentTogglesConfig.isOriginDisabled(e.getKey()));
 
         PacketDistributor.sendToPlayer(player, new SyncOriginRegistryPayload(
             visibleOrigins,

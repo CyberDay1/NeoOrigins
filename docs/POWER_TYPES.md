@@ -27,6 +27,20 @@ All powers share six optional top-level fields:
 If neither `name` nor `description` is present, NeoOrigins falls back to the lang key convention:
 `power.<namespace>.<path>.name` / `power.<namespace>.<path>.description`
 
+**Cooldown HUD fields (active powers).** Every cooldown-gated active (keybind) power type — `active_ability`, `active_teleport`, `active_dash`, `active_recall`, `active_swap`, `active_fireball`, `active_bolt`, `active_phase`, `active_place_block`, `ground_slam`, `tidal_wave`, `command_pack`, `elytra_boost`, `mount`, `shadow_orb`, `summon_minion`, `tame_mob`, `loot_pool_grant` — additionally accepts three optional HUD fields:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `cooldown_icon` | string | `""` | HUD cooldown icon: an item id (e.g. `minecraft:ender_pearl`) rendered as the item, or a datapack texture path ending in `.png` (resolved under `assets/<namespace>/textures/`, e.g. `mypack:gui/fireball.png` → `assets/mypack/textures/gui/fireball.png`) drawn 16×16. When set, the HUD swaps that slot's cooldown bar for the icon with a clock-style radial sweep (dark fill over the not-yet-recharged arc, wiping clockwise from 12 o'clock). Empty keeps the plain bar. |
+| `cooldown_countdown` | bool | `true` | Draw the remaining cooldown in whole seconds translucently on the icon. Only applies when `cooldown_icon` is set; players can suppress all countdown numbers with the `show_cooldown_countdown` client config switch and tune the text opacity with `cooldown_countdown_opacity`. |
+| `always_show_icon` | bool | `false` | Keep this power's icon on the ability HUD cluster even while it is idle / off cooldown (full-bright, no sweep, no countdown). Only applies when `cooldown_icon` is set; players can force this for every power with the `always_show_ability_icons` client config switch. |
+
+**Toggleable powers** — `flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect` and `condition_passive` when authored with `"toggleable": true` — also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
+
+Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `ALL_ACTIVE_ABILITIES` (default since 2.2.2: every icon-bearing keybind ability keeps a persistent slot — full-bright while idle, sweep while recharging) or `COOLDOWNS_AND_TOGGLES` (cooldown slots only while recharging, plus icon-bearing toggles).
+
+The cooldown cluster itself is draggable in the in-game HUD editor (same screen as resource bars); its position persists in `config/neoorigins/hud.json`.
+
 ---
 
 ## `neoorigins:simple`
@@ -1994,7 +2008,7 @@ Modpack authors can extend the classes in two ways:
 
 1. **Datapack** — add entries to the `neoorigins:heavy_armor` or `neoorigins:light_armor` item tags via a higher-priority datapack.
 
-2. **Config** — add item IDs or `#tags` to the `[armor_classes]` section in `config/neoorigins-common.toml`:
+2. **Config** — add item IDs or `#tags` to the `[armor_classes]` section in `config/neoorigins/gameplay.toml`:
 
 ```toml
 [armor_classes]
@@ -2097,6 +2111,9 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 | `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. Silently aborts (cooldown not consumed) if the resource can't cover it. If resource bars are globally disabled in config, the cost is charged as hunger instead. |
 | `entity_action` | EntityAction | no | noop | Action tree fired on use (typically `neoorigins:and { actions: [...] }`) |
 | `condition` | EntityCondition | no | always-true | DSL gate — skips firing (and the cooldown) if false |
+| `cooldown_icon` | string | no | `""` | HUD cooldown icon (item id or `.png` texture path) — see "Cooldown HUD fields" at the top of this page |
+| `cooldown_countdown` | bool | no | `true` | Draw remaining seconds on the icon (needs `cooldown_icon`) |
+| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`) |
 
 Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter — triggering one ability does not block another.
 
@@ -2251,7 +2268,7 @@ Target must be a non-player `Mob`. With the default `hostile_only: true`, only m
 All taming and scare powers — `tame_mob`, `scare_entities` and `mobs_ignore_player` — share one exclusion rule. An entity is excluded when **any** of these hold:
 
 1. **Boss-tier** — the Warden, Ender Dragon and Wither. Hardcoded; cannot be overridden.
-2. **Global config blacklist** — the `tame_scare_entity_blacklist` list in the `[entity_exclusions]` section of `config/neoorigins-common.toml`. Lets a server or pack operator extend the exclusion to arbitrary mobs across every taming and scare power at once:
+2. **Global config blacklist** — the `tame_scare_entity_blacklist` list in the `[entity_exclusions]` section of `config/neoorigins/admin.toml`. Lets a server or pack operator extend the exclusion to arbitrary mobs across every taming and scare power at once:
 
 ```toml
 [entity_exclusions]

@@ -51,7 +51,10 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         Optional<String> feet,
         Optional<String> mainhand,
         Optional<String> offhand,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.fieldOf("mob_type").forGetter(Config::mobType),
@@ -66,7 +69,10 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             Codec.STRING.optionalFieldOf("feet").forGetter(Config::feet),
             Codec.STRING.optionalFieldOf("mainhand").forGetter(Config::mainhand),
             Codec.STRING.optionalFieldOf("offhand").forGetter(Config::offhand),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

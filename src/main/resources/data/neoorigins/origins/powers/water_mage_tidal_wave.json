@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:tidal_wave",
+  "cooldown_icon": "minecraft:heart_of_the_sea",
   "damage": 4.0,
   "knockback_strength": 2.0,
   "range": 8.0,

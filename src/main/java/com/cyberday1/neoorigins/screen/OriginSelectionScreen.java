@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.screen;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.client.ClientOriginState;
@@ -145,7 +145,8 @@ public class OriginSelectionScreen extends Screen {
     }
 
     private void updateDetail() {
-        detailViewModel = OriginDetailViewModel.compute(presenter.selectedOriginId());
+        detailViewModel = OriginDetailViewModel.compute(presenter.selectedOriginId(),
+            CLASS_LAYER_ID.equals(presenter.currentLayer() != null ? presenter.currentLayer().id() : null));
         if (detailViewModel.origin() != null) {
             // Wrap with themed() BEFORE splitting — Font.split bakes the style
             // (including font selector) into each FormattedCharSequence, so the
@@ -402,7 +403,15 @@ public class OriginSelectionScreen extends Screen {
             sy += 9 + 4;
             for (int i = 0; i < pNames.size(); i++) {
                 g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
-                g.text(font, themedBold(Component.literal(pNames.get(i))), rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                var pNameC = themedBold(Component.literal(pNames.get(i)));
+                g.text(font, pNameC, rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                // Hotkey tag (e.g. "[R]") — the key the ability gets, same
+                // slot logic as the HUD cluster. Accent color, after the name.
+                List<String> pTags = detailViewModel.powerKeyTags();
+                if (i < pTags.size() && !pTags.get(i).isEmpty()) {
+                    g.text(font, themed(Component.literal(pTags.get(i))),
+                        rightX + DETAIL_PAD + 8 + font.width(pNameC) + 5, sy, theme.accentColor(), false);
+                }
                 sy += 11;
                 if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
                     for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
@@ -555,7 +564,7 @@ public class OriginSelectionScreen extends Screen {
         for (var co : layer.origins()) {
             if (!co.origin().equals(NITWIT_ORIGIN_ID)) continue;
             if (!co.isAvailable(choices)) return false;
-            if (NeoOriginsConfig.isOriginDisabled(co.origin())) return false;
+            if (ContentTogglesConfig.isOriginDisabled(co.origin())) return false;
             if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) return false;
             var origin = OriginDataManager.INSTANCE.getOrigin(co.origin());
             if (origin != null && origin.unchoosable()) return false;

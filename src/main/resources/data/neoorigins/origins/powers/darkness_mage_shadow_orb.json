@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:shadow_orb",
+  "cooldown_icon": "minecraft:ender_eye",
   "max_orbs": 3,
   "radius": 5.0,
   "cooldown_ticks": 100,

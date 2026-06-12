@@ -1,1 +1,1 @@
-{ "type": "neoorigins:command_pack", "range": 32.0, "cooldown_ticks": 40 }
+{ "type": "neoorigins:command_pack", "cooldown_icon": "minecraft:lead", "range": 32.0, "cooldown_ticks": 40 }

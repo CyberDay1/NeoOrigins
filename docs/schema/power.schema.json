@@ -409,6 +409,21 @@
         "condition": {
           "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
           "$ref": "condition.schema.json"
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -430,6 +445,21 @@
           "description": "Cooldown between casts in ticks (20 = 1s); default 80.",
           "type": "integer",
           "default": 80
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -461,6 +491,21 @@
           "description": "If true replace the player's velocity; if false add to it; default false.",
           "type": "boolean",
           "default": false
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -482,6 +527,21 @@
           "description": "Cooldown between casts in ticks (20 = 1s); default 100.",
           "type": "integer",
           "default": 100
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -508,6 +568,21 @@
           "description": "Food/exhaustion points consumed on a successful phase; default 0.",
           "type": "integer",
           "default": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -539,6 +614,21 @@
           "description": "Food/exhaustion points consumed on a successful placement; default 0.",
           "type": "integer",
           "default": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -555,6 +645,21 @@
           "description": "Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600.",
           "type": "integer",
           "default": 600
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -576,6 +681,21 @@
           "description": "Cooldown between swaps in ticks (20 = 1s); default 80.",
           "type": "integer",
           "default": 80
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -611,6 +731,21 @@
           "description": "Food/exhaustion points consumed on a successful teleport; default 0.",
           "type": "integer",
           "default": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -932,6 +1067,21 @@
           "description": "Ticks before this ability can be triggered again (default 40).",
           "type": "integer",
           "default": 40
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -969,6 +1119,16 @@
         },
         "default_off": {
           "description": "Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:sculk_sensor') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set on a toggleable condition_passive it joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while idle (default false). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
         }
@@ -1161,6 +1321,21 @@
           "description": "Ticks before the boost can be triggered again (default 40).",
           "type": "integer",
           "default": 40
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1295,6 +1470,16 @@
       "properties": {
         "type": {
           "const": "neoorigins:flight"
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1352,6 +1537,21 @@
           "description": "Ticks before the slam can be reused (default 120 = 6s).",
           "type": "integer",
           "default": 120
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1463,6 +1663,16 @@
           "description": "Blocks around the player within which dropped items are pulled in (default 4.0).",
           "type": "number",
           "default": 4.0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1616,6 +1826,21 @@
           "type": "integer",
           "default": 0,
           "minimum": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1994,6 +2219,21 @@
           "description": "Where the rider sits: 'centered' (on top) or 'shoulder' (offset to one side).",
           "type": "string",
           "default": "centered"
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2026,6 +2266,16 @@
           "description": "Mob groups blocked: monster, creature, ambient, water_creature, or all (default monster).",
           "type": "array",
           "items": {}
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2185,6 +2435,16 @@
           "description": "Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).",
           "type": "boolean",
           "default": false
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:magma_cream') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set on a toggleable persistent_effect it joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while idle (default false). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2206,6 +2466,16 @@
           "description": "If true gravity is disabled so the player can free-fly (default true).",
           "type": "boolean",
           "default": true
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2576,6 +2846,21 @@
           "description": "Hunger points consumed per activation (default 0).",
           "type": "integer",
           "default": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2753,6 +3038,16 @@
           "description": "Ticks of continuous sneaking before invisibility kicks in (200 = 10s).",
           "type": "integer",
           "default": 200
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2818,6 +3113,21 @@
         "offhand": {
           "description": "Item id placed in the summoned mob's off hand (optional).",
           "type": "string"
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -2873,6 +3183,21 @@
             "type": "string",
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -3003,6 +3328,21 @@
           "description": "Hunger consumed per use (default 0).",
           "type": "integer",
           "default": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -3164,6 +3504,16 @@
         },
         "always_on": {
           "description": "If true phasing is always-active instead of a toggle key (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
         }

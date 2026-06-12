@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:sculk",
   "cooldown_ticks": 300,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",

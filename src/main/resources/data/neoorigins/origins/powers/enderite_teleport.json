@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_teleport",
+  "cooldown_icon": "minecraft:ender_pearl",
   "range": 32,
   "cooldown_ticks": 60,
   "resource_cost": "neoorigins:enderite_energy",

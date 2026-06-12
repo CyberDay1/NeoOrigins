@@ -1,1 +1,1 @@
-{ "type": "neoorigins:persistent_effect", "effect": "minecraft:regeneration", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+{ "type": "neoorigins:persistent_effect", "cooldown_icon": "minecraft:ghast_tear", "effect": "minecraft:regeneration", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }

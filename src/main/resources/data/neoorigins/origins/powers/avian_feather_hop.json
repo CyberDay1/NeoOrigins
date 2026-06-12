@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:feather",
   "cooldown_ticks": 60,
   "entity_action": {
     "type": "neoorigins:add_velocity",

@@ -1,1 +1,1 @@
-{ "type": "neoorigins:no_mob_spawns_nearby", "radius": 36 }
+{ "type": "neoorigins:no_mob_spawns_nearby", "cooldown_icon": "minecraft:torch", "radius": 36 }

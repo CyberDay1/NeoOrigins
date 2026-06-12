@@ -2,9 +2,11 @@ package com.cyberday1.neoorigins.screen.model;
 
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
+import com.cyberday1.neoorigins.client.AbilitySlotKeys;
 import com.cyberday1.neoorigins.client.ClientPowerCache;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
-import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.cyberday1.neoorigins.power.builtin.ConditionPassivePower;
+import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
@@ -15,18 +17,31 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 import java.util.*;
-import java.util.LinkedHashMap;
 
-/** Computed detail-panel data for a selected origin. No rendering imports. */
+/**
+ * Computed detail-panel data for a selected origin. No rendering imports.
+ *
+ * <p>{@code powerKeyTags} is parallel to {@code powerNames}: a localized
+ * hotkey tag like {@code "[R]"} (the key actually bound to the skill slot the
+ * power gets, via {@link AbilitySlotKeys} — the same mapping the HUD cluster
+ * labels use) or {@code ""} for passives. Screens draw it after the power
+ * name in an accent color.
+ */
 public record OriginDetailViewModel(
     Origin origin,
     List<String> powerNames,
-    List<String> powerDescs
+    List<String> powerDescs,
+    List<String> powerKeyTags
 ) {
     public static final OriginDetailViewModel EMPTY =
-        new OriginDetailViewModel(null, List.of(), List.of());
+        new OriginDetailViewModel(null, List.of(), List.of(), List.of());
 
-    public static OriginDetailViewModel compute(Identifier selectedId) {
+    /**
+     * @param classLayer true when this origin is being shown on the class
+     *                   layer, whose first active power gets the class-skill
+     *                   key instead of skill slots 1–6.
+     */
+    public static OriginDetailViewModel compute(Identifier selectedId, boolean classLayer) {
         if (selectedId == null) return EMPTY;
         Origin origin = OriginDataManager.INSTANCE.getOrigin(selectedId);
         if (origin == null) return EMPTY;
@@ -40,15 +55,11 @@ public record OriginDetailViewModel(
         Language lang = Language.getInstance();
         List<String> names = new ArrayList<>();
         List<String> descs = new ArrayList<>();
+        List<String> keyTags = new ArrayList<>();
 
-        // Pre-count skill slot assignments across all powers in this origin
-        int skillSlot = 1;
-        Map<Identifier, Integer> slotMap = new LinkedHashMap<>();
-        for (Identifier powerId : origin.powers()) {
-            if (isPowerActive(powerId) && skillSlot <= 4) {
-                slotMap.put(powerId, skillSlot++);
-            }
-        }
+        // Skill-slot assignment, shared with the HUD cluster: actives in
+        // powers() order get slots 0–5 (class layer: first active only).
+        Map<Identifier, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer);
 
         for (Identifier powerId : origin.powers()) {
             // Skip internal/capability-only power types from the info panel —
@@ -78,28 +89,36 @@ public record OriginDetailViewModel(
                     ? resolveDisplayString(display.get("name")) : formatPowerId(parentId));
                 descs.add(display != null && display.has("description")
                     ? resolveDisplayString(display.get("description")) : "");
+                keyTags.add("");
                 continue;
             }
 
-            String displayName = isNamed ? resolvedName : formatPowerId(powerId);
-            String tag = "";
-            if (slotMap.containsKey(powerId)) {
-                int slot = slotMap.get(powerId);
-                if (isPowerToggle(powerId)) {
-                    tag = " [Skill " + slot + " - Toggle]";
-                } else {
-                    tag = " [Skill " + slot + "]";
-                }
-            }
-            displayName += tag;
-            names.add(displayName);
+            names.add(isNamed ? resolvedName : formatPowerId(powerId));
             descs.add(resolvedDesc);
+            keyTags.add(keyTagFor(powerId, slotMap));
         }
 
         return new OriginDetailViewModel(
             origin,
             Collections.unmodifiableList(names),
-            Collections.unmodifiableList(descs));
+            Collections.unmodifiableList(descs),
+            Collections.unmodifiableList(keyTags));
+    }
+
+    /**
+     * Localized hotkey tag for a slotted power — "[<bound key>]" (e.g. "[R]"),
+     * with a Toggle suffix for toggle-like powers; "" for passives. Falls back
+     * to the legacy S1–S6 / C labels when the slot's mapping is unbound, same
+     * as the HUD cluster.
+     */
+    private static String keyTagFor(Identifier powerId, Map<Identifier, Integer> slotMap) {
+        Integer slot = slotMap.get(powerId);
+        if (slot == null) return "";
+        String key = AbilitySlotKeys.keyNameOrLabel(slot);
+        return Component.translatable(
+            isPowerToggle(powerId) ? "gui.neoorigins.power.key_tag.toggle"
+                                   : "gui.neoorigins.power.key_tag",
+            key).getString();
     }
 
     /** Returns true if the power occupies a keybind slot. Checks PowerDataManager first, then client cache. */
@@ -126,7 +145,18 @@ public record OriginDetailViewModel(
     /** Returns true if the power is a toggle power. Checks PowerDataManager first, then client cache. */
     private static boolean isPowerToggle(Identifier powerId) {
         PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
-        if (holder != null) return holder.type() instanceof AbstractTogglePower<?>;
+        if (holder != null) {
+            if (holder.type() instanceof AbstractTogglePower<?>) return true;
+            if (holder.type() instanceof PersistentEffectPower
+                    && holder.config() instanceof PersistentEffectPower.Config pc) {
+                return pc.toggleable();
+            }
+            if (holder.type() instanceof ConditionPassivePower
+                    && holder.config() instanceof ConditionPassivePower.Config cc) {
+                return cc.toggleable();
+            }
+            return false;
+        }
         ClientPowerCache.Entry entry = ClientPowerCache.get(powerId);
         return entry != null && entry.toggle();
     }

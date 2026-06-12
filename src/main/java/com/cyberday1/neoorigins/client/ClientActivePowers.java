@@ -20,15 +20,38 @@ public final class ClientActivePowers {
 
     private static Map<Identifier, Boolean> powers = Map.of();
     private static Set<String> capabilities = Set.of();
+    private static Set<Identifier> phaseBlockedBlocks = Set.of();
 
     public static void set(Map<Identifier, Boolean> powersData, Set<String> capData) {
         powers = Map.copyOf(powersData);
         capabilities = Set.copyOf(capData);
+        // Pre-parse the phase blacklist carried as "phase_blocked:<block id>"
+        // capability tags (see WraithPhasePower.capabilities) so the per-frame
+        // movement mixin doesn't string-parse on the hot path.
+        java.util.Set<Identifier> blocked = new java.util.HashSet<>();
+        for (String cap : capabilities) {
+            if (cap.startsWith("phase_blocked:")) {
+                Identifier id = Identifier.tryParse(cap.substring("phase_blocked:".length()));
+                if (id != null) blocked.add(id);
+            }
+        }
+        phaseBlockedBlocks = Set.copyOf(blocked);
     }
 
     public static void clear() {
         powers = Map.of();
         capabilities = Set.of();
+        phaseBlockedBlocks = Set.of();
+    }
+
+    /**
+     * Block ids the active wall-phase power may NOT pass through
+     * ({@code blocked_blocks} on wraith_phase), synced as
+     * {@code phase_blocked:} capability tags. Empty when no phase power is
+     * active or its blacklist is empty.
+     */
+    public static Set<Identifier> phaseBlockedBlocks() {
+        return phaseBlockedBlocks;
     }
 
     /** True if the local player has power {@code id} granted, regardless of toggle state. */

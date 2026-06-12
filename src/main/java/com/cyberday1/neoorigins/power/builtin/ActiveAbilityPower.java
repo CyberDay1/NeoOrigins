@@ -49,13 +49,19 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
         int resourceCostAmount,
         EntityAction action,
         EntityCondition condition,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
 
         @Override public int cooldownTicks() { return cooldownTicks; }
         @Override public int hungerCost() { return hungerCost; }
         @Override public String resourceCost() { return resourceCost; }
         @Override public int resourceCostAmount() { return resourceCostAmount; }
+        @Override public String cooldownIcon() { return cooldownIcon; }
+        @Override public boolean cooldownCountdown() { return cooldownCountdown; }
+        @Override public boolean alwaysShowIcon() { return alwaysShowIcon; }
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -75,13 +81,16 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 String resCost = obj.has("resource_cost") ? obj.get("resource_cost").getAsString() : "";
                 int resCostAmt = obj.has("resource_cost_amount") ? obj.get("resource_cost_amount").getAsInt() : 0;
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:active_ability";
+                String cdIcon = obj.has("cooldown_icon") ? obj.get("cooldown_icon").getAsString() : "";
+                boolean cdCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
+                boolean alwaysShow = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
                 EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
                     ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
                     : EntityAction.noop();
                 EntityCondition condition = obj.has("condition") && obj.get("condition").isJsonObject()
                     ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
                     : EntityCondition.alwaysTrue();
-                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, t), ops.empty()));
+                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, t, cdIcon, cdCountdown, alwaysShow), ops.empty()));
             }
 
             @Override

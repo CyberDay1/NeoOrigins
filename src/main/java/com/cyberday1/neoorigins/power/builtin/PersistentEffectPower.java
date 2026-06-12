@@ -66,8 +66,10 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         EntityCondition condition,
         boolean toggleable,
         boolean defaultOff,
-        String type
-    ) implements PowerConfiguration {
+        String type,
+        String cooldownIcon,
+        boolean alwaysShowIcon
+    ) implements PowerConfiguration, com.cyberday1.neoorigins.power.builtin.base.HudIconConfig {
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -94,7 +96,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 boolean enabled = !obj.has("enabled") || obj.get("enabled").getAsBoolean();
                 if (!enabled) {
                     return DataResult.success(Pair.of(
-                        new Config(List.of(), EntityCondition.alwaysTrue(), false, false, t),
+                        new Config(List.of(), EntityCondition.alwaysTrue(), false, false, t, "", false),
                         ops.empty()));
                 }
 
@@ -142,8 +144,14 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
                     : EntityCondition.alwaysTrue();
 
+                // Optional HUD icon: lets toggleable persistent_effects surface on
+                // the ability cluster like any other active power (bright/dim pip).
+                String cooldownIcon = obj.has("cooldown_icon") && obj.get("cooldown_icon").isJsonPrimitive()
+                    ? obj.get("cooldown_icon").getAsString() : "";
+                boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
+
                 return DataResult.success(Pair.of(
-                    new Config(List.copyOf(specs), cond, toggleable, defaultOff, t),
+                    new Config(List.copyOf(specs), cond, toggleable, defaultOff, t, cooldownIcon, alwaysShowIcon),
                     ops.empty()));
             }
 
@@ -202,6 +210,12 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
             sb.append(key.map(k -> k.identifier().toString()).orElse("unknown"));
         }
         return sb.toString();
+    }
+
+    /** Current toggle state for HUD sync: true when toggleable and switched off. */
+    public boolean isToggledOff(ServerPlayer player, Config config) {
+        if (!config.toggleable()) return false;
+        return player.getData(OriginAttachments.originData()).isPowerToggledOff(toggleKey(config));
     }
 
     @Override

@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_teleport",
+  "cooldown_icon": "minecraft:ender_pearl",
   "range": 24.0,
   "cooldown_ticks": 80,
   "mode": "target",

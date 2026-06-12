@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_place_block",
+  "cooldown_icon": "minecraft:glowstone",
   "block_id": "minecraft:glowstone",
   "max_distance": 5.0,
   "cooldown_ticks": 100,

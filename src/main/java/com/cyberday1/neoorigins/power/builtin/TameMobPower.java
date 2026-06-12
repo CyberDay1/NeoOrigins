@@ -48,7 +48,10 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         float deathDamage,
         boolean hostileOnly,
         List<String> entityBlacklist,
-        String type
+        String type,
+        String cooldownIcon,
+        boolean cooldownCountdown,
+        boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("range", 16.0).forGetter(Config::range),
@@ -66,7 +69,10 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             // boss-tier exclusion below.
             Codec.STRING.listOf().optionalFieldOf("entity_blacklist", List.of())
                 .forGetter(Config::entityBlacklist),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

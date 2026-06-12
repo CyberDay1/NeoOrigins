@@ -1,1 +1,1 @@
-{ "type": "neoorigins:persistent_effect", "effect": "minecraft:haste", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+{ "type": "neoorigins:persistent_effect", "cooldown_icon": "minecraft:golden_pickaxe", "effect": "minecraft:haste", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }

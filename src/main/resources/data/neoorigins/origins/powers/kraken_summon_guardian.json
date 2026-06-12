@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:summon_minion",
+  "cooldown_icon": "minecraft:nautilus_shell",
   "mob_type": "minecraft:guardian",
   "max_count": 2,
   "cooldown_ticks": 400,

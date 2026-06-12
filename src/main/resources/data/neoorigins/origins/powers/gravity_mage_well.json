@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:crying_obsidian",
   "cooldown_ticks": 400,
   "entity_action": {
     "type": "neoorigins:spawn_projectile",

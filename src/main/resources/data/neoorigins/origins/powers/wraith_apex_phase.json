@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:wraith_phase",
+  "cooldown_icon": "minecraft:soul_lantern",
   "blocked_blocks": ["minecraft:bedrock"],
   "exhaustion_per_tick": 0.075
 }

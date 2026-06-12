@@ -14,11 +14,15 @@ import net.minecraft.world.phys.Vec3;
  */
 public class ActiveBoltPower extends AbstractActivePower<ActiveBoltPower.Config> {
 
-    public record Config(float speed, int cooldownTicks, String type) implements AbstractActivePower.Config {
+    public record Config(float speed, int cooldownTicks, String type, String cooldownIcon, boolean cooldownCountdown,
+        boolean alwaysShowIcon) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("speed", 1.2f).forGetter(Config::speed),
             Codec.INT.optionalFieldOf("cooldown_ticks", 80).forGetter(Config::cooldownTicks),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 

@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:condition_passive",
+  "cooldown_icon": "minecraft:sculk",
   "toggleable": true,
   "default_off": false,
   "interval": 40,

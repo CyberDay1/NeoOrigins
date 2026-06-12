@@ -13,11 +13,15 @@ import java.util.Optional;
 /** Swaps positions with the entity the player is looking at. */
 public class ActiveSwapPower extends AbstractActivePower<ActiveSwapPower.Config> {
 
-    public record Config(double range, int cooldownTicks, String type) implements AbstractActivePower.Config {
+    public record Config(double range, int cooldownTicks, String type, String cooldownIcon, boolean cooldownCountdown,
+        boolean alwaysShowIcon) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("range", 20.0).forGetter(Config::range),
             Codec.INT.optionalFieldOf("cooldown_ticks", 80).forGetter(Config::cooldownTicks),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
+            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
         ).apply(inst, Config::new));
     }
 
