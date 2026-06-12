@@ -25,6 +25,7 @@
     "EntityMountEndMixin",
     "AbstractVillagerTradePriceMixin",
     "SmithingMenuTakeMixin",
+    "ServerAbilitiesPacketDebugMixin",
     "recipe.CraftingMenuOriginContextMixin"
   ],
   "client": [

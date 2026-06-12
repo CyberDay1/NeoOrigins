@@ -53,8 +53,8 @@ public abstract class LocalPlayerNoPhysicsMixin {
             self.setDeltaMovement(movement);
         } else if (neoorigins$isInsideSolid(self) || ((LocalPlayer) self).input.shiftKeyDown) {
             // Wall phase + inside a block -- full noclip (server enables flight)
-            // But block movement into bedrock
-            Vec3 clamped = neoorigins$clampAgainstBedrock(self, movement);
+            // But block movement into blacklisted blocks
+            Vec3 clamped = neoorigins$clampAgainstBlocked(self, movement);
             self.setPos(self.getX() + clamped.x, self.getY() + clamped.y, self.getZ() + clamped.z);
             self.horizontalCollision = false;
             self.minorHorizontalCollision = false;
@@ -62,8 +62,8 @@ public abstract class LocalPlayerNoPhysicsMixin {
             self.verticalCollisionBelow = false;
             self.setDeltaMovement(clamped);
         } else {
-            // Wall phase + on surface -- horizontal noclip (except bedrock), vertical collision kept
-            Vec3 hClamped = neoorigins$clampAgainstBedrock(self, new Vec3(movement.x, 0, movement.z));
+            // Wall phase + on surface -- horizontal noclip (except blacklisted blocks), vertical collision kept
+            Vec3 hClamped = neoorigins$clampAgainstBlocked(self, new Vec3(movement.x, 0, movement.z));
             double newX = self.getX() + hClamped.x;
             double newZ = self.getZ() + hClamped.z;
 
@@ -87,24 +87,38 @@ public abstract class LocalPlayerNoPhysicsMixin {
     }
 
     /**
-     * Zeros out any movement axis that would push the player's bounding box
-     * into a bedrock block. Prevents phasing through bedrock sideways/vertically.
+     * Applies vanilla collision to any movement that would push the player's
+     * bounding box into a blacklisted block ({@code blocked_blocks} on the
+     * phase power, synced via {@code phase_blocked:} capability tags).
+     * Previously this hardcoded bedrock only, which silently let phasing
+     * players through obsidian and any other pack-blacklisted block — the
+     * client predicts the movement and the server accepts it, so the client
+     * clamp IS the blacklist.
      */
     @Unique
-    private static Vec3 neoorigins$clampAgainstBedrock(Entity entity, Vec3 movement) {
+    private static Vec3 neoorigins$clampAgainstBlocked(Entity entity, Vec3 movement) {
+        java.util.Set<net.minecraft.resources.ResourceLocation> blocked =
+            ClientActivePowers.phaseBlockedBlocks();
+        if (blocked.isEmpty()) return movement;
         AABB moved = entity.getBoundingBox().move(movement);
+        // Collect collision shapes of blacklisted blocks ONLY — colliding
+        // against everything would also stop the player at the ordinary
+        // blocks they're legitimately phasing through.
+        java.util.List<VoxelShape> shapes = new java.util.ArrayList<>();
         for (BlockPos pos : BlockPos.betweenClosed(
                 BlockPos.containing(moved.minX, moved.minY, moved.minZ),
                 BlockPos.containing(moved.maxX, moved.maxY, moved.maxZ))) {
             BlockState state = entity.level().getBlockState(pos);
-            if (state.is(net.minecraft.world.level.block.Blocks.BEDROCK)) {
-                // Bedrock detected in destination — apply vanilla collision for this movement
-                java.util.List<VoxelShape> shapes = new java.util.ArrayList<>();
-                entity.level().getBlockCollisions(entity, moved).forEach(shapes::add);
-                if (!shapes.isEmpty()) {
-                    return Entity.collideBoundingBox(entity, movement, entity.getBoundingBox(), entity.level(), shapes);
+            if (!state.isAir() && blocked.contains(
+                    net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()))) {
+                VoxelShape shape = state.getCollisionShape(entity.level(), pos);
+                if (!shape.isEmpty()) {
+                    shapes.add(shape.move(pos.getX(), pos.getY(), pos.getZ()));
                 }
             }
+        }
+        if (!shapes.isEmpty()) {
+            return Entity.collideBoundingBox(entity, movement, entity.getBoundingBox(), entity.level(), shapes);
         }
         return movement;
     }

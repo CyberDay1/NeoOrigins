@@ -36,7 +36,12 @@ public abstract class PlayerPhaseOverrideMixin {
         if (self.noPhysics) return;              // spectator — already true
 
         if (self instanceof ServerPlayer sp) {
-            if (com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "wall_phase")
+            // Do NOT restore noPhysics while the player overlaps a blacklisted
+            // block (wraith_phase blocked_blocks): WraithPhasePower.tickEffect
+            // deliberately left it false there so vanilla collision pushes the
+            // player out. Restoring unconditionally made the blacklist a no-op.
+            if ((com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "wall_phase")
+                    && !com.cyberday1.neoorigins.power.builtin.WraithPhasePower.isInBlockedBlock(sp))
                 || com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "no_physics")) {
                 self.noPhysics = true;
             }
