@@ -42,6 +42,8 @@ heading_anchors: true
 
 # Aux links (top-right of every page)
 aux_links:
+  "Web Editor":
+    - "https://cyberday1.github.io/NeoOrigins/editor/"
   "View on GitHub":
     - "https://github.com/CyberDay1/NeoOrigins"
   "Releases":

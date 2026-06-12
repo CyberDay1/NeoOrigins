@@ -6,6 +6,8 @@ Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
 📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) — full reference for all 104 power types, 94 conditions, 84 actions, and 49 events.
 
+🛠️ **Web editor**: [cyberday1.github.io/NeoOrigins/editor](https://cyberday1.github.io/NeoOrigins/editor/) — build origin and mob-origin JSON in the browser, no install needed.
+
 ---
 
 ## What's new in 2.0
