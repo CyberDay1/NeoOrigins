@@ -4,18 +4,73 @@
 
 ## v2.2.2
 
+> A big quality pass: a dragon morph system, animated resource bars, eleven languages, inline validation in all three editors, and a long list of compat and bug fixes driven by tester reports. Thanks to everyone filing issues — most of what's below started as one.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Powers & Systems
+
+- **Dragon morph system.** New `entity_model` and `become_dragon` powers: morph the player into another entity's model, including a full dragon form with its own movement.
+- **Animated resource-bar FX.** Resource bars can now play datapack-driven animated presets (fire, pulse, shimmer) instead of a flat fill.
+- **`power_activated` event.** Powers can now react to another power's successful activation: chain follow-up effects, costs, or cooldown displays off the trigger power.
+- **`required_mods` gate.** Origins and powers can declare soft mod dependencies: if the listed mods aren't installed, the entry is skipped cleanly instead of erroring.
+- **`action_on_event` gains `cooldown_ticks`.** After the action fires, the power goes inert for the configured ticks: per-player, survives relog, and never shared between two powers of the same type.
+- **`tame_mob` entity blacklist.** Per-power `entity_blacklist` (entity ids and `#tags`), a global `tame_scare_entity_blacklist` config, and a built-in boss-tier exclusion (Warden, Ender Dragon, Wither) — the same exclusion list now also gates `scare_entities` and `mobs_ignore_player`.
+- **Warden dark-vision is now toggleable and config-disableable.** The Warden's persistent night-vision, tremor-sense, and echolocation powers can be turned on/off in-game (`toggleable`), and each can be force-disabled in the config for servers that don't want them.
+- **Draconic sees through lava.** Lava vision without the fog and fire overlay, and Molten Stride retuned to water-swim pace now that the lava-speed fix actually applies.
+- **The Slime origin actually bounces now.** The lang text always promised it; the power finally delivers (see Bug Fixes).
+- **Ability icons on the HUD.** Active powers can now declare a `cooldown_icon` (an item id, or a datapack texture ending in `.png`): the HUD slot swaps its drain bar for the 16×16 icon under a clock-style radial sweep, with a translucent seconds readout, on by default: opacity and visibility are client-configurable, and packs can opt a power out via `cooldown_countdown`. All 61 built-in active and toggleable abilities ship with fitting vanilla-item icons out of the box. Toggleable powers join the cluster too — full-bright while on, dimmed while off — and by default every ability with a hotkey or toggle is visible (a client option can restrict it to cooldowns and toggles only). Icon slots are labeled with the actual bound hotkey — and the origin picker and O-info screens tag each ability with its key too — abilities can opt into staying visible off cooldown (`always_show_icon`, or force it client-side), hovering an icon shows the power's name and description whenever a cursor is available, and the whole cluster is draggable in the HUD editor. Iconless powers keep the classic bars.
+- **The ability cluster is yours to arrange.** In the HUD editor you can rotate the cluster between horizontal and vertical, split it into individually placeable icons (and merge it back — placements are remembered), and resize any element from 50% to 200%. Everything is saved locally and sticks across sessions.
+
+### Pack Author Features
+
+- **`power_condition` / `power_condition_mode` are now documented, and plain `condition` works as an alias.** Every power supports a whole-power runtime gate. On power types that don't claim `condition` for their own config, a top-level `condition` is accepted as an alias for `power_condition` (active while the condition holds). Previously an unrecognized top-level `condition` was silently ignored — now it either works or warns, never disappears.
+- **Inline validation in all three editors.** The in-game origin creator, the in-game mob-origin creator, and the web editor all validate as you type: required fields, malformed numbers and ranges, bad ids, and raw-JSON errors are flagged on the field with a reason, and saving/exporting is blocked with an explanation while real problems remain.
+- **Web editor: export is gated on valid ids.** Blank or duplicate namespace/path/power ids now block export with a clear list instead of producing a broken datapack.
+- **Web editor: power-type search.** A filter box above the type picker — type a substring, press Enter to select the only match.
+- **New powers default to `neoorigins:attribute_modifier`** in the web editor instead of the first alphabetical type.
+- **Custom resource-bar art is now documented.** The animated-bar artist spec gains a `sprite_location` section covering custom `resource_bar.png` sheets: `bar_index` / `icon_index` and the exact sprite strides, so packs can ship their own bar art instead of recoloring the built-in sheet.
+
+### Configuration
+
+- **The config is now a folder.** The two monolithic config files are split up under `config/neoorigins/`: `gameplay.toml`, `admin.toml`, `power_overrides.toml` (all the per-power tuning sections, now in a file of their own), `client.toml`, plus per-world `serverconfig/neoorigins/content.toml` for the origin and class toggles. Existing configs migrate automatically on first boot: hand-tuned values carry over and the old files are renamed `*.toml.migrated`.
+- **Origin spawn teleports now have a master switch.** Some origins relocate the player when first picked (ocean origins to an ocean biome, for example). Setting `teleports_enabled = false` under the new `[spawn_location]` section in `gameplay.toml` shuts all of these off at once: built-in, datapack and imported origins alike spawn at the world's normal spawn point.
+
 ### Localization
 
 - **NeoOrigins is now accepting community translations.** A first Russian (`ru_ru`) translation has landed, contributed by [@Nienya972](https://github.com/Nienya972) — thank you! To contribute a language, open a pull request (or an issue with the file attached) adding a `<locale>.json` to `src/main/resources/assets/neoorigins/lang/`. Missing keys fall back to English, so partial translations are welcome too.
-- **Machine-translated starting points added for Simplified Chinese (`zh_cn`), Spanish (`es_es`), German (`de_de`), and Brazilian Portuguese (`pt_br`).** These are unreviewed machine translations meant as a head start — native-speaker corrections are especially appreciated.
+- **Ten machine-translated languages.** Simplified Chinese (`zh_cn`), Spanish (`es_es`), German (`de_de`), Brazilian Portuguese (`pt_br`), French (`fr_fr`), Italian (`it_it`), Polish (`pl_pl`), Ukrainian (`uk_ua`), Japanese (`ja_jp`), and Korean (`ko_kr`), all at full key coverage. These are unreviewed machine translations meant as a head start — native-speaker corrections are especially appreciated.
 
 ### Compat Improvements
 
+- **`origins:all_of` / `origins:any_of` are now supported** as aliases of `and` / `or` (the Apoli 2.9+ renames), for conditions, actions, and bare block combinators. Previously these failed closed and disabled every power using them.
+- **Unknown top-level keys survive translation.** The origin normalizer now passes through everything it doesn't explicitly handle (so `tier_powers`, `required_mods`, and `spawn_location` survive), and power translation preserves `required_mods`, `badges`, `loading_priority`, and `power_condition`/`power_condition_mode`. An Apoli-style top-level `condition` hoists to `power_condition` automatically.
+- **`apoli:`-prefixed types canonicalize everywhere** — power types, the `multiple` expander, and the loader, not just action/condition parsing.
+- **`action_over_time` `rising_action` / `falling_action` now fire** on the condition's false→true / true→false edges. These fields validated fine but silently never ran.
+- **Resource wildcards.** `*`-glob resource ids work in resource conditions and in `change_resource` / `set_resource` (with the Apoli operation vocabulary), matching Apoli's behavior for packs that fan out over generated resources.
+- **New compat conditions:** `creative_mode` and `cover` (alias `covered_by_block`).
+- **Multi-modifier Apoli attribute powers split correctly** instead of only applying their first modifier.
 - **Array-form action and condition fields now compile.** Apoli lets a single `entity_action` / `condition` field be written as either one object or an array (an implicit "all-of" / AND). The Route B power compiler assumed an object everywhere, so packs that authored these as arrays hit a cast error and failed to load. Array and single-object forms are now both accepted across the compiled power types.
+- **`command` accepted as an alias of `execute_command`** in action dispatch.
 
-### New / Changed Powers
+### Bug Fixes
 
-- **Warden dark-vision is now toggleable and config-disableable.** The Warden's persistent night-vision, tremor-sense, and echolocation powers can be turned on/off in-game (`toggleable`), and each can be force-disabled in the config for servers that don't want them.
+- **Powers no longer go dead after a server restart (#99).** A login-ordering race wiped hotkey assignments for active powers; toggles and abilities now survive restart + relog.
+- **`modify_lava_speed` works again (#102).** The movement mixin targeted a method that no longer carried lava travel; retargeted so lava swim speed applies.
+- **Slime bounces (#102).** `bounce_on_land` measured server-side velocity, which is always ~0 for client-controlled players, so the bounce never triggered. It now measures actual per-tick fall distance — and the built-in Slime origin gained the bounce power it always claimed to have.
+- **Blacksmith quality survives smithing upgrades (#103).** Durability and bonus attributes are recomputed from the item prototype on upgrade instead of being locked or lost.
+- **`cancel_event` actually cancels.** On `hit_taken`, `land`, `item_use`, and the interact events (`villager_interact`, `entity_use`, `block_use`, `breed`, `tame`, `bonemeal`), the cancellable event is now carried through to the action — previously cancellation was a silent no-op on these.
+- **Wraith phasing respects its block blacklist again.** The client-side check only knew about bedrock (so obsidian never blocked phasing), and a server override switched collision back off right after the blacklist turned it on — both fixed, and the full `blocked_blocks` list now syncs to the client. Also closed a hole where spam-jumping while phased on the surface could latch vanilla flight on.
+- **The gravity well's black hole actually renders now.** The VFX model sampled a fully transparent corner texel of its texture for every one of its 5,781 cubes, so the whole effect drew invisibly — the pull, damage, and sound were real, the sphere just wasn't there. Sampling now lands on the painted area.
+- **`enhanced_vision` works in production builds.** The lightmap hook silently no-op'd outside dev because it matched on a compiled-away variable name; retargeted to stable method calls.
+- **In-game power editing no longer drops hand-authored JSON.** Editing a power in the form view used to rebuild its JSON from modeled fields only, deleting things like `name`, `description`, `hidden`, and any extra keys — edits now patch only the fields they own.
+- **Web editor: fixed a crash selecting `neoorigins:resource`,** powers rendering as condition blocks after a Blocks⇄Form round-trip, condition defaults leaking into exported power JSON, `should_render` flipping itself off in a round-trip, and the Identity "Hidden" checkbox exporting a key that the compat detector misread as an Origins-format pack (it folds into `unchoosable` now).
+
+### Performance
+
+- **Resource sync split into value-only ticks** with full metadata only at chokepoints — much less network traffic for resource-heavy packs.
+- **Power JSON snapshots are no longer deep-copied eagerly on reload.**
+- **Parchment panel texture cut from 28.1 MiB to 7.7 MiB** (lossless compress + downscale).
 
 ---
 
