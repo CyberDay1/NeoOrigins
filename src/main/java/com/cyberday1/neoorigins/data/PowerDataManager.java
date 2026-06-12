@@ -1,7 +1,8 @@
 package com.cyberday1.neoorigins.data;
 
+import com.cyberday1.neoorigins.config.PowerOverridesConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
@@ -214,8 +215,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         recomputeUltiminePowerInUse();
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
-        // Per-namespace breakdown — toggled via config/neoorigins-common.toml
-        if (NeoOriginsConfig.DEBUG_POWER_LOADING.get()) {
+        // Per-namespace breakdown — toggled via config/neoorigins/admin.toml
+        if (AdminConfig.DEBUG_POWER_LOADING.get()) {
             Map<String, Long> byNamespace = loaded.keySet().stream()
                 .collect(Collectors.groupingBy(Identifier::getNamespace, Collectors.counting()));
             byNamespace.entrySet().stream()
@@ -307,7 +308,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
 
     /** Merges config-file overrides into the power JSON before CODEC parsing. */
     private static void applyConfigOverrides(Identifier id, JsonObject json) {
-        Map<String, Object> overrides = NeoOriginsConfig.getPowerOverrides(id.toString());
+        Map<String, Object> overrides = PowerOverridesConfig.getPowerOverrides(id.toString());
         if (overrides == null) return;
 
         for (var entry : overrides.entrySet()) {

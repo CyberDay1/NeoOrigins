@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
@@ -94,7 +94,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
         @SubscribeEvent
         public static void onPlayerTickPost(PlayerTickEvent.Post event) {
             if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-            if (!NeoOriginsConfig.isOceanOriginsDriesOutEnabled()) {
+            if (!GameplayConfig.isOceanOriginsDriesOutEnabled()) {
                 VIRTUAL_AIR.remove(sp.getUUID());
                 return;
             }
@@ -108,7 +108,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             Chosen chosen = new Chosen();
             ActiveOriginService.forEachOfType(sp, BreathOutOfFluidPower.class, cfg -> {
                 if (chosen.drainRate < 0) {
-                    chosen.drainRate = NeoOriginsConfig.oceanOriginsDrainRateTicks();
+                    chosen.drainRate = GameplayConfig.oceanOriginsDrainRateTicks();
                     chosen.fluid = cfg.fluid();
                 }
             });
@@ -176,7 +176,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             // which matches the WaterAnimal.handleAirSupply cadence used by
             // vanilla cod / salmon.
             if (tracked < 0 && sp.tickCount % 20 == 0) {
-                float dmg = NeoOriginsConfig.oceanOriginsDrownDamage();
+                float dmg = GameplayConfig.oceanOriginsDrownDamage();
                 if (dmg > 0.0F) sp.hurt(sp.damageSources().drown(), dmg);
             }
         }

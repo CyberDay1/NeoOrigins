@@ -1,5 +1,7 @@
 package com.cyberday1.neoorigins.compat.action;
 
+import com.cyberday1.neoorigins.config.AdminConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.CompatPolicy;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
@@ -493,22 +495,22 @@ public final class ActionParser {
                 if (!isPlayer) {
                     // Friendly-fire filter applies ONLY to non-player mob targets —
                     // each category is independently configurable via [friendly_fire]
-                    // in neoorigins-common.toml. Defaults: pets/minions/villagers/iron
+                    // in neoorigins/gameplay.toml. Defaults: pets/minions/villagers/iron
                     // golems protected; passive animals (sheep, cow, pig, ...) NOT
                     // protected so active combat AOEs (Hiveling Sting, Inferno Burst,
                     // ...) can actually hit livestock.
                     if (entity == source) continue;
-                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectOwnedPets()
+                    if (GameplayConfig.ffProtectOwnedPets()
                             && entity instanceof net.minecraft.world.entity.TamableAnimal tame
                             && tame.getOwnerReference() != null
                             && tame.getOwnerReference().getUUID().equals(casterUuid)) continue;
-                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectMinions()
+                    if (GameplayConfig.ffProtectMinions()
                             && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(entity, casterUuid)) continue;
-                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectAnimals()
+                    if (GameplayConfig.ffProtectAnimals()
                             && entity instanceof net.minecraft.world.entity.animal.Animal) continue;
-                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectVillagers()
+                    if (GameplayConfig.ffProtectVillagers()
                             && entity instanceof net.minecraft.world.entity.npc.villager.AbstractVillager) continue;
-                    if (com.cyberday1.neoorigins.NeoOriginsConfig.ffProtectIronGolems()
+                    if (GameplayConfig.ffProtectIronGolems()
                             && entity instanceof net.minecraft.world.entity.animal.golem.IronGolem) continue;
                 }
 
@@ -830,7 +832,7 @@ public final class ActionParser {
         final String finalType = type;
         final String finalContextId = contextId;
         return player -> {
-            if (com.cyberday1.neoorigins.NeoOriginsConfig.isDebugCompatActions()) {
+            if (AdminConfig.isDebugCompatActions()) {
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                     "[NeoOrigins Compat Debug] Action '" + finalType + "' in " + finalContextId + " is unsupported (no-op)")
                     .withStyle(net.minecraft.ChatFormatting.YELLOW));

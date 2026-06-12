@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.service;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.event.CombatPowerEvents;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,7 +20,7 @@ import java.util.Set;
  *       {@code tame_mob}'s {@code canUsePortal} gate; the Warden slipped
  *       through (it can use portals), hence the explicit set.</li>
  *   <li><b>Global config blacklist</b> — the {@code tame_scare_entity_blacklist}
- *       list in {@code config/neoorigins-common.toml} ({@code [entity_exclusions]}).
+ *       list in {@code config/neoorigins/admin.toml} ({@code [entity_exclusions]}).
  *       Server/pack operators extend the exclusion to arbitrary mobs across
  *       ALL taming and scare powers at once.</li>
  *   <li><b>Per-power {@code entity_blacklist}</b> — the optional JSON field on
@@ -54,7 +54,7 @@ public final class EntityExclusions {
      * config). Does NOT include the boss-tier set.
      */
     public static boolean isConfigBlacklisted(LivingEntity entity) {
-        for (String idOrTag : NeoOriginsConfig.tameScareEntityBlacklist()) {
+        for (String idOrTag : AdminConfig.tameScareEntityBlacklist()) {
             if (CombatPowerEvents.matchesEntityIdOrTag(entity, idOrTag)) return true;
         }
         return false;

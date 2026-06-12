@@ -1,8 +1,8 @@
 package com.cyberday1.neoorigins.event;
 
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
-import com.cyberday1.neoorigins.NeoOriginsConfig.RandomMode;
+import com.cyberday1.neoorigins.config.GameplayConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.CompatPlayerState;
@@ -136,9 +136,9 @@ public class PlayerLifecycleEvents {
             }
         }
         if (needsOrigin) {
-            if (NeoOriginsConfig.isAutoHuman()) {
+            if (GameplayConfig.isAutoHuman()) {
                 assignAutoHuman(sp);
-            } else if (NeoOriginsConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
+            } else if (GameplayConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
                 assignRandomOrigins(sp);
             } else {
                 NeoOriginsNetwork.openSelectionScreen(sp, false);
@@ -238,7 +238,7 @@ public class PlayerLifecycleEvents {
         // death would block all skill activations until the new tickCount caught
         // up (potentially tens of minutes).
         NeoOriginsNetwork.clearDebounce(sp.getUUID());
-        if (NeoOriginsConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
+        if (GameplayConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
             ActiveOriginService.revokeAllPowers(sp);
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
             data.clear();

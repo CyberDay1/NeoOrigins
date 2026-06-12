@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.screen;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
@@ -85,7 +85,7 @@ public class OriginSelectionPresenter {
         var choices = ClientOriginState.getOrigins();
         for (var co : layer.origins()) {
             if (!co.isAvailable(choices)) continue;
-            if (NeoOriginsConfig.isOriginDisabled(co.origin())) continue;
+            if (ContentTogglesConfig.isOriginDisabled(co.origin())) continue;
             if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) continue;
             var origin = OriginDataManager.INSTANCE.getOrigin(co.origin());
             if (origin != null && origin.unchoosable()) continue;
@@ -239,7 +239,7 @@ public class OriginSelectionPresenter {
             boolean hasAny = layer.origins().stream()
                 .anyMatch(co -> {
                     if (!co.isAvailable(choices)) return false;
-                    if (NeoOriginsConfig.isOriginDisabled(co.origin())) return false;
+                    if (ContentTogglesConfig.isOriginDisabled(co.origin())) return false;
                     var o = OriginDataManager.INSTANCE.getOrigin(co.origin());
                     return o != null && !o.unchoosable();
                 });

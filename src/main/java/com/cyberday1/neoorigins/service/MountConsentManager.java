@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.service;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.compat.FTBTeamsCompat;
 import com.cyberday1.neoorigins.compat.OpenPACCompat;
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Manages mount consent requests between players.
  *
  * <p>When a player with the mount power targets another player, the consent
- * mode (configured in {@link NeoOriginsConfig}) determines whether mounting
+ * mode (configured in {@link com.cyberday1.neoorigins.config.GameplayConfig}) determines whether mounting
  * is immediate or requires approval. Pending requests are tracked in memory
  * and expire after the configured timeout.
  */
@@ -41,7 +41,7 @@ public final class MountConsentManager {
     public static boolean tryMount(ServerPlayer requester, ServerPlayer target, String mountPosition) {
         cleanExpired(requester.level().getServer().getTickCount());
 
-        NeoOriginsConfig.ConsentMode mode = NeoOriginsConfig.mountConsentMode();
+        GameplayConfig.ConsentMode mode = GameplayConfig.mountConsentMode();
 
         switch (mode) {
             case ALWAYS:
@@ -147,7 +147,7 @@ public final class MountConsentManager {
 
     private static void sendRequest(ServerPlayer requester, ServerPlayer target, String mountPosition) {
         long expireTick = requester.level().getServer().getTickCount()
-            + (long) NeoOriginsConfig.mountRequestTimeoutSeconds() * 20L;
+            + (long) GameplayConfig.mountRequestTimeoutSeconds() * 20L;
         PENDING.put(target.getUUID(), new MountRequest(requester.getUUID(), expireTick, mountPosition));
 
         // Notify requester

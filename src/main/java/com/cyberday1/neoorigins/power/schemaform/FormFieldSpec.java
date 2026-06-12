@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.schemaform;
 
+import com.cyberday1.neoorigins.config.PowerOverridesConfig;
 import java.util.List;
 
 /**
@@ -7,7 +8,7 @@ import java.util.List;
  * origin/class creator, derived from {@code power.schema.json} where a
  * structured branch exists and otherwise from {@code Config}-record reflection
  * (see {@link CodecFieldSpecExtractor}), then enriched with
- * {@code NeoOriginsConfig.POWER_OVERRIDES} min/max metadata.
+ * {@code PowerOverridesConfig.POWER_OVERRIDES} min/max metadata.
  *
  * <p>This is the contract the creator's widget layer consumes: each
  * {@code FormFieldSpec} maps to one concrete {@code Screen} widget by its

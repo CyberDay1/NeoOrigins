@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.content;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
@@ -20,18 +20,18 @@ public class OrbOfOriginItem extends Item {
         super(properties);
     }
 
-    /** @deprecated Use {@link NeoOriginsConfig#orbLevelsPerUse()} instead. Kept for binary compat. */
+    /** @deprecated Use {@link com.cyberday1.neoorigins.config.GameplayConfig#orbLevelsPerUse()} instead. Kept for binary compat. */
     @Deprecated
     public static final int LEVELS_PER_USE = 5;
 
     /** Compute the XP level cost for an orb use based on config and prior use count. */
     public static int computeCost(int orbUseCount) {
         // Flat mode: every use (including the first) costs a fixed levels_per_use.
-        if (!NeoOriginsConfig.orbScaleCost()) {
-            return NeoOriginsConfig.orbLevelsPerUse();
+        if (!GameplayConfig.orbScaleCost()) {
+            return GameplayConfig.orbLevelsPerUse();
         }
         // Scaling mode: first use free, then ramps with prior use count.
-        return orbUseCount * NeoOriginsConfig.orbLevelsPerUse();
+        return orbUseCount * GameplayConfig.orbLevelsPerUse();
     }
 
     @Override

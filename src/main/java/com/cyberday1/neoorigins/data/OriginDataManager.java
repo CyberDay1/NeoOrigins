@@ -1,7 +1,8 @@
 package com.cyberday1.neoorigins.data;
 
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.event.OriginsLoadedEvent;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.compat.CompatTranslationLog;
@@ -121,10 +122,10 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
         }
         // NOTE: Config-disabled origins are NOT removed here — they remain registered
         // so that /neoorigins set and other commands can still reference them.
-        // The selection screen filters them out via NeoOriginsConfig.isOriginDisabled().
+        // The selection screen filters them out via ContentTogglesConfig.isOriginDisabled().
 
         // Filter out addon origins with too many broken powers
-        double minRatio = NeoOriginsConfig.COMPAT_MIN_POWER_RATIO.get();
+        double minRatio = AdminConfig.COMPAT_MIN_POWER_RATIO.get();
         if (minRatio > 0.0) {
             int compatFiltered = 0;
             var it = loaded.entrySet().iterator();
@@ -160,7 +161,7 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
         this.version++;
         NeoOrigins.LOGGER.info("Loaded {} origins", loaded.size());
 
-        if (NeoOriginsConfig.DEBUG_POWER_LOADING.get()) {
+        if (AdminConfig.DEBUG_POWER_LOADING.get()) {
             Map<String, List<String>> byNamespace = new HashMap<>();
             for (var entry : loaded.entrySet()) {
                 byNamespace.computeIfAbsent(entry.getKey().getNamespace(), k -> new java.util.ArrayList<>())

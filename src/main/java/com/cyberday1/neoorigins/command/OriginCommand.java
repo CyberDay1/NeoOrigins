@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.command;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -100,7 +100,7 @@ public class OriginCommand {
                         .executes(OriginCommand::executeMountDecline)))
                 .then(Commands.literal("get")
                     // OPs always; other players only when public_origin_get is on.
-                    .requires(REQUIRE_GM.or(src -> NeoOriginsConfig.isPublicOriginGetAllowed()))
+                    .requires(REQUIRE_GM.or(src -> AdminConfig.isPublicOriginGetAllowed()))
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> executeGet(ctx, null))
                         .then(Commands.argument("layer", IdentifierArgument.id())

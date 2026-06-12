@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.evolution;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import net.minecraft.ChatFormatting;
@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
  * chat messages, and evolution tier prompts.
  *
  * <p>Kill counts and tiers are persisted in {@link PlayerOriginData}.
- * Thresholds are configurable via {@link NeoOriginsConfig}.
+ * Thresholds are configurable via {@link com.cyberday1.neoorigins.config.GameplayConfig}.
  */
 public final class EssenceEvolutionManager {
 
@@ -37,7 +37,7 @@ public final class EssenceEvolutionManager {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int kills = data.incrementEssenceKills();
         int currentTier = data.getEvolutionTier();
-        int interval = NeoOriginsConfig.evolutionMessageInterval();
+        int interval = GameplayConfig.evolutionMessageInterval();
 
         // Live progress sync for the Origin Info (O-key) menu. Packet is
         // ~3 bytes payload + frame -- cheap enough to send every kill so the
@@ -56,7 +56,7 @@ public final class EssenceEvolutionManager {
                 return;
             }
 
-            int nextThreshold = NeoOriginsConfig.killsForTier(nextTier);
+            int nextThreshold = GameplayConfig.killsForTier(nextTier);
 
             if (kills < nextThreshold) {
                 // Progress message
@@ -70,7 +70,7 @@ public final class EssenceEvolutionManager {
         // ── Evolution threshold reached ────────────────────────────────
         int nextTier = currentTier + 1;
         if (nextTier <= 3) {
-            int required = NeoOriginsConfig.killsForTier(nextTier);
+            int required = GameplayConfig.killsForTier(nextTier);
             if (kills >= required) {
                 triggerEvolutionPrompt(player, nextTier);
             }
@@ -145,7 +145,7 @@ public final class EssenceEvolutionManager {
             return;
         }
 
-        int required = NeoOriginsConfig.killsForTier(nextTier);
+        int required = GameplayConfig.killsForTier(nextTier);
         if (data.getEssenceKills() < required) {
             player.sendSystemMessage(Component.literal("You don't have enough essence kills yet.")
                 .withStyle(ChatFormatting.RED));

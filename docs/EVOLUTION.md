@@ -20,7 +20,7 @@ When you evolve, your health is restored to full.
 | 2 | Ascended | 2,500 |
 | 3 | Apex | 5,000 |
 
-Thresholds are configurable in `neoorigins-common.toml` under `[evolution]`.
+Thresholds are configurable in `config/neoorigins/gameplay.toml` under `[evolution]`.
 A chat milestone message fires every 100 kills (also configurable).
 
 ## Standard HP Progression

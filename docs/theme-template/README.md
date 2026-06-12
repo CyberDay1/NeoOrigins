@@ -87,7 +87,7 @@ Three options:
 The mod scans every loaded pack for `data/<ns>/neoorigins/active_theme.json`.
 If exactly one pack declares it, that pack wins. If several do, the one
 loaded last wins (and a warning is logged listing the conflict). Players can
-force a specific theme regardless via `config/neoorigins-client.toml`:
+force a specific theme regardless via `config/neoorigins/client.toml`:
 
 ```toml
 [ui]

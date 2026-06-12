@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.command;
 
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 
 import java.util.Locale;
 
@@ -14,7 +14,7 @@ import java.util.Locale;
  * permission level 2. That is a privilege-escalation vector: a pack could ship
  * {@code /op @s}. Every such call site routes through {@link #isBlocked} first
  * and skips execution when the command's effective root is on the
- * {@link NeoOriginsConfig#COMMAND_POWER_BLACKLIST}.
+ * {@link com.cyberday1.neoorigins.config.AdminConfig#COMMAND_POWER_BLACKLIST}.
  */
 public final class CommandPowerGuard {
 
@@ -25,7 +25,7 @@ public final class CommandPowerGuard {
      * command root against the server-config blacklist.
      */
     public static boolean isBlocked(String command) {
-        return NeoOriginsConfig.isCommandPowerBlocked(extractRoot(command));
+        return AdminConfig.isCommandPowerBlocked(extractRoot(command));
     }
 
     /** Emit a standardized warning when a power's command is refused. */
