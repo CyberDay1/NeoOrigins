@@ -193,7 +193,11 @@ public final class GeoJsonModel {
         final float s = 1f / 16f;
         float fx = x * s, fy = y * s, fz = z * s;
         final float unit = s;
-        float u0 = uvX / texW, v0 = uvY / texH, u1 = (uvX + 1) / texW, v1 = (uvY + 1) / texH;
+        // Sample the texel at (uvX+1, uvY+1) rather than (uvX, uvY): the painted
+        // patches in the VFX textures carry fully-transparent corner texels at the
+        // uv origin (color starts one texel in), so sampling the origin texel
+        // rendered every face invisible.
+        float u0 = (uvX + 1) / texW, v0 = (uvY + 1) / texH, u1 = (uvX + 2) / texW, v1 = (uvY + 2) / texH;
 
         // 4 corners of the face in CCW winding when looking along the normal
         float[][] corners;
