@@ -1,5 +1,9 @@
 package com.cyberday1.neoorigins;
 
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.config.PowerOverridesConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.content.ModItems;
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
@@ -61,28 +65,41 @@ public class NeoOrigins {
     public NeoOrigins(IEventBus modEventBus, ModContainer modContainer) {
         LOGGER.info("NeoOrigins initializing...");
 
-        // Two-spec gameplay config split:
-        //  • COMMON (config/neoorigins-common.toml) — server-side tuning/debug
-        //    values consumed during the boot-time datapack reload (power
-        //    overrides, compat ratio, dimension restrictions, debug flags).
-        //    COMMON loads early enough to be read at datapack load; it is not
-        //    synced, which is fine because these are baked into the synced
-        //    power/origin data, not read by the client directly.
-        //  • SERVER (<world>/serverconfig/neoorigins-server.toml) — origin/class
-        //    enable toggles and the resource-bar disable. NeoForge auto-syncs
-        //    SERVER configs to connecting clients, so disabling an origin
-        //    server-side now correctly hides it on remote clients. These values
-        //    are only read after a world is active, so the SERVER load-timing
-        //    restriction (not loaded during boot-time datapack reload) is moot.
-        modContainer.registerConfig(ModConfig.Type.COMMON, NeoOriginsConfig.SPEC);
-        modContainer.registerConfig(ModConfig.Type.SERVER, NeoOriginsConfig.SERVER_SPEC);
+        // 2.2.2 config-folder split (config/neoorigins/):
+        //  • COMMON gameplay.toml / admin.toml / power_overrides.toml —
+        //    server-side tuning/debug values consumed during the boot-time
+        //    datapack reload (power overrides, compat ratio, dimension
+        //    restrictions, debug flags). COMMON loads early enough to be read
+        //    at datapack load; it is not synced, which is fine because these
+        //    are baked into the synced power/origin data, not read by the
+        //    client directly.
+        //  • SERVER neoorigins/content.toml — origin/class enable toggles and
+        //    the resource-bar disable. NeoForge auto-syncs SERVER configs to
+        //    connecting clients, so disabling an origin server-side correctly
+        //    hides it on remote clients. These values are only read after a
+        //    world is active, so the SERVER load-timing restriction (not
+        //    loaded during boot-time datapack reload) is moot.
+        // Legacy monolithic files are migrated BEFORE the specs register so
+        // hand-tuned values (power overrides especially) carry over.
+        com.cyberday1.neoorigins.config.ConfigMigrator.migrateBootTime();
+        modContainer.registerConfig(ModConfig.Type.COMMON,
+            com.cyberday1.neoorigins.config.GameplayConfig.SPEC, "neoorigins/gameplay.toml");
+        modContainer.registerConfig(ModConfig.Type.COMMON,
+            com.cyberday1.neoorigins.config.AdminConfig.SPEC, "neoorigins/admin.toml");
+        modContainer.registerConfig(ModConfig.Type.COMMON,
+            com.cyberday1.neoorigins.config.PowerOverridesConfig.SPEC, "neoorigins/power_overrides.toml");
+        modContainer.registerConfig(ModConfig.Type.SERVER,
+            com.cyberday1.neoorigins.config.ContentTogglesConfig.SPEC, "neoorigins/content.toml");
+        // Per-world serverconfig override migration — must hook the config
+        // Loading event because the world path isn't known at constructor time.
+        modEventBus.addListener(com.cyberday1.neoorigins.config.ConfigMigrator::onModConfigLoading);
 
-        // Client TOML config (config/neoorigins-client.toml) — currently just
-        // the UI theme override. Registered on physical-client side only so the
-        // dedicated server doesn't manage a useless file.
+        // Client TOML config (config/neoorigins/client.toml) — UI theme
+        // override + HUD display options. Registered on physical-client side
+        // only so the dedicated server doesn't manage a useless file.
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modContainer.registerConfig(ModConfig.Type.CLIENT,
-                com.cyberday1.neoorigins.client.NeoOriginsClientConfig.SPEC);
+                com.cyberday1.neoorigins.client.NeoOriginsClientConfig.SPEC, "neoorigins/client.toml");
             modEventBus.addListener(
                 com.cyberday1.neoorigins.client.NeoOriginsClientConfig::onConfigLoadOrReload);
         }

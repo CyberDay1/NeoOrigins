@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.power.schemaform;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.PowerOverridesConfig;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.List;
  * </ol>
  *
  * <p>The result is then enriched: {@link EnumHints} turns String-backed
- * vocabularies into dropdowns, and {@link NeoOriginsConfig} supplies numeric
+ * vocabularies into dropdowns, and {@link PowerOverridesConfig} supplies numeric
  * (min,max) ranges and effective defaults that record reflection / the schema
  * can't see (codec {@code optionalFieldOf} hides them). This makes the schema
  * authoritative where it exists and reflection the safety net everywhere else
@@ -281,11 +281,11 @@ public final class FormModel {
 
         if (kind == FormFieldSpec.Kind.NUMBER || kind == FormFieldSpec.Kind.INTEGER) {
             if (min == null || max == null) {
-                NeoOriginsConfig.NumericRange r = NeoOriginsConfig.getPowerRange(powerId, s.name());
+                PowerOverridesConfig.NumericRange r = PowerOverridesConfig.getPowerRange(powerId, s.name());
                 if (r != null) { min = r.min(); max = r.max(); }
             }
             if (def == null) {
-                Object cd = NeoOriginsConfig.getPowerDefault(powerId, s.name());
+                Object cd = PowerOverridesConfig.getPowerDefault(powerId, s.name());
                 if (cd != null) def = cd;
             }
         }

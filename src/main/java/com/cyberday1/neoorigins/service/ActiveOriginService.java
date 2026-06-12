@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.service;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.api.event.PowerGrantedEvent;
 import com.cyberday1.neoorigins.api.event.PowerRevokedEvent;
 import com.cyberday1.neoorigins.api.origin.Origin;
@@ -77,7 +77,7 @@ public final class ActiveOriginService {
         int dv = data.version();
         int omv = OriginDataManager.INSTANCE.version();
         int pmv = PowerDataManager.INSTANCE.version();
-        int rv = NeoOriginsConfig.restrictionsVersion();
+        int rv = AdminConfig.restrictionsVersion();
 
         UUID uuid = player.getUUID();
         CacheEntry cur = CACHE.get(uuid);
@@ -104,7 +104,7 @@ public final class ActiveOriginService {
                 ? origin.powers()
                 : origin.powersForTier(evolutionTier);
             for (ResourceLocation powerId : effectivePowers) {
-                if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+                if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;
                 if (!seen.add(powerId)) continue;
@@ -117,7 +117,7 @@ public final class ActiveOriginService {
         }
         // Dynamic grants from grant_power action — treated as origin-layer powers.
         for (ResourceLocation powerId : data.getDynamicGrantedPowers()) {
-            if (NeoOriginsConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+            if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
             if (!seen.add(powerId)) continue;
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;

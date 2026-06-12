@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.compat.condition;
 
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.CompatPolicy;
@@ -201,9 +202,9 @@ public final class ConditionParser {
     static {
         java.util.Map<String, java.util.function.BooleanSupplier> m = new java.util.HashMap<>();
         m.put("ocean_origins.fish_diet_required",
-            com.cyberday1.neoorigins.NeoOriginsConfig::isOceanOriginsFishDietRequired);
+            com.cyberday1.neoorigins.config.GameplayConfig::isOceanOriginsFishDietRequired);
         m.put("ocean_origins.dries_out",
-            com.cyberday1.neoorigins.NeoOriginsConfig::isOceanOriginsDriesOutEnabled);
+            com.cyberday1.neoorigins.config.GameplayConfig::isOceanOriginsDriesOutEnabled);
         // Add more keys here as new tunables are exposed to JSON.
         CONFIG_FLAG_LOOKUPS = java.util.Collections.unmodifiableMap(m);
     }
@@ -265,7 +266,7 @@ public final class ConditionParser {
             ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
             if (!head.isEmpty()) {
                 if (head.isDamageableItem()) {
-                    float chance = com.cyberday1.neoorigins.NeoOriginsConfig.sunHelmetDuraDamageChance();
+                    float chance = GameplayConfig.sunHelmetDuraDamageChance();
                     if (chance > 0f && p.getRandom().nextFloat() < chance) {
                         head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
                     }

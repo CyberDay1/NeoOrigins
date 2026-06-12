@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
@@ -74,9 +74,9 @@ public class RestrictArmorPower extends PowerType<RestrictArmorPower.Config> {
     private static boolean matchesConfigArmorClass(ItemStack stack, ResourceLocation tagId) {
         List<String> configItems;
         if (tagId.equals(ResourceLocation.fromNamespaceAndPath("neoorigins", "heavy_armor"))) {
-            configItems = NeoOriginsConfig.getHeavyArmorItems();
+            configItems = GameplayConfig.getHeavyArmorItems();
         } else if (tagId.equals(ResourceLocation.fromNamespaceAndPath("neoorigins", "light_armor"))) {
-            configItems = NeoOriginsConfig.getLightArmorItems();
+            configItems = GameplayConfig.getLightArmorItems();
         } else {
             return false;
         }

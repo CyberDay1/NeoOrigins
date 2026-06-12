@@ -97,7 +97,7 @@ you don't want a resource/language pack — handy for self-contained datapacks.
   class, NeoOrigins auto-assigns `neoorigins:class_nitwit` (a deliberate
   no-effect default) so starting equipment and pending grants still resolve.
 - **Disabling built-ins:** the `[classes]` section in
-  `config/neoorigins-common.toml` toggles each built-in class. Disabled
+  `config/neoorigins/content.toml` toggles each built-in class. Disabled
   classes are removed after data load (still assignable via
   `/neoorigins set`).
 - **No classes at all:** if *every* class is disabled, the class selection

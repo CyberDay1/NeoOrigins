@@ -1016,7 +1016,7 @@ to evolve when they hit a threshold.
 | 2 | Ascended | 2,500 | Light Purple |
 | 3 | Apex | 5,000 | Gold |
 
-Thresholds are configurable in `config/neoorigins-common.toml`:
+Thresholds are configurable in `config/neoorigins/gameplay.toml`:
 
 ```toml
 [evolution]

@@ -412,7 +412,7 @@ The server reads every `active_theme.json` on world load + each `/reload`
 and broadcasts the selection to every client at login. When multiple packs
 each declare an `active_theme.json`, the one loaded **last** wins and a
 warning is logged listing every contributor. A per-client override lives
-at `config/neoorigins-client.toml` (`[ui] theme_override = "<ns>:<id>"`)
+at `config/neoorigins/client.toml` (`[ui] theme_override = "<ns>:<id>"`)
 and beats the datapack file when set to a loaded id.
 
 For the theme JSON schema (`assets/<ns>/ui_themes/<id>.json`) and the

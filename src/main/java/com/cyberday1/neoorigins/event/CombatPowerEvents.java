@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.event;
 
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.compat.EffectImmunityPower;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
@@ -443,7 +443,7 @@ public class CombatPowerEvents {
 
         // ── Essence Evolution: track mob kills ─────────────────────────
         if (!(killed instanceof net.minecraft.world.entity.player.Player)
-                && NeoOriginsConfig.isEvolutionEnabled()) {
+                && GameplayConfig.isEvolutionEnabled()) {
             com.cyberday1.neoorigins.evolution.EssenceEvolutionManager.onMobKill(sp);
         }
     }

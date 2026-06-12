@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.command;
 
-import com.cyberday1.neoorigins.NeoOriginsConfig;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -102,7 +102,7 @@ public class OriginCommand {
             // ── Admin commands (permission 2) ──────────────────────────
             .then(Commands.literal("get")
                 // OPs always; other players only when public_origin_get is on.
-                .requires(cs -> cs.hasPermission(2) || NeoOriginsConfig.isPublicOriginGetAllowed())
+                .requires(cs -> cs.hasPermission(2) || AdminConfig.isPublicOriginGetAllowed())
                 .then(Commands.argument("player", EntityArgument.player())
                     .executes(ctx -> executeGet(ctx, null))
                     .then(Commands.argument("layer", ResourceLocationArgument.id())
@@ -344,7 +344,7 @@ public class OriginCommand {
         // Admin override: /set takes over the claim in a unique layer —
         // release whatever this player previously held there, then claim the
         // newly-assigned origin for them (overwriting any prior holder).
-        if (NeoOriginsConfig.isUniqueLayer(layerId)) {
+        if (AdminConfig.isUniqueLayer(layerId)) {
             var claims = com.cyberday1.neoorigins.data.OriginClaimsData.get(ctx.getSource().getServer());
             if (oldOrigin != null && !oldOrigin.equals(originId)) {
                 claims.releaseIfOwner(layerId, oldOrigin, player.getUUID());
@@ -379,7 +379,7 @@ public class OriginCommand {
         }
         var claims = com.cyberday1.neoorigins.data.OriginClaimsData.get(ctx.getSource().getServer());
         releasing.forEach((l, o) -> {
-            if (o != null && NeoOriginsConfig.isUniqueLayer(l)) claims.releaseIfOwner(l, o, player.getUUID());
+            if (o != null && AdminConfig.isUniqueLayer(l)) claims.releaseIfOwner(l, o, player.getUUID());
         });
         // revokeAllPowers cleared the global-power ledger; re-grant any matching
         // global power sets so a reset doesn't strip apoli:global powers.

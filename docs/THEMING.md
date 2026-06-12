@@ -42,7 +42,7 @@ Two layers, applied in order — the first that resolves to a *loaded* theme
 wins:
 
 1. **Player override** —
-   `config/neoorigins-client.toml`:
+   `config/neoorigins/client.toml`:
    ```toml
    [ui]
    theme_override = "examplepack:dark_woods"

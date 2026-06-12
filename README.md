@@ -40,7 +40,7 @@ Highlights this release:
 - **Data-driven** — all origins and powers defined in JSON; fully overridable via datapacks
 - **Advancement-based origin upgrades** — any origin can declare upgrade paths in its JSON; when the player earns the advancement, their origin swaps automatically (see [examples/](examples/))
 - **Epic Fight compatibility** — sized origins maintain correct scale when Epic Fight takes over rendering in combat mode
-- **Per-origin config toggles** — disable any built-in origin or class in `neoorigins-common.toml`
+- **Per-origin config toggles** — disable any built-in origin or class in `config/neoorigins/content.toml`
 - **Dimension restrictions** — disable specific powers in specific dimensions via config
 
 ---
@@ -182,10 +182,19 @@ Pack authors can add their own classes — see [docs/CLASSES.md](docs/CLASSES.md
 
 ## Configuration
 
-Edit `config/neoorigins-common.toml`:
+Configs live in the `config/neoorigins/` folder (since 2.2.2 — legacy
+`neoorigins-common.toml` / `neoorigins-server.toml` / `neoorigins-client.toml`
+files are migrated automatically on first launch, values intact):
+
+- `neoorigins/gameplay.toml` — orb of origins, auto-human, random assignment, evolution, spawn location teleports, ocean origins, sun damage, mount consent, friendly fire, armor classes
+- `neoorigins/admin.toml` — command blacklist, command access, dimension restrictions, entity exclusions, compat filtering, debug flags
+- `neoorigins/power_overrides.toml` — per-power parameter overrides
+- `neoorigins/content.toml` — origin/class enable toggles + resource-bar disable (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
+- `neoorigins/client.toml` — client-only display options (theme override, HUD, hotkey pool)
+- `neoorigins/hud.json` — saved HUD bar/cluster positions
 
 ```toml
-# Disable specific origins or classes
+# config/neoorigins/content.toml — disable specific origins or classes
 [origins]
 human = true
 merling = true
@@ -195,14 +204,14 @@ merling = true
 class_warrior = true
 # ... set any to false to remove from selection
 
-# Random origin assignment
+# config/neoorigins/gameplay.toml — random origin assignment
 [random_assignment]
 # DISABLED / FIRST_JOIN / EVERY_DEATH
 mode = "DISABLED"
 # Number of rerolls allowed (0 = none, -1 = unlimited)
 rerolls = 0
 
-# Per-power dimension restrictions
+# config/neoorigins/admin.toml — per-power dimension restrictions
 [dimension_restrictions]
 rules = [
     # "neoorigins:elytrian_flight = minecraft:the_nether, minecraft:the_end"

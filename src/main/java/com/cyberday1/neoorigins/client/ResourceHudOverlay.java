@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.client;
 
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -49,7 +50,7 @@ public class ResourceHudOverlay {
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
-        if (com.cyberday1.neoorigins.NeoOriginsConfig.isResourceBarsDisabled()) return;
+        if (ContentTogglesConfig.isResourceBarsDisabled()) return;
         var resources = ClientResourceState.getResources();
         if (resources.isEmpty()) return;
 

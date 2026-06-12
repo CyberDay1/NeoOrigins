@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.service;
 
+import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.NeoOriginsConfig;
 import com.cyberday1.neoorigins.api.condition.LocationCondition;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
@@ -40,7 +40,7 @@ public final class OriginSpawnService {
     public static void teleportToOriginSpawn(ServerPlayer player, ResourceLocation originId) {
         Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
         if (origin == null || origin.spawnLocation().isEmpty()) return;
-        if (!NeoOriginsConfig.shouldApplySpawnLocation(originId)) return;
+        if (!GameplayConfig.shouldApplySpawnLocation(originId)) return;
         teleportTo(player, origin.spawnLocation().get(), originId);
     }
 
@@ -56,7 +56,7 @@ public final class OriginSpawnService {
             if (originId == null) continue;
             Origin origin = OriginDataManager.INSTANCE.getOrigin(originId);
             if (origin == null || origin.spawnLocation().isEmpty()) continue;
-            if (!NeoOriginsConfig.shouldApplySpawnLocation(originId)) continue;
+            if (!GameplayConfig.shouldApplySpawnLocation(originId)) continue;
             teleportTo(player, origin.spawnLocation().get(), originId);
             return true;
         }

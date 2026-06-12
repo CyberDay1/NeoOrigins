@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
  *
  * <ol>
  *   <li><b>Player override</b> — {@code ui.theme_override} in
- *       {@code config/neoorigins-client.toml}. Lets solo players force a
+ *       {@code config/neoorigins/client.toml}. Lets solo players force a
  *       specific theme regardless of what the server declares.</li>
  *   <li><b>Server / datapack-declared theme</b> — last value received via
  *       {@code SyncActiveThemePayload} (sourced from
@@ -30,7 +30,7 @@ public final class ActiveThemeRegistry {
     private ActiveThemeRegistry() {}
 
     private static volatile ResourceLocation serverDeclared; // from SyncActiveThemePayload
-    private static volatile ResourceLocation clientOverride; // from neoorigins-client.toml
+    private static volatile ResourceLocation clientOverride; // from neoorigins/client.toml
 
     /** Server told us which theme its datapack(s) selected (may be null = no declaration). */
     public static void setServerDeclared(ResourceLocation id) {
