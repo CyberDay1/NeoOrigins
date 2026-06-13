@@ -2,8 +2,13 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.service.MinionTracker;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -42,6 +47,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
     public record Config(
         String mobType,
         int maxCount,
+        int quantity,
         int cooldownTicks,
         int hungerCost,
         int despawnTicks,
@@ -57,24 +63,65 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         boolean cooldownCountdown,
         boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.fieldOf("mob_type").forGetter(Config::mobType),
-            Codec.INT.optionalFieldOf("max_count", 3).forGetter(Config::maxCount),
-            Codec.INT.optionalFieldOf("cooldown_ticks", 200).forGetter(Config::cooldownTicks),
-            Codec.INT.optionalFieldOf("hunger_cost", 4).forGetter(Config::hungerCost),
-            Codec.INT.optionalFieldOf("despawn_ticks", 18000).forGetter(Config::despawnTicks),
-            Codec.FLOAT.optionalFieldOf("death_damage", 1.0f).forGetter(Config::deathDamage),
-            Codec.STRING.optionalFieldOf("head").forGetter(Config::head),
-            Codec.STRING.optionalFieldOf("chest").forGetter(Config::chest),
-            Codec.STRING.optionalFieldOf("legs").forGetter(Config::legs),
-            Codec.STRING.optionalFieldOf("feet").forGetter(Config::feet),
-            Codec.STRING.optionalFieldOf("mainhand").forGetter(Config::mainhand),
-            Codec.STRING.optionalFieldOf("offhand").forGetter(Config::offhand),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
-            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
-            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
-            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
-        ).apply(inst, Config::new));
+        // Manual JSON codec: adding `quantity` (v2.2.3, tester report — pack
+        // authors expected the spawn_entity action's quantity field here too)
+        // pushed the record past RecordCodecBuilder's 16-field group limit.
+        // Decode mirrors the parser-field rule (json.has/get names ARE the
+        // schema surface); encode is a no-op like ActiveAbilityPower — sync
+        // payloads carry only type id + display.
+        public static final Codec<Config> CODEC = new Codec<>() {
+            @Override
+            public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
+                JsonElement json;
+                try {
+                    json = ops.convertTo(JsonOps.INSTANCE, input);
+                } catch (Exception e) {
+                    return DataResult.error(() -> "summon_minion: could not convert to JSON: " + e.getMessage());
+                }
+                if (!json.isJsonObject()) {
+                    return DataResult.error(() -> "summon_minion: expected JSON object");
+                }
+                JsonObject obj = json.getAsJsonObject();
+                if (!obj.has("mob_type")) {
+                    return DataResult.error(() -> "summon_minion: missing required field 'mob_type'");
+                }
+                String mobType = obj.get("mob_type").getAsString();
+                int maxCount = intOr(obj, "max_count", 3);
+                int quantity = Math.max(1, intOr(obj, "quantity", 1));
+                int cooldown = intOr(obj, "cooldown_ticks", 200);
+                int hunger = intOr(obj, "hunger_cost", 4);
+                int despawn = intOr(obj, "despawn_ticks", 18000);
+                float deathDamage = obj.has("death_damage") ? obj.get("death_damage").getAsFloat() : 1.0f;
+                String type = stringOr(obj, "type", "");
+                String cooldownIcon = stringOr(obj, "cooldown_icon", "");
+                boolean cooldownCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
+                boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
+                return DataResult.success(Pair.of(new Config(
+                    mobType, maxCount, quantity, cooldown, hunger, despawn, deathDamage,
+                    optString(obj, "head"), optString(obj, "chest"), optString(obj, "legs"),
+                    optString(obj, "feet"), optString(obj, "mainhand"), optString(obj, "offhand"),
+                    type, cooldownIcon, cooldownCountdown, alwaysShowIcon), ops.empty()));
+            }
+
+            @Override
+            public <T> DataResult<T> encode(Config input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(prefix);
+            }
+        };
+
+        private static int intOr(JsonObject obj, String field, int def) {
+            return obj.has(field) ? obj.get(field).getAsInt() : def;
+        }
+
+        private static String stringOr(JsonObject obj, String field, String def) {
+            return obj.has(field) ? obj.get(field).getAsString() : def;
+        }
+
+        private static Optional<String> optString(JsonObject obj, String field) {
+            return obj.has(field) && obj.get(field).isJsonPrimitive()
+                ? Optional.of(obj.get(field).getAsString())
+                : Optional.empty();
+        }
     }
 
     @Override public Codec<Config> codec() { return Config.CODEC; }
@@ -106,37 +153,59 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         if (entityTypeOpt.isEmpty()) return false;
         EntityType<?> entityType = entityTypeOpt.get();
 
-        // Spawn the minion near the player
+        // Spawn the minions near the player. `quantity` (v2.2.3) asks for N per
+        // activation but never exceeds the max_count cap — toSpawn is the
+        // remaining headroom, so a quantity-3 power with 2 already alive and
+        // max_count 4 summons 2. Hunger is charged once per activation.
         ServerLevel level = (ServerLevel) player.level();
         Vec3 look = player.getLookAngle();
         Vec3 spawnPos = player.position().add(look.x * 2, 0, look.z * 2);
+        int toSpawn = Math.min(config.quantity(), config.maxCount() - alive);
 
-        Entity entity = entityType.create(level);
-        if (!(entity instanceof LivingEntity living)) return false;
+        int spawned = 0;
+        for (int i = 0; i < toSpawn; i++) {
+            Entity entity = entityType.create(level);
+            if (!(entity instanceof LivingEntity living)) break;
 
-        living.setPos(spawnPos.x, spawnPos.y, spawnPos.z);
-
-        if (living instanceof Mob mob) {
-            mob.setPersistenceRequired();
-            rewriteAiForSummoner(mob, player);
-
-            // Apply configured equipment (or default helmet for sun protection)
-            equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
-            equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
-            equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
-            equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
-            equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
-            equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
-
-            // Zero all drop chances — summoned mobs never drop loot
-            for (EquipmentSlot slot : EquipmentSlot.values()) {
-                mob.setDropChance(slot, 0.0f);
+            // ±0.5-block horizontal jitter so multiple minions don't stack on
+            // the exact same point (matches the spawn_entity action behaviour).
+            double dx = 0.0, dz = 0.0;
+            if (toSpawn > 1) {
+                var rng = level.getRandom();
+                dx = rng.nextDouble() - 0.5;
+                dz = rng.nextDouble() - 0.5;
             }
+            living.setPos(spawnPos.x + dx, spawnPos.y, spawnPos.z + dz);
+
+            if (living instanceof Mob mob) {
+                mob.setPersistenceRequired();
+                rewriteAiForSummoner(mob, player);
+
+                // Apply configured equipment (or default helmet for sun protection)
+                equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
+                equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
+                equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
+                equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
+                equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
+                equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
+
+                // Zero all drop chances — summoned mobs never drop loot
+                for (EquipmentSlot slot : EquipmentSlot.values()) {
+                    mob.setDropChance(slot, 0.0f);
+                }
+            }
+
+            level.addFreshEntity(living);
+
+            // Track the minion
+            MinionTracker.track(player, living, config.mobType(),
+                player.tickCount, config.despawnTicks(), config.deathDamage());
+            spawned++;
         }
 
-        level.addFreshEntity(living);
+        if (spawned == 0) return false;
 
-        // Sound + particle effects at spawn location
+        // Sound + particle effects at spawn location (once per activation)
         level.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z,
             SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 0.8f);
         level.sendParticles(ParticleTypes.SOUL,
@@ -146,12 +215,8 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             spawnPos.x, spawnPos.y + 0.2, spawnPos.z,
             10, 0.3, 0.3, 0.3, 0.01);
 
-        // Consume hunger
+        // Consume hunger (once per activation, regardless of count spawned)
         player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - config.hungerCost());
-
-        // Track the minion
-        MinionTracker.track(player, living, config.mobType(),
-            player.tickCount, config.despawnTicks(), config.deathDamage());
 
         return true;
     }

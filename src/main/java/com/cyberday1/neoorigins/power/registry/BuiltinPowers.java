@@ -532,6 +532,9 @@ public final class BuiltinPowers {
                 .pattern(RESOURCE_LOCATION_PATTERN),
             new FieldSpec("max_count", Kind.INTEGER, false)
                 .def(3).doc("Max minions of this type alive at once before summoning is blocked."),
+            new FieldSpec("quantity", Kind.INTEGER, false)
+                .def(1).range(1.0, null)
+                .doc("Minions summoned per activation (capped by remaining max_count headroom)."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(200).doc("Ticks before the summon ability can be reused (200 = 10s)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)

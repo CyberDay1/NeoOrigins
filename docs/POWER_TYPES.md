@@ -2189,6 +2189,7 @@ Active power that summons a mob near the player. Summoned mobs are tracked with 
 |---|---|---|---|---|
 | `mob_type` | Identifier | yes | — | Entity type to summon, e.g. `minecraft:zombie` |
 | `max_count` | int | no | `3` | Maximum concurrent minions per player per mob_type |
+| `quantity` | int | no | `1` | Minions summoned per activation, capped by remaining `max_count` headroom |
 | `cooldown_ticks` | int | no | `200` | Cooldown after each summon |
 | `hunger_cost` | int | no | `4` | Food points consumed per summon |
 | `despawn_ticks` | int | no | `18000` | Lifespan after spawn (15 min default) |
