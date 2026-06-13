@@ -109,6 +109,7 @@
   "screen.neoorigins.debug_powers": "激活的能力（调试）",
   "gui.neoorigins.info.no_origin": "尚未选择起源。",
   "gui.neoorigins.info.close": "关闭",
+  "gui.neoorigins.info.your_origin": "你的起源",
   "gui.neoorigins.info.debug": "调试",
   "gui.neoorigins.info.edit": "编辑",
   "gui.neoorigins.info.evolution_path": "进化路线",

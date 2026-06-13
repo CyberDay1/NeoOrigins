@@ -109,6 +109,7 @@
   "screen.neoorigins.debug_powers": "Aktive Kräfte (Debug)",
   "gui.neoorigins.info.no_origin": "Noch kein Ursprung gewählt.",
   "gui.neoorigins.info.close": "Schließen",
+  "gui.neoorigins.info.your_origin": "Dein Ursprung",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Bearbeiten",
   "gui.neoorigins.info.evolution_path": "Entwicklungspfad",

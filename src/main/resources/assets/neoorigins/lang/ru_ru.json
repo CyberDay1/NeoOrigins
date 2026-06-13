@@ -36,6 +36,7 @@
   "screen.neoorigins.debug_powers": "Активные способности (отладка)",
   "gui.neoorigins.info.no_origin": "Происхождение ещё не выбрано.",
   "gui.neoorigins.info.close": "Закрыть",
+  "gui.neoorigins.info.your_origin": "Ваше происхождение",
   "gui.neoorigins.info.debug": "Отладка",
   "gui.neoorigins.info.edit": "Редактировать",
   "screen.neoorigins.origin_editor": "Редактор происхождений",

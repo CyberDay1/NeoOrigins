@@ -41,12 +41,43 @@ public class OriginInfoScreen extends Screen {
     private static final int TAB_H = 20;
     private static final int TAB_GAP = 4;
 
-    private record TabEntry(ResourceLocation layerId, String layerName, OriginDetailViewModel viewModel) {}
+    /**
+     * One tab per origin layer. Holds the full set of browseable origins in
+     * that layer (not just the player's own) so the info screen can page
+     * through every origin, defaulting to the player's current pick.
+     */
+    private static final class TabEntry {
+        final ResourceLocation layerId;
+        final String layerName;
+        final boolean classLayer;
+        final List<ResourceLocation> originIds;
+        final int ownIndex;
+        int browseIndex;
+        TabEntry(ResourceLocation layerId, String layerName, boolean classLayer,
+                 List<ResourceLocation> originIds, int ownIndex) {
+            this.layerId = layerId;
+            this.layerName = layerName;
+            this.classLayer = classLayer;
+            this.originIds = originIds;
+            this.ownIndex = ownIndex;
+            this.browseIndex = ownIndex;
+        }
+        String layerName()                 { return layerName; }
+        ResourceLocation currentOriginId() { return originIds.get(browseIndex); }
+        boolean viewingOwn()               { return browseIndex == ownIndex; }
+        int total()                        { return originIds.size(); }
+    }
 
     private static final ResourceLocation CLASS_LAYER_ID =
         ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
 
+    private static final int NAV_W = 14;
+
     private final List<TabEntry> tabs = new ArrayList<>();
+    /** Browse position per layer, persisted across init()/resize. */
+    private final Map<ResourceLocation, Integer> browseMemory = new java.util.HashMap<>();
+    /** Detail view for the currently-browsed origin (recomputed on navigation). */
+    private OriginDetailViewModel currentVm;
     private int currentTab = 0;
 
     private int panelX, panelW, panelBottom;
@@ -54,6 +85,8 @@ public class OriginInfoScreen extends Screen {
 
     private List<FormattedCharSequence> descLines = List.of();
     private List<List<FormattedCharSequence>> wrappedPowerDescs = List.of();
+    /** True when the browsed origin is the player's own pick for the current layer. */
+    private boolean viewingOwn = true;
     private int detailScrollOffset = 0;
     private int detailContentH = 0;
     // Scrollbar thumb drag state
@@ -78,7 +111,14 @@ public class OriginInfoScreen extends Screen {
             if (origin == null) continue;
             String layerName = getLayerDisplayName(layer);
             boolean classLayer = CLASS_LAYER_ID.equals(layer.id());
-            tabs.add(new TabEntry(layer.id(), layerName, OriginDetailViewModel.compute(originId, classLayer)));
+            List<ResourceLocation> ids = orderedOriginIds(layer, originId);
+            int ownIndex = Math.max(0, ids.indexOf(originId));
+            TabEntry tab = new TabEntry(layer.id(), layerName, classLayer, ids, ownIndex);
+            // Restore any remembered browse position (survives resize), clamped
+            // to the rebuilt list in case the available set changed.
+            Integer remembered = browseMemory.get(layer.id());
+            if (remembered != null) tab.browseIndex = Mth.clamp(remembered, 0, ids.size() - 1);
+            tabs.add(tab);
         }
 
         panelW = Math.min(width - 40, 400);
@@ -106,6 +146,54 @@ public class OriginInfoScreen extends Screen {
         if (!resolved.equals(key)) return resolved;
         String path = layerId.getPath();
         return Character.toUpperCase(path.charAt(0)) + path.substring(1);
+    }
+
+    /**
+     * The ordered set of origins the player may browse in a layer: every
+     * available, content-enabled, choosable origin, neoorigins first then by
+     * namespace, alphabetical within. The player's own current origin is always
+     * forced in (even if it became unchoosable) so the default view is valid.
+     */
+    private List<ResourceLocation> orderedOriginIds(
+            com.cyberday1.neoorigins.api.origin.OriginLayer layer, ResourceLocation ownId) {
+        Map<ResourceLocation, ResourceLocation> choices = ClientOriginState.getOrigins();
+        List<ResourceLocation> ids = new ArrayList<>();
+        for (var co : layer.origins()) {
+            if (!co.isAvailable(choices)) continue;
+            if (com.cyberday1.neoorigins.config.ContentTogglesConfig.isOriginDisabled(co.origin())) continue;
+            if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) continue;
+            Origin o = OriginDataManager.INSTANCE.getOrigin(co.origin());
+            if (o != null && o.unchoosable()) continue;
+            if (!ids.contains(co.origin())) ids.add(co.origin());
+        }
+        ids.sort((a, b) -> {
+            boolean na = "neoorigins".equals(a.getNamespace());
+            boolean nb = "neoorigins".equals(b.getNamespace());
+            if (na != nb) return na ? -1 : 1;
+            int ns = a.getNamespace().compareToIgnoreCase(b.getNamespace());
+            if (ns != 0) return ns;
+            return originName(a).compareToIgnoreCase(originName(b));
+        });
+        if (ownId != null && !ids.contains(ownId)) ids.add(0, ownId);
+        return ids;
+    }
+
+    private static String originName(ResourceLocation id) {
+        Origin o = OriginDataManager.INSTANCE.getOrigin(id);
+        return o != null ? o.name().getString() : id.getPath();
+    }
+
+    /** Step the browsed origin within the current layer (wraps around). */
+    private void browse(int delta) {
+        if (tabs.isEmpty()) return;
+        TabEntry tab = tabs.get(currentTab);
+        int n = tab.total();
+        if (n <= 1) return;
+        tab.browseIndex = Math.floorMod(tab.browseIndex + delta, n);
+        browseMemory.put(tab.layerId, tab.browseIndex);
+        detailScrollOffset = 0;
+        updateDetail();
+        refreshWidgets();
     }
 
     private void refreshWidgets() {
@@ -138,6 +226,17 @@ public class OriginInfoScreen extends Screen {
             tabX += btnW + TAB_GAP;
         }
 
+        // Prev/next origin browse arrows — only when the current layer has more
+        // than one browseable origin. They flank the centered origin icon at the
+        // top of the parchment panel.
+        if (currentTab < tabs.size() && tabs.get(currentTab).total() > 1) {
+            int navY = PANEL_TOP + DETAIL_PAD + 8;
+            addRenderableWidget(Button.builder(Component.literal("<"), b -> browse(-1))
+                .bounds(panelX + PANEL_INSET, navY, NAV_W, TAB_H).build());
+            addRenderableWidget(Button.builder(Component.literal(">"), b -> browse(1))
+                .bounds(panelX + panelW - PANEL_INSET - NAV_W, navY, NAV_W, TAB_H).build());
+        }
+
         addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.close"), b -> onClose())
             .bounds(width / 2 - 40, height - 24, 80, 20).build());
 
@@ -162,13 +261,17 @@ public class OriginInfoScreen extends Screen {
 
     private void updateDetail() {
         if (currentTab >= tabs.size()) {
+            currentVm = null;
+            viewingOwn = true;
             descLines = List.of();
             wrappedPowerDescs = List.of();
             detailContentH = 0;
             return;
         }
         TabEntry tab = tabs.get(currentTab);
-        OriginDetailViewModel vm = tab.viewModel();
+        viewingOwn = tab.viewingOwn();
+        currentVm = OriginDetailViewModel.compute(tab.currentOriginId(), tab.classLayer);
+        OriginDetailViewModel vm = currentVm;
         if (vm.origin() != null) {
             // Wrap with themed() BEFORE Font.split — the split bakes Style into
             // the FormattedCharSequence so the font selector has to be on the
@@ -213,9 +316,12 @@ public class OriginInfoScreen extends Screen {
     private int evolutionSectionHeight(OriginDetailViewModel vm) {
         if (vm.origin() == null || vm.origin().tierPowers().isEmpty()) return 0;
         int h = 8;                  // gap before section
+        // Live progress lines only make sense for the player's OWN origin —
+        // when browsing another origin we show just the static evolution path.
+        boolean evoOn = ClientEvolutionConfig.isEnabled() && viewingOwn;
         // Optional "Next Evolution: X / Y" (or "Apex reached") summary line above the header.
         // Hidden entirely when evolution is disabled server-side.
-        if (ClientEvolutionConfig.isEnabled()) {
+        if (evoOn) {
             h += LINE_H;
         }
         h += 9 + 4;                 // "Evolution Path" header
@@ -223,7 +329,7 @@ public class OriginInfoScreen extends Screen {
             h += 11;                // tier subheader ("Evolved" / "Ascended" / "Apex")
             // Per-tier progress annotation ("23 / 1000 kills" / "Achieved").
             // Only emitted when evolution is enabled.
-            if (ClientEvolutionConfig.isEnabled()) {
+            if (evoOn) {
                 h += LINE_H;
             }
             h += overlay.add().size() * LINE_H;
@@ -292,9 +398,8 @@ public class OriginInfoScreen extends Screen {
         // Parchment panel.
         PanelRenderer.drawPanel(g, theme, panelX - 1, PANEL_TOP - 1, panelW + 2, panelBottom - PANEL_TOP + 2);
 
-        TabEntry tab = tabs.get(currentTab);
-        OriginDetailViewModel vm = tab.viewModel();
-        if (vm.origin() == null) {
+        OriginDetailViewModel vm = currentVm;
+        if (vm == null || vm.origin() == null) {
             super.render(g, mouseX, mouseY, partial);
             return;
         }
@@ -310,6 +415,19 @@ public class OriginInfoScreen extends Screen {
         g.drawString(font, nameC, cx - font.width(nameC) / 2, y, theme.nameColor(), false);
         y += 9 + 4;
         drawImpactRow(g, cx, y, origin.impact());
+
+        // Browse position + ownership marker, shown in the header gutter just
+        // above the scroll area when the layer has more than one origin.
+        TabEntry curTab = tabs.get(currentTab);
+        if (curTab.total() > 1) {
+            Component posC = viewingOwn
+                ? Component.translatable("gui.neoorigins.info.your_origin")
+                    .append(Component.literal("  " + (curTab.browseIndex + 1) + " / " + curTab.total()))
+                : Component.literal((curTab.browseIndex + 1) + " / " + curTab.total());
+            var themedPos = themed(posC);
+            g.drawString(font, themedPos, cx - font.width(themedPos) / 2,
+                PANEL_TOP + HEADER_H - 9, viewingOwn ? theme.accentColor() : theme.mutedColor(), false);
+        }
 
         int scrollTop = PANEL_TOP + HEADER_H;
         // Pull the bottom in so the rail clears the parchment burnt-edge curl.
@@ -341,9 +459,10 @@ public class OriginInfoScreen extends Screen {
         if (!origin.tierPowers().isEmpty()) {
             sy += 8;
             // Live progress summary line. Hidden entirely when the server
-            // has evolution disabled -- the static Evolution Path section
-            // still renders so players can see what *would* unlock.
-            boolean evoOn = ClientEvolutionConfig.isEnabled();
+            // has evolution disabled, or when browsing another origin (the
+            // kill counts are the player's own) -- the static Evolution Path
+            // section still renders so players can see what *would* unlock.
+            boolean evoOn = ClientEvolutionConfig.isEnabled() && viewingOwn;
             if (evoOn) {
                 int curTier = ClientEvolutionConfig.getCurrentTier();
                 int curKills = ClientEvolutionConfig.getCurrentKills();
@@ -467,6 +586,14 @@ public class OriginInfoScreen extends Screen {
                 case HIGH -> Component.translatable("origins.gui.impact.high");
             });
         g.drawString(font, themed(label), cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Left/right arrows page through the origins in the current layer.
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT)  { browse(-1); return true; }
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) { browse(1);  return true; }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override

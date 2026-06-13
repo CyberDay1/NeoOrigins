@@ -109,6 +109,7 @@
   "screen.neoorigins.debug_powers": "Pouvoirs actifs (débogage)",
   "gui.neoorigins.info.no_origin": "Aucune origine sélectionnée pour l'instant.",
   "gui.neoorigins.info.close": "Fermer",
+  "gui.neoorigins.info.your_origin": "Votre origine",
   "gui.neoorigins.info.debug": "Débogage",
   "gui.neoorigins.info.edit": "Modifier",
   "gui.neoorigins.info.evolution_path": "Voie d'évolution",

@@ -109,6 +109,7 @@
   "screen.neoorigins.debug_powers": "有効な能力 (デバッグ)",
   "gui.neoorigins.info.no_origin": "オリジンはまだ選択されていません。",
   "gui.neoorigins.info.close": "閉じる",
+  "gui.neoorigins.info.your_origin": "あなたのオリジン",
   "gui.neoorigins.info.debug": "デバッグ",
   "gui.neoorigins.info.edit": "編集",
   "gui.neoorigins.info.evolution_path": "進化の道",
