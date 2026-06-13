@@ -24,6 +24,7 @@
     "EntityMountPositionMixin",
     "EntityMountEndMixin",
     "AbstractVillagerTradePriceMixin",
+    "AnvilMenuCostMixin",
     "SmithingMenuTakeMixin",
     "ServerAbilitiesPacketDebugMixin",
     "recipe.CraftingMenuOriginContextMixin"

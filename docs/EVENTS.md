@@ -689,12 +689,18 @@ item's existing `saturation` field. Values `≤ 0` are ignored.
 
 ## `mod_anvil_cost`
 
-Multiplies the XP-level cost of an anvil repair / combine.
+Modifies the XP-level cost of an anvil repair / combine.
 
-**Context:** the `AnvilUpdateEvent`. Base value is `1.0f`; final cost is
-`max(1, (int)(originalCost * value))`.
+**Context:** the `AnvilMenu`. Base value is the vanilla-computed level cost;
+final cost is `max(1, round(modifiedValue))`. The adjusted cost is both
+displayed in the anvil UI and charged when the output is taken.
 
-**Dispatch site:** `CraftingPowerEvents.onAnvilUpdate`.
+**Dispatch site:** `AnvilMenuCostMixin` (after vanilla finishes computing the
+cost, so it applies to all vanilla repairs, renames, and combines).
+
+**Note:** vanilla's "Too Expensive!" cap (cost ≥ 40 in survival) is evaluated
+against the *unmodified* cost, so a discount cannot rescue an operation
+vanilla already refuses.
 
 **Typical use:** artisan / smith class 0.5× anvil cost, cursed class 2×.
 
@@ -751,6 +757,7 @@ brief:
 | `advancement_earned` | `AdvancementContext(id)` | `PlayerLifecycleEvents.onAdvancementEarn` | Any advancement, including recipe unlocks — filter with a condition. |
 | `trade_completed` | `TradeContext(offer)` | `InteractionPowerEvents.onTradeCompleted` | Villager trade finished. Post-hoc — not cancellable (veto trading with `villager_interact` + `cancel_event` instead). |
 | `mod_trade_price` | modifier | `AbstractVillagerTradePriceMixin` | Villager trade cost multiplier. |
+| `mod_anvil_cost` | modifier | `AnvilMenuCostMixin` | Anvil level-cost modifier, applied after vanilla computes the cost. |
 | `mod_craft_amount` | modifier | `CraftingMenuOriginContextMixin` | Crafting output count multiplier. |
 | `mod_fall_damage` | modifier | `MovementPowerEvents` (`LivingFallEvent`) | Chains on the event's damage multiplier, so it stacks with Feather Falling etc. For outright immunity use `prevent_action: FALL_DAMAGE`. |
 

@@ -16,7 +16,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.BonemealEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.enchanting.EnchantmentLevelSetEvent;
-import net.neoforged.neoforge.event.AnvilUpdateEvent;
 
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class CraftingPowerEvents {
@@ -199,24 +198,18 @@ public class CraftingPowerEvents {
         applyQualityAttributes(sp, result);
     }
 
-    @SubscribeEvent
-    public static void onAnvilUpdate(AnvilUpdateEvent event) {
-        if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
-
-        // efficient_repairs moved to action_on_event (MOD_ANVIL_COST).
-        float mult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ANVIL_COST, event, 1.0f);
-        if (mult != 1.0f) {
-            int cost = Math.max(1, (int)(event.getCost() * mult));
-            event.setCost(cost);
-        }
-    }
+    // MOD_ANVIL_COST dispatch lives in AnvilMenuCostMixin, NOT here. The old
+    // AnvilUpdateEvent listener was a documented no-op for vanilla recipes:
+    // the event fires before vanilla computes anything, and unless a listener
+    // also sets a custom output, CommonHooks.onAnvilChange discards the
+    // event's cost (tester report 2026-06-12). The mixin rescales the final
+    // cost DataSlot at createResult RETURN instead, covering every path once.
 
     /**
      * ANVIL_REPAIR fires when a player actually takes the repaired/combined
-     * output from an anvil (AnvilRepairEvent), distinct from
-     * {@link #onAnvilUpdate} which only previews the cost. Context carries the
-     * finished output stack.
+     * output from an anvil (AnvilRepairEvent), distinct from the cost preview
+     * handled by {@code AnvilMenuCostMixin}. Context carries the finished
+     * output stack.
      */
     @SubscribeEvent
     public static void onAnvilRepair(net.neoforged.neoforge.event.entity.player.AnvilRepairEvent event) {
