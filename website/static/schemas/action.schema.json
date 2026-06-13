@@ -12,6 +12,7 @@
       "type": "string",
       "description": "Fully-qualified action verb. `apace:` aliases are accepted.",
       "enum": [
+        "apace:activate_power",
         "apace:actor_action",
         "apace:add_to_set",
         "apace:add_velocity",
@@ -101,6 +102,7 @@
         "apace:toggle",
         "apace:transform_block",
         "apace:trigger_cooldown",
+        "neoorigins:activate_power",
         "neoorigins:actor_action",
         "neoorigins:add_to_set",
         "neoorigins:add_velocity",
@@ -194,6 +196,25 @@
     }
   },
   "oneOf": [
+    {
+      "$comment": "neoorigins:activate_power",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:activate_power",
+            "apace:activate_power"
+          ]
+        },
+        "power": {
+          "description": "Power id to activate, as if its key were pressed — condition, cooldown, and fail_action of the target power all apply. The player must currently have the power.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "power"
+      ]
+    },
     {
       "$comment": "neoorigins:actor_action",
       "properties": {
@@ -913,8 +934,8 @@
           ],
           "default": "mainhand"
         },
-        "action": {
-          "description": "ItemAction to run on the stack (consume, damage, set-NBT, etc.).",
+        "item_action": {
+          "description": "ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted.",
           "$ref": "item_action.schema.json"
         }
       },
@@ -1360,6 +1381,10 @@
           "type": "integer",
           "default": 0,
           "minimum": 0
+        },
+        "slot": {
+          "description": "Restrict to a single slot: mainhand, offhand, head, chest, legs, feet, or a raw inventory index. All slots if absent.",
+          "type": "string"
         }
       },
       "required": [
@@ -2530,6 +2555,7 @@
         "type": {
           "not": {
             "enum": [
+              "apace:activate_power",
               "apace:actor_action",
               "apace:add_to_set",
               "apace:add_velocity",
@@ -2619,6 +2645,7 @@
               "apace:toggle",
               "apace:transform_block",
               "apace:trigger_cooldown",
+              "neoorigins:activate_power",
               "neoorigins:actor_action",
               "neoorigins:add_to_set",
               "neoorigins:add_velocity",
