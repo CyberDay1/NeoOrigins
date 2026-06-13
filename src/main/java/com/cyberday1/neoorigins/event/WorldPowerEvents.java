@@ -262,6 +262,15 @@ public class WorldPowerEvents {
         // BREED fires whenever the player caused a baby to spawn, regardless of
         // any TwinBreeding power — context is the child (may be null on cancel).
         if (child != null) {
+            // BabyEntitySpawnEvent fires before vanilla positions the offspring,
+            // so at this point the child still sits at the entity-creation
+            // default (0,0,0). Pre-position it at parent A — vanilla moveTo's it
+            // to the same parent right after the event — so distance / can_see
+            // conditions and positional target_actions on BREED powers evaluate
+            // against the real location instead of the world origin.
+            var parentA = event.getParentA();
+            child.moveTo(parentA.getX(), parentA.getY(), parentA.getZ(),
+                parentA.getYRot(), 0.0F);
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.BREED,
                 new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(child, event));
@@ -275,7 +284,15 @@ public class WorldPowerEvents {
                 var twin = (AgeableMob) child.getType().create(child.level());
                 if (twin != null) {
                     twin.setBaby(true);
-                    twin.setPos(child.getX(), child.getY(), child.getZ());
+                    // Position at the PARENT, not the child: BabyEntitySpawnEvent
+                    // fires before vanilla moveTo's the offspring to the parent's
+                    // position. (The BREED block above pre-positions the child
+                    // too, but anchoring on the parent keeps this correct on its
+                    // own — copying the un-positioned child's pos dropped every
+                    // twin at the world origin; tester report 2026-06-12.)
+                    var parent = event.getParentA();
+                    twin.moveTo(parent.getX(), parent.getY(), parent.getZ(),
+                        parent.getYRot(), 0.0F);
                     child.level().addFreshEntity(twin);
                 }
             }
