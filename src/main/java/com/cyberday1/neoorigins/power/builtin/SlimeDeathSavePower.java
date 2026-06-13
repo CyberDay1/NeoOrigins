@@ -31,7 +31,7 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
         float moistureThreshold,
         int teleportDistance,
         int teleportYRange,
-        float splitMaxHP,
+        float splitMaxHp,
         int recoveryTicks,
         String type
     ) implements PowerConfiguration {
@@ -39,7 +39,7 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
             Codec.FLOAT.optionalFieldOf("moisture_threshold", 0.75F).forGetter(Config::moistureThreshold),
             Codec.INT.optionalFieldOf("teleport_distance", 50).forGetter(Config::teleportDistance),
             Codec.INT.optionalFieldOf("teleport_y_range", 10).forGetter(Config::teleportYRange),
-            Codec.FLOAT.optionalFieldOf("split_max_hp", 4.0F).forGetter(Config::splitMaxHP),
+            Codec.FLOAT.optionalFieldOf("split_max_hp", 4.0F).forGetter(Config::splitMaxHp),
             Codec.INT.optionalFieldOf("recovery_ticks", 2400).forGetter(Config::recoveryTicks),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
@@ -86,14 +86,14 @@ public class SlimeDeathSavePower extends PowerType<SlimeDeathSavePower.Config> {
 
         // Set HP to split max and apply the HP reduction modifier
         float normalMax = (float) player.getAttributeValue(Attributes.MAX_HEALTH);
-        float reduction = -(normalMax - config.splitMaxHP());
+        float reduction = -(normalMax - config.splitMaxHp());
         var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
         if (maxHpAttr != null) {
             maxHpAttr.removeModifier(SPLIT_HP_MOD);
             maxHpAttr.addTransientModifier(new AttributeModifier(
                 SPLIT_HP_MOD, reduction, AttributeModifier.Operation.ADD_VALUE));
         }
-        player.setHealth(config.splitMaxHP());
+        player.setHealth(config.splitMaxHp());
 
         // Store the split state — remaining recovery ticks and total reduction.
         // We store remaining ticks (not a start tickCount) so recovery survives

@@ -28,13 +28,13 @@ public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
     }
 
     public record Config(
-        int levelsPerHP,
-        int maxBonusHP,
+        int levelsPerHp,
+        int maxBonusHp,
         String type
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.INT.optionalFieldOf("levels_per_hp", 10).forGetter(Config::levelsPerHP),
-            Codec.INT.optionalFieldOf("max_bonus_hp", 20).forGetter(Config::maxBonusHP),
+            Codec.INT.optionalFieldOf("levels_per_hp", 10).forGetter(Config::levelsPerHp),
+            Codec.INT.optionalFieldOf("max_bonus_hp", 20).forGetter(Config::maxBonusHp),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -47,7 +47,7 @@ public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
         // Only recalculate every 20 ticks — level changes are infrequent
         if (player.tickCount % 20 != 0) return;
 
-        int bonusHP = Math.min(player.experienceLevel / config.levelsPerHP(), config.maxBonusHP());
+        int bonusHP = Math.min(player.experienceLevel / config.levelsPerHp(), config.maxBonusHp());
 
         var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
         if (maxHpAttr == null) return;
