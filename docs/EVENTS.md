@@ -176,15 +176,36 @@ builder-class XP.
 
 ## `item_use`
 
-Fires at item-use **start** (right-click hold begins) for any item —
-pre-prevent gate.
+Fires when the player right-clicks to use an item. Two kinds of item are
+covered:
 
-**Context:** the held `ItemStack`.
+- **Held-use items** (food, potions, bows, shields, spyglasses, tridents —
+  anything with a use duration): fires at use **start**, when the
+  right-click hold begins.
+- **Instant-use items** (fireworks, ender pearls, snowballs, eggs, splash
+  potions, fire charges — anything used in a single click): fires on the
+  right-click itself, whether aimed at air or at a block.
 
-**Dispatch site:** `CompatEventPowers.onItemUseStart` (after the
-`prevent_item_use` gate, only if not cancelled).
+**Context:** the held `ItemStack`, plus the cancellable interaction event —
+so `neoorigins:cancel_event` vetoes the use, and an `item_condition` can
+target a specific item (e.g. only `minecraft:firework_rocket`).
 
-**Typical use:** rev-up animations, charging sounds, start cooldowns.
+**Dispatch site:** `CompatEventPowers.onItemUseStart`
+(`LivingEntityUseItemEvent.Start`, held-use items),
+`CompatEventPowers.onRightClickItem` (`RightClickItem`, instant items in
+air), and `CompatEventPowers.onRightClickBlockUse` (`RightClickBlock`,
+instant items aimed at a block). All run after the `prevent_item_use` gate,
+only if not cancelled.
+
+**Typical use:** rev-up animations, charging sounds, start cooldowns; or,
+with `cancel_event`, blocking an item outright (e.g. preventing firework
+use). For block-aimed instant items, only the item's use is denied — the
+block's own interaction (opening a chest, flipping a lever) still works.
+
+**Note:** instant-use coverage is broader than a held-use start — an
+`item_use` handler with no `item_condition` now also fires on snowballs,
+ender pearls, etc. Add an `item_condition` to scope it to the items you
+care about.
 
 ---
 
