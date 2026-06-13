@@ -1121,7 +1121,8 @@ public final class BuiltinPowers {
             new FieldSpec("toggleable", Kind.BOOLEAN, false)
                 .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
-                .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).")));
+                .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // effect_immunity lives in the compat package (com.cyberday1.neoorigins.compat),
         // not power.builtin, so SchemaFormCheck's power.builtin class-scan never flagged
@@ -1170,7 +1171,8 @@ public final class BuiltinPowers {
                 .doc("When true the power binds a keybind that flips its periodic action on/off; while off the interval action never runs (default false — condition_passive powers are passive unless opted in)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false)
-                .doc("Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false).")));
+                .doc("Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false)."),
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         //   • prevent_death: NO schema branch (already on the permissive fallback),
         //     so this is a pure register-to-codec + field_docs collapse. The codec
