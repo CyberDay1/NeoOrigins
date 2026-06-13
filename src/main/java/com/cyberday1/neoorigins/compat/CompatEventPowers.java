@@ -57,6 +57,69 @@ public class CompatEventPowers {
         }
     }
 
+    /**
+     * Instant-use coverage for ITEM_USE / prevent_item_use.
+     *
+     * <p>{@link LivingEntityUseItemEvent.Start} (the primary dispatch above)
+     * only fires for items with a use duration — food, potions, bows, shields,
+     * spyglasses, tridents. Instant-use items never start a use, so fireworks,
+     * ender pearls, snowballs, eggs, splash potions and fire charges slipped
+     * past both prevent_item_use and {@code action_on_event:item_use}.
+     * {@link PlayerInteractEvent.RightClickItem} fires for the right-click of
+     * those instant items (including the elytra firework boost), so we catch
+     * them here. Gated on a zero use-duration so held-use items don't
+     * double-dispatch through both hooks.
+     *
+     * <p>This is the air/hand right-click. A firework launched while aiming at
+     * a block within reach goes through {@code useOn} → RightClickBlock
+     * instead; {@link #onRightClickBlockUse} covers that path. The two
+     * NeoForge events are mutually exclusive per click (the vanilla client
+     * sends either a use-item-on-block or a use-item packet, never both), so
+     * an instant item never double-dispatches across the pair.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack stack = event.getItemStack();
+        if (stack.getUseDuration(sp) > 0) return; // held-use items fire via Start
+        if (shouldPreventItemUse(sp, stack)) {
+            event.setCanceled(true);
+            return;
+        }
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.ITEM_USE,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext(stack, event));
+    }
+
+    /**
+     * Block-aimed instant-use coverage — the {@code useOn} sibling of
+     * {@link #onRightClickItem}. A firework (or fire charge, ender pearl, etc.)
+     * activated while the crosshair is on a block within reach goes through
+     * {@code Item.useOn} and fires {@link PlayerInteractEvent.RightClickBlock}
+     * rather than RightClickItem, so without this hook those launches slip past
+     * prevent_item_use and {@code action_on_event:item_use}. Same zero
+     * use-duration gate so held-use items (which fire via Start) don't leak in,
+     * and the held-item predicate in {@link #shouldPreventItemUse} keeps this
+     * from cancelling ordinary block interactions (chests, doors) with
+     * unrelated items.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void onRightClickBlockUse(PlayerInteractEvent.RightClickBlock event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack stack = event.getItemStack();
+        if (stack.isEmpty() || stack.getUseDuration(sp) > 0) return; // held-use items fire via Start
+        if (shouldPreventItemUse(sp, stack)) {
+            // Deny only the item's useOn (firework launch) — leave the block's
+            // own interaction (chest, door) intact, so prevent_item_use on a
+            // held item doesn't lock the player out of normal block use.
+            event.setUseItem(net.neoforged.neoforge.common.util.TriState.FALSE);
+            return;
+        }
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.ITEM_USE,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext(stack, event));
+    }
+
     private static boolean shouldPreventItemUse(ServerPlayer player, ItemStack stack) {
         var powers = CompatPlayerState.getPowers(player, CompatPlayerState.EventType.PREVENT_ITEM_USE);
         if (powers.isEmpty()) return false;
