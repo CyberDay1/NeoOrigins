@@ -46,6 +46,7 @@
   "screen.neoorigins.debug_powers": "Poderes Activos (depuración)",
   "gui.neoorigins.info.no_origin": "Aún no se ha seleccionado ningún origen.",
   "gui.neoorigins.info.close": "Cerrar",
+  "gui.neoorigins.info.your_origin": "Tu origen",
   "gui.neoorigins.info.debug": "Depurar",
   "gui.neoorigins.info.edit": "Editar",
   "gui.neoorigins.info.evolution_path": "Camino de Evolución",

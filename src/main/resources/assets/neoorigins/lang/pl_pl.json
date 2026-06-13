@@ -46,6 +46,7 @@
   "screen.neoorigins.debug_powers": "Aktywne moce (debug)",
   "gui.neoorigins.info.no_origin": "Nie wybrano jeszcze pochodzenia.",
   "gui.neoorigins.info.close": "Zamknij",
+  "gui.neoorigins.info.your_origin": "Twoje pochodzenie",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Edytuj",
   "gui.neoorigins.info.evolution_path": "Ścieżka ewolucji",

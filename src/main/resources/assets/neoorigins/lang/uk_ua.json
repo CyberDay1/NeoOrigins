@@ -46,6 +46,7 @@
   "screen.neoorigins.debug_powers": "Активні сили (налагодження)",
   "gui.neoorigins.info.no_origin": "Походження ще не обрано.",
   "gui.neoorigins.info.close": "Закрити",
+  "gui.neoorigins.info.your_origin": "Ваше походження",
   "gui.neoorigins.info.debug": "Налагодження",
   "gui.neoorigins.info.edit": "Редагувати",
   "gui.neoorigins.info.evolution_path": "Шлях еволюції",

@@ -46,6 +46,7 @@
   "screen.neoorigins.debug_powers": "활성화된 능력 (디버그)",
   "gui.neoorigins.info.no_origin": "아직 선택된 기원이 없습니다.",
   "gui.neoorigins.info.close": "닫기",
+  "gui.neoorigins.info.your_origin": "당신의 기원",
   "gui.neoorigins.info.debug": "디버그",
   "gui.neoorigins.info.edit": "편집",
   "gui.neoorigins.info.evolution_path": "진화의 길",

@@ -46,6 +46,7 @@
   "screen.neoorigins.debug_powers": "Poteri attivi (debug)",
   "gui.neoorigins.info.no_origin": "Nessuna origine ancora selezionata.",
   "gui.neoorigins.info.close": "Chiudi",
+  "gui.neoorigins.info.your_origin": "La tua origine",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Modifica",
   "gui.neoorigins.info.evolution_path": "Percorso di evoluzione",
