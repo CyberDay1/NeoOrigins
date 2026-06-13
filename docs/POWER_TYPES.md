@@ -1241,7 +1241,7 @@ Active ability that teleports the player to the block they are looking at, up to
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `max_distance` | float | no | `32.0` | Maximum teleport range in blocks |
+| `range` | float | no | `32.0` | Maximum teleport range in blocks |
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks after each use |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
 
@@ -1249,7 +1249,7 @@ Active ability that teleports the player to the block they are looking at, up to
 ```json
 {
   "type": "neoorigins:active_teleport",
-  "max_distance": 32.0,
+  "range": 32.0,
   "cooldown_ticks": 60,
   "hunger_cost": 2,
   "name": "Blink",
@@ -1333,14 +1333,14 @@ Active ability that swaps positions with the entity the player is looking at.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `max_distance` | float | no | `16.0` | Maximum range to target an entity |
+| `range` | float | no | `20.0` | Maximum range to target an entity |
 | `cooldown_ticks` | int | no | `80` | Cooldown in ticks |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:active_swap",
-  "max_distance": 16.0,
+  "range": 20.0,
   "cooldown_ticks": 80,
   "name": "Swap",
   "description": "Swap positions with your target."
