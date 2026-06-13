@@ -1850,19 +1850,23 @@ Scales the player's visual and collision size via the `minecraft:generic.scale` 
 |---|---|---|---|---|
 | `scale` | float | no | `1.0` | Target scale multiplier (`0.5` = half size, `2.0` = double) |
 | `modify_reach` | bool | no | `true` | Also adjust block/entity interaction reach proportionally |
+| `reach_bonus` | float | no | `0.0` | Flat reach (blocks) added to **both** block and entity interaction range, on top of any `modify_reach` scaling |
 
-**Example — half-size origin:**
+**Example — half-size origin that keeps usable reach:**
 ```json
 {
   "type": "neoorigins:size_scaling",
   "scale": 0.5,
-  "modify_reach": true,
+  "modify_reach": false,
+  "reach_bonus": 0.5,
   "name": "Tiny",
-  "description": "Half-sized, with proportionally shorter reach."
+  "description": "Half-sized, but reach is kept near normal."
 }
 ```
 
-The scale attribute uses `ADD_VALUE` against a base of `1.0` (so delta = `scale - 1.0`); reach attributes use `ADD_MULTIPLIED_BASE` so reach tracks visual size. Missing attributes (older MC or NeoForge versions) log a single warning and the power silently skips that attribute.
+The scale attribute uses `ADD_VALUE` against a base of `1.0` (so delta = `scale - 1.0`); proportional reach (`modify_reach`) uses `ADD_MULTIPLIED_BASE` so reach tracks visual size, while `reach_bonus` uses a flat `ADD_VALUE` on both ranges. Missing attributes (older MC or NeoForge versions) log a single warning and the power silently skips that attribute.
+
+For the bundled size origins, `scale`, `modify_reach` and `reach_bonus` are all exposed per-origin in `config/neoorigins/power_overrides.toml`, so server owners can retune a shrunk origin's reach without a datapack — small origins (`inchling_size`, `tiny_size`) ship with `modify_reach: false` and a positive `reach_bonus` so they stay playable out of the box.
 
 ---
 

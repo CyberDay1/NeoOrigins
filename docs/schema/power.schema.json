@@ -2893,6 +2893,11 @@
           "description": "If true, reach scales with body size too (default true). For independent reach use attribute_modifier.",
           "type": "boolean",
           "default": true
+        },
+        "reach_bonus": {
+          "description": "Flat reach (blocks) added to both block and entity interaction range, on top of modify_reach scaling. Keeps shrunk origins usable (default 0).",
+          "type": "number",
+          "default": 0.0
         }
       },
       "required": [
