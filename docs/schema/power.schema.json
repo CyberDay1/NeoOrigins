@@ -1123,12 +1123,12 @@
           "default": false
         },
         "cooldown_icon": {
-          "description": "Optional HUD icon: an item id (e.g. 'minecraft:sculk_sensor') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set on a toggleable condition_passive it joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
           "type": "string",
           "default": ""
         },
         "always_show_icon": {
-          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while idle (default false). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
         }
@@ -2437,12 +2437,12 @@
           "default": false
         },
         "cooldown_icon": {
-          "description": "Optional HUD icon: an item id (e.g. 'minecraft:magma_cream') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set on a toggleable persistent_effect it joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
           "type": "string",
           "default": ""
         },
         "always_show_icon": {
-          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while idle (default false). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
         }
