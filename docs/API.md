@@ -369,6 +369,38 @@ power JSON. The compat loader picks the field up and registers the binding:
   it always binds to one of the six built-in `skill_1`..`skill_6` slots.
   Use `origins:active_self` when you need a named hotkey.
 
+### Fail feedback (`fail_action`)
+
+`origins:active_self`, `origins:toggle`, and `origins:launch` accept an
+optional `fail_action` (a NeoOrigins extension — plain Apoli ignores it).
+It runs when the player presses the power's key but the `condition` gate
+fails, replacing the silent no-op with author-defined feedback:
+
+```json
+{
+  "type": "origins:active_self",
+  "key": "examplepack.key.origins.1",
+  "cooldown": 80,
+  "condition": { "type": "origins:on_block" },
+  "entity_action": { "type": "neoorigins:add_velocity", "y": 1.5 },
+  "fail_action": {
+    "type": "neoorigins:execute_command",
+    "command": "tellraw @s {\"text\":\"You must be on the ground to leap.\",\"color\":\"red\"}"
+  },
+  "name": "Leap"
+}
+```
+
+- Works on every activation path: skill slots, named hotkeys, and vanilla
+  input keys.
+- Fires once per press. Held continuous keys are edge-detected so the
+  feedback doesn't spam every tick.
+- Only `condition` failures trigger it — a press blocked by an active
+  cooldown stays silent (the HUD already shows the cooldown), and a
+  blocked attempt never consumes the cooldown.
+- The native `neoorigins:active_ability` type supports the same field
+  (see [POWER_TYPES.md](POWER_TYPES.md#neooriginsactive_ability)).
+
 ### How the pool works
 
 - At reload, the server collects every distinct `key` value from all loaded

@@ -586,6 +586,21 @@ Removes a previously `grant_power`ed power. No-op if the power was granted by an
 
 ---
 
+## `neoorigins:activate_power`
+
+Triggers another power's activation exactly as if the player pressed its key — the target power's `condition`, `cooldown`, and `fail_action` all apply. The player must currently have the target power (origin-granted or dynamic). Reaches skill-slot actives (`active_self`, `toggle`, `launch`) and named-hotkey powers; powers driven purely by vanilla input state (`key.sneak`, `key.use`, …) have no activation entry point and cannot be reached. Recursive activation (a power activating itself, directly or through a cycle) is detected and blocked with a log warning.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `power` | resource id | yes | — | Power id to activate |
+
+**Example:**
+```json
+{ "type": "neoorigins:activate_power", "power": "examplepack:fireball" }
+```
+
+---
+
 ## `neoorigins:explode`
 
 Creates an explosion centred on the target.

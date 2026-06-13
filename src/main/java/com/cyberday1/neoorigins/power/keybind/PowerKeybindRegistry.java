@@ -56,16 +56,29 @@ public final class PowerKeybindRegistry {
      * @param condition    gate; if it fails the action is skipped (no cooldown burned)
      * @param cooldownTicks 0 = no cooldown
      * @param continuous   true = fire every tick while held; false = fire once per press
+     * @param failAction   optional; runs when a press is blocked by {@code condition}
+     *                     (NOT on cooldown blocks). Null = silent skip, the old behavior.
      */
     public record Binding(ResourceLocation powerId,
                           EntityAction action,
                           EntityCondition condition,
                           int cooldownTicks,
-                          boolean continuous) {}
+                          boolean continuous,
+                          EntityAction failAction) {}
+
+    /** Key: "uuid:powerId" → game-time of the last condition-failed dispatch. Used to
+     *  collapse a continuous binding's per-tick held payloads into one fail_action
+     *  firing per press (a gap in the stream = a fresh press). */
+    private static final Map<String, Long> LAST_FAIL_TICK = new ConcurrentHashMap<>();
+
+    /** A held key streams payloads every tick; a gap longer than this many ticks
+     *  means the key was released and pressed again. */
+    private static final long FAIL_REFIRE_GAP_TICKS = 3;
 
     /** Drop the entire registry — called by the compat loader at the start of every reload. */
     public static void clear() {
         BY_KEY.clear();
+        LAST_FAIL_TICK.clear();
     }
 
     /** Register a single binding. Multiple powers may register the same translation key. */
@@ -128,7 +141,10 @@ public final class PowerKeybindRegistry {
             }
             if (!has) continue;
 
-            if (b.condition() != null && !b.condition().test(sp)) continue;
+            if (b.condition() != null && !b.condition().test(sp)) {
+                fireFailAction(sp, b);
+                continue;
+            }
 
             if (b.continuous()) {
                 // Continuous: client sends every tick the key is held; fire each tick.
@@ -146,6 +162,56 @@ public final class PowerKeybindRegistry {
                 b.action().execute(sp);
             }
         }
+    }
+
+    /**
+     * Run a binding's fail_action for a condition-blocked press. Non-continuous
+     * bindings only dispatch on a fresh press, so every call is a real attempt;
+     * continuous bindings stream a payload every held tick, so collapse the
+     * stream via {@link #LAST_FAIL_TICK} to one firing per press.
+     */
+    private static void fireFailAction(ServerPlayer sp, Binding b) {
+        if (b.failAction() == null) return;
+        if (b.continuous()) {
+            String fk = sp.getUUID() + ":" + b.powerId();
+            long now = sp.level().getGameTime();
+            Long last = LAST_FAIL_TICK.put(fk, now);
+            if (last != null && (now - last) <= FAIL_REFIRE_GAP_TICKS) return;
+        }
+        b.failAction().execute(sp);
+    }
+
+    /**
+     * Programmatic activation of a hotkey-bound power by id — the
+     * {@code neoorigins:activate_power} entity-action path for powers whose
+     * CompatPower config is a keybind marker (no {@code onActivated}).
+     * Edge semantics: one attempt per call, condition + cooldown + fail_action
+     * behave exactly like a single key press.
+     *
+     * @return true if a binding for {@code powerId} exists (whether or not the
+     *         attempt passed its condition/cooldown), false if unknown here
+     */
+    public static boolean activateByPowerId(ServerPlayer sp, ResourceLocation powerId) {
+        for (List<Binding> bindings : BY_KEY.values()) {
+            synchronized (bindings) {
+                for (Binding b : bindings) {
+                    if (!b.powerId().equals(powerId)) continue;
+                    if (b.condition() != null && !b.condition().test(sp)) {
+                        if (b.failAction() != null) b.failAction().execute(sp);
+                        return true;
+                    }
+                    if (b.cooldownTicks() > 0) {
+                        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+                        String cdKey = b.powerId().toString();
+                        if (data.isOnCooldown(cdKey, sp.tickCount)) return true;
+                        data.setCooldown(cdKey, sp.tickCount, b.cooldownTicks());
+                    }
+                    b.action().execute(sp);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** True if any binding exists for this translation key. */

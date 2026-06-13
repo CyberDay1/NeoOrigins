@@ -2090,6 +2090,7 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 | `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. Silently aborts (cooldown not consumed) if the resource can't cover it. If resource bars are globally disabled in config, the cost is charged as hunger instead. |
 | `entity_action` | EntityAction | no | noop | Action tree fired on use (typically `neoorigins:and { actions: [...] }`) |
 | `condition` | EntityCondition | no | always-true | DSL gate — skips firing (and the cooldown) if false |
+| `fail_action` | EntityAction | no | — | Run when an activation attempt is blocked by `condition` — e.g. a `tellraw` telling the player why. Not fired on cooldown or hunger/resource aborts; the blocked attempt never consumes the cooldown. |
 | `cooldown_icon` | string | no | `""` | HUD cooldown icon (item id or `.png` texture path) — see "Cooldown HUD fields" at the top of this page |
 | `cooldown_countdown` | bool | no | `true` | Draw remaining seconds on the icon (needs `cooldown_icon`) |
 | `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`) |

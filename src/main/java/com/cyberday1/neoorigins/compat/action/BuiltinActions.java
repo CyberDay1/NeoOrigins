@@ -46,6 +46,12 @@ public final class BuiltinActions {
     /** Canonical {@code "neoorigins:<verb>"} string → descriptor, for hot-path dispatch. */
     private static final Map<String, ActionType> BY_KEY = new java.util.HashMap<>();
 
+    /** Recursion guard for {@code activate_power}: power ids currently being
+     *  activated on this thread. A power whose action chain re-activates a power
+     *  already in flight (directly or via a cycle) is blocked, not stack-overflowed. */
+    private static final ThreadLocal<java.util.Set<ResourceLocation>> ACTIVATE_IN_FLIGHT =
+        ThreadLocal.withInitial(java.util.HashSet::new);
+
     private static void define(String path, ActionType.Factory factory, List<FieldSpec> fields) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         ActionType type = new ActionType(id, factory, fields);
@@ -770,6 +776,54 @@ public final class BuiltinActions {
                     .doc("Alias for power."),
                 new FieldSpec("source", FormFieldSpec.Kind.STRING, false)
                     .doc("Apoli-style 'source' label; accepted but ignored by this implementation.")));
+
+        // activate_power — programmatically trigger another power's activation,
+        // exactly as if the player pressed its key: condition, cooldown, and
+        // fail_action semantics all apply. Reaches onActivated-style powers
+        // (active_self/toggle/launch on a skill slot) directly and hotkey-bound
+        // powers via PowerKeybindRegistry. Powers driven purely by vanilla input
+        // state (key.sneak etc., polled in onTick) have no activation entry point
+        // and cannot be reached. The player must currently have the target power.
+        define("activate_power",
+            (json, ctx) -> {
+                String powerId = json.has("power") ? json.get("power").getAsString() : null;
+                if (powerId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] activate_power: missing power id — action will no-op");
+                    return EntityAction.noop();
+                }
+                final ResourceLocation pid = net.minecraft.resources.ResourceLocation.parse(powerId);
+                return player -> {
+                    java.util.Set<ResourceLocation> inFlight = ACTIVATE_IN_FLIGHT.get();
+                    if (!inFlight.add(pid)) {
+                        NeoOrigins.LOGGER.warn("[CompatB] activate_power: recursive activation of '{}' blocked", pid);
+                        return;
+                    }
+                    try {
+                        // The player must actually have the power right now
+                        // (origin gate + dimension restrictions + dynamic grants).
+                        boolean has = false;
+                        for (var h : com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(player)) {
+                            if (h.id().equals(pid)) { has = true; break; }
+                        }
+                        if (!has) return;
+                        var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
+                        if (holder != null && holder.isActive()) {
+                            holder.onActivated(player);
+                        } else if (!com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry
+                                .activateByPowerId(player, pid)) {
+                            NeoOrigins.LOGGER.warn(
+                                "[CompatB] activate_power: power '{}' has no activation entry point (not an active power)", pid);
+                        }
+                    } finally {
+                        inFlight.remove(pid);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
+                    .doc("Power id to activate, as if its key were pressed — condition, "
+                        + "cooldown, and fail_action of the target power all apply. "
+                        + "The player must currently have the power.")));
 
         // teleport_to_marker — teleport to absolute coords (`position`) or by a
         // dx/dy/dz offset. Lift-and-shift of parseTeleportToMarker. All fields

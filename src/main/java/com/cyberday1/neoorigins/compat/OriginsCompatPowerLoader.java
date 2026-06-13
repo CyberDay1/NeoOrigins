@@ -679,6 +679,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Parse the optional condition gate
         EntityCondition condition = parseConditionField(json, "condition", idStr);
 
+        // fail_action (NeoOrigins extension, not Apoli): runs when the player
+        // attempts to activate the power but `condition` fails — pack-author
+        // feedback ("you can't use this here") instead of a silent no-op.
+        // Deliberately NOT fired on cooldown blocks: the HUD already shows those.
+        EntityAction failAction = json.has("fail_action")
+            ? parseActionField(json, "fail_action", idStr) : null;
+
         // Skill-slot keys: primary_active, secondary_active, and the two toolbar
         // keys (loadToolbarActivator, saveToolbarActivator) which have no server-side
         // input state and must be mapped to skill slots to be usable.
@@ -689,7 +696,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return CompatPower.Config.builder()
                 .cooldownTicks(cooldown)
                 .onActivated((ServerPlayer player) -> {
-                    if (!condition.test(player)) return;
+                    if (!condition.test(player)) {
+                        if (failAction != null) failAction.execute(player);
+                        return;
+                    }
                     if (cooldown > 0) {
                         PlayerOriginData data = player.getData(OriginAttachments.originData());
                         if (data.isOnCooldown(idStr, player.tickCount)) return;
@@ -719,7 +729,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             // onTick) so it doesn't double-fire from the slot system.
             com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(finalKey,
                 new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
-                    id, action, condition, cooldown, isContinuous));
+                    id, action, condition, cooldown, isContinuous, failAction));
             return CompatPower.Config.builder()
                 .cooldownTicks(cooldown)
                 .build();
@@ -770,6 +780,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                             data.setCooldown(idStr, player.tickCount, cooldown);
                         }
                         action.execute(player);
+                    } else if (failAction != null) {
+                        // Edge-detect the failed press so feedback fires once per
+                        // press (or once per false→true condition flip mid-hold),
+                        // not every tick the key is held.
+                        PlayerOriginData data = player.getData(OriginAttachments.originData());
+                        String failEdgeKey = idStr + ":failedge";
+                        boolean wasFailingLastTick = data.getCustomFloat(failEdgeKey, 0) > 0;
+                        data.setCustomFloat(failEdgeKey, pressed ? 1.0F : 0.0F);
+                        if (pressed && !wasFailingLastTick) failAction.execute(player);
                     }
                 } else {
                     // Edge detection: fire once on press
@@ -777,7 +796,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
                     boolean wasPressedLastTick = data.getCustomFloat(edgeKey, 0) > 0;
                     data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
-                    if (pressed && !wasPressedLastTick && condition.test(player)) {
+                    if (pressed && !wasPressedLastTick) {
+                        if (!condition.test(player)) {
+                            if (failAction != null) failAction.execute(player);
+                            return;
+                        }
                         if (cooldown > 0) {
                             if (data.isOnCooldown(idStr, player.tickCount)) return;
                             data.setCooldown(idStr, player.tickCount, cooldown);
@@ -1125,19 +1148,32 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         var builder = CompatPower.Config.builder()
             .onGranted(player -> player.getData(CompatAttachments.toggleState()).set(stateKey, defaultActive));
 
+        // Activation gate + fail feedback (fail_action is a NeoOrigins extension):
+        // condition blocks the flip; fail_action runs on a blocked attempt.
+        EntityCondition condition = parseConditionField(json, "condition", stateKey);
+        EntityAction failAction = json.has("fail_action")
+            ? parseActionField(json, "fail_action", stateKey) : null;
+
         // A toggle can declare a pack-defined hotkey ("key": "...") just like active_self.
         // If it does, register it so a client press routes here; otherwise it defaults to
         // the primary-active skill slot via onActivated.
         KeySpec ks = classifyKey(json, "key.origins.primary_active");
         if (ks.namedHotkey()) {
             int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
-            EntityCondition condition = parseConditionField(json, "condition", stateKey);
             com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
                 new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
-                    id, toggleAction, condition, cooldown, ks.continuous()));
+                    id, toggleAction, condition, cooldown, ks.continuous(), failAction));
             return builder.cooldownTicks(cooldown).build();
         }
-        return builder.onActivated(toggleAction::execute).build();
+        return builder.onActivated(player -> {
+            // Previously the slot path ignored a declared `condition` entirely
+            // (only the hotkey path enforced it) — enforce it here for parity.
+            if (!condition.test(player)) {
+                if (failAction != null) failAction.execute(player);
+                return;
+            }
+            toggleAction.execute(player);
+        }).build();
     }
 
     private CompatPower.Config parseConditionedAttribute(ResourceLocation id, JsonObject json) {
@@ -1682,19 +1718,29 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         var builder = CompatPower.Config.builder().cooldownTicks(cooldown);
 
+        // Activation gate + fail feedback (fail_action is a NeoOrigins extension).
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        EntityAction failAction = json.has("fail_action")
+            ? parseActionField(json, "fail_action", idStr) : null;
+
         // launch can be bound to a pack-declared hotkey; register it if so. Cooldown is
         // enforced by PowerKeybindRegistry.dispatch for the named-key path, so the action
         // itself stays cooldown-free there to avoid double-gating.
         KeySpec ks = classifyKey(json, "key.origins.primary_active");
         if (ks.namedHotkey()) {
-            EntityCondition condition = parseConditionField(json, "condition", idStr);
             com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
                 new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
-                    id, launchAction, condition, cooldown, ks.continuous()));
+                    id, launchAction, condition, cooldown, ks.continuous(), failAction));
             return builder.build();
         }
         return builder
             .onActivated(player -> {
+                // Previously the slot path ignored a declared `condition` entirely
+                // (only the hotkey path enforced it) — enforce it here for parity.
+                if (!condition.test(player)) {
+                    if (failAction != null) failAction.execute(player);
+                    return;
+                }
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
                     if (data.isOnCooldown(idStr, player.tickCount)) return;

@@ -1024,6 +1024,8 @@ public final class BuiltinPowers {
                 .doc("EntityAction tree executed on the player when the keybind fires (defaults to noop)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Optional DSL condition gating the ability; it only fires while this passes (default always)."),
+            new FieldSpec("fail_action", Kind.REF, false).ref("action.schema.json")
+                .doc("Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));

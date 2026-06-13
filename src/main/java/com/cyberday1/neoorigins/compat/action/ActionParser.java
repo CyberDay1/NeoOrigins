@@ -32,6 +32,7 @@ public final class ActionParser {
      * file's source and fails the build if this set drifts from the switch.
      */
     public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
+        "neoorigins:activate_power",
         "neoorigins:actor_action", "neoorigins:add_to_set", "neoorigins:add_velocity",
         "neoorigins:add_xp", "neoorigins:and", "neoorigins:apply_effect",
         "neoorigins:area_of_effect", "neoorigins:block_action_at", "neoorigins:block_target_action",
