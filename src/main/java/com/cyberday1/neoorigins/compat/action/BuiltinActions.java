@@ -2559,9 +2559,9 @@ public final class BuiltinActions {
                 new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false).def("mainhand")
                     .options("mainhand", "offhand", "head", "chest", "legs", "feet")
                     .doc("Equipment slot to read the stack from (default mainhand)."),
-                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                new FieldSpec("item_action", FormFieldSpec.Kind.REF, false)
                     .ref("item_action.schema.json")
-                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.).")));
+                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted.")));
 
         // modify_inventory — filter inventory stacks and run an ItemAction on each.
         define("modify_inventory",
@@ -2577,7 +2577,9 @@ public final class BuiltinActions {
                     .options("items", "stacks")
                     .doc("items (default) counts individual items; stacks counts whole stacks toward the limit."),
                 new FieldSpec("limit", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
-                    .doc("Cap on items/stacks processed; 0 = no limit (default 0).")));
+                    .doc("Cap on items/stacks processed; 0 = no limit (default 0)."),
+                new FieldSpec("slot", FormFieldSpec.Kind.STRING, false)
+                    .doc("Restrict to a single slot: mainhand, offhand, head, chest, legs, feet, or a raw inventory index. All slots if absent.")));
 
         // spawn_lingering_area — spawn a recurring effect-cloud entity.
         define("spawn_lingering_area",
