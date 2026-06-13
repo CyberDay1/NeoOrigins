@@ -1,1 +1,1 @@
-{ "type": "neoorigins:size_scaling", "scale": 0.5 }
+{ "type": "neoorigins:size_scaling", "scale": 0.5, "modify_reach": false, "reach_bonus": 0.5 }

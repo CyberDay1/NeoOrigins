@@ -18,6 +18,13 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  * JSON fields:
  *   "scale"         (float, default 1.0) — target scale multiplier (0.5 = half size, 2.0 = double)
  *   "modify_reach"  (boolean, default true) — also adjust reach proportionally
+ *   "reach_bonus"   (float, default 0.0) — flat reach added to BOTH block and
+ *                    entity interaction range, on top of any proportional
+ *                    modify_reach scaling. Lets a size origin keep usable reach
+ *                    even when shrunk (e.g. inchling) without hand-tuning a
+ *                    separate attribute_modifier power. Exposed per-origin in
+ *                    power_overrides.toml so server owners can retune reach
+ *                    without a datapack.
  *
  * To change reach independently of body size, use the generic
  * {@code attribute_modifier} power on {@code minecraft:block_interaction_range}
@@ -34,10 +41,11 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
         return ResourceLocation.fromNamespaceAndPath("neoorigins", "size_" + key + "_" + suffix);
     }
 
-    public record Config(float scale, boolean modifyReach, String type) implements PowerConfiguration {
+    public record Config(float scale, boolean modifyReach, float reachBonus, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("scale", 1.0f).forGetter(Config::scale),
             Codec.BOOL.optionalFieldOf("modify_reach", true).forGetter(Config::modifyReach),
+            Codec.FLOAT.optionalFieldOf("reach_bonus", 0.0f).forGetter(Config::reachBonus),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -96,6 +104,13 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
             // reach attributes use ADD_MULTIPLIED_BASE so reach scales proportionally
             applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  reachBlockId,  scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
             applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, reachEntityId, scaleDelta, AttributeModifier.Operation.ADD_MULTIPLIED_BASE, add);
+        }
+
+        // Flat reach bonus on top of any proportional scaling — ADD_VALUE on
+        // both ranges. Skipped when zero so we don't register no-op modifiers.
+        if (config.reachBonus() != 0.0f) {
+            applyMod(player, Attributes.BLOCK_INTERACTION_RANGE,  modId("reach_bonus_block"),  config.reachBonus(), AttributeModifier.Operation.ADD_VALUE, add);
+            applyMod(player, Attributes.ENTITY_INTERACTION_RANGE, modId("reach_bonus_entity"), config.reachBonus(), AttributeModifier.Operation.ADD_VALUE, add);
         }
     }
 

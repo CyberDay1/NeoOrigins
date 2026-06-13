@@ -644,7 +644,9 @@ public final class BuiltinPowers {
             new FieldSpec("scale", Kind.NUMBER, false)
                 .def(1.0).doc("Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."),
             new FieldSpec("modify_reach", Kind.BOOLEAN, false)
-                .def(true).doc("If true, reach scales with body size too (default true). For independent reach use attribute_modifier.")));
+                .def(true).doc("If true, reach scales with body size too (default true). For independent reach use attribute_modifier."),
+            new FieldSpec("reach_bonus", Kind.NUMBER, false)
+                .def(0.0).doc("Flat reach (blocks) added to both block and entity interaction range, on top of modify_reach scaling. Keeps shrunk origins usable (default 0).")));
 
         // ── Group R (cont.) — batch E (JS bridge powers) ────────────────────
         // js_custom / js_active have a clean primitive RecordCodecBuilder

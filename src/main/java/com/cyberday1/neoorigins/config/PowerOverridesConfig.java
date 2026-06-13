@@ -79,14 +79,14 @@ public final class PowerOverridesConfig {
         // ── Breeze ──
         p("breeze_wind_charge");        f("speed", 2.0, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
         p("breeze_wind_dash");          f("power", 2.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
-        p("breeze_light_frame");        f("scale", 0.9, 0.1, 10); ep();
+        p("breeze_light_frame");        f("scale", 0.9, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("breeze_reduced_health");     f("amount", -8.0, -100, 100); ep();
         p("breeze_speed_boost");        f("amount", 0.15, -1, 10); ep();
 
         // ── Caveborn ──
         p("caveborn_daylight_damage");  f("damage_per_second", 1.0, 0, 100); fb("ignite", false); ep();
         p("caveborn_mining_speed");     f("multiplier", 2.0, 0, 100); ep();
-        p("caveborn_small_frame");      f("scale", 0.85, 0.1, 10); ep();
+        p("caveborn_small_frame");      f("scale", 0.85, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
 
         // ── Cinderborn ──
         p("cinderborn_fireball");       f("speed", 1.2, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
@@ -97,13 +97,13 @@ public final class PowerOverridesConfig {
 
         // ── Draconic ──
         p("draconic_active_fireball");  f("speed", 1.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
-        p("draconic_size");             f("scale", 1.2, 0.1, 10); ep();
+        p("draconic_size");             f("scale", 1.2, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("draconic_attack_bonus");     f("amount", 2.0, -100, 100); ep();
         p("draconic_hunger_drain");     f("multiplier", 1.5, 0, 10); ep();
         p("draconic_water_weakness");   f("multiplier", 2.0, 0, 100); ep();
 
         // ── Dwarf ──
-        p("dwarf_compact_frame");       f("scale", 0.8, 0.1, 10); ep();
+        p("dwarf_compact_frame");       f("scale", 0.8, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("dwarf_stout_constitution");  fi("amplifier", 0, 0, 4); ep();
         p("dwarf_sturdy_legs");         f("amount", -0.15, -1, 1); ep();
         p("dwarf_short_reach");         f("amount", -0.5, -10, 10); ep();
@@ -140,7 +140,7 @@ public final class PowerOverridesConfig {
         // ── Golem ──
         p("golem_natural_armor");       fi("amplifier", 0, 0, 4); ep();
         p("golem_knockback_resist");    f("amount", 0.8, -1, 1); ep();
-        p("golem_size");                f("scale", 1.3, 0.1, 10); ep();
+        p("golem_size");                f("scale", 1.3, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("golem_slow_movement");       f("amount", -0.25, -1, 1); ep();
         p("golem_fire_weakness");       f("multiplier", 1.8, 0, 100); ep();
 
@@ -149,19 +149,19 @@ public final class PowerOverridesConfig {
         p("gorgon_stone_fists");        f("amount", 4.0, -100, 100); ep();
         p("gorgon_granite_hide");       fi("amplifier", 0, 0, 4); ep();
         p("gorgon_knockback_resist");   f("amount", 0.5, -1, 1); ep();
-        p("gorgon_size");               f("scale", 1.15, 0.1, 10); ep();
+        p("gorgon_size");               f("scale", 1.15, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("gorgon_heavy_frame");        f("amount", -0.2, -1, 1); ep();
         p("gorgon_hunger_drain");       f("multiplier", 1.5, 0, 10); ep();
 
         // ── Hiveling ──
         p("hiveling_sting");            f("speed", 1.0, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
         p("hiveling_crop_growth");      fi("radius", 6, 1, 64); fi("tick_interval", 30, 1, 72000); fi("growths_per_interval", 3, 1, 100); ep();
-        p("hiveling_size");             f("scale", 0.6, 0.1, 10); ep();
+        p("hiveling_size");             f("scale", 0.6, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("hiveling_reduced_health");   f("amount", -6.0, -100, 100); ep();
         p("hiveling_hunger_drain");     f("multiplier", 1.5, 0, 10); ep();
 
         // ── Inchling ──
-        p("inchling_size");             f("scale", 0.25, 0.1, 10); ep();
+        p("inchling_size");             f("scale", 0.25, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 1.0, -10, 10); ep();
         p("inchling_speed_boost");      f("amount", 0.15, -1, 10); ep();
         p("inchling_reduced_health");   f("amount", -10.0, -100, 100); ep();
         p("inchling_hunger_efficiency");f("multiplier", 0.5, 0, 10); ep();
@@ -169,7 +169,7 @@ public final class PowerOverridesConfig {
         // ── Kraken ──
         p("kraken_tentacle_lash");      fi("amplifier", 2, 0, 255); fi("duration_ticks", 80, 1, 72000); f("radius", 5.0, 0, 64); fi("cooldown_ticks", 160, 0, 72000); ep();
         p("kraken_ink_shot");           f("speed", 1.2, 0, 10); fi("cooldown_ticks", 120, 0, 72000); ep();
-        p("kraken_massive");            f("scale", 1.3, 0.1, 10); ep();
+        p("kraken_massive");            f("scale", 1.3, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("kraken_pressure_armor");     fi("amplifier", 0, 0, 4); ep();
         p("kraken_deep_current");       f("amount", 0.8, -1, 10); ep();
         p("kraken_summon_guardian");    fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 5, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
@@ -272,7 +272,7 @@ public final class PowerOverridesConfig {
         p("sylvan_nether_damage");      f("damage_per_second", 1.0, 0, 100); ep();
 
         // ── Tiny ──
-        p("tiny_size");                 f("scale", 0.5, 0.1, 10); ep();
+        p("tiny_size");                 f("scale", 0.5, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.5, -10, 10); ep();
         p("tiny_speed_boost");          f("amount", 0.2, -1, 10); ep();
         p("tiny_item_magnetism");       f("radius", 4.0, 0, 64); ep();
         p("tiny_attack_penalty");       f("amount", -2.0, -100, 100); ep();
@@ -316,7 +316,7 @@ public final class PowerOverridesConfig {
         p("warden_sonic_boom");         f("speed", 1.0, 0, 10); fi("cooldown_ticks", 400, 0, 72000); ep();
         p("warden_strength");           f("amount", 4.0, -100, 100); ep();
         p("warden_ancient_hide");       fi("amplifier", 1, 0, 4); ep();
-        p("warden_hulking_frame");      f("scale", 1.15, 0.1, 10); ep();
+        p("warden_hulking_frame");      f("scale", 1.15, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("warden_lumbering");          f("amount", -0.30, -1, 1); ep();
         p("warden_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
         // Dark-vision powers (issue #101): players can toggle these in-game via the
@@ -342,7 +342,7 @@ public final class PowerOverridesConfig {
         p("class_scout_speed");         f("amount", 0.2, -1, 10); ep();
         p("class_berserker_damage");    f("amount", 3.0, -100, 100); ep();
         p("class_berserker_hunger");    f("multiplier", 1.5, 0, 10); ep();
-        p("class_titan_size");          f("scale", 1.25, 0.1, 10); ep();
+        p("class_titan_size");          f("scale", 1.25, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("class_titan_health");        f("amount", 4.0, -100, 100); ep();
         p("class_titan_reach");         f("amount", 0.5, -10, 10); ep();
         p("class_rogue_sneaky");        f("detection_multiplier", 0.3, 0, 10); ep();
