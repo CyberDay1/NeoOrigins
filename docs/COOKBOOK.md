@@ -1235,7 +1235,8 @@ works, then narrow it back down.
 **"My size-scaling power makes me punch through walls."**
 Set `modify_reach: false` on the `size_scaling` config. Reach scaling was
 removed from size in v1.14 because it was confusing — it now only scales
-when explicitly enabled.
+when explicitly enabled. To claw back a flat amount of reach for shrunk
+origins without re-enabling scaling, set `reach_bonus` (blocks) instead.
 
 **"My active ability triggers but the server disagrees with the client."**
 `add_velocity` needs `hurtMarked` to survive the client's next physics
