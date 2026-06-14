@@ -64,6 +64,7 @@ Loaded as: `<namespace>:<id>`
 | `upgrades` | list | no | `[]` | Reserved for future use |
 | `required_mods` | list of mod ids | no | `[]` | Load gate: the origin only loads (and only appears in the picker) when every listed mod is present. Used by the built-in Dragon Survival origins (`"required_mods": ["dragonsurvival"]`). |
 | `spawn_location` | object | no | — | Relocates the player to a matching location on first origin pick and on bedless respawn. See [Spawn Location](#spawn-location). |
+| `tier_powers` | list | no | `[]` | Evolution-tier power overlays (`{tier, add, remove}`). Full reference in [EVOLUTION.md](EVOLUTION.md#datapack-customization) and the [COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin). |
 
 ### Spawn Location
 
