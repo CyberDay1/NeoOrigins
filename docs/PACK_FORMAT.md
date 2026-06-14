@@ -57,6 +57,59 @@ Loaded as: `<namespace>:<id>`
 | `powers` | list of Identifier | no | `[]` | Powers granted by this origin |
 | `upgrades` | list | no | `[]` | Reserved for future use |
 | `required_mods` | list of mod ids | no | `[]` | Load gate: the origin only loads (and only appears in the picker) when every listed mod is present. Used by the built-in Dragon Survival origins (`"required_mods": ["dragonsurvival"]`). |
+| `spawn_location` | object | no | — | Relocates the player to a matching location on first origin pick and on bedless respawn. See [Spawn Location](#spawn-location). |
+
+### Spawn Location
+
+An origin can declare a `spawn_location` to drop the player at a matching spot
+instead of the world spawn. It is resolved server-side and fires:
+
+- once, immediately after the player picks the origin (picker or Orb of Origin), and
+- on respawn when the player has **no** bed or respawn anchor — using the
+  player's *primary* origin (the first origin, in sorted layer order, that
+  declares a `spawn_location`).
+
+For respawn control that fires on **every** death (optionally overriding the
+bed/anchor), use the [`neoorigins:modify_player_spawn`](POWER_TYPES.md#neooriginsmodify_player_spawn)
+power instead — `spawn_location` only covers first-join and bedless respawn.
+
+```json
+{
+  "name": "origins.mypack.deep_one.name",
+  "description": "origins.mypack.deep_one.description",
+  "icon": "minecraft:heart_of_the_sea",
+  "powers": ["mypack:gills"],
+  "spawn_location": {
+    "dimension": "minecraft:overworld",
+    "biome_tag": "minecraft:is_ocean",
+    "allow_water_surface": true,
+    "min_y": 45,
+    "max_y": 62
+  }
+}
+```
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `dimension` | Identifier | no | — | Restrict placement to this dimension. |
+| `biome` | Identifier | no | — | Restrict to this exact biome. |
+| `biome_tag` | Identifier | no | — | Restrict to biomes in this tag. |
+| `biomes` | list of Identifier | no | — | Restrict to any biome in this list. |
+| `structure` | Identifier | no | — | Place at this structure. |
+| `structure_tag` | Identifier | no | — | Place at any structure in this tag. |
+| `allow_water_surface` | bool | no | `false` | Allow placement on a water surface. |
+| `allow_ocean_floor` | bool | no | `false` | Allow placement on the ocean floor. |
+| `min_y` / `max_y` | int | no | — | Clamp the vertical search range. |
+| `can_see_sky` | bool | no | — | When set, only place where sky visibility matches (`true` = open sky, `false` = covered). |
+
+`dimension` / `structure` / `structure_tag` combine with **AND**; `biome` /
+`biome_tag` / `biomes` combine with **OR** (any biome match passes).
+
+**Global kill switch.** All `spawn_location` teleports — built-in, datapack,
+and compat origins alike — are gated by `[spawn_location] teleports_enabled`
+in `config/neoorigins/gameplay.toml` (default `true`). Set it to `false` and
+every origin spawns at the normal world spawn point instead. The built-in
+ocean origins have an additional gate, `[ocean_origins] spawn_in_ocean`.
 
 ---
 
