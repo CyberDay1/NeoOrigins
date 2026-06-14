@@ -103,7 +103,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`enhanced_vision`](POWER_TYPES.md#neooriginsenhanced_vision) | Permanent brightness floor. Replaces legacy `night_vision`. |
 | [`flight`](POWER_TYPES.md#neooriginsflight) | Creative-style flight. |
 | [`phantom_form`](POWER_TYPES.md#neooriginsphantom_form) | Mayfly + noPhysics + no-fall — walk through walls. |
-| [`size_scaling`](POWER_TYPES.md#neooriginssize_scaling) | Scale player dimensions. Optional reach-scaling. |
+| [`size_scaling`](POWER_TYPES.md#neooriginssize_scaling) | Scale player dimensions. Optional reach-scaling + flat reach bonus. |
 | [`wall_climbing`](POWER_TYPES.md#neooriginswall_climbing) | Scale walls like a spider. |
 | [`water_breathing`](POWER_TYPES.md#neooriginswater_breathing) | Never loses air underwater. |
 | [`cobweb_affinity`](POWER_TYPES.md#neooriginscobweb_affinity) | Web mobility + 10× cobweb break speed. |
