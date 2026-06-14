@@ -2,6 +2,42 @@
 
 ---
 
+## v2.2.3
+
+> A focused follow-up to 2.2.2: a few quality-of-life features and a batch of bug fixes, several of them from tester reports against the compat layer and the event system.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Powers & Systems
+
+- **Browse every origin on the info screen.** The O-info screen now pages through all available origins in a layer with the new `</>` buttons or the left/right arrow keys, defaulting to your own pick. A "Your Origin" marker and an N/M position indicator show where you are; live evolution progress stays gated to your own origin, while other origins show only their static evolution path.
+- **`fail_action` on blocked abilities.** `active_ability` (and the compat `active_self` / toggle / launch paths) accept an optional `fail_action` that fires when a key press is blocked by the power's condition gate, replacing the old silent no-op. Cooldown and hunger/resource aborts stay silent and never consume the cooldown; continuous binds edge-detect so the feedback fires once per press.
+- **New `activate_power` action.** Triggers another power's activation path by id — skill slots and named hotkeys — with recursion detection.
+
+### Pack Author Features
+
+- **Flat reach for shrunk origins (`reach_bonus`).** `size_scaling` gains a `reach_bonus` field decoupled from body scale, and `scale` / `modify_reach` / `reach_bonus` are now exposed per-origin in `power_overrides.toml`. The built-in small origins (Inchling, Tiny) now ship with `modify_reach: false` and a positive `reach_bonus`, so they stay playable out of the box instead of having their reach shrink with their hitbox.
+- **Toggle HUD-icon fields exposed on `persistent_effect` / `condition_passive`.** Both toggleable types already supported a HUD icon, but their FieldSpecs omitted `toggle_icon` / `always_show_icon`, so the web form and schema gave authors no way to configure it. They're now in the schema.
+
+### Bug Fixes
+
+- **`prevent_item_use` now catches instant-use items.** `LivingEntityUseItemEvent.Start` only fires for use-duration items, so fireworks, ender pearls, snowballs and other instant items slipped past `prevent_item_use` and the `item_use` event. New right-click handlers (air + block-aimed, gated on zero use-duration) close the gap; the block path denies only the item's `useOn`, so normal block interaction (chests, doors) still works.
+- **`item_action` and `slot` are honored in compat.** `equipped_item_action` only read the undocumented `action` key, so authors following the docs (which say `item_action`) hit a silent no-op — it now prefers `item_action` and keeps `action` as a legacy alias. `modify_inventory` documented a `slot` field it never read, so a slot-scoped consume destroyed matching items inventory-wide; `slot` is now honored (equipment names or a raw inventory index).
+- **`summon_minion` quantity works.** The `quantity` field was advertised but only ever lived on `spawn_entity`; `summon_minion` ignored it and spawned a single mob. It now spawns up to the requested count (capped by `max_count` headroom) with position jitter, plays the summon sound, and charges hunger once per activation.
+- **`mod_anvil_cost` actually applies.** NeoForge's `AnvilUpdateEvent` discards a cost-only change unless a listener also sets an output, so the handler was a guaranteed no-op. It now runs from an `AnvilMenu` mixin, so the adjusted level cost is both displayed and charged. (Known limit: vanilla's "Too Expensive!" cap is still measured against the undiscounted cost, so a discount can't rescue an operation vanilla refuses outright.)
+- **BREED events fire at the right position.** `BabyEntitySpawnEvent` fires before vanilla moves the offspring to its parent, so the child still sat at (0,0,0) — `twin_breeding` dropped every twin at the world origin, and BREED distance / `can_see` conditions and positional `target_action`s evaluated against (0,0,0). The child is now pre-positioned at the parent before the BREED dispatch, and the twin anchors on the parent independently.
+- **Slime-HP schema keys match the codec.** The FieldSpecs read `split_max_h_p` / `levels_per_h_p` / `max_bonus_h_p` while the codecs parse `split_max_hp` / `levels_per_hp` / `max_bonus_hp`, so authors using the documented keys got silent defaults. The keys now line up.
+- **Font license no longer logs an invalid-path error.** The bundled `OFL.txt` sat under `assets/.../font/` with an uppercase name, which isn't a valid resource path, so the client logged an "Invalid path in pack" error on every load. Renamed to lowercase — the license still ships with the font, the error is gone.
+
+### Documentation
+
+- **Origin `spawn_location` is now documented in `PACK_FORMAT.md`** — the LocationCondition shape, when it fires (first pick + bedless respawn), the `modify_player_spawn` alternative for every-death control, and the `[spawn_location] teleports_enabled` kill switch.
+- **`tier_powers` added to the PACK_FORMAT origin field table** (it was already covered in `EVOLUTION.md` and the cookbook).
+- **`reach_bonus` mentioned in the API table** and the `size_scaling` tip.
+- **`active_teleport` / `active_swap` docs corrected** — both codecs read `range`, not `max_distance`, and `active_swap`'s default is 20 (the docs said 16).
+
+---
+
 ## v2.2.2
 
 > A big quality pass: a dragon morph system, animated resource bars, eleven languages, inline validation in all three editors, and a long list of compat and bug fixes driven by tester reports. Thanks to everyone filing issues — most of what's below started as one.
