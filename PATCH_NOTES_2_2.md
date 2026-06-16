@@ -2,6 +2,40 @@
 
 ---
 
+## v2.2.4
+
+> A bug-fix and compat follow-up to 2.2.3, driven by Discord reports: a fix for the 26.1 mod-loading warning, an area-of-effect option for `tame_mob`, a batch of power fixes, and better Apoli compatibility.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Pack Author Features
+
+- **Native `neoorigins:multiple` container.** You can now bundle sub-powers under a first-class in-namespace `neoorigins:multiple` instead of reaching for the foreign `origins:multiple`. It flattens through the exact same path: each sub-power object becomes a standalone `<ns>:<parent>/<subkey>` power, nested multiples and `*:*` self-refs included. `origins:` / `apace:` / `apoli:multiple` still work identically.
+- **`summon_minion` can mount its minions.** A new optional `mount` field seats each summoned minion on its own freshly-spawned mount (e.g. piglin cavalry on hoglins): the mount is forced, tracked under the same cap, drops nothing, and despawns with its rider. Equipment is applied to the rider only.
+- **`tame_mob` gains an area-of-effect mode.** Alongside the default raycast, `targeting: area` tames every eligible mob in range at once, greedily nearest-first until the resource or the minion slots run out. An optional `entity_whitelist` (entity ids and `#tags`) narrows what it will tame, on top of the existing blacklist and boss-tier exclusions. Cost is now charged **per mob** from whatever resource the power is given (`resource_cost` / `resource_cost_amount`), falling back to hunger when resource bars are disabled.
+
+### Bug Fixes
+
+- **The 26.1 "@OnlyIn" loading warning is gone (26.1).** On NeoForge 26.1.2 the client popped a "Warning while loading mods" gate before the main menu, because five client renderers carried a leftover `@OnlyIn` annotation that 26.1 no longer strips. The annotation is removed; the client boots straight to the title screen. (1.21.1 never showed the warning, but it's cleaned up there too for parity.)
+- **First-pick invulnerability covers the whole pick, plus a brief grace after.** New players are protected from damage for the entire initial origin selection — every layer, so a multi-layer (origin + class) pick no longer leaves you vulnerable while you're still choosing your class — and stay invulnerable for about 5 seconds after committing, so you don't eat a hit the instant you spawn in (e.g. when a `spawn_location` origin teleports you somewhere hostile). Escaping the picker mid-pick still drops the protection, and Orb-of-Origin re-picks don't qualify.
+- **`modify_food_nutrition` fills the hunger bar fully.** The power recomputed the bar from a post-eat delta, which over-corrected once vanilla clamped the gain at 20, so food "wouldn't fill the bar all the way." It now snapshots food + saturation before the bite and recomputes the bar absolutely from that baseline.
+- **`tame_mob` drops the new owner as a target.** A mob tamed mid-swing kept attacking its new owner until it lost sight of them. Taming now clears the mob's current target and last-hurt-by record if they point at the owner.
+- **`summon_minion` pacifies brain mobs.** Piglins and hoglins run on the Brain/memory system, not goals, so they bypassed the goal-based target interceptor and re-armed against the summoner. They're now pacified at spawn and held friendly each tick (anger and attack-target memories toward the owner are cleared, zombification immunity set).
+- **`keep_inventory` covers Curios and Accessories (1.21.1).** `neoorigins:keep_inventory` only walked vanilla inventory slots, so trinkets in Curios / Accessories slots dropped on death. It now matches accessory slots too (`*` / `all`, the `curio` / `accessory` / `trinket` umbrellas, or a specific slot id) and re-equips kept trinkets into their original slot on respawn.
+- **Long subclass names no longer overflow the picker scroll.** Two-word origin / subclass names (e.g. a datapack's "Fire Wizard") ran off the right edge of the parchment scroll button. They now scale down to fit the scroll's inner area; names that already fit render unchanged.
+
+### Compat Improvements
+
+- **`key.jump` double-jumps fire correctly.** A `key.jump` `active_self` proxy mis-detected the gesture — it fired during a normal jump's ascent and was inactive at the moment you re-pressed jump while falling, so double-jump spells never triggered. It now reads the real airborne jump-press edge, so the action runs once per double-jump press.
+- **`ADD_MULTIPLIED_TOTAL` attribute ops are no longer demoted to a flat add.** The uppercase NeoForge-enum form of the operation fell through to `add_value`, silently turning a multiplier into a flat addition (corrupting momentum / gravity scaling). Operations are now case-normalized, and the known-unrepresentable `set_*` / `min_*` / `max_*` ops fall back cleanly without the misleading "unknown operation" warning.
+- **`modify_fall_damage` / fall-damage `conditioned_attribute` load again.** With no `modify_fall_damage` handler in the compat layer, a `conditioned_attribute` targeting fall damage returned null and the loader silently dropped the **whole** power. A full handler is added (reusing the existing native fall-damage hook), and `conditioned_attribute` forwards a `fall_damage` leaf to it instead of dropping the power.
+
+### Documentation
+
+- **`neoorigins:multiple`, `summon_minion` `mount`, the `tame_mob` `targeting` / `entity_whitelist` / `resource_cost` fields, the compat `modify_fall_damage` verb, and the `keep_inventory` `slots` field documented** in `POWER_TYPES.md`, with the power schema + web-editor mirror regenerated.
+
+---
+
 ## v2.2.3
 
 > A focused follow-up to 2.2.2: a few quality-of-life features and a batch of bug fixes, several of them from tester reports against the compat layer and the event system.
