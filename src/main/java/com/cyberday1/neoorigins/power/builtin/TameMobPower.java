@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.service.EntityExclusions;
 import com.cyberday1.neoorigins.service.MinionTracker;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
@@ -43,11 +44,26 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         double range,
         int maxTamed,
         int cooldownTicks,
-        int hungerCost,
+        // Stored under a NON-interface name (hungerCostLegacy, not hungerCost)
+        // on purpose: tame_mob charges hunger/resource PER MOB internally, so it
+        // must keep AbstractActivePower.Config#hungerCost() at its default of 0
+        // so the base class never pre-checks or debits hunger on activation.
+        int hungerCostLegacy,
         int despawnTicks,
         float deathDamage,
         boolean hostileOnly,
         List<String> entityBlacklist,
+        // Area-mode whitelist (entity ids / #tag refs); empty = allow all.
+        List<String> entityWhitelist,
+        // "raycast" (single look-target) or "area" (AoE in range). Case-folded
+        // in execute(); anything unrecognized falls back to raycast.
+        String targeting,
+        // Per-mob resource cost. Stored under NON-interface names
+        // (tameResourceId / tameResourceAmount, not resourceCost() /
+        // resourceCostAmount()) so the base class's auto-charge stays disabled
+        // and tame_mob handles all cost itself, charging once per mob tamed.
+        String tameResourceId,
+        int tameResourceAmount,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
@@ -57,7 +73,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             Codec.DOUBLE.optionalFieldOf("range", 16.0).forGetter(Config::range),
             Codec.INT.optionalFieldOf("max_tamed", 4).forGetter(Config::maxTamed),
             Codec.INT.optionalFieldOf("cooldown_ticks", 200).forGetter(Config::cooldownTicks),
-            Codec.INT.optionalFieldOf("hunger_cost", 3).forGetter(Config::hungerCost),
+            Codec.INT.optionalFieldOf("hunger_cost", 3).forGetter(Config::hungerCostLegacy),
             Codec.INT.optionalFieldOf("despawn_ticks", 36000).forGetter(Config::despawnTicks),
             Codec.FLOAT.optionalFieldOf("death_damage", 0.5f).forGetter(Config::deathDamage),
             // Default true preserves the Monster Tamer feel (hostile mobs only).
@@ -69,6 +85,13 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             // boss-tier exclusion below.
             Codec.STRING.listOf().optionalFieldOf("entity_blacklist", List.of())
                 .forGetter(Config::entityBlacklist),
+            // Area-mode whitelist: same id/#tag syntax as entity_blacklist.
+            // Empty (default) = any mob (subject to hostile_only + exclusions).
+            Codec.STRING.listOf().optionalFieldOf("entity_whitelist", List.of())
+                .forGetter(Config::entityWhitelist),
+            Codec.STRING.optionalFieldOf("targeting", "raycast").forGetter(Config::targeting),
+            Codec.STRING.optionalFieldOf("resource_cost", "").forGetter(Config::tameResourceId),
+            Codec.INT.optionalFieldOf("resource_cost_amount", 0).forGetter(Config::tameResourceAmount),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
@@ -80,41 +103,114 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
-        // Check cap
+        // Check cap. slotsLeft caps how many mobs an area cast can grab.
         int alive = MinionTracker.countAlive(player.getUUID(), TAMED_MOB_KEY);
-        if (alive >= config.maxTamed()) {
+        int slotsLeft = config.maxTamed() - alive;
+        if (slotsLeft <= 0) {
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.max_reached").withStyle(ChatFormatting.RED), true);
             return false;
         }
 
-        // Check hunger
-        if (player.getFoodData().getFoodLevel() < config.hungerCost()) {
-            player.sendSystemMessage(Component.translatable(
-                "power.neoorigins.tame_mob.not_enough_hunger").withStyle(ChatFormatting.RED), true);
-            return false;
+        // Cost mode resolved once for the whole activation. tame_mob does ALL
+        // cost handling itself (per mob), so the base class charges nothing —
+        // see the Config field-naming note above.
+        boolean resourceConfigured = !config.tameResourceId().isEmpty() && config.tameResourceAmount() > 0;
+        boolean barsDisabled = ContentTogglesConfig.isResourceBarsDisabled();
+
+        boolean area = "area".equalsIgnoreCase(config.targeting());
+
+        // Build the candidate list (nearest-first). RAYCAST = the single
+        // look-target (0 or 1 mob), still gated by today's specific messages.
+        // AREA = the shared AoE selector, which already applies hostile_only,
+        // entity_blacklist, boss-tier, and the global config exclusions.
+        List<Mob> candidates;
+        if (area) {
+            candidates = com.cyberday1.neoorigins.service.AreaTargetSelector.mobsInRadius(
+                player, config.range(), config.entityWhitelist(), config.entityBlacklist(),
+                config.hostileOnly(), slotsLeft);
+        } else {
+            Mob single = validateRaycastTarget(player, config);
+            candidates = single == null ? List.of() : List.of(single);
         }
 
-        // Raycast for an entity
+        ServerLevel level = (ServerLevel) player.level();
+        int tamedCount = 0;
+        Mob lastTamed = null;
+        for (Mob mob : candidates) {
+            if (tamedCount >= slotsLeft) break;
+            // Per-mob portal-lock guard. In raycast mode the full validation
+            // (incl. boss-tier) already ran; in area mode boss-tier is excluded
+            // by the selector, but the legacy portal-lock flag still applies.
+            if (!mob.canUsePortal(false)) continue;
+            // Greedy: ran out of resource/hunger → tame what we could, stop.
+            if (!canAffordOne(player, config, resourceConfigured, barsDisabled)) break;
+
+            rewriteAI(mob, player);
+            mob.setPersistenceRequired();
+            MinionTracker.track(player, mob, TAMED_MOB_KEY,
+                player.tickCount, config.despawnTicks(), config.deathDamage());
+
+            // Per-mob effects.
+            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                SoundEvents.ZOMBIE_VILLAGER_CURE, SoundSource.PLAYERS, 1.0f, 1.2f);
+            level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                mob.getX(), mob.getY() + mob.getBbHeight() / 2, mob.getZ(),
+                15, 0.4, 0.4, 0.4, 0.02);
+
+            chargeOne(player, config, resourceConfigured, barsDisabled);
+            tamedCount++;
+            lastTamed = mob;
+        }
+
+        if (tamedCount == 0) {
+            if (candidates.isEmpty()) {
+                // No valid target at all. In raycast mode the specific failure
+                // message (not_hostile / boss / blacklisted) was already sent by
+                // validateRaycastTarget; only the empty-raycast case falls here.
+                if (!area) {
+                    player.sendSystemMessage(Component.translatable(
+                        "power.neoorigins.tame_mob.no_target").withStyle(ChatFormatting.YELLOW), true);
+                }
+            } else {
+                // Had candidates but couldn't afford even one.
+                player.sendSystemMessage(Component.translatable(
+                    "power.neoorigins.tame_mob.no_resource").withStyle(ChatFormatting.RED), true);
+            }
+            return false; // no cooldown consumed
+        }
+
+        if (tamedCount == 1) {
+            player.sendSystemMessage(Component.translatable(
+                "power.neoorigins.tame_mob.success", lastTamed.getName()).withStyle(ChatFormatting.GREEN), true);
+        } else {
+            player.sendSystemMessage(Component.translatable(
+                "power.neoorigins.tame_mob.success_area", tamedCount).withStyle(ChatFormatting.GREEN), true);
+        }
+        return true;
+    }
+
+    /**
+     * Raycast-mode validation: returns the single look-target Mob if it passes
+     * every gate (non-player Mob; hostile_only→Enemy; portal-lock/boss-tier;
+     * config + per-power blacklist), else sends the matching actionbar message
+     * and returns {@code null}. Returns {@code null} silently when the raycast
+     * found nothing (the caller sends the no_target message).
+     */
+    private static Mob validateRaycastTarget(ServerPlayer player, Config config) {
         Entity target = getTargetEntity(player, config.range());
         if (target == null) {
             NeoOrigins.LOGGER.debug("[tame_mob] {}: raycast within {} blocks found no LivingEntity",
                 player.getName().getString(), config.range());
-            player.sendSystemMessage(Component.translatable(
-                "power.neoorigins.tame_mob.no_target").withStyle(ChatFormatting.YELLOW), true);
-            return false;
+            return null; // caller emits no_target
         }
-
-        // Must be a non-player Mob. Hostile-only gate is configurable: defaults
-        // to true (Monster Tamer style), but packs can set hostile_only=false
-        // to tame any non-player Mob (animals, golems, villagers, etc.).
         if (!(target instanceof Mob mob)) {
             NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} is not a Mob ({})",
                 player.getName().getString(), target.getName().getString(),
                 target.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.not_hostile").withStyle(ChatFormatting.RED), true);
-            return false;
+            return null;
         }
         if (config.hostileOnly() && !(target instanceof Enemy)) {
             NeoOrigins.LOGGER.debug("[tame_mob] {}: target {} ({}) is not hostile (Enemy); set hostile_only=false to allow",
@@ -122,7 +218,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
                 target.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.not_hostile").withStyle(ChatFormatting.RED), true);
-            return false;
+            return null;
         }
         if (!mob.canUsePortal(false) || EntityExclusions.isBossTier(mob)) {
             // canUsePortal(false) is the legacy "can't tame bosses" gate (Ender
@@ -136,7 +232,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
                 mob.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.boss").withStyle(ChatFormatting.RED), true);
-            return false;
+            return null;
         }
         // Blocklists: the server-operator global list (config) and the
         // pack-author per-power entity_blacklist. Both take entity ids and
@@ -149,34 +245,37 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
                 mob.getClass().getSimpleName());
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.tame_mob.blacklisted").withStyle(ChatFormatting.RED), true);
-            return false;
+            return null;
         }
+        return mob;
+    }
 
-        // Rewrite AI
-        rewriteAI(mob, player);
+    /**
+     * True if the player can pay for one more tame. Uses the resource bar when a
+     * resource is configured and bars are enabled; otherwise charges hunger —
+     * either the configured resource amount (bars disabled fallback) or the
+     * legacy hunger_cost when no resource is configured.
+     */
+    private static boolean canAffordOne(ServerPlayer player, Config config,
+            boolean resourceConfigured, boolean barsDisabled) {
+        if (resourceConfigured && !barsDisabled) {
+            return com.cyberday1.neoorigins.power.builtin.ResourcePower.getValue(
+                player, config.tameResourceId()) >= config.tameResourceAmount();
+        }
+        int h = resourceConfigured ? config.tameResourceAmount() : config.hungerCostLegacy();
+        return player.getFoodData().getFoodLevel() >= h;
+    }
 
-        // Persistence so it doesn't despawn
-        mob.setPersistenceRequired();
-
-        // Track via MinionTracker
-        MinionTracker.track(player, mob, TAMED_MOB_KEY,
-            player.tickCount, config.despawnTicks(), config.deathDamage());
-
-        // Consume hunger
-        player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - config.hungerCost());
-
-        // Effects
-        ServerLevel level = (ServerLevel) player.level();
-        level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-            SoundEvents.ZOMBIE_VILLAGER_CURE, SoundSource.PLAYERS, 1.0f, 1.2f);
-        level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
-            mob.getX(), mob.getY() + mob.getBbHeight() / 2, mob.getZ(),
-            15, 0.4, 0.4, 0.4, 0.02);
-
-        player.sendSystemMessage(Component.translatable(
-            "power.neoorigins.tame_mob.success", mob.getName()).withStyle(ChatFormatting.GREEN), true);
-
-        return true;
+    /** Debit the cost of one tame, mirroring {@link #canAffordOne}'s mode. */
+    private static void chargeOne(ServerPlayer player, Config config,
+            boolean resourceConfigured, boolean barsDisabled) {
+        if (resourceConfigured && !barsDisabled) {
+            com.cyberday1.neoorigins.power.builtin.ResourcePower.deduct(
+                player, config.tameResourceId(), config.tameResourceAmount());
+            return;
+        }
+        int h = resourceConfigured ? config.tameResourceAmount() : config.hungerCostLegacy();
+        player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - h);
     }
 
     /**
@@ -186,6 +285,14 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
     private static void rewriteAI(Mob mob, ServerPlayer owner) {
         // Clear all targeting goals (removes NearestAttackableTargetGoal<Player>, etc.)
         mob.targetSelector.getAvailableGoals().clear();
+
+        // Drop any in-progress attack on the new owner this tick. Clearing the
+        // goals stops re-acquisition, but the mob's *current* target persists
+        // until vanilla times it out — so a mob caught mid-swing keeps attacking
+        // the owner "until it loses sight" (Discord report). Also forgive a
+        // pre-tame hit so HurtByTargetGoal doesn't instantly re-aggro the owner.
+        if (mob.getTarget() == owner) mob.setTarget(null);
+        if (mob.getLastHurtByMob() == owner) mob.setLastHurtByMob(null);
 
         // Re-add HurtByTargetGoal so it fights back when hit (requires PathfinderMob).
         // Owner-aware subclass: accidental owner hits (collision, AoE, thorns

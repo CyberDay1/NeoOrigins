@@ -19,7 +19,13 @@ public final class OriginsOperationMapper {
      * first rather than mis-applying a clamp as a flat addition.
      */
     public static String mapOperation(String originsOp) {
-        return switch (originsOp) {
+        // Normalize case: packs authored against NeoForge's modifier JSON use the
+        // uppercase enum form (e.g. "ADD_MULTIPLIED_TOTAL"), while Apoli/Calio use
+        // lowercase ("add_multiplied_total"). Without this, the uppercase form fell
+        // through to the default branch and was silently demoted to add_value —
+        // turning a multiply into a flat add and corrupting the attribute.
+        String op = originsOp == null ? "" : originsOp.toLowerCase(java.util.Locale.ROOT);
+        return switch (op) {
             // Additive → add to the base value.
             case "addition", "add_base_early", "add_base_late"            -> "add_value";
             // Multiply the base. (Calio's *_multiplicative has no exact vanilla
@@ -33,6 +39,14 @@ public final class OriginsOperationMapper {
             case "add_value"            -> "add_value";
             case "add_multiplied_base"  -> "add_multiplied_base";
             case "add_multiplied_total" -> "add_multiplied_total";
+            // Apoli/Calio clamp + set ops have NO single-modifier vanilla analogue
+            // (see isRepresentable). Callers that can drop a modifier should consult
+            // isRepresentable() first; for those that can't, add_value is the
+            // least-wrong fallback. These are known-unrepresentable, not unknown, so
+            // they don't deserve the scary warning.
+            case "set_base", "set_total",
+                 "min_base", "max_base",
+                 "min_total", "max_total"                                 -> "add_value";
             default -> {
                 com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
                     "OriginsCompat: unknown attribute operation '{}', defaulting to add_value", originsOp);
@@ -52,7 +66,8 @@ public final class OriginsOperationMapper {
      * Callers that build a modifier should drop it when this returns false.
      */
     public static boolean isRepresentable(String originsOp) {
-        return switch (originsOp) {
+        String op = originsOp == null ? "" : originsOp.toLowerCase(java.util.Locale.ROOT);
+        return switch (op) {
             case "set_base", "set_total",
                  "min_base", "max_base",
                  "min_total", "max_total" -> false;

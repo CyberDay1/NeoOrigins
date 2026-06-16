@@ -45,16 +45,32 @@ public class OriginButton extends Button {
         // Name — themed font, theme text colors.
         int nameColor = isSelected() ? theme.nameColor() : theme.descriptionColor();
         Minecraft mc = Minecraft.getInstance();
-        int textY = getY() + (getHeight() - 8) / 2;
         Identifier fid = theme.font();
         Component label = fid != null
             ? origin.name().copy().withStyle(s -> s.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid)))
             : origin.name();
-        // Centre the name across the full button width, but never let it slide
-        // left under the 16×16 icon (x+3..x+19) — long names fall back to a
-        // left-aligned x+22 so they stay clear of the icon and the right edge.
-        int textX = Math.max(getX() + 22, getX() + (getWidth() - mc.font.width(label)) / 2);
-        g.text(mc.font, label, textX, textY, nameColor, false);
+        // Inner parchment text area: clear of the 16×16 icon (x+3..x+19) on the
+        // left and the right rolled end-cap on the right.
+        int textLeft  = getX() + 22;
+        int textRight = getX() + getWidth() - 8;
+        int avail     = Math.max(1, textRight - textLeft);
+        int textW     = mc.font.width(label);
+        if (textW <= avail) {
+            // Fits: centre across the full button, but never under the icon.
+            int textX = Math.max(textLeft, getX() + (getWidth() - textW) / 2);
+            int textY = getY() + (getHeight() - 8) / 2;
+            g.text(mc.font, label, textX, textY, nameColor, false);
+        } else {
+            // Two-word / long datapack names (e.g. "Fire Wizard") would run off
+            // the scroll — scale the label down to fit the inner area instead.
+            float scale = (float) avail / textW;
+            int textY = Math.round(getY() + (getHeight() - 8 * scale) / 2f);
+            g.pose().pushMatrix();
+            g.pose().translate((float) textLeft, (float) textY);
+            g.pose().scale(scale, scale);
+            g.text(mc.font, label, 0, 0, nameColor, false);
+            g.pose().popMatrix();
+        }
     }
 
     /**

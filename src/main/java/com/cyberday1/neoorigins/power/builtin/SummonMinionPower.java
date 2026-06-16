@@ -2,8 +2,13 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.service.MinionTracker;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -41,6 +46,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
     public record Config(
         String mobType,
         int maxCount,
+        int quantity,
         int cooldownTicks,
         int hungerCost,
         int despawnTicks,
@@ -51,29 +57,72 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         Optional<String> feet,
         Optional<String> mainhand,
         Optional<String> offhand,
-        String type,
+        Optional<String> mount,
+        String type,
         String cooldownIcon,
         boolean cooldownCountdown,
         boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.fieldOf("mob_type").forGetter(Config::mobType),
-            Codec.INT.optionalFieldOf("max_count", 3).forGetter(Config::maxCount),
-            Codec.INT.optionalFieldOf("cooldown_ticks", 200).forGetter(Config::cooldownTicks),
-            Codec.INT.optionalFieldOf("hunger_cost", 4).forGetter(Config::hungerCost),
-            Codec.INT.optionalFieldOf("despawn_ticks", 18000).forGetter(Config::despawnTicks),
-            Codec.FLOAT.optionalFieldOf("death_damage", 1.0f).forGetter(Config::deathDamage),
-            Codec.STRING.optionalFieldOf("head").forGetter(Config::head),
-            Codec.STRING.optionalFieldOf("chest").forGetter(Config::chest),
-            Codec.STRING.optionalFieldOf("legs").forGetter(Config::legs),
-            Codec.STRING.optionalFieldOf("feet").forGetter(Config::feet),
-            Codec.STRING.optionalFieldOf("mainhand").forGetter(Config::mainhand),
-            Codec.STRING.optionalFieldOf("offhand").forGetter(Config::offhand),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
-            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
-            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
-            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
-        ).apply(inst, Config::new));
+        // Manual JSON codec: adding `quantity` (v2.2.3, tester report — pack
+        // authors expected the spawn_entity action's quantity field here too)
+        // pushed the record past RecordCodecBuilder's 16-field group limit.
+        // Decode mirrors the parser-field rule (json.has/get names ARE the
+        // schema surface); encode is a no-op like ActiveAbilityPower — sync
+        // payloads carry only type id + display.
+        public static final Codec<Config> CODEC = new Codec<>() {
+            @Override
+            public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
+                JsonElement json;
+                try {
+                    json = ops.convertTo(JsonOps.INSTANCE, input);
+                } catch (Exception e) {
+                    return DataResult.error(() -> "summon_minion: could not convert to JSON: " + e.getMessage());
+                }
+                if (!json.isJsonObject()) {
+                    return DataResult.error(() -> "summon_minion: expected JSON object");
+                }
+                JsonObject obj = json.getAsJsonObject();
+                if (!obj.has("mob_type")) {
+                    return DataResult.error(() -> "summon_minion: missing required field 'mob_type'");
+                }
+                String mobType = obj.get("mob_type").getAsString();
+                int maxCount = intOr(obj, "max_count", 3);
+                int quantity = Math.max(1, intOr(obj, "quantity", 1));
+                int cooldown = intOr(obj, "cooldown_ticks", 200);
+                int hunger = intOr(obj, "hunger_cost", 4);
+                int despawn = intOr(obj, "despawn_ticks", 18000);
+                float deathDamage = obj.has("death_damage") ? obj.get("death_damage").getAsFloat() : 1.0f;
+                String type = stringOr(obj, "type", "");
+                String cooldownIcon = stringOr(obj, "cooldown_icon", "");
+                boolean cooldownCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
+                boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
+                return DataResult.success(Pair.of(new Config(
+                    mobType, maxCount, quantity, cooldown, hunger, despawn, deathDamage,
+                    optString(obj, "head"), optString(obj, "chest"), optString(obj, "legs"),
+                    optString(obj, "feet"), optString(obj, "mainhand"), optString(obj, "offhand"),
+                    optString(obj, "mount"),
+                    type, cooldownIcon, cooldownCountdown, alwaysShowIcon), ops.empty()));
+            }
+
+            @Override
+            public <T> DataResult<T> encode(Config input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(prefix);
+            }
+        };
+
+        private static int intOr(JsonObject obj, String field, int def) {
+            return obj.has(field) ? obj.get(field).getAsInt() : def;
+        }
+
+        private static String stringOr(JsonObject obj, String field, String def) {
+            return obj.has(field) ? obj.get(field).getAsString() : def;
+        }
+
+        private static Optional<String> optString(JsonObject obj, String field) {
+            return obj.has(field) && obj.get(field).isJsonPrimitive()
+                ? Optional.of(obj.get(field).getAsString())
+                : Optional.empty();
+        }
     }
 
     @Override public Codec<Config> codec() { return Config.CODEC; }
@@ -105,37 +154,59 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         if (entityTypeOpt.isEmpty()) return false;
         EntityType<?> entityType = entityTypeOpt.get().value();
 
-        // Spawn the minion near the player
+        // Resolve optional mount type (e.g. piglin riding a hoglin). If the id
+        // is configured but unresolvable we simply skip the mount rather than
+        // failing the whole summon.
+        EntityType<?> mountType = null;
+        if (config.mount().isPresent()) {
+            mountType = BuiltInRegistries.ENTITY_TYPE
+                .get(Identifier.parse(config.mount().get())).map(net.minecraft.core.Holder::value).orElse(null);
+        }
+
+        // Spawn the minions near the player. `quantity` (v2.2.3) asks for N per
+        // activation but never exceeds the max_count cap — toSpawn is the
+        // remaining headroom, so a quantity-3 power with 2 already alive and
+        // max_count 4 summons 2. Hunger is charged once per activation.
         ServerLevel level = (ServerLevel) player.level();
         Vec3 look = player.getLookAngle();
         Vec3 spawnPos = player.position().add(look.x * 2, 0, look.z * 2);
+        int toSpawn = Math.min(config.quantity(), config.maxCount() - alive);
 
-        Entity entity = entityType.create(level, EntitySpawnReason.MOB_SUMMONED);
-        if (!(entity instanceof LivingEntity living)) return false;
-
-        living.setPos(spawnPos.x, spawnPos.y, spawnPos.z);
-
-        if (living instanceof Mob mob) {
-            mob.setPersistenceRequired();
-            rewriteAiForSummoner(mob, player);
-
-            // Apply configured equipment (or default helmet for sun protection)
-            equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
-            equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
-            equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
-            equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
-            equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
-            equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
-
-            // Zero all drop chances — summoned mobs never drop loot
-            for (EquipmentSlot slot : EquipmentSlot.values()) {
-                mob.setDropChance(slot, 0.0f);
+        int spawned = 0;
+        for (int i = 0; i < toSpawn; i++) {
+            // ±0.5-block horizontal jitter so multiple minions don't stack on
+            // the exact same point (matches the spawn_entity action behaviour).
+            double dx = 0.0, dz = 0.0;
+            if (toSpawn > 1) {
+                var rng = level.getRandom();
+                dx = rng.nextDouble() - 0.5;
+                dz = rng.nextDouble() - 0.5;
             }
+
+            // Spawn an optional mount first so the rider has something to sit on.
+            LivingEntity mount = null;
+            if (mountType != null) {
+                mount = spawnMinion(level, mountType, spawnPos, dx, dz, player, config, false);
+            }
+
+            LivingEntity rider = spawnMinion(level, entityType, spawnPos, dx, dz, player, config, true);
+            if (rider == null) {
+                // mob_type was non-living; discard a stray mount and bail.
+                if (mount != null) mount.discard();
+                break;
+            }
+
+            // Seat the rider on its mount (force=true bypasses the normal
+            // can-ride checks so cross-type stacks like piglin-on-hoglin work).
+            if (mount != null) {
+                rider.startRiding(mount, true, true);
+            }
+            spawned++;
         }
 
-        level.addFreshEntity(living);
+        if (spawned == 0) return false;
 
-        // Sound + particle effects at spawn location
+        // Sound + particle effects at spawn location (once per activation)
         level.playSound(null, spawnPos.x, spawnPos.y, spawnPos.z,
             SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 0.8f);
         level.sendParticles(ParticleTypes.SOUL,
@@ -145,14 +216,77 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             spawnPos.x, spawnPos.y + 0.2, spawnPos.z,
             10, 0.3, 0.3, 0.3, 0.01);
 
-        // Consume hunger
+        // Consume hunger (once per activation, regardless of count spawned)
         player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - config.hungerCost());
 
-        // Track the minion
+        return true;
+    }
+
+    /**
+     * Create, position, configure, register and spawn a single minion of the
+     * given type. Shared by the rider (the configured {@code mob_type}, with
+     * {@code applyEquipment=true}) and an optional {@code mount} entity (no
+     * equipment). Returns the spawned {@link LivingEntity}, or {@code null} if
+     * the type produced a non-living entity.
+     */
+    private static LivingEntity spawnMinion(ServerLevel level, EntityType<?> type, Vec3 spawnPos,
+                                            double dx, double dz, ServerPlayer player, Config config,
+                                            boolean applyEquipment) {
+        Entity entity = type.create(level, EntitySpawnReason.MOB_SUMMONED);
+        if (!(entity instanceof LivingEntity living)) return null;
+
+        living.setPos(spawnPos.x + dx, spawnPos.y, spawnPos.z + dz);
+
+        if (living instanceof Mob mob) {
+            mob.setPersistenceRequired();
+            rewriteAiForSummoner(mob, player);
+            pacifyBrainMob(mob);
+
+            if (applyEquipment) {
+                // Apply configured equipment (or default helmet for sun protection)
+                equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
+                equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
+                equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
+                equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
+                equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
+                equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
+            }
+
+            // Zero all drop chances — summoned mobs never drop loot
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                mob.setDropChance(slot, 0.0f);
+            }
+        }
+
+        level.addFreshEntity(living);
+
+        // Track the minion (mob_type tag is shared so mounts count against the
+        // same cap and despawn/clear alongside their riders).
         MinionTracker.track(player, living, config.mobType(),
             player.tickCount, config.despawnTicks(), config.deathDamage());
+        return living;
+    }
 
-        return true;
+    /**
+     * Calm brain-driven neutral mobs (piglins, hoglins) at spawn so a freshly
+     * summoned minion doesn't immediately turn on its summoner. These mobs use
+     * the Brain/memory system rather than goal selectors, so the goal-based
+     * {@link #rewriteAiForSummoner} and the {@code LivingChangeTargetEvent}
+     * interceptor never see them. We clear their anger/target memories and, for
+     * piglins, suppress both zombification (in the Nether's absence) and the
+     * "no gold armour → hostile" check via immunity flags. The per-tick
+     * {@code MinionTracker} pacifier keeps them calm thereafter.
+     */
+    private static void pacifyBrainMob(Mob mob) {
+        if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) {
+            piglin.setImmuneToZombification(true);
+        }
+        if (mob instanceof net.minecraft.world.entity.NeutralMob neutral) {
+            neutral.stopBeingAngry();
+        }
+        var brain = mob.getBrain();
+        brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT);
+        brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
     }
 
     /**

@@ -8,15 +8,12 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * Renderer for {@link MagicOrbProjectile}. Extends the shared procedural-quad
  * base — all animation is time-math on the render state, no model or
  * animation files required.
  */
-@OnlyIn(Dist.CLIENT)
 public class MagicOrbRenderer extends ProceduralQuadRenderer<MagicOrbProjectile, MagicOrbRenderState> {
 
     /** Shared 1×1 solid-white texture for the quads. Tinted per-vertex by effect color. */

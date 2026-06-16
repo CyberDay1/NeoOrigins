@@ -70,6 +70,7 @@ public final class CompatTestHarness {
         "apoli:overlay",
         "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
         "origins:modify_falling",       "apace:modify_falling",
+        "origins:modify_fall_damage",   "apace:modify_fall_damage",
         "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
         "origins:freeze",               "apace:freeze",
         "origins:modify_harvest",       "apace:modify_harvest",
@@ -224,6 +225,23 @@ public final class CompatTestHarness {
         // shapes (e.g. action_on_hit) just as much as into native ones.
         validateEntityActions(json, path, findings);
 
+        // multiple containers (native neoorigins: as well as origins:/apace:) —
+        // expand and recurse. This MUST run before the native-prefix branch
+        // below, otherwise neoorigins:multiple matches startsWith(NEO_PREFIX)
+        // and is handed to validateNativeStructure, which doesn't know it.
+        if (OriginsMultipleExpander.isMultipleType(type)) {
+            try {
+                Map<Identifier, JsonObject> expanded = OriginsMultipleExpander.expand(id, json);
+                for (var entry : expanded.entrySet()) {
+                    String subPath = path + "#" + entry.getKey().getPath();
+                    processJson(entry.getKey(), entry.getValue(), subPath, findings);
+                }
+            } catch (Exception e) {
+                findings.add(new Finding(Result.FAIL, path, type, "multiple expand error: " + e.getMessage()));
+            }
+            return;
+        }
+
         // Native NeoOrigins types — structurally validated, then pass.
         // Previously these auto-PASSed; v2.1.6 added per-type structural hooks
         // (see validateNativeStructure) so authoring mistakes in native packs
@@ -234,20 +252,6 @@ public final class CompatTestHarness {
                 findings.add(new Finding(Result.WARN, path, type, "native struct: " + nativeIssue));
             } else {
                 findings.add(new Finding(Result.PASS, path, type, "native type"));
-            }
-            return;
-        }
-
-        // origins:multiple — expand and recurse
-        if (type.equals("origins:multiple") || type.equals("apace:multiple")) {
-            try {
-                Map<Identifier, JsonObject> expanded = OriginsMultipleExpander.expand(id, json);
-                for (var entry : expanded.entrySet()) {
-                    String subPath = path + "#" + entry.getKey().getPath();
-                    processJson(entry.getKey(), entry.getValue(), subPath, findings);
-                }
-            } catch (Exception e) {
-                findings.add(new Finding(Result.FAIL, path, type, "multiple expand error: " + e.getMessage()));
             }
             return;
         }
@@ -263,6 +267,22 @@ public final class CompatTestHarness {
             String structIssue = validateRouteBStructure(type, json);
             if (structIssue != null) {
                 findings.add(new Finding(Result.WARN, path, type, "Route B struct: " + structIssue));
+            } else if (isFallDamageLoadProof(type, json)) {
+                // Load-proof for the modify_fall_damage handler: these Config
+                // builders are server-free (just ModifierParser + condition
+                // lambdas), so we can actually run parseRouteB headlessly and
+                // assert a Config was produced — proving the power LOADS instead
+                // of being silently dropped (the original bug). A null Config
+                // here is a FAIL (the harness exits non-zero).
+                boolean loads = com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
+                    .compilesForTest(id, type, json);
+                if (loads) {
+                    findings.add(new Finding(Result.PASS, path, type,
+                        "fall-damage load proof: Config produced (not dropped)"));
+                } else {
+                    findings.add(new Finding(Result.FAIL, path, type,
+                        "fall-damage load proof: parseRouteB returned null — power would be dropped"));
+                }
             } else {
                 findings.add(new Finding(Result.SKIP, path, type, ""));
             }
@@ -617,6 +637,30 @@ public final class CompatTestHarness {
 
     // ── Route B Structural Validation ───────────────────────────────────────
 
+    /**
+     * True for the fall-damage powers we can prove LOAD headlessly: a standalone
+     * {@code modify_fall_damage}, or a {@code conditioned_attribute} whose modifier
+     * targets the (non-vanilla) {@code fall_damage} attribute — the case that used
+     * to be silently dropped and now auto-routes to the fall-damage handler.
+     */
+    private static boolean isFallDamageLoadProof(String type, JsonObject json) {
+        if (type.endsWith(":modify_fall_damage")) return true;
+        if (type.endsWith(":conditioned_attribute")) {
+            String attr = null;
+            if (json.has("attribute") && json.get("attribute").isJsonPrimitive()) {
+                attr = json.get("attribute").getAsString();
+            } else if (json.has("modifier") && json.get("modifier").isJsonObject()
+                    && json.getAsJsonObject("modifier").has("attribute")) {
+                attr = json.getAsJsonObject("modifier").get("attribute").getAsString();
+            }
+            if (attr != null) {
+                String leaf = attr.contains(":") ? attr.substring(attr.indexOf(':') + 1) : attr;
+                return leaf.equals("fall_damage") || leaf.equals("generic.fall_damage");
+            }
+        }
+        return false;
+    }
+
     private static String validateRouteBStructure(String type, JsonObject json) {
         String base = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
         return switch (base) {
@@ -678,6 +722,14 @@ public final class CompatTestHarness {
             // (effectively a no-op power), so flag missing-modifier as a WARN so authors
             // notice the dead power without breaking load.
             case "modify_damage_taken", "modify_damage_dealt" -> {
+                if (!json.has("modifier") && !json.has("modifiers"))
+                    yield "missing 'modifier'/'modifiers'";
+                yield null;
+            }
+            // modify_fall_damage: parseModifyFallDamage requires a modifier (object)
+            // or modifiers (array) to know how to scale fall damage; absent both is
+            // a no-op power that gets skipped at load, so flag it here.
+            case "modify_fall_damage" -> {
                 if (!json.has("modifier") && !json.has("modifiers"))
                     yield "missing 'modifier'/'modifiers'";
                 yield null;

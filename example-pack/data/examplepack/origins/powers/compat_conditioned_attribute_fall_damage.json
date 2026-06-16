@@ -1,0 +1,12 @@
+{
+  "type": "origins:conditioned_attribute",
+  "condition": { "type": "origins:sneaking" },
+  "modifier": {
+    "attribute": "apoli:fall_damage",
+    "operation": "multiply_base_additive",
+    "value": -1.0
+  },
+  "name": "Compat Fixture: No Sneak Fall Damage",
+  "description": "Harness fixture: origins:conditioned_attribute whose modifier targets the (non-vanilla) fall_damage attribute. Must auto-route to modify_fall_damage instead of being dropped for an unresolvable attribute.",
+  "hidden": true
+}

@@ -13,15 +13,12 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * Renderer for {@link BlackHoleVfxEntity} — uses {@link GeoJsonModel} to
  * load the black-hole mesh once at classload, continuously Y-axis spins
  * it, and scales visually with the entity's configured range.
  */
-@OnlyIn(Dist.CLIENT)
 public class BlackHoleRenderer extends EntityRenderer<BlackHoleVfxEntity, AbstractVfxRenderState> {
 
     private static final GeoJsonModel MODEL =

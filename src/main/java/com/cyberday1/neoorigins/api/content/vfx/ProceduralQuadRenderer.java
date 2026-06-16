@@ -9,8 +9,6 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.Entity;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * Base renderer for procedurally-animated 2D-quad VFX — the "two crossed
@@ -50,7 +48,6 @@ import net.neoforged.api.distmarker.OnlyIn;
  *
  * <p>API status: stable. Added in 2.0.
  */
-@OnlyIn(Dist.CLIENT)
 public abstract class ProceduralQuadRenderer<T extends Entity, S extends AbstractVfxRenderState>
         extends EntityRenderer<T, S> {
 

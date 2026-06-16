@@ -118,7 +118,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             // in place, so the dispatch below (and the main loop's format check +
             // translator) recognize packs that use the Apoli namespace.
             String typeStr = OriginsFormatDetector.canonicalizePowerType(json);
-            if ("origins:multiple".equals(typeStr) || "apace:multiple".equals(typeStr)) {
+            if (OriginsMultipleExpander.isMultipleType(typeStr)) {
                 working.remove(id);
                 try {
                     Map<Identifier, JsonObject> synthetics = OriginsMultipleExpander.expand(id, json);

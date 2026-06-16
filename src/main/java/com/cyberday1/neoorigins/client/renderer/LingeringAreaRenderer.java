@@ -7,8 +7,6 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * Renderer for {@link LingeringAreaEntity}. Empty — the visual is entirely
@@ -16,7 +14,6 @@ import net.neoforged.api.distmarker.OnlyIn;
  * render pipeline is happy and so future client-side enhancements (a faint
  * ground ring outline, a pulse decal) have somewhere to live.
  */
-@OnlyIn(Dist.CLIENT)
 public class LingeringAreaRenderer
         extends EntityRenderer<LingeringAreaEntity, AbstractVfxRenderState> {
 

@@ -55,6 +55,21 @@ public final class OriginsMultipleExpander {
 
     private OriginsMultipleExpander() {}
 
+    /**
+     * True if {@code type} is a "multiple" container power in any recognized
+     * namespace: the native {@code neoorigins:multiple}, the Apoli/Origins
+     * {@code origins:multiple} (which {@code apoli:}/{@code apugli:} canonicalize
+     * to), or Apace's {@code apace:multiple}. All three flatten through
+     * {@link #expand} into synthetic per-sub-power entries, so the native form is
+     * the first-class, in-namespace way to author a sub-power container while the
+     * {@code origins:}/{@code apace:} forms remain for imported packs.
+     */
+    public static boolean isMultipleType(String type) {
+        return "neoorigins:multiple".equals(type)
+            || "origins:multiple".equals(type)
+            || "apace:multiple".equals(type);
+    }
+
     /** Clears the expansion and display maps. Call at the start of PowerDataManager.apply(). */
     public static void reset() {
         MULTIPLE_EXPANSION_MAP.clear();
@@ -107,18 +122,12 @@ public final class OriginsMultipleExpander {
             // and a nested apoli:multiple is never recursed into.
             OriginsFormatDetector.canonicalizePowerType(subPowerJson);
 
-            if (!OriginsFormatDetector.isOriginsFormat(subPowerJson)) {
-                // Sub-power is already NeoOrigins format (unusual but pass through)
-                NeoOrigins.LOGGER.debug("OriginsCompat: multiple sub-power {} is not Origins format, using as-is", syntheticId);
-                result.put(syntheticId, subPowerJson);
-                syntheticIds.add(syntheticId);
-                CompatTranslationLog.pass(syntheticId, "origins:multiple sub-power (native format)");
-                continue;
-            }
-
-            // Check for nested origins:multiple — recurse
+            // Check for nested multiple (any namespace) — recurse. This MUST run
+            // before the native-format passthrough below, because a native
+            // neoorigins:multiple sub-power is "not Origins format" and would
+            // otherwise be stored as a single opaque power instead of flattened.
             String subType = OriginsFormatDetector.getType(subPowerJson);
-            if ("origins:multiple".equals(subType) || "apace:multiple".equals(subType)) {
+            if (isMultipleType(subType)) {
                 try {
                     Map<Identifier, JsonObject> nested = expand(syntheticId, subPowerJson);
                     result.putAll(nested);
@@ -133,6 +142,17 @@ public final class OriginsMultipleExpander {
                     NeoOrigins.LOGGER.warn("OriginsCompat: Failed to expand nested multiple {}: {}", syntheticId, reason);
                     CompatTranslationLog.fail(syntheticId, "nested origins:multiple expansion error: " + reason);
                 }
+                continue;
+            }
+
+            if (!OriginsFormatDetector.isOriginsFormat(subPowerJson)) {
+                // Sub-power is already NeoOrigins format — pass through as-is so it
+                // re-enters native power loading. This is the normal case for a
+                // native neoorigins:multiple container's sub-powers.
+                NeoOrigins.LOGGER.debug("OriginsCompat: multiple sub-power {} is not Origins format, using as-is", syntheticId);
+                result.put(syntheticId, subPowerJson);
+                syntheticIds.add(syntheticId);
+                CompatTranslationLog.pass(syntheticId, "multiple sub-power (native format)");
                 continue;
             }
 

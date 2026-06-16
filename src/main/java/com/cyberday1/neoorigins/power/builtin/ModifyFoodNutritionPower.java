@@ -69,29 +69,39 @@ public class ModifyFoodNutritionPower extends PowerType<ModifyFoodNutritionPower
     }
 
     /**
-     * Corrects the player's food data after vanilla has already applied the
-     * original food properties.
+     * Re-applies the eaten food at its overridden nutrition value, working from
+     * the player's food/saturation as it was <em>before</em> vanilla ate the
+     * item.
+     *
+     * <p>This used to correct the bar with a post-eat delta
+     * ({@code current + (target - original)}), but that silently broke whenever
+     * the food filled the bar to its cap: vanilla clamps the actual gain at 20,
+     * so subtracting the full {@code original - target} over-corrected and the
+     * player could end up with nothing (or less) than they started with. By
+     * recomputing absolutely from the pre-eat baseline we get the same result
+     * vanilla would have produced had the food simply carried {@code target}
+     * nutrition to begin with.
+     *
+     * @param preFood       foodLevel captured before vanilla applied the food
+     * @param preSaturation saturation captured before vanilla applied the food
      */
-    public static void applyOverride(ServerPlayer player, ItemStack originalStack, int targetNutrition) {
+    public static void applyOverride(ServerPlayer player, ItemStack originalStack,
+                                     int targetNutrition, int preFood, float preSaturation) {
         FoodProperties food = originalStack.get(DataComponents.FOOD);
         if (food == null) return;
 
         int originalNutrition = food.nutrition();
-        float originalSaturation = food.saturation();
         if (originalNutrition == targetNutrition) return;
 
+        float originalSaturation = food.saturation();
         float ratio = originalNutrition > 0
             ? originalSaturation / (float) originalNutrition
             : 0f;
         float targetSaturation = targetNutrition * ratio;
 
-        int nutritionDelta = targetNutrition - originalNutrition;
-        float saturationDelta = targetSaturation - originalSaturation;
-
         var foodData = player.getFoodData();
-        foodData.setFoodLevel(Mth.clamp(foodData.getFoodLevel() + nutritionDelta, 0, 20));
-        foodData.setSaturation(Mth.clamp(
-            foodData.getSaturationLevel() + saturationDelta,
-            0.0F, (float) foodData.getFoodLevel()));
+        int desiredFood = Mth.clamp(preFood + targetNutrition, 0, 20);
+        foodData.setFoodLevel(desiredFood);
+        foodData.setSaturation(Mth.clamp(preSaturation + targetSaturation, 0.0F, (float) desiredFood));
     }
 }

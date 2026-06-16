@@ -134,10 +134,60 @@ public final class MinionTracker {
                 entity.discard();
                 toRemove.add(m);
                 DIM_HINTS.remove(m.minionUuid());
+                continue;
             }
+
+            // Keep brain-driven neutral mobs (piglins/hoglins) from turning on
+            // their summoner. Their anger lives in the Brain/memory system, not
+            // in goal selectors, so it re-arms every few ticks (e.g. a piglin
+            // re-checks "is the player wearing gold?") and bypasses the
+            // goal-based LivingChangeTargetEvent interceptor entirely.
+            pacifyTowardOwner(entity, player);
         }
         if (!toRemove.isEmpty()) {
             list.removeAll(toRemove);
+        }
+    }
+
+    /**
+     * Per-tick anger suppression for brain-driven neutral mobs. Clears any
+     * attack-target or anger memory pointed at the owner (and the goal-selector
+     * target for non-brain mobs), and keeps piglins immune to zombification so
+     * they don't re-arm against an un-gold-armoured summoner.
+     */
+    private static void pacifyTowardOwner(LivingEntity minion, ServerPlayer owner) {
+        if (minion instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) {
+            piglin.setImmuneToZombification(true);
+        }
+
+        var brain = minion.getBrain();
+
+        if (brain.checkMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET,
+                net.minecraft.world.entity.ai.memory.MemoryStatus.VALUE_PRESENT)) {
+            var target = brain.getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET)
+                .orElse(null);
+            if (target == owner) {
+                brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
+            }
+        }
+
+        if (brain.checkMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT,
+                net.minecraft.world.entity.ai.memory.MemoryStatus.VALUE_PRESENT)) {
+            var angryAt = brain.getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT)
+                .orElse(null);
+            if (owner.getUUID().equals(angryAt)) {
+                brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT);
+                if (minion instanceof net.minecraft.world.entity.NeutralMob neutral) {
+                    neutral.stopBeingAngry();
+                }
+            }
+        }
+
+        // Goal-based mobs are normally handled by the LivingChangeTargetEvent
+        // interceptor, but clear here too as a belt-and-braces against any
+        // target that slipped through (e.g. set directly without the event).
+        if (minion instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == owner) {
+            mob.setTarget(null);
         }
     }
 

@@ -197,6 +197,7 @@ public class PlayerLifecycleEvents {
         ActiveOriginService.invalidate(uuid);
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
         com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);
+        com.cyberday1.neoorigins.service.FirstPickGraceTracker.clear(uuid);
         com.cyberday1.neoorigins.power.builtin.ModelColorPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ResourcePower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);

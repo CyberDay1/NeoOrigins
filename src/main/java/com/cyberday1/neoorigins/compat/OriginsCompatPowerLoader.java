@@ -94,6 +94,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "apoli:overlay",
         "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
         "origins:modify_falling",       "apace:modify_falling",
+        "origins:modify_fall_damage",   "apace:modify_fall_damage",
         "origins:modify_velocity",      "apace:modify_velocity",
         // Phase 8: Origins++ compat
         "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
@@ -112,6 +113,17 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     /** Check if a raw type string (before canonicalization) is handled by Route B. */
     public static boolean isRouteBType(String rawType) {
         return ROUTE_B_TYPES.contains(rawType);
+    }
+
+    /**
+     * Headless test hook: compile a Route B power and return whether a Config was
+     * produced (non-null = the power LOADS; null = it would be dropped). Only the
+     * server-free handlers (no registry/level access at parse time) are safe to
+     * call this way — used by {@link com.cyberday1.neoorigins.dev.CompatTestHarness}
+     * to prove modify_fall_damage powers are no longer silently dropped.
+     */
+    public static boolean compilesForTest(Identifier id, String type, JsonObject json) {
+        return INSTANCE.parseRouteB(id, type, json) != null;
     }
 
     private static final FileToIdConverter FILE_CONVERTER  = FileToIdConverter.json("origins/powers");
@@ -381,7 +393,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             if (!entry.getValue().isJsonObject()) continue;
             JsonObject json = entry.getValue().getAsJsonObject();
             String type = OriginsFormatDetector.getType(json);
-            if ("origins:multiple".equals(type) || "apace:multiple".equals(type)) {
+            if (OriginsMultipleExpander.isMultipleType(type)) {
                 expandMultiple(entry.getKey(), json, result);
             } else {
                 result.put(entry.getKey(), json);
@@ -399,7 +411,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 parentId.getNamespace(), parentId.getPath() + "/" + subEntry.getKey()
             );
             String subType = OriginsFormatDetector.getType(subJson);
-            if ("origins:multiple".equals(subType) || "apace:multiple".equals(subType)) {
+            if (OriginsMultipleExpander.isMultipleType(subType)) {
                 expandMultiple(syntheticId, subJson, out); // recurse
             } else {
                 // Resolve *:* self-references before storing. In Origins/Apoli,
@@ -478,6 +490,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "apoli:overlay"                                                          -> parseOverlay(id, json);
             case "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier" -> parseModifyEffectAmplifier(id, json);
             case "origins:modify_falling",             "apace:modify_falling"             -> parseModifyFalling(id, json);
+            case "origins:modify_fall_damage",         "apace:modify_fall_damage"         -> parseModifyFallDamage(id, json);
             case "origins:modify_velocity",            "apace:modify_velocity"            -> parseModifyVelocity(id, json);
             // Phase 8: Origins++ compat
             case "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor" -> parseConditionedRestrictArmor(id, json);
@@ -664,7 +677,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     // are cast. Read the right-click tick stamped by CompatEventPowers.
                     case "key.use"     -> CompatPlayerState.isUseKeyDown(player);
                     case "key.attack"  -> player.swinging;
-                    case "key.jump"    -> !player.onGround() && player.getDeltaMovement().y > 0;
+                    // Real airborne jump-press signal (client-sent AirJumpPayload),
+                    // not the old "airborne and rising" heuristic that fired during
+                    // the natural first jump and missed a deliberate re-press while
+                    // falling — the double-jump gesture. See CompatPlayerState.
+                    case "key.jump"    -> CompatPlayerState.isJumpKeyDown(player);
                     case "key.forward" -> player.zza > 0;
                     case "key.back"    -> player.zza < 0;
                     case "key.left"    -> player.xxa > 0;
@@ -1061,6 +1078,28 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return null;
         }
 
+        // Fall-damage isn't a vanilla attribute, so a conditioned_attribute that
+        // targets it (e.g. attribute "apoli:fall_damage" / "fall_damage") would
+        // fail the registry lookup below and get SILENTLY DROPPED. Route it to the
+        // dedicated fall-damage handler instead — it reads the same modifier/
+        // modifiers + condition off this object and scales fall damage via the
+        // native MOD_FALL_DAMAGE seam. (path-only match: namespace varies across
+        // packs, but the leaf is consistently "fall_damage".)
+        String attrLeaf = attrStr.contains(":") ? attrStr.substring(attrStr.indexOf(':') + 1) : attrStr;
+        if (attrLeaf.equals("fall_damage") || attrLeaf.equals("generic.fall_damage")) {
+            // The modifier may be nested inside the "modifier" object alongside the
+            // attribute key — hoist it to the top-level "modifier" the fall-damage
+            // parser expects, without mutating the original (defensive copy).
+            JsonObject fwd = json.deepCopy();
+            if (!fwd.has("modifier") && !fwd.has("modifiers")
+                    && json.has("modifier") && json.get("modifier").isJsonObject()) {
+                fwd.add("modifier", json.getAsJsonObject("modifier"));
+            }
+            CompatTranslationLog.pass(id,
+                "origins:conditioned_attribute (fall_damage) -> modify_fall_damage");
+            return parseModifyFallDamage(id, fwd);
+        }
+
         Identifier rawAttrIdent = Identifier.parse(attrStr);
         // Try the raw attribute name first. If that fails and the name has a
         // "generic." prefix (used in MC ≤1.21.1), try without it (MC 1.21.2+
@@ -1230,6 +1269,101 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (gravAttr != null) gravAttr.removeModifier(gravModId);
                 var fallAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SAFE_FALL_DISTANCE);
                 if (fallAttr != null) fallAttr.removeModifier(fallModId);
+            })
+            .build();
+    }
+
+    /** Per-player MOD_FALL_DAMAGE modifier tokens, keyed by power id so each
+     *  modify_fall_damage instance registers + unregisters its own handler.
+     *  Mirrors ActionOnEventPower's per-config token bookkeeping (idempotent
+     *  re-grant: login/respawn/origin-swap all re-call onGranted). */
+    private static final java.util.Map<java.util.UUID,
+        java.util.Map<String, com.cyberday1.neoorigins.service.EventPowerIndex.Token>>
+        FALL_DAMAGE_TOKENS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * {@code apoli:modify_fall_damage} — scales incoming fall damage, optionally
+     * gated by a condition. Apoli carries the scale as a {@code modifier} object
+     * or {@code modifiers} array of {@code {operation, value}} entries (e.g.
+     * {@code {"operation":"multiply_base_additive","value":-0.5}} = "fall damage
+     * * (1 + -0.5)" = halved).
+     *
+     * <p>Reuses the EXISTING native fall-damage plumbing rather than adding a new
+     * field: {@link com.cyberday1.neoorigins.event.MovementPowerEvents#onLivingFall}
+     * already chains {@code EventPowerIndex.dispatchModifier(sp, MOD_FALL_DAMAGE,
+     * event, currentMultiplier)} onto the {@code LivingFallEvent} damage multiplier
+     * (the same seam {@code neoorigins:action_on_event event=mod_fall_damage}
+     * consumes). On grant we register a {@link
+     * com.cyberday1.neoorigins.service.EventPowerIndex.ModifierHandler} there; on
+     * revoke we remove it — exactly the {@link
+     * com.cyberday1.neoorigins.power.builtin.ActionOnEventPower} pattern.
+     *
+     * <p>The operation+value → multiplier math goes through {@link
+     * com.cyberday1.neoorigins.compat.modifier.ModifierParser#parseList}, the same
+     * chokepoint native {@code action_on_event} uses, so the semantics stay
+     * consistent (e.g. {@code multiply_base_additive -0.5}: {@code base -> base +
+     * base*-0.5 = base*0.5}; {@code addition -1.0}: subtracts a flat 1.0;
+     * {@code set_total 0}: hard-zeroes the multiplier = no fall damage).
+     */
+    private CompatPower.Config parseModifyFallDamage(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+
+        // Apoli singular "modifier" or plural "modifiers"; ModifierParser.parseList
+        // accepts a single object or an array. Mirror parseNumericModifier's
+        // tolerance: prefer "modifier", fall back to "modifiers".
+        JsonElement modEl = json.has("modifier")  ? json.get("modifier")
+                          : json.has("modifiers") ? json.get("modifiers")
+                          : null;
+        if (modEl == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_fall_damage '{}' missing modifier/modifiers — skipped", id);
+            CompatTranslationLog.skip(id, "origins:modify_fall_damage", "missing 'modifier'/'modifiers'");
+            return null;
+        }
+        final com.cyberday1.neoorigins.compat.modifier.FloatModifier modifier =
+            com.cyberday1.neoorigins.compat.modifier.ModifierParser.parseList(modEl, idStr);
+
+        // Gating condition: present on the power (standalone) or carried over from
+        // a conditioned_attribute wrapper (parseConditionedAttribute forwards the
+        // whole object here). Absent ⇒ alwaysTrue (unconditional scale).
+        final EntityCondition condition = parseConditionField(json, "condition", idStr);
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> {
+                // Idempotent re-grant: drop any prior handler for this power id
+                // before re-registering, so login/respawn/origin-swap can't stack
+                // multiple multipliers (the ActionOnEventPower leak-guard).
+                var perPower = FALL_DAMAGE_TOKENS.get(player.getUUID());
+                if (perPower != null) {
+                    var existing = perPower.remove(idStr);
+                    if (existing != null) {
+                        com.cyberday1.neoorigins.service.EventPowerIndex.unregister(existing);
+                    }
+                }
+                com.cyberday1.neoorigins.service.EventPowerIndex.ModifierHandler handler =
+                    (sp, ctx, base) -> {
+                        try {
+                            if (!condition.test(sp)) return base;
+                            return modifier.apply(base);
+                        } catch (Exception e) {
+                            NeoOrigins.LOGGER.warn("[CompatB] modify_fall_damage handler error ({}): {}",
+                                idStr, e.getMessage());
+                            return base;
+                        }
+                    };
+                var tok = com.cyberday1.neoorigins.service.EventPowerIndex.registerModifier(
+                    player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_FALL_DAMAGE, handler);
+                FALL_DAMAGE_TOKENS.computeIfAbsent(player.getUUID(),
+                    k -> new java.util.concurrent.ConcurrentHashMap<>()).put(idStr, tok);
+            })
+            .onRevoked(player -> {
+                var perPower = FALL_DAMAGE_TOKENS.get(player.getUUID());
+                if (perPower != null) {
+                    var tok = perPower.remove(idStr);
+                    if (tok != null) {
+                        com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
+                    }
+                    if (perPower.isEmpty()) FALL_DAMAGE_TOKENS.remove(player.getUUID());
+                }
             })
             .build();
     }

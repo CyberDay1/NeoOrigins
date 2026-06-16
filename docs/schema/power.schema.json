@@ -100,6 +100,7 @@
         "neoorigins:more_animal_loot",
         "neoorigins:more_smoker_xp",
         "neoorigins:mount",
+        "neoorigins:multiple",
         "neoorigins:natural_glide",
         "neoorigins:natural_regen_modifier",
         "neoorigins:night_vision",
@@ -3075,6 +3076,12 @@
           "type": "integer",
           "default": 3
         },
+        "quantity": {
+          "description": "Minions summoned per activation (capped by remaining max_count headroom).",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
         "cooldown_ticks": {
           "description": "Ticks before the summon ability can be reused (200 = 10s).",
           "type": "integer",
@@ -3118,6 +3125,11 @@
         "offhand": {
           "description": "Item id placed in the summoned mob's off hand (optional).",
           "type": "string"
+        },
+        "mount": {
+          "description": "Entity type id of an optional mount; each summoned minion is seated on its own copy of this entity (e.g. minecraft:hoglin so a piglin minion rides a hoglin). The mount is also owner-friendly, drops no loot, and despawns with its rider.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -3188,6 +3200,34 @@
             "type": "string",
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
+        },
+        "targeting": {
+          "description": "How targets are picked: \"raycast\" (default) tames the single mob you are looking at; \"area\" tames every eligible mob within `range`, nearest-first, up to the remaining max_tamed slots.",
+          "type": "string",
+          "enum": [
+            "raycast",
+            "area"
+          ],
+          "default": "raycast"
+        },
+        "entity_whitelist": {
+          "description": "Area-mode only: entity ids (\"minecraft:zombie\") and tag refs (\"#mymod:tameable\") an area cast is restricted to. Empty (default) = any mob (still subject to hostile_only and the blacklists). Ignored in raycast mode.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "resource_cost": {
+          "description": "Optional resource power id spent PER mob tamed; empty = no resource cost (falls back to hunger_cost). When resource bars are globally disabled this amount is charged as hunger instead.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per mob tamed; default 0. Taming stops greedily once the player can no longer afford one more.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
