@@ -220,6 +220,7 @@ public class PlayerLifecycleEvents {
         ActiveOriginService.invalidate(uuid);
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
         com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);
+        com.cyberday1.neoorigins.service.FirstPickGraceTracker.clear(uuid);
         com.cyberday1.neoorigins.power.builtin.ModelColorPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ResourcePower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
@@ -296,6 +297,20 @@ public class PlayerLifecycleEvents {
         }
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
+
+        // Re-equip trinkets kept via keep_inventory. The new ServerPlayer's
+        // Curios/Accessories handlers are ready by respawn; re-equip into the
+        // original slot when it's empty, otherwise fall back to the inventory so
+        // the item is never lost.
+        var trinkets = KEPT_TRINKETS.remove(sp.getUUID());
+        if (trinkets != null) {
+            for (var t : trinkets) {
+                boolean placed = com.cyberday1.neoorigins.compat.condition.AccessoryInspector.restoreSlot(
+                    sp, t.source(), t.slotId(), t.index(), t.stack());
+                if (!placed && !sp.getInventory().add(t.stack())) sp.drop(t.stack(), false);
+            }
+        }
+
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
         pendingResync.put(sp.getUUID(), 2);
@@ -419,6 +434,15 @@ public class PlayerLifecycleEvents {
     private static final java.util.Map<java.util.UUID, java.util.List<net.minecraft.world.item.ItemStack>> KEPT_STASH
         = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /** One Curios/Accessories stack kept across death, with the slot to re-equip into. */
+    private record KeptTrinket(
+        com.cyberday1.neoorigins.compat.condition.AccessoryInspector.Source source,
+        String slotId, int index, net.minecraft.world.item.ItemStack stack) {}
+
+    /** Per-player stash for trinket (Curios/Accessories) items kept across death. */
+    private static final java.util.Map<java.util.UUID, java.util.List<KeptTrinket>> KEPT_TRINKETS
+        = new java.util.concurrent.ConcurrentHashMap<>();
+
     @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGH)
     public static void onLivingDeath(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -443,6 +467,25 @@ public class PlayerLifecycleEvents {
             }
         }
         if (!kept.isEmpty()) KEPT_STASH.put(sp.getUUID(), kept);
+
+        // Trinket slots (Curios / Accessories) — keep_inventory must cover them
+        // too. Capture matching equipped trinkets, copy them into the stash, and
+        // empty the live slot so the mod doesn't drop it; restored on respawn.
+        var keptTrinkets = new java.util.ArrayList<KeptTrinket>();
+        for (var entry : com.cyberday1.neoorigins.compat.condition.AccessoryInspector.getEquippedEntries(sp)) {
+            final boolean[] match = {false};
+            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.class, cfg -> {
+                if (!com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.matchesAccessorySlot(cfg, entry.slotId())) return;
+                if (!com.cyberday1.neoorigins.power.builtin.KeepInventoryPower.matchesItem(cfg, entry.stack())) return;
+                match[0] = true;
+            });
+            if (match[0]) {
+                keptTrinkets.add(new KeptTrinket(entry.source(), entry.slotId(), entry.index(), entry.stack().copy()));
+                com.cyberday1.neoorigins.compat.condition.AccessoryInspector.clearSlot(
+                    sp, entry.source(), entry.slotId(), entry.index());
+            }
+        }
+        if (!keptTrinkets.isEmpty()) KEPT_TRINKETS.put(sp.getUUID(), keptTrinkets);
 
         // Kill all tracked minions belonging to the dying summoner — they
         // shouldn't outlive their owner. clearAll() discards them cleanly and

@@ -6,14 +6,11 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * 1.21.1 renderer for {@link TornadoVfxEntity}. Empty — spiral particles
  * emitted server-side carry the visual. See 26.1 twin for rationale.
  */
-@OnlyIn(Dist.CLIENT)
 public class TornadoRenderer extends EntityRenderer<TornadoVfxEntity> {
 
     private static final ResourceLocation NONE = ResourceLocation.parse("minecraft:textures/misc/white.png");

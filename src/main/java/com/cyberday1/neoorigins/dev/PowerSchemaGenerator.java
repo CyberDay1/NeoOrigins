@@ -53,9 +53,17 @@ public final class PowerSchemaGenerator {
 
     private static final String DEFAULT_OUTPUT = "docs/schema/power.schema.json";
 
-    /** The two ids that exist in the enum by design but have no in-code descriptor. */
+    /** The ids that exist in the enum by design but have no in-code descriptor. */
     private static final String ID_PARTICLE = "neoorigins:particle";
     private static final String ID_STARTING_EQUIPMENT = "neoorigins:starting_equipment";
+    /**
+     * The native sub-power container. It is expanded away at datapack load
+     * (see {@link com.cyberday1.neoorigins.compat.OriginsMultipleExpander}) and
+     * never registers a runtime descriptor, so it has no structured branch — it
+     * lives in the enum and matches the permissive fallback, which is the correct
+     * shape since its sub-power keys are arbitrary.
+     */
+    private static final String ID_MULTIPLE = "neoorigins:multiple";
 
     public static void main(String[] args) throws IOException {
         Path output = Path.of(args.length > 0 ? args[0] : DEFAULT_OUTPUT);
@@ -228,6 +236,7 @@ public final class PowerSchemaGenerator {
         Set<String> ids = new TreeSet<>(BuiltinPowers.ids());
         ids.add(ID_PARTICLE);
         ids.add(ID_STARTING_EQUIPMENT);
+        ids.add(ID_MULTIPLE);
         for (ResourceLocation rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
             ids.add(rl.toString());
         }

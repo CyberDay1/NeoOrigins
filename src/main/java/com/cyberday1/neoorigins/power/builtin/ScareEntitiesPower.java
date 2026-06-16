@@ -5,12 +5,9 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
@@ -48,26 +45,15 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
         if (player.tickCount % TICK_INTERVAL != 0) return;
         if (config.entityTypes().isEmpty()) return;
 
-        AABB box = player.getBoundingBox().inflate(RANGE);
-        for (Entity e : player.level().getEntities(player, box)) {
-            // Mob covers PathfinderMob (zombies, etc.) AND WaterAnimal (cod,
-            // salmon, squid, dolphin, ...). The earlier PathfinderMob-only
-            // check silently filtered out every aquatic mob, leaving Abyssal
-            // Scare Ocean / similar fish-fleeing powers as no-ops.
-            if (!(e instanceof Mob mob)) continue;
-            if (!(e instanceof LivingEntity le)) continue;
-            boolean matches = false;
-            for (String id : config.entityTypes()) {
-                if (com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(le, id)) {
-                    matches = true;
-                    break;
-                }
-            }
-            if (!matches) continue;
-            // Exclusions: boss-tier (Warden/Ender Dragon/Wither — never
-            // scareable), the global config blacklist, and this power's own
-            // entity_blacklist. Excluded entities are silently skipped.
-            if (com.cyberday1.neoorigins.service.EntityExclusions.isExcluded(le, config.entityBlacklist())) continue;
+        // Selection (radius sweep + entity_types whitelist + boss-tier/global/
+        // per-power exclusions) is shared with the AoE power family. Behavior is
+        // identical to the old inline loop: same RANGE, same whitelist
+        // (entity_types), same exclusions, not hostile-only, no target cap
+        // (limit 0). Mob covers PathfinderMob (zombies, etc.) AND WaterAnimal
+        // (cod, salmon, squid, dolphin, ...) — the selector keeps both.
+        List<Mob> mobs = com.cyberday1.neoorigins.service.AreaTargetSelector.mobsInRadius(
+            player, RANGE, config.entityTypes(), config.entityBlacklist(), false, 0);
+        for (Mob mob : mobs) {
             // Drop aggro unconditionally — not just when targeting this player.
             // Mobs like Phantoms use shared targeting goals that pick ANY nearby
             // player; if we only clear when target == this player, a Phantom

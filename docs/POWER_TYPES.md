@@ -58,6 +58,43 @@ No additional fields beyond `name` and `description`.
 
 ---
 
+## `neoorigins:multiple`
+
+A container that bundles several powers into one. Every key in the JSON other than the shared display fields is treated as a **sub-power** — its own complete power object. At datapack load the container is flattened: each sub-power becomes a standalone power with the synthetic id `<container-namespace>:<container-path>/<subkey>`, and the origin's power list is rewritten to reference those synthetic ids instead of the container.
+
+Use it when a single conceptual ability is really several powers working together (a passive attribute + an on-hit action + a keybind active), so the origin panel can collapse them under one name and description instead of listing each piece.
+
+| Field | Type | Description |
+|---|---|---|
+| `name` / `description` | display fields | Shown once for the whole bundle. The origin selection screen collapses the sub-powers back under this single heading. |
+| `<subkey>` | power object | Any other key is a sub-power. Its value is a full power object (any type, including a nested `neoorigins:multiple`). The key name becomes the last path segment of the sub-power's synthetic id. |
+
+Sub-powers may be native `neoorigins:` powers or imported `origins:`/`apoli:` powers — each is loaded by the same pipeline it would use on its own. A sub-power can reference a sibling with the `*:*<subkey>` self-reference shorthand, which resolves to the sibling's synthetic id.
+
+**Example — a passive flag wired to an on-hit action under one entry:**
+```json
+{
+  "type": "neoorigins:multiple",
+  "name": "Venomous",
+  "description": "Your strikes carry poison.",
+  "poison_on_hit": {
+    "type": "neoorigins:action_on_hit",
+    "hidden": true,
+    "entity_action": { "type": "neoorigins:add_status_effect", "effect": "minecraft:poison", "duration": 60 }
+  },
+  "immune": {
+    "type": "neoorigins:effect_immunity",
+    "hidden": true,
+    "effects": ["minecraft:poison"]
+  }
+}
+```
+This loads as two powers — `<ns>:<path>/poison_on_hit` and `<ns>:<path>/immune` — collapsed under the single "Venomous" entry.
+
+> The imported `origins:multiple` / `apace:multiple` (and `apoli:multiple`) containers flatten through the exact same path, so existing Apoli packs keep working unchanged. `neoorigins:multiple` is the first-class, in-namespace spelling for new native packs.
+
+---
+
 ## `neoorigins:attribute_modifier`
 
 Adds or multiplies a player attribute while the origin is active. Optionally gated on an environment condition, an equipped-item condition, or both (AND).
@@ -674,6 +711,30 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
   "modifier": { "operation": "multiply_base", "value": 0.5 },
   "name": "Quick Learner",
   "description": "Gains experience faster."
+}
+```
+
+---
+
+## `origins:modify_fall_damage`
+
+Scales incoming fall damage, optionally gated by a `condition`. This is an Apoli compat (Route B) verb — there is no native `neoorigins:` fall-damage type. It reuses the existing native fall-damage seam: the loader registers a `mod_fall_damage` modifier handler (the same hook `neoorigins:action_on_event` with `event: mod_fall_damage` uses), which chains onto the `LivingFallEvent` damage multiplier in `MovementPowerEvents.onLivingFall`. Because it chains, it stacks with feather-falling and other fall-damage modifiers.
+
+Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` array). Each entry is `{ "operation": ..., "value": ... }` (`value` may also be written `amount`). The operation+value is applied through the same modifier math as the other compat verbs: `multiply_base_additive` with `value: -0.5` → `damage * (1 + -0.5)` (halved); `addition`/`add_base` adds a flat amount to the multiplier; `set_total` with `value: 0` hard-zeroes the multiplier (no fall damage). A `condition` that targets `fall_damage` written as a `conditioned_attribute` is auto-routed here (vanilla has no fall-damage *attribute*, so it would otherwise be dropped).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s): `operation` + `value` applied to the fall-damage multiplier |
+| `condition` | object / array | no | always | Entity condition gating when the scale applies (e.g. only while sneaking) |
+
+**Example — halved fall damage while sneaking:**
+```json
+{
+  "type": "origins:modify_fall_damage",
+  "modifier": { "operation": "multiply_base_additive", "value": -0.5 },
+  "condition": { "type": "origins:sneaking" },
+  "name": "Soft Landing",
+  "description": "Takes half fall damage while sneaking."
 }
 ```
 
@@ -2007,15 +2068,17 @@ Config entries are checked alongside the tags — items in either source count a
 
 ## `neoorigins:keep_inventory`
 
-On death, selectively retain inventory items matching the power's filters. Matching items are removed from drops and restored to the player's inventory on respawn.
+On death, selectively retain inventory items matching the power's filters. Matching items are removed from drops and restored on respawn — to the player's inventory for vanilla slots, or re-equipped into their original slot for trinkets.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `slots` | list of string | no | `["*"]` | Slot categories to keep from: `hotbar`, `main`, `armor`, `offhand`, `all` (alias `*`). `main` also includes `hotbar`. |
+| `slots` | list of string | no | `["*"]` | Slot categories to keep from: `hotbar`, `main`, `armor`, `offhand`, `all` (alias `*`). `main` also includes `hotbar`. Also accepts trinket slots: `curio`, `accessory`, or `trinket` cover every Curios/Accessories slot, or name a specific slot id like `ring` or `necklace`. |
 | `items` | list of Identifier | no | `[]` | Specific items to keep |
 | `tags` | list of Identifier | no | `[]` | Item tags to keep |
 
 If both `items` and `tags` are empty, every item in the configured slots is kept.
+
+**Curios / Accessories:** trinket slots are covered when the [Curios](https://www.curseforge.com/minecraft/mc-mods/curios) or [Accessories](https://modrinth.com/mod/accessories) mod is installed; without them these slot tokens simply match nothing. A kept trinket is re-equipped into its original slot on respawn when that slot is still empty, otherwise it lands in the regular inventory. The wildcard `*`/`all` includes trinkets too.
 
 **Example — always keep tools:**
 ```json
@@ -2199,8 +2262,15 @@ Active power that summons a mob near the player. Summoned mobs are tracked with 
 | `despawn_ticks` | int | no | `18000` | Lifespan after spawn (15 min default) |
 | `death_damage` | float | no | `1.0` | Damage taken by the owner when a minion dies |
 | `head` / `chest` / `legs` / `feet` / `mainhand` / `offhand` | Identifier | no | _(none or iron helmet for head)_ | Equipment per slot |
+| `mount` | Identifier | no | — | Entity type of an optional mount; each minion rides its own copy (e.g. a piglin riding a hoglin) |
 
 If `head` is unset, the minion gets an iron helmet by default (sun protection for undead). All drop chances are set to 0.
+
+**Multiple minions:** set `quantity` to summon several per activation (still capped by `max_count`). Hunger is charged once per activation regardless of how many spawn.
+
+**Mounts:** when `mount` is set, every summoned minion is seated on a freshly spawned copy of that entity using a forced ride, so cross-type stacks like a piglin on a hoglin work. The mount is tracked alongside its rider — it counts against the same `mob_type` cap, drops no loot, and despawns with the rider.
+
+**Brain-driven mobs (piglins, hoglins):** these decide aggression through the Brain/memory system rather than goal selectors, so vanilla checks like "the player isn't wearing gold" would otherwise make a summoned piglin turn hostile. Summoned brain mobs are pacified at spawn and re-pacified every tick: their attack-target/anger memories toward the owner are cleared and piglins are made immune to zombification, so they stay loyal to their summoner.
 
 **Example — zombie minion with sword:**
 ```json
@@ -2213,6 +2283,22 @@ If `head` is unset, the minion gets an iron helmet by default (sun protection fo
   "mainhand": "minecraft:iron_sword",
   "name": "Raise Dead",
   "description": "Summons a zombie minion to fight for you."
+}
+```
+
+**Example — pack of piglins riding hoglins:**
+```json
+{
+  "type": "neoorigins:summon_minion",
+  "mob_type": "minecraft:piglin",
+  "mount": "minecraft:hoglin",
+  "quantity": 2,
+  "max_count": 4,
+  "cooldown_ticks": 400,
+  "hunger_cost": 6,
+  "mainhand": "minecraft:golden_sword",
+  "name": "Piglin Cavalry",
+  "description": "Summons mounted piglin riders that fight for you."
 }
 ```
 
@@ -2232,6 +2318,18 @@ Active power that tames a hostile mob the player is looking at. The mob's AI is 
 | `death_damage` | float | no | `0.5` | Damage taken by owner when a tamed mob dies |
 | `hostile_only` | bool | no | `true` | If `true`, only hostile mobs (implementing `Enemy`) can be tamed — the Monster Tamer default. Set to `false` to allow taming any non-player `Mob` (animals, golems, villagers, etc.). |
 | `entity_blacklist` | string[] | no | `[]` | Entity ids (`"minecraft:warden"`) and tag refs (`"#mymod:untameable"`) this power can never tame. Checked on top of the built-in boss exclusion. |
+| `targeting` | string | no | `"raycast"` | `"raycast"` tames the single mob you are looking at; `"area"` tames every eligible mob within `range`, nearest-first, up to the remaining `max_tamed` slots. Case-insensitive; anything else falls back to `raycast`. |
+| `entity_whitelist` | string[] | no | `[]` | **Area mode only.** Entity ids (`"minecraft:zombie"`) and tag refs (`"#mymod:tameable"`) the sweep is restricted to. Empty (default) = any mob (still subject to `hostile_only` and the blacklists). Ignored in raycast mode. |
+| `resource_cost` | string | no | `""` | Optional `neoorigins:resource` power id spent **per mob tamed**. Empty = no resource cost (falls back to `hunger_cost`). When resource bars are globally disabled this amount is charged as hunger instead. |
+| `resource_cost_amount` | int | no | `0` | Amount of the `resource_cost` resource spent per mob tamed. |
+
+### Targeting modes and per-mob cost
+
+With the default `targeting: "raycast"` the power tames the one mob under the player's crosshair, showing the existing per-failure actionbar messages (`not_hostile` / `boss` / `blacklisted` / `no_target`).
+
+Set `targeting: "area"` to tame every eligible mob inside `range` in one activation. Candidates are gathered nearest-first and capped at the remaining `max_tamed` slots; `hostile_only`, `entity_blacklist`, the boss-tier set and the global config blacklist all still apply, and `entity_whitelist` (if non-empty) further restricts which mobs qualify. A successful multi-tame shows "Tamed N mobs!".
+
+Cost is charged **once per mob tamed**, not once per activation. When `resource_cost`/`resource_cost_amount` are set and resource bars are enabled, each tame spends that much of the named resource; otherwise it spends `hunger_cost` food points (or, when a resource is configured but resource bars are globally disabled, `resource_cost_amount` food points). Taming is greedy: it tames mobs one at a time until either the slots run out or the player can no longer afford one more, then stops. If candidates existed but none could be afforded, it shows "Not enough power to tame!" and consumes no cooldown.
 
 Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs — the Warden, Ender Dragon and Wither — are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs, and server operators can do the same for all taming and scare powers at once via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)). A blocked tame shows the "That creature cannot be tamed!" actionbar message.
 

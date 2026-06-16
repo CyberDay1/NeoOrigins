@@ -534,8 +534,10 @@ public class OriginSelectionScreen extends Screen {
         // nitwit choice anyway makes the server reject it with a "non-existent
         // origin" warning. Mirror the presenter's availability filter so we stay
         // silent when there's nothing to assign.
+        boolean nitwitAssigned = false;
         if (hasAnyOrigin && !hasClass && isNitwitAssignable()) {
             PacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
+            nitwitAssigned = true;
         }
         // Tell the server to cancel any pending orb-of-origin commit. If the
         // player already picked at least once during this picker session, the
@@ -545,13 +547,46 @@ public class OriginSelectionScreen extends Screen {
         if (isOrb) {
             PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.CancelOrbPayload());
         }
-        // Non-orb picker closed with zero origins committed: tell the server
-        // to drop first-pick invulnerability. Without this the player could
-        // escape the picker and stay immortal forever.
-        if (!hasAnyOrigin && !isOrb) {
+        // Non-orb picker closed with an INCOMPLETE pick (zero origins OR some
+        // but not all required layers): tell the server to drop first-pick
+        // invulnerability. Now that the invuln gate covers the whole multi-layer
+        // pick (not just the first layer), a player who picks an origin then
+        // escapes before choosing a class would otherwise stay immortal until a
+        // relog. The nitwit auto-assign above can complete the class layer; pass
+        // that through so a legitimate completion isn't falsely reported as
+        // abandoned (ClientOriginState won't reflect the just-sent packet yet).
+        if (!isOrb && !isPickComplete(nitwitAssigned)) {
             PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
         }
         Minecraft.getInstance().setScreen(null);
+    }
+
+    /**
+     * Client-side mirror of the server's {@code allFilled} loop in
+     * {@code NeoOriginsNetwork.handleChooseOrigin}: true when every layer the
+     * picker would actually show has a selection. Iterates the same sorted
+     * layers, skips hidden layers and layers with no available+existing origin,
+     * and checks {@link ClientOriginState#getOrigins()} for an entry per layer.
+     *
+     * @param nitwitAssigned true if onClose just auto-assigned the nitwit class
+     *     this frame — its {@link ChooseOriginPayload} is in flight to the
+     *     server but not yet reflected in {@code ClientOriginState}, so treat
+     *     the class layer as filled to avoid a spurious abandon after a legit
+     *     completion.
+     */
+    private boolean isPickComplete(boolean nitwitAssigned) {
+        var choices = ClientOriginState.getOrigins();
+        for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
+            if (l.hidden()) continue;
+            boolean hasAnyOrigin = l.origins().stream()
+                .anyMatch(co -> co.isAvailable(choices)
+                             && OriginDataManager.INSTANCE.hasOrigin(co.origin()));
+            if (!hasAnyOrigin) continue;
+            boolean filled = choices.containsKey(l.id());
+            if (!filled && nitwitAssigned && l.id().equals(CLASS_LAYER_ID)) filled = true;
+            if (!filled) return false;
+        }
+        return true;
     }
 
     /**

@@ -138,6 +138,31 @@ public final class CompatPlayerState {
         return t != null && player.tickCount - t <= 1 && player.tickCount - t >= 0;
     }
 
+    // ---- Server-side JUMP-key (airborne press) state ----
+    // The server has no native "is the jump key pressed" signal. The old proxy for
+    // key.jump-bound active_self powers approximated it as "airborne and moving
+    // upward" (!onGround() && deltaMovement.y > 0), which fires during the natural
+    // first jump's ascent and is FALSE at the moment a player re-presses jump while
+    // falling — exactly the double-jump gesture. The client already sends an
+    // AirJumpPayload on a real rising-edge jump press while airborne (and never on
+    // the ground jump); NeoOriginsNetwork.handleAirJump records that tick here so
+    // the onTick poll can read a genuine press.
+    private static final Map<UUID, Integer> LAST_JUMP_TICK = new ConcurrentHashMap<>();
+
+    /** Record that the player pressed JUMP while airborne this tick. */
+    public static void recordJumpKey(ServerPlayer player) {
+        LAST_JUMP_TICK.put(player.getUUID(), player.tickCount);
+    }
+
+    /**
+     * True if the player pressed an airborne jump on this tick or the previous one.
+     * Same 1-tick tolerance as {@link #isUseKeyDown} to absorb event/onTick ordering.
+     */
+    public static boolean isJumpKeyDown(ServerPlayer player) {
+        Integer t = LAST_JUMP_TICK.get(player.getUUID());
+        return t != null && player.tickCount - t <= 1 && player.tickCount - t >= 0;
+    }
+
     /** Clear all tracked state (called on data reload). */
     public static void clearAll() {
         ACTIVE_POWERS.clear();
@@ -147,5 +172,6 @@ public final class CompatPlayerState {
     public static void removePlayer(UUID playerId) {
         ACTIVE_POWERS.remove(playerId);
         LAST_USE_TICK.remove(playerId);
+        LAST_JUMP_TICK.remove(playerId);
     }
 }

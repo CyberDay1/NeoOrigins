@@ -116,7 +116,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             JsonObject json = entry.getValue().getAsJsonObject();
             // Canonicalize apoli:/apugli: -> origins: so apoli:multiple is expanded.
             String typeStr = OriginsFormatDetector.canonicalizePowerType(json);
-            if ("origins:multiple".equals(typeStr) || "apace:multiple".equals(typeStr)) {
+            if (OriginsMultipleExpander.isMultipleType(typeStr)) {
                 working.remove(id);
                 try {
                     Map<ResourceLocation, JsonObject> synthetics = OriginsMultipleExpander.expand(id, json);

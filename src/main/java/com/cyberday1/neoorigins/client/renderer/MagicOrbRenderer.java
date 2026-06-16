@@ -6,15 +6,12 @@ import com.cyberday1.neoorigins.content.MagicOrbProjectile;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * 1.21.1 variant of MagicOrbRenderer. Same public surface as the 26.1
  * variant — subclass method signatures are identical so custom subclasses
  * compile unchanged on both versions.
  */
-@OnlyIn(Dist.CLIENT)
 public class MagicOrbRenderer extends ProceduralQuadRenderer<MagicOrbProjectile, MagicOrbRenderState> {
 
     private static final ResourceLocation TEXTURE =

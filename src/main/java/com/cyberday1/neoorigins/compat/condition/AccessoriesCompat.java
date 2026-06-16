@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.compat.condition;
 import com.cyberday1.neoorigins.NeoOrigins;
 import io.wispforest.accessories.api.AccessoriesCapability;
 import io.wispforest.accessories.api.slot.SlotEntryReference;
+import io.wispforest.accessories.api.slot.SlotReference;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
@@ -68,5 +69,70 @@ final class AccessoriesCompat {
                 t.toString());
         }
         return out;
+    }
+
+    /** One equipped Accessories stack with the slot identity needed to re-equip it. */
+    record Entry(String slotName, int slot, ItemStack stack) {}
+
+    /**
+     * Enumerates every equipped Accessories stack together with its slot name and
+     * index, so a caller (keep_inventory) can clear it on death and re-equip it on
+     * respawn. Must only be called when {@code accessories} is loaded; fail-closed.
+     */
+    static List<Entry> getEquippedEntries(LivingEntity entity) {
+        List<Entry> out = new ArrayList<>();
+        if (ACCESSORIES_FAILED) return out;
+        try {
+            AccessoriesCapability cap = AccessoriesCapability.get(entity);
+            if (cap == null) return out;
+            for (SlotEntryReference ref : cap.getAllEquipped()) {
+                ItemStack stack = ref.stack();
+                if (stack == null || stack.isEmpty()) continue;
+                SlotReference sr = ref.reference();
+                if (sr == null || sr.slotName() == null) continue;
+                out.add(new Entry(sr.slotName(), sr.slot(), stack));
+            }
+        } catch (Throwable t) {
+            ACCESSORIES_FAILED = true;
+            NeoOrigins.LOGGER.warn("[Compat] Accessories slot enumeration failed ({}); "
+                + "keep_inventory will not retain Accessories slots.", t.toString());
+        }
+        return out;
+    }
+
+    /**
+     * Empties an Accessories slot (used at death once the stack is stashed).
+     * Returns true on success. Fail-closed.
+     */
+    static boolean clearSlot(LivingEntity entity, String slotName, int slot) {
+        if (ACCESSORIES_FAILED) return false;
+        try {
+            SlotReference ref = SlotReference.of(entity, slotName, slot);
+            if (!ref.isValid()) return false;
+            return ref.setStack(ItemStack.EMPTY);
+        } catch (Throwable t) {
+            ACCESSORIES_FAILED = true;
+            NeoOrigins.LOGGER.warn("[Compat] Accessories slot clear failed ({}).", t.toString());
+            return false;
+        }
+    }
+
+    /**
+     * Re-equips {@code stack} into an Accessories slot on respawn, but only if the
+     * slot is currently empty (Accessories may have restored its own kept items
+     * first). Returns true when the stack was placed. Fail-closed.
+     */
+    static boolean restoreSlot(LivingEntity entity, String slotName, int slot, ItemStack stack) {
+        if (ACCESSORIES_FAILED) return false;
+        try {
+            SlotReference ref = SlotReference.of(entity, slotName, slot);
+            if (!ref.isValid()) return false;
+            if (!ref.getStack().isEmpty()) return false;
+            return ref.setStack(stack);
+        } catch (Throwable t) {
+            ACCESSORIES_FAILED = true;
+            NeoOrigins.LOGGER.warn("[Compat] Accessories slot restore failed ({}).", t.toString());
+            return false;
+        }
     }
 }

@@ -58,6 +58,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         Optional<String> feet,
         Optional<String> mainhand,
         Optional<String> offhand,
+        Optional<String> mount,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
@@ -100,6 +101,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
                     mobType, maxCount, quantity, cooldown, hunger, despawn, deathDamage,
                     optString(obj, "head"), optString(obj, "chest"), optString(obj, "legs"),
                     optString(obj, "feet"), optString(obj, "mainhand"), optString(obj, "offhand"),
+                    optString(obj, "mount"),
                     type, cooldownIcon, cooldownCountdown, alwaysShowIcon), ops.empty()));
             }
 
@@ -153,6 +155,15 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         if (entityTypeOpt.isEmpty()) return false;
         EntityType<?> entityType = entityTypeOpt.get();
 
+        // Resolve optional mount type (e.g. piglin riding a hoglin). If the id
+        // is configured but unresolvable we simply skip the mount rather than
+        // failing the whole summon.
+        EntityType<?> mountType = null;
+        if (config.mount().isPresent()) {
+            mountType = BuiltInRegistries.ENTITY_TYPE
+                .getOptional(ResourceLocation.parse(config.mount().get())).orElse(null);
+        }
+
         // Spawn the minions near the player. `quantity` (v2.2.3) asks for N per
         // activation but never exceeds the max_count cap — toSpawn is the
         // remaining headroom, so a quantity-3 power with 2 already alive and
@@ -164,9 +175,6 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
         int spawned = 0;
         for (int i = 0; i < toSpawn; i++) {
-            Entity entity = entityType.create(level);
-            if (!(entity instanceof LivingEntity living)) break;
-
             // ±0.5-block horizontal jitter so multiple minions don't stack on
             // the exact same point (matches the spawn_entity action behaviour).
             double dx = 0.0, dz = 0.0;
@@ -175,31 +183,25 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
                 dx = rng.nextDouble() - 0.5;
                 dz = rng.nextDouble() - 0.5;
             }
-            living.setPos(spawnPos.x + dx, spawnPos.y, spawnPos.z + dz);
 
-            if (living instanceof Mob mob) {
-                mob.setPersistenceRequired();
-                rewriteAiForSummoner(mob, player);
-
-                // Apply configured equipment (or default helmet for sun protection)
-                equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
-                equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
-                equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
-                equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
-                equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
-                equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
-
-                // Zero all drop chances — summoned mobs never drop loot
-                for (EquipmentSlot slot : EquipmentSlot.values()) {
-                    mob.setDropChance(slot, 0.0f);
-                }
+            // Spawn an optional mount first so the rider has something to sit on.
+            LivingEntity mount = null;
+            if (mountType != null) {
+                mount = spawnMinion(level, mountType, spawnPos, dx, dz, player, config, false);
             }
 
-            level.addFreshEntity(living);
+            LivingEntity rider = spawnMinion(level, entityType, spawnPos, dx, dz, player, config, true);
+            if (rider == null) {
+                // mob_type was non-living; discard a stray mount and bail.
+                if (mount != null) mount.discard();
+                break;
+            }
 
-            // Track the minion
-            MinionTracker.track(player, living, config.mobType(),
-                player.tickCount, config.despawnTicks(), config.deathDamage());
+            // Seat the rider on its mount (force=true bypasses the normal
+            // can-ride checks so cross-type stacks like piglin-on-hoglin work).
+            if (mount != null) {
+                rider.startRiding(mount, true);
+            }
             spawned++;
         }
 
@@ -219,6 +221,73 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - config.hungerCost());
 
         return true;
+    }
+
+    /**
+     * Create, position, configure, register and spawn a single minion of the
+     * given type. Shared by the rider (the configured {@code mob_type}, with
+     * {@code applyEquipment=true}) and an optional {@code mount} entity (no
+     * equipment). Returns the spawned {@link LivingEntity}, or {@code null} if
+     * the type produced a non-living entity.
+     */
+    private static LivingEntity spawnMinion(ServerLevel level, EntityType<?> type, Vec3 spawnPos,
+                                            double dx, double dz, ServerPlayer player, Config config,
+                                            boolean applyEquipment) {
+        Entity entity = type.create(level);
+        if (!(entity instanceof LivingEntity living)) return null;
+
+        living.setPos(spawnPos.x + dx, spawnPos.y, spawnPos.z + dz);
+
+        if (living instanceof Mob mob) {
+            mob.setPersistenceRequired();
+            rewriteAiForSummoner(mob, player);
+            pacifyBrainMob(mob);
+
+            if (applyEquipment) {
+                // Apply configured equipment (or default helmet for sun protection)
+                equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
+                equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
+                equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
+                equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
+                equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
+                equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
+            }
+
+            // Zero all drop chances — summoned mobs never drop loot
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                mob.setDropChance(slot, 0.0f);
+            }
+        }
+
+        level.addFreshEntity(living);
+
+        // Track the minion (mob_type tag is shared so mounts count against the
+        // same cap and despawn/clear alongside their riders).
+        MinionTracker.track(player, living, config.mobType(),
+            player.tickCount, config.despawnTicks(), config.deathDamage());
+        return living;
+    }
+
+    /**
+     * Calm brain-driven neutral mobs (piglins, hoglins) at spawn so a freshly
+     * summoned minion doesn't immediately turn on its summoner. These mobs use
+     * the Brain/memory system rather than goal selectors, so the goal-based
+     * {@link #rewriteAiForSummoner} and the {@code LivingChangeTargetEvent}
+     * interceptor never see them. We clear their anger/target memories and, for
+     * piglins, suppress both zombification (in the Nether's absence) and the
+     * "no gold armour → hostile" check via immunity flags. The per-tick
+     * {@code MinionTracker} pacifier keeps them calm thereafter.
+     */
+    private static void pacifyBrainMob(Mob mob) {
+        if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin piglin) {
+            piglin.setImmuneToZombification(true);
+        }
+        if (mob instanceof net.minecraft.world.entity.NeutralMob neutral) {
+            neutral.stopBeingAngry();
+        }
+        var brain = mob.getBrain();
+        brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT);
+        brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
     }
 
     /**

@@ -930,6 +930,12 @@ public class NeoOriginsNetwork {
             if (firstTimeAllFilled) {
                 com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
             }
+
+            // Grant a brief invulnerability grace once the initial pick completes
+            // (initial on-join flow only — orb re-picks never qualify).
+            if (firstTimeAllFilled && data.getOrbUseCount() == 0) {
+                com.cyberday1.neoorigins.service.FirstPickGraceTracker.grant(sp, 100); // 5s @ 20tps
+            }
         });
     }
 
@@ -1010,6 +1016,10 @@ public class NeoOriginsNetwork {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
             if (sp.onGround() || sp.isInWater() || sp.isPassenger() || sp.isSpectator()) return;
             if (sp.isFallFlying()) return;
+            // Record the airborne jump press for compat key.jump-bound active_self
+            // powers (e.g. double-jump). Done before the FlightPower gate so it
+            // works for players who only have a key.jump compat power, not flight.
+            com.cyberday1.neoorigins.compat.CompatPlayerState.recordJumpKey(sp);
             if (!FlightPower.isActive(sp)) return;
             sp.startFallFlying();
         });

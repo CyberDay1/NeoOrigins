@@ -6,15 +6,12 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 /**
  * 1.21.1 renderer for {@link LingeringAreaEntity}. Empty — particles are
  * server-emitted; this renderer exists so the engine has something to
  * register against the entity type.
  */
-@OnlyIn(Dist.CLIENT)
 public class LingeringAreaRenderer extends EntityRenderer<LingeringAreaEntity> {
 
     private static final ResourceLocation NONE = ResourceLocation.parse("minecraft:textures/misc/white.png");

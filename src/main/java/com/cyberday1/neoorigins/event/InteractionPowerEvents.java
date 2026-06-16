@@ -22,7 +22,9 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -40,6 +42,14 @@ public class InteractionPowerEvents {
     private static long charismaKey(int traderId, java.util.UUID playerId) {
         return ((long) traderId << 32) ^ playerId.getLeastSignificantBits();
     }
+
+    // Pre-eat food/saturation snapshot for modify_food_nutrition. Captured at
+    // use-Start so the Finish handler can recompute the bar from the real
+    // starting value rather than a blind post-eat delta (which broke when
+    // vanilla clamped the bar at 20 — Discord report: food at max effect gave
+    // nothing). Cleared on Finish/Stop so an interrupted eat never leaks.
+    private record FoodBaseline(int foodLevel, float saturation) {}
+    private static final Map<UUID, FoodBaseline> FOOD_BASELINE = new ConcurrentHashMap<>();
 
     /**
      * Charisma — inject master-tier trades into wandering traders for players
@@ -100,15 +110,37 @@ public class InteractionPowerEvents {
     }
 
     @SubscribeEvent
+    public static void onItemUseStart(LivingEntityUseItemEvent.Start event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (!event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) return;
+        // Only snapshot when the player actually has a nutrition-override power;
+        // keeps the map empty for everyone else.
+        if (!ActiveOriginService.has(sp, ModifyFoodNutritionPower.class, cfg -> true)) return;
+        var fd = sp.getFoodData();
+        FOOD_BASELINE.put(sp.getUUID(), new FoodBaseline(fd.getFoodLevel(), fd.getSaturationLevel()));
+    }
+
+    @SubscribeEvent
+    public static void onItemUseStop(LivingEntityUseItemEvent.Stop event) {
+        if (event.getEntity() instanceof ServerPlayer sp) FOOD_BASELINE.remove(sp.getUUID());
+    }
+
+    @SubscribeEvent
     public static void onItemUseFinish(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        // Modify food nutrition before vanilla processes the eaten food
+        // Re-apply the eaten food at its overridden nutrition value, computed
+        // from the pre-eat baseline captured in onItemUseStart. Falls back to
+        // leaving vanilla's result untouched if no baseline was recorded.
         if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {
-            ActiveOriginService.forEachOfType(sp, ModifyFoodNutritionPower.class, config -> {
-                if (ModifyFoodNutritionPower.matchesFilter(event.getItem(), config)) {
-                    ModifyFoodNutritionPower.applyOverride(sp, event.getItem(), config.nutrition());
-                }
-            });
+            FoodBaseline baseline = FOOD_BASELINE.remove(sp.getUUID());
+            if (baseline != null) {
+                ActiveOriginService.forEachOfType(sp, ModifyFoodNutritionPower.class, config -> {
+                    if (ModifyFoodNutritionPower.matchesFilter(event.getItem(), config)) {
+                        ModifyFoodNutritionPower.applyOverride(sp, event.getItem(),
+                            config.nutrition(), baseline.foodLevel(), baseline.saturation());
+                    }
+                });
+            }
         }
         EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, event.getItem());
         if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {

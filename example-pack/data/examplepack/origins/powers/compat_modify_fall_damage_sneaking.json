@@ -1,0 +1,8 @@
+{
+  "type": "origins:modify_fall_damage",
+  "modifier": { "operation": "multiply_base_additive", "value": -0.5 },
+  "condition": { "type": "origins:sneaking" },
+  "name": "Compat Fixture: Soft Landing",
+  "description": "Harness fixture: origins:modify_fall_damage gated by a condition (halve fall damage while sneaking). Verifies the power LOADS via Route B instead of being silently dropped.",
+  "hidden": true
+}

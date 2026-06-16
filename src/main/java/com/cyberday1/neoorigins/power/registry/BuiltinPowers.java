@@ -338,7 +338,9 @@ public final class BuiltinPowers {
                 .def(0.7).range(0.0, 1.0).doc("Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7).")));
         define("keep_inventory", KeepInventoryPower.class, List.of(
             new FieldSpec("slots", Kind.ARRAY, false)
-                .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *)."),
+                .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *). "
+                    + "Also accepts curio/accessory/trinket (all Curios+Accessories slots, when those "
+                    + "mods are present) or a specific trinket slot id like ring or necklace."),
             new FieldSpec("items", Kind.ARRAY, false)
                 .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Item ids to keep on death; empty (with empty tags) keeps everything."),
@@ -555,6 +557,12 @@ public final class BuiltinPowers {
                 .doc("Item id placed in the summoned mob's main hand (optional)."),
             new FieldSpec("offhand", Kind.STRING, false)
                 .doc("Item id placed in the summoned mob's off hand (optional)."),
+            new FieldSpec("mount", Kind.STRING, false)
+                .doc("Entity type id of an optional mount; each summoned minion is "
+                    + "seated on its own copy of this entity (e.g. minecraft:hoglin so "
+                    + "a piglin minion rides a hoglin). The mount is also owner-friendly, "
+                    + "drops no loot, and despawns with its rider.")
+                .pattern(RESOURCE_LOCATION_PATTERN),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -576,6 +584,16 @@ public final class BuiltinPowers {
             new FieldSpec("entity_blacklist", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this power can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list."),
+            new FieldSpec("targeting", Kind.ENUM, false)
+                .options("raycast", "area")
+                .def("raycast").doc("How targets are picked: \"raycast\" (default) tames the single mob you are looking at; \"area\" tames every eligible mob within `range`, nearest-first, up to the remaining max_tamed slots."),
+            new FieldSpec("entity_whitelist", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Area-mode only: entity ids (\"minecraft:zombie\") and tag refs (\"#mymod:tameable\") an area cast is restricted to. Empty (default) = any mob (still subject to hostile_only and the blacklists). Ignored in raycast mode."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id spent PER mob tamed; empty = no resource cost (falls back to hunger_cost). When resource bars are globally disabled this amount is charged as hunger instead."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per mob tamed; default 0. Taming stops greedily once the player can no longer afford one more."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
