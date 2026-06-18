@@ -98,20 +98,38 @@ dependencies {
     // (Modrinth maven; group maven.modrinth). 1.21.1-only — no 26.1 build exists.
     compileOnly "maven.modrinth:accessories:${property('deps.accessories')}"
 
-    // Build A Spell (buildaspell) – the `cast_spell` action casts an
-    // inline author-baked spell via BuildASpellAPI. Compile-only soft dep
-    // published to mavenLocal; every BaS-typed reference is isolated in
-    // compat/buildaspell/BuildASpellBridge and only classloaded behind a
-    // ModList.isLoaded("buildaspell") gate. The version coordinate is
-    // suffixed -mc<minecraft_version> because all three BaS branches share
-    // mod_version 2.0.0 (see deps.buildaspell). Run `./gradlew
-    // publishToMavenLocal` in the BaS repo on the matching branch to install it.
-    compileOnly "buildaspell:buildaspell:${property('deps.buildaspell')}"
+    // Build A Spell (buildaspell) – the `cast_spell` action casts an inline
+    // author-baked spell via BuildASpellAPI. Every BaS-typed reference is
+    // isolated in compat/buildaspell/BuildASpellBridge and only classloaded
+    // behind a ModList.isLoaded("buildaspell") gate. BaS is published ONLY to
+    // the author's local maven, so to keep CI (and any fresh checkout) building
+    // without it we compile the bridge against a tiny hand-written API stub
+    // (src/apistubs/java/buildaspell) instead of the real jar. The stub carries
+    // the exact descriptors of the members the bridge uses, is added to main's
+    // COMPILE classpath only (see the apiStubs wiring below), and is never on
+    // the runtime classpath nor bundled — so at runtime the real BaS classes
+    // load when the mod is present, exactly as a compileOnly soft dep would.
+    // If the bridge starts using more of the BaS API, mirror those signatures
+    // into the stub (verify descriptors with `javap` against the real jar).
 }
 
 sourceSets {
     test.java.srcDirs = []   // tests need NeoForge test harness — disabled for now
+
+    // Build A Spell compile-only API stub (see the buildaspell note above).
+    apiStubs {
+        java { srcDir 'src/apistubs/java' }
+    }
 }
+
+// The stub references net.minecraft.server.level.ServerPlayer, so it needs the
+// Minecraft + NeoForge classpath to compile.
+neoForge.addModdingDependenciesTo sourceSets.apiStubs
+
+// Expose the stub classes to main at COMPILE time only. Not added to
+// runtimeClasspath and not part of the mod jar (the jar is built from the main
+// source set), so the stub leaves zero runtime footprint.
+sourceSets.main.compileClasspath += sourceSets.apiStubs.output
 
 tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [
