@@ -84,6 +84,7 @@ public final class PowerHolder<C extends PowerConfiguration> {
 
     /** Returns true if this power occupies a keybind slot (has active behaviour). */
     public boolean isActive()                              { return type.isActivePower(config); }
+    public boolean occupiesHotkeySlot()                    { return type.occupiesHotkeySlot(config); }
 
     // Lifecycle methods that are NOT condition-gated (power is still owned):
     public void onGranted(ServerPlayer player)          { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }

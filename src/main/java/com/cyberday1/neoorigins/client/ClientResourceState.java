@@ -15,7 +15,7 @@ public class ClientResourceState {
 
     public record ResourceEntry(int value, int min, int max, String label, int color,
                                 int barIndex, int iconIndex, String spriteLocation,
-                                String animated, int tint) {
+                                String animated, int tint, boolean alwaysShow) {
         public float fraction() {
             int range = max - min;
             if (range <= 0) return 1.0f;
@@ -30,7 +30,7 @@ public class ClientResourceState {
         for (var e : incoming.entrySet()) {
             var v = e.getValue();
             resources.put(e.getKey(), new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
-                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint()));
+                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.alwaysShow()));
         }
     }
 
@@ -45,7 +45,7 @@ public class ClientResourceState {
             ResourceEntry old = resources.get(e.getKey());
             if (old == null) continue;
             resources.put(e.getKey(), new ResourceEntry(e.getValue(), old.min(), old.max(), old.label(),
-                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint()));
+                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.alwaysShow()));
         }
     }
 

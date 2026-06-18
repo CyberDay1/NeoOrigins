@@ -12,6 +12,8 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
+**Object or array.** Every condition-valued field (`condition`, …) accepts either a single condition object **or** an array. An array is combined as logical AND (an implicit `neoorigins:and`) — every element must pass. An empty array is treated as always-true. *(Previously a bare array in these fields silently no-opped.)*
+
 **Universal `inverted` field:** every condition supports a top-level `"inverted": true` flag that flips its result. Compatible with the Apoli/Origins convention used by upstream packs.
 
 ---

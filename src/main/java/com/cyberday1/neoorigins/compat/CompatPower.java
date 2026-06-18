@@ -33,7 +33,10 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         Consumer<ServerPlayer> onKill,
         Consumer<LivingIncomingDamageEvent> onIncomingDamage,
         BiConsumer<ServerPlayer, LivingEntity> onDealDamage,
-        int cooldownTicks
+        int cooldownTicks,
+        // When true the power is activatable (has onActivated) but declines a
+        // hotkey/skill slot — reachable only via the activate_power action.
+        boolean hotkeyless
     ) implements PowerConfiguration {
 
         public static Builder builder() { return new Builder(); }
@@ -43,6 +46,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             private Consumer<LivingIncomingDamageEvent> onIncomingDamage;
             private BiConsumer<ServerPlayer, LivingEntity> onDealDamage;
             private int cooldownTicks;
+            private boolean hotkeyless;
 
             public Builder onGranted(Consumer<ServerPlayer> c)   { onGranted   = c; return this; }
             public Builder onRevoked(Consumer<ServerPlayer> c)   { onRevoked   = c; return this; }
@@ -59,10 +63,12 @@ public class CompatPower extends PowerType<CompatPower.Config> {
                 onDealDamage = c; return this;
             }
             public Builder cooldownTicks(int ticks) { cooldownTicks = ticks; return this; }
+            /** Mark this active power as having no hotkey — fired only via activate_power. */
+            public Builder hotkeyless(boolean v) { hotkeyless = v; return this; }
 
             public Config build() {
                 return new Config(onGranted, onRevoked, onTick, onActivated, onRespawn,
-                    onHit, onKill, onIncomingDamage, onDealDamage, cooldownTicks);
+                    onHit, onKill, onIncomingDamage, onDealDamage, cooldownTicks, hotkeyless);
             }
         }
     }
@@ -70,13 +76,23 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public Codec<Config> codec() {
         // Never called for Route B powers — they are injected directly, not codec-decoded.
-        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, null, 0)).codec();
+        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, null, 0, false)).codec();
     }
 
     /** Active only when this specific config has an onActivated consumer. */
     @Override
     public boolean isActivePower(Config config) {
         return config.onActivated() != null;
+    }
+
+    /**
+     * Hotkey-less active powers ({@code "disable_hotkey": true}) stay active
+     * (so {@code activate_power} can reach them) but decline a skill slot, so no
+     * key press triggers them.
+     */
+    @Override
+    public boolean occupiesHotkeySlot(Config config) {
+        return config.onActivated() != null && !config.hotkeyless();
     }
 
     @Override

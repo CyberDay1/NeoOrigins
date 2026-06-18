@@ -24,6 +24,8 @@ All powers share six optional top-level fields:
 - If both `power_condition` and an aliased `condition` are present, `power_condition` wins and a warning is logged.
 - Prefer `power_condition` in new packs; the alias exists so the common Apoli-style spelling doesn't get silently dropped.
 
+**Action & condition fields take an object _or_ an array.** Wherever a field below holds an action (e.g. `entity_action`) or a condition (e.g. `condition`), you may pass either a single object or an array of them. Action arrays run in order (implicit `neoorigins:and`); condition arrays must all pass (implicit AND). An empty array no-ops for actions and is always-true for conditions. See [ACTIONS.md](ACTIONS.md) and [CONDITIONS.md](CONDITIONS.md).
+
 If neither `name` nor `description` is present, NeoOrigins falls back to the lang key convention:
 `power.<namespace>.<path>.name` / `power.<namespace>.<path>.description`
 
@@ -40,6 +42,8 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `ALL_ACTIVE_ABILITIES` (default since 2.2.2: every icon-bearing keybind ability keeps a persistent slot — full-bright while idle, sweep while recharging) or `COOLDOWNS_AND_TOGGLES` (cooldown slots only while recharging, plus icon-bearing toggles).
 
 The cooldown cluster itself is draggable in the in-game HUD editor (same screen as resource bars); its position persists in `config/neoorigins/hud.json`.
+
+The client-side switches mentioned above (`show_cooldown_countdown`, `cooldown_countdown_opacity`, `hud_ability_display`, `always_show_ability_icons`) live in `config/neoorigins/client.toml` — see [CLIENT_CONFIG.md](CLIENT_CONFIG.md) for the full list of per-client options.
 
 ---
 
@@ -2272,12 +2276,17 @@ Active power that summons a mob near the player. Summoned mobs are tracked with 
 | `hunger_cost` | int | no | `4` | Food points consumed per summon |
 | `despawn_ticks` | int | no | `18000` | Lifespan after spawn (15 min default) |
 | `death_damage` | float | no | `1.0` | Damage taken by the owner when a minion dies |
-| `head` / `chest` / `legs` / `feet` / `mainhand` / `offhand` | Identifier | no | _(none or iron helmet for head)_ | Equipment per slot |
+| `head` / `chest` / `legs` / `feet` / `mainhand` / `offhand` | Identifier _or_ object | no | _(none or iron helmet for head)_ | Equipment per slot. Either a bare item id (`"minecraft:iron_sword"`) or an object `{"item": "...", "enchantments": [{"id": "...", "level": N}]}` to enchant the piece |
 | `mount` | Identifier | no | — | Entity type of an optional mount; each minion rides its own copy (e.g. a piglin riding a hoglin) |
+| `attributes` | object[] | no | `[]` | Attribute modifiers applied to each summoned mob at spawn. Each entry is `{"attribute": "...", "amount": N, "operation": "..."}` |
 
 If `head` is unset, the minion gets an iron helmet by default (sun protection for undead). All drop chances are set to 0.
 
 **Multiple minions:** set `quantity` to summon several per activation (still capped by `max_count`). Hunger is charged once per activation regardless of how many spawn.
+
+**Enchanted equipment:** any equipment slot accepts the object form `{"item": "...", "enchantments": [...]}` in place of a bare item id. Each enchantment entry is `{"id": "minecraft:sharpness", "level": 3}` (`level` defaults to 1). Unknown enchantment ids are skipped silently. The string form is unchanged, so existing configs keep working.
+
+**Attribute modifiers:** `attributes` is a list of modifiers applied to every summoned mob. Each entry takes `attribute` (e.g. `minecraft:generic.max_health`, `minecraft:generic.attack_damage`, `minecraft:generic.movement_speed`), a numeric `amount`, and an `operation` of `add_value` (flat), `add_multiplied_base`, or `add_multiplied_total` (default `add_value`). Attribute ids resolve with `generic.`/`player.` prefix tolerance, so the same JSON is portable across the 1.21.1 and 26.1 builds. A raised `max_health` spawns the mob at full HP.
 
 **Mounts:** when `mount` is set, every summoned minion is seated on a freshly spawned copy of that entity using a forced ride, so cross-type stacks like a piglin on a hoglin work. The mount is tracked alongside its rider — it counts against the same `mob_type` cap, drops no loot, and despawns with the rider.
 
@@ -2310,6 +2319,30 @@ If `head` is unset, the minion gets an iron helmet by default (sun protection fo
   "mainhand": "minecraft:golden_sword",
   "name": "Piglin Cavalry",
   "description": "Summons mounted piglin riders that fight for you."
+}
+```
+
+**Example — enchanted, buffed iron golem:**
+```json
+{
+  "type": "neoorigins:summon_minion",
+  "mob_type": "minecraft:iron_golem",
+  "max_count": 1,
+  "cooldown_ticks": 600,
+  "hunger_cost": 8,
+  "mainhand": {
+    "item": "minecraft:netherite_sword",
+    "enchantments": [
+      { "id": "minecraft:sharpness", "level": 5 },
+      { "id": "minecraft:fire_aspect", "level": 2 }
+    ]
+  },
+  "attributes": [
+    { "attribute": "minecraft:generic.max_health", "amount": 40, "operation": "add_value" },
+    { "attribute": "minecraft:generic.attack_damage", "amount": 0.5, "operation": "add_multiplied_total" }
+  ],
+  "name": "Forge Guardian",
+  "description": "Summons a heavily armed, reinforced iron golem."
 }
 ```
 
@@ -2548,6 +2581,58 @@ Reduces movement slowdown while using items (bow, shield, etc.). Applies a trans
   "speed_multiplier": 0.8,
   "name": "Strider Archer",
   "description": "Barely slowed while drawing a bow."
+}
+```
+
+---
+
+## `neoorigins:prevent_item_damage`
+
+Stops items from losing durability while the holder has the power. Unlike handing out an unbreakable item at spawn, this is a trait of the origin: any matching tool, weapon, or armor the player uses simply never takes durability damage. Implemented via a `ItemStack.hurtAndBreak` mixin, so it covers every durability path (mining, attacking, blocking, casting).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `items` | array | no | `[]` | Item ids or `#tags` spared from durability loss. Empty list (default) protects **every** damageable item the holder uses. |
+
+**Example — unbreaking everything:**
+```json
+{
+  "type": "neoorigins:prevent_item_damage",
+  "name": "Tireless Hands",
+  "description": "Your gear never wears down."
+}
+```
+
+**Example — only tools and bows:**
+```json
+{
+  "type": "neoorigins:prevent_item_damage",
+  "items": ["#minecraft:pickaxes", "#minecraft:axes", "minecraft:bow"],
+  "name": "Curator",
+  "description": "Your tools and bow never break."
+}
+```
+
+---
+
+## `neoorigins:attract_mobs`
+
+Pulls nearby mobs toward the holder each tick, as though the player were holding the mob's favourite food. Drawn mobs simply path to the player — they are not tamed and do not turn hostile. With no `entity_types` filter only animals (the vanilla follows-food set) are pulled; supplying ids/tags widens or replaces that to any matching mob.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | number | no | `8.0` | Blocks around the holder within which mobs are pulled in |
+| `speed` | number | no | `1.0` | Movement-speed multiplier mobs path toward the holder at |
+| `entity_types` | array | no | `[]` | Entity ids or `#tags` drawn in; empty (default) pulls only animals |
+| `entity_blacklist` | array | no | `[]` | Entity ids or `#tags` excluded from attraction even when `entity_types` (or the animal default) would select them |
+
+**Example — pied piper of animals:**
+```json
+{
+  "type": "neoorigins:attract_mobs",
+  "radius": 12,
+  "name": "Beast Whisperer",
+  "description": "Nearby animals follow you as if you held their favourite food."
 }
 ```
 
@@ -3451,6 +3536,7 @@ A named, persistent, HUD-visible resource bar. Values are stored per-player and 
 | `label` | string | no | `"Resource"` | Display label on the HUD bar |
 | `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
 | `should_render` | bool | no | `true` | Origins compat — when false, hides the bar |
+| `always_render` | bool | no | `false` | Keep the bar on-screen even when full. By default the HUD hides a full bar (Apoli convention), so a regenerating meter that sits at max is invisible until it's spent; set this to keep it always visible. |
 | `animated` | string | no | — | Id of an animated bar FX preset, e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar fill renders as an animated texture strip instead of the flat `color`. |
 | `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the animated preset art, so one texture strip can be recolored per power. Ignored when `animated` is unset. |
 

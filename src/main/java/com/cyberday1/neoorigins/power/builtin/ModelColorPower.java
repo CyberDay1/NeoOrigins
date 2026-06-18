@@ -64,10 +64,9 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
                 float b = obj.has("blue")  ? obj.get("blue").getAsFloat()  : 1.0f;
                 float a = obj.has("alpha") ? obj.get("alpha").getAsFloat() : 1.0f;
 
-                Optional<EntityCondition> cond = Optional.empty();
-                if (obj.has("condition") && obj.get("condition").isJsonObject()) {
-                    cond = Optional.of(ConditionParser.parse(obj.getAsJsonObject("condition"), t));
-                }
+                Optional<EntityCondition> cond = obj.has("condition")
+                    ? Optional.of(ConditionParser.parseField(obj, "condition", t))
+                    : Optional.empty();
 
                 return DataResult.success(Pair.of(new Config(r, g, b, a, cond, t), ops.empty()));
             }

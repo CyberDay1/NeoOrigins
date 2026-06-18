@@ -72,8 +72,9 @@ public class ResourceHudOverlay {
         for (var entry : resources.entrySet()) {
             var res = entry.getValue();
 
-            // Hide when full
-            if (res.fraction() >= 1.0f) {
+            // Hide when full — unless the bar opted into always_render, which
+            // keeps a regenerating meter on-screen even when topped off.
+            if (!res.alwaysShow() && res.fraction() >= 1.0f) {
                 defaultIdx++;
                 continue;
             }

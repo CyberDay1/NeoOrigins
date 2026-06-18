@@ -16,6 +16,8 @@ Entity actions run against an entity target (usually the player who owns the pow
 - `conditional.inner_action` — gated by the wrapping condition
 - Nested inside meta verbs (`if_else`, `if_else_list`, `and`, `chance`, `delay`, `area_of_effect`)
 
+**Object or array.** Every entity-action field — `entity_action`, `else_action`, `fail_action`, and the nested actions of the meta verbs (`if_else`, `if_else_list`, `chance`, `delay`, `choice`, `area_of_effect`, `raycast`'s `block_action`/`bientity_action`, etc.) — accepts either a single action object **or** an array of them, run in order (an implicit `neoorigins:and`). An empty array, or entries that aren't objects, no-op. *(Previously a bare array in these fields silently did nothing; wrapping in `neoorigins:and` was required.)* The **item-action** verbs (the `(item)` section below) and `block_target_action`'s `action` remain object-only — sequence those with `neoorigins:and (item)`.
+
 On any parse error or unknown `type`, the action silently degrades to a no-op and logs a warning tagged `[CompatB]`.
 
 ---
@@ -1078,6 +1080,41 @@ Typically wrapped in `active_ability` for a cooldown + hunger cost.
 
 ---
 
+## `neoorigins:tame_target`
+
+Tames a mob as a side-effect of an action, using the same taming behaviour as the [`tame_mob`](POWER_TYPES.md) active power — the tamed mob follows and defends the actor, is marked persistent, and is tracked for despawn + death-damage. This is the **action** form: use it inside an `entity_action` field (an `action_on_event` with `event: "attack"`, a `raycast` `bientity_action`, an `active_ability`, etc.) rather than as a standalone power.
+
+The target is resolved in two steps:
+1. **Dispatch context first** — if the action fires from an interaction that carries a target entity (the mob you hit, the entity a `raycast`'s `bientity_action` struck, a projectile's `on_hit_action` target), that entity is tamed.
+2. **Crosshair fallback** — when no context target resolves, the mob under the actor's crosshair within `max_distance` is used.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `max_tamed` | int | no | `4` | Max tamed mobs alive at once. Shared with `tame_mob` through the same tracker, so they count toward one combined cap. Once reached the action no-ops. |
+| `max_distance` | float | no | `5.0` | Crosshair raycast range, used **only** when no context target resolves |
+| `despawn_ticks` | int | no | `36000` | Ticks the tamed mob lasts before despawning (36000 = 30 min) |
+| `death_damage` | float | no | `0.5` | Damage dealt to the actor when the tamed mob dies (half-hearts) |
+| `hostile_only` | bool | no | `true` | When true, only mobs implementing `Enemy` can be tamed; set false to allow any non-player `Mob` |
+| `entity_blacklist` | array | no | `[]` | Entity ids (`"minecraft:warden"`) and tag refs (`"#mymod:untameable"`) this action can never tame |
+
+The Warden, Ender Dragon and Wither (plus the server's `tame_scare_entity_blacklist` config list) are always excluded regardless of `entity_blacklist`. A capped, no-target, or excluded activation is a **silent no-op** — unlike `tame_mob`, this action does not send actionbar feedback, since it fires from events rather than a deliberate keybind.
+
+**Example — tame the mob you hit, on attack:**
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "event": "attack",
+  "entity_action": { "type": "neoorigins:tame_target", "hostile_only": false }
+}
+```
+
+**Example — crosshair tame, no fallback distance change:**
+```json
+{ "type": "neoorigins:tame_target", "max_tamed": 2, "entity_blacklist": ["minecraft:creeper"] }
+```
+
+---
+
 ## `neoorigins:dash`
 
 Applies a forward impulse in the direction the player is currently facing. Unlike `add_velocity` (which uses fixed x/y/z), `dash` reads the player's look vector and projects `strength` along it — so looking up-forward causes a diagonal upward dash, horizontal look causes a flat dash, etc.
@@ -1375,6 +1412,47 @@ Performs a block and/or entity raycast from the player's eye position along thei
     "command": "particle minecraft:flame ~ ~ ~ 0.5 0.5 0.5 0.1 20"
   } }
 ```
+
+---
+
+## `neoorigins:cast_spell`
+
+Casts an inline, author-baked **[Build A Spell](https://modrinth.com/mod/cybersbuildaspell)** (`cybersbuildaspell`) spell as the player. This is an integration action: it only does anything when Build A Spell is installed. Gate any power that uses it with the top-level `"required_mods": ["cybersbuildaspell"]` field so the power doesn't even load without BaS — without that gate the action degrades to a logged no-op when BaS is absent.
+
+The spell is assembled once at datapack-load time and reused on every dispatch. Cost is charged on **your** NeoOrigins power (resource / hunger / cooldown), so the BaS mana pool is never touched — but BaS's own per-component enable/disable config toggles are still honoured.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `delivery` | enum | yes | — | One of Build A Spell's 5 delivery methods: `rune`, `sight`, `self`, `cast`, `tracking` |
+| `components` | array | yes | — | The ordered component list (effect / modifier / `compat:*` ids). See ordering below |
+
+### Component order is EFFECT-FIRST
+
+`components` is a single ordered list, not a split of effects and modifiers. **A modifier binds to the effect that precedes it**, so each effect id is followed by the modifier ids that apply to it. A modifier appearing *before the first effect is silently dropped*.
+
+```
+EFFECT-FIRST (correct):  ["damage", "increased_power", "increased_power", "lightning", "chain"]
+                          ^ damage, doubly powered          ^ lightning, chained
+```
+
+Any id that isn't a known effect, a known modifier, or a `compat:`-prefixed compat effect causes the whole spell to fail to build (logged, naming the bad id) and the power does nothing. The list is capped at 30 components and a duplicate non-stackable modifier is dropped — the same limits a player hits in the in-game builder.
+
+> **Easiest authoring path:** build the spell in the in-game Build A Spell editor, hit its **"Export to Power"** button, and paste. The button emits the `components` list in the correct effect-first order; hand-writing it is the error-prone path.
+
+**Example — a doubly-powered, chained lightning bolt on an active ability:**
+```json
+{
+  "type": "neoorigins:active_ability",
+  "key": "key.neoorigins.spell",
+  "cooldown_ticks": 40,
+  "entity_action": {
+    "type": "neoorigins:cast_spell",
+    "delivery": "cast",
+    "components": ["damage", "increased_power", "increased_power", "lightning", "chain"]
+  }
+}
+```
+(The inner `cast_spell` block is a plain `entity_action` — lift it into `action_on_event` / `condition_passive` for a passive trigger.)
 
 ---
 

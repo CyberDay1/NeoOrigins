@@ -122,6 +122,8 @@ public class PowerTypes {
     // food_restriction retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, TwinBreedingPower>          TWIN_BREEDING          = reg("twin_breeding",          new TwinBreedingPower());
     public static final DeferredHolder<PowerType<?>, LessItemUseSlowdownPower>   LESS_ITEM_USE_SLOWDOWN = reg("less_item_use_slowdown", new LessItemUseSlowdownPower());
+    public static final DeferredHolder<PowerType<?>, PreventItemDamagePower>     PREVENT_ITEM_DAMAGE    = reg("prevent_item_damage",    new PreventItemDamagePower());
+    public static final DeferredHolder<PowerType<?>, AttractMobsPower>           ATTRACT_MOBS           = reg("attract_mobs",           new AttractMobsPower());
     public static final DeferredHolder<PowerType<?>, NoProjectileDivergencePower> NO_PROJECTILE_DIVERGENCE = reg("no_projectile_divergence", new NoProjectileDivergencePower());
     public static final DeferredHolder<PowerType<?>, QualityEquipmentPower>      QUALITY_EQUIPMENT      = reg("quality_equipment",      new QualityEquipmentPower());
     public static final DeferredHolder<PowerType<?>, MoreSmokerXpPower>          MORE_SMOKER_XP         = reg("more_smoker_xp",         new MoreSmokerXpPower());

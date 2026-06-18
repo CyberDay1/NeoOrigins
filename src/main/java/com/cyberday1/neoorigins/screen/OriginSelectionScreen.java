@@ -62,11 +62,12 @@ public class OriginSelectionScreen extends Screen {
     private final OriginSelectionPresenter presenter = new OriginSelectionPresenter();
 
     /**
-     * Sort choice survives screen close → reopen within the same session
-     * (per design: in-memory only, no config file). Reset on game restart.
+     * Sort choice survives screen close → reopen within the same session.
+     * Starts null and is seeded from the {@code default_sort} client config on
+     * first open (config isn't reliably loaded at class-init time); a cycled
+     * choice then overrides it for the rest of the session.
      */
-    private static OriginSelectionPresenter.SortMode lastSortMode =
-        OriginSelectionPresenter.SortMode.CLASS;
+    private static OriginSelectionPresenter.SortMode lastSortMode = null;
 
     // Computed layout geometry
     private int panelX, panelBottom, leftW, rightX, rightW, listTop, listVisibleCount;
@@ -100,6 +101,9 @@ public class OriginSelectionScreen extends Screen {
     @Override
     protected void init() {
         presenter.setForceReselect(forceReselect);
+        if (lastSortMode == null) {
+            lastSortMode = com.cyberday1.neoorigins.client.NeoOriginsClientConfig.defaultSortMode();
+        }
         presenter.setSortMode(lastSortMode);
         if (!presenter.init()) { onClose(); return; }
         int totalW       = Math.max(280, width - 40);

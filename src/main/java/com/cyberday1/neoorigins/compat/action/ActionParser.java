@@ -8,6 +8,7 @@ import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.compat.registry.ActionType;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -36,7 +37,7 @@ public final class ActionParser {
         "neoorigins:actor_action", "neoorigins:add_to_set", "neoorigins:add_velocity",
         "neoorigins:add_xp", "neoorigins:and", "neoorigins:apply_effect",
         "neoorigins:area_of_effect", "neoorigins:block_action_at", "neoorigins:block_target_action",
-        "neoorigins:cancel_event",
+        "neoorigins:cancel_event", "neoorigins:cast_spell",
         "neoorigins:chain_to_nearest", "neoorigins:chance", "neoorigins:change_resource",
         "neoorigins:choice", "neoorigins:clear_effect", "neoorigins:crafting_table",
         "neoorigins:damage", "neoorigins:damage_attacker", "neoorigins:dash",
@@ -61,6 +62,7 @@ public final class ActionParser {
         "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",
         "neoorigins:spawn_projectile", "neoorigins:spawn_tornado",
         "neoorigins:swap_positions", "neoorigins:swap_with_entity", "neoorigins:swing_hand",
+        "neoorigins:tame_target",
         "neoorigins:target_action", "neoorigins:teleport_target_to_self",
         "neoorigins:teleport_to_marker", "neoorigins:teleport_to_target",
         "neoorigins:throw_target", "neoorigins:toggle",
@@ -110,6 +112,33 @@ public final class ActionParser {
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Parse an action field that may be absent, a single object, or an array of
+     * action objects. Absent or non-object/array → {@link EntityAction#noop()};
+     * an array runs its elements sequentially (Apoli all-of).
+     *
+     * <p>This is the native-power CODEC counterpart to the Route-B loader's
+     * identical helper, so {@code neoorigins:*} powers accept the same
+     * array-or-object action shape that compat-translated powers already do.
+     * Without it, a bare JSON array in an action field silently no-ops.
+     */
+    public static EntityAction parseField(JsonObject parent, String field, String contextId) {
+        if (parent == null || !parent.has(field)) return EntityAction.noop();
+        JsonElement el = parent.get(field);
+        if (el.isJsonObject()) {
+            return parse(el.getAsJsonObject(), contextId);
+        }
+        if (el.isJsonArray()) {
+            List<EntityAction> list = new ArrayList<>();
+            for (JsonElement item : el.getAsJsonArray()) {
+                if (item.isJsonObject()) list.add(parse(item.getAsJsonObject(), contextId));
+            }
+            if (list.isEmpty()) return EntityAction.noop();
+            return player -> { for (EntityAction a : list) a.execute(player); };
+        }
+        return EntityAction.noop();
     }
 
     /**
@@ -238,12 +267,10 @@ public final class ActionParser {
             case "visual"    -> net.minecraft.world.level.ClipContext.Block.VISUAL;
             default          -> net.minecraft.world.level.ClipContext.Block.OUTLINE;
         };
-        EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
-            ? parse(json.getAsJsonObject("block_action"), contextId) : EntityAction.noop();
-        EntityAction bientityAction = json.has("bientity_action") && json.get("bientity_action").isJsonObject()
-            ? parse(json.getAsJsonObject("bientity_action"), contextId) : EntityAction.noop();
-        EntityAction missAction = json.has("miss_action") && json.get("miss_action").isJsonObject()
-            ? parse(json.getAsJsonObject("miss_action"), contextId) : EntityAction.noop();
+        // Each of these may be a single object or an array (run sequentially).
+        EntityAction blockAction = parseField(json, "block_action", contextId);
+        EntityAction bientityAction = parseField(json, "bientity_action", contextId);
+        EntityAction missAction = parseField(json, "miss_action", contextId);
         // {@code command_along_ray} + {@code command_step}: execute a command
         // at each {@code command_step}-block increment along the ray. Used by
         // packs for "trail of particles", "place a torch every N blocks",
@@ -260,8 +287,7 @@ public final class ActionParser {
         // block or entity is hit — this is the spell payload ("tp @s ~ ~ ~",
         // "/Explosion @s ..."). Both sit alongside the already-supported
         // command_along_ray / command_step deanos raycast extensions.
-        final EntityAction beforeAction = json.has("before_action") && json.get("before_action").isJsonObject()
-            ? parse(json.getAsJsonObject("before_action"), contextId) : EntityAction.noop();
+        final EntityAction beforeAction = parseField(json, "before_action", contextId);
         final String commandAtHit = forceParticleVisibility(
             json.has("command_at_hit") ? json.get("command_at_hit").getAsString() : null);
         return player -> {
@@ -443,7 +469,22 @@ public final class ActionParser {
         String shape = json.has("shape") ? json.get("shape").getAsString() : "sphere";
         boolean includeSelf = !json.has("include_source") || json.get("include_source").getAsBoolean();
 
-        JsonObject innerJson = json.has("entity_action") ? json.getAsJsonObject("entity_action") : null;
+        // entity_action may be a single object OR a JSON array. A bare array is
+        // wrapped in a synthetic neoorigins:and so both the EntityAction (player)
+        // and TargetAction (mob) paths compose the elements through the existing,
+        // well-tested `and` handling. Previously a bare array threw inside
+        // getAsJsonObject and the whole AoE silently no-opped.
+        JsonObject innerJson = null;
+        if (json.has("entity_action")) {
+            JsonElement ea = json.get("entity_action");
+            if (ea.isJsonObject()) {
+                innerJson = ea.getAsJsonObject();
+            } else if (ea.isJsonArray()) {
+                innerJson = new JsonObject();
+                innerJson.addProperty("type", "neoorigins:and");
+                innerJson.add("actions", ea.getAsJsonArray());
+            }
+        }
         EntityAction action = innerJson != null ? parse(innerJson, contextId) : EntityAction.noop();
         TargetAction targetAction = innerJson != null ? TargetActionParser.parse(innerJson, contextId) : null;
         EntityCondition targetCondition = json.has("entity_condition")
@@ -549,9 +590,10 @@ public final class ActionParser {
         final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 100;
         final int intervalTicks = json.has("interval_ticks") ? json.get("interval_ticks").getAsInt() : 20;
         final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
-        final EntityAction intervalAction = json.has("entity_action") && json.get("entity_action").isJsonObject()
-            ? parse(json.getAsJsonObject("entity_action"), contextId)
-            : null;
+        // Accept a single object or an array (run sequentially) for the interval
+        // action. parseField returns a shared noop when absent — harmless to run
+        // each interval, so no null-guard is needed downstream.
+        final EntityAction intervalAction = parseField(json, "entity_action", contextId);
         final String particleId = json.has("particle_type")
             ? json.get("particle_type").getAsString() : "minecraft:witch";
         final Identifier pid = Identifier.parse(particleId);

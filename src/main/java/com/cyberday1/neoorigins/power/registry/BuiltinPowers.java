@@ -538,24 +538,30 @@ public final class BuiltinPowers {
                 .def(18000).doc("Ticks a minion lasts before despawning (18000 = 15 min)."),
             new FieldSpec("death_damage", Kind.NUMBER, false)
                 .def(1.0).doc("Damage dealt to the player when a minion dies (half-hearts)."),
-            new FieldSpec("head", Kind.STRING, false)
-                .doc("Item id for the summoned mob's helmet slot (defaults to iron helmet)."),
-            new FieldSpec("chest", Kind.STRING, false)
-                .doc("Item id for the summoned mob's chest slot (optional)."),
-            new FieldSpec("legs", Kind.STRING, false)
-                .doc("Item id for the summoned mob's leggings slot (optional)."),
-            new FieldSpec("feet", Kind.STRING, false)
-                .doc("Item id for the summoned mob's boots slot (optional)."),
-            new FieldSpec("mainhand", Kind.STRING, false)
-                .doc("Item id placed in the summoned mob's main hand (optional)."),
-            new FieldSpec("offhand", Kind.STRING, false)
-                .doc("Item id placed in the summoned mob's off hand (optional)."),
+            new FieldSpec("head", Kind.MIXED, false)
+                .doc("Helmet slot: an item id string (\"minecraft:diamond_helmet\", defaults to iron helmet) "
+                    + "or an object {\"item\": \"...\", \"enchantments\": [{\"id\": \"...\", \"level\": N}]} to enchant it."),
+            new FieldSpec("chest", Kind.MIXED, false)
+                .doc("Chest slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional)."),
+            new FieldSpec("legs", Kind.MIXED, false)
+                .doc("Leggings slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional)."),
+            new FieldSpec("feet", Kind.MIXED, false)
+                .doc("Boots slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional)."),
+            new FieldSpec("mainhand", Kind.MIXED, false)
+                .doc("Main hand slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional)."),
+            new FieldSpec("offhand", Kind.MIXED, false)
+                .doc("Off hand slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional)."),
             new FieldSpec("mount", Kind.STRING, false)
                 .doc("Entity type id of an optional mount; each summoned minion is "
                     + "seated on its own copy of this entity (e.g. minecraft:hoglin so "
                     + "a piglin minion rides a hoglin). The mount is also owner-friendly, "
                     + "drops no loot, and despawns with its rider.")
                 .pattern(RESOURCE_LOCATION_PATTERN),
+            new FieldSpec("attributes", Kind.ARRAY, false)
+                .doc("List of {attribute, amount, operation} modifiers applied to each summoned mob at "
+                    + "spawn (e.g. raise minecraft:generic.max_health or minecraft:generic.attack_damage). "
+                    + "operation is add_value, add_multiplied_base or add_multiplied_total (default add_value). "
+                    + "A raised max_health spawns the mob at full HP."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -567,6 +573,7 @@ public final class BuiltinPowers {
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(200).doc("Ticks before the tame ability can be reused (200 = 10s)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .boundTo("hungerCostLegacy")
                 .def(3).doc("Hunger consumed each time a mob is tamed."),
             new FieldSpec("despawn_ticks", Kind.INTEGER, false)
                 .def(36000).doc("Ticks a tamed mob lasts before despawning (36000 = 30 min)."),
@@ -584,8 +591,10 @@ public final class BuiltinPowers {
                 .itemPattern(TOKEN_OR_ID_PATTERN)
                 .doc("Area-mode only: entity ids (\"minecraft:zombie\") and tag refs (\"#mymod:tameable\") an area cast is restricted to. Empty (default) = any mob (still subject to hostile_only and the blacklists). Ignored in raycast mode."),
             new FieldSpec("resource_cost", Kind.STRING, false)
+                .boundTo("tameResourceId")
                 .def("").doc("Optional resource power id spent PER mob tamed; empty = no resource cost (falls back to hunger_cost). When resource bars are globally disabled this amount is charged as hunger instead."),
             new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .boundTo("tameResourceAmount")
                 .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per mob tamed; default 0. Taming stops greedily once the player can no longer afford one more."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
@@ -1019,6 +1028,8 @@ public final class BuiltinPowers {
                 .doc("EntityAction tree executed on the player when the keybind fires (defaults to noop)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Optional DSL condition gating the ability; it only fires while this passes (default always)."),
+            new FieldSpec("fail_action", Kind.REF, false).ref("action.schema.json")
+                .doc("Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1188,6 +1199,23 @@ public final class BuiltinPowers {
                 .doc("Optional EntityAction run on the player each time a lethal hit is prevented (defaults to noop)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Optional EntityCondition gating the save: the power only prevents death while it passes (default always-true).")));
+        define("prevent_item_damage", PreventItemDamagePower.class, List.of(
+            new FieldSpec("items", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Item ids or #tags spared from durability loss; empty list (default) protects every damageable item the holder uses.")));
+        define("attract_mobs", AttractMobsPower.class, List.of(
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(8.0).range(0.0, null)
+                .doc("Blocks around the holder within which mobs are pulled in (default 8)."),
+            new FieldSpec("speed", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Movement-speed multiplier mobs path toward the holder at (default 1.0)."),
+            new FieldSpec("entity_types", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Entity ids or #tags drawn in; empty (default) pulls only animals (the vanilla follows-food set)."),
+            new FieldSpec("entity_blacklist", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Entity ids or #tags excluded from attraction even when entity_types (or the animal default) would select them.")));
 
         // ── Group E — reflection-fallback enum + condition doc adds ──────────────
         //   • tick_action: NO schema branch (permissive fallback). The codec reads
@@ -1278,8 +1306,9 @@ public final class BuiltinPowers {
                 new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color (hex, e.g. #55AAFF)."),
                 new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."),
                 new FieldSpec("animated", Kind.STRING, false).boundTo("animated").def("").doc("Animated bar-FX preset id (e.g. neoorigins:fire); empty = static bar."),
-                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted."))
-                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint components.")));
+                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted."),
+                new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

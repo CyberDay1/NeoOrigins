@@ -65,6 +65,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         boolean hidden,
         String animated,
         int tint,
+        boolean alwaysShow,
         String type
     ) implements PowerConfiguration {
 
@@ -89,12 +90,9 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 int regenInterval = Math.max(1, obj.has("regen_interval") ? obj.get("regen_interval").getAsInt() : 20);
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:resource";
 
-                EntityCondition regenCond = obj.has("regen_condition") && obj.get("regen_condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("regen_condition"), t) : EntityCondition.alwaysTrue();
-                EntityAction minAction = obj.has("min_action") && obj.get("min_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("min_action"), t) : EntityAction.noop();
-                EntityAction maxAction = obj.has("max_action") && obj.get("max_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("max_action"), t) : EntityAction.noop();
+                EntityCondition regenCond = ConditionParser.parseField(obj, "regen_condition", t);
+                EntityAction minAction = ActionParser.parseField(obj, "min_action", t);
+                EntityAction maxAction = ActionParser.parseField(obj, "max_action", t);
 
                 // HUD render
                 String label = "Resource";
@@ -102,6 +100,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 String animated = "";
                 int tint = 0;
                 boolean hidden = obj.has("hidden") && obj.get("hidden").getAsBoolean();
+                boolean alwaysShow = false;
                 if (obj.has("hud_render") && obj.get("hud_render").isJsonObject()) {
                     JsonObject hud = obj.getAsJsonObject("hud_render");
                     if (hud.has("label")) label = hud.get("label").getAsString();
@@ -117,11 +116,15 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                     if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
                         hidden = true;
                     }
+                    // Opt-in: keep the bar on-screen even at full value. By default the
+                    // HUD hides a full bar (Apoli convention); a regenerating meter that
+                    // sits at max is then invisible, so authors can force it visible.
+                    if (hud.has("always_render")) alwaysShow = hud.get("always_render").getAsBoolean();
                 }
 
                 return DataResult.success(Pair.of(new Config(
                     powerId, min, max, startValue, regenRate, regenInterval,
-                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, t
+                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, alwaysShow, t
                 ), ops.empty()));
             }
 
@@ -156,7 +159,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint()));
+                config.hidden(), config.animated(), config.tint(), config.alwaysShow()));
         CompatAttachments.syncResourcesToClient(player);
     }
 
@@ -182,7 +185,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         // the attachment untouched. GitHub #90.
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint()));
+                config.hidden(), config.animated(), config.tint(), config.alwaysShow()));
         // Seed the state attachment if it has no entry for this key. Hits two
         // cases: (a) players granted this power before resource_state shipped,
         // who never had their state seeded by onGranted; (b) a state map that

@@ -51,8 +51,8 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
                     ? Optional.of(obj.get("target_group").getAsString()) : Optional.empty();
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:modify_damage";
 
-                Optional<EntityCondition> cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? Optional.of(ConditionParser.parse(obj.getAsJsonObject("condition"), t))
+                Optional<EntityCondition> cond = obj.has("condition")
+                    ? Optional.of(ConditionParser.parseField(obj, "condition", t))
                     : Optional.empty();
 
                 return DataResult.success(Pair.of(

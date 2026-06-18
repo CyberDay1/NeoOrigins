@@ -49,6 +49,7 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
         int resourceCostAmount,
         EntityAction action,
         EntityCondition condition,
+        EntityAction failAction,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
@@ -81,16 +82,19 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 String resCost = obj.has("resource_cost") ? obj.get("resource_cost").getAsString() : "";
                 int resCostAmt = obj.has("resource_cost_amount") ? obj.get("resource_cost_amount").getAsInt() : 0;
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:active_ability";
+                EntityAction action = ActionParser.parseField(obj, "entity_action", t);
+                EntityCondition condition = ConditionParser.parseField(obj, "condition", t);
+                // fail_action — feedback hook fired when an activation attempt is
+                // blocked by `condition` (cooldown/hunger/resource aborts in the
+                // base class stay silent). Null when absent (preserved so execute()
+                // can skip it).
+                EntityAction failAction = obj.has("fail_action")
+                    ? ActionParser.parseField(obj, "fail_action", t)
+                    : null;
                 String cdIcon = obj.has("cooldown_icon") ? obj.get("cooldown_icon").getAsString() : "";
                 boolean cdCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
                 boolean alwaysShow = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
-                EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
-                    : EntityAction.noop();
-                EntityCondition condition = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
-                    : EntityCondition.alwaysTrue();
-                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, t, cdIcon, cdCountdown, alwaysShow), ops.empty()));
+                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, failAction, t, cdIcon, cdCountdown, alwaysShow), ops.empty()));
             }
 
             @Override
@@ -107,7 +111,11 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
         try {
-            if (!config.condition().test(player)) return false;
+            if (!config.condition().test(player)) {
+                // Returning false keeps the cooldown un-consumed (base-class contract).
+                if (config.failAction() != null) config.failAction().execute(player);
+                return false;
+            }
             config.action().execute(player);
             return true;
         } catch (Exception e) {

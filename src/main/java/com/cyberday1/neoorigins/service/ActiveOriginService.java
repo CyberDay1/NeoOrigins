@@ -109,7 +109,7 @@ public final class ActiveOriginService {
                 if (holder == null) continue;
                 if (!seen.add(powerId)) continue;
                 all.add(holder);
-                if (holder.isActive()) {
+                if (holder.occupiesHotkeySlot()) {
                     if (isClassLayer) classActive.add(holder);
                     else originActive.add(holder);
                 }
@@ -122,7 +122,7 @@ public final class ActiveOriginService {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;
             all.add(holder);
-            if (holder.isActive()) originActive.add(holder);
+            if (holder.occupiesHotkeySlot()) originActive.add(holder);
         }
 
         CacheEntry fresh = new CacheEntry(dim, dv, omv, pmv, rv,
@@ -337,5 +337,66 @@ public final class ActiveOriginService {
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
         }
+    }
+
+    /**
+     * Replaces a player's entire layer&rarr;origin selection in one clean
+     * transition, tearing down the old powers before granting the new ones.
+     * Intended for profile / loadout integrations (e.g. Switchy) that restore a
+     * saved origin set: writing the {@link PlayerOriginData} attachment NBT
+     * directly leaves the previous origin's powers — attribute modifiers, event
+     * handlers, tick state — dangling, because it skips the revoke side of the
+     * lifecycle. Call this instead and hand over the new map.
+     *
+     * <p>Steps, in order:
+     * <ol>
+     *   <li>{@link #revokeAllPowers(ServerPlayer)} — reads the <em>current</em>
+     *       attachment and tears down every active power (so call this BEFORE
+     *       overwriting the attachment yourself; this method does it for you).</li>
+     *   <li>Overwrites the layer&rarr;origin map with {@code newOrigins}.</li>
+     *   <li>{@link #invalidate(UUID)} — drops the resolved-power cache.</li>
+     *   <li>Grants each new origin's powers via the grant-only path.</li>
+     *   <li>Re-reconciles server-global ({@code apoli:global}) powers the blanket
+     *       revoke cleared — they're independent of the chosen origins.</li>
+     *   <li>Syncs the fresh state to the client.</li>
+     * </ol>
+     *
+     * <p>Evolution tier and other non-origin scratch state on the attachment are
+     * preserved (only the origin selection and power ledgers are rewritten). An
+     * empty {@code newOrigins} clears the player to no origins, just like
+     * {@code /neoorigins reset}.
+     *
+     * @param player     the online player to retarget.
+     * @param newOrigins the full layer&rarr;origin map to apply (replaces all
+     *                   existing layers).
+     */
+    public static void reapplyOrigins(ServerPlayer player,
+                                      Map<Identifier, Identifier> newOrigins) {
+        // 1. Tear down the current (old) power state from the existing attachment.
+        revokeAllPowers(player);
+
+        // 2. Overwrite the layer→origin map with the incoming profile.
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        data.clear();
+        newOrigins.forEach(data::setOrigin);
+        // A populated profile means the player has made their selections — set the
+        // flag so the next login doesn't re-prompt the origin picker. clear() above
+        // reset it to false.
+        if (!newOrigins.isEmpty()) {
+            data.setHadAllOrigins(true);
+        }
+
+        // 3. Drop the resolved-power cache so the next read rebuilds from the new map.
+        invalidate(player.getUUID());
+
+        // 4. Grant the new origins' powers (oldOrigin = null → grant-only path).
+        newOrigins.forEach((layer, origin) ->
+            applyOriginPowers(player, layer, null, origin));
+
+        // 5. Restore server-global powers the blanket revoke cleared.
+        GlobalPowerService.reconcilePlayer(player);
+
+        // 6. Push the fresh state to the client (HUD, keybinds, active powers).
+        com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
     }
 }
