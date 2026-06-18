@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.service;
 import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.event.CombatPowerEvents;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.List;
@@ -39,9 +40,9 @@ public final class EntityExclusions {
      * Boss-grade mobs that are never tameable / scareable regardless of config.
      */
     private static final Set<EntityType<?>> BOSS_TIER = Set.of(
-        EntityType.WARDEN,
-        EntityType.ENDER_DRAGON,
-        EntityType.WITHER);
+        EntityTypes.WARDEN,
+        EntityTypes.ENDER_DRAGON,
+        EntityTypes.WITHER);
 
     /** True if the entity is in the hardcoded, non-overridable boss-tier set. */
     public static boolean isBossTier(LivingEntity entity) {

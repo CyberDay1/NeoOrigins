@@ -158,5 +158,5 @@ public class ActivePowersDebugScreen extends Screen {
 
     @Override protected void extractBlurredBackground(GuiGraphicsExtractor g) { /* no blur */ }
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void onClose() { Minecraft.getInstance().setScreen(parent); }
+    @Override public void onClose() { Minecraft.getInstance().gui.setScreen(parent); }
 }

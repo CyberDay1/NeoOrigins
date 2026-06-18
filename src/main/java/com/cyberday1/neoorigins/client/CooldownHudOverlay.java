@@ -159,9 +159,9 @@ public class CooldownHudOverlay {
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gameRenderer.gameRenderState().guiRenderState.isHudHidden) return;
         // The HUD editor draws its own live cluster while open.
-        if (mc.screen instanceof ResourceHudEditorScreen) return;
+        if (mc.gui.screen() instanceof ResourceHudEditorScreen) return;
 
         List<RenderSlot> slots = buildRenderSlots();
         if (slots.isEmpty()) return;
@@ -219,7 +219,7 @@ public class CooldownHudOverlay {
     @SubscribeEvent
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gameRenderer.gameRenderState().guiRenderState.isHudHidden) return;
         if (event.getScreen() instanceof ResourceHudEditorScreen) return;
 
         List<RenderSlot> slots = buildRenderSlots();

@@ -27,12 +27,12 @@ public class ClientOriginState {
 
     public static void openSelectionScreen(boolean isOrb, boolean forceReselect) {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect));
+        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect));
     }
 
     public static void openInfoScreen() {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.setScreen(new com.cyberday1.neoorigins.screen.OriginInfoScreen());
+        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.OriginInfoScreen());
     }
 
     /**
@@ -50,7 +50,7 @@ public class ClientOriginState {
      */
     public static void openEditorScreen() {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.setScreen(new com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen(
+        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.creator.OriginCreatorScreen(
             null, new com.cyberday1.neoorigins.screen.creator.model.OriginDraft()));
     }
 }

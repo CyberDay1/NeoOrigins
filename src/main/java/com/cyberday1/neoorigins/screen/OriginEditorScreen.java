@@ -117,7 +117,7 @@ public class OriginEditorScreen extends Screen {
     private void openOriginPicker() {
         // Re-open the standard selection screen in forceReselect mode; when it closes,
         // the editor screen is lost. The user can re-open it from OriginInfoScreen.
-        Minecraft.getInstance().setScreen(new OriginSelectionScreen(false, true));
+        Minecraft.getInstance().gui.setScreen(new OriginSelectionScreen(false, true));
     }
 
     private void toggle(Identifier powerId) {
@@ -239,5 +239,5 @@ public class OriginEditorScreen extends Screen {
 
     @Override protected void extractBlurredBackground(GuiGraphicsExtractor g) { /* no blur */ }
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void onClose() { Minecraft.getInstance().setScreen(parent); }
+    @Override public void onClose() { Minecraft.getInstance().gui.setScreen(parent); }
 }

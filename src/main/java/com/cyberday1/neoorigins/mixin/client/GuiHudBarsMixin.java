@@ -2,8 +2,8 @@ package com.cyberday1.neoorigins.mixin.client;
 
 import com.cyberday1.neoorigins.client.NeoOriginsClientConfig;
 import com.cyberday1.neoorigins.client.ClientActivePowers;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.Hud;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * flag gates both — pack authors can turn the feature off entirely without
  * editing every origin JSON.
  */
-@Mixin(Gui.class)
+@Mixin(Hud.class)
 public abstract class GuiHudBarsMixin {
 
     @Inject(method = "extractFoodLevel", at = @At("HEAD"), cancellable = true)

@@ -14,8 +14,8 @@ public final class ClientMobCreatorState {
     public static void openMobCreatorScreen() {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         ClientCreatorState.clear();
-        mc.setScreen(new com.cyberday1.neoorigins.screen.mobcreator.MobOriginCreatorScreen(
-            mc.screen,
+        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.mobcreator.MobOriginCreatorScreen(
+            mc.gui.screen(),
             new com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft()));
     }
 }

@@ -37,7 +37,7 @@ public class MoistureHudOverlay {
         if (!ClientMoistureState.isActive()) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gameRenderer.gameRenderState().guiRenderState.isHudHidden) return;
 
         GuiGraphicsExtractor g = event.getGuiGraphics();
         int screenW = mc.getWindow().getGuiScaledWidth();

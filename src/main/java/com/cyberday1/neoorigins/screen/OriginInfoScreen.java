@@ -253,14 +253,14 @@ public class OriginInfoScreen extends Screen {
         boolean showDevGui = lp != null && lp.isCreative();
         if (showDevGui) {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.debug"),
-                    b -> Minecraft.getInstance().setScreen(new ActivePowersDebugScreen(this)))
+                    b -> Minecraft.getInstance().gui.setScreen(new ActivePowersDebugScreen(this)))
                 .bounds(width / 2 + 48, height - 24, 60, 20).build());
         }
         // The editor can additionally be ungated for all game modes via config
         // (ui.show_origin_editor) for pack authors who build origins in survival.
         if (showDevGui || com.cyberday1.neoorigins.client.NeoOriginsClientConfig.isShowOriginEditor()) {
             addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.edit"),
-                    b -> Minecraft.getInstance().setScreen(new OriginEditorScreen(this)))
+                    b -> Minecraft.getInstance().gui.setScreen(new OriginEditorScreen(this)))
                 .bounds(width / 2 - 108, height - 24, 60, 20).build());
         }
     }
@@ -680,5 +680,5 @@ public class OriginInfoScreen extends Screen {
 
     @Override protected void extractBlurredBackground(GuiGraphicsExtractor g) { /* no blur */ }
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void onClose() { Minecraft.getInstance().setScreen(null); }
+    @Override public void onClose() { Minecraft.getInstance().gui.setScreen(null); }
 }

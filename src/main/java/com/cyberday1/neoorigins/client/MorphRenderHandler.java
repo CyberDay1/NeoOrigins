@@ -19,7 +19,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.cubemob.Slime;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -117,7 +117,7 @@ public final class MorphRenderHandler {
         if (renderer == null) return;
 
         CameraRenderState camera =
-            mc.gameRenderer.getGameRenderState().levelRenderState.cameraRenderState;
+            mc.gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
 
         // The pose is already at the player's render position (the dispatcher
         // translated before AvatarRenderer.submit fired this event), so the

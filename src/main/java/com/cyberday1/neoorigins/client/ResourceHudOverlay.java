@@ -56,9 +56,9 @@ public class ResourceHudOverlay {
         if (resources.isEmpty()) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gameRenderer.gameRenderState().guiRenderState.isHudHidden) return;
         // Don't render bars while the editor is open — the editor draws them itself
-        if (mc.screen instanceof ResourceHudEditorScreen) return;
+        if (mc.gui.screen() instanceof ResourceHudEditorScreen) return;
 
         GuiGraphicsExtractor g = event.getGuiGraphics();
         int screenW = mc.getWindow().getGuiScaledWidth();

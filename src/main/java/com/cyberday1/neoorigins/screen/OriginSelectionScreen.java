@@ -560,7 +560,7 @@ public class OriginSelectionScreen extends Screen {
         if (!isOrb && !isPickComplete(nitwitAssigned)) {
             ClientPacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
         }
-        Minecraft.getInstance().setScreen(null);
+        Minecraft.getInstance().gui.setScreen(null);
     }
 
     /**

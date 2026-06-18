@@ -49,7 +49,7 @@ public class NeoOriginsClientEvents {
         }
 
         if (NeoOriginsKeybindings.EDIT_HUD.consumeClick()) {
-            Minecraft.getInstance().setScreen(new ResourceHudEditorScreen());
+            Minecraft.getInstance().gui.setScreen(new ResourceHudEditorScreen());
         }
 
         if (NeoOriginsKeybindings.OPEN_CREATOR.consumeClick()) {
@@ -107,7 +107,7 @@ public class NeoOriginsClientEvents {
         // button column.
         Button btn = Button.builder(
                 Component.translatable("button.neoorigins.edit_hud"),
-                b -> Minecraft.getInstance().setScreen(new ResourceHudEditorScreen()))
+                b -> Minecraft.getInstance().gui.setScreen(new ResourceHudEditorScreen()))
             .bounds(8, 8, 80, 20)
             .build();
         event.addListener(btn);

@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
-version = "${mod_version}+26.1"
+version = "${mod_version}+26.2"
 group = mod_group_id
 
 base {
@@ -49,28 +49,16 @@ repositories {
 }
 
 dependencies {
-    // JEI – compile-only so the mod works without JEI installed
-    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
-    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
-
-    // REI – no MC 26.1 build yet; uncomment when available
-    // compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:VERSION"
-    // compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:VERSION"
-    // compileOnly "dev.architectury:architectury-neoforge:VERSION"
-
-    // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
-    // EMI + The One Probe are skipped on 26.1 — no 26.1 NeoForge build yet.
-    compileOnly "maven.modrinth:jade:${property('deps.jade')}"
-
-    // FTB Ultimine – the `ultimine` vein-mining power grants ultimine to active
-    // origin holders via a registered RestrictionHandler. Compile-only soft dep;
-    // all FTB-Ultimine-typed code is isolated in compat/ftbultimine and only
-    // classloaded behind a ModList.isLoaded("ftbultimine") gate. On 26.1 the
-    // restriction-handler event (FTBUltimineEvent.RegisterRestrictionHandler)
-    // extends FTB Library's BaseEventWithData, so ftb-library must be on the
-    // compile classpath too.
-    compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
-    compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
+    // NOTE (26.2): JEI, Jade and FTB Ultimine/Library are dropped on this branch
+    // because none of them publish an MC 26.2 artifact yet. Their compat classes
+    // (compat/jei, compat/jade, compat/ftbultimine) are removed here and the
+    // neoorigins:ultimine power is left as an inert marker. Restore each dep +
+    // its compat class (port from the 26.1 branch) once upstream publishes 26.2.
+    //   compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
+    //   runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
+    //   compileOnly "maven.modrinth:jade:${property('deps.jade')}"
+    //   compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
+    //   compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
 
     // Build A Spell (buildaspell) – the `cast_spell` action casts an
     // inline author-baked spell via BuildASpellAPI. Compile-only soft dep

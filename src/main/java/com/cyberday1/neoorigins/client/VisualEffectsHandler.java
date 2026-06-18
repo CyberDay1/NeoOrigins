@@ -44,7 +44,7 @@ public final class VisualEffectsHandler {
         if (data == null) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gameRenderer.gameRenderState().guiRenderState.isHudHidden) return;
 
         // Parse "texture:strength"
         int lastColon = data.lastIndexOf(':');

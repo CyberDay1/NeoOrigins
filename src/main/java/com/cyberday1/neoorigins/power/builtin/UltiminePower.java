@@ -9,8 +9,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  * Grants FTB Ultimine vein-mining to the holder (soft dep on {@code ftbultimine}).
  *
  * <p>This power carries no behaviour of its own: it is a marker the FTB Ultimine
- * bridge looks for. When FTB Ultimine is installed,
- * {@link com.cyberday1.neoorigins.compat.ftbultimine.FtbUltimineCompat} registers
+ * bridge looks for. When FTB Ultimine is installed, the FTB Ultimine compat
+ * bridge registers
  * a {@code RestrictionHandler} that permits ultimine only for players with an
  * <i>active</i> {@code neoorigins:ultimine} power and denies it for everyone
  * else. FTB Ultimine aggregates restriction handlers as an AND-gate (the first

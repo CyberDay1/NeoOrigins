@@ -307,6 +307,6 @@ public class OriginCreatorScreen extends Screen implements CreatorHost {
     @Override
     public void onClose() {
         if (!templatePicker.isOpen()) tabs.get(activeTab).pushToDraft();
-        Minecraft.getInstance().setScreen(parent);
+        Minecraft.getInstance().gui.setScreen(parent);
     }
 }

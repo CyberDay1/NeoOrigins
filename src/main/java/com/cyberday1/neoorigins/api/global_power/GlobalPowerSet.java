@@ -7,6 +7,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 
 import java.util.List;
 
@@ -89,6 +90,6 @@ public record GlobalPowerSet(
      */
     public boolean matchesPlayer() {
         if (entityTypes.isEmpty()) return true;
-        return matchesEntityType(EntityType.PLAYER);
+        return matchesEntityType(EntityTypes.PLAYER);
     }
 }
