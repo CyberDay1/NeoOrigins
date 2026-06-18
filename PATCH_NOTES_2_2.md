@@ -2,6 +2,48 @@
 
 ---
 
+## v2.2.5
+
+> Adds a Build A Spell integration, two new powers, a big client-config expansion for the HUD ability display, an array-form authoring fix, and a fresh **Minecraft 26.2** build alongside the existing 26.1.x and 1.21.1 ones.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Powers & Systems
+
+- **Build A Spell integration — `neoorigins:cast_spell`.** A new power that casts an inline Build A Spell spell when activated. Spells are defined effect-first as components on the power, so they don't require a pre-registered BaS spell item, and the cast is **mod-gated via `required_mods`** — packs that ship it stay loadable when Build A Spell isn't installed. Cost is charged on the NeoOrigins power (resource/hunger/cooldown), so the spell fires regardless of BaS's own mana system. (Build A Spell recently collapsed its mod id / package to the single token `buildaspell`; the integration targets that renamed coordinate.)
+- **`attract_mobs` power.** Pulls nearby mobs toward the holder, backed by a new `AvoidEntityGoalMixin` so mobs that would normally flee can be drawn in instead.
+- **`prevent_item_damage` power.** Stops items from losing durability under the power's conditions, via a new `ItemStackHurtAndBreakMixin`.
+- **`tame_target` action verb.** Tames the entity on the other side of an interaction (the context target), complementing the existing `tame_mob` power.
+
+### Pack Author Features
+
+- **Action/condition fields accept an object *or* an array.** A field like `entity_action` / `condition` can now be written as a single object or as a bare array (an implicit "all-of"/AND). Previously a bare array silently no-opped, so packs that authored these as lists lost the behavior with no error.
+- **`summon_minion` gains attribute & enchantment fields** for the summoned minions, alongside the existing equipment/mount options.
+- **`disable_hotkey` precedence clarified** so a hotkey-disabling setting wins consistently over a power's own bind.
+
+### Client Configuration
+
+- **Expanded HUD ability-display options.** New client-config controls over the on-HUD ability cluster — including cooldown-countdown opacity and the default origin sort order — with the full surface documented in the new `CLIENT_CONFIG.md` reference.
+
+### Bug Fixes
+
+- **Oceanic conduit/apex powers are usable on land again.** Powers built on vanilla's `conduit_power` were water-gated, so the affected ocean origins' abilities were effectively dead out of water. They've been rebuilt on land-usable effects, so the ability works regardless of whether the player is submerged.
+
+### Minecraft 26.2 Support
+
+- **A native Minecraft 26.2 build joins the release.** NeoOrigins now ships a third jar built for MC 26.2 (NeoForge, Java 25), in addition to the 26.1.x and 1.21.1 jars. Pick the jar matching your Minecraft version.
+- **Note on 26.2 mod integrations.** A few soft-dependency integrations (JEI, Jade, FTB) aren't available on the 26.2 build yet, pending those mods publishing 26.2 versions — the core mod and the Build A Spell integration are fully present. They'll be restored on 26.2 as upstream catches up; the 26.1.x and 1.21.1 builds are unaffected.
+
+### Localization
+
+- **All 12 locale files updated** for the new powers, fields, and client-config strings.
+
+### Documentation
+
+- **`cast_spell`, `attract_mobs`, `prevent_item_damage`, the `tame_target` verb, the array-or-object field form, the new `summon_minion` fields, and the client-config options documented** across `ACTIONS.md`, `API.md`, `CONDITIONS.md`, `POWER_TYPES.md`, and the new `CLIENT_CONFIG.md`, with the power/action schemas and the web-editor schema mirror regenerated.
+
+---
+
 ## v2.2.4
 
 > A bug-fix and compat follow-up to 2.2.3, driven by Discord reports: a fix for the 26.1 mod-loading warning, an area-of-effect option for `tame_mob`, a batch of power fixes, and better Apoli compatibility.
