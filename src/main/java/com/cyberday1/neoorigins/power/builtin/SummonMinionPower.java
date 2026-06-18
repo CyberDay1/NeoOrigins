@@ -9,8 +9,12 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +27,9 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.target.TargetGoal;
@@ -31,8 +38,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -44,6 +55,18 @@ import java.util.Optional;
  */
 public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Config> {
 
+    /** A single enchantment to roll onto a summoned mob's equipment piece. */
+    public record EnchantEntry(String id, int level) {}
+
+    /** Equipment item for a slot: an item id plus optional enchantments. The
+     *  string form {@code "minecraft:iron_helmet"} decodes to an EquipItem with
+     *  an empty enchantment list; the object form
+     *  {@code {"item": "...", "enchantments": [...]}} carries enchantments. */
+    public record EquipItem(String itemId, List<EnchantEntry> enchantments) {}
+
+    /** An attribute modifier applied to the summoned mob at spawn. */
+    public record AttrEntry(String attribute, double amount, AttributeModifier.Operation operation) {}
+
     public record Config(
         String mobType,
         int maxCount,
@@ -52,14 +75,15 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         int hungerCost,
         int despawnTicks,
         float deathDamage,
-        Optional<String> head,
-        Optional<String> chest,
-        Optional<String> legs,
-        Optional<String> feet,
-        Optional<String> mainhand,
-        Optional<String> offhand,
+        Optional<EquipItem> head,
+        Optional<EquipItem> chest,
+        Optional<EquipItem> legs,
+        Optional<EquipItem> feet,
+        Optional<EquipItem> mainhand,
+        Optional<EquipItem> offhand,
         Optional<String> mount,
-        String type,
+        List<AttrEntry> attributes,
+        String type,
         String cooldownIcon,
         boolean cooldownCountdown,
         boolean alwaysShowIcon
@@ -99,9 +123,9 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
                 boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
                 return DataResult.success(Pair.of(new Config(
                     mobType, maxCount, quantity, cooldown, hunger, despawn, deathDamage,
-                    optString(obj, "head"), optString(obj, "chest"), optString(obj, "legs"),
-                    optString(obj, "feet"), optString(obj, "mainhand"), optString(obj, "offhand"),
-                    optString(obj, "mount"),
+                    optEquip(obj, "head"), optEquip(obj, "chest"), optEquip(obj, "legs"),
+                    optEquip(obj, "feet"), optEquip(obj, "mainhand"), optEquip(obj, "offhand"),
+                    optString(obj, "mount"), parseAttributes(obj),
                     type, cooldownIcon, cooldownCountdown, alwaysShowIcon), ops.empty()));
             }
 
@@ -123,6 +147,62 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             return obj.has(field) && obj.get(field).isJsonPrimitive()
                 ? Optional.of(obj.get(field).getAsString())
                 : Optional.empty();
+        }
+
+        /** Equipment slot field. Accepts the bare-string form
+         *  ({@code "minecraft:iron_helmet"}) or the object form
+         *  ({@code {"item": "...", "enchantments": [{"id": "...", "level": N}]}}). */
+        private static Optional<EquipItem> optEquip(JsonObject obj, String field) {
+            if (!obj.has(field)) return Optional.empty();
+            JsonElement el = obj.get(field);
+            if (el.isJsonPrimitive()) {
+                return Optional.of(new EquipItem(el.getAsString(), List.of()));
+            }
+            if (el.isJsonObject()) {
+                JsonObject o = el.getAsJsonObject();
+                if (!o.has("item")) return Optional.empty();
+                String itemId = o.get("item").getAsString();
+                List<EnchantEntry> enchants = new ArrayList<>();
+                if (o.has("enchantments") && o.get("enchantments").isJsonArray()) {
+                    for (JsonElement ee : o.getAsJsonArray("enchantments")) {
+                        if (!ee.isJsonObject()) continue;
+                        JsonObject eo = ee.getAsJsonObject();
+                        if (!eo.has("id")) continue;
+                        int lvl = eo.has("level") ? eo.get("level").getAsInt() : 1;
+                        enchants.add(new EnchantEntry(eo.get("id").getAsString(), lvl));
+                    }
+                }
+                return Optional.of(new EquipItem(itemId, List.copyOf(enchants)));
+            }
+            return Optional.empty();
+        }
+
+        /** Parse the optional {@code attributes} array of modifiers applied to
+         *  the summoned mob. Each entry needs {@code attribute} + {@code amount};
+         *  {@code operation} defaults to {@code add_value}. */
+        private static List<AttrEntry> parseAttributes(JsonObject obj) {
+            if (!obj.has("attributes") || !obj.get("attributes").isJsonArray()) return List.of();
+            List<AttrEntry> out = new ArrayList<>();
+            for (JsonElement ae : obj.getAsJsonArray("attributes")) {
+                if (!ae.isJsonObject()) continue;
+                JsonObject ao = ae.getAsJsonObject();
+                if (!ao.has("attribute") || !ao.has("amount")) continue;
+                AttributeModifier.Operation op = ao.has("operation")
+                    ? parseOp(ao.get("operation").getAsString())
+                    : AttributeModifier.Operation.ADD_VALUE;
+                out.add(new AttrEntry(ao.get("attribute").getAsString(),
+                    ao.get("amount").getAsDouble(), op));
+            }
+            return List.copyOf(out);
+        }
+
+        private static AttributeModifier.Operation parseOp(String s) {
+            return switch (s) {
+                case "add_value" -> AttributeModifier.Operation.ADD_VALUE;
+                case "add_multiplied_base" -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+                case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+                default -> AttributeModifier.Operation.ADD_VALUE;
+            };
         }
     }
 
@@ -245,12 +325,19 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
             if (applyEquipment) {
                 // Apply configured equipment (or default helmet for sun protection)
-                equipSlot(mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
-                equipSlot(mob, EquipmentSlot.CHEST, config.chest(), null);
-                equipSlot(mob, EquipmentSlot.LEGS, config.legs(), null);
-                equipSlot(mob, EquipmentSlot.FEET, config.feet(), null);
-                equipSlot(mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
-                equipSlot(mob, EquipmentSlot.OFFHAND, config.offhand(), null);
+                equipSlot(level, mob, EquipmentSlot.HEAD, config.head(), Items.IRON_HELMET.getDefaultInstance());
+                equipSlot(level, mob, EquipmentSlot.CHEST, config.chest(), null);
+                equipSlot(level, mob, EquipmentSlot.LEGS, config.legs(), null);
+                equipSlot(level, mob, EquipmentSlot.FEET, config.feet(), null);
+                equipSlot(level, mob, EquipmentSlot.MAINHAND, config.mainhand(), null);
+                equipSlot(level, mob, EquipmentSlot.OFFHAND, config.offhand(), null);
+
+                // Apply configured attribute modifiers (max health, damage, ...)
+                // then top the mob up so a raised max_health spawns at full HP.
+                if (!config.attributes().isEmpty()) {
+                    applyAttributes(mob, config.attributes());
+                    mob.setHealth(mob.getMaxHealth());
+                }
             }
 
             // Zero all drop chances — summoned mobs never drop loot
@@ -315,7 +402,23 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
         mob.targetSelector.addGoal(2, new SummonerCombatTargetGoal(mob, summoner));
 
-        mob.goalSelector.getAvailableGoals().removeIf(g -> g.getGoal() instanceof AvoidEntityGoal);
+        stripDistractionGoals(mob);
+    }
+
+    /**
+     * Remove goals that pull a combat pet away from its owner's fight: vanilla
+     * player-avoidance ({@link AvoidEntityGoal}) and — for summoned bees — the
+     * pollinate / fly-to-flower wander goals. The bee goals are private inner
+     * classes of {@code Bee}, so they're matched by simple class name rather
+     * than type. {@code BeeAttackGoal} is intentionally left in place so the
+     * bee still fights.
+     */
+    static void stripDistractionGoals(Mob mob) {
+        mob.goalSelector.getAvailableGoals().removeIf(g -> {
+            if (g.getGoal() instanceof AvoidEntityGoal) return true;
+            String name = g.getGoal().getClass().getSimpleName();
+            return name.equals("BeePollinateGoal") || name.equals("BeeGoToKnownFlowerGoal");
+        });
     }
 
     /**
@@ -381,15 +484,72 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         }
     }
 
-    private static void equipSlot(Mob mob, EquipmentSlot slot, Optional<String> configItem, ItemStack fallback) {
+    private static void equipSlot(ServerLevel level, Mob mob, EquipmentSlot slot,
+                                  Optional<EquipItem> configItem, ItemStack fallback) {
         if (configItem.isPresent()) {
-            var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(configItem.get()));
+            EquipItem equip = configItem.get();
+            var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(equip.itemId()));
             if (itemOpt.isPresent()) {
-                mob.setItemSlot(slot, new ItemStack(itemOpt.get()));
+                ItemStack stack = new ItemStack(itemOpt.get());
+                if (!equip.enchantments().isEmpty()) {
+                    var enchLookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+                    ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+                    for (EnchantEntry ench : equip.enchantments()) {
+                        ResourceKey<Enchantment> key = ResourceKey.create(
+                            Registries.ENCHANTMENT, ResourceLocation.parse(ench.id()));
+                        enchLookup.get(key).ifPresent(h -> mutable.set(h, ench.level()));
+                    }
+                    stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable());
+                }
+                mob.setItemSlot(slot, stack);
             }
         } else if (fallback != null && mob.getItemBySlot(slot).isEmpty()) {
             mob.setItemSlot(slot, fallback.copy());
         }
+    }
+
+    /** Apply the configured attribute modifiers to a freshly summoned mob.
+     *  Attribute ids resolve with the same generic./player. prefix tolerance the
+     *  {@code attribute_modifier} power uses, so pack JSON is portable across
+     *  the 1.21.1 and 26.1 builds. */
+    private static void applyAttributes(Mob mob, List<AttrEntry> attributes) {
+        int idx = 0;
+        for (AttrEntry attr : attributes) {
+            Holder<Attribute> holder = resolveAttribute(ResourceLocation.parse(attr.attribute()));
+            if (holder == null) continue;
+            AttributeInstance instance = mob.getAttribute(holder);
+            if (instance == null) continue;
+            ResourceLocation modId = ResourceLocation.fromNamespaceAndPath(
+                "neoorigins", "summon_minion_attr_" + (idx++));
+            instance.addPermanentModifier(new AttributeModifier(modId, attr.amount(), attr.operation()));
+        }
+    }
+
+    /** Resolve an attribute with generic./player. prefix tolerance (see
+     *  AttributeModifierPower#resolveAttribute). Returns {@code null} if the id
+     *  matches no registered attribute under any prefix combination. */
+    private static Holder<Attribute> resolveAttribute(ResourceLocation raw) {
+        var holder = BuiltInRegistries.ATTRIBUTE.getOptional(raw);
+        if (holder.isPresent()) return BuiltInRegistries.ATTRIBUTE.wrapAsHolder(holder.get());
+
+        ResourceLocation withGeneric = ResourceLocation.fromNamespaceAndPath(
+            raw.getNamespace(), "generic." + raw.getPath());
+        holder = BuiltInRegistries.ATTRIBUTE.getOptional(withGeneric);
+        if (holder.isPresent()) return BuiltInRegistries.ATTRIBUTE.wrapAsHolder(holder.get());
+
+        ResourceLocation withPlayer = ResourceLocation.fromNamespaceAndPath(
+            raw.getNamespace(), "player." + raw.getPath());
+        holder = BuiltInRegistries.ATTRIBUTE.getOptional(withPlayer);
+        if (holder.isPresent()) return BuiltInRegistries.ATTRIBUTE.wrapAsHolder(holder.get());
+
+        String path = raw.getPath();
+        if (path.startsWith("generic.") || path.startsWith("player.")) {
+            ResourceLocation stripped = ResourceLocation.fromNamespaceAndPath(
+                raw.getNamespace(), path.substring(path.indexOf('.') + 1));
+            holder = BuiltInRegistries.ATTRIBUTE.getOptional(stripped);
+            if (holder.isPresent()) return BuiltInRegistries.ATTRIBUTE.wrapAsHolder(holder.get());
+        }
+        return null;
     }
 
     @Override

@@ -31,7 +31,10 @@ public abstract class LivingEntityWalkOnFluidMixin {
             }
         }
         if (fluidState.is(FluidTags.LAVA) && ActiveOriginService.hasCapability(sp, "walk_on_lava")) {
-            if (!sp.isInLava()) {
+            // Mirror the water branch: gate on eye-level submersion, not mere contact.
+            // isInLava() is true the instant any lava enters the AABB (feet on the
+            // surface), which flipped the power off and dropped the player in.
+            if (!sp.isEyeInFluid(FluidTags.LAVA)) {
                 cir.setReturnValue(true);
             }
         }

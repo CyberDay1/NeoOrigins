@@ -146,9 +146,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                         first.ambient(), first.showParticles(), first.showIcon()));
                 }
 
-                EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
-                    : EntityCondition.alwaysTrue();
+                EntityCondition cond = ConditionParser.parseField(obj, "condition", t);
 
                 return DataResult.success(Pair.of(
                     new Config(List.copyOf(specs), cond, toggleable, defaultOff, t,

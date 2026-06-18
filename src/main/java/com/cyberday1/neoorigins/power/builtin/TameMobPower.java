@@ -43,6 +43,19 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
     private static final String TAMED_MOB_KEY = "tamer:tamed";
 
+    /**
+     * Targeting conditions for the owner-reference defend/aggro goals. Crucially
+     * {@code ignoreLineOfSight()}: these goals fire off the owner's own
+     * last-hurt/last-hurt-by references, so the pet must commit to the owner's
+     * target and PATH toward it even when it can't yet see it. The default
+     * {@link TargetingConditions#DEFAULT} requires the pet to already have line
+     * of sight, which silently re-introduced the spatial gate these goals were
+     * built to avoid — the pet only joined the owner's fight after a mob first
+     * hit the owner (which moved the pet into LOS). See Discord report.
+     */
+    private static final TargetingConditions OWNER_TARGET_CONDITIONS =
+        TargetingConditions.forCombat().ignoreLineOfSight();
+
     public record Config(
         double range,
         int maxTamed,
@@ -137,7 +150,6 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             candidates = single == null ? List.of() : List.of(single);
         }
 
-        ServerLevel level = (ServerLevel) player.level();
         int tamedCount = 0;
         Mob lastTamed = null;
         for (Mob mob : candidates) {
@@ -149,17 +161,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             // Greedy: ran out of resource/hunger → tame what we could, stop.
             if (!canAffordOne(player, config, resourceConfigured, barsDisabled)) break;
 
-            rewriteAI(mob, player);
-            mob.setPersistenceRequired();
-            MinionTracker.track(player, mob, TAMED_MOB_KEY,
-                player.tickCount, config.despawnTicks(), config.deathDamage());
-
-            // Per-mob effects.
-            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-                SoundEvents.ZOMBIE_VILLAGER_CURE, SoundSource.PLAYERS, 1.0f, 1.2f);
-            level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
-                mob.getX(), mob.getY() + mob.getBbHeight() / 2, mob.getZ(),
-                15, 0.4, 0.4, 0.4, 0.02);
+            applyTame(player, mob, config.despawnTicks(), config.deathDamage());
 
             chargeOne(player, config, resourceConfigured, barsDisabled);
             tamedCount++;
@@ -327,9 +329,10 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // spatial gate. See v2.1.6 backlog #6.
         mob.targetSelector.addGoal(2, new OwnerHurtTargetByOwnerGoal(mob, owner));
 
-        // Remove any existing AvoidEntityGoal targeting players, then add follow-owner
-        mob.goalSelector.getAvailableGoals().removeIf(
-            g -> g.getGoal() instanceof AvoidEntityGoal);
+        // Remove player-avoidance and (for bees) flower-chasing goals, then add
+        // follow-owner. Shared with SummonMinionPower so tamed and summoned bees
+        // behave the same.
+        SummonMinionPower.stripDistractionGoals(mob);
 
         // Follow the owner at medium priority. Leash is intentionally loose
         // (24-block teleport, 8-block follow-start) so the pet has room to
@@ -368,6 +371,47 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
     /** Returns the mob type key used for MinionTracker lookups. */
     public static String tamedMobKey() {
         return TAMED_MOB_KEY;
+    }
+
+    /**
+     * Convert {@code mob} into a tamed pet owned by {@code owner}: rewrite its AI
+     * to follow/defend the owner, mark it persistent, register it with the
+     * {@link MinionTracker} (despawn + death-damage tracking), and play the tame
+     * sound/particle FX. Shared entrypoint so the {@code neoorigins:tame_target}
+     * entity action tames with the exact same behaviour as this active power. The
+     * caller owns the max-tamed cap check and any cost/validation.
+     */
+    public static void applyTame(ServerPlayer owner, Mob mob, int despawnTicks, float deathDamage) {
+        rewriteAI(mob, owner);
+        mob.setPersistenceRequired();
+        MinionTracker.track(owner, mob, TAMED_MOB_KEY, owner.tickCount, despawnTicks, deathDamage);
+
+        ServerLevel level = (ServerLevel) owner.level();
+        level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+            SoundEvents.ZOMBIE_VILLAGER_CURE, SoundSource.PLAYERS, 1.0f, 1.2f);
+        level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+            mob.getX(), mob.getY() + mob.getBbHeight() / 2, mob.getZ(),
+            15, 0.4, 0.4, 0.4, 0.02);
+    }
+
+    /**
+     * Pure tameability gate (no player messaging): {@code target} must be a
+     * non-boss, non-portal-locked {@link Mob}, optionally {@link Enemy}-only, and
+     * absent from both the global config blacklist and the supplied per-power
+     * blacklist. Mirrors the gates {@link #validateRaycastTarget} enforces, minus
+     * the per-failure actionbar messages — used by the {@code tame_target} action.
+     */
+    public static boolean isTameable(Entity target, boolean hostileOnly, java.util.List<String> entityBlacklist) {
+        if (!(target instanceof Mob mob)) return false;
+        if (hostileOnly && !(target instanceof Enemy)) return false;
+        if (!mob.canUsePortal(false) || EntityExclusions.isBossTier(mob)) return false;
+        return !EntityExclusions.isConfigBlacklisted(mob)
+            && !EntityExclusions.matchesAny(mob, entityBlacklist);
+    }
+
+    /** Crosshair look-target mob within {@code range}, or {@code null}. Public for the tame_target action. */
+    public static Mob lookTargetMob(ServerPlayer player, double range) {
+        return getTargetEntity(player, range) instanceof Mob mob ? mob : null;
     }
 
     /**
@@ -481,7 +525,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             // owner, or the owner's own minions (friendly fire guard).
             if (this.ownerLastHurtBy == owner) return false;
             if (this.ownerLastHurtBy.getUUID().equals(owner.getUUID())) return false;
-            return this.canAttack(this.ownerLastHurtBy, TargetingConditions.DEFAULT);
+            return this.canAttack(this.ownerLastHurtBy, OWNER_TARGET_CONDITIONS);
         }
 
         @Override
@@ -519,7 +563,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             if (this.ownerLastHurt == null) return false;
             if (this.ownerLastHurt == owner) return false;
             if (this.ownerLastHurt.getUUID().equals(owner.getUUID())) return false;
-            return this.canAttack(this.ownerLastHurt, TargetingConditions.DEFAULT);
+            return this.canAttack(this.ownerLastHurt, OWNER_TARGET_CONDITIONS);
         }
 
         @Override

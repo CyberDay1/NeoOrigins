@@ -35,6 +35,7 @@
         "neoorigins:active_recall",
         "neoorigins:active_swap",
         "neoorigins:active_teleport",
+        "neoorigins:attract_mobs",
         "neoorigins:attribute_modifier",
         "neoorigins:bare_hand_tool",
         "neoorigins:become_dragon",
@@ -116,6 +117,7 @@
         "neoorigins:phantom_form",
         "neoorigins:prevent_action",
         "neoorigins:prevent_death",
+        "neoorigins:prevent_item_damage",
         "neoorigins:projectile_immunity",
         "neoorigins:quality_equipment",
         "neoorigins:rare_wandering_loot",
@@ -256,11 +258,31 @@
         },
         "condition": {
           "description": "Optional DSL condition gating the action/modifier; both only run while it passes (default always).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "entity_action": {
           "description": "EntityAction run on the player as a side-effect when the configured event fires.",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "modifier": {
           "description": "FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen).",
@@ -407,15 +429,45 @@
         },
         "entity_action": {
           "description": "EntityAction tree executed on the player when the keybind fires (defaults to noop).",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "condition": {
           "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "fail_action": {
           "description": "Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown.",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -753,6 +805,45 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:attract_mobs",
+      "properties": {
+        "type": {
+          "const": "neoorigins:attract_mobs"
+        },
+        "radius": {
+          "description": "Blocks around the holder within which mobs are pulled in (default 8).",
+          "type": "number",
+          "default": 8.0,
+          "minimum": 0.0
+        },
+        "speed": {
+          "description": "Movement-speed multiplier mobs path toward the holder at (default 1.0).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        },
+        "entity_types": {
+          "description": "Entity ids or #tags drawn in; empty (default) pulls only animals (the vanilla follows-food set).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
+        },
+        "entity_blacklist": {
+          "description": "Entity ids or #tags excluded from attraction even when entity_types (or the animal default) would select them.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         }
       },
       "required": [
@@ -1109,15 +1200,45 @@
         },
         "condition": {
           "description": "Optional EntityCondition gating the action: entity_action runs each interval only while it passes; else_action runs while it does not (default always-true).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "entity_action": {
           "description": "EntityAction run on the player each interval while the condition passes (defaults to noop).",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "else_action": {
           "description": "EntityAction run on the player each interval while the condition does NOT pass (defaults to noop).",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "toggleable": {
           "description": "When true the power binds a keybind that flips its periodic action on/off; while off the interval action never runs (default false — condition_passive powers are passive unless opted in).",
@@ -2055,7 +2176,17 @@
         },
         "condition": {
           "description": "Only applies the tint while this DSL condition passes (optional).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         }
       },
       "required": [
@@ -2092,7 +2223,17 @@
         },
         "condition": {
           "description": "Only applies the multiplier while this DSL condition passes (optional).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         }
       },
       "required": [
@@ -2488,7 +2629,17 @@
         },
         "condition": {
           "description": "Optional EntityCondition gating the effects: they apply only while it passes and are cleared the moment it stops (default always-true).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "toggleable": {
           "description": "When true the power binds a keybind that flips the effects on/off; off clears them (default true).",
@@ -2638,11 +2789,50 @@
         },
         "entity_action": {
           "description": "Optional EntityAction run on the player each time a lethal hit is prevented (defaults to noop).",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "condition": {
           "description": "Optional EntityCondition gating the save: the power only prevents death while it passes (default always-true).",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:prevent_item_damage",
+      "properties": {
+        "type": {
+          "const": "neoorigins:prevent_item_damage"
+        },
+        "items": {
+          "description": "Item ids or #tags spared from durability loss; empty list (default) protects every damageable item the holder uses.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         }
       },
       "required": [
@@ -2770,15 +2960,45 @@
         },
         "regen_condition": {
           "description": "Optional EntityCondition gating regen; defaults always-true.",
-          "$ref": "condition.schema.json"
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "min_action": {
           "description": "Optional EntityAction fired when the value reaches min.",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "max_action": {
           "description": "Optional EntityAction fired when the value reaches max.",
-          "$ref": "action.schema.json"
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         },
         "hidden": {
           "description": "When true, hides the bar from the HUD (mechanics still apply).",
@@ -2786,7 +3006,7 @@
           "default": false
         },
         "hud_render": {
-          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint components.",
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.",
           "type": "object",
           "properties": {
             "label": {
@@ -2813,6 +3033,11 @@
               "description": "Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted.",
               "type": "string",
               "default": ""
+            },
+            "always_render": {
+              "description": "When true, keeps the bar on-screen even at full value (the HUD hides full bars by default).",
+              "type": "boolean",
+              "default": false
             }
           }
         }
@@ -3261,33 +3486,80 @@
           "default": 1.0
         },
         "head": {
-          "description": "Item id for the summoned mob's helmet slot (defaults to iron helmet).",
-          "type": "string"
+          "description": "Helmet slot: an item id string (\"minecraft:diamond_helmet\", defaults to iron helmet) or an object {\"item\": \"...\", \"enchantments\": [{\"id\": \"...\", \"level\": N}]} to enchant it.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "chest": {
-          "description": "Item id for the summoned mob's chest slot (optional).",
-          "type": "string"
+          "description": "Chest slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional).",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "legs": {
-          "description": "Item id for the summoned mob's leggings slot (optional).",
-          "type": "string"
+          "description": "Leggings slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional).",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "feet": {
-          "description": "Item id for the summoned mob's boots slot (optional).",
-          "type": "string"
+          "description": "Boots slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional).",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "mainhand": {
-          "description": "Item id placed in the summoned mob's main hand (optional).",
-          "type": "string"
+          "description": "Main hand slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional).",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "offhand": {
-          "description": "Item id placed in the summoned mob's off hand (optional).",
-          "type": "string"
+          "description": "Off hand slot: an item id string or an object {\"item\": \"...\", \"enchantments\": [...]} (optional).",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "mount": {
           "description": "Entity type id of an optional mount; each summoned minion is seated on its own copy of this entity (e.g. minecraft:hoglin so a piglin minion rides a hoglin). The mount is also owner-friendly, drops no loot, and despawns with its rider.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "attributes": {
+          "description": "List of {attribute, amount, operation} modifiers applied to each summoned mob at spawn (e.g. raise minecraft:generic.max_health or minecraft:generic.attack_damage). operation is add_value, add_multiplied_base or add_multiplied_total (default add_value). A raised max_health spawns the mob at full HP.",
+          "type": "array",
+          "items": {}
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -3742,6 +4014,7 @@
               "neoorigins:active_recall",
               "neoorigins:active_swap",
               "neoorigins:active_teleport",
+              "neoorigins:attract_mobs",
               "neoorigins:attribute_modifier",
               "neoorigins:bare_hand_tool",
               "neoorigins:become_dragon",
@@ -3804,6 +4077,7 @@
               "neoorigins:phantom_form",
               "neoorigins:prevent_action",
               "neoorigins:prevent_death",
+              "neoorigins:prevent_item_damage",
               "neoorigins:projectile_immunity",
               "neoorigins:quality_equipment",
               "neoorigins:rare_wandering_loot",

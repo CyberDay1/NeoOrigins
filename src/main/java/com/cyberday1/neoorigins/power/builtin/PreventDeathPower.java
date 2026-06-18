@@ -100,12 +100,10 @@ public class PreventDeathPower extends PowerType<PreventDeathPower.Config> {
                 int cooldown = obj.has("cooldown_ticks")
                     ? Math.max(0, obj.get("cooldown_ticks").getAsInt()) : 0;
 
-                EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
-                    : EntityAction.noop();
+                EntityAction action = ActionParser.parseField(obj, "entity_action", t);
 
-                Optional<EntityCondition> cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? Optional.of(ConditionParser.parse(obj.getAsJsonObject("condition"), t))
+                Optional<EntityCondition> cond = obj.has("condition")
+                    ? Optional.of(ConditionParser.parseField(obj, "condition", t))
                     : Optional.empty();
 
                 return DataResult.success(Pair.of(

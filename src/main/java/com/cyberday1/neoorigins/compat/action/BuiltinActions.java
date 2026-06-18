@@ -1020,6 +1020,65 @@ public final class BuiltinActions {
                 new FieldSpec("max_distance", FormFieldSpec.Kind.NUMBER, false).def(5.0).range(0.0, null)
                     .doc("Max crosshair search distance for a target (default 5.0).")));
 
+        // tame_target — tame the mob resolved from the active dispatch context (a
+        // bientity target: the mob hit on_hit, the entity under a raycast's
+        // bientity_action, ...), falling back to the mob under the player's
+        // crosshair within max_distance. Reuses TameMobPower's taming behaviour so
+        // action-tamed and power-tamed pets are identical (follow/defend goals,
+        // persistence, MinionTracker despawn + death-damage). Honours the global
+        // tame cap (max_tamed) and the boss/blacklist gates; a no-valid-target or
+        // capped activation is a silent no-op (no actionbar spam — actions fire
+        // from events, not a deliberate keybind). This is the action form Koopa's
+        // pack expected when it nested `tame_mob` (the active power id) in an
+        // entity_action field and got the unsupported-action no-op.
+        define("tame_target",
+            (json, ctx) -> {
+                final int maxTamed       = json.has("max_tamed")    ? json.get("max_tamed").getAsInt()       : 4;
+                final double maxDistance = json.has("max_distance") ? json.get("max_distance").getAsDouble() : 5.0;
+                final int despawnTicks   = json.has("despawn_ticks")? json.get("despawn_ticks").getAsInt()   : 36000;
+                final float deathDamage  = json.has("death_damage") ? json.get("death_damage").getAsFloat()   : 0.5f;
+                final boolean hostileOnly = !json.has("hostile_only") || json.get("hostile_only").getAsBoolean();
+                final java.util.List<String> blacklist = new java.util.ArrayList<>();
+                if (json.has("entity_blacklist") && json.get("entity_blacklist").isJsonArray()) {
+                    for (var el : json.getAsJsonArray("entity_blacklist")) {
+                        if (el.isJsonPrimitive()) blacklist.add(el.getAsString());
+                    }
+                }
+                return player -> {
+                    int alive = com.cyberday1.neoorigins.service.MinionTracker.countAlive(
+                        player.getUUID(),
+                        com.cyberday1.neoorigins.power.builtin.TameMobPower.tamedMobKey());
+                    if (alive >= maxTamed) return;
+
+                    // Context target first (on-hit / raycast bientity), else crosshair.
+                    net.minecraft.world.entity.LivingEntity ctxTarget =
+                        ActionParser.extractBientityTarget(
+                            com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    net.minecraft.world.entity.Mob mob =
+                        ctxTarget instanceof net.minecraft.world.entity.Mob m ? m
+                            : com.cyberday1.neoorigins.power.builtin.TameMobPower.lookTargetMob(player, maxDistance);
+                    if (mob == null) return;
+                    if (!com.cyberday1.neoorigins.power.builtin.TameMobPower.isTameable(mob, hostileOnly, blacklist)) return;
+
+                    com.cyberday1.neoorigins.power.builtin.TameMobPower.applyTame(
+                        player, mob, despawnTicks, deathDamage);
+                };
+            },
+            List.of(
+                new FieldSpec("max_tamed", FormFieldSpec.Kind.INTEGER, false).def(4).range(0.0, null)
+                    .doc("Max tamed mobs alive at once (shared with tame_mob via the MinionTracker) before this action no-ops. Default 4."),
+                new FieldSpec("max_distance", FormFieldSpec.Kind.NUMBER, false).def(5.0).range(0.0, null)
+                    .doc("Crosshair search distance used only when no context target resolves (default 5.0)."),
+                new FieldSpec("despawn_ticks", FormFieldSpec.Kind.INTEGER, false).def(36000)
+                    .doc("Ticks a tamed mob lasts before despawning (36000 = 30 min)."),
+                new FieldSpec("death_damage", FormFieldSpec.Kind.NUMBER, false).def(0.5)
+                    .doc("Damage dealt to the player when a tamed mob dies (half-hearts)."),
+                new FieldSpec("hostile_only", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("When true (default), only mobs implementing Enemy can be tamed. Set false to allow any non-player Mob."),
+                new FieldSpec("entity_blacklist", FormFieldSpec.Kind.ARRAY, false)
+                    .itemPattern("^#?[A-Za-z0-9_.:/-]+$")
+                    .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this action can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded.")));
+
         // spawn_effect_cloud — spawn an AreaEffectCloud at the player. Lift-and-shift
         // of parseSpawnEffectCloud. `effect` optional and dual-shape (a bare id
         // string, or an object {effect, duration, amplifier}); all numeric fields
@@ -1264,10 +1323,9 @@ public final class BuiltinActions {
                 EntityCondition cond = json.has("condition") && json.get("condition").isJsonObject()
                     ? ConditionParser.parse(json.getAsJsonObject("condition"), ctx)
                     : com.cyberday1.neoorigins.compat.CompatPolicy.FALSE_CONDITION;
-                EntityAction ifAction = json.has("if_action")
-                    ? ActionParser.parse(json.getAsJsonObject("if_action"), ctx) : EntityAction.noop();
-                EntityAction elseAction = json.has("else_action")
-                    ? ActionParser.parse(json.getAsJsonObject("else_action"), ctx) : EntityAction.noop();
+                // Branches may each be a single object or an array (run sequentially).
+                EntityAction ifAction = ActionParser.parseField(json, "if_action", ctx);
+                EntityAction elseAction = ActionParser.parseField(json, "else_action", ctx);
                 return player -> {
                     if (cond.test(player)) ifAction.execute(player);
                     else elseAction.execute(player);
@@ -1298,8 +1356,7 @@ public final class BuiltinActions {
                     EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
                         ? ConditionParser.parse(obj.getAsJsonObject("condition"), ctx)
                         : com.cyberday1.neoorigins.compat.CompatPolicy.FALSE_CONDITION;
-                    EntityAction act = obj.has("action")
-                        ? ActionParser.parse(obj.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                    EntityAction act = ActionParser.parseField(obj, "action", ctx);
                     branches.add(new Branch(cond, act));
                 }
                 return player -> {
@@ -1319,8 +1376,7 @@ public final class BuiltinActions {
         define("chance",
             (json, ctx) -> {
                 float chance = json.has("chance") ? json.get("chance").getAsFloat() : 0.5f;
-                EntityAction action = json.has("action")
-                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                EntityAction action = ActionParser.parseField(json, "action", ctx);
                 return player -> {
                     if (player.getRandom().nextFloat() < chance) action.execute(player);
                 };
@@ -1338,8 +1394,7 @@ public final class BuiltinActions {
         define("delay",
             (json, ctx) -> {
                 int ticks = json.has("ticks") ? json.get("ticks").getAsInt() : 1;
-                EntityAction action = json.has("action")
-                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                EntityAction action = ActionParser.parseField(json, "action", ctx);
                 return player -> {
                     if (player.level().getServer() != null) {
                         long target = player.level().getServer().getTickCount() + ticks;
@@ -1367,8 +1422,7 @@ public final class BuiltinActions {
                 for (com.google.gson.JsonElement el : arr) {
                     if (!el.isJsonObject()) continue;
                     com.google.gson.JsonObject entry = el.getAsJsonObject();
-                    EntityAction action = entry.has("action") && entry.get("action").isJsonObject()
-                        ? ActionParser.parse(entry.getAsJsonObject("action"), ctx) : EntityAction.noop();
+                    EntityAction action = ActionParser.parseField(entry, "action", ctx);
                     int weight = entry.has("weight") ? entry.get("weight").getAsInt() : 1;
                     actions.add(action);
                     weights.add(weight);
@@ -1457,11 +1511,13 @@ public final class BuiltinActions {
                     NeoOrigins.LOGGER.warn("[CompatB] selector_action: missing 'selector' — no-op");
                     return EntityAction.noop();
                 }
+                // bientity_action / entity_action may each be a single object or
+                // an array (run sequentially per selected entity).
                 final EntityAction inner =
-                    json.has("bientity_action") && json.get("bientity_action").isJsonObject()
-                        ? ActionParser.parse(json.getAsJsonObject("bientity_action"), ctx)
-                    : json.has("entity_action") && json.get("entity_action").isJsonObject()
-                        ? ActionParser.parse(json.getAsJsonObject("entity_action"), ctx)
+                    json.has("bientity_action")
+                        ? ActionParser.parseField(json, "bientity_action", ctx)
+                    : json.has("entity_action")
+                        ? ActionParser.parseField(json, "entity_action", ctx)
                         : null;
                 if (inner == null) {
                     NeoOrigins.LOGGER.warn("[CompatB] selector_action: missing bientity_action/entity_action — no-op");
@@ -1502,8 +1558,7 @@ public final class BuiltinActions {
         // actor_action — bientity unwrapper that runs the inner `action` on the actor.
         // Lift-and-shift of parseActorAction (delegates to the inner action).
         define("actor_action",
-            (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
-                ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
+            (json, ctx) -> ActionParser.parseField(json, "action", ctx),
             List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
                 .ref("#")
                 .doc("Inner action to run on the actor (source player).")));
@@ -1513,10 +1568,11 @@ public final class BuiltinActions {
         // `entity_action` alias only when `action` resolved to the shared noop.
         define("passenger_action",
             (json, ctx) -> {
-                EntityAction inner = json.has("action") && json.get("action").isJsonObject()
-                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
-                if (inner == EntityAction.noop() && json.has("entity_action") && json.get("entity_action").isJsonObject()) {
-                    inner = ActionParser.parse(json.getAsJsonObject("entity_action"), ctx);
+                // action / entity_action may each be a single object or an array
+                // (run sequentially on each passenger).
+                EntityAction inner = ActionParser.parseField(json, "action", ctx);
+                if (inner == EntityAction.noop() && json.has("entity_action")) {
+                    inner = ActionParser.parseField(json, "entity_action", ctx);
                 }
                 final EntityAction fInner = inner;
                 return player -> {
@@ -1541,10 +1597,11 @@ public final class BuiltinActions {
         // player; non-player vehicles (boat/horse) can't receive a player-action.
         define("riding_action",
             (json, ctx) -> {
-                EntityAction inner = json.has("action") && json.get("action").isJsonObject()
-                    ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop();
-                if (inner == EntityAction.noop() && json.has("entity_action") && json.get("entity_action").isJsonObject()) {
-                    inner = ActionParser.parse(json.getAsJsonObject("entity_action"), ctx);
+                // action / entity_action may each be a single object or an array
+                // (run sequentially on the ridden entity).
+                EntityAction inner = ActionParser.parseField(json, "action", ctx);
+                if (inner == EntityAction.noop() && json.has("entity_action")) {
+                    inner = ActionParser.parseField(json, "entity_action", ctx);
                 }
                 final EntityAction fInner = inner;
                 return player -> {
@@ -1680,8 +1737,7 @@ public final class BuiltinActions {
         // x/y/z offset is a no-op and the inner `action` is returned as-is. The x/y/z
         // fields are kept on the descriptor for schema/editor fidelity.
         define("offset",
-            (json, ctx) -> json.has("action") && json.get("action").isJsonObject()
-                ? ActionParser.parse(json.getAsJsonObject("action"), ctx) : EntityAction.noop(),
+            (json, ctx) -> ActionParser.parseField(json, "action", ctx),
             List.of(
                 new FieldSpec("action", FormFieldSpec.Kind.REF, false)
                     .ref("#")
@@ -1699,8 +1755,7 @@ public final class BuiltinActions {
         // parseBlockActionAt.
         define("block_action_at",
             (json, ctx) -> {
-                EntityAction blockAction = json.has("block_action") && json.get("block_action").isJsonObject()
-                    ? ActionParser.parse(json.getAsJsonObject("block_action"), ctx) : EntityAction.noop();
+                EntityAction blockAction = ActionParser.parseField(json, "block_action", ctx);
                 return player -> {
                     net.minecraft.core.BlockPos pos = player.blockPosition();
                     Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
@@ -2657,6 +2712,47 @@ public final class BuiltinActions {
                     .doc("Whether to pull other players (default true)."),
                 new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter on which entities to pull.")));
+
+        // cast_spell — cast an inline author-baked Build A Spell (cybersbuildaspell)
+        // spell as the player. Every BaS-typed reference is isolated in
+        // compat.buildaspell.BuildASpellBridge and only class-loaded behind the
+        // ModList.isLoaded("cybersbuildaspell") gate below, so packs that use this
+        // action on servers without BaS degrade to a logged no-op rather than a
+        // class-load error. The Spell is built ONCE here at parse time (a reusable
+        // POJO per the BaS contract) and captured in the returned action; each
+        // dispatch is a single cast. Cost is charged on the NeoOrigins power, so the
+        // BaS mana pool is never touched (consumeMana=false). Gate the power with
+        // "required_mods": ["cybersbuildaspell"] so it doesn't even load without BaS.
+        define("cast_spell",
+            (json, ctx) -> {
+                String delivery = json.has("delivery") ? json.get("delivery").getAsString() : "";
+                List<String> components = new java.util.ArrayList<>();
+                if (json.has("components") && json.get("components").isJsonArray()) {
+                    for (com.google.gson.JsonElement el : json.getAsJsonArray("components")) {
+                        if (el.isJsonPrimitive()) components.add(el.getAsString());
+                    }
+                }
+                if (delivery.isBlank() || components.isEmpty()) {
+                    NeoOrigins.LOGGER.warn(
+                        "[BaS] cast_spell in '{}' needs a non-blank 'delivery' and a non-empty 'components' list — power does nothing",
+                        ctx);
+                    return EntityAction.noop();
+                }
+                if (!net.neoforged.fml.ModList.get().isLoaded("cybersbuildaspell")) {
+                    NeoOrigins.LOGGER.warn(
+                        "[BaS] cast_spell in '{}' requires Build A Spell (cybersbuildaspell), which isn't installed — power does nothing. Gate it with \"required_mods\": [\"cybersbuildaspell\"].",
+                        ctx);
+                    return EntityAction.noop();
+                }
+                return com.cyberday1.neoorigins.compat.buildaspell.BuildASpellBridge.castSpell(delivery, components, ctx);
+            },
+            List.of(
+                new FieldSpec("delivery", FormFieldSpec.Kind.ENUM, true)
+                    .options("rune", "sight", "self", "cast", "tracking")
+                    .doc("How the spell is delivered. One of Build A Spell's 5 delivery methods: `rune`, `sight`, `self`, `cast`, `tracking`."),
+                new FieldSpec("components", FormFieldSpec.Kind.ARRAY, true)
+                    .itemPattern("^(compat:)?[a-z0-9_.]+$")
+                    .doc("The ordered component list, EFFECT-FIRST: each effect id is followed by the modifier ids that apply to it (a modifier binds to the PRECEDING effect; one before the first effect is silently dropped). Effect/modifier ids come from Build A Spell; `compat:*` ids pass through verbatim. Easiest path: build the spell in-game and use BaS's \"Export to Power\" button, which emits this list in the correct order.")));
     }
 
     /**

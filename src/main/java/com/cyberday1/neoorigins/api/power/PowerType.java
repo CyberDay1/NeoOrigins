@@ -72,6 +72,16 @@ public abstract class PowerType<C extends PowerConfiguration> {
     public boolean isActivePower(C config) { return isActivePower(); }
 
     /**
+     * Whether this power should occupy a hotkey / skill slot in the active-power
+     * list (and thus be triggerable by a key press). Defaults to
+     * {@link #isActivePower(Object)}. A power can be active — reachable by the
+     * {@code activate_power} action — yet decline a hotkey slot by overriding
+     * this to return false (e.g. CompatPower configs flagged
+     * {@code "disable_hotkey": true}), so they fire only programmatically.
+     */
+    public boolean occupiesHotkeySlot(C config) { return isActivePower(config); }
+
+    /**
      * Capability tags this power grants while granted and (if toggleable) toggled on.
      * Client-observable — used by client-predicted mixins to decide whether to alter
      * vanilla behavior (e.g. {@code "wall_climb"} causes the player's {@code onClimbable()}

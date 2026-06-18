@@ -401,6 +401,39 @@ fails, replacing the silent no-op with author-defined feedback:
 - The native `neoorigins:active_ability` type supports the same field
   (see [POWER_TYPES.md](POWER_TYPES.md#neooriginsactive_ability)).
 
+### Hotkey-less actives (`disable_hotkey`)
+
+`origins:active_self` accepts an optional boolean `disable_hotkey` (a
+NeoOrigins extension — plain Apoli ignores it). When `true`, the power stays
+a fully-fledged active ability — its `condition`, `cooldown`, and
+`fail_action` all still apply — but it claims **no** skill slot or named
+hotkey, so no key press can fire it. The only way to trigger it is the
+[`neoorigins:activate_power`](ACTIONS.md#neooriginsactivate_power) action from
+another power:
+
+```json
+{
+  "type": "origins:active_self",
+  "disable_hotkey": true,
+  "cooldown": 200,
+  "entity_action": { "type": "neoorigins:add_velocity", "y": 2.0 },
+  "name": "Hidden Leap"
+}
+```
+
+- Use this for abilities that should only ever be reached programmatically —
+  e.g. a passive `condition` or `tick_action` power that fires
+  `neoorigins:activate_power` at the hotkey-less power when its own trigger
+  conditions are met.
+- Omitting `key` on an `origins:active_self` normally drops the power into the
+  next free `skill_1`..`skill_6` slot; `disable_hotkey: true` opts out of that
+  entirely, freeing the slot for other powers.
+- A `disable_hotkey` power with no `entity_action` does nothing — there's no
+  hotkey *and* no action, so the power is inert.
+- `disable_hotkey: true` takes precedence even if you also declare a `key`:
+  the key is ignored and no slot or hotkey is bound. You don't have to remove
+  `key` to make an existing active power hotkey-less.
+
 ### How the pool works
 
 - At reload, the server collects every distinct `key` value from all loaded
@@ -492,6 +525,21 @@ doc, the schema wins.
 Powers declare capability tags via `capabilities(Config)`. These tags are synced to the client and used by client-predicted mixins (e.g. `"wall_climb"`, `"wall_phase"`, `"no_physics"`, `"flight"`).
 
 A **player-aware variant** `capabilities(ServerPlayer, Config)` is available for capabilities that depend on runtime state (conditions, resource levels, etc.). Default delegates to the static variant. Used by `model_color` to conditionally emit the color capability based on a condition field.
+
+---
+
+## Mod integration (Java)
+
+For other mods that need to read or change a player's origins programmatically.
+
+**Where origins live.** A player's per-layer selection is stored on the `neoorigins:origin_data` data attachment (`PlayerOriginData`, accessed via `player.getData(OriginAttachments.originData())`). It persists only the `layer → origin` map plus a little bookkeeping — **a player's powers are *not* stored**. The active power set is derived at runtime from each assigned origin's definition (`ActiveOriginService`), so writing the attachment NBT directly does **not** apply or remove any powers.
+
+**Changing origins cleanly.** Because powers are derived, swapping an origin requires running the revoke/grant lifecycle (`onRevoked` / `onGranted`, attribute-modifier cleanup, event-handler teardown, client sync). Two entry points on `com.cyberday1.neoorigins.service.ActiveOriginService`:
+
+- `applyOriginPowers(player, layerId, oldOriginId, newOriginId)` — transitions a **single** layer: revokes `oldOriginId`'s powers, grants `newOriginId`'s. Pass `null` for either id to grant-only / revoke-only. This is what `/neoorigins set` uses.
+- `reapplyOrigins(player, Map<layerId, originId>)` — replaces a player's **entire** origin selection in one clean call: tears down all current powers, overwrites the layer map, regrants, restores server-global powers, and syncs the client. Intended for profile / loadout mods (e.g. Switchy) that restore a saved origin set — call this instead of writing the attachment NBT directly to avoid leftover powers from the previous profile. An empty map clears the player to no origins.
+
+Both run the full lifecycle, so the client HUD, keybinds, and attribute state stay consistent. After either call you do not need a separate sync.
 
 ---
 

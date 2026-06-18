@@ -256,7 +256,7 @@ public final class PowerSchemaGenerator {
         // A power matches a single id → const discriminator (List.of(id)). Field
         // nodes are emitted by the shared SchemaNodeBuilder (single source for all
         // three documents), so this stays byte-identical to the prior inline impl.
-        return SchemaNodeBuilder.buildBranch(id, List.of(id), fields);
+        return SchemaNodeBuilder.buildBranch(id, List.of(id), fields, true);
     }
 
     /**

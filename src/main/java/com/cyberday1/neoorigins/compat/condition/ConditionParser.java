@@ -99,6 +99,35 @@ public final class ConditionParser {
         return p -> !inner.test(p);
     }
 
+    /**
+     * Parse a condition field that may be absent, a single object, or an array
+     * of condition objects. Absent or non-object/array → {@link
+     * EntityCondition#alwaysTrue()}; an array is combined as logical AND (Apoli
+     * all-of: every element must pass).
+     *
+     * <p>Native-power CODEC counterpart to the Route-B loader's identical
+     * helper, so {@code neoorigins:*} powers accept the same array-or-object
+     * condition shape compat-translated powers already do.
+     */
+    public static EntityCondition parseField(JsonObject parent, String field, String contextId) {
+        if (parent == null || !parent.has(field)) return EntityCondition.alwaysTrue();
+        JsonElement el = parent.get(field);
+        if (el.isJsonObject()) {
+            return parse(el.getAsJsonObject(), contextId);
+        }
+        if (el.isJsonArray()) {
+            List<EntityCondition> list = new ArrayList<>();
+            for (JsonElement item : el.getAsJsonArray()) {
+                if (item.isJsonObject()) list.add(parse(item.getAsJsonObject(), contextId));
+            }
+            return player -> {
+                for (EntityCondition c : list) if (!c.test(player)) return false;
+                return true;
+            };
+        }
+        return EntityCondition.alwaysTrue();
+    }
+
     private static EntityCondition parseInner(JsonObject json, String contextId) {
         String type = json.has("type") ? json.get("type").getAsString() : "";
         // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:/apoli:

@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.client;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.screen.OriginSelectionPresenter;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
@@ -22,6 +23,7 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.ConfigValue<String> UI_THEME_OVERRIDE;
     public static final ModConfigSpec.BooleanValue CLASSIC_PICKER_STYLE;
     public static final ModConfigSpec.BooleanValue SHOW_ORIGIN_EDITOR;
+    public static final ModConfigSpec.EnumValue<OriginSelectionPresenter.SortMode> DEFAULT_SORT;
     public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS;
     public static final ModConfigSpec.BooleanValue SHOW_COOLDOWN_COUNTDOWN;
     public static final ModConfigSpec.IntValue COOLDOWN_COUNTDOWN_OPACITY;
@@ -65,6 +67,17 @@ public final class NeoOriginsClientConfig {
                      "of survival players' way. Enable this if you author origins in",
                      "survival or want testers to reach the editor without /gamemode.")
             .define("show_origin_editor", false);
+
+        DEFAULT_SORT = BUILDER
+            .comment("Initial sort order for the origin selection / info screens, used",
+                     "until you cycle the on-screen sort button (your cycled choice still",
+                     "wins for the rest of the session). Options:",
+                     "  CLASS      - grouped by mod/namespace, alphabetical within (default)",
+                     "  NAME_ASC   - flat alphabetical",
+                     "  NAME_DESC  - flat reverse-alphabetical",
+                     "  IMPACT_ASC - by origin impact/influence (none -> low -> medium -> high)",
+                     "Set IMPACT_ASC to open the picker sorted by influence.")
+            .defineEnum("default_sort", OriginSelectionPresenter.SortMode.CLASS);
 
         BUILDER.pop();
 
@@ -132,6 +145,9 @@ public final class NeoOriginsClientConfig {
 
     /** True if the in-game Origin Editor button should be shown regardless of game mode. */
     public static boolean isShowOriginEditor() { return SHOW_ORIGIN_EDITOR.get(); }
+
+    /** Initial sort order for the origin selection / info screens. */
+    public static OriginSelectionPresenter.SortMode defaultSortMode() { return DEFAULT_SORT.get(); }
 
     /** True if vanilla hunger/air HUD bars should be hidden for non-consuming origins. */
     public static boolean isHideHudBarsEnabled() { return HIDE_HUD_BARS.get(); }

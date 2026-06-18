@@ -88,9 +88,7 @@ public class ParticlePower extends PowerType<ParticlePower.Config> {
                 float[] offset = parseFloat3(obj.get("offset"), 0.0f, 1.0f, 0.0f);
                 double speed = obj.has("speed") ? obj.get("speed").getAsDouble() : 0.0;
 
-                EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
-                    : EntityCondition.alwaysTrue();
+                EntityCondition cond = ConditionParser.parseField(obj, "condition", t);
 
                 return DataResult.success(Pair.of(
                     new Config(particle, freq, count,

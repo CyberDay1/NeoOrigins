@@ -97,6 +97,16 @@ dependencies {
     // and only classloaded behind a ModList.isLoaded("accessories") gate
     // (Modrinth maven; group maven.modrinth). 1.21.1-only — no 26.1 build exists.
     compileOnly "maven.modrinth:accessories:${property('deps.accessories')}"
+
+    // Build A Spell (cybersbuildaspell) – the `cast_spell` action casts an
+    // inline author-baked spell via BuildASpellAPI. Compile-only soft dep
+    // published to mavenLocal; every BaS-typed reference is isolated in
+    // compat/buildaspell/BuildASpellBridge and only classloaded behind a
+    // ModList.isLoaded("cybersbuildaspell") gate. The version coordinate is
+    // suffixed -mc<minecraft_version> because all three BaS branches share
+    // mod_version 2.0.0 (see deps.buildaspell). Run `./gradlew
+    // publishToMavenLocal` in the BaS repo on the matching branch to install it.
+    compileOnly "cyberday.cybersbuildaspell:cybersbuildaspell:${property('deps.buildaspell')}"
 }
 
 sourceSets {

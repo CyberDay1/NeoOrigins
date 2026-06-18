@@ -699,6 +699,33 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         EntityAction failAction = json.has("fail_action")
             ? parseActionField(json, "fail_action", idStr) : null;
 
+        // disable_hotkey (NeoOrigins extension): the power is activatable but
+        // binds no key — no skill slot, no named hotkey, no vanilla-input poll.
+        // It can only be triggered programmatically via the activate_power
+        // action. Same activation contract (condition / cooldown / fail_action)
+        // as the slot path; CompatPower.occupiesHotkeySlot() keeps it out of the
+        // skill-slot list while isActivePower() stays true so activate_power can
+        // reach it.
+        boolean disableHotkey = json.has("disable_hotkey") && json.get("disable_hotkey").getAsBoolean();
+        if (disableHotkey) {
+            return CompatPower.Config.builder()
+                .cooldownTicks(cooldown)
+                .hotkeyless(true)
+                .onActivated((ServerPlayer player) -> {
+                    if (!condition.test(player)) {
+                        if (failAction != null) failAction.execute(player);
+                        return;
+                    }
+                    if (cooldown > 0) {
+                        PlayerOriginData data = player.getData(OriginAttachments.originData());
+                        if (data.isOnCooldown(idStr, player.tickCount)) return;
+                        data.setCooldown(idStr, player.tickCount, cooldown);
+                    }
+                    action.execute(player);
+                })
+                .build();
+        }
+
         // Skill-slot keys: primary_active, secondary_active, and the two toolbar
         // keys (loadToolbarActivator, saveToolbarActivator) which have no server-side
         // input state and must be mapped to skill slots to be usable.
@@ -973,21 +1000,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * non-object/array element; an array is run sequentially (Apoli all-of).
      */
     private static EntityAction parseActionField(JsonObject parent, String field, String idStr) {
-        if (!parent.has(field)) return EntityAction.noop();
-        JsonElement el = parent.get(field);
-        if (el.isJsonObject()) {
-            return ActionParser.parse(el.getAsJsonObject(), idStr);
-        }
-        if (el.isJsonArray()) {
-            EntityAction combined = EntityAction.noop();
-            for (JsonElement item : el.getAsJsonArray()) {
-                if (item.isJsonObject()) {
-                    combined = mergeActions(combined, ActionParser.parse(item.getAsJsonObject(), idStr));
-                }
-            }
-            return combined;
-        }
-        return EntityAction.noop();
+        // Delegates to the shared helper so Route-B (translated) and native
+        // neoorigins:* power CODECs accept identical array-or-object action shapes.
+        return ActionParser.parseField(parent, field, idStr);
     }
 
     /**
@@ -996,24 +1011,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * combined as logical AND (Apoli all-of: every element must pass).
      */
     private static EntityCondition parseConditionField(JsonObject parent, String field, String idStr) {
-        if (!parent.has(field)) return EntityCondition.alwaysTrue();
-        JsonElement el = parent.get(field);
-        if (el.isJsonObject()) {
-            return ConditionParser.parse(el.getAsJsonObject(), idStr);
-        }
-        if (el.isJsonArray()) {
-            java.util.List<EntityCondition> list = new java.util.ArrayList<>();
-            for (JsonElement item : el.getAsJsonArray()) {
-                if (item.isJsonObject()) {
-                    list.add(ConditionParser.parse(item.getAsJsonObject(), idStr));
-                }
-            }
-            return player -> {
-                for (EntityCondition c : list) if (!c.test(player)) return false;
-                return true;
-            };
-        }
-        return EntityCondition.alwaysTrue();
+        // Delegates to the shared helper (see parseActionField).
+        return ConditionParser.parseField(parent, field, idStr);
     }
 
     /**

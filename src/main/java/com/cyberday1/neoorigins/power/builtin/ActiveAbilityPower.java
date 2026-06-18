@@ -79,17 +79,14 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 String resCost = obj.has("resource_cost") ? obj.get("resource_cost").getAsString() : "";
                 int resCostAmt = obj.has("resource_cost_amount") ? obj.get("resource_cost_amount").getAsInt() : 0;
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:active_ability";
-                EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
-                    : EntityAction.noop();
-                EntityCondition condition = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
-                    : EntityCondition.alwaysTrue();
+                EntityAction action = ActionParser.parseField(obj, "entity_action", t);
+                EntityCondition condition = ConditionParser.parseField(obj, "condition", t);
                 // fail_action — feedback hook fired when an activation attempt is
                 // blocked by `condition` (cooldown/hunger/resource aborts in the
-                // base class stay silent). Null when absent.
-                EntityAction failAction = obj.has("fail_action") && obj.get("fail_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("fail_action"), t)
+                // base class stay silent). Null when absent (preserved so execute()
+                // can skip it).
+                EntityAction failAction = obj.has("fail_action")
+                    ? ActionParser.parseField(obj, "fail_action", t)
                     : null;
                 String cdIcon = obj.has("cooldown_icon") ? obj.get("cooldown_icon").getAsString() : "";
                 boolean cdCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();

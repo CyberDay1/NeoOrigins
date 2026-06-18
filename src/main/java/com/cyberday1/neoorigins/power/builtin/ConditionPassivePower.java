@@ -95,15 +95,9 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
                     ? obj.get("cooldown_icon").getAsString() : "";
                 boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
 
-                EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
-                    : EntityCondition.alwaysTrue();
-                EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
-                    : EntityAction.noop();
-                EntityAction elseAction = obj.has("else_action") && obj.get("else_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("else_action"), t)
-                    : EntityAction.noop();
+                EntityCondition cond = ConditionParser.parseField(obj, "condition", t);
+                EntityAction action = ActionParser.parseField(obj, "entity_action", t);
+                EntityAction elseAction = ActionParser.parseField(obj, "else_action", t);
 
                 return DataResult.success(Pair.of(
                     new Config(interval, cond, action, elseAction, toggleable, defaultOff, true, t, cooldownIcon, alwaysShowIcon),

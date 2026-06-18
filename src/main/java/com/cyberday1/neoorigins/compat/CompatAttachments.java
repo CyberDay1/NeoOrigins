@@ -181,29 +181,34 @@ public class CompatAttachments {
      */
     public record ResourceMeta(int min, int max, String label, int color, boolean hidden,
                                int barIndex, int iconIndex, String spriteLocation,
-                               String animated, int tint) {
+                               String animated, int tint, boolean alwaysShow) {
         /** Convenience constructor — visible, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color) {
-            this(min, max, label, color, false, -1, -1, null, "", 0);
+            this(min, max, label, color, false, -1, -1, null, "", 0, false);
         }
         /** Convenience constructor — explicit visibility, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden) {
-            this(min, max, label, color, hidden, -1, -1, null, "", 0);
+            this(min, max, label, color, hidden, -1, -1, null, "", 0, false);
         }
         /** Convenience constructor — explicit visibility + animated FX preset (native bar). */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             String animated, int tint) {
-            this(min, max, label, color, hidden, -1, -1, null, animated, tint);
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint, false);
+        }
+        /** Convenience constructor — native bar with explicit always-render opt-in. */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                            String animated, int tint, boolean alwaysShow) {
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint, alwaysShow);
         }
         /** Convenience constructor — Apoli sprite indices against the default sheet. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             int barIndex, int iconIndex) {
-            this(min, max, label, color, hidden, barIndex, iconIndex, null, "", 0);
+            this(min, max, label, color, hidden, barIndex, iconIndex, null, "", 0, false);
         }
         /** Convenience constructor — Apoli sprite indices against a pack-declared sheet. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             int barIndex, int iconIndex, String spriteLocation) {
-            this(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0);
+            this(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0, false);
         }
     }
 
@@ -261,7 +266,7 @@ public class CompatAttachments {
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
-                meta.animated() == null ? "" : meta.animated(), meta.tint()));
+                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.alwaysShow()));
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
             new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));

@@ -44,6 +44,24 @@ public final class SchemaNodeBuilder {
      * {@code type} discriminator with {@code required:["type"]}.
      */
     public static JsonObject buildBranch(String canonicalId, List<String> typeIds, List<FieldSpec> fields) {
+        return buildBranch(canonicalId, typeIds, fields, false);
+    }
+
+    /**
+     * As {@link #buildBranch(String, List, List)} but with control over whether
+     * {@code action.schema.json}/{@code condition.schema.json} {@code $ref} fields
+     * are widened to {@code oneOf:[ref, array-of-ref]}.
+     *
+     * <p>The power generator passes {@code widenActionConditionRefs=true}: native
+     * power CODECs route those fields through {@code ActionParser.parseField} /
+     * {@code ConditionParser.parseField}, which accept either a single object or a
+     * JSON array (sequential actions / AND-combined conditions). The action/condition
+     * generator passes {@code false} — array support there is expressed per-field via
+     * each meta-action's own {@code items}/{@code itemsRef} (e.g. {@code and.actions}),
+     * so a blanket widening would overstate support.
+     */
+    public static JsonObject buildBranch(String canonicalId, List<String> typeIds,
+                                         List<FieldSpec> fields, boolean widenActionConditionRefs) {
         JsonObject branch = new JsonObject();
         branch.addProperty("$comment", canonicalId);
 
@@ -61,7 +79,7 @@ public final class SchemaNodeBuilder {
         List<String> required = new ArrayList<>();
         required.add("type");
         for (FieldSpec fs : fields) {
-            props.add(fs.name(), buildNode(fs)); // keyed by JSON name (not component)
+            props.add(fs.name(), buildNode(fs, widenActionConditionRefs)); // keyed by JSON name (not component)
             if (fs.required()) required.add(fs.name());
         }
         branch.add("properties", props);
@@ -79,6 +97,18 @@ public final class SchemaNodeBuilder {
      * {@code maximum}, then {@code items}, then {@code properties}/{@code required}.
      */
     public static JsonObject buildNode(FieldSpec fs) {
+        return buildNode(fs, false);
+    }
+
+    /**
+     * As {@link #buildNode(FieldSpec)} but, when {@code widenActionConditionRefs}
+     * is set, a REF node pointing at {@code action.schema.json} or
+     * {@code condition.schema.json} is emitted as
+     * {@code oneOf:[ {$ref}, {type:array,items:{$ref}} ]} to advertise that the
+     * native power CODEC accepts either a single object or an array (handled by
+     * {@code ActionParser.parseField} / {@code ConditionParser.parseField}).
+     */
+    public static JsonObject buildNode(FieldSpec fs, boolean widenActionConditionRefs) {
         JsonObject node = new JsonObject();
         Kind kind = fs.kind();
 
@@ -103,7 +133,28 @@ public final class SchemaNodeBuilder {
                 node.addProperty("type", "array");
             }
             case REF -> {
-                if (fs.ref() != null) node.addProperty("$ref", fs.ref());
+                if (fs.ref() != null) {
+                    if (widenActionConditionRefs
+                            && ("action.schema.json".equals(fs.ref())
+                                || "condition.schema.json".equals(fs.ref()))) {
+                        // Native power CODECs accept a single object OR a JSON array
+                        // of these (sequential actions / AND-combined conditions),
+                        // via {Action,Condition}Parser.parseField.
+                        JsonArray oneOf = new JsonArray();
+                        JsonObject single = new JsonObject();
+                        single.addProperty("$ref", fs.ref());
+                        JsonObject asArray = new JsonObject();
+                        asArray.addProperty("type", "array");
+                        JsonObject items = new JsonObject();
+                        items.addProperty("$ref", fs.ref());
+                        asArray.add("items", items);
+                        oneOf.add(single);
+                        oneOf.add(asArray);
+                        node.add("oneOf", oneOf);
+                    } else {
+                        node.addProperty("$ref", fs.ref());
+                    }
+                }
             }
             case MIXED -> {
                 JsonArray oneOf = new JsonArray();
@@ -165,7 +216,7 @@ public final class SchemaNodeBuilder {
             JsonObject childProps = new JsonObject();
             List<String> childRequired = new ArrayList<>();
             for (FieldSpec child : fs.children()) {
-                childProps.add(child.name(), buildNode(child));
+                childProps.add(child.name(), buildNode(child, widenActionConditionRefs));
                 if (child.required()) childRequired.add(child.name());
             }
             node.add("properties", childProps);

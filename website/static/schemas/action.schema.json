@@ -93,6 +93,7 @@
         "apace:swap_positions",
         "apace:swap_with_entity",
         "apace:swing_hand",
+        "apace:tame_target",
         "apace:target_action",
         "apace:teleport_target_to_self",
         "apace:teleport_to_marker",
@@ -183,6 +184,7 @@
         "neoorigins:swap_positions",
         "neoorigins:swap_with_entity",
         "neoorigins:swing_hand",
+        "neoorigins:tame_target",
         "neoorigins:target_action",
         "neoorigins:teleport_target_to_self",
         "neoorigins:teleport_to_marker",
@@ -2337,6 +2339,55 @@
       ]
     },
     {
+      "$comment": "neoorigins:tame_target",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:tame_target",
+            "apace:tame_target"
+          ]
+        },
+        "max_tamed": {
+          "description": "Max tamed mobs alive at once (shared with tame_mob via the MinionTracker) before this action no-ops. Default 4.",
+          "type": "integer",
+          "default": 4,
+          "minimum": 0
+        },
+        "max_distance": {
+          "description": "Crosshair search distance used only when no context target resolves (default 5.0).",
+          "type": "number",
+          "default": 5.0,
+          "minimum": 0.0
+        },
+        "despawn_ticks": {
+          "description": "Ticks a tamed mob lasts before despawning (36000 = 30 min).",
+          "type": "integer",
+          "default": 36000
+        },
+        "death_damage": {
+          "description": "Damage dealt to the player when a tamed mob dies (half-hearts).",
+          "type": "number",
+          "default": 0.5
+        },
+        "hostile_only": {
+          "description": "When true (default), only mobs implementing Enemy can be tamed. Set false to allow any non-player Mob.",
+          "type": "boolean",
+          "default": true
+        },
+        "entity_blacklist": {
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:untameable\") this action can never tame. The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:target_action",
       "properties": {
         "type": {
@@ -2636,6 +2687,7 @@
               "apace:swap_positions",
               "apace:swap_with_entity",
               "apace:swing_hand",
+              "apace:tame_target",
               "apace:target_action",
               "apace:teleport_target_to_self",
               "apace:teleport_to_marker",
@@ -2726,6 +2778,7 @@
               "neoorigins:swap_positions",
               "neoorigins:swap_with_entity",
               "neoorigins:swing_hand",
+              "neoorigins:tame_target",
               "neoorigins:target_action",
               "neoorigins:teleport_target_to_self",
               "neoorigins:teleport_to_marker",

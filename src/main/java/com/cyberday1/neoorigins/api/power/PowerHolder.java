@@ -76,6 +76,7 @@ public final class PowerHolder<C extends PowerConfiguration> {
 
     /** Returns true if this power occupies a keybind slot (has active behaviour). */
     public boolean isActive()                              { return type.isActivePower(config); }
+    public boolean occupiesHotkeySlot()                    { return type.occupiesHotkeySlot(config); }
 
     // Power dispatch is single-threaded on the server main thread, but ThreadLocal
     // is safer than a static field if anything ever dispatches off-thread (and the

@@ -120,12 +120,8 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     return DataResult.error(() -> "action_on_event: unknown event '" + evStr + "'");
                 }
 
-                EntityCondition cond = obj.has("condition") && obj.get("condition").isJsonObject()
-                    ? ConditionParser.parse(obj.getAsJsonObject("condition"), t)
-                    : EntityCondition.alwaysTrue();
-                EntityAction action = obj.has("entity_action") && obj.get("entity_action").isJsonObject()
-                    ? ActionParser.parse(obj.getAsJsonObject("entity_action"), t)
-                    : EntityAction.noop();
+                EntityCondition cond = ConditionParser.parseField(obj, "condition", t);
+                EntityAction action = ActionParser.parseField(obj, "entity_action", t);
                 FloatModifier modifier = obj.has("modifier")
                     ? ModifierParser.parseList(obj.get("modifier"), t)
                     : FloatModifier.identity();

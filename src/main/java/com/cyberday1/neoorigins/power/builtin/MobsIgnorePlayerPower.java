@@ -2,9 +2,13 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.event.CombatPowerEvents;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.EntityExclusions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Mob;
 
 import java.util.List;
 
@@ -51,4 +55,28 @@ public class MobsIgnorePlayerPower extends PowerType<MobsIgnorePlayerPower.Confi
 
     @Override public void onGranted(ServerPlayer player, Config config) {}
     @Override public void onRevoked(ServerPlayer player, Config config) {}
+
+    /**
+     * True if {@code mob} should stop fleeing {@code player} because the player
+     * has an active {@code mobs_ignore_player} that matches the mob's type. Used
+     * by {@code AvoidEntityGoalMixin} so cats / ocelots / foxes that would
+     * normally run from the player simply ignore them instead — making the
+     * "they don't flee" contract in this class's javadoc actually hold.
+     *
+     * <p>Mirrors the type-match + exclusion logic of the targeting path in
+     * {@link com.cyberday1.neoorigins.event.WorldPowerEvents}, but ignores the
+     * {@code passive}/retaliation window: fleeing isn't retaliation, so a player
+     * who has hit the mob still shouldn't make it bolt.
+     */
+    public static boolean suppressesAvoidance(ServerPlayer player, Mob mob) {
+        return ActiveOriginService.has(player, MobsIgnorePlayerPower.class, cfg -> {
+            boolean typeMatch = cfg.entityTypes().isEmpty()
+                || cfg.entityTypes().stream().anyMatch(id ->
+                    CombatPowerEvents.matchesEntityIdOrTag(mob, id));
+            if (typeMatch && EntityExclusions.isExcluded(mob, cfg.entityBlacklist())) {
+                typeMatch = false;
+            }
+            return typeMatch;
+        });
+    }
 }
