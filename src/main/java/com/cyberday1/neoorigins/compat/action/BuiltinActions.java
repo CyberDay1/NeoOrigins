@@ -2664,16 +2664,16 @@ public final class BuiltinActions {
                 new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter on which entities to pull.")));
 
-        // cast_spell — cast an inline author-baked Build A Spell (cybersbuildaspell)
+        // cast_spell — cast an inline author-baked Build A Spell (buildaspell)
         // spell as the player. Every BaS-typed reference is isolated in
         // compat.buildaspell.BuildASpellBridge and only class-loaded behind the
-        // ModList.isLoaded("cybersbuildaspell") gate below, so packs that use this
+        // ModList.isLoaded("buildaspell") gate below, so packs that use this
         // action on servers without BaS degrade to a logged no-op rather than a
         // class-load error. The Spell is built ONCE here at parse time (a reusable
         // POJO per the BaS contract) and captured in the returned action; each
         // dispatch is a single cast. Cost is charged on the NeoOrigins power, so the
         // BaS mana pool is never touched (consumeMana=false). Gate the power with
-        // "required_mods": ["cybersbuildaspell"] so it doesn't even load without BaS.
+        // "required_mods": ["buildaspell"] so it doesn't even load without BaS.
         define("cast_spell",
             (json, ctx) -> {
                 String delivery = json.has("delivery") ? json.get("delivery").getAsString() : "";
@@ -2689,9 +2689,9 @@ public final class BuiltinActions {
                         ctx);
                     return EntityAction.noop();
                 }
-                if (!net.neoforged.fml.ModList.get().isLoaded("cybersbuildaspell")) {
+                if (!net.neoforged.fml.ModList.get().isLoaded("buildaspell")) {
                     NeoOrigins.LOGGER.warn(
-                        "[BaS] cast_spell in '{}' requires Build A Spell (cybersbuildaspell), which isn't installed — power does nothing. Gate it with \"required_mods\": [\"cybersbuildaspell\"].",
+                        "[BaS] cast_spell in '{}' requires Build A Spell (buildaspell), which isn't installed — power does nothing. Gate it with \"required_mods\": [\"buildaspell\"].",
                         ctx);
                     return EntityAction.noop();
                 }

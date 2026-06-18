@@ -1417,7 +1417,7 @@ Performs a block and/or entity raycast from the player's eye position along thei
 
 ## `neoorigins:cast_spell`
 
-Casts an inline, author-baked **[Build A Spell](https://modrinth.com/mod/cybersbuildaspell)** (`cybersbuildaspell`) spell as the player. This is an integration action: it only does anything when Build A Spell is installed. Gate any power that uses it with the top-level `"required_mods": ["cybersbuildaspell"]` field so the power doesn't even load without BaS — without that gate the action degrades to a logged no-op when BaS is absent.
+Casts an inline, author-baked **[Build A Spell](https://modrinth.com/mod/buildaspell)** (`buildaspell`) spell as the player. This is an integration action: it only does anything when Build A Spell is installed. Gate any power that uses it with the top-level `"required_mods": ["buildaspell"]` field so the power doesn't even load without BaS — without that gate the action degrades to a logged no-op when BaS is absent.
 
 The spell is assembled once at datapack-load time and reused on every dispatch. Cost is charged on **your** NeoOrigins power (resource / hunger / cooldown), so the BaS mana pool is never touched — but BaS's own per-component enable/disable config toggles are still honoured.
 

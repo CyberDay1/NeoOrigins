@@ -2,15 +2,15 @@ package com.cyberday1.neoorigins.compat.buildaspell;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.action.EntityAction;
-import cyberday.cybersbuildaspell.api.BuildASpellAPI;
-import cyberday.cybersbuildaspell.spell.Spell;
+import buildaspell.api.BuildASpellAPI;
+import buildaspell.spell.Spell;
 
 import java.util.List;
 
 /**
- * The one and only class that references Build A Spell ({@code cybersbuildaspell})
- * types. Every symbol here resolves against the compile-only {@code cybersbuildaspell}
- * jar, so the class is isolated behind a {@code ModList.isLoaded("cybersbuildaspell")}
+ * The one and only class that references Build A Spell ({@code buildaspell})
+ * types. Every symbol here resolves against the compile-only {@code buildaspell}
+ * jar, so the class is isolated behind a {@code ModList.isLoaded("buildaspell")}
  * gate in {@link com.cyberday1.neoorigins.compat.action.BuiltinActions} — it is never
  * class-loaded when BaS is absent, which keeps {@code NoClassDefFoundError} off the
  * table on servers without the mod.
