@@ -2,6 +2,26 @@
 
 ---
 
+## v2.2.6
+
+> A hotfix for 2.2.5: lava/water walking now works on flowing fluid and stands you
+> cleanly on the surface, summoned piglin/hoglin minions properly chase and follow
+> their owner, and `/power grant|revoke` works on grouped (`multiple`) powers.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **Walk-on-lava / walk-on-water works on flowing fluid and stands you on the surface.** `walk_on_fluid` only solidified *source* blocks, so poured or flowing lava dropped you straight through, and even on a source block you sank knee-deep and bobbed. Any fluid level is now a solid surface and you stand on a full block with your feet clear — jumping works and you no longer sink, while submerging your eyes still lets you dive.
+- **Summoned and tamed piglin/hoglin minions chase and follow their owner.** Brain-driven minions ran only on the goal system that 2.2.4 pacified, so they neither chased the owner's target nor leashed back until the owner walked right up to them. They now drive movement through the brain — chasing a live combat target, otherwise following the owner (the same 8-block follow / 24-block teleport distances as goal-based pets) — and no longer turn on a fellow minion the owner clips by accident.
+- **`/power grant` and `/power revoke` work on `multiple` powers.** A `multiple` power isn't itself a registered holder, so granting or revoking the parent id silently did nothing. The command now expands a `multiple` to its leaf sub-powers (recursively, for nested multiples) and grants/revokes each.
+
+### Compat Improvements
+
+- **`neoorigins:self_action_on_hit` is recognized** alongside the existing `origins:` / `apace:` `self_action_on_hit` aliases, so a power authored under the native namespace fires when the holder deals damage instead of being dropped at load.
+
+---
+
 ## v2.2.5
 
 > Adds a Build A Spell integration, two new powers, a big client-config expansion for the HUD ability display, an array-form authoring fix, and a fresh **Minecraft 26.2** build alongside the existing 26.1.x and 1.21.1 ones.
