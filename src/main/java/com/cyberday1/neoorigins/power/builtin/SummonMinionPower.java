@@ -444,7 +444,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
 
         @Override
         public void start() {
-            this.minion.setTarget(this.pendingTarget);
+            TameMobPower.assignCombatTarget(this.minion, this.pendingTarget);
             super.start();
         }
 
@@ -452,14 +452,19 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         private LivingEntity resolve() {
             int now = summoner.tickCount;
 
+            // Never turn on a fellow minion: an accidental hit on the summoner's
+            // own summon sets it as lastHurtMob, which would otherwise make the
+            // pack gang up on one of their own.
             LivingEntity lastHit = summoner.getLastHurtMob();
             boolean lastHitFresh = lastHit != null && lastHit.isAlive()
                 && lastHit != summoner
+                && !MinionTracker.isTrackedMinionOf(lastHit, summoner.getUUID())
                 && now - summoner.getLastHurtMobTimestamp() < RECENCY_TICKS;
 
             LivingEntity lastHurtBy = summoner.getLastHurtByMob();
             boolean lastHurtByFresh = lastHurtBy != null && lastHurtBy.isAlive()
                 && lastHurtBy != summoner
+                && !MinionTracker.isTrackedMinionOf(lastHurtBy, summoner.getUUID())
                 && now - summoner.getLastHurtByMobTimestamp() < RECENCY_TICKS;
 
             // Prefer the more recent one so a fresh hit flips the minion to the new threat.
