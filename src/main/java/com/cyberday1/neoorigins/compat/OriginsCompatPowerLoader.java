@@ -63,6 +63,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:action_on_being_hit",   "apace:action_on_being_hit",
         "origins:self_action_when_hit",  "apace:self_action_when_hit",
         "origins:self_action_on_hit",    "apace:self_action_on_hit",
+        "neoorigins:self_action_on_hit",
         "origins:action_on_hit",         "apace:action_on_hit",
         "origins:damage_over_time",      "apace:damage_over_time",
         "origins:action_on_kill",        "apace:action_on_kill",
@@ -486,6 +487,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             // self_action_on_hit / action_on_hit fire when the HOLDER DEALS damage —
             // a different direction from the "when hit" group above.
             case "origins:self_action_on_hit",         "apace:self_action_on_hit",
+                 "neoorigins:self_action_on_hit",
                  "origins:action_on_hit",              "apace:action_on_hit"              -> parseSelfActionOnHit(id, json);
             case "origins:damage_over_time",           "apace:damage_over_time"           -> parseDamageOverTime(id, json);
             // Phase 3: New Route B types

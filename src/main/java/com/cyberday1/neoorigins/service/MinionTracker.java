@@ -143,6 +143,7 @@ public final class MinionTracker {
             // re-checks "is the player wearing gold?") and bypasses the
             // goal-based LivingChangeTargetEvent interceptor entirely.
             pacifyTowardOwner(entity, player);
+            driveBrainMinion(entity, player);
         }
         if (!toRemove.isEmpty()) {
             list.removeAll(toRemove);
@@ -186,8 +187,64 @@ public final class MinionTracker {
         // Goal-based mobs are normally handled by the LivingChangeTargetEvent
         // interceptor, but clear here too as a belt-and-braces against any
         // target that slipped through (e.g. set directly without the event).
-        if (minion instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == owner) {
+        if (minion instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() != null
+                && (mob.getTarget() == owner
+                    || isTrackedMinionOf(mob.getTarget(), owner.getUUID()))) {
             mob.setTarget(null);
+        }
+    }
+
+    /**
+     * Brain-driven mobs (piglins, hoglins) ignore the goal-based follow/target
+     * goals installed on summoned minions: their movement is controlled solely
+     * by the {@code WALK_TARGET} brain memory, which a {@code MoveToTargetSink}
+     * behaviour overrides any navigation a goal sets. That's why a summoned
+     * piglin neither leashes to its owner nor chases a target until the owner
+     * walks right up to it. Drive movement here through the brain instead:
+     * chase a live combat target, otherwise leash to the owner using the same
+     * 8-block start / 24-block teleport distances as the goal-based
+     * {@code FollowOwnerGoal} so the two mob families behave alike.
+     */
+    private static void driveBrainMinion(LivingEntity minion, ServerPlayer owner) {
+        if (!(minion instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin)
+                && !(minion instanceof net.minecraft.world.entity.monster.hoglin.Hoglin)) {
+            return;
+        }
+        if (!(minion instanceof net.minecraft.world.entity.Mob mob)) return;
+        var brain = mob.getBrain();
+
+        LivingEntity target = brain.getMemory(
+                net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET).orElse(null);
+        // Never chase a fellow minion of the same owner (e.g. one the owner
+        // clipped by accident) — drop the target so it falls back to leashing.
+        if (target != null && isTrackedMinionOf(target, owner.getUUID())) {
+            brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET);
+            brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT);
+            target = null;
+        }
+        if (target != null && target.isAlive() && target != owner) {
+            // Keep anger fresh so the FIGHT activity doesn't drop the target,
+            // and force a walk target so the piglin chases instead of waiting
+            // for the enemy to wander into its sensor range.
+            brain.setMemoryWithExpiry(
+                    net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT,
+                    target.getUUID(), 600L);
+            brain.setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
+                    new net.minecraft.world.entity.ai.memory.WalkTarget(target, 1.0f, 2));
+            return;
+        }
+
+        // No combat — leash to the owner.
+        double dsq = mob.distanceToSqr(owner);
+        if (dsq > 24.0 * 24.0) {
+            mob.moveTo(owner.getX() + (mob.getRandom().nextDouble() - 0.5) * 2,
+                    owner.getY(), owner.getZ() + (mob.getRandom().nextDouble() - 0.5) * 2,
+                    mob.getYRot(), mob.getXRot());
+            brain.eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET);
+        } else if (dsq > 8.0 * 8.0) {
+            mob.getLookControl().setLookAt(owner, 10.0f, (float) mob.getMaxHeadXRot());
+            brain.setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.WALK_TARGET,
+                    new net.minecraft.world.entity.ai.memory.WalkTarget(owner, 1.0f, 6));
         }
     }
 

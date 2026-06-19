@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.command;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.LegacyCommandRewriter;
+import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -22,6 +23,12 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.CommandEvent;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -271,15 +278,18 @@ public class OriginsCompatCommands {
     private static int executePowerGrant(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var entities = EntityArgument.getEntities(ctx, "targets");
         ResourceLocation power = ResourceLocationArgument.getId(ctx, "power");
+        List<ResourceLocation> targets = resolvePowerTargets(power);
 
         int count = 0;
         for (var entity : entities) {
             if (entity instanceof ServerPlayer player) {
                 var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-                if (data.hasDynamicGrant(power)) continue;
-                var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(power);
-                if (holder != null && data.addDynamicGrant(power)) {
-                    holder.onGranted(player);
+                for (ResourceLocation id : targets) {
+                    if (data.hasDynamicGrant(id)) continue;
+                    var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(id);
+                    if (holder != null && data.addDynamicGrant(id)) {
+                        holder.onGranted(player);
+                    }
                 }
                 count++;
             }
@@ -294,19 +304,56 @@ public class OriginsCompatCommands {
     private static int executePowerRevoke(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var entities = EntityArgument.getEntities(ctx, "targets");
         ResourceLocation power = ResourceLocationArgument.getId(ctx, "power");
+        List<ResourceLocation> targets = resolvePowerTargets(power);
 
         int count = 0;
         for (var entity : entities) {
             if (entity instanceof ServerPlayer player) {
                 var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
-                if (data.removeDynamicGrant(power)) {
-                    var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(power);
-                    if (holder != null) holder.onRevoked(player);
+                for (ResourceLocation id : targets) {
+                    if (data.removeDynamicGrant(id)) {
+                        var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(id);
+                        if (holder != null) holder.onRevoked(player);
+                    }
                 }
                 count++;
             }
         }
         return Math.max(count, 1);
+    }
+
+    /**
+     * Resolves a {@code /power grant|revoke} target id to the concrete
+     * registered power holders it should act on.
+     *
+     * <p>A {@code multiple} power is never itself a registered holder —
+     * {@link OriginsMultipleExpander} records it only in
+     * {@link OriginsMultipleExpander#MULTIPLE_EXPANSION_MAP} and registers its
+     * synthetic sub-powers as the real holders. So {@code getPower(parent)}
+     * returns {@code null} and granting/revoking the parent id silently
+     * no-ops. Expand it to its sub-power ids — recursively, since a
+     * {@code multiple} may nest other {@code multiple}s — down to the leaf
+     * holders. A non-{@code multiple} id resolves to itself (unchanged
+     * single-power behavior).
+     */
+    private static List<ResourceLocation> resolvePowerTargets(ResourceLocation power) {
+        var map = OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP;
+        if (!map.containsKey(power)) return List.of(power);
+
+        List<ResourceLocation> leaves = new ArrayList<>();
+        Set<ResourceLocation> visited = new HashSet<>();
+        ArrayDeque<ResourceLocation> pending = new ArrayDeque<>(map.get(power));
+        while (!pending.isEmpty()) {
+            ResourceLocation id = pending.pop();
+            if (!visited.add(id)) continue;          // cycle / diamond guard
+            List<ResourceLocation> children = map.get(id);
+            if (children != null) {
+                pending.addAll(children);            // nested multiple — expand further
+            } else {
+                leaves.add(id);                       // real registered holder
+            }
+        }
+        return leaves;
     }
 
     // ── CommandEvent listener — legacy command rewriting ───────────────────

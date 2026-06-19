@@ -21,6 +21,7 @@
     "ItemStackEdibleAnimationMixin",
     "EntityIgnoreWaterMixin",
     "LivingEntityWalkOnFluidMixin",
+    "LiquidBlockWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin",
     "LivingEntityUndeadPotionMixin",
     "EntityMountPositionMixin",

@@ -29,7 +29,7 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 |---|---|---|---|
 | `cooldown_icon` | string | `""` | HUD cooldown icon: an item id (e.g. `minecraft:ender_pearl`) rendered as the item, or a datapack texture path ending in `.png` (resolved under `assets/<namespace>/textures/`, e.g. `mypack:gui/fireball.png` → `assets/mypack/textures/gui/fireball.png`) drawn 16×16. When set, the HUD swaps that slot's cooldown bar for the icon with a clock-style radial sweep (dark fill over the not-yet-recharged arc, wiping clockwise from 12 o'clock). Empty keeps the plain bar. |
 | `cooldown_countdown` | bool | `true` | Draw the remaining cooldown in whole seconds translucently on the icon. Only applies when `cooldown_icon` is set; players can suppress all countdown numbers with the `show_cooldown_countdown` client config switch and tune the text opacity with `cooldown_countdown_opacity`. |
-| `always_show_icon` | bool | `false` | Keep this power's icon on the ability HUD cluster even while it is idle / off cooldown (full-bright, no sweep, no countdown). Only applies when `cooldown_icon` is set; players can force this for every power with the `always_show_ability_icons` client config switch. |
+| `always_show_icon` | bool | `false` | Keep this power's icon on the ability HUD cluster even while it is idle / off cooldown (full-bright, no sweep, no countdown). Only applies when `cooldown_icon` is set. **Note:** the default client HUD mode (`hud_ability_display: ALL_ACTIVE_ABILITIES`) already shows every icon-bearing ability while idle, so this field only changes what's displayed under `COOLDOWNS_AND_TOGGLES` mode (players can also force all icons on with `always_show_ability_icons`). |
 
 **Toggleable powers** — `flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect` and `condition_passive` when authored with `"toggleable": true` — also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
 
@@ -2164,7 +2164,7 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 | `fail_action` | EntityAction | no | — | Run when an activation attempt is blocked by `condition` — e.g. a `tellraw` telling the player why. Not fired on cooldown or hunger/resource aborts; the blocked attempt never consumes the cooldown. |
 | `cooldown_icon` | string | no | `""` | HUD cooldown icon (item id or `.png` texture path) — see "Cooldown HUD fields" at the top of this page |
 | `cooldown_countdown` | bool | no | `true` | Draw remaining seconds on the icon (needs `cooldown_icon`) |
-| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`) |
+| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`; no visible effect under the default `ALL_ACTIVE_ABILITIES` HUD mode, which already shows idle icons) |
 
 Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter — triggering one ability does not block another.
 

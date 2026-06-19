@@ -530,7 +530,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
         @Override
         public void start() {
-            this.mob.setTarget(this.ownerLastHurtBy);
+            assignCombatTarget(this.mob, this.ownerLastHurtBy);
             this.timestamp = owner.getLastHurtByMobTimestamp();
             super.start();
         }
@@ -568,9 +568,41 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
         @Override
         public void start() {
-            this.mob.setTarget(this.ownerLastHurt);
+            assignCombatTarget(this.mob, this.ownerLastHurt);
             this.timestamp = owner.getLastHurtMobTimestamp();
             super.start();
+        }
+    }
+
+    /**
+     * Assign a combat target in a way that drives both goal-based and
+     * brain-based mobs. Goal mobs act on {@link Mob#getTarget()}; brain-driven
+     * neutral mobs (piglins, hoglins) ignore that and re-derive their target
+     * from the {@code ATTACK_TARGET} brain memory each tick, so we write that
+     * memory too. The brain write is a no-op on mobs that don't register the
+     * slot, and the per-tick MinionTracker pacifier only clears targets aimed at
+     * the owner — so an enemy target set here sticks.
+     */
+    static void assignCombatTarget(Mob mob, LivingEntity target) {
+        mob.setTarget(target);
+        var brain = mob.getBrain();
+        // Piglins/hoglins drive combat through their anger pipeline. A bare
+        // ATTACK_TARGET with no matching ANGRY_AT is treated as invalid and
+        // erased the next brain tick, which fought the goal that set it —
+        // producing the rapid weapon draw/sheathe and repeated anger sound.
+        // Seed the anger memory (with the same expiries vanilla PiglinAi uses)
+        // so the brain keeps the target alive on its own.
+        if (mob instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin
+                || mob instanceof net.minecraft.world.entity.monster.hoglin.Hoglin) {
+            brain.setMemoryWithExpiry(
+                net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT,
+                target.getUUID(), 600L);
+            brain.setMemoryWithExpiry(
+                net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET,
+                target, 200L);
+        } else {
+            brain.setMemory(
+                net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET, target);
         }
     }
 }
