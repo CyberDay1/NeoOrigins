@@ -2,6 +2,63 @@
 
 ---
 
+## v2.2.7
+
+> A big content update built around **six brand-new martial-arts origins** — each with a full kit and a three-tier evolution path that unlocks a new signature art as you advance. Underpinning them is a wave of new systems: a `variable` power type, true creative-style flight, the ability to bind powers to vanilla keys, a modular projectile-rain / telegraph / thrown-sword VFX toolkit, an on-hit event hook, and global vision toggles — plus the usual polish and fixes.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Origins
+
+Six new origins join the roster, each a self-contained eastern martial-arts fantasy with its own base kit *and* a three-tier evolution path (see below):
+
+- **Asura** *(high impact)* — A frail-bodied berserker who grows faster and stronger the closer death looms: fragile when whole, monstrous when bleeding.
+- **Windwalker** *(medium)* — A master of *qinggong*: steps off the air, scales sheer walls, dashes on the wind and never fears a fall, but carries no extra strength into a fight.
+- **Qi Cultivator** *(medium)* — Channels Qi into ranged palm-strikes and hardened flesh, meditating to refill reserves — but a cultivator run dry is just a monk.
+- **Golden Body** *(medium)* — A hard-qigong Iron Body master: an armored, immovable wall that punishes anyone who strikes it, at the cost of nimbleness.
+- **Iron Monk** *(medium)* — A defender monk whose guard, blocks, and strikes all draw on one shared pool of stamina; an exhausted Iron Monk is wide open.
+- **Sword Immortal** *(high impact)* — Flies on their blade, hurls sword-qi at range and blinks through battle; every signature art is bound to the sword in hand.
+
+### Origin Evolutions
+
+- **Origins can now evolve.** An origin can define an evolution path that grants new powers as the player advances through its tiers, so an origin grows into a distinct late-game shape instead of staying fixed. All six new origins ship with a three-stage path:
+  - **Asura** — *Undying Rage* (regenerate and shrug off fire while near death) → *Blood Tithe* (drain life from every blow you land) → *Wrath Eruption* (an on-demand shockwave that savages and flings everything around you).
+  - **Windwalker** — *Sky Dancer* (glide freely on the wind) → *Riding the Wind* (true flight) → *Eye of the Storm* (a cyclone far greater than the Typhoon).
+  - **Qi Cultivator** — *Dantian Expansion* (Qi circulates even while you move and fight) → *Core Pressure* (strike harder while your core runs deep) → *Flying Sword of Qi* (loose a blade of pure energy).
+  - **Golden Body** — *Diamond Body* (harder still to wound) → *Reflected Force* (rebound twice the force of every blow) → *Bell Toll* (a resonating shockwave that slows and weakens nearby foes).
+  - **Iron Monk** — *Counter Stance* (blocked blows rebound on the attacker) → *Sea of Stamina* (stamina trickles back even mid-guard) → *Lohan Palm* (a wide stamina-fueled shockwave).
+  - **Sword Immortal** — *Sword Heart Unity* (your edge bites deeper with a sword in hand) → *Heavenly Sword Formation* (rain a ring of blades around you) → *Heaven-Severing Slash* (one gathered, cleaving sword-qi crescent).
+
+### New Powers & Systems
+
+- **`variable` power type.** A named, hidden counter that persists across sessions, with no HUD bar, regen, or per-tick cost — it only changes when actions touch it. Use it as a hidden state-tracker for charges, stacks, or progress that resources aren't suited to.
+- **`creative_flight` power.** Grants true creative-style hover flight while active and cleanly restores normal movement when toggled off (without stripping flight from players already in creative/spectator) — built for "levitating cultivator" fantasies, distinct from elytra and natural glide.
+- **Bind powers to vanilla keys.** Active and reactive powers can now key off vanilla inputs — jump, sneak, sprint, use, attack, and the four movement keys (forward / back / left / right) — instead of consuming a named hotkey slot, so lightweight powers like double-jump fire on the keys players already use. Held `key.use` / `key.attack` powers now also fire correctly while the key is held down, where before they only triggered on an actual interaction or attack swing. A worked `double_jump` example ships in the example pack.
+- **`hit_dealt` event + `hit_dealt_amount` condition.** Powers can react to the damage *you deal* — mirroring the existing hit-taken hook — so `action_on_event` can fire on a landed hit (used for life-drain) and conditions can test how hard a blow landed.
+- **`active_dash` damage scaling.** Dash powers gain `damage`, `damage_radius`, and `weapon_damage_scale` fields, so a dash can cut through the path it travels and scale with the weapon in hand.
+
+### New VFX & Actions
+
+- **Modular projectile-rain (`spawn_projectile_rain` / `spawn_sword_rain`).** Rain projectiles or baked-mesh blades down over an area, with configurable radius, count, duration, damage, knockup, a per-landing `impact_action`, and custom projectile entities or spectral-sword models. The rain can be anchored to the caster, their look direction, or an impact point.
+- **`spawn_telegraph` action.** A particle-only ground danger reticle (a contracting circle) with a configurable radius and wind-up, optionally firing an action when it expires — a clean wind-up cue for telegraphed attacks.
+- **Thrown-sword and componentized tornado VFX.** New baked-mesh model support drives a thrown-sword storm and a rebuilt, component-based tornado (with a proper spectral-sword model and updated tornado mesh/texture).
+
+### Configuration
+
+- **Global vision toggles.** Two new independent `content.toml` switches for packs that want darkness to stay threatening: `disable_night_vision` strips the `minecraft:night_vision` effect from any power that would apply it (other effects on that power still apply), and `disable_enhanced_vision` withholds the `enhanced_vision` low-light brightness boost (cat eyes, salamander, oculus drone, etc.) so it never reaches the client.
+
+### Bug Fixes
+
+- **Fixed a dedicated-server crash on load when walk-on-water / walk-on-lava was present.** The `walk_on_fluid` mixins named a client-only player type directly, so on a dedicated server Mixin tried to load that client class while weaving and aborted with "invalid dist DEDICATED_SERVER" — taking the whole server down at startup whenever a pack used walk-on-water or walk-on-lava. The local-player check is now routed through a client-only helper, so the client type never touches the server's load path.
+- **The Windwalker Typhoon (and any moving VFX) now travels smoothly.** The tornado's position only synced to clients every several ticks, so a drifting funnel visibly jumped block to block. Moving storm entities now sync every tick, so the client smoothly interpolates the funnel between updates instead of snapping it, and it follows the ground beneath it as it drifts.
+- **Hidden resource bars stay hidden.** A resource power marked `hidden` at the top level (such as the Windwalker's air-step counter) still leaked a "Resource 1/2" bar onto the HUD, because the loader only auto-hid simple on/off resources. The top-level `hidden` flag is now honored, so the bar no longer shows.
+
+### Polish
+
+- **Every active ability now shows a cooldown icon.** The last few actives without an explicit `cooldown_icon` (Windwalker's Gale Dash, the Sword Immortal's Flickering Slash, and the eastern martial-arts actives) now display a proper item icon on the cooldown HUD instead of the fallback drain bar.
+
+---
+
 ## v2.2.6
 
 > A hotfix for 2.2.5: lava/water walking now works on flowing fluid and stands you
