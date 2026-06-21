@@ -74,8 +74,16 @@ public class PlayerLifecycleEvents {
         // high-frequency event.
         boolean fireKubePowerTick =
             com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.powerTickHasListeners();
+        // Native active powers bound to a vanilla input key (e.g. key.jump
+        // double-jump) are polled here from the server-side input state. Cheap
+        // global guard skips the per-power lookup when no pack declares one.
+        boolean pollVanillaNative =
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.hasVanillaNative();
         ActiveOriginService.forEach(sp, holder -> {
             holder.onTick(sp);
+            if (pollVanillaNative) {
+                com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.pollVanillaNative(sp, holder);
+            }
             if (fireKubePowerTick) {
                 com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerTick(sp, holder.id());
             }
@@ -89,6 +97,40 @@ public class PlayerLifecycleEvents {
         if (sp.onClimbable()) {
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CLIMB);
+        }
+    }
+
+    /** Last-seen onGround state per player, for the creative-safe LAND detector below. */
+    private static final java.util.Map<java.util.UUID, Boolean> lastOnGround =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Creative-safe {@link com.cyberday1.neoorigins.service.EventPowerIndex.Event#LAND}
+     * source. {@code LivingFallEvent} only fires when the player accrues fall
+     * distance, which never happens in creative flight or when descending slowly,
+     * so {@code action_on_event} powers keyed on {@code land} silently did nothing
+     * outside survival. This watches {@code onGround} for a false→true rising edge
+     * and dispatches LAND itself.
+     *
+     * <p>Runs on {@code PlayerTickEvent.Post} so its {@code tickCount} matches the
+     * one {@code LivingFallEvent} observes; in survival LivingFallEvent fires first
+     * and stamps the tick via {@link com.cyberday1.neoorigins.service.EventPowerIndex#markLandDispatched},
+     * so this detector's same-tick dedup check skips it and LAND fires exactly once.
+     * Context is null (the player is the subject); the cancellable fall-damage path
+     * stays exclusive to the LivingFallEvent source.
+     */
+    @SubscribeEvent
+    public static void onPlayerTickPost(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var uuid = sp.getUUID();
+        boolean onGround = sp.onGround();
+        Boolean prev = lastOnGround.put(uuid, onGround);
+        if (onGround && (prev == null || !prev)) {
+            if (!com.cyberday1.neoorigins.service.EventPowerIndex.landDispatchedThisTick(uuid, sp.tickCount)) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                    sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND);
+                com.cyberday1.neoorigins.service.EventPowerIndex.markLandDispatched(uuid, sp.tickCount);
+            }
         }
     }
 
@@ -212,6 +254,7 @@ public class PlayerLifecycleEvents {
         var uuid = sp.getUUID();
         pendingOriginCheck.remove(uuid);
         pendingResync.remove(uuid);
+        lastOnGround.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);

@@ -232,6 +232,12 @@ public class NeoOriginsNetwork {
         );
 
         registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleVanillaKeyState
+        );
+
+        registrar.playToServer(
             ActivateClassPowerPayload.TYPE,
             ActivateClassPowerPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleActivateClassPower
@@ -1025,6 +1031,15 @@ public class NeoOriginsNetwork {
         });
     }
 
+    private static void handleVanillaKeyState(
+            com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            com.cyberday1.neoorigins.compat.CompatPlayerState.setVanillaKeyState(
+                sp, payload.useDown(), payload.attackDown());
+        });
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void syncCooldownIfStarted(ServerPlayer sp, PowerHolder<?> holder, int slot) {
         String key;
@@ -1045,7 +1060,9 @@ public class NeoOriginsNetwork {
             key = candidateKey.equals(ap.getClass().getName())
                     ? holder.id().toString()   // default impl fell back — use real ID
                     : candidateKey;            // subclass override (e.g. SummonMinionPower)
-            totalTicks = cfg.cooldownTicks();
+            // Resolve dynamic cooldown (cooldown_resource) so the ring total
+            // matches the live counter value, not just the fixed cooldownTicks().
+            totalTicks = ap.resolveCooldown(sp, cfg);
         } else if (holder.type() instanceof com.cyberday1.neoorigins.compat.CompatPower
                 && holder.config() instanceof com.cyberday1.neoorigins.compat.CompatPower.Config cc
                 && cc.cooldownTicks() > 0) {

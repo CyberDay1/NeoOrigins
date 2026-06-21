@@ -35,6 +35,7 @@ public final class EventPowerIndex {
         // ----- core lifecycle / combat -----
         ATTACK,                 // player attacked something
         HIT_TAKEN,              // player took damage
+        HIT_DEALT,              // player dealt damage to a living entity (attacker side)
         KILL,                   // player killed a living entity
         DEATH,                  // player died
         BLOCK_BREAK,
@@ -160,6 +161,26 @@ public final class EventPowerIndex {
         return false;
     }
 
+    /** Per-player tick stamp of the last {@link Event#LAND} dispatch, used to
+     *  de-duplicate the two LAND sources: {@code LivingFallEvent} (fires in
+     *  survival, carries the cancellable event needed for fall-damage negation)
+     *  and the {@code PlayerTickEvent.Post} onGround rising-edge detector (the
+     *  only LAND source in creative/flight, where LivingFallEvent never fires).
+     *  Both run at the same {@code tickCount}, so whichever fires first stamps
+     *  the tick and the other skips. Cleared on logout via {@link #invalidate(UUID)}. */
+    private static final Map<UUID, Integer> LAND_DISPATCH_TICK = new ConcurrentHashMap<>();
+
+    /** Record that LAND was dispatched for {@code uuid} on {@code tick}. */
+    public static void markLandDispatched(UUID uuid, int tick) {
+        LAND_DISPATCH_TICK.put(uuid, tick);
+    }
+
+    /** True if LAND was already dispatched for {@code uuid} on {@code tick}. */
+    public static boolean landDispatchedThisTick(UUID uuid, int tick) {
+        Integer last = LAND_DISPATCH_TICK.get(uuid);
+        return last != null && last == tick;
+    }
+
     /** Register a handler for a player+event. Typically called in {@code PowerType.onGranted}. */
     public static Token register(ServerPlayer player, Event event, Handler handler) {
         UUID uuid = player.getUUID();
@@ -209,6 +230,7 @@ public final class EventPowerIndex {
         INDEX.remove(uuid);
         MOD_INDEX.remove(uuid);
         EFFECT_GRACE.remove(uuid);
+        LAND_DISPATCH_TICK.remove(uuid);
     }
 
     /** Dispatch an event to all registered handlers. */
@@ -263,6 +285,7 @@ public final class EventPowerIndex {
         INDEX.remove(uuid);
         MOD_INDEX.remove(uuid);
         EFFECT_GRACE.remove(uuid);
+        LAND_DISPATCH_TICK.remove(uuid);
     }
 
     /** For regression tests: returns an immutable view of all events for a player. */
@@ -289,6 +312,17 @@ public final class EventPowerIndex {
             this(amount, source, null);
         }
     }
+
+    /**
+     * Context for {@link Event#HIT_DEALT}: fired on the ATTACKER (a player) when
+     * they deal damage to a living entity. Carries the final post-modifier damage
+     * amount, the victim, and the damage source — the attacker-side mirror of
+     * {@link HitTakenContext}. Lets {@code neoorigins:hit_dealt_amount} gate on the
+     * most recent damage the player dealt to a target.
+     */
+    public record HitDealtContext(float amount,
+                                  net.minecraft.world.entity.LivingEntity target,
+                                  net.minecraft.world.damagesource.DamageSource source) {}
 
     /**
      * Context for {@link Event#KILL}: the killed entity plus (when available)

@@ -61,6 +61,34 @@ public class ModEntities {
                 .updateInterval(10)
                 .build("tornado"));
 
+    // Registry id stays "sword_rain" (saved entities + back-compat); the Java
+    // type/field are generic since the rain can spawn any projectile, not swords.
+    public static final DeferredHolder<EntityType<?>, EntityType<ProjectileRainVfxEntity>> PROJECTILE_RAIN =
+        ENTITY_TYPES.register("sword_rain", () ->
+            EntityType.Builder.<ProjectileRainVfxEntity>of(ProjectileRainVfxEntity::new, MobCategory.MISC)
+                .sized(1.0F, 1.0F)
+                .clientTrackingRange(24)
+                .updateInterval(10)
+                .build("sword_rain"));
+
+    // A single thrown spectral blade (wuxia "flying sword"). Flies under real
+    // physics; its landing point seeds spawn_projectile_rain (origin:"impact").
+    public static final DeferredHolder<EntityType<?>, EntityType<ThrownSwordProjectile>> THROWN_SWORD =
+        ENTITY_TYPES.register("thrown_sword", () ->
+            EntityType.Builder.<ThrownSwordProjectile>of(ThrownSwordProjectile::new, MobCategory.MISC)
+                .sized(0.4F, 0.4F)
+                .clientTrackingRange(8)
+                .updateInterval(10)
+                .build("thrown_sword"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<TelegraphVfxEntity>> TELEGRAPH =
+        ENTITY_TYPES.register("telegraph", () ->
+            EntityType.Builder.<TelegraphVfxEntity>of(TelegraphVfxEntity::new, MobCategory.MISC)
+                .sized(0.5F, 0.5F)
+                .clientTrackingRange(24)
+                .updateInterval(10)
+                .build("telegraph"));
+
     public static void register(IEventBus modEventBus) {
         ENTITY_TYPES.register(modEventBus);
     }

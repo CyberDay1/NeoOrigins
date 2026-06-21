@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.content;
 import com.cyberday1.neoorigins.api.content.vfx.AbstractVfxEntity;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
@@ -17,6 +18,17 @@ import net.minecraft.world.phys.Vec3;
  */
 public class TornadoVfxEntity extends AbstractVfxEntity {
 
+    /**
+     * Funnel size + spin multipliers, applied on top of the base design radius
+     * ({@link #getRange()}). Shared with {@code TornadoRenderer} so the visual
+     * funnel and the server-side pull/damage field stay the same shape: the
+     * affected area widens with {@link #WIDTH_MULT} and the column rises with
+     * {@link #HEIGHT_MULT}, while {@link #SPIN_MULT} only speeds the render spin.
+     */
+    public static final float WIDTH_MULT = 3.0f;
+    public static final float HEIGHT_MULT = 7.0f;
+    public static final float SPIN_MULT = 3.0f;
+
     private static final float DEFAULT_PULL_STRENGTH = 1.0f;
     private static final float DEFAULT_LIFT_STRENGTH = 0.5f;
     private static final float DEFAULT_SPIN_STRENGTH = 0.5f;
@@ -29,6 +41,29 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
     private float damagePerInterval = DEFAULT_DAMAGE_PER_INTERVAL;
     private int damageIntervalTicks = DEFAULT_DAMAGE_INTERVAL;
 
+    /** Horizontal travel: the funnel drifts in the cast direction each tick. */
+    private Vec3 moveDir = Vec3.ZERO;
+    private float moveSpeed = 0f;
+
+    /** When true the funnel falls under gravity until its base rests on the
+     *  ground, so a tornado cast in mid-air drops while it drifts forward. */
+    private boolean applyGravity = false;
+    private double fallVel = 0.0;
+    /** Downward acceleration per tick, capped at a sane terminal velocity. */
+    private static final double GRAVITY_PER_TICK = 0.08;
+    private static final double TERMINAL_VELOCITY = -3.0;
+
+    /**
+     * Composable payload run against each caught entity on the damage interval,
+     * in place of the built-in magic damage. Set by the {@code impact_action}
+     * field on spawn_tornado; null = use the hardcoded {@code damagePerInterval}.
+     */
+    public interface TornadoImpact {
+        void apply(ServerLevel level, Entity target, ServerPlayer caster);
+    }
+    private TornadoImpact impactCallback = null;
+    public void setImpactCallback(TornadoImpact cb) { this.impactCallback = cb; }
+
     public TornadoVfxEntity(EntityType<? extends TornadoVfxEntity> type, Level level) {
         super(type, level);
     }
@@ -39,15 +74,64 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
     public void setDamagePerInterval(float value) { this.damagePerInterval = value; }
     public void setDamageIntervalTicks(int ticks) { this.damageIntervalTicks = Math.max(1, ticks); }
 
+    /**
+     * Set the horizontal drift: {@code dir} is flattened to the XZ plane and
+     * normalised, then advanced {@code speedPerTick} blocks each tick. A zero or
+     * vertical direction leaves the funnel stationary.
+     */
+    public void setMoveDirection(Vec3 dir, float speedPerTick) {
+        Vec3 flat = new Vec3(dir.x, 0, dir.z);
+        double len = flat.length();
+        this.moveDir = len < 1.0e-4 ? Vec3.ZERO : flat.scale(1.0 / len);
+        this.moveSpeed = Math.max(0f, speedPerTick);
+    }
+
+    /** When enabled, the funnel falls under gravity (and keeps drifting forward)
+     *  until its base reaches the surface, then rides along the ground. */
+    public void setGravity(boolean value) { this.applyGravity = value; }
+
     @Override
     protected void onVfxTick(ServerLevel level) {
-        final float range = getRange();
-        final boolean damageTick = damagePerInterval > 0 && getLifetime() % damageIntervalTicks == 0;
+        // Drift forward in the cast direction (and fall under gravity when
+        // enabled) before scanning, so the pull field and particles use the
+        // funnel's new position this tick.
+        double newX = getX() + (moveSpeed > 0 ? moveDir.x * moveSpeed : 0.0);
+        double newZ = getZ() + (moveSpeed > 0 ? moveDir.z * moveSpeed : 0.0);
+        double newY = getY();
+        if (applyGravity) {
+            fallVel = Math.max(TERMINAL_VELOCITY, fallVel - GRAVITY_PER_TICK);
+            newY += fallVel;
+            // Rest the funnel base on the surface under its new XZ position so it
+            // can't sink through the world (VFX entities are noPhysics → no
+            // vanilla collision; clamp to the MOTION_BLOCKING heightmap instead).
+            double groundY = level.getHeight(
+                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
+                net.minecraft.util.Mth.floor(newX), net.minecraft.util.Mth.floor(newZ));
+            if (newY <= groundY) {
+                newY = groundY;
+                fallVel = 0.0;
+            }
+        }
+        if (newX != getX() || newY != getY() || newZ != getZ()) {
+            setPos(newX, newY, newZ);
+        }
+
+        final float baseRange = getRange();
+        // Affected area widened to match the wider funnel; column height raised
+        // to match the taller funnel (WIDTH_MULT / HEIGHT_MULT shared with the renderer).
+        final float range = baseRange * WIDTH_MULT;
+        final float columnHeight = baseRange * HEIGHT_MULT;
+        // Fire on the interval when there's a payload to deliver — either the
+        // built-in damage or a composable impact_action. (Gating on damage alone
+        // would suppress an impact_action set with damage_per_interval = 0.)
+        final boolean intervalTick = (damagePerInterval > 0 || impactCallback != null)
+            && getLifetime() % damageIntervalTicks == 0;
         final float damageRange = range * 0.5f;
+        final ServerPlayer impactCaster = (intervalTick && impactCallback != null) ? resolveCaster() : null;
 
         // Single pass — pull/lift/spin every tick; damage-in-cone on interval
         // ticks when inside the inner radius. Merging avoids a second scan.
-        for (Entity target : level.getEntities(this, getBoundingBox().inflate(range, range * 2, range))) {
+        for (Entity target : level.getEntities(this, getBoundingBox().inflate(range, columnHeight, range))) {
             if (target == this) continue;
             if (casterUuid != null && target.getUUID().equals(casterUuid)) continue;
 
@@ -64,8 +148,12 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
             target.setDeltaMovement(target.getDeltaMovement().add(pull).add(lift).add(spin));
             target.hurtMarked = true;
 
-            if (damageTick && dist <= damageRange) {
-                target.hurt(damageSources().magic(), damagePerInterval);
+            if (intervalTick && dist <= damageRange) {
+                if (impactCallback != null) {
+                    impactCallback.apply(level, target, impactCaster);
+                } else {
+                    target.hurt(damageSources().magic(), damagePerInterval);
+                }
             }
         }
 
@@ -74,10 +162,12 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
         }
 
         if (getLifetime() % 2 == 0) {
-            double angle = (getLifetime() * 0.6) % (Math.PI * 2);
-            for (int h = 0; h < 4; h++) {
-                double y = h * (range * 0.6);
-                double r = range * (0.3 + h * 0.15);
+            // Spin 3× faster to match the renderer, and stack 6 rings up the full
+            // (taller) column so the particle funnel reads as tall as the mesh.
+            double angle = (getLifetime() * 0.6 * SPIN_MULT) % (Math.PI * 2);
+            for (int h = 0; h < 6; h++) {
+                double y = (h / 6.0) * columnHeight;
+                double r = range * (0.18 + h * 0.06);
                 double px = Math.cos(angle + h * 1.2) * r;
                 double pz = Math.sin(angle + h * 1.2) * r;
                 level.sendParticles(ParticleTypes.CLOUD,

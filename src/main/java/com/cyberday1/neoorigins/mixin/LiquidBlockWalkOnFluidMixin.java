@@ -2,7 +2,6 @@ package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.client.ClientActivePowers;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
@@ -69,7 +68,10 @@ public abstract class LiquidBlockWalkOnFluidMixin {
         if (player.level().isClientSide) {
             // Only the local player predicts its own movement; other players'
             // collision contexts must not inherit the local capabilities.
-            if (!(player instanceof LocalPlayer)) return;
+            // Routed through ClientActivePowers (client-only) so this common
+            // mixin never names LocalPlayer directly — see the helper's javadoc:
+            // a direct reference fails the mixin apply on a dedicated server.
+            if (!ClientActivePowers.isLocalPlayer(player)) return;
             if (fluid.is(FluidTags.LAVA)) {
                 walk = ClientActivePowers.hasCapability("walk_on_lava")
                     && !player.isEyeInFluid(FluidTags.LAVA);

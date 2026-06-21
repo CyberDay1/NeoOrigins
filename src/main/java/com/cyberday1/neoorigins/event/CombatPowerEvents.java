@@ -377,6 +377,26 @@ public class CombatPowerEvents {
         return id.equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()));
     }
 
+    /**
+     * Attacker-side HIT_DEALT dispatch. The HIGH-priority {@link #onLivingDamage}
+     * runs first and applies any modify_damage_dealt scaling, so reading the
+     * amount here (LOW priority) gives the final damage the player actually dealt
+     * to the victim. Fires for ANY living victim (player-vs-mob included), keyed
+     * on the attacker being a ServerPlayer — the mirror of HIT_TAKEN, which is
+     * keyed on the victim. Feeds {@code neoorigins:hit_dealt_amount}.
+     */
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public static void onPlayerDealDamage(LivingIncomingDamageEvent event) {
+        if (event.isCanceled()) return;
+        if (!(event.getSource().getEntity() instanceof ServerPlayer attacker)) return;
+        var hitDealt = new com.cyberday1.neoorigins.service.EventPowerIndex.HitDealtContext(
+            event.getAmount(), event.getEntity(), event.getSource());
+        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+            attacker,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event.HIT_DEALT,
+            hitDealt);
+    }
+
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         // Check if the dying entity is a tracked minion (notify summoner)

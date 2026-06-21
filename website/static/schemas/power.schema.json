@@ -153,6 +153,7 @@
         "neoorigins:twin_breeding",
         "neoorigins:ultimine",
         "neoorigins:underwater_mining_speed",
+        "neoorigins:variable",
         "neoorigins:walk_on_fluid",
         "neoorigins:wall_climbing",
         "neoorigins:water_breathing",
@@ -406,10 +407,15 @@
           "const": "neoorigins:active_ability"
         },
         "cooldown_ticks": {
-          "description": "Cooldown between uses in ticks (20 = 1s); default 60.",
+          "description": "Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set.",
           "type": "integer",
           "default": 60,
           "minimum": 0
+        },
+        "cooldown_resource": {
+          "description": "Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable.",
+          "type": "string",
+          "default": ""
         },
         "hunger_cost": {
           "description": "Food/exhaustion points consumed per successful activation; default 0.",
@@ -3916,6 +3922,30 @@
       ]
     },
     {
+      "$comment": "neoorigins:variable",
+      "properties": {
+        "type": {
+          "const": "neoorigins:variable"
+        },
+        "start": {
+          "description": "Initial counter value seeded on grant; also the value reads fall back to before the first write. Default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "min": {
+          "description": "Lower clamp applied to additive (change_resource) writes; omit for an unbounded counter.",
+          "type": "integer"
+        },
+        "max": {
+          "description": "Upper clamp applied to additive (change_resource) writes; omit for an unbounded counter.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:walk_on_fluid",
       "properties": {
         "type": {
@@ -4107,6 +4137,7 @@
               "neoorigins:twin_breeding",
               "neoorigins:ultimine",
               "neoorigins:underwater_mining_speed",
+              "neoorigins:variable",
               "neoorigins:walk_on_fluid",
               "neoorigins:wall_climbing",
               "neoorigins:water_breathing",

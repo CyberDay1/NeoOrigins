@@ -638,21 +638,34 @@ public final class OriginsPowerTranslator {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:extra_inventory");
 
-        // Origins uses "container_type" or defaults to 9 slots
+        // Origins uses "container_type" or defaults to 9 slots. Accepts both the
+        // numeric/grid tokens (9x6, 54, 3x3) and the vanilla container names Apoli
+        // packs use (double_chest, chest, hopper, dispenser, dropper). The native
+        // extra_inventory is chest-backed (rows of 9), so non-9-wide containers are
+        // mapped to the nearest chest size.
         int size = 9;
         if (src.has("container_type")) {
             String ct = src.get("container_type").getAsString().toLowerCase(Locale.ROOT);
-            if (ct.contains("9x6") || ct.contains("54")) size = 54;
+            if (ct.contains("double_chest") || ct.contains("9x6") || ct.contains("54")) size = 54;
             else if (ct.contains("9x5") || ct.contains("45")) size = 45;
             else if (ct.contains("9x4") || ct.contains("36")) size = 36;
-            else if (ct.contains("9x3") || ct.contains("27")) size = 27;
+            else if (ct.contains("9x3") || ct.contains("27") || ct.equals("chest")) size = 27;
             else if (ct.contains("9x2") || ct.contains("18")) size = 18;
+            else if (ct.contains("hopper")) size = 9; // 5 slots -> nearest chest row
+            else if (ct.contains("dispenser") || ct.contains("dropper") || ct.contains("3x3")) size = 9;
             else if (ct.contains("9x1") || ct.contains("9")) size = 9;
-            else if (ct.contains("3x3")) size = 9;
         }
 
         out.addProperty("size", size);
         if (src.has("drop_on_death")) out.addProperty("drop_on_death", src.get("drop_on_death").getAsBoolean());
+        // Carry the custom container title so the native power shows it instead of
+        // the default "Extra Inventory" label.
+        if (src.has("title") && src.get("title").isJsonPrimitive()) {
+            out.addProperty("title", src.get("title").getAsString());
+        }
+        // Preserve the pack-declared activation key so the compat loader can bind
+        // this native active power to a named hotkey instead of a skill slot.
+        if (src.has("key")) out.add("key", src.get("key"));
         return Optional.of(out);
     }
 

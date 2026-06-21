@@ -36,11 +36,12 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
     private static final String NBT_KEY = "neoorigins:extra_inventory";
     private static final Map<UUID, SimpleContainer> CONTAINERS = new ConcurrentHashMap<>();
 
-    public record Config(int size, boolean dropOnDeath, String type) implements PowerConfiguration {
+    public record Config(int size, boolean dropOnDeath, String type, String title) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("size", 9).forGetter(Config::size),
             Codec.BOOL.optionalFieldOf("drop_on_death", false).forGetter(Config::dropOnDeath),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("title", "").forGetter(Config::title)
         ).apply(inst, Config::new));
     }
 
@@ -74,9 +75,12 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
             case 6 -> MenuType.GENERIC_9x6;
             default -> MenuType.GENERIC_9x3;
         };
+        Component title = (config.title() != null && !config.title().isBlank())
+            ? Component.literal(config.title())
+            : Component.translatable("container.neoorigins.extra_inventory");
         player.openMenu(new SimpleMenuProvider(
             (windowId, playerInv, p) -> new ChestMenu(menuType, windowId, playerInv, container, rows),
-            Component.translatable("container.neoorigins.extra_inventory")
+            title
         ));
     }
 

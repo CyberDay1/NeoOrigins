@@ -180,6 +180,8 @@ public final class BuiltinPowers {
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
         define("flight",                   FlightPower.class,                 List.of(
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+        define("creative_flight",          CreativeFlightPower.class,         List.of(
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
         define("natural_glide",            NaturalGlidePower.class,           List.of());
         define("no_natural_regen",         NoNaturalRegenPower.class,         List.of());
@@ -722,6 +724,10 @@ public final class BuiltinPowers {
                 .def(false).doc("If true the dash follows look pitch; if false it stays horizontal; default false."),
             new FieldSpec("set_velocity", Kind.BOOLEAN, false)
                 .def(false).doc("If true replace the player's velocity; if false add to it; default false."),
+            new FieldSpec("damage", Kind.NUMBER, false)
+                .def(0.0).doc("Damage dealt to living entities near the dash path; 0 disables dash damage; default 0."),
+            new FieldSpec("damage_radius", Kind.NUMBER, false)
+                .def(2.0).doc("Radius around the dash path within which entities are hit (only if damage > 0); default 2.0."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1045,7 +1051,9 @@ public final class BuiltinPowers {
                 .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.")));
         define("active_ability", ActiveAbilityPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60."),
+                .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set."),
+            new FieldSpec("cooldown_resource", Kind.STRING, false)
+                .def("").doc("Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).range(0.0, null).doc("Food/exhaustion points consumed per successful activation; default 0."),
             new FieldSpec("resource_cost", Kind.STRING, false)
@@ -1337,6 +1345,21 @@ public final class BuiltinPowers {
                 new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted."),
                 new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
                 .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.")));
+
+        // ── neoorigins:variable — an always-hidden integer counter ("local variable") ─
+        // Same stored keyspace as resource (keyed by its own power id) so it is
+        // read by the `resource` condition and written by `change_resource` /
+        // `set_resource` with no extra wiring — but with no HUD, no regen, and no
+        // per-tick cost. `start` doubles as the value reads fall back to before
+        // the first write. Declare more than one (one power each) and list them
+        // first in an origin's powers to have them "at the start of the stack".
+        define("variable", com.cyberday1.neoorigins.power.builtin.VariablePower.class, List.of(
+            new FieldSpec("start", Kind.INTEGER, false).def(0)
+                .doc("Initial counter value seeded on grant; also the value reads fall back to before the first write. Default 0."),
+            new FieldSpec("min", Kind.INTEGER, false)
+                .doc("Lower clamp applied to additive (change_resource) writes; omit for an unbounded counter."),
+            new FieldSpec("max", Kind.INTEGER, false)
+                .doc("Upper clamp applied to additive (change_resource) writes; omit for an unbounded counter.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

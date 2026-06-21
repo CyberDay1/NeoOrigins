@@ -133,6 +133,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, WraithPhasePower>          WRAITH_PHASE           = reg("wraith_phase",           new WraithPhasePower());
     public static final DeferredHolder<PowerType<?>, SlimeMoisturePower>       SLIME_MOISTURE         = reg("slime_moisture",         new SlimeMoisturePower());
     public static final DeferredHolder<PowerType<?>, com.cyberday1.neoorigins.power.builtin.ResourcePower> RESOURCE = reg("resource", new com.cyberday1.neoorigins.power.builtin.ResourcePower());
+    public static final DeferredHolder<PowerType<?>, com.cyberday1.neoorigins.power.builtin.VariablePower> VARIABLE = reg("variable", new com.cyberday1.neoorigins.power.builtin.VariablePower());
     public static final DeferredHolder<PowerType<?>, SlimeDeathSavePower>      SLIME_DEATH_SAVE       = reg("slime_death_save",       new SlimeDeathSavePower());
     public static final DeferredHolder<PowerType<?>, com.cyberday1.neoorigins.power.builtin.PreventDeathPower> PREVENT_DEATH = reg("prevent_death", new com.cyberday1.neoorigins.power.builtin.PreventDeathPower());
     public static final DeferredHolder<PowerType<?>, SlimeLevelHPPower>        SLIME_LEVEL_HP         = reg("slime_level_hp",         new SlimeLevelHPPower());

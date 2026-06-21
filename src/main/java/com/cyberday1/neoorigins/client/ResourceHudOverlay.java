@@ -219,15 +219,36 @@ public class ResourceHudOverlay {
         }
     }
 
+    // Memoised sprite-sheet resolutions (raw sprite_location string → sheet to use).
+    // Cleared whenever a full resource sync re-applies (login / grant / reload), so
+    // a texture that appears after a resource-pack reload is re-checked.
+    private static final java.util.Map<String, ResourceLocation> SHEET_CACHE = new java.util.HashMap<>();
+
+    /** Invalidates the resolved-sheet cache; called from {@link ClientResourceState#apply}. */
+    public static void clearSheetCache() { SHEET_CACHE.clear(); }
+
     /**
      * Resolves the sprite sheet to render a bar against. An empty/blank id (native
      * resources, or Apoli resources with no {@code sprite_location}) uses the vendored
-     * default sheet. A pack-declared id is passed through verbatim — the texture is
-     * normally provided by the source mod/datapack; a malformed id falls back to default.
+     * default sheet. A pack-declared id is used verbatim only when its texture is
+     * actually present in a loaded resource pack — community sheets (e.g.
+     * {@code origins:textures/gui/community/...}) are normally shipped by the source
+     * mod, so an absent one would otherwise render as the missing-texture block.
+     * A malformed or absent id falls back to our default sheet, so the bar still
+     * renders (and animates) at the requested {@code bar_index}.
      */
     private static ResourceLocation resolveSheet(String spriteLocation) {
         if (spriteLocation == null || spriteLocation.isBlank()) return RESOURCE_BAR_TEX;
+        ResourceLocation cached = SHEET_CACHE.get(spriteLocation);
+        if (cached != null) return cached;
         ResourceLocation parsed = ResourceLocation.tryParse(spriteLocation);
-        return parsed != null ? parsed : RESOURCE_BAR_TEX;
+        ResourceLocation resolved;
+        if (parsed == null || Minecraft.getInstance().getResourceManager().getResource(parsed).isEmpty()) {
+            resolved = RESOURCE_BAR_TEX;
+        } else {
+            resolved = parsed;
+        }
+        SHEET_CACHE.put(spriteLocation, resolved);
+        return resolved;
     }
 }

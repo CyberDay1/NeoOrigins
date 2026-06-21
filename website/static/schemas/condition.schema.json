@@ -63,6 +63,7 @@
         "apace:has_effect",
         "apace:health",
         "apace:height",
+        "apace:hit_dealt_amount",
         "apace:hit_taken_amount",
         "apace:in_block",
         "apace:in_block_anywhere",
@@ -168,6 +169,7 @@
         "neoorigins:has_effect",
         "neoorigins:health",
         "neoorigins:height",
+        "neoorigins:hit_dealt_amount",
         "neoorigins:hit_taken_amount",
         "neoorigins:in_block",
         "neoorigins:in_block_anywhere",
@@ -1237,6 +1239,38 @@
         },
         "compare_to": {
           "description": "World Y-position threshold (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:hit_dealt_amount",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:hit_dealt_amount",
+            "apace:hit_dealt_amount"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Dealt-damage threshold (default 0).",
           "type": "number",
           "default": 0.0
         }
@@ -2420,6 +2454,7 @@
               "apace:has_effect",
               "apace:health",
               "apace:height",
+              "apace:hit_dealt_amount",
               "apace:hit_taken_amount",
               "apace:in_block",
               "apace:in_block_anywhere",
@@ -2525,6 +2560,7 @@
               "neoorigins:has_effect",
               "neoorigins:health",
               "neoorigins:height",
+              "neoorigins:hit_dealt_amount",
               "neoorigins:hit_taken_amount",
               "neoorigins:in_block",
               "neoorigins:in_block_anywhere",

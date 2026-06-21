@@ -41,6 +41,25 @@ public final class ContentTogglesConfig {
                      "Useful for packs that prefer vanilla hunger as the universal cost.")
             .define("disable_resource_bars", false);
 
+    public static final ModConfigSpec.BooleanValue DISABLE_NIGHT_VISION =
+        BUILDER
+            .comment("Disable night-vision globally.",
+                     "When true, any power that would apply the minecraft:night_vision",
+                     "effect (the neoorigins:night_vision / persistent_effect path) is",
+                     "suppressed — the player's screen is never brightened by the effect.",
+                     "Other effects on the same power still apply; only night_vision is",
+                     "stripped. Useful for packs that want darkness to stay threatening.")
+            .define("disable_night_vision", false);
+
+    public static final ModConfigSpec.BooleanValue DISABLE_ENHANCED_VISION =
+        BUILDER
+            .comment("Disable enhanced-vision (low-light brightness boost) globally.",
+                     "When true, the neoorigins:enhanced_vision capability is never sent",
+                     "to clients, so the client-side brightness-curve boost (cat eyes,",
+                     "salamander, oculus drone, etc.) stays off. Independent of the",
+                     "night-vision toggle above — these are two separate mechanisms.")
+            .define("disable_enhanced_vision", false);
+
     // ── Disabled Origins ────────────────────────────────────────────────
     // Each built-in origin can be disabled here. Disabled origins are hidden
     // from the origin selection screen but remain registered for commands.
@@ -110,6 +129,14 @@ public final class ContentTogglesConfig {
 
     public static boolean isResourceBarsDisabled() {
         return DISABLE_RESOURCE_BARS.get();
+    }
+
+    public static boolean isNightVisionDisabled() {
+        return DISABLE_NIGHT_VISION.get();
+    }
+
+    public static boolean isEnhancedVisionDisabled() {
+        return DISABLE_ENHANCED_VISION.get();
     }
 
     /**

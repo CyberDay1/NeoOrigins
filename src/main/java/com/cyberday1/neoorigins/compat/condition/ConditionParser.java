@@ -62,7 +62,8 @@ public final class ConditionParser {
         "neoorigins:saturation_level",
         "neoorigins:hardness",
         "neoorigins:has_effect", "neoorigins:health", "neoorigins:height",
-        "neoorigins:hit_taken_amount", "neoorigins:in_block", "neoorigins:in_rain",
+        "neoorigins:hit_dealt_amount", "neoorigins:hit_taken_amount",
+        "neoorigins:in_block", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
         "neoorigins:invisible", "neoorigins:lava", "neoorigins:light_level",
         "neoorigins:living", "neoorigins:moon_phase", "neoorigins:moving",
@@ -374,7 +375,10 @@ public final class ConditionParser {
                 }
                 return false;
             }
-            int cur = state.get(powerId, 0);
+            // Default to the declared variable start (0 for resources / undeclared
+            // keys) so a counter declared elsewhere in the power stack reads its
+            // start value even before its seed runs.
+            int cur = state.get(powerId, CompatAttachments.variableStart(powerId));
             return comparison.test(cur, target);
         };
     }
@@ -1116,6 +1120,28 @@ public final class ConditionParser {
     }
 
     /**
+     * Context-aware condition that compares the current HIT_DEALT event's
+     * {@code amount} (the most recent damage the player dealt to a target)
+     * against a threshold. Requires an active
+     * {@link com.cyberday1.neoorigins.service.EventPowerIndex.HitDealtContext}
+     * in the {@link com.cyberday1.neoorigins.service.ActionContextHolder} —
+     * evaluates to false outside that context. The attacker-side mirror of
+     * {@link #parseHitTakenAmount}.
+     */
+    static EntityCondition parseHitDealtAmount(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        return p -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitDealtContext hdc)) {
+                return false;
+            }
+            return comparison.test(hdc.amount(), target);
+        };
+    }
+
+    /**
      * no_minions_alive: true when the player has no tracked minions of the given
      * {@code key} (default "tamer:tamed"). Used by Monster Tamer's Lone Weakness
      * to only penalise the player when they're fighting without their pack.
@@ -1136,6 +1162,9 @@ public final class ConditionParser {
         if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitTakenContext htc) {
             var e = htc.source().getEntity();
             return e instanceof net.minecraft.world.entity.LivingEntity le ? le : null;
+        }
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.HitDealtContext hdc) {
+            return hdc.target();
         }
         if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.KillContext kc) {
             return kc.killed();

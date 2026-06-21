@@ -218,7 +218,40 @@ public class CompatAttachments {
     public static void unregisterResourceMeta(String key) { RESOURCE_META.remove(key); }
     public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(key); }
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
-    public static void clearResourceMeta() { RESOURCE_META.clear(); }
+    public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
+
+    // ---- Variable declarations (neoorigins:variable) ----
+    // A variable is an always-hidden counter that shares the ResourceState
+    // keyspace (keyed by its own power id). Declarations are registered at
+    // power-load time so a read resolves the declared start/bounds regardless
+    // of where the variable sits in an origin's power list. start doubles as
+    // the read fallback for a declared-but-not-yet-seeded key.
+    public record VariableDecl(int start, int min, int max) {}
+
+    private static final Map<String, VariableDecl> VARIABLE_DECLS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerVariable(String key, VariableDecl decl) { VARIABLE_DECLS.put(key, decl); }
+    public static void unregisterVariable(String key) { VARIABLE_DECLS.remove(key); }
+    public static VariableDecl getVariable(String key) { return VARIABLE_DECLS.get(key); }
+    public static boolean isDeclaredVariable(String key) { return VARIABLE_DECLS.containsKey(key); }
+    public static Map<String, VariableDecl> allVariables() { return Map.copyOf(VARIABLE_DECLS); }
+    public static void clearVariables() { VARIABLE_DECLS.clear(); }
+
+    /** Declared start value for a variable key, or 0 when the key isn't a declared variable. */
+    public static int variableStart(String key) {
+        VariableDecl d = VARIABLE_DECLS.get(key);
+        return d != null ? d.start() : 0;
+    }
+
+    // ---- Apoli hud_render.condition: a bar renders only while its condition holds ----
+    // Evaluated server-side; a bar whose condition currently fails is excluded from
+    // both syncs (so it never reaches the client). The defining power's onTick drives
+    // a full re-sync on condition edges so the bar appears/disappears live.
+    private static final Map<String, com.cyberday1.neoorigins.compat.condition.EntityCondition> RESOURCE_RENDER_CONDITIONS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+    public static void registerResourceRenderCondition(String key, com.cyberday1.neoorigins.compat.condition.EntityCondition cond) { RESOURCE_RENDER_CONDITIONS.put(key, cond); }
+    public static void unregisterResourceRenderCondition(String key) { RESOURCE_RENDER_CONDITIONS.remove(key); }
+    public static com.cyberday1.neoorigins.compat.condition.EntityCondition getResourceRenderCondition(String key) { return RESOURCE_RENDER_CONDITIONS.get(key); }
 
     // ---- ToggleState ----
 
@@ -262,6 +295,8 @@ public class CompatAttachments {
         for (var e : state.getAll().entrySet()) {
             ResourceMeta meta = getResourceMeta(e.getKey());
             if (meta == null || meta.hidden()) continue;
+            var rcond = getResourceRenderCondition(e.getKey());
+            if (rcond != null && !rcond.test(player)) continue;
             entries.put(e.getKey(), new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
@@ -286,6 +321,8 @@ public class CompatAttachments {
         for (var e : state.getAll().entrySet()) {
             ResourceMeta meta = getResourceMeta(e.getKey());
             if (meta == null || meta.hidden()) continue;
+            var rcond = getResourceRenderCondition(e.getKey());
+            if (rcond != null && !rcond.test(player)) continue;
             values.put(e.getKey(), e.getValue());
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,

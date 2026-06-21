@@ -471,6 +471,12 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseHitTakenAmount(json),
             List.of(comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Incoming-damage threshold (default 0).")));
+        // hit_dealt_amount — current HIT_DEALT damage amount (most recent damage the
+        // player dealt to a target) vs a threshold. Attacker-side mirror of hit_taken_amount.
+        define("hit_dealt_amount",
+            (json, ctx) -> ConditionParser.parseHitDealtAmount(json),
+            List.of(comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Dealt-damage threshold (default 0).")));
         // no_minions_alive — player has no tracked minions of the given key.
         define("no_minions_alive",
             (json, ctx) -> ConditionParser.parseNoMinionsAlive(json),

@@ -228,6 +228,19 @@ public class PlayerOriginData {
         return expiresAt != null && currentTick < expiresAt;
     }
 
+    /**
+     * Player-aware cooldown check used by activation gates: returns false when
+     * the player should bypass cooldowns (Creative mode, per
+     * {@link com.cyberday1.neoorigins.config.GameplayConfig#creativeCooldownBypass}),
+     * otherwise delegates to {@link #isOnCooldown(String, int)} with the player's
+     * current tick. Cooldowns are still recorded via {@link #setCooldown}, so the
+     * bypass only suppresses the gate while Creative.
+     */
+    public boolean isOnCooldown(net.minecraft.world.entity.player.Player player, String typeId) {
+        if (com.cyberday1.neoorigins.config.GameplayConfig.creativeCooldownBypass(player)) return false;
+        return isOnCooldown(typeId, player.tickCount);
+    }
+
     public void setCooldown(String typeId, int currentTick, int durationTicks) {
         activeCooldowns.put(typeId, currentTick + durationTicks);
     }

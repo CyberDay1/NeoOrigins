@@ -128,14 +128,38 @@ public final class CompatPlayerState {
         LAST_USE_TICK.put(player.getUUID(), player.tickCount);
     }
 
+    // ---- Real (client-streamed) held-state for USE / ATTACK ----
+    // The interaction-event stamp above only fires when there's something to
+    // right-click; player.swinging only streams while actually mining/hitting.
+    // Neither reflects "the key is physically held while pointing at nothing",
+    // which is exactly how Apoli key.use / key.attack active_self powers are
+    // meant to fire. The client reports the genuine key state via
+    // VanillaKeyStatePayload (on edges) and we keep it here until the next change.
+    private static final Set<UUID> USE_KEY_HELD = ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> ATTACK_KEY_HELD = ConcurrentHashMap.newKeySet();
+
+    /** Apply a client-reported snapshot of the USE/ATTACK physical key state. */
+    public static void setVanillaKeyState(ServerPlayer player, boolean useDown, boolean attackDown) {
+        UUID id = player.getUUID();
+        if (useDown) USE_KEY_HELD.add(id); else USE_KEY_HELD.remove(id);
+        if (attackDown) ATTACK_KEY_HELD.add(id); else ATTACK_KEY_HELD.remove(id);
+    }
+
     /**
-     * True if the player right-clicked on this tick or the previous one. The
-     * 1-tick tolerance absorbs the ordering skew between the interaction event
-     * and the power onTick within the same game tick (either may run first).
+     * True if the player is right-clicking. Reads the real client-streamed key
+     * state OR the recent interaction-event stamp — so it fires both on a plain
+     * held right-click (nothing under the crosshair) and on the same-tick
+     * interaction event, with a 1-tick tolerance absorbing event/onTick ordering.
      */
     public static boolean isUseKeyDown(ServerPlayer player) {
+        if (USE_KEY_HELD.contains(player.getUUID())) return true;
         Integer t = LAST_USE_TICK.get(player.getUUID());
         return t != null && player.tickCount - t <= 1 && player.tickCount - t >= 0;
+    }
+
+    /** True if the ATTACK (left-click) key is physically held, per the client stream. */
+    public static boolean isAttackKeyHeld(ServerPlayer player) {
+        return ATTACK_KEY_HELD.contains(player.getUUID());
     }
 
     // ---- Server-side JUMP-key (airborne press) state ----
@@ -173,5 +197,7 @@ public final class CompatPlayerState {
         ACTIVE_POWERS.remove(playerId);
         LAST_USE_TICK.remove(playerId);
         LAST_JUMP_TICK.remove(playerId);
+        USE_KEY_HELD.remove(playerId);
+        ATTACK_KEY_HELD.remove(playerId);
     }
 }

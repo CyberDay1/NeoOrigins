@@ -157,6 +157,53 @@ public final class HotkeyAssignments {
         return powerToKey.get(powerId);
     }
 
+    /** Vanilla input keys a compat active_self power can bind to → the vanilla
+     *  KeyMapping the player can rebind. Used to label such powers in the UI. */
+    private static KeyMapping vanillaMapping(String key) {
+        var opts = Minecraft.getInstance().options;
+        return switch (key) {
+            case "key.use"     -> opts.keyUse;
+            case "key.attack"  -> opts.keyAttack;
+            case "key.sneak"   -> opts.keyShift;
+            case "key.jump"    -> opts.keyJump;
+            case "key.sprint"  -> opts.keySprint;
+            case "key.forward" -> opts.keyUp;
+            case "key.back"    -> opts.keyDown;
+            case "key.left"    -> opts.keyLeft;
+            case "key.right"   -> opts.keyRight;
+            default -> null;
+        };
+    }
+
+    /** The KeyMapping a named (pack-declared) translation key resolved to — its
+     *  pool slot or an external keybindjs mapping. Null if not assigned. */
+    private static KeyMapping namedMapping(String translationKey) {
+        String[] snap = poolAssignments;
+        for (int i = 0; i < snap.length; i++) {
+            if (translationKey.equals(snap[i])) return NeoOriginsKeybindings.HOTKEY_POOL[i];
+        }
+        for (var e : externalAssignments.entrySet()) {
+            if (translationKey.equals(e.getValue())) return e.getKey();
+        }
+        return null;
+    }
+
+    /**
+     * Display name of the physical key bound to a power's named-hotkey or
+     * vanilla-input-key activation (e.g. "R", "Right Click"), for the origin info
+     * screen. Returns {@code null} when the power has no such binding, so callers
+     * fall back to the skill-slot tag (or no tag for true passives).
+     */
+    public static String displayKeyForPower(ResourceLocation powerId) {
+        if (FMLEnvironment.dist != Dist.CLIENT) return null;
+        String key = powerToKey.get(powerId);
+        if (key == null) return null;
+        KeyMapping km = key.startsWith("key.") ? vanillaMapping(key) : namedMapping(key);
+        if (km == null) return null;
+        String s = km.getTranslatedKeyMessage().getString().trim();
+        return s.isEmpty() ? null : s;
+    }
+
     /** Clear assignments — call on world-disconnect so a stale map can't fire on a new server. */
     public static void clear() {
         poolAssignments = new String[0];

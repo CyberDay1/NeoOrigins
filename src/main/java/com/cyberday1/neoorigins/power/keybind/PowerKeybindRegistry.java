@@ -48,6 +48,29 @@ public final class PowerKeybindRegistry {
      *  Value: list of bindings — multiple powers can share a hotkey. */
     private static final Map<String, List<Binding>> BY_KEY = new ConcurrentHashMap<>();
 
+    /** Power id → vanilla input key it's bound to (e.g. {@code "key.use"}). These
+     *  powers are NOT dispatched through {@link #dispatch} (they're polled from
+     *  the power's onTick via the server's input state) and never occupy a pool
+     *  slot; this map exists purely so the client can show the right key tag for
+     *  them in the origin info screen. */
+    private static final Map<ResourceLocation, String> VANILLA_BY_POWER = new ConcurrentHashMap<>();
+
+    /** Native (Route A) active powers bound to a named hotkey. These would
+     *  otherwise occupy a skill slot (their {@code occupiesHotkeySlot()} is true);
+     *  membership here tells {@link com.cyberday1.neoorigins.service.ActiveOriginService}
+     *  to keep them out of the skill-slot roster since they activate via the
+     *  named hotkey instead. */
+    private static final Set<ResourceLocation> NATIVE_HOTKEY_POWERS = ConcurrentHashMap.newKeySet();
+
+    /** Native (Route A) active powers bound to a <em>vanilla input key</em>
+     *  (key.jump, key.sneak, …). Unlike named hotkeys these are never sent to
+     *  the client as a pool slot; the server polls the input state every tick
+     *  and fires the holder's own {@code onActivated} (which carries the power's
+     *  condition gate + cooldown). Edge detection per press lives in the poller. */
+    private record VanillaNativeBinding(String key, boolean continuous) {}
+    private static final Map<ResourceLocation, VanillaNativeBinding> VANILLA_NATIVE =
+        new ConcurrentHashMap<>();
+
     /**
      * One pack-declared named keybind, captured at compat-load time.
      *
@@ -78,13 +101,91 @@ public final class PowerKeybindRegistry {
     /** Drop the entire registry — called by the compat loader at the start of every reload. */
     public static void clear() {
         BY_KEY.clear();
+        VANILLA_BY_POWER.clear();
+        NATIVE_HOTKEY_POWERS.clear();
+        VANILLA_NATIVE.clear();
         LAST_FAIL_TICK.clear();
+    }
+
+    /** Mark a native active power as bound to a named hotkey (excludes it from skill slots). */
+    public static void markNativeHotkeyPower(ResourceLocation powerId) {
+        NATIVE_HOTKEY_POWERS.add(powerId);
+    }
+
+    /** True if this native active power activates via a named hotkey instead of a skill slot. */
+    public static boolean isNativeHotkeyPower(ResourceLocation powerId) {
+        return NATIVE_HOTKEY_POWERS.contains(powerId);
+    }
+
+    /**
+     * Bind a native active power to a vanilla input key, to be polled each tick
+     * via {@link #pollVanillaNative}. Also marks it a native-hotkey power so the
+     * skill-slot roster excludes it (it activates by the input key, not a slot).
+     */
+    public static void registerVanillaNative(ResourceLocation powerId, String vanillaKey, boolean continuous) {
+        VANILLA_NATIVE.put(powerId, new VanillaNativeBinding(vanillaKey, continuous));
+        NATIVE_HOTKEY_POWERS.add(powerId);
+    }
+
+    /** True if any native active power is bound to a vanilla input key (cheap per-tick guard). */
+    public static boolean hasVanillaNative() {
+        return !VANILLA_NATIVE.isEmpty();
+    }
+
+    /**
+     * Poll one granted power for a player, one tick: if it's a vanilla-key-bound
+     * native active power and its key is pressed, fire {@code holder.onActivated}.
+     * Non-continuous keys are edge-detected (once per press) using a per-power
+     * flag stored in {@link PlayerOriginData}; continuous keys fire every held
+     * tick. Cooldown + condition are enforced inside {@code onActivated}, so the
+     * poller deliberately does neither (mirrors the named-hotkey native path).
+     */
+    public static void pollVanillaNative(ServerPlayer sp, PowerHolder<?> holder) {
+        VanillaNativeBinding b = VANILLA_NATIVE.get(holder.id());
+        if (b == null) return;
+        boolean pressed = readVanillaKey(sp, b.key());
+        if (b.continuous()) {
+            if (pressed) holder.onActivated(sp);
+            return;
+        }
+        // Edge detection: fire once on the press tick, re-arm on release.
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        String edgeKey = holder.id().toString() + ":nvkpress";
+        boolean wasPressed = data.getCustomFloat(edgeKey, 0) > 0;
+        data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
+        if (pressed && !wasPressed) holder.onActivated(sp);
+    }
+
+    /**
+     * Read the current state of a vanilla input key from server-side signals.
+     * Mirrors the compat onTick poller in {@code OriginsCompatPowerLoader} — keep
+     * the two switches in sync if a new key is added.
+     */
+    private static boolean readVanillaKey(ServerPlayer player, String key) {
+        return switch (key) {
+            case "key.sneak"   -> player.isShiftKeyDown();
+            case "key.use"     -> com.cyberday1.neoorigins.compat.CompatPlayerState.isUseKeyDown(player);
+            case "key.attack"  -> com.cyberday1.neoorigins.compat.CompatPlayerState.isAttackKeyHeld(player) || player.swinging;
+            case "key.sprint"  -> player.isSprinting();
+            // Airborne jump-press edge (client AirJumpPayload) — the double-jump gesture.
+            case "key.jump"    -> com.cyberday1.neoorigins.compat.CompatPlayerState.isJumpKeyDown(player);
+            case "key.forward" -> player.zza > 0;
+            case "key.back"    -> player.zza < 0;
+            case "key.left"    -> player.xxa > 0;
+            case "key.right"   -> player.xxa < 0;
+            default -> false;
+        };
     }
 
     /** Register a single binding. Multiple powers may register the same translation key. */
     public static void register(String translationKey, Binding binding) {
         BY_KEY.computeIfAbsent(translationKey, k -> Collections.synchronizedList(new ArrayList<>()))
             .add(binding);
+    }
+
+    /** Record that a power is activated by a vanilla input key (for UI key tags only). */
+    public static void registerVanilla(ResourceLocation powerId, String vanillaKey) {
+        VANILLA_BY_POWER.put(powerId, vanillaKey);
     }
 
     /**
@@ -110,6 +211,13 @@ public final class PowerKeybindRegistry {
                 // mapping deterministic without paying for a list-valued map.
                 out.putIfAbsent(b.powerId(), entry.getKey());
             }
+        }
+        // Vanilla-input-key powers ride the same channel so the info screen can
+        // tag them too. Their value is a "key.*" id (not a pack translation key);
+        // the client tells the two apart by the prefix. Named hotkeys win a
+        // collision (a power should never be both, but be deterministic).
+        for (var entry : VANILLA_BY_POWER.entrySet()) {
+            out.putIfAbsent(entry.getKey(), entry.getValue());
         }
         return out;
     }
@@ -156,7 +264,7 @@ public final class PowerKeybindRegistry {
                 // (consumeClick), so every payload is a fresh edge.
                 if (b.cooldownTicks() > 0) {
                     String cdKey = b.powerId().toString();
-                    if (data.isOnCooldown(cdKey, sp.tickCount)) continue;
+                    if (data.isOnCooldown(sp, cdKey)) continue;
                     data.setCooldown(cdKey, sp.tickCount, b.cooldownTicks());
                 }
                 b.action().execute(sp);
@@ -203,7 +311,7 @@ public final class PowerKeybindRegistry {
                     if (b.cooldownTicks() > 0) {
                         PlayerOriginData data = sp.getData(OriginAttachments.originData());
                         String cdKey = b.powerId().toString();
-                        if (data.isOnCooldown(cdKey, sp.tickCount)) return true;
+                        if (data.isOnCooldown(sp, cdKey)) return true;
                         data.setCooldown(cdKey, sp.tickCount, b.cooldownTicks());
                     }
                     b.action().execute(sp);
@@ -231,8 +339,16 @@ public final class PowerKeybindRegistry {
 
     /** Marker used in compat-loader diagnostics. */
     public static void logSummary() {
-        if (BY_KEY.isEmpty()) return;
-        NeoOrigins.LOGGER.info("[Hotkeys] {} named keybinds registered: {}",
-            BY_KEY.size(), declaredKeys());
+        if (!BY_KEY.isEmpty()) {
+            NeoOrigins.LOGGER.info("[Hotkeys] {} named keybinds registered: {}",
+                BY_KEY.size(), declaredKeys());
+        }
+        if (!VANILLA_NATIVE.isEmpty()) {
+            NeoOrigins.LOGGER.info("[Hotkeys] {} native vanilla-key bindings: {}",
+                VANILLA_NATIVE.size(), VANILLA_NATIVE.entrySet().stream()
+                    .map(e -> e.getKey() + "->" + e.getValue().key()
+                        + (e.getValue().continuous() ? "(held)" : ""))
+                    .sorted().toList());
+        }
     }
 }

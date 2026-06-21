@@ -60,7 +60,8 @@ public final class ActionParser {
         "neoorigins:set_block", "neoorigins:set_fall_distance", "neoorigins:set_on_fire",
         "neoorigins:set_resource", "neoorigins:spawn_black_hole", "neoorigins:spawn_effect_cloud",
         "neoorigins:spawn_entity", "neoorigins:spawn_lingering_area",
-        "neoorigins:spawn_projectile", "neoorigins:spawn_tornado",
+        "neoorigins:spawn_projectile", "neoorigins:spawn_projectile_rain",
+        "neoorigins:spawn_telegraph", "neoorigins:spawn_tornado",
         "neoorigins:swap_positions", "neoorigins:swap_with_entity", "neoorigins:swing_hand",
         "neoorigins:tame_target",
         "neoorigins:target_action", "neoorigins:teleport_target_to_self",
@@ -735,7 +736,33 @@ public final class ActionParser {
         final float spinStrength = json.has("spin_strength") ? json.get("spin_strength").getAsFloat() : 0.5f;
         final float damagePerInterval = json.has("damage_per_interval") ? json.get("damage_per_interval").getAsFloat() : 2.0f;
         final int damageIntervalTicks = json.has("damage_interval_ticks") ? json.get("damage_interval_ticks").getAsInt() : 10;
+        // Blocks per tick the funnel drifts forward in the cast direction (0 = stationary).
+        final float moveSpeed = json.has("move_speed") ? json.get("move_speed").getAsFloat() : 0.2f;
+        // When true the funnel falls under gravity until its base hits the ground
+        // (so a tornado spawned mid-air drops while drifting forward).
+        final boolean gravity = json.has("gravity") && json.get("gravity").getAsBoolean();
         final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
+
+        // Composable per-caught-entity effect. When present it REPLACES the
+        // built-in interval damage: on each damage-interval tick, for every
+        // entity inside the funnel's inner radius we run this action — an
+        // EntityAction for player targets, a TargetAction for mobs (caster as
+        // actor) — the same fan-out the sword rain's impact_action uses.
+        JsonObject impactInner = null;
+        if (json.has("impact_action")) {
+            JsonElement ia = json.get("impact_action");
+            if (ia.isJsonObject()) {
+                impactInner = ia.getAsJsonObject();
+            } else if (ia.isJsonArray()) {
+                impactInner = new JsonObject();
+                impactInner.addProperty("type", "neoorigins:and");
+                impactInner.add("actions", ia.getAsJsonArray());
+            }
+        }
+        final boolean hasImpact = impactInner != null;
+        final EntityAction impactEA = hasImpact ? parse(impactInner, contextId) : null;
+        final TargetAction impactTA = hasImpact ? TargetActionParser.parse(impactInner, contextId) : null;
+
         return player -> {
             if (!(player.level() instanceof ServerLevel sl)) return;
             var entity = com.cyberday1.neoorigins.content.ModEntities.TORNADO.get().create(sl);
@@ -755,6 +782,287 @@ public final class ActionParser {
             entity.setSpinStrength(spinStrength);
             entity.setDamagePerInterval(damagePerInterval);
             entity.setDamageIntervalTicks(damageIntervalTicks);
+            // Drift forward along the caster's horizontal facing.
+            entity.setMoveDirection(
+                net.minecraft.world.phys.Vec3.directionFromRotation(0f, player.getYRot()), moveSpeed);
+            entity.setGravity(gravity);
+            if (hasImpact) {
+                entity.setImpactCallback((lvl, target, caster) -> {
+                    if (target instanceof net.minecraft.server.level.ServerPlayer sp) {
+                        impactEA.execute(sp);
+                    } else if (impactTA != null && target instanceof net.minecraft.world.entity.LivingEntity le) {
+                        impactTA.execute(le, caster);
+                    }
+                });
+            }
+            entity.setCaster(player.getUUID());
+            sl.addFreshEntity(entity);
+        };
+    }
+
+    static EntityAction parseSpawnProjectileRain(JsonObject json, String contextId) {
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 6.0f;
+        final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 70;
+        // `count` is the canonical name; `sword_count` kept as a back-compat alias
+        // for packs written before the action was generalised away from swords.
+        final int swordCount = json.has("count") ? json.get("count").getAsInt()
+            : json.has("sword_count") ? json.get("sword_count").getAsInt() : 16;
+        // `damage_per_impact` canonical; `damage_per_sword` kept as back-compat alias.
+        final float damagePerSword = json.has("damage_per_impact") ? json.get("damage_per_impact").getAsFloat()
+            : json.has("damage_per_sword") ? json.get("damage_per_sword").getAsFloat() : 4.0f;
+        final float knockup = json.has("knockup") ? json.get("knockup").getAsFloat() : 0.5f;
+        final float impactRadius = json.has("impact_radius") ? json.get("impact_radius").getAsFloat() : 2.0f;
+        // Lead-in ticks where the ground "sword shadow" telegraph shows before
+        // any blade falls (the rain is centered on the marked landing spot).
+        final int telegraphTicks = json.has("telegraph_ticks") ? json.get("telegraph_ticks").getAsInt() : 14;
+        // Fraction of the caster's attack-damage attribute (which folds in the
+        // held weapon) added on top of damage_per_sword, captured at cast time so
+        // a sharper sword makes the storm hit harder. 0 (default) = flat damage.
+        final float weaponDamageScale = json.has("weapon_damage_scale") ? json.get("weapon_damage_scale").getAsFloat() : 0f;
+        // "self" (rain around the caster), "look" (rain on whatever the caster
+        // is aiming at), or "impact" (rain at a projectile hit point, when cast
+        // from an on-hit context).
+        final String origin = json.has("origin") ? json.get("origin").getAsString() : "self";
+        final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
+        // Which baked model the falling projectiles use (renderer model registry).
+        final String model = json.has("model") ? json.get("model").getAsString() : "sword";
+
+        // Composable per-blade effect. When present it REPLACES the built-in
+        // damage: at each blade's landing point we run this action against
+        // entities within impact_radius — TargetAction for mobs (caster as actor),
+        // EntityAction for player targets — the same fan-out area_of_effect uses.
+        JsonObject impactInner = null;
+        if (json.has("impact_action")) {
+            JsonElement ia = json.get("impact_action");
+            if (ia.isJsonObject()) {
+                impactInner = ia.getAsJsonObject();
+            } else if (ia.isJsonArray()) {
+                impactInner = new JsonObject();
+                impactInner.addProperty("type", "neoorigins:and");
+                impactInner.add("actions", ia.getAsJsonArray());
+            }
+        }
+        final boolean hasImpact = impactInner != null;
+        final EntityAction impactEA = hasImpact ? parse(impactInner, contextId) : null;
+        final TargetAction impactTA = hasImpact ? TargetActionParser.parse(impactInner, contextId) : null;
+
+        // Real-projectile mode: when `projectile` names a registered entity type,
+        // each blade spawns that ACTUAL entity high above its scatter point and
+        // lets it fall under real physics, instead of drawing the choreographed
+        // baked-mesh blade. The rain still owns the scatter pattern + staggered
+        // launch schedule + telegraph; the spawned entity owns its own flight and
+        // hit. Unknown / unset id keeps the classic fake-blade visual.
+        final String projectileId = json.has("projectile") ? json.get("projectile").getAsString() : null;
+        net.minecraft.world.entity.EntityType<?> projType = null;
+        if (projectileId != null && !projectileId.isBlank()) {
+            var rl = net.minecraft.resources.ResourceLocation.tryParse(projectileId);
+            if (rl != null) {
+                projType = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(rl).orElse(null);
+            }
+            if (projType == null) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[CompatB] spawn_projectile_rain: unknown projectile entity '{}' — keeping baked-blade visual", projectileId);
+            }
+        }
+        final net.minecraft.world.entity.EntityType<?> projectileType = projType;
+        // Launch speed of the falling entity (gravity then accelerates it).
+        final float projectileSpeed = json.has("projectile_speed") ? json.get("projectile_speed").getAsFloat() : 1.0f;
+        // Blocks above each scatter point the entity spawns from.
+        final float spawnHeight = json.has("spawn_height") ? json.get("spawn_height").getAsFloat() : 18.0f;
+        // SNBT merged onto each spawned entity (e.g. "{pickup:1b}" for arrows).
+        final String projTag = json.has("tag") ? json.get("tag").getAsString() : null;
+
+        // On-hit for real projectiles: run the impact_action as the same radius
+        // fan-out the fake blades use, centered on the projectile's impact point
+        // (read off the ProjectileHitContext the impact event installs).
+        final EntityAction onHitFanout = !hasImpact ? null : (EntityAction) (hitCaster -> {
+            if (!(hitCaster.level() instanceof ServerLevel lvl)) return;
+            Object c = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            net.minecraft.world.phys.Vec3 hitPos;
+            if (c instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+                var l = phc.result().getLocation();
+                hitPos = new net.minecraft.world.phys.Vec3(l.x, l.y, l.z);
+            } else {
+                hitPos = hitCaster.position();
+            }
+            float r = impactRadius;
+            var box = new net.minecraft.world.phys.AABB(
+                hitPos.x - r, hitPos.y - 1.5, hitPos.z - r, hitPos.x + r, hitPos.y + 2.5, hitPos.z + r);
+            java.util.UUID casterId = hitCaster.getUUID();
+            for (net.minecraft.world.entity.LivingEntity target :
+                    lvl.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, box)) {
+                if (target.getUUID().equals(casterId)) continue;
+                double dx = target.getX() - hitPos.x;
+                double dz = target.getZ() - hitPos.z;
+                if (dx * dx + dz * dz > r * r) continue;
+                if (target instanceof net.minecraft.server.level.ServerPlayer tp) {
+                    impactEA.execute(tp);
+                } else if (impactTA != null) {
+                    impactTA.execute(target, hitCaster);
+                }
+            }
+        });
+
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var entity = com.cyberday1.neoorigins.content.ModEntities.PROJECTILE_RAIN.get().create(sl);
+            if (entity == null) return;
+
+            net.minecraft.world.phys.Vec3 center = resolveProjectileRainCenter(player, origin);
+            entity.setPos(center.x, center.y, center.z);
+            entity.setRange(radius);
+            entity.setEffectType(effectType);
+            entity.setMaxLifetime(durationTicks);
+            entity.setSwordCount(swordCount);
+            entity.setDamagePerSword(damagePerSword);
+            entity.setKnockup(knockup);
+            entity.setImpactRadius(impactRadius);
+            entity.setTelegraphTicks(telegraphTicks);
+            entity.setModel(model);
+            entity.setFollowTerrain(!json.has("follow_terrain") || json.get("follow_terrain").getAsBoolean());
+            if (weaponDamageScale > 0f) {
+                double atk = player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                entity.setWeaponDamageBonus((float) (weaponDamageScale * atk));
+            }
+            if (hasImpact) {
+                entity.setImpactCallback((lvl, pos, r, caster) -> {
+                    var box = new net.minecraft.world.phys.AABB(
+                        pos.x - r, pos.y - 1.5, pos.z - r, pos.x + r, pos.y + 2.5, pos.z + r);
+                    java.util.UUID casterId = caster != null ? caster.getUUID() : null;
+                    for (net.minecraft.world.entity.LivingEntity target :
+                            lvl.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, box)) {
+                        if (casterId != null && target.getUUID().equals(casterId)) continue;
+                        double dx = target.getX() - pos.x;
+                        double dz = target.getZ() - pos.z;
+                        if (dx * dx + dz * dz > r * r) continue;
+                        if (target instanceof net.minecraft.server.level.ServerPlayer sp) {
+                            impactEA.execute(sp);
+                        } else if (impactTA != null) {
+                            impactTA.execute(target, caster);
+                        }
+                    }
+                });
+            }
+            if (projectileType != null) {
+                // Swap the fake blades for real falling entities. Client skips the
+                // baked-mesh blade render (shouldRenderBlades=false); the launcher
+                // fires one real entity per scatter point on its scheduled tick.
+                entity.setRenderBlades(false);
+                entity.setLaunchCallback((lvl, groundPos, caster) -> {
+                    var proj = projectileType.create(lvl);
+                    if (proj == null) return;
+                    proj.setPos(groundPos.x, groundPos.y + spawnHeight, groundPos.z);
+                    if (projTag != null) {
+                        com.cyberday1.neoorigins.compat.action.BuiltinActions.applyEntityTag(proj, projTag);
+                    }
+                    if (proj instanceof net.minecraft.world.entity.projectile.Projectile p) {
+                        if (caster != null) p.setOwner(caster);
+                        p.shoot(0.0, -1.0, 0.0, projectileSpeed, 0.0f);
+                    } else {
+                        proj.setDeltaMovement(0, -projectileSpeed, 0);
+                    }
+                    lvl.addFreshEntity(proj);
+                    // Caster-owned projectiles only: the on-hit registry dispatch
+                    // keys off a ServerPlayer owner (see CombatPowerEvents).
+                    if (onHitFanout != null && caster != null
+                            && proj instanceof net.minecraft.world.entity.projectile.Projectile) {
+                        com.cyberday1.neoorigins.service.ProjectileActionRegistry.register(
+                            proj.getUUID(), onHitFanout, caster.tickCount);
+                    }
+                });
+            }
+            entity.setCaster(player.getUUID());
+            sl.addFreshEntity(entity);
+        };
+    }
+
+    private static net.minecraft.world.phys.Vec3 resolveProjectileRainCenter(
+            net.minecraft.server.level.ServerPlayer player, String origin) {
+        Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+        if (("impact".equals(origin) || "self".equals(origin))
+                && ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
+            var pos = phc.result().getLocation();
+            return new net.minecraft.world.phys.Vec3(pos.x, pos.y, pos.z);
+        }
+        if ("look".equals(origin)) {
+            final double reach = 32.0;
+            var from = player.getEyePosition();
+            var look = player.getLookAngle();
+            var to = from.add(look.scale(reach));
+            var aabb = player.getBoundingBox().expandTowards(look.scale(reach)).inflate(1.0);
+            var entityHit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(
+                player, from, to, aabb,
+                e -> e instanceof net.minecraft.world.entity.LivingEntity && e != player,
+                reach * reach);
+            if (entityHit != null) {
+                var e = entityHit.getEntity();
+                return new net.minecraft.world.phys.Vec3(e.getX(), e.getY(), e.getZ());
+            }
+            var clip = player.level().clip(new net.minecraft.world.level.ClipContext(from, to,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+            var loc = clip.getLocation();
+            return new net.minecraft.world.phys.Vec3(loc.x, loc.y, loc.z);
+        }
+        return new net.minecraft.world.phys.Vec3(player.getX(), player.getY(), player.getZ());
+    }
+
+    static EntityAction parseSpawnTelegraph(JsonObject json, String contextId) {
+        // Wind-up duration over which the contracting reticle plays.
+        final int durationTicks = json.has("duration_ticks") ? json.get("duration_ticks").getAsInt() : 20;
+        final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 3.0f;
+        // "self", "look", or "impact" — same semantics as spawn_sword_rain.
+        final String origin = json.has("origin") ? json.get("origin").getAsString() : "self";
+        final String effectType = json.has("effect_type") ? json.get("effect_type").getAsString() : "";
+
+        // Composable payoff run once at the marker center when the wind-up ends.
+        // When present we run it against entities within radius — TargetAction for
+        // mobs (caster as actor), EntityAction for player targets — the same
+        // fan-out spawn_sword_rain's impact_action uses. Omit for a pure dodge cue.
+        JsonObject expireInner = null;
+        if (json.has("on_expire")) {
+            JsonElement oe = json.get("on_expire");
+            if (oe.isJsonObject()) {
+                expireInner = oe.getAsJsonObject();
+            } else if (oe.isJsonArray()) {
+                expireInner = new JsonObject();
+                expireInner.addProperty("type", "neoorigins:and");
+                expireInner.add("actions", oe.getAsJsonArray());
+            }
+        }
+        final boolean hasExpire = expireInner != null;
+        final EntityAction expireEA = hasExpire ? parse(expireInner, contextId) : null;
+        final TargetAction expireTA = hasExpire ? TargetActionParser.parse(expireInner, contextId) : null;
+
+        return player -> {
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            var entity = com.cyberday1.neoorigins.content.ModEntities.TELEGRAPH.get().create(sl);
+            if (entity == null) return;
+
+            net.minecraft.world.phys.Vec3 center = resolveProjectileRainCenter(player, origin);
+            entity.setPos(center.x, center.y, center.z);
+            entity.setRange(radius);
+            entity.setEffectType(effectType);
+            entity.setMaxLifetime(durationTicks);
+            if (hasExpire) {
+                entity.setOnExpire((lvl, pos, r, caster) -> {
+                    var box = new net.minecraft.world.phys.AABB(
+                        pos.x - r, pos.y - 1.5, pos.z - r, pos.x + r, pos.y + 2.5, pos.z + r);
+                    java.util.UUID casterId = caster != null ? caster.getUUID() : null;
+                    for (net.minecraft.world.entity.LivingEntity target :
+                            lvl.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, box)) {
+                        if (casterId != null && target.getUUID().equals(casterId)) continue;
+                        double dx = target.getX() - pos.x;
+                        double dz = target.getZ() - pos.z;
+                        if (dx * dx + dz * dz > r * r) continue;
+                        if (target instanceof net.minecraft.server.level.ServerPlayer sp) {
+                            expireEA.execute(sp);
+                        } else if (expireTA != null) {
+                            expireTA.execute(target, caster);
+                        }
+                    }
+                });
+            }
             entity.setCaster(player.getUUID());
             sl.addFreshEntity(entity);
         };
@@ -877,6 +1185,15 @@ public final class ActionParser {
         }
         if (ctx instanceof RaycastBlockContext rbc && fallbackLevel != null) {
             return new BlockTarget(fallbackLevel, rbc.pos());
+        }
+        // block_use / bonemeal dispatches publish a BlockInteractContext (pos only;
+        // no level). Use the actor's level (the interacting player shares the block's
+        // level) so the block-target verbs (strip/till/path/grow/transform_block)
+        // also self-resolve when run as a block_use entity_action — e.g. a
+        // right-click "grow" power that bonemeals the clicked crop/grass.
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.BlockInteractContext bic
+            && fallbackLevel != null) {
+            return new BlockTarget(fallbackLevel, bic.pos());
         }
         return null;
     }

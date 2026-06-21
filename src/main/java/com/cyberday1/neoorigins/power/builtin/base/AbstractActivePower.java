@@ -46,16 +46,36 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
         default int resourceCostAmount() { return 0; }
         /** If true, the remaining cooldown seconds are drawn on the icon (default true). */
         default boolean cooldownCountdown() { return true; }
+        /**
+         * Power id of a variable/resource counter whose live value (in ticks) is
+         * used as the cooldown length, overriding {@link #cooldownTicks()} when set.
+         * Empty string (default) = use the fixed {@code cooldownTicks()}.
+         */
+        default String cooldownResource() { return ""; }
     }
 
     @Override
     public final boolean isActivePower() { return true; }
 
+    /**
+     * Effective cooldown length in ticks for this activation. When the config
+     * names a {@code cooldownResource}, the counter's current value (defaulting
+     * to its declared {@code start}) is read live and used as the cooldown,
+     * clamped to a non-negative value; otherwise the fixed {@link Config#cooldownTicks()}.
+     */
+    public int resolveCooldown(ServerPlayer player, C config) {
+        String cdRes = config.cooldownResource();
+        if (cdRes == null || cdRes.isEmpty()) return config.cooldownTicks();
+        int live = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState())
+                .get(cdRes, com.cyberday1.neoorigins.compat.CompatAttachments.variableStart(cdRes));
+        return Math.max(0, live);
+    }
+
     @Override
     public final void onActivated(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         String key = getCooldownKey(config);
-        if (data.isOnCooldown(key, player.tickCount)) return;
+        if (data.isOnCooldown(player, key)) return;
 
         int hungerCost = config.hungerCost();
 
@@ -88,7 +108,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
             if (hasResourceCost) {
                 com.cyberday1.neoorigins.power.builtin.ResourcePower.deduct(player, resCostKey, resCostAmt);
             }
-            data.setCooldown(key, player.tickCount, config.cooldownTicks());
+            data.setCooldown(key, player.tickCount, resolveCooldown(player, config));
             ResourceLocation activatedId = PowerHolder.currentDispatchId();
             if (activatedId != null) {
                 com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerActivated(player, activatedId);

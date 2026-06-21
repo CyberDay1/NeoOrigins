@@ -37,10 +37,14 @@ public abstract class AbstractVfxEntity extends Entity {
         SynchedEntityData.defineId(AbstractVfxEntity.class, EntityDataSerializers.FLOAT);
     protected static final EntityDataAccessor<String> DATA_EFFECT_TYPE =
         SynchedEntityData.defineId(AbstractVfxEntity.class, EntityDataSerializers.STRING);
+    // Synced so the client renderer's timing (fall start, fade-out, self-discard)
+    // matches the server's actual lifetime. Left as a plain field, the client
+    // keeps the default and renderers desync from server-side effects.
+    protected static final EntityDataAccessor<Integer> DATA_MAX_LIFETIME =
+        SynchedEntityData.defineId(AbstractVfxEntity.class, EntityDataSerializers.INT);
 
     @Nullable protected UUID casterUuid;
     protected int lifetime;
-    protected int maxLifetime = 100;
 
     protected AbstractVfxEntity(EntityType<? extends AbstractVfxEntity> type, Level level) {
         super(type, level);
@@ -51,6 +55,7 @@ public abstract class AbstractVfxEntity extends Entity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(DATA_RANGE, 3.0f);
         builder.define(DATA_EFFECT_TYPE, "");
+        builder.define(DATA_MAX_LIFETIME, 100);
     }
 
     public float getRange() { return entityData.get(DATA_RANGE); }
@@ -68,18 +73,19 @@ public abstract class AbstractVfxEntity extends Entity {
     }
 
     public int getLifetime() { return lifetime; }
-    public int getMaxLifetime() { return maxLifetime; }
-    public void setMaxLifetime(int ticks) { this.maxLifetime = Math.max(1, ticks); }
+    public int getMaxLifetime() { return entityData.get(DATA_MAX_LIFETIME); }
+    public void setMaxLifetime(int ticks) { entityData.set(DATA_MAX_LIFETIME, Math.max(1, ticks)); }
 
     public float getLifetimeProgress() {
-        return maxLifetime <= 0 ? 0f : Math.min(1.0f, (float) lifetime / maxLifetime);
+        int max = getMaxLifetime();
+        return max <= 0 ? 0f : Math.min(1.0f, (float) lifetime / max);
     }
 
     @Override
     public void tick() {
         super.tick();
         lifetime++;
-        if (lifetime >= maxLifetime) {
+        if (lifetime >= getMaxLifetime()) {
             if (level() instanceof ServerLevel sl) onExpire(sl);
             discard();
             return;
@@ -96,6 +102,31 @@ public abstract class AbstractVfxEntity extends Entity {
     @Override
     public boolean hurt(DamageSource source, float amount) {
         return false;
+    }
+
+    /**
+     * VFX renderers draw well outside the entity's own (tiny) hitbox — blades
+     * raining 7+ blocks up, tornado columns several times {@link #getRange()}
+     * tall, AoE rings out to the full range. The default culling box is just the
+     * entity dimensions, so as soon as the bare origin point leaves the frustum
+     * the whole effect is culled and {@code render()} never runs (the
+     * "I can't see the swords" bug). Inflate the culling box to cover the full
+     * visual envelope: generous horizontally around the origin and tall upward.
+     */
+    @Override
+    public net.minecraft.world.phys.AABB getBoundingBoxForCulling() {
+        double r = getRange() * 4.0 + 8.0;
+        double up = getRange() * 8.0 + 16.0;
+        return new net.minecraft.world.phys.AABB(
+            getX() - r, getY() - 4.0, getZ() - r,
+            getX() + r, getY() + up, getZ() + r);
+    }
+
+    /** Always render VFX within a generous radius — the tiny hitbox would
+     *  otherwise make the vanilla size-based distance check cull them early. */
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distSqr) {
+        return distSqr < 96.0 * 96.0;
     }
 
     protected void emitParticles(ParticleOptions particle, int count,

@@ -25,6 +25,8 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 public class NeoOriginsClientEvents {
 
     private static boolean wasJumping = false;
+    private static boolean wasUseDown = false;
+    private static boolean wasAttackDown = false;
 
     @SubscribeEvent
     public static void onClientPlayerTick(PlayerTickEvent.Pre event) {
@@ -108,6 +110,20 @@ public class NeoOriginsClientEvents {
             }
         }
 
+        // Stream the real held-state of the USE / ATTACK keys so compat
+        // key.use / key.attack active_self powers fire on a genuine key hold —
+        // not just when there's something under the crosshair to interact with
+        // (the server's interaction-event / swing-flag proxies). Sent on edges
+        // only; the server keeps the last reported state until the next change.
+        boolean useDown = Minecraft.getInstance().options.keyUse.isDown();
+        boolean attackDown = Minecraft.getInstance().options.keyAttack.isDown();
+        if (useDown != wasUseDown || attackDown != wasAttackDown) {
+            PacketDistributor.sendToServer(
+                new com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload(useDown, attackDown));
+            wasUseDown = useDown;
+            wasAttackDown = attackDown;
+        }
+
         // Detect jump press while airborne for flight power activation
         boolean jumpHeld = Minecraft.getInstance().options.keyJump.isDown();
         boolean jumpPressed = jumpHeld && !wasJumping;
@@ -174,5 +190,11 @@ public class NeoOriginsClientEvents {
             com.cyberday1.neoorigins.client.renderer.BlackHoleRenderer::new);
         event.registerEntityRenderer(ModEntities.TORNADO.get(),
             com.cyberday1.neoorigins.client.renderer.TornadoRenderer::new);
+        event.registerEntityRenderer(ModEntities.PROJECTILE_RAIN.get(),
+            com.cyberday1.neoorigins.client.renderer.ProjectileRainRenderer::new);
+        event.registerEntityRenderer(ModEntities.TELEGRAPH.get(),
+            com.cyberday1.neoorigins.client.renderer.TelegraphRenderer::new);
+        event.registerEntityRenderer(ModEntities.THROWN_SWORD.get(),
+            com.cyberday1.neoorigins.client.renderer.ThrownSwordRenderer::new);
     }
 }

@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:action_on_event",
+  "hidden": true,
+  "event": "land",
+  "entity_action": {
+    "type": "neoorigins:set_resource",
+    "resource": "examplepack:double_jump_charge",
+    "value": 1
+  }
+}
