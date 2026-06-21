@@ -1,0 +1,16 @@
+{
+  "type": "neoorigins:resource",
+  "name": { "text": "Stamina" },
+  "description": { "text": "Fuels both your guard and your skills. Recovers only when you lower your guard." },
+  "min": 0,
+  "max": 100,
+  "start_value": 100,
+  "regen_rate": 2,
+  "regen_interval": 10,
+  "regen_condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:iron_monk_guard",
+    "inverted": true
+  },
+  "hud_render": { "label": "Stamina", "color": "#88CC44" }
+}

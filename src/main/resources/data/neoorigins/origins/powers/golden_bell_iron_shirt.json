@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Iron Shirt" },
+  "description": { "text": "Conditioned flesh turns blades: +8 armor." },
+  "attribute": "minecraft:generic.armor",
+  "amount": 8,
+  "operation": "add_value"
+}

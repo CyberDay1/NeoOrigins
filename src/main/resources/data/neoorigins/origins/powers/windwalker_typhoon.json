@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:wind_charge",
+  "name": { "text": "Heaven-Rending Typhoon" },
+  "description": { "text": "Stamp the earth and call forth a roaring cyclone that drags foes in, batters them and hurls them skyward." },
+  "cooldown_ticks": 800,
+  "entity_action": {
+    "type": "neoorigins:spawn_tornado",
+    "radius": 6.0,
+    "duration_ticks": 120,
+    "pull_strength": 1.2,
+    "lift_strength": 0.65,
+    "spin_strength": 0.6,
+    "damage_per_interval": 3.0,
+    "damage_interval_ticks": 10
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:amethyst_cluster",
+  "name": { "text": "Flying Sword of Qi" },
+  "description": { "text": "Condense your Qi into a blade of pure energy and loose it: a swift bolt that detonates on impact. Costs 40 Qi." },
+  "cooldown_ticks": 100,
+  "resource_cost": "neoorigins:qi_resource",
+  "resource_cost_amount": 40,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "speed": 2.2,
+    "shape": "cross",
+    "orb_color": "#66E0FF",
+    "trail_particle": "minecraft:end_rod",
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 3.0,
+      "include_source": false,
+      "entity_action": { "type": "neoorigins:damage", "amount": 12 }
+    }
+  }
+}

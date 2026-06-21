@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:bell",
+  "name": { "text": "Golden Body" },
+  "description": { "text": "Forge the golden body within: near-total protection (Resistance V) for 5 seconds." },
+  "cooldown_ticks": 600,
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:resistance",
+    "amplifier": 4,
+    "duration": 100
+  }
+}

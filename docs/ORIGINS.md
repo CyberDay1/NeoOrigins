@@ -98,6 +98,31 @@ Nimble spider-folk who scale any wall, fling webs at foes, and strike with fangs
 | 2 - Ascended | +4 HP, Poison Immunity | Evolved HP |
 | 3 - Apex | +6 HP, Night Vision | Ascended HP |
 
+### Asura
+
+**Impact:** High  
+**Icon:** Netherite Axe
+
+A frail-bodied berserker who grows faster and stronger the closer death looms — fragile when whole, monstrous when bleeding.
+
+**Base powers**
+
+- *Frail Frame* — maximum health reduced by 3 hearts
+- *Bloodrage I* — Strength I and Speed I below two-thirds health
+- *Bloodrage II* — Strength II and Speed II below 40% health
+- *Bloodrage III* — Strength III and Speed III at 25% health
+- *Unmovable Wrath* — full knockback resistance at 25% health
+- *Asura Slam* — active, lunge forward and hurl nearby foes away
+- *Frenzy* — active, a 6-second burst of Strength II, Speed II and Resistance I
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 | *Undying Rage* — regenerate and shrug off fire near death | — |
+| 2 | *Blood Tithe* — drain life from every blow you land | — |
+| 3 | *Wrath Eruption* — active shockwave that savages and flings nearby foes | — |
+
 ### Automaton
 
 **Impact:** High  
@@ -565,6 +590,29 @@ An elemental of ice and cold — freezes enemies, thrives in taigas, but fire an
 | 2 - Ascended | +4 HP, Reduced Fire Weakness | Evolved HP, Base Fire Weakness |
 | 3 - Apex | +6 HP | Ascended HP, Ascended Fire Weakness |
 
+### Golden Body
+
+**Impact:** Medium  
+**Icon:** Bell
+
+A hard-qigong Iron Body master: an armored, immovable wall that punishes anyone who strikes it, at the cost of nimbleness.
+
+**Base powers**
+
+- *Iron Shirt* — conditioned flesh turns blades (+8 armor)
+- *Rooted Stance* — hard to knock back
+- *Hard Qigong* — strikes against you rebound on the attacker
+- *Golden Body* — active, near-total protection (Resistance V) for 5 seconds
+- *Heavy Stance* — reduced movement speed
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 | *Diamond Body* — harder still to wound | — |
+| 2 | *Reflected Force* — rebound twice the force of every blow | — |
+| 3 | *Bell Toll* — active toll that slows and weakens nearby foes | — |
+
 ### Golem
 
 **Impact:** High  
@@ -709,6 +757,31 @@ A quarter-sized humanoid who scales walls with ease and moves with surprising sp
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, +0.15 Speed | Evolved HP |
 | 3 - Apex | +6 HP, Slow Falling (Dodge) | Ascended HP |
+
+### Iron Monk
+
+**Impact:** Medium  
+**Icon:** Shield
+
+A defender monk whose guard, blocks and strikes all draw on one shared pool of stamina — turn the fight aside, but an exhausted monk is wide open.
+
+**Base powers**
+
+- *Stamina* — fuels both guard and skills; recovers only with your guard lowered
+- *Guard* — toggle, root in place and absorb almost all damage while draining stamina
+- *Guard Upkeep* — holding the guard steadily drains stamina
+- *Bulwark* — incoming damage cut by 90% while guarding with stamina to spare
+- *Parry* — each blow you block rings out and bites a chunk of stamina
+- *Palm Strike* — active, a shockwave that damages and tosses nearby foes (20 stamina)
+- *Iron Resolve* — not easily shoved out of stance
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 | *Counter Stance* — blocked blows rebound on the attacker | — |
+| 2 | *Sea of Stamina* — stamina trickles back even mid-guard | — |
+| 3 | *Lohan Palm* — active, a wide stamina-fueled shockwave | — |
 
 ### Kraken
 
@@ -872,6 +945,29 @@ A gold-obsessed Nether warrior — powerful at home, feared by kin, but weakened
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
 | 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
+
+### Qi Cultivator
+
+**Impact:** Medium  
+**Icon:** Amethyst Shard
+
+A practitioner of inner arts who channels Qi into ranged palm-strikes and hardened flesh, meditating to refill reserves — but a cultivator run dry is just a monk.
+
+**Base powers**
+
+- *Qi* — inner energy spent on palm arts, replenished slowly or through meditation
+- *Meditation* — crouch and be still to gather Qi far faster
+- *Inner Calm* — meditating mends your wounds
+- *Vibrating Palm* — active, hurl a bolt of compressed Qi at range (25 Qi)
+- *Hardened Qi* — active, steel the body with Resistance II for 6 seconds (30 Qi)
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 | *Dantian Expansion* — Qi circulates even while you move and fight | — |
+| 2 | *Core Pressure* — strike harder while your core runs deep | — |
+| 3 | *Flying Sword of Qi* — active, loose a blade of pure energy | — |
 
 ### Revenant
 
@@ -1132,6 +1228,31 @@ A Nether-native creature that walks on lava and heals in its warmth — but the 
 | 2 - Ascended | +4 HP, +10% Speed | Evolved HP |
 | 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
 
+### Sword Immortal
+
+**Impact:** High  
+**Icon:** Diamond Sword
+
+Flies on their blade, hurls sword-qi at range and blinks through battle — every signature art is bound to the sword in hand; disarmed, they fall back to a fall-immune mortal.
+
+**Base powers**
+
+- *Sword Heart* — strike far harder with a blade in hand, merely mortal without one
+- *Keen Edge* — your sword recovers almost instantly between cuts
+- *Sword Qi* — active, loose a crescent of sword-energy that cuts at range (sword required)
+- *Riding the Sword* — toggle, step onto your blade and fly; jump to rise, sneak to descend
+- *Flickering Slash* — active, blink forward in a flash of steel
+- *Immortal Body* — take no fall damage
+- *Ten Thousand Swords Return* — active, hurl a spectral blade that rains a sword-storm where it strikes (sword required)
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 | *Sword Heart Unity* — your edge bites deeper with a sword in hand | — |
+| 2 | *Heavenly Sword Formation* — active, rain a ring of blades around you | — |
+| 3 | *Heaven-Severing Slash* — active, one gathered cleaving sword-qi crescent | — |
+
 ### Sylvan
 
 **Impact:** Low  
@@ -1335,6 +1456,32 @@ A fluid caster who wields tides and healing currents. At home in the ocean, but 
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, +0.2 Swim Speed | Evolved HP |
 | 3 - Apex | +6 HP, Conduit Power | Ascended HP |
+
+### Windwalker
+
+**Impact:** Medium  
+**Icon:** Feather
+
+A master of *qinggong*: steps off the air, scales sheer walls, dashes on the wind and never fears a fall — but carries no extra strength into a fight.
+
+**Base powers**
+
+- *Featherfall* — drift like a leaf and never take fall damage
+- *Air Steps* — mid-air jumps before you next touch the ground
+- *Lofty Leap* — spring from the ground higher than any earthbound fighter
+- *Cloud Steps* — press jump in mid-air to step off the air itself, keeping momentum
+- *Wall Grace* — cling to and climb vertical surfaces
+- *Gale Dash* — active, burst forward on a gust; aim up to vault skyward
+- *Swift Current* — always a step quicker
+- *Heaven-Rending Typhoon* — active, call a cyclone that drags foes in and hurls them skyward
+
+**Evolution**
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 | *Sky Dancer* — glide freely on the wind | — |
+| 2 | *Riding the Wind* — true flight at will | — |
+| 3 | *Eye of the Storm* — active, a cyclone far greater than the Typhoon | — |
 
 ### Wraith
 

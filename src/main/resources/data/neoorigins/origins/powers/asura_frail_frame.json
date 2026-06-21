@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Frail Frame" },
+  "description": { "text": "Your body is brittle: maximum health is reduced by 3 hearts." },
+  "attribute": "minecraft:generic.max_health",
+  "amount": -6,
+  "operation": "add_value"
+}

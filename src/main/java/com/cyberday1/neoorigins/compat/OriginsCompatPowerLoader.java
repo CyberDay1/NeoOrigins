@@ -1269,7 +1269,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // HUD display metadata — parse from hud_render block or fall back to defaults.
         String label = "Resource";
         int color = 0xFF55AAFF;
-        boolean hidden = false;
+        boolean hidden = json.has("hidden") && json.get("hidden").getAsBoolean();
         // Apoli hud_render sprite indices into resource_bar.png; -1 == unset
         // (HUD then draws a color-tinted fill inside the frame instead).
         int barIndex = -1;

@@ -1,0 +1,22 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:amethyst_shard",
+  "name": { "text": "Vibrating Palm" },
+  "description": { "text": "Hurl a bolt of compressed Qi that strikes at range. Costs 25 Qi." },
+  "cooldown_ticks": 20,
+  "resource_cost": "neoorigins:qi_resource",
+  "resource_cost_amount": 25,
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "speed": 1.6,
+    "orb_color": "#66E0FF",
+    "trail_particle": "minecraft:end_rod",
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 2.5,
+      "include_source": false,
+      "entity_action": { "type": "neoorigins:damage", "amount": 6 }
+    }
+  }
+}

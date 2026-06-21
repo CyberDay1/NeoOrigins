@@ -1,0 +1,15 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:shield",
+  "name": { "text": "Hardened Qi" },
+  "description": { "text": "Flood your body with Qi to steel it: Resistance II for 6 seconds. Costs 30 Qi." },
+  "cooldown_ticks": 160,
+  "resource_cost": "neoorigins:qi_resource",
+  "resource_cost_amount": 30,
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:resistance",
+    "amplifier": 1,
+    "duration": 120
+  }
+}

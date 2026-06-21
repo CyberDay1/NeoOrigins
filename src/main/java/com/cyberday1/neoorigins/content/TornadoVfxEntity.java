@@ -52,6 +52,13 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
     /** Downward acceleration per tick, capped at a sane terminal velocity. */
     private static final double GRAVITY_PER_TICK = 0.08;
     private static final double TERMINAL_VELOCITY = -3.0;
+    /** Per-tick fraction the funnel base lerps toward the surface height while
+     *  riding terrain. Lower = smoother/laggier glide, higher = snappier. This
+     *  is what turns stepped elevation changes into a smooth ride over hills. */
+    private static final double GROUND_FOLLOW_LERP = 0.2;
+    /** Height above the surface beyond which a gravity funnel is still airborne
+     *  (falling); at or below it switches to riding the ground contour. */
+    private static final double GROUND_CONTACT_EPS = 0.5;
 
     /**
      * Composable payload run against each caught entity on the damage interval,
@@ -98,20 +105,34 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
         double newX = getX() + (moveSpeed > 0 ? moveDir.x * moveSpeed : 0.0);
         double newZ = getZ() + (moveSpeed > 0 ? moveDir.z * moveSpeed : 0.0);
         double newY = getY();
-        if (applyGravity) {
-            fallVel = Math.max(TERMINAL_VELOCITY, fallVel - GRAVITY_PER_TICK);
-            newY += fallVel;
-            // Rest the funnel base on the surface under its new XZ position so it
-            // can't sink through the world (VFX entities are noPhysics → no
-            // vanilla collision; clamp to the MOTION_BLOCKING heightmap instead).
+
+        // A drifting (or gravity-enabled) funnel rides the terrain; a stationary
+        // non-gravity funnel hovers at its spawn height as before.
+        if (moveSpeed > 0 || applyGravity) {
+            // Surface height under the funnel's new XZ (VFX entities are noPhysics
+            // → no vanilla collision, so clamp to the MOTION_BLOCKING heightmap).
             double groundY = level.getHeight(
                 net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
                 net.minecraft.util.Mth.floor(newX), net.minecraft.util.Mth.floor(newZ));
-            if (newY <= groundY) {
-                newY = groundY;
+
+            if (applyGravity && newY > groundY + GROUND_CONTACT_EPS) {
+                // Spawned above the ground: fall under gravity until the base lands.
+                fallVel = Math.max(TERMINAL_VELOCITY, fallVel - GRAVITY_PER_TICK);
+                newY += fallVel;
+                if (newY <= groundY) {
+                    newY = groundY;
+                    fallVel = 0.0;
+                }
+            } else {
+                // Grounded: ride the contour smoothly. Lerp the base toward the
+                // surface height so elevation steps glide instead of snapping —
+                // this is what keeps the forward drift smooth over hills and dips.
                 fallVel = 0.0;
+                newY += (groundY - newY) * GROUND_FOLLOW_LERP;
+                if (Math.abs(groundY - newY) < 0.01) newY = groundY;
             }
         }
+
         if (newX != getX() || newY != getY() || newZ != getZ()) {
             setPos(newX, newY, newZ);
         }

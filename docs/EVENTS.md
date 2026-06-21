@@ -110,6 +110,26 @@ hurt-noises, panic-mode buffs.
 
 ---
 
+## `hit_dealt`
+
+Fires on the attacker when the player deals damage to a living entity — the
+attacker-side mirror of `hit_taken`. Unlike `attack` (which fires *pre-damage*),
+this fires after damage modifiers are applied, so it sees the actual amount
+landed.
+
+**Context:** `HitDealtContext(amount, target, source)` — `amount` is the final
+post-modifier damage dealt, `target` is the `LivingEntity` that was hit, and
+`source` is the `DamageSource`. The `neoorigins:hit_dealt_amount` condition gates
+on the most recent damage the player dealt.
+
+**Dispatch site:** `CombatPowerEvents` attacker-side `HIT_DEALT` dispatch (fed by
+the HIGH-priority `onLivingDamage` hook, attacker branch).
+
+**Typical use:** lifesteal / blood-tithe healing scaled to damage dealt, combo
+counters, on-hit resource gain, big-hit screen shake.
+
+---
+
 ## `kill`
 
 Fires when the player kills a living entity.

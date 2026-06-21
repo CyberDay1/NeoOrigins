@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Sword Heart Unity" },
+  "description": { "text": "Blade and heart become one. So long as a sword rests in your hand, your every strike bites deeper. +2 attack damage." },
+  "attribute": "minecraft:generic.attack_damage",
+  "amount": 2,
+  "operation": "add_value",
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  }
+}

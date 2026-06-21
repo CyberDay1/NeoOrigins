@@ -725,9 +725,11 @@ public final class BuiltinPowers {
             new FieldSpec("set_velocity", Kind.BOOLEAN, false)
                 .def(false).doc("If true replace the player's velocity; if false add to it; default false."),
             new FieldSpec("damage", Kind.NUMBER, false)
-                .def(0.0).doc("Damage dealt to living entities near the dash path; 0 disables dash damage; default 0."),
+                .def(0.0).doc("Flat damage dealt to living entities near the dash path; the damage sweep runs when either this or weapon_damage_scale is above 0; default 0."),
             new FieldSpec("damage_radius", Kind.NUMBER, false)
-                .def(2.0).doc("Radius around the dash path within which entities are hit (only if damage > 0); default 2.0."),
+                .def(2.0).doc("Radius around the dash path within which entities are hit when the damage sweep runs; default 2.0."),
+            new FieldSpec("weapon_damage_scale", Kind.NUMBER, false)
+                .def(0.0).doc("Adds this fraction of the held weapon's attack damage on top of 'damage' (1.0 = full weapon damage); default 0."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));

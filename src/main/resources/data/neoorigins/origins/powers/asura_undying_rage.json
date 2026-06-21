@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "name": { "text": "Undying Rage" },
+  "description": { "text": "At death's door below 15% health, your fury refuses to let the body fail: Regeneration II and immunity to fire." },
+  "toggleable": false,
+  "condition": { "type": "neoorigins:relative_health", "comparison": "<=", "compare_to": 0.15 },
+  "effects": [
+    { "effect": "minecraft:regeneration", "amplifier": 1, "show_icon": true },
+    { "effect": "minecraft:fire_resistance", "amplifier": 0, "show_icon": true }
+  ]
+}

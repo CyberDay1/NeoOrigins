@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Swift Current" },
+  "description": { "text": "You move with the lightness of the wind, always a step quicker." },
+  "attribute": "minecraft:generic.movement_speed",
+  "amount": 0.02,
+  "operation": "add_value"
+}

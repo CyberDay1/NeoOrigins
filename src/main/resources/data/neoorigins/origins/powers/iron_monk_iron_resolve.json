@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Iron Resolve" },
+  "description": { "text": "A defender is not so easily shoved out of stance." },
+  "attribute": "minecraft:generic.knockback_resistance",
+  "amount": 0.4,
+  "operation": "add_value"
+}

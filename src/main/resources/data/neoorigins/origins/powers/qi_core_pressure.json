@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:modify_damage",
+  "name": { "text": "Core Pressure" },
+  "description": { "text": "While your Qi runs deep, the pressure behind every palm-strike swells: deal 30% more damage as long as your core is at least half full." },
+  "direction": "out",
+  "multiplier": 1.3,
+  "condition": {
+    "type": "neoorigins:resource",
+    "resource": "neoorigins:qi_resource",
+    "comparison": ">=",
+    "compare_to": 50
+  }
+}

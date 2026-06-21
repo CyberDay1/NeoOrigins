@@ -58,7 +58,7 @@ public class ModEntities {
             EntityType.Builder.<TornadoVfxEntity>of(TornadoVfxEntity::new, MobCategory.MISC)
                 .sized(1.0F, 4.0F)
                 .clientTrackingRange(16)
-                .updateInterval(10)
+                .updateInterval(1)
                 .build("tornado"));
 
     // Registry id stays "sword_rain" (saved entities + back-compat); the Java

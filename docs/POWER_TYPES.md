@@ -422,6 +422,56 @@ No additional fields beyond `name` and `description`.
 
 ---
 
+## `neoorigins:creative_flight`
+
+True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` (always-on) and unlike `natural_glide` (an elytra/fall-flying mechanic), this grants real `mayfly` hover: the player keeps solid block collision, normal visibility and gravity when not flying. Double-tap jump to take off, then jump to rise and sneak to descend — exactly like creative mode. Intended for "ride the sword" / levitating-cultivator fantasies.
+
+The flight abilities are re-pushed to the client every tick to survive sync races. When the power is removed or toggled off, survival defaults are restored — but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
+
+Accepts only the standard toggle HUD fields beyond `name` and `description`:
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `cooldown_icon` | string | no | `""` | HUD icon resource path (joins the ability-icon cluster) |
+| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while toggled off |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:creative_flight",
+  "name": "Riding the Wind",
+  "description": "Double-tap jump to take to the air and fly freely."
+}
+```
+
+---
+
+## `neoorigins:variable`
+
+A named, persistent, **always-hidden integer counter** — a "local variable" for power logic. Unlike a resource (`neoorigins:resource`), a variable has no HUD bar, no regeneration and no per-tick cost: it only changes when an action explicitly touches it (`change_resource` / `set_resource`), and it is read as a gate by the `resource` condition. The same authoring surface drives both passive and active abilities — use it for combo counters, charge stacks, one-shot flags, cooldown bookkeeping, etc.
+
+The counter's storage key is the declaring power's own id, so variables share the resource keyspace; `change_resource` and the `resource` condition operate on them with no extra wiring, and a variable can never collide with a resource name (two powers can't share an id).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `start` | int | no | `0` | Value seeded on grant, and the value reads fall back to before the first write. Alias: `start_value` |
+| `min` | int | no | unbounded | Lower clamp on additive writes; omit for an unbounded counter |
+| `max` | int | no | unbounded | Upper clamp on additive writes; omit for an unbounded counter |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:variable",
+  "start": 0,
+  "min": 0,
+  "max": 99,
+  "name": "Combo Counter",
+  "description": "Tracks consecutive hits."
+}
+```
+
+---
+
 ## `neoorigins:night_vision`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:persistent_effect`. See [MIGRATION.md](MIGRATION.md).
@@ -1326,13 +1376,16 @@ Active ability that teleports the player to the block they are looking at, up to
 
 ## `neoorigins:active_dash`
 
-Active ability that launches the player in their look direction.
+Active ability that launches the player in their look direction. With the optional damage fields it also sweeps a capsule along the dash path, hitting every entity it passes through — a charging shoulder-barge or blade dash.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `power` | float | no | `1.5` | Launch velocity |
 | `cooldown_ticks` | int | no | `40` | Cooldown in ticks |
 | `allow_vertical` | bool | no | `false` | Whether to include vertical component from look direction |
+| `damage` | float | no | `0` | Flat damage dealt to entities along the dash path. The damage sweep runs when either this or `weapon_damage_scale` is above `0` |
+| `damage_radius` | float | no | `2.0` | Radius of the capsule swept along the dash path |
+| `weapon_damage_scale` | float | no | `0` | Adds a fraction of the held weapon's attack damage on top of `damage` (e.g. `1.0` = full weapon damage) |
 
 **Example:**
 ```json
@@ -1341,8 +1394,11 @@ Active ability that launches the player in their look direction.
   "power": 1.5,
   "cooldown_ticks": 40,
   "allow_vertical": true,
+  "damage": 4.0,
+  "damage_radius": 2.0,
+  "weapon_damage_scale": 1.0,
   "name": "Pounce",
-  "description": "Dashes in the direction you're looking."
+  "description": "Dashes in the direction you're looking, savaging anything in the way."
 }
 ```
 

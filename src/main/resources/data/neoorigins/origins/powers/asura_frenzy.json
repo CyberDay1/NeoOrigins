@@ -1,0 +1,15 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:blaze_powder",
+  "name": { "text": "Frenzy" },
+  "description": { "text": "Erupt into a battle-fury: Strength II, Speed II and Resistance I for 6 seconds." },
+  "cooldown_ticks": 400,
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effects": [
+      { "effect": "minecraft:strength", "amplifier": 1, "duration": 120 },
+      { "effect": "minecraft:speed", "amplifier": 1, "duration": 120 },
+      { "effect": "minecraft:resistance", "amplifier": 0, "duration": 120 }
+    ]
+  }
+}

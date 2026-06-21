@@ -1,0 +1,27 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:iron_sword",
+  "name": { "text": "Sword Qi" },
+  "description": { "text": "Loose a crescent of sword-energy that flies out and cuts at range. Requires a sword in hand." },
+  "cooldown_ticks": 25,
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  },
+  "entity_action": {
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "speed": 2.0,
+    "shape": "cross",
+    "orb_color": "#9CE8FF",
+    "glow_alpha": 0.35,
+    "trail_particle": "minecraft:sweep_attack",
+    "on_hit_action": {
+      "type": "neoorigins:area_of_effect",
+      "radius": 2.5,
+      "include_source": false,
+      "entity_action": { "type": "neoorigins:damage", "amount": 8, "weapon_damage_scale": 1.0 }
+    }
+  }
+}
