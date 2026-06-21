@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "name": { "text": "Guard" },
+  "description": { "text": "Raise your guard. While held you are rooted (Slowness) but absorb almost all damage, draining stamina to do so. Press again to lower it." },
+  "toggleable": true,
+  "default_off": true,
+  "effects": [
+    { "effect": "minecraft:slowness", "amplifier": 0, "show_icon": true }
+  ]
+}

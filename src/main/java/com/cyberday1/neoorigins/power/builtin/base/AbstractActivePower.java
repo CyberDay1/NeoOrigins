@@ -55,7 +55,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
     public final void onActivated(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         String key = getCooldownKey(config);
-        if (data.isOnCooldown(key, player.tickCount)) return;
+        if (data.isOnCooldown(player, key)) return;
 
         int hungerCost = config.hungerCost();
 

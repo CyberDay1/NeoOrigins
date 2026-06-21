@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "name": { "text": "Bloodrage I" },
+  "description": { "text": "Below two-thirds health, fury grants Strength I and Speed I." },
+  "toggleable": false,
+  "condition": { "type": "neoorigins:relative_health", "comparison": "<=", "compare_to": 0.66 },
+  "effects": [
+    { "effect": "minecraft:strength", "amplifier": 0, "show_icon": true },
+    { "effect": "minecraft:speed", "amplifier": 0, "show_icon": true }
+  ]
+}

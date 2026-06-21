@@ -63,6 +63,8 @@ The upstream layer — for cross-mod pack compatibility — is handled by
 | [MIGRATION.md](MIGRATION.md) | Legacy type → 2.0 type remap table, lossy translations, DSL gap catalog. |
 | [COOKBOOK.md](COOKBOOK.md) | Recipe-oriented tutorial — 10 common patterns. |
 | [PACK_FORMAT.md](PACK_FORMAT.md) | Directory layout, file-name conventions, JSON boilerplate. |
+| [CONTENT_CONFIG.md](CONTENT_CONFIG.md) | Server `content.toml` toggles: global vision / resource-bar switches and per-origin / per-class enable flags. |
+| [CLIENT_CONFIG.md](CLIENT_CONFIG.md) | Per-client `client.toml` options: UI theme, HUD layout, hotkey pool size. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How powers are loaded, dispatched, cached. For debugging. |
 | [COMPATIBILITY.md](COMPATIBILITY.md) | Out-of-the-box mod integrations (Origins/Apoli, Curios, Ars Nouveau, KubeJS, JEI/REI, etc.). |
 
@@ -369,12 +371,62 @@ power JSON. The compat loader picks the field up and registers the binding:
 - `continuous: false` (default) = the action fires once per press. `true` =
   the action fires every tick while the key is held — appropriate for
   hold-to-channel abilities; skip cooldowns for these.
-- Vanilla input keys (`key.sneak`, `key.use`, `key.attack`, `key.jump`,
-  `key.forward`, `key.back`, `key.left`, `key.right`) are *not* routed
-  through the pool — they keep firing from server-side input polling.
+- Vanilla input keys (see [Vanilla input keys](#vanilla-input-keys) below) are
+  *not* routed through the pool — they bind directly to a real game control and
+  fire from server-side input polling, so they never consume a named-hotkey or
+  skill slot.
 - The native `neoorigins:active_ability` type does **not** use the pool —
   it always binds to one of the six built-in `skill_1`..`skill_6` slots.
   Use `origins:active_self` when you need a named hotkey.
+
+### Vanilla input keys
+
+Instead of a translation key, a power's `key` field may name one of nine
+**vanilla game controls**. The power then activates whenever the player uses
+that control — no extra hotkey to bind, no pool slot consumed. This is ideal for
+abilities that should feel native to an existing input (a sneak-toggle stance, a
+jump-triggered dash, a use-key channel).
+
+Supported keys:
+
+| Key | Fires while… |
+|---|---|
+| `key.jump` | the jump key is held |
+| `key.sneak` | the player is sneaking |
+| `key.sprint` | the player is sprinting |
+| `key.use` | the use / right-click key is held |
+| `key.attack` | the attack / left-click key is held (or the player is swinging) |
+| `key.forward` | pressing forward |
+| `key.back` | pressing back |
+| `key.left` | strafing left |
+| `key.right` | strafing right |
+
+```json
+{
+  "type": "origins:active_self",
+  "key": "key.jump",
+  "cooldown": 30,
+  "condition": { "type": "origins:in_air" },
+  "entity_action": { "type": "neoorigins:add_velocity", "y": 0.8 },
+  "name": "Double Jump"
+}
+```
+
+- The server polls the bound control's state every tick and fires the power's
+  own action under its `condition` gate and `cooldown`. Non-continuous bindings
+  are **edge-detected** — one activation per press, not once per tick. Set
+  `"key": { "key": "key.use", "continuous": true }` for a hold-to-channel ability.
+- `key.use`, `key.attack` and `key.jump` report their **true held state**:
+  the client sends the real key state each tick (`VanillaKeyStatePayload`)
+  rather than inferring it from swing animations or interaction packets, so
+  hold-and-release timing is accurate.
+- Because the activation runs through the power's normal gate, `fail_action`
+  and cooldowns behave exactly as they do for named hotkeys.
+- Works on `neoorigins:active_ability` as well as the Apoli-style
+  `origins:active_self` / `origins:toggle` powers.
+
+Source of truth: `power/keybind/PowerKeybindRegistry.java` (the
+`case "key.*"` switch and `VANILLA_NATIVE` poller).
 
 ### Fail feedback (`fail_action`)
 

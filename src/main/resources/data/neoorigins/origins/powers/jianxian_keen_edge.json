@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Keen Edge" },
+  "description": { "text": "Your sword recovers almost instantly between cuts." },
+  "attribute": "minecraft:generic.attack_speed",
+  "amount": 1,
+  "operation": "add_value",
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  }
+}

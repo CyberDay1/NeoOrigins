@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:active_dash",
+  "cooldown_icon": "minecraft:breeze_rod",
+  "name": { "text": "Gale Dash" },
+  "description": { "text": "Burst forward on a gust of wind. Aim upward to vault into the air." },
+  "power": 2.0,
+  "cooldown_ticks": 60,
+  "allow_vertical": true
+}

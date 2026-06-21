@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:action_on_event",
+  "name": { "text": "Counter Stance" },
+  "description": { "text": "While your guard is raised, blows that reach you rebound on the attacker with half their force." },
+  "event": "hit_taken",
+  "condition": { "type": "neoorigins:power_active", "power": "neoorigins:iron_monk_guard" },
+  "entity_action": {
+    "type": "neoorigins:damage_attacker",
+    "amount_ratio": 0.5,
+    "source": { "name": "magic" }
+  }
+}

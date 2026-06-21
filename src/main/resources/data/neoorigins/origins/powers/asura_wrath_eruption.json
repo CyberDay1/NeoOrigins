@@ -1,0 +1,20 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:tnt",
+  "name": { "text": "Wrath Eruption" },
+  "description": { "text": "Unleash the Asura within: a shockwave of raw fury detonates around you, savaging and flinging away everything nearby." },
+  "cooldown_ticks": 500,
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:play_sound", "sound": "minecraft:entity.generic.explode", "volume": 1.4, "pitch": 0.6 },
+      {
+        "type": "neoorigins:area_of_effect",
+        "radius": 6.0,
+        "include_source": false,
+        "entity_action": { "type": "neoorigins:damage", "amount": 10 }
+      },
+      { "type": "neoorigins:pull_entities", "radius": 6.0, "strength": -2.2, "include_players": true }
+    ]
+  }
+}

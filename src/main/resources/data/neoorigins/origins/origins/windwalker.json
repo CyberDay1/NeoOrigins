@@ -1,0 +1,23 @@
+{
+  "name": { "text": "Windwalker" },
+  "description": { "text": "A master of qinggong, the art of weightlessness. Steps off the air, scales sheer walls, dashes on the wind and never fears a fall, but carries no extra strength into a fight. As mastery grows the sky opens further: gliding freely on the breeze, then walking on air at will, and finally calling down a cyclone far greater than the Typhoon." },
+  "icon": "minecraft:feather",
+  "impact": "medium",
+  "order": 101,
+  "powers": [
+    "neoorigins:windwalker_featherfall",
+    "neoorigins:windwalker_air_jumps",
+    "neoorigins:windwalker_lofty_leap",
+    "neoorigins:windwalker_cloud_steps",
+    "neoorigins:windwalker_wall_grace",
+    "neoorigins:windwalker_gale_dash",
+    "neoorigins:windwalker_swift_current",
+    "neoorigins:windwalker_typhoon"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    { "tier": 1, "add": [ "neoorigins:windwalker_sky_dancer" ], "remove": [] },
+    { "tier": 2, "add": [ "neoorigins:windwalker_riding_wind" ], "remove": [] },
+    { "tier": 3, "add": [ "neoorigins:windwalker_eye_of_storm" ], "remove": [] }
+  ]
+}

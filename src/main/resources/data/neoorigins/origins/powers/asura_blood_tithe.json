@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:action_on_event",
+  "name": { "text": "Blood Tithe" },
+  "description": { "text": "Every blow you land feeds the fire: drain a sliver of life from each foe you strike." },
+  "event": "hit_dealt",
+  "entity_action": { "type": "neoorigins:heal", "amount": 1.0 }
+}

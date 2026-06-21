@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Lofty Leap" },
+  "description": { "text": "The wind lifts your every step: you spring from the ground higher than any earthbound fighter." },
+  "attribute": "minecraft:generic.jump_strength",
+  "amount": 0.12,
+  "operation": "add_value"
+}

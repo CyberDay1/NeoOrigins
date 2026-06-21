@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Heavy Stance" },
+  "description": { "text": "All that conditioning weighs on you: you move a little slower." },
+  "attribute": "minecraft:generic.movement_speed",
+  "amount": -0.02,
+  "operation": "add_value"
+}

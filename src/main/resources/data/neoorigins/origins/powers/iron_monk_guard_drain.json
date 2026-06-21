@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:condition_passive",
+  "name": { "text": "Guard Upkeep" },
+  "description": { "text": "Holding your guard steadily drains stamina." },
+  "interval": 20,
+  "condition": { "type": "neoorigins:power_active", "power": "neoorigins:iron_monk_guard" },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "neoorigins:iron_monk_stamina",
+    "operation": "add",
+    "change": -2
+  }
+}

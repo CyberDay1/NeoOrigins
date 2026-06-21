@@ -1,0 +1,20 @@
+{
+  "name": { "text": "Qi Cultivator" },
+  "description": { "text": "A practitioner of inner arts who channels Qi into ranged palm-strikes and hardened flesh. Meditate to refill your reserves, but a cultivator run dry is just a monk. As the dantian widens, Qi circulates even mid-fight, a brimming core lends real weight to every strike, and the highest art looses a flying sword of pure energy." },
+  "icon": "minecraft:amethyst_shard",
+  "impact": "medium",
+  "order": 102,
+  "powers": [
+    "neoorigins:qi_resource",
+    "neoorigins:qi_meditation_charge",
+    "neoorigins:qi_meditation_heal",
+    "neoorigins:qi_vibrating_palm",
+    "neoorigins:qi_hardened"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    { "tier": 1, "add": [ "neoorigins:qi_dantian_expansion" ], "remove": [] },
+    { "tier": 2, "add": [ "neoorigins:qi_core_pressure" ], "remove": [] },
+    { "tier": 3, "add": [ "neoorigins:qi_flying_sword" ], "remove": [] }
+  ]
+}

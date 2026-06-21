@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:netherite_ingot",
+  "name": { "text": "Lohan Palm" },
+  "description": { "text": "The temple's mightiest open-hand art: a thunderous palm that erupts in a wide shockwave, crushing and flinging every foe around you. Costs 30 stamina." },
+  "cooldown_ticks": 120,
+  "resource_cost": "neoorigins:iron_monk_stamina",
+  "resource_cost_amount": 30,
+  "entity_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 5.0,
+    "include_source": false,
+    "entity_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        { "type": "neoorigins:damage", "amount": 8 },
+        { "type": "neoorigins:add_velocity", "y": 0.7, "set": false, "space": "world" }
+      ]
+    }
+  }
+}

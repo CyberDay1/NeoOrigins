@@ -424,5 +424,34 @@ public final class GameplayConfig {
     @SuppressWarnings("unchecked")
     public static List<String> getLightArmorItems() { return (List<String>) (List<?>) LIGHT_ARMOR_ITEMS.get(); }
 
+    // ── Ability cooldowns ───────────────────────────────────────────────
+    public static final ModConfigSpec.BooleanValue CREATIVE_NO_COOLDOWN;
+
+    static {
+        BUILDER.comment(
+            "Active-ability cooldown behaviour."
+        ).push("cooldowns");
+
+        CREATIVE_NO_COOLDOWN = BUILDER
+            .comment("When true, players in Creative mode ignore active-ability cooldowns",
+                     "entirely — every keybind / on-hit / on-kill power can fire without",
+                     "waiting. Cooldowns still apply normally in Survival/Adventure, so a",
+                     "creative-mode player switching back to survival resumes any in-flight",
+                     "cooldown. Useful for testing powers without spam-waiting.")
+            .define("creative_no_cooldown", true);
+
+        BUILDER.pop();
+    }
+
+    /**
+     * True when {@code player} should bypass active-ability cooldowns: the
+     * {@link #CREATIVE_NO_COOLDOWN} toggle is on AND the player is in Creative
+     * ({@code instabuild} is creative-only). Centralised so every cooldown gate
+     * shares one rule.
+     */
+    public static boolean creativeCooldownBypass(net.minecraft.world.entity.player.Player player) {
+        return CREATIVE_NO_COOLDOWN.get() && player.getAbilities().instabuild;
+    }
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

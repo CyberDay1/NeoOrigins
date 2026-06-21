@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:condition_passive",
+  "name": { "text": "Meditation" },
+  "description": { "text": "Crouch and be still to gather Qi far faster than it returns on its own." },
+  "interval": 10,
+  "condition": { "type": "neoorigins:sneaking" },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "neoorigins:qi_resource",
+    "operation": "add",
+    "change": 3
+  }
+}

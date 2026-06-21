@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Diamond Body" },
+  "description": { "text": "The Iron Body art perfected into the Diamond Body: blows that land barely register. +6 armor toughness." },
+  "attribute": "minecraft:generic.armor_toughness",
+  "amount": 6,
+  "operation": "add_value"
+}

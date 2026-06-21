@@ -74,7 +74,8 @@ public final class ContentTogglesConfig {
         "warden", "dwarf", "breeze", "vampire",
         "air_mage", "darkness_mage", "earth_mage", "fire_mage", "gravity_mage",
         "water_mage", "monster_tamer",
-        "skeleton", "slime", "wraith"
+        "skeleton", "slime", "wraith",
+        "asura", "windwalker", "qi_cultivator", "golden_bell", "iron_monk", "jianxian"
     };
 
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;

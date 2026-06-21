@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:resource",
+  "name": { "text": "Qi" },
+  "description": { "text": "Your inner energy. Spent on palm arts and replenished slowly, or quickly through meditation." },
+  "min": 0,
+  "max": 100,
+  "start_value": 50,
+  "regen_rate": 1,
+  "regen_interval": 20,
+  "hud_render": { "label": "Qi", "color": "#66E0FF" }
+}

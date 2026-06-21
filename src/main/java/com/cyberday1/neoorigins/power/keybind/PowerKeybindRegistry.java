@@ -264,7 +264,7 @@ public final class PowerKeybindRegistry {
                 // (consumeClick), so every payload is a fresh edge.
                 if (b.cooldownTicks() > 0) {
                     String cdKey = b.powerId().toString();
-                    if (data.isOnCooldown(cdKey, sp.tickCount)) continue;
+                    if (data.isOnCooldown(sp, cdKey)) continue;
                     data.setCooldown(cdKey, sp.tickCount, b.cooldownTicks());
                 }
                 b.action().execute(sp);
@@ -311,7 +311,7 @@ public final class PowerKeybindRegistry {
                     if (b.cooldownTicks() > 0) {
                         PlayerOriginData data = sp.getData(OriginAttachments.originData());
                         String cdKey = b.powerId().toString();
-                        if (data.isOnCooldown(cdKey, sp.tickCount)) return true;
+                        if (data.isOnCooldown(sp, cdKey)) return true;
                         data.setCooldown(cdKey, sp.tickCount, b.cooldownTicks());
                     }
                     b.action().execute(sp);

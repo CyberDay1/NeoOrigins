@@ -428,6 +428,30 @@ No additional fields beyond `name` and `description`.
 
 ---
 
+## `neoorigins:creative_flight`
+
+True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` (always-on) and unlike `natural_glide` (an elytra/fall-flying mechanic), this grants real `mayfly` hover: the player keeps solid block collision, normal visibility and gravity when not flying. Double-tap jump to take off, then jump to rise and sneak to descend — exactly like creative mode. Intended for "ride the sword" / levitating-cultivator fantasies.
+
+The flight abilities are re-pushed to the client every tick to survive sync races. When the power is removed or toggled off, survival defaults are restored — but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
+
+Accepts only the standard toggle HUD fields beyond `name` and `description`:
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `cooldown_icon` | string | no | `""` | HUD icon resource path (joins the ability-icon cluster) |
+| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while toggled off |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:creative_flight",
+  "name": "Riding the Wind",
+  "description": "Double-tap jump to take to the air and fly freely."
+}
+```
+
+---
+
 ## `neoorigins:night_vision`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:persistent_effect`. See [MIGRATION.md](MIGRATION.md).
@@ -1343,6 +1367,9 @@ Active ability that launches the player in their look direction.
 | `power` | float | no | `1.5` | Launch velocity |
 | `cooldown_ticks` | int | no | `40` | Cooldown in ticks |
 | `allow_vertical` | bool | no | `false` | Whether to include vertical component from look direction |
+| `damage` | float | no | `0` | Flat damage dealt to entities along the dash path. The damage sweep runs when either this or `weapon_damage_scale` is above `0` |
+| `damage_radius` | float | no | `2.0` | Radius of the capsule swept along the dash path |
+| `weapon_damage_scale` | float | no | `0` | Adds a fraction of the held weapon's attack damage on top of `damage` (e.g. `1.0` = full weapon damage) |
 
 **Example:**
 ```json

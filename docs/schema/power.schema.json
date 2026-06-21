@@ -54,6 +54,7 @@
         "neoorigins:condition_passive",
         "neoorigins:conditional",
         "neoorigins:craft_amount_bonus",
+        "neoorigins:creative_flight",
         "neoorigins:crop_growth_accelerator",
         "neoorigins:crop_harvest_bonus",
         "neoorigins:damage_in_biome",
@@ -548,6 +549,21 @@
           "description": "If true replace the player's velocity; if false add to it; default false.",
           "type": "boolean",
           "default": false
+        },
+        "damage": {
+          "description": "Flat damage dealt to living entities near the dash path; the damage sweep runs when either this or weapon_damage_scale is above 0; default 0.",
+          "type": "number",
+          "default": 0.0
+        },
+        "damage_radius": {
+          "description": "Radius around the dash path within which entities are hit when the damage sweep runs; default 2.0.",
+          "type": "number",
+          "default": 2.0
+        },
+        "weapon_damage_scale": {
+          "description": "Adds this fraction of the held weapon's attack damage on top of 'damage' (1.0 = full weapon damage); default 0.",
+          "type": "number",
+          "default": 0.0
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -1305,6 +1321,27 @@
           "description": "Extra copies of the output added per craft (default 4; skipped if <=0).",
           "type": "integer",
           "default": 4
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:creative_flight",
+      "properties": {
+        "type": {
+          "const": "neoorigins:creative_flight"
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -3874,6 +3911,7 @@
               "neoorigins:condition_passive",
               "neoorigins:conditional",
               "neoorigins:craft_amount_bonus",
+              "neoorigins:creative_flight",
               "neoorigins:crop_growth_accelerator",
               "neoorigins:crop_harvest_bonus",
               "neoorigins:dodge_chance",
