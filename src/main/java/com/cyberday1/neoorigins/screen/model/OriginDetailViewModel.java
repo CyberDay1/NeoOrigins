@@ -113,8 +113,16 @@ public record OriginDetailViewModel(
      */
     private static String keyTagFor(Identifier powerId, Map<Identifier, Integer> slotMap) {
         Integer slot = slotMap.get(powerId);
-        if (slot == null) return "";
-        String key = AbilitySlotKeys.keyNameOrLabel(slot);
+        String key;
+        if (slot != null) {
+            key = AbilitySlotKeys.keyNameOrLabel(slot);
+        } else {
+            // Not a skill-slot active, but it may be bound to a named hotkey or a
+            // vanilla input key (key.use / key.attack / …). Those are real
+            // activations and deserve a key tag instead of looking like passives.
+            key = com.cyberday1.neoorigins.client.HotkeyAssignments.displayKeyForPower(powerId);
+            if (key == null) return "";
+        }
         return Component.translatable(
             isPowerToggle(powerId) ? "gui.neoorigins.power.key_tag.toggle"
                                    : "gui.neoorigins.power.key_tag",

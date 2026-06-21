@@ -50,6 +50,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     /** Edge-detection tracker for action_over_time rising/falling_action transitions.
      *  Key: {@code <playerUUID>:<powerId>}. Value: previous tick's condition result. */
     private static final java.util.Map<String, Boolean> PREV_AOT_CONDITIONS = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Edge-detection tracker for resource hud_render.condition show/hide transitions.
+     *  Key: {@code <playerUUID>:rcond:<resourceKey>}. Value: previous tick's condition result. */
+    private static final java.util.Map<String, Boolean> PREV_RENDER_CONDITIONS = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Edge-detection tracker for synthetic cooldown bars (Route B active_self hud_render).
+     *  Key: {@code <playerUUID>:cdbar:<powerId>}. Value: previous tick's bar value. */
+    private static final java.util.Map<String, Integer> PREV_COOLDOWN_BAR = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Power types that Route B handles (Route A SKIPs these). */
     private static final Set<String> ROUTE_B_TYPES = Set.of(
@@ -171,6 +177,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         NumericModifierRegistry.clearAll();
         CompatAttachments.clearResourceMeta();
         com.cyberday1.neoorigins.service.InlineRecipeRegistry.resetPending();
+        com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.clear();
 
         // Rewrite apoli:/apugli: power types to the canonical origins: namespace
         // before expansion + dispatch, so packs that use the Apoli namespace are
@@ -210,9 +217,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
                 Component powerName = extractComponent(json, "name");
                 Component powerDesc = extractComponent(json, "description");
-                boolean powerHidden = json.has("hidden") && json.get("hidden").isJsonPrimitive()
-                    && json.get("hidden").getAsJsonPrimitive().isBoolean()
-                    && json.get("hidden").getAsBoolean();
+                boolean powerHidden = readHiddenFlag(json);
                 injected.put(id, new PowerHolder<>(id, CompatPower.INSTANCE, config, powerName, powerDesc, powerHidden));
                 CompatTranslationLog.pass(id, type + " -> Route B compiled");
                 NeoOrigins.LOGGER.debug("[CompatB] loaded {} ({})", id, type);
@@ -249,11 +254,17 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         injectWellKnownPowers(injected);
 
         PowerDataManager.INSTANCE.injectExternalPowers(injected);
+        // Bind native (Route A) active powers that declare a pack named-hotkey
+        // (e.g. origins:inventory -> neoorigins:extra_inventory) to that key
+        // instead of letting them occupy a skill slot. Runs after both routes
+        // have populated PowerDataManager and after the reload-start clear().
+        registerNativeActiveHotkeys();
         // Flush the deduplicated parser-warning summary (if anything was
         // collected) before the final injection-count line so the summary
         // appears immediately above it in the log.
         CompatWarningCollector.emitSummaryAndEndSession();
         NeoOrigins.LOGGER.info("[CompatB] Injected {} Route B powers", injected.size());
+        com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.logSummary();
         } finally {
             // Defensive: if anything above threw, the session is still open
             // and would silently swallow warnings for the rest of the JVM.
@@ -261,6 +272,74 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             if (CompatWarningCollector.isSessionActive()) {
                 CompatWarningCollector.emitSummaryAndEndSession();
             }
+        }
+    }
+
+    /**
+     * Bind native active powers that declare a pack-defined named hotkey to that
+     * key. A native active power (e.g. {@code neoorigins:extra_inventory}, the
+     * translation target of {@code origins:inventory}) normally occupies a skill
+     * slot via {@link com.cyberday1.neoorigins.api.power.PowerHolder#occupiesHotkeySlot()}.
+     * When its (post-translation) JSON carries a {@code "key"} that is neither a
+     * skill slot nor a vanilla input key, we register a {@link PowerKeybindRegistry}
+     * binding whose action triggers the holder's own activation, and mark the power
+     * so {@link com.cyberday1.neoorigins.service.ActiveOriginService} keeps it out of
+     * the skill-slot roster. The holder's own condition gate still applies inside
+     * {@code onActivated}, so no condition is duplicated onto the binding.
+     */
+    private void registerNativeActiveHotkeys() {
+        for (var entry : PowerDataManager.INSTANCE.getPowers().entrySet()) {
+            Identifier id = entry.getKey();
+            PowerHolder<?> holder = entry.getValue();
+            if (!holder.isActive()) continue;
+            JsonObject raw = PowerDataManager.INSTANCE.getRawPowerJson(id);
+            if (raw == null || !raw.has("key")) continue;
+
+            // Classify the declared key the same way parseActiveSelf does
+            // (inline — this branch has no KeySpec/classifyKey helper).
+            String key = null;
+            boolean continuous = false;
+            var keyEl = raw.get("key");
+            if (keyEl.isJsonPrimitive()) {
+                key = keyEl.getAsString();
+            } else if (keyEl.isJsonObject()) {
+                var keyObj = keyEl.getAsJsonObject();
+                key = keyObj.has("key") ? keyObj.get("key").getAsString() : null;
+                continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
+            }
+            if (key == null) continue;
+
+            boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
+                || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
+                || key.contains("pickItem");
+            boolean isVanillaInputKey = switch (key) {
+                case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
+                     "key.forward", "key.back", "key.left", "key.right" -> true;
+                default -> false;
+            };
+            if (isSlotKey) continue;
+
+            final Identifier pid = id;
+            if (isVanillaInputKey) {
+                // Native active power bound to a vanilla input key (e.g. key.jump for
+                // a double-jump). Polled each tick by PowerKeybindRegistry from the
+                // server-side input state; registerVanilla records the key tag so the
+                // origin info screen shows e.g. "[Jump]" instead of a tag-less passive.
+                com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.registerVanillaNative(pid, key, continuous);
+                com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.registerVanilla(pid, key);
+                NeoOrigins.LOGGER.debug("[CompatB] native active {} bound to vanilla key '{}'", pid, key);
+                continue;
+            }
+            final String namedKey = key;
+            EntityAction openAction = player -> {
+                PowerHolder<?> h = PowerDataManager.INSTANCE.getPower(pid);
+                if (h != null && h.isActive()) h.onActivated(player);
+            };
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(namedKey,
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    pid, openAction, null, 0, continuous, null));
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.markNativeHotkeyPower(pid);
+            NeoOrigins.LOGGER.debug("[CompatB] native active {} bound to named hotkey '{}'", pid, namedKey);
         }
     }
 
@@ -404,6 +483,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     private void expandMultiple(Identifier parentId, JsonObject json, Map<Identifier, JsonObject> out) {
+        expandMultiple(parentId, json, out, readHiddenFlag(json));
+    }
+
+    private void expandMultiple(Identifier parentId, JsonObject json,
+                                Map<Identifier, JsonObject> out, boolean parentHidden) {
         for (var subEntry : json.entrySet()) {
             if (MULTIPLE_META_KEYS.contains(subEntry.getKey())) continue;
             if (!subEntry.getValue().isJsonObject()) continue;
@@ -413,15 +497,28 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             );
             String subType = OriginsFormatDetector.getType(subJson);
             if (OriginsMultipleExpander.isMultipleType(subType)) {
-                expandMultiple(syntheticId, subJson, out); // recurse
+                // A hidden parent hides the whole subtree — carry the flag down.
+                expandMultiple(syntheticId, subJson, out, parentHidden || readHiddenFlag(subJson));
             } else {
                 // Resolve *:* self-references before storing. In Origins/Apoli,
                 // "*:*_subkey" within a multiple means the sibling sub-power
                 // whose synthetic ID is "parentId/subkey".
                 subJson = resolveSelfReferences(subJson, parentId);
+                // Origins lists a hidden origins:multiple as one suppressed entry;
+                // we list its synthetic sub-powers instead, so the parent's
+                // "hidden" must ride down onto each sub-power or the intent is
+                // lost and they surface individually in the info panel (#Deano).
+                if (parentHidden && !readHiddenFlag(subJson)) subJson.addProperty("hidden", true);
                 out.put(syntheticId, subJson);
             }
         }
+    }
+
+    /** True if {@code json} carries a boolean {@code "hidden": true}. */
+    private static boolean readHiddenFlag(JsonObject json) {
+        return json.has("hidden") && json.get("hidden").isJsonPrimitive()
+            && json.get("hidden").getAsJsonPrimitive().isBoolean()
+            && json.get("hidden").getAsBoolean();
     }
 
     /** Delegates to shared self-reference resolver in OriginsMultipleExpander. */
@@ -647,6 +744,55 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         EntityAction failAction = json.has("fail_action")
             ? parseActionField(json, "fail_action", idStr) : null;
 
+        // Apoli hud_render on an active power = a cooldown progress bar. Expose it
+        // as a synthetic resource bar so it renders in the resource HUD (named-hotkey
+        // actives get no ability-cluster cell, and pack authors place the bar via
+        // bar_index/sprite_location). Driven server-side from this power's own
+        // cooldown; `inverted` flips fill direction (drains as it recharges).
+        // null hooks when there's nothing to show (no cooldown or no hud_render).
+        final java.util.function.Consumer<ServerPlayer> barGranted;
+        final java.util.function.Consumer<ServerPlayer> barTick;
+        final java.util.function.Consumer<ServerPlayer> barRevoked;
+        if (cooldown > 0 && json.has("hud_render") && json.get("hud_render").isJsonObject()) {
+            JsonObject hud = json.getAsJsonObject("hud_render");
+            String spriteLocation = hud.has("sprite_location") ? hud.get("sprite_location").getAsString() : null;
+            boolean barHidden = hud.has("should_render") && !hud.get("should_render").getAsBoolean();
+            int barIndex  = hud.has("bar_index")  ? hud.get("bar_index").getAsInt()  : 0;
+            int iconIndex = hud.has("icon_index") ? hud.get("icon_index").getAsInt() : 0;
+            final boolean inverted = hud.has("inverted") && hud.get("inverted").getAsBoolean();
+            final int barMax = cooldown;
+            CompatAttachments.registerResourceMeta(idStr,
+                new CompatAttachments.ResourceMeta(0, barMax, prettyLabel(id), 0xFF55AAFF,
+                    barHidden, barIndex, iconIndex, spriteLocation));
+            barGranted = player -> {
+                int rem = player.getData(OriginAttachments.originData()).remainingCooldown(idStr, player.tickCount);
+                player.getData(CompatAttachments.resourceState()).set(idStr, inverted ? rem : (barMax - rem));
+                CompatAttachments.syncResourcesToClient(player);
+            };
+            barTick = player -> {
+                var state = player.getData(CompatAttachments.resourceState());
+                int rem = player.getData(OriginAttachments.originData()).remainingCooldown(idStr, player.tickCount);
+                int val = inverted ? rem : (barMax - rem);
+                String pk = player.getUUID() + ":cdbar:" + idStr;
+                Integer prev = PREV_COOLDOWN_BAR.put(pk, val);
+                if (prev == null || prev != val) state.set(idStr, val);
+                if (state.isDirty() && player.tickCount % 10 == 0) {
+                    state.clearDirty();
+                    CompatAttachments.syncResourceValuesToClient(player);
+                }
+            };
+            barRevoked = player -> {
+                player.getData(CompatAttachments.resourceState()).remove(idStr);
+                CompatAttachments.unregisterResourceMeta(idStr);
+                PREV_COOLDOWN_BAR.remove(player.getUUID() + ":cdbar:" + idStr);
+                CompatAttachments.syncResourcesToClient(player);
+            };
+        } else {
+            barGranted = null;
+            barTick = null;
+            barRevoked = null;
+        }
+
         // disable_hotkey (NeoOrigins extension): the power is activatable but
         // binds no key — no skill slot, no named hotkey, no vanilla-input poll.
         // It can only be triggered programmatically via the activate_power
@@ -656,7 +802,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // reach it.
         boolean disableHotkey = json.has("disable_hotkey") && json.get("disable_hotkey").getAsBoolean();
         if (disableHotkey) {
-            return CompatPower.Config.builder()
+            return withCooldownBar(CompatPower.Config.builder()
                 .cooldownTicks(cooldown)
                 .hotkeyless(true)
                 .onActivated((ServerPlayer player) -> {
@@ -671,7 +817,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     }
                     action.execute(player);
                 })
-                .build();
+                .build(), barGranted, barTick, barRevoked);
         }
 
         // Skill-slot keys: primary_active, secondary_active, and the two toolbar
@@ -683,7 +829,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Continuous slot powers DON'T use onActivated — they need every-tick
         // execution which onActivated (single-fire per keypress) can't provide.
         if (isSlotKey && !continuous) {
-            return CompatPower.Config.builder()
+            return withCooldownBar(CompatPower.Config.builder()
                 .cooldownTicks(cooldown)
                 .onActivated((ServerPlayer player) -> {
                     if (!condition.test(player)) return;
@@ -694,16 +840,44 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     }
                     action.execute(player);
                 })
-                .build();
+                .build(), barGranted, barTick, barRevoked);
         }
 
-        // Non-slot keys: fire from onTick when the corresponding input is held.
-        // When continuous=false, uses edge detection (fire once per press).
-        // When continuous=true, fires every tick while the key is held.
+        // Non-slot keys come in two flavors:
+        //   1. Vanilla input keys (sneak/use/attack/jump/movement) — polled from
+        //      onTick because the server knows the input state directly.
+        //   2. Pack-declared translation keys (e.g. "deanos_origins.key.origins.2")
+        //      — registered into PowerKeybindRegistry and fired by client press
+        //      via ActivatePowerByKeyPayload. The CompatPower itself becomes a
+        //      marker (no onActivated, no onTick) so it doesn't tick uselessly.
         final String finalKey = key;
         final String finalIdStr = idStr;
         final boolean isContinuous = continuous;
-        return CompatPower.Config.builder()
+
+        boolean isVanillaInputKey = switch (key) {
+            case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
+                 "key.forward", "key.back", "key.left", "key.right" -> true;
+            default -> false;
+        };
+
+        if (!isVanillaInputKey) {
+            // Hotkey path: register into PowerKeybindRegistry so a client press
+            // routes here. The power itself is a marker (no onActivated, no
+            // onTick) so it doesn't double-fire from the slot system.
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(finalKey,
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    id, action, condition, cooldown, isContinuous, failAction));
+            return withCooldownBar(CompatPower.Config.builder()
+                .cooldownTicks(cooldown)
+                .build(), barGranted, barTick, barRevoked);
+        }
+
+        // Vanilla-input-key active: polled below from onTick. Record the binding
+        // so the origin info screen can show its key tag (e.g. "[Right Click]")
+        // instead of rendering the power as a tag-less passive.
+        com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.registerVanilla(id, finalKey);
+
+        return withCooldownBar(CompatPower.Config.builder()
             .onTick(player -> {
                 boolean pressed = switch (finalKey) {
                     case "key.sneak"   -> player.isShiftKeyDown();
@@ -712,7 +886,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     // on a plain/empty hand — which is how Apoli spell active_self powers
                     // are cast. Read the right-click tick stamped by CompatEventPowers.
                     case "key.use"     -> CompatPlayerState.isUseKeyDown(player);
-                    case "key.attack"  -> player.swinging;
+                    // Real held key state (client-streamed) OR the swing flag, so it
+                    // fires both while mining/hitting AND while merely holding attack
+                    // with nothing under the crosshair (player.swinging only streams
+                    // during an actual swing animation).
+                    case "key.attack"  -> CompatPlayerState.isAttackKeyHeld(player) || player.swinging;
                     // Real airborne jump-press signal (client-sent AirJumpPayload),
                     // not the old "airborne and rising" heuristic that fired during
                     // the natural first jump and missed a deliberate re-press while
@@ -763,7 +941,55 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     }
                 }
             })
-            .build();
+            .build(), barGranted, barTick, barRevoked);
+    }
+
+    /** Human-readable label from a power id's last path segment (Title Case). */
+    private static String prettyLabel(Identifier id) {
+        String path = id.getPath();
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash >= 0) path = path.substring(lastSlash + 1);
+        String label = path.replace('_', ' ');
+        StringBuilder sb = new StringBuilder();
+        for (String word : label.split(" ")) {
+            if (!word.isEmpty()) {
+                if (sb.length() > 0) sb.append(' ');
+                sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+            }
+        }
+        return sb.toString();
+    }
+
+    /** Compose two consumers; null-safe (returns the non-null one, or null if both null). */
+    private static <T> java.util.function.Consumer<T> chain(java.util.function.Consumer<T> a,
+                                                            java.util.function.Consumer<T> b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a.andThen(b);
+    }
+
+    /**
+     * Attach synthetic cooldown-bar hooks (granted/tick/revoked) to an existing
+     * Route B Config without disturbing its own lifecycle lambdas. Returns the
+     * base unchanged when there's no bar to drive (barTick == null).
+     */
+    private static CompatPower.Config withCooldownBar(CompatPower.Config base,
+                                                      java.util.function.Consumer<ServerPlayer> barGranted,
+                                                      java.util.function.Consumer<ServerPlayer> barTick,
+                                                      java.util.function.Consumer<ServerPlayer> barRevoked) {
+        if (barTick == null) return base;
+        return new CompatPower.Config(
+            chain(base.onGranted(), barGranted),
+            chain(base.onRevoked(), barRevoked),
+            chain(base.onTick(), barTick),
+            base.onActivated(),
+            base.onRespawn(),
+            base.onHit(),
+            base.onKill(),
+            base.onIncomingDamage(),
+            base.onDealDamage(),
+            base.cooldownTicks(),
+            base.hotkeyless());
     }
 
     private CompatPower.Config parseActionOverTime(Identifier id, JsonObject json) {
@@ -974,6 +1200,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int iconIndex = -1;
         // Pack-declared sprite sheet (community restyles ship their own); null == use default.
         String spriteLocation = null;
+        // Apoli hud_render.condition: the bar renders only while this condition
+        // holds (contextual bars). null == always render. Evaluated server-side.
+        EntityCondition renderCondition = null;
         // Boolean toggles (min=0, max=1) are internal state, not player-facing bars.
         if (min == 0 && max == 1) hidden = true;
         if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
@@ -982,10 +1211,21 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
                 hidden = true;
             }
-            // Condition-gated hud_render means the bar is contextual — hide it
-            // from our flat bar display since we can't evaluate render conditions.
+            // Condition-gated hud_render: the bar is contextual — it renders only
+            // while this condition holds. We evaluate it server-side and include the
+            // bar in the sync only when it passes; the onTick below drives a full
+            // re-sync on condition edges so it appears/disappears live. An
+            // unsupported condition degrades to always-show rather than hiding the
+            // bar forever (the old behaviour, which silently dropped 50+ bars from
+            // packs like Deano's that gate nearly every bar on `resource > 0`).
             if (hud.has("condition")) {
-                hidden = true;
+                CompatPolicy.resetFailClosedCount();
+                EntityCondition rc = parseConditionField(hud, "condition", idStr);
+                if (CompatPolicy.failClosedCount() == 0) {
+                    renderCondition = rc;
+                } else {
+                    NeoOrigins.LOGGER.warn("[CompatB] resource {} hud_render.condition uses an unsupported type — bar will render unconditionally", idStr);
+                }
             }
             // Apoli sprite-sheet indices: bar_index picks the fill row,
             // icon_index picks the icon column in resource_bar.png. Apoli
@@ -1017,6 +1257,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation));
+        if (renderCondition != null) {
+            CompatAttachments.registerResourceRenderCondition(key, renderCondition);
+        } else {
+            CompatAttachments.unregisterResourceRenderCondition(key);
+        }
+        final EntityCondition fRenderCondition = renderCondition;
 
         return CompatPower.Config.builder()
             .onGranted(player -> {
@@ -1026,6 +1272,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .onRevoked(player -> {
                 player.getData(CompatAttachments.resourceState()).remove(key);
                 CompatAttachments.unregisterResourceMeta(key);
+                CompatAttachments.unregisterResourceRenderCondition(key);
+                PREV_RENDER_CONDITIONS.remove(player.getUUID() + ":rcond:" + key);
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onTick(player -> {
@@ -1049,25 +1297,82 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     state.clearDirty();
                     CompatAttachments.syncResourceValuesToClient(player);
                 }
+                // Render-condition edge: when the hud_render.condition flips, push a
+                // full sync so the bar entry is created/removed client-side (the
+                // value-only payload can neither create nor drop entries).
+                if (fRenderCondition != null) {
+                    boolean show = fRenderCondition.test(player);
+                    String showKey = player.getUUID() + ":rcond:" + key;
+                    Boolean prevShow = PREV_RENDER_CONDITIONS.put(showKey, show);
+                    if (prevShow == null || prevShow.booleanValue() != show) {
+                        CompatAttachments.syncResourcesToClient(player);
+                    }
+                }
             })
             .build();
     }
 
     private CompatPower.Config parseToggle(Identifier id, JsonObject json) {
-        String key = id.toString();
+        String stateKey = id.toString();
         boolean defaultActive = !json.has("active") || json.get("active").getAsBoolean();
 
-        EntityAction activeAction   = parseActionField(json, "active_action",   key);
-        EntityAction inactiveAction = parseActionField(json, "inactive_action", key);
+        EntityAction activeAction   = parseActionField(json, "active_action",   stateKey);
+        EntityAction inactiveAction = parseActionField(json, "inactive_action", stateKey);
 
-        return CompatPower.Config.builder()
-            .onGranted(player -> player.getData(CompatAttachments.toggleState()).set(key, defaultActive))
-            .onActivated(player -> {
-                boolean next = player.getData(CompatAttachments.toggleState()).toggle(key, defaultActive);
-                if (next) activeAction.execute(player);
-                else inactiveAction.execute(player);
-            })
-            .build();
+        // The toggle behavior itself: flip the stored state, run the matching action.
+        EntityAction toggleAction = player -> {
+            boolean next = player.getData(CompatAttachments.toggleState()).toggle(stateKey, defaultActive);
+            if (next) activeAction.execute(player);
+            else inactiveAction.execute(player);
+        };
+
+        var builder = CompatPower.Config.builder()
+            .onGranted(player -> player.getData(CompatAttachments.toggleState()).set(stateKey, defaultActive));
+
+        // Activation gate + fail feedback (fail_action is a NeoOrigins extension):
+        // condition blocks the flip; fail_action runs on a blocked attempt.
+        EntityCondition condition = parseConditionField(json, "condition", stateKey);
+        EntityAction failAction = json.has("fail_action")
+            ? parseActionField(json, "fail_action", stateKey) : null;
+
+        // A toggle can declare a pack-defined hotkey ("key": "...") just like active_self.
+        // A named hotkey (neither a skill slot nor a vanilla input key) routes the press
+        // through PowerKeybindRegistry; otherwise it defaults to the primary-active skill
+        // slot via onActivated.
+        String key = "key.origins.primary_active";
+        boolean continuous = false;
+        if (json.has("key")) {
+            var keyEl = json.get("key");
+            if (keyEl.isJsonPrimitive()) {
+                key = keyEl.getAsString();
+            } else if (keyEl.isJsonObject()) {
+                var keyObj = keyEl.getAsJsonObject();
+                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
+            }
+        }
+        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
+            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
+            || key.contains("pickItem");
+        boolean isVanillaInputKey = switch (key) {
+            case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
+                 "key.forward", "key.back", "key.left", "key.right" -> true;
+            default -> false;
+        };
+        if (!isSlotKey && !isVanillaInputKey) {
+            int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(key,
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    id, toggleAction, condition, cooldown, continuous, failAction));
+            return builder.cooldownTicks(cooldown).build();
+        }
+        return builder.onActivated(player -> {
+            if (!condition.test(player)) {
+                if (failAction != null) failAction.execute(player);
+                return;
+            }
+            toggleAction.execute(player);
+        }).build();
     }
 
     private CompatPower.Config parseConditionedAttribute(Identifier id, JsonObject json) {
@@ -1709,16 +2014,60 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
 
-        return CompatPower.Config.builder()
-            .cooldownTicks(cooldown)
+        EntityAction launchAction = player -> {
+            player.push(0, speed, 0);
+            player.hurtMarked = true;
+        };
+
+        var builder = CompatPower.Config.builder().cooldownTicks(cooldown);
+
+        // Activation gate + fail feedback (fail_action is a NeoOrigins extension).
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        EntityAction failAction = json.has("fail_action")
+            ? parseActionField(json, "fail_action", idStr) : null;
+
+        // launch can be bound to a pack-declared named hotkey; register it if so. Cooldown
+        // is enforced by PowerKeybindRegistry.dispatch for the named-key path, so the action
+        // itself stays cooldown-free there to avoid double-gating.
+        String key = "key.origins.primary_active";
+        boolean continuous = false;
+        if (json.has("key")) {
+            var keyEl = json.get("key");
+            if (keyEl.isJsonPrimitive()) {
+                key = keyEl.getAsString();
+            } else if (keyEl.isJsonObject()) {
+                var keyObj = keyEl.getAsJsonObject();
+                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
+            }
+        }
+        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
+            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
+            || key.contains("pickItem");
+        boolean isVanillaInputKey = switch (key) {
+            case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
+                 "key.forward", "key.back", "key.left", "key.right" -> true;
+            default -> false;
+        };
+        if (!isSlotKey && !isVanillaInputKey) {
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(key,
+                new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(
+                    id, launchAction, condition, cooldown, continuous, failAction));
+            return builder.build();
+        }
+        return builder
             .onActivated(player -> {
+                // Enforce the declared condition on the slot path too (parity with the hotkey path).
+                if (!condition.test(player)) {
+                    if (failAction != null) failAction.execute(player);
+                    return;
+                }
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
                     if (data.isOnCooldown(idStr, player.tickCount)) return;
                     data.setCooldown(idStr, player.tickCount, cooldown);
                 }
-                player.push(0, speed, 0);
-                player.hurtMarked = true;
+                launchAction.execute(player);
             })
             .build();
     }

@@ -109,7 +109,8 @@ public final class ActiveOriginService {
                 if (holder == null) continue;
                 if (!seen.add(powerId)) continue;
                 all.add(holder);
-                if (holder.occupiesHotkeySlot()) {
+                if (holder.occupiesHotkeySlot()
+                        && !com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.isNativeHotkeyPower(powerId)) {
                     if (isClassLayer) classActive.add(holder);
                     else originActive.add(holder);
                 }
@@ -122,7 +123,10 @@ public final class ActiveOriginService {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;
             all.add(holder);
-            if (holder.occupiesHotkeySlot()) originActive.add(holder);
+            if (holder.occupiesHotkeySlot()
+                    && !com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.isNativeHotkeyPower(powerId)) {
+                originActive.add(holder);
+            }
         }
 
         CacheEntry fresh = new CacheEntry(dim, dv, omv, pmv, rv,

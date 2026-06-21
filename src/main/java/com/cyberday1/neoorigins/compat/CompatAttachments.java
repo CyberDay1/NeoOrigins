@@ -238,7 +238,17 @@ public class CompatAttachments {
     public static void unregisterResourceMeta(String key) { RESOURCE_META.remove(key); }
     public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(key); }
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
-    public static void clearResourceMeta() { RESOURCE_META.clear(); }
+    public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
+
+    // ---- Apoli hud_render.condition: a bar renders only while its condition holds ----
+    // Evaluated server-side; a bar whose condition currently fails is excluded from
+    // both syncs (so it never reaches the client). The defining power's onTick drives
+    // a full re-sync on condition edges so the bar appears/disappears live.
+    private static final Map<String, com.cyberday1.neoorigins.compat.condition.EntityCondition> RESOURCE_RENDER_CONDITIONS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+    public static void registerResourceRenderCondition(String key, com.cyberday1.neoorigins.compat.condition.EntityCondition cond) { RESOURCE_RENDER_CONDITIONS.put(key, cond); }
+    public static void unregisterResourceRenderCondition(String key) { RESOURCE_RENDER_CONDITIONS.remove(key); }
+    public static com.cyberday1.neoorigins.compat.condition.EntityCondition getResourceRenderCondition(String key) { return RESOURCE_RENDER_CONDITIONS.get(key); }
 
     // ---- ToggleState ----
 
@@ -281,6 +291,8 @@ public class CompatAttachments {
         for (var e : state.getAll().entrySet()) {
             ResourceMeta meta = getResourceMeta(e.getKey());
             if (meta == null || meta.hidden()) continue;
+            var rcond = getResourceRenderCondition(e.getKey());
+            if (rcond != null && !rcond.test(player)) continue;
             entries.put(e.getKey(), new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
@@ -305,6 +317,8 @@ public class CompatAttachments {
         for (var e : state.getAll().entrySet()) {
             ResourceMeta meta = getResourceMeta(e.getKey());
             if (meta == null || meta.hidden()) continue;
+            var rcond = getResourceRenderCondition(e.getKey());
+            if (rcond != null && !rcond.test(player)) continue;
             values.put(e.getKey(), e.getValue());
         }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,

@@ -27,6 +27,9 @@ public class ClientResourceState {
 
     public static void apply(Map<String, SyncResourcePayload.Entry> incoming) {
         resources.clear();
+        // A full sync may bring new sprite_locations (or follow a resource-pack
+        // reload) — re-check texture presence next render.
+        ResourceHudOverlay.clearSheetCache();
         for (var e : incoming.entrySet()) {
             var v = e.getValue();
             resources.put(e.getKey(), new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),

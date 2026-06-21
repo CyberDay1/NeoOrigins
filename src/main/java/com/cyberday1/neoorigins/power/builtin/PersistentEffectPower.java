@@ -261,6 +261,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         // condition-false all call clearEffects explicitly, so we don't rely on
         // the effect expiring naturally.
         for (EffectSpec spec : config.effects()) {
+            if (isGloballyDisabled(spec)) continue;
             var existing = player.getEffect(spec.effect());
             if (existing == null
                 || existing.getAmplifier() < spec.amplifier()
@@ -270,6 +271,25 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                     spec.ambient(), spec.showParticles(), spec.showIcon()));
             }
         }
+    }
+
+    private static final Identifier NIGHT_VISION_ID =
+        Identifier.withDefaultNamespace("night_vision");
+
+    /**
+     * Global content-toggle gate: when {@code disable_night_vision} is set in
+     * content.toml, suppress any {@code minecraft:night_vision} effect spec.
+     * Only night_vision is stripped — other effects on the same power still
+     * apply, so a power that grants water_breathing + night_vision keeps the
+     * water_breathing.
+     */
+    private static boolean isGloballyDisabled(EffectSpec spec) {
+        if (!com.cyberday1.neoorigins.config.ContentTogglesConfig.isNightVisionDisabled()) {
+            return false;
+        }
+        return spec.effect().unwrapKey()
+            .map(k -> k.identifier().equals(NIGHT_VISION_ID))
+            .orElse(false);
     }
 
     @Override

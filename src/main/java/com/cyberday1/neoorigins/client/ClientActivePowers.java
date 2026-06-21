@@ -86,5 +86,20 @@ public final class ClientActivePowers {
         return Collections.unmodifiableSet(capabilities);
     }
 
+    /**
+     * True if {@code player} is the client's local player. This check lives in
+     * this client-only class on purpose: common-side mixins (applied on both the
+     * client and the dedicated server) must NOT reference the client-only
+     * {@link net.minecraft.client.player.LocalPlayer} type directly — naming it
+     * in a local, cast, or {@code instanceof} makes Mixin load the class during
+     * frame computation when weaving the method, which throws "invalid dist
+     * DEDICATED_SERVER" and fails the whole mixin apply. Routing the check
+     * through an {@code invokestatic} call here keeps the client type off the
+     * server's verification path (only loaded when the client branch runs).
+     */
+    public static boolean isLocalPlayer(net.minecraft.world.entity.player.Player player) {
+        return player == net.minecraft.client.Minecraft.getInstance().player;
+    }
+
     private ClientActivePowers() {}
 }

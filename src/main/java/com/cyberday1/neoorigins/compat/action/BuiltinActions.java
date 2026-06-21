@@ -46,6 +46,12 @@ public final class BuiltinActions {
     /** Canonical {@code "neoorigins:<verb>"} string → descriptor, for hot-path dispatch. */
     private static final Map<String, ActionType> BY_KEY = new java.util.HashMap<>();
 
+    /** Recursion guard for {@code activate_power}: power ids currently being
+     *  activated on this thread. A power whose action chain re-activates a power
+     *  already in flight (directly or via a cycle) is blocked, not stack-overflowed. */
+    private static final ThreadLocal<java.util.Set<Identifier>> ACTIVATE_IN_FLIGHT =
+        ThreadLocal.withInitial(java.util.HashSet::new);
+
     private static void define(String path, ActionType.Factory factory, List<FieldSpec> fields) {
         Identifier id = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         ActionType type = new ActionType(id, factory, fields);
@@ -684,6 +690,54 @@ public final class BuiltinActions {
                     .doc("Experience points to grant (default 0)."),
                 new FieldSpec("levels", FormFieldSpec.Kind.INTEGER, false).def(0)
                     .doc("Experience levels to grant (default 0).")));
+
+        // activate_power — programmatically trigger another power's activation,
+        // exactly as if the player pressed its key: condition, cooldown, and
+        // fail_action semantics all apply. Reaches onActivated-style powers
+        // (active_self/toggle/launch on a skill slot) directly and hotkey-bound
+        // powers via PowerKeybindRegistry. Powers driven purely by vanilla input
+        // state (key.sneak etc., polled in onTick) have no activation entry point
+        // and cannot be reached. The player must currently have the target power.
+        define("activate_power",
+            (json, ctx) -> {
+                String powerId = json.has("power") ? json.get("power").getAsString() : null;
+                if (powerId == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] activate_power: missing power id — action will no-op");
+                    return EntityAction.noop();
+                }
+                final Identifier pid = Identifier.parse(powerId);
+                return player -> {
+                    java.util.Set<Identifier> inFlight = ACTIVATE_IN_FLIGHT.get();
+                    if (!inFlight.add(pid)) {
+                        NeoOrigins.LOGGER.warn("[CompatB] activate_power: recursive activation of '{}' blocked", pid);
+                        return;
+                    }
+                    try {
+                        // The player must actually have the power right now
+                        // (origin gate + dimension restrictions + dynamic grants).
+                        boolean has = false;
+                        for (var h : com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(player)) {
+                            if (h.id().equals(pid)) { has = true; break; }
+                        }
+                        if (!has) return;
+                        var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
+                        if (holder != null && holder.isActive()) {
+                            holder.onActivated(player);
+                        } else if (!com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry
+                                .activateByPowerId(player, pid)) {
+                            NeoOrigins.LOGGER.warn(
+                                "[CompatB] activate_power: power '{}' has no activation entry point (not an active power)", pid);
+                        }
+                    } finally {
+                        inFlight.remove(pid);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
+                    .doc("Power id to activate, as if its key were pressed — condition, "
+                        + "cooldown, and fail_action of the target power all apply. "
+                        + "The player must currently have the power.")));
 
         // grant_power — dynamically grant a power to the player. Lift-and-shift of
         // parseGrantPower (26.1: Identifier id). The power id (from `power` or the
@@ -2637,6 +2691,69 @@ public final class BuiltinActions {
                     .doc("Damage per interval (default 2.0)."),
                 new FieldSpec("damage_interval_ticks", FormFieldSpec.Kind.INTEGER, false).def(10).range(1.0, null)
                     .doc("Ticks between damage applications (default 10)."),
+                new FieldSpec("move_speed", FormFieldSpec.Kind.NUMBER, false).def(0.2).range(0.0, null)
+                    .doc("Blocks/tick the funnel drifts forward along the caster's facing (0 = stationary; default 0.2)."),
+                new FieldSpec("gravity", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("When true the funnel falls under gravity until its base hits the ground, so a tornado spawned in mid-air drops while it drifts forward (default false = hovers at spawn height)."),
+                new FieldSpec("impact_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Composable action run on each damage-interval tick against every entity caught inside the funnel's inner radius. When set it REPLACES the built-in damage_per_interval; omit to keep the default damage."),
+                new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Visual palette id (client-side; optional).")));
+
+        // spawn_projectile_rain — rain projectiles down across a disk: real
+        // entities (projectile field) or choreographed baked-mesh blades (model
+        // field, default a spectral sword). Kept under the legacy alias
+        // spawn_sword_rain so existing packs keep working.
+        define("spawn_projectile_rain",
+            List.of("spawn_sword_rain"),
+            (json, ctx) -> ActionParser.parseSpawnProjectileRain(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(6.0)
+                    .doc("Radius of the disk the projectiles rain across (default 6.0)."),
+                new FieldSpec("duration_ticks", FormFieldSpec.Kind.INTEGER, false).def(70).range(1.0, null)
+                    .doc("How long the storm lingers before fading (default 70)."),
+                new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(16).range(1.0, null)
+                    .doc("Number of projectiles in the storm (default 16). Legacy alias: sword_count."),
+                new FieldSpec("damage_per_impact", FormFieldSpec.Kind.NUMBER, false).def(4.0)
+                    .doc("Damage each landing projectile deals to foes near it (default 4.0). Legacy alias: damage_per_sword. Ignored when impact_action is set."),
+                new FieldSpec("knockup", FormFieldSpec.Kind.NUMBER, false).def(0.5)
+                    .doc("Upward velocity applied to struck foes (default 0.5)."),
+                new FieldSpec("impact_radius", FormFieldSpec.Kind.NUMBER, false).def(2.0)
+                    .doc("Horizontal radius of each projectile's hit (default 2.0)."),
+                new FieldSpec("weapon_damage_scale", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Per-blade bonus = this × the caster's attack-damage attribute (folds in the held weapon), captured at cast time. 0 = flat damage."),
+                new FieldSpec("impact_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Composable action run at each blade's landing point against entities within impact_radius. When set it REPLACES the built-in damage/knockup; omit to keep the default damage."),
+                new FieldSpec("model", FormFieldSpec.Kind.STRING, false).def("sword")
+                    .doc("Which falling-blade model the client renders. Built-in: 'sword' (spectral blade). Unknown ids fall back to 'sword'. Ignored when 'projectile' is set (real entities draw themselves)."),
+                new FieldSpec("projectile", FormFieldSpec.Kind.STRING, false)
+                    .doc("Real entity-type id to rain instead of the baked-mesh blade (e.g. minecraft:arrow, minecraft:trident). Each scatter point spawns this ACTUAL entity from the sky to fall under real physics; impact_action becomes its on-hit (caster-owned). Unknown/unset id keeps the spectral-blade visual."),
+                new FieldSpec("projectile_speed", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
+                    .doc("Initial downward launch speed of each rained entity; gravity then accelerates it (default 1.0). Only used when 'projectile' is set."),
+                new FieldSpec("spawn_height", FormFieldSpec.Kind.NUMBER, false).def(18.0).range(0.0, null)
+                    .doc("Blocks above each scatter point the entity spawns from (default 18.0). Only used when 'projectile' is set."),
+                new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                    .doc("SNBT compound merged onto each rained entity (e.g. \"{pickup:1b}\" so fired arrows can be picked up). Only used when 'projectile' is set."),
+                new FieldSpec("follow_terrain", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                    .doc("When true (default) each blade/projectile lands on the surface Y under its own scatter point (MOTION_BLOCKING heightmap), so the storm follows hills/stairs instead of all dropping on one flat plane. Set false to lock every drop to the storm center's Y."),
+                new FieldSpec("origin", FormFieldSpec.Kind.STRING, false).def("self")
+                    .doc("Where the storm centers: 'self' (around caster), 'look' (what the caster aims at), or 'impact' (projectile hit point)."),
+                new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Visual palette id (client-side; optional).")));
+
+        // spawn_telegraph — a particle-only ground danger marker (contracting
+        // reticle) that optionally fires a composable action when it expires.
+        define("spawn_telegraph",
+            (json, ctx) -> ActionParser.parseSpawnTelegraph(json, ctx),
+            List.of(
+                new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).def(3.0)
+                    .doc("Radius of the marked danger zone (default 3.0)."),
+                new FieldSpec("duration_ticks", FormFieldSpec.Kind.INTEGER, false).def(20).range(1.0, null)
+                    .doc("Wind-up length: ticks the reticle takes to contract before it expires (default 20)."),
+                new FieldSpec("on_expire", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Composable action run once when the wind-up ends, against entities within radius (caster excluded). Omit for a pure dodge cue with no payoff."),
+                new FieldSpec("origin", FormFieldSpec.Kind.STRING, false).def("self")
+                    .doc("Where the marker centers: 'self' (at caster), 'look' (what the caster aims at), or 'impact' (projectile hit point)."),
                 new FieldSpec("effect_type", FormFieldSpec.Kind.STRING, false)
                     .doc("Visual palette id (client-side; optional).")));
 

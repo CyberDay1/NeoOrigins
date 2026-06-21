@@ -29,6 +29,7 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.IntValue COOLDOWN_COUNTDOWN_OPACITY;
     public static final ModConfigSpec.EnumValue<HudAbilityDisplay> HUD_ABILITY_DISPLAY;
     public static final ModConfigSpec.BooleanValue ALWAYS_SHOW_ABILITY_ICONS;
+    public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
 
     /** What the cooldown/ability HUD cluster shows besides live cooldowns. */
     public enum HudAbilityDisplay {
@@ -118,6 +119,23 @@ public final class NeoOriginsClientConfig {
             .define("always_show_ability_icons", false);
 
         BUILDER.pop();
+
+        BUILDER.comment(
+            "Hotkey pool. Each pack-declared `\"key\": \"translation.key.id\"` on an active",
+            "power consumes one slot. The Controls screen shows N unassigned \"Hotkey N\"",
+            "entries; assignments happen at login from the server-side registry, so",
+            "rebinding a slot affects whichever power currently occupies it.",
+            "Larger pool = more named hotkeys can coexist, but more rows in Controls.",
+            "This is a CLIENT setting: keybinds are registered at client startup, so",
+            "the slot count is chosen locally and cannot be dictated by the server."
+        ).push("hotkeys");
+
+        HOTKEY_POOL_SIZE = BUILDER
+            .comment("Number of named-keybind slots to register at client startup.",
+                     "Default 32. Increase if packs declare more than 32 distinct keys.")
+            .defineInRange("pool_size", 32, 1, 256);
+
+        BUILDER.pop();
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
@@ -145,6 +163,9 @@ public final class NeoOriginsClientConfig {
 
     /** True if every icon-bearing ability should keep its HUD slot while idle. */
     public static boolean isAlwaysShowAbilityIcons() { return ALWAYS_SHOW_ABILITY_ICONS.get(); }
+
+    /** Number of named-keybind slots to register at client startup. */
+    public static int hotkeyPoolSize() { return HOTKEY_POOL_SIZE.get(); }
 
     /** Pushes the current TOML value into {@link com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry}. */
     public static void onConfigLoadOrReload(ModConfigEvent event) {

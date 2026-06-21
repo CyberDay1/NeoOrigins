@@ -12,6 +12,7 @@
       "type": "string",
       "description": "Fully-qualified action verb. `apace:` aliases are accepted.",
       "enum": [
+        "apace:activate_power",
         "apace:actor_action",
         "apace:add_to_set",
         "apace:add_velocity",
@@ -86,6 +87,9 @@
         "apace:spawn_lingering_area",
         "apace:spawn_particles",
         "apace:spawn_projectile",
+        "apace:spawn_projectile_rain",
+        "apace:spawn_sword_rain",
+        "apace:spawn_telegraph",
         "apace:spawn_tornado",
         "apace:steal_item",
         "apace:strip",
@@ -102,6 +106,7 @@
         "apace:toggle",
         "apace:transform_block",
         "apace:trigger_cooldown",
+        "neoorigins:activate_power",
         "neoorigins:actor_action",
         "neoorigins:add_to_set",
         "neoorigins:add_velocity",
@@ -176,6 +181,9 @@
         "neoorigins:spawn_lingering_area",
         "neoorigins:spawn_particles",
         "neoorigins:spawn_projectile",
+        "neoorigins:spawn_projectile_rain",
+        "neoorigins:spawn_sword_rain",
+        "neoorigins:spawn_telegraph",
         "neoorigins:spawn_tornado",
         "neoorigins:steal_item",
         "neoorigins:strip",
@@ -196,6 +204,25 @@
     }
   },
   "oneOf": [
+    {
+      "$comment": "neoorigins:activate_power",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:activate_power",
+            "apace:activate_power"
+          ]
+        },
+        "power": {
+          "description": "Power id to activate, as if its key were pressed — condition, cooldown, and fail_action of the target power all apply. The player must currently have the power.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "power"
+      ]
+    },
     {
       "$comment": "neoorigins:actor_action",
       "properties": {
@@ -2190,6 +2217,140 @@
       ]
     },
     {
+      "$comment": "neoorigins:spawn_projectile_rain",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:spawn_projectile_rain",
+            "neoorigins:spawn_sword_rain",
+            "apace:spawn_projectile_rain",
+            "apace:spawn_sword_rain"
+          ]
+        },
+        "radius": {
+          "description": "Radius of the disk the projectiles rain across (default 6.0).",
+          "type": "number",
+          "default": 6.0
+        },
+        "duration_ticks": {
+          "description": "How long the storm lingers before fading (default 70).",
+          "type": "integer",
+          "default": 70,
+          "minimum": 1
+        },
+        "count": {
+          "description": "Number of projectiles in the storm (default 16). Legacy alias: sword_count.",
+          "type": "integer",
+          "default": 16,
+          "minimum": 1
+        },
+        "damage_per_impact": {
+          "description": "Damage each landing projectile deals to foes near it (default 4.0). Legacy alias: damage_per_sword. Ignored when impact_action is set.",
+          "type": "number",
+          "default": 4.0
+        },
+        "knockup": {
+          "description": "Upward velocity applied to struck foes (default 0.5).",
+          "type": "number",
+          "default": 0.5
+        },
+        "impact_radius": {
+          "description": "Horizontal radius of each projectile's hit (default 2.0).",
+          "type": "number",
+          "default": 2.0
+        },
+        "weapon_damage_scale": {
+          "description": "Per-blade bonus = this × the caster's attack-damage attribute (folds in the held weapon), captured at cast time. 0 = flat damage.",
+          "type": "number",
+          "default": 0.0
+        },
+        "impact_action": {
+          "description": "Composable action run at each blade's landing point against entities within impact_radius. When set it REPLACES the built-in damage/knockup; omit to keep the default damage.",
+          "$ref": "#"
+        },
+        "model": {
+          "description": "Which falling-blade model the client renders. Built-in: 'sword' (spectral blade). Unknown ids fall back to 'sword'. Ignored when 'projectile' is set (real entities draw themselves).",
+          "type": "string",
+          "default": "sword"
+        },
+        "projectile": {
+          "description": "Real entity-type id to rain instead of the baked-mesh blade (e.g. minecraft:arrow, minecraft:trident). Each scatter point spawns this ACTUAL entity from the sky to fall under real physics; impact_action becomes its on-hit (caster-owned). Unknown/unset id keeps the spectral-blade visual.",
+          "type": "string"
+        },
+        "projectile_speed": {
+          "description": "Initial downward launch speed of each rained entity; gravity then accelerates it (default 1.0). Only used when 'projectile' is set.",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        },
+        "spawn_height": {
+          "description": "Blocks above each scatter point the entity spawns from (default 18.0). Only used when 'projectile' is set.",
+          "type": "number",
+          "default": 18.0,
+          "minimum": 0.0
+        },
+        "tag": {
+          "description": "SNBT compound merged onto each rained entity (e.g. \"{pickup:1b}\" so fired arrows can be picked up). Only used when 'projectile' is set.",
+          "type": "string"
+        },
+        "follow_terrain": {
+          "description": "When true (default) each blade/projectile lands on the surface Y under its own scatter point (MOTION_BLOCKING heightmap), so the storm follows hills/stairs instead of all dropping on one flat plane. Set false to lock every drop to the storm center's Y.",
+          "type": "boolean",
+          "default": true
+        },
+        "origin": {
+          "description": "Where the storm centers: 'self' (around caster), 'look' (what the caster aims at), or 'impact' (projectile hit point).",
+          "type": "string",
+          "default": "self"
+        },
+        "effect_type": {
+          "description": "Visual palette id (client-side; optional).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:spawn_telegraph",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:spawn_telegraph",
+            "apace:spawn_telegraph"
+          ]
+        },
+        "radius": {
+          "description": "Radius of the marked danger zone (default 3.0).",
+          "type": "number",
+          "default": 3.0
+        },
+        "duration_ticks": {
+          "description": "Wind-up length: ticks the reticle takes to contract before it expires (default 20).",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "on_expire": {
+          "description": "Composable action run once when the wind-up ends, against entities within radius (caster excluded). Omit for a pure dodge cue with no payoff.",
+          "$ref": "#"
+        },
+        "origin": {
+          "description": "Where the marker centers: 'self' (at caster), 'look' (what the caster aims at), or 'impact' (projectile hit point).",
+          "type": "string",
+          "default": "self"
+        },
+        "effect_type": {
+          "description": "Visual palette id (client-side; optional).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:spawn_tornado",
       "properties": {
         "type": {
@@ -2234,6 +2395,21 @@
           "type": "integer",
           "default": 10,
           "minimum": 1
+        },
+        "move_speed": {
+          "description": "Blocks/tick the funnel drifts forward along the caster's facing (0 = stationary; default 0.2).",
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0.0
+        },
+        "gravity": {
+          "description": "When true the funnel falls under gravity until its base hits the ground, so a tornado spawned in mid-air drops while it drifts forward (default false = hovers at spawn height).",
+          "type": "boolean",
+          "default": false
+        },
+        "impact_action": {
+          "description": "Composable action run on each damage-interval tick against every entity caught inside the funnel's inner radius. When set it REPLACES the built-in damage_per_interval; omit to keep the default damage.",
+          "$ref": "#"
         },
         "effect_type": {
           "description": "Visual palette id (client-side; optional).",
@@ -2597,6 +2773,7 @@
         "type": {
           "not": {
             "enum": [
+              "apace:activate_power",
               "apace:actor_action",
               "apace:add_to_set",
               "apace:add_velocity",
@@ -2671,6 +2848,9 @@
               "apace:spawn_lingering_area",
               "apace:spawn_particles",
               "apace:spawn_projectile",
+              "apace:spawn_projectile_rain",
+              "apace:spawn_sword_rain",
+              "apace:spawn_telegraph",
               "apace:spawn_tornado",
               "apace:steal_item",
               "apace:strip",
@@ -2687,6 +2867,7 @@
               "apace:toggle",
               "apace:transform_block",
               "apace:trigger_cooldown",
+              "neoorigins:activate_power",
               "neoorigins:actor_action",
               "neoorigins:add_to_set",
               "neoorigins:add_velocity",
@@ -2761,6 +2942,9 @@
               "neoorigins:spawn_lingering_area",
               "neoorigins:spawn_particles",
               "neoorigins:spawn_projectile",
+              "neoorigins:spawn_projectile_rain",
+              "neoorigins:spawn_sword_rain",
+              "neoorigins:spawn_telegraph",
               "neoorigins:spawn_tornado",
               "neoorigins:steal_item",
               "neoorigins:strip",
