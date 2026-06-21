@@ -1,0 +1,22 @@
+{
+  "name": { "text": "Asura" },
+  "description": { "text": "A frail-bodied berserker who grows faster and stronger the closer death looms. Fragile when whole, monstrous when bleeding. As the fury deepens it learns to feed itself: draining life from every blow it lands, refusing to fall while it still rages, and at last erupting in a blast of raw wrath." },
+  "icon": "minecraft:netherite_axe",
+  "impact": "high",
+  "order": 100,
+  "powers": [
+    "neoorigins:asura_frail_frame",
+    "neoorigins:asura_bloodrage_1",
+    "neoorigins:asura_bloodrage_2",
+    "neoorigins:asura_bloodrage_3",
+    "neoorigins:asura_unmovable",
+    "neoorigins:asura_slam",
+    "neoorigins:asura_frenzy"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    { "tier": 1, "add": [ "neoorigins:asura_undying_rage" ], "remove": [] },
+    { "tier": 2, "add": [ "neoorigins:asura_blood_tithe" ], "remove": [] },
+    { "tier": 3, "add": [ "neoorigins:asura_wrath_eruption" ], "remove": [] }
+  ]
+}

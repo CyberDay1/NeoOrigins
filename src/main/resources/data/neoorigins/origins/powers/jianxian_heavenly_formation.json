@@ -1,0 +1,30 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:iron_sword",
+  "name": { "text": "Heavenly Sword Formation" },
+  "description": { "text": "Call a ring of spectral blades to rain down around you, stabbing into the ground and cutting every foe nearby. Requires a sword in hand." },
+  "cooldown_ticks": 400,
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:play_sound", "sound": "minecraft:item.trident.return", "volume": 1.2, "pitch": 1.0 },
+      {
+        "type": "neoorigins:spawn_projectile_rain",
+        "origin": "self",
+        "radius": 6,
+        "count": 28,
+        "duration_ticks": 120,
+        "telegraph_ticks": 12,
+        "damage_per_impact": 5,
+        "weapon_damage_scale": 0.4,
+        "knockup": 0.5,
+        "impact_radius": 2.0
+      }
+    ]
+  }
+}

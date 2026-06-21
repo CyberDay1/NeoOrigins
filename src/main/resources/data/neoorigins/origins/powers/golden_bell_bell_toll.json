@@ -1,0 +1,31 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:bell",
+  "name": { "text": "Bell Toll" },
+  "description": { "text": "Strike your golden body like a great bell. The resonating toll rings out, battering nearby foes and leaving them weakened and slowed." },
+  "cooldown_ticks": 400,
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:play_sound", "sound": "minecraft:block.bell.use", "volume": 1.6, "pitch": 0.6 },
+      {
+        "type": "neoorigins:area_of_effect",
+        "radius": 6.0,
+        "include_source": false,
+        "entity_action": {
+          "type": "neoorigins:and",
+          "actions": [
+            { "type": "neoorigins:damage", "amount": 6 },
+            {
+              "type": "neoorigins:apply_effect",
+              "effects": [
+                { "effect": "minecraft:slowness", "amplifier": 1, "duration": 100 },
+                { "effect": "minecraft:weakness", "amplifier": 1, "duration": 100 }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

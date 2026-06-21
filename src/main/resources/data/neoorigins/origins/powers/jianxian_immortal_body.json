@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "name": { "text": "Immortal Body" },
+  "description": { "text": "A sword immortal does not fall to their death; you take no fall damage." },
+  "action": "fall_damage"
+}

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Rooted Stance" },
+  "description": { "text": "You stand like a mountain and are hard to knock back." },
+  "attribute": "minecraft:generic.knockback_resistance",
+  "amount": 0.6,
+  "operation": "add_value"
+}

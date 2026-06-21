@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:wall_climbing",
+  "name": { "text": "Wall Grace" },
+  "description": { "text": "Cling to and climb vertical surfaces like a swallow on a cliff." }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "name": { "text": "Bloodrage II" },
+  "description": { "text": "Below 40% health, the fury deepens to Strength II and Speed II." },
+  "toggleable": false,
+  "condition": { "type": "neoorigins:relative_health", "comparison": "<=", "compare_to": 0.40 },
+  "effects": [
+    { "effect": "minecraft:strength", "amplifier": 1, "show_icon": true },
+    { "effect": "minecraft:speed", "amplifier": 1, "show_icon": true }
+  ]
+}

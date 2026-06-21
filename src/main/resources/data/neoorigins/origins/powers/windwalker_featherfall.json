@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "name": { "text": "Featherfall" },
+  "description": { "text": "You drift like a leaf and never take fall damage." },
+  "action": "fall_damage"
+}

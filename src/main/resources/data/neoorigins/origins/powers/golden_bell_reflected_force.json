@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:thorns_on_hit",
+  "name": { "text": "Reflected Force" },
+  "description": { "text": "Your tempered body no longer merely shrugs off blows: it hurls their force back twice as hard upon the attacker." },
+  "damage": 8,
+  "fire_ticks": 0
+}

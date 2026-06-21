@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "name": { "text": "Bloodrage III" },
+  "description": { "text": "On the brink at 25% health, you become an Asura: Strength III and Speed III." },
+  "toggleable": false,
+  "condition": { "type": "neoorigins:relative_health", "comparison": "<=", "compare_to": 0.25 },
+  "effects": [
+    { "effect": "minecraft:strength", "amplifier": 2, "show_icon": true },
+    { "effect": "minecraft:speed", "amplifier": 2, "show_icon": true }
+  ]
+}

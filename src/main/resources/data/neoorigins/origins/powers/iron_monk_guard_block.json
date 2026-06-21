@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:modify_damage",
+  "name": { "text": "Bulwark" },
+  "description": { "text": "While guarding with stamina to spare, incoming damage is reduced by 90%." },
+  "direction": "in",
+  "multiplier": 0.1,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:power_active", "power": "neoorigins:iron_monk_guard" },
+      { "type": "neoorigins:resource", "resource": "neoorigins:iron_monk_stamina", "comparison": ">=", "compare_to": 1 }
+    ]
+  }
+}

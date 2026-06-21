@@ -60,10 +60,15 @@ public abstract class AbstractVfxEntity extends Entity {
         SynchedEntityData.defineId(AbstractVfxEntity.class, EntityDataSerializers.FLOAT);
     protected static final EntityDataAccessor<String> DATA_EFFECT_TYPE =
         SynchedEntityData.defineId(AbstractVfxEntity.class, EntityDataSerializers.STRING);
+    // Synced so the client renderer's timing (fall start, fade-out, self-discard)
+    // matches the server's actual lifetime. Left as a plain field, the client
+    // keeps the default and renderers desync from server-side effects (blades
+    // fade/despawn early while the server keeps firing impacts).
+    protected static final EntityDataAccessor<Integer> DATA_MAX_LIFETIME =
+        SynchedEntityData.defineId(AbstractVfxEntity.class, EntityDataSerializers.INT);
 
     @Nullable protected UUID casterUuid;
     protected int lifetime;
-    protected int maxLifetime = 100;
 
     protected AbstractVfxEntity(EntityType<? extends AbstractVfxEntity> type, Level level) {
         super(type, level);
@@ -74,6 +79,7 @@ public abstract class AbstractVfxEntity extends Entity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         builder.define(DATA_RANGE, 3.0f);
         builder.define(DATA_EFFECT_TYPE, "");
+        builder.define(DATA_MAX_LIFETIME, 100);
     }
 
     // ─── Accessors ───────────────────────────────────────────────────────
@@ -107,13 +113,14 @@ public abstract class AbstractVfxEntity extends Entity {
     public int getLifetime() { return lifetime; }
 
     /** Max ticks before auto-despawn. Subclasses set via {@link #setMaxLifetime(int)}. */
-    public int getMaxLifetime() { return maxLifetime; }
+    public int getMaxLifetime() { return entityData.get(DATA_MAX_LIFETIME); }
 
-    public void setMaxLifetime(int ticks) { this.maxLifetime = Math.max(1, ticks); }
+    public void setMaxLifetime(int ticks) { entityData.set(DATA_MAX_LIFETIME, Math.max(1, ticks)); }
 
     /** 0.0–1.0, how close to expiry. Useful for fade-out visuals. */
     public float getLifetimeProgress() {
-        return maxLifetime <= 0 ? 0f : Math.min(1.0f, (float) lifetime / maxLifetime);
+        int max = getMaxLifetime();
+        return max <= 0 ? 0f : Math.min(1.0f, (float) lifetime / max);
     }
 
     // ─── Lifecycle ───────────────────────────────────────────────────────
@@ -122,7 +129,7 @@ public abstract class AbstractVfxEntity extends Entity {
     public void tick() {
         super.tick();
         lifetime++;
-        if (lifetime >= maxLifetime) {
+        if (lifetime >= getMaxLifetime()) {
             if (level() instanceof ServerLevel sl) onExpire(sl);
             discard();
             return;
@@ -172,7 +179,7 @@ public abstract class AbstractVfxEntity extends Entity {
     @Override
     protected void readAdditionalSaveData(ValueInput input) {
         lifetime = input.getIntOr("Lifetime", 0);
-        maxLifetime = input.getIntOr("MaxLifetime", 100);
+        entityData.set(DATA_MAX_LIFETIME, input.getIntOr("MaxLifetime", 100));
         entityData.set(DATA_RANGE, input.getFloatOr("Range", getRange()));
         input.getString("EffectType").ifPresent(s -> entityData.set(DATA_EFFECT_TYPE, s));
         input.getString("CasterUUID").ifPresent(s -> {
@@ -183,7 +190,7 @@ public abstract class AbstractVfxEntity extends Entity {
     @Override
     protected void addAdditionalSaveData(ValueOutput output) {
         output.putInt("Lifetime", lifetime);
-        output.putInt("MaxLifetime", maxLifetime);
+        output.putInt("MaxLifetime", getMaxLifetime());
         output.putFloat("Range", getRange());
         output.putString("EffectType", getEffectType());
         if (casterUuid != null) output.putString("CasterUUID", casterUuid.toString());

@@ -13,11 +13,9 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Tornado VFX entity — pulls entities inward, lifts them, and spins them
- * tangentially, with optional damage at interval. Visual is entirely
- * server-emitted spiral particles; no mesh is used (the original
- * CybersBuildASpell tornado used a 8k-line GeckoLib-animated model that
- * doesn't port cleanly; the particle spiral reads well on its own and is
- * more customizable via {@code particle_type}).
+ * tangentially, with optional damage at interval. The visual is a 3D mesh
+ * funnel ({@code tornado.geo.json}) rendered by {@code TornadoRenderer},
+ * backed by a column of server-emitted spiral particles.
  *
  * <p>Ported concept from CybersBuildASpell's {@code TornadoEntity},
  * rebased on NeoOrigins's {@link AbstractVfxEntity} so lifetime/caster/
@@ -26,6 +24,17 @@ import net.minecraft.world.phys.Vec3;
  * <p>Spawn via {@code neoorigins:spawn_tornado}.
  */
 public class TornadoVfxEntity extends AbstractVfxEntity {
+
+    /**
+     * Funnel size + spin multipliers, applied on top of the base design radius
+     * ({@link #getRange()}). Shared with {@code TornadoRenderer} so the visual
+     * funnel and the server-side pull/damage field stay the same shape: the
+     * affected area widens with {@link #WIDTH_MULT} and the column rises with
+     * {@link #HEIGHT_MULT}, while {@link #SPIN_MULT} only speeds the render spin.
+     */
+    public static final float WIDTH_MULT = 3.0f;
+    public static final float HEIGHT_MULT = 7.0f;
+    public static final float SPIN_MULT = 3.0f;
 
     private static final float DEFAULT_PULL_STRENGTH = 1.0f;
     private static final float DEFAULT_LIFT_STRENGTH = 0.5f;
@@ -50,6 +59,13 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
     /** Downward acceleration per tick, capped at a sane terminal velocity. */
     private static final double GRAVITY_PER_TICK = 0.08;
     private static final double TERMINAL_VELOCITY = -3.0;
+    /** Per-tick fraction the funnel base lerps toward the surface height while
+     *  riding terrain. Lower = smoother/laggier glide, higher = snappier. This
+     *  is what turns stepped elevation changes into a smooth ride over hills. */
+    private static final double GROUND_FOLLOW_LERP = 0.2;
+    /** Height above the surface beyond which a gravity funnel is still airborne
+     *  (falling); at or below it switches to riding the ground contour. */
+    private static final double GROUND_CONTACT_EPS = 0.5;
 
     /**
      * Composable payload run against each caught entity on the damage interval,
@@ -96,25 +112,43 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
         double newX = getX() + (moveSpeed > 0 ? moveDir.x * moveSpeed : 0.0);
         double newZ = getZ() + (moveSpeed > 0 ? moveDir.z * moveSpeed : 0.0);
         double newY = getY();
-        if (applyGravity) {
-            fallVel = Math.max(TERMINAL_VELOCITY, fallVel - GRAVITY_PER_TICK);
-            newY += fallVel;
-            // Rest the funnel base on the surface under its new XZ position so it
-            // can't sink through the world (VFX entities are noPhysics → no
-            // vanilla collision; clamp to the MOTION_BLOCKING heightmap instead).
+
+        // A drifting (or gravity-enabled) funnel rides the terrain; a stationary
+        // non-gravity funnel hovers at its spawn height as before.
+        if (moveSpeed > 0 || applyGravity) {
+            // Surface height under the funnel's new XZ (VFX entities are noPhysics
+            // → no vanilla collision, so clamp to the MOTION_BLOCKING heightmap).
             double groundY = level.getHeight(
                 net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
                 net.minecraft.util.Mth.floor(newX), net.minecraft.util.Mth.floor(newZ));
-            if (newY <= groundY) {
-                newY = groundY;
+
+            if (applyGravity && newY > groundY + GROUND_CONTACT_EPS) {
+                // Spawned above the ground: fall under gravity until the base lands.
+                fallVel = Math.max(TERMINAL_VELOCITY, fallVel - GRAVITY_PER_TICK);
+                newY += fallVel;
+                if (newY <= groundY) {
+                    newY = groundY;
+                    fallVel = 0.0;
+                }
+            } else {
+                // Grounded: ride the contour smoothly. Lerp the base toward the
+                // surface height so elevation steps glide instead of snapping —
+                // this is what keeps the forward drift smooth over hills and dips.
                 fallVel = 0.0;
+                newY += (groundY - newY) * GROUND_FOLLOW_LERP;
+                if (Math.abs(groundY - newY) < 0.01) newY = groundY;
             }
         }
+
         if (newX != getX() || newY != getY() || newZ != getZ()) {
             setPos(newX, newY, newZ);
         }
 
-        final float range = getRange();
+        final float baseRange = getRange();
+        // Affected area widened to match the wider funnel; column height raised
+        // to match the taller funnel (WIDTH_MULT / HEIGHT_MULT shared with the renderer).
+        final float range = baseRange * WIDTH_MULT;
+        final float columnHeight = baseRange * HEIGHT_MULT;
         // Fire on the interval when there's a payload to deliver — either the
         // built-in damage or a composable impact_action. (Gating on damage alone
         // would suppress an impact_action set with damage_per_interval = 0.)
@@ -125,7 +159,7 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
 
         // Single pass — pull/lift/spin every tick; damage-in-cone on interval
         // ticks when inside the inner radius. Merging avoids a second scan.
-        for (Entity target : level.getEntities(this, getBoundingBox().inflate(range, range * 2, range))) {
+        for (Entity target : level.getEntities(this, getBoundingBox().inflate(range, columnHeight, range))) {
             if (target == this) continue;
             if (casterUuid != null && target.getUUID().equals(casterUuid)) continue;
 
@@ -155,13 +189,13 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
             level.playSound(null, blockPosition(), SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 0.5f, 1.5f);
         }
 
-        // Spiral particles — cloud column with a helical twist. Particles
-        // are emitted every other tick; their spread encodes the cone shape.
         if (getLifetime() % 2 == 0) {
-            double angle = (getLifetime() * 0.6) % (Math.PI * 2);
-            for (int h = 0; h < 4; h++) {
-                double y = h * (range * 0.6);
-                double r = range * (0.3 + h * 0.15);
+            // Spin 3× faster to match the renderer, and stack 6 rings up the full
+            // (taller) column so the particle funnel reads as tall as the mesh.
+            double angle = (getLifetime() * 0.6 * SPIN_MULT) % (Math.PI * 2);
+            for (int h = 0; h < 6; h++) {
+                double y = (h / 6.0) * columnHeight;
+                double r = range * (0.18 + h * 0.06);
                 double px = Math.cos(angle + h * 1.2) * r;
                 double pz = Math.sin(angle + h * 1.2) * r;
                 level.sendParticles(ParticleTypes.CLOUD,

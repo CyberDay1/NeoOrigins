@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:creative_flight",
+  "cooldown_icon": "minecraft:elytra",
+  "name": { "text": "Riding the Wind" },
+  "description": { "text": "Master of weightlessness at last: step onto the sky itself and fly where you will." }
+}

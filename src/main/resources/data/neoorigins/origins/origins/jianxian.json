@@ -1,0 +1,22 @@
+{
+  "name": { "text": "Sword Immortal" },
+  "description": { "text": "A sword immortal who flies on their blade, hurls sword-qi at range and blinks through battle. Every signature art is bound to the sword in hand: disarmed, you fall back to a fall-immune mortal. As blade and heart become one, your edge bites deeper, a heavenly formation rains swords around you, and a single gathered slash can all but sever the sky." },
+  "icon": "minecraft:diamond_sword",
+  "impact": "high",
+  "order": 105,
+  "powers": [
+    "neoorigins:jianxian_sword_heart",
+    "neoorigins:jianxian_keen_edge",
+    "neoorigins:jianxian_sword_qi",
+    "neoorigins:jianxian_riding_sword",
+    "neoorigins:jianxian_flickering_slash",
+    "neoorigins:jianxian_immortal_body",
+    "neoorigins:jianxian_ten_thousand_swords"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    { "tier": 1, "add": [ "neoorigins:jianxian_sword_heart_unity" ], "remove": [] },
+    { "tier": 2, "add": [ "neoorigins:jianxian_heavenly_formation" ], "remove": [] },
+    { "tier": 3, "add": [ "neoorigins:jianxian_heaven_severing_slash" ], "remove": [] }
+  ]
+}

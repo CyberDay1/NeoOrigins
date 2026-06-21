@@ -175,6 +175,8 @@ public final class BuiltinPowers {
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
         define("flight",                   FlightPower.class,                 List.of(
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+        define("creative_flight",          CreativeFlightPower.class,         List.of(
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
         define("natural_glide",            NaturalGlidePower.class,           List.of());
         define("no_natural_regen",         NoNaturalRegenPower.class,         List.of());
@@ -694,6 +696,12 @@ public final class BuiltinPowers {
                 .def(false).doc("If true the dash follows look pitch; if false it stays horizontal; default false."),
             new FieldSpec("set_velocity", Kind.BOOLEAN, false)
                 .def(false).doc("If true replace the player's velocity; if false add to it; default false."),
+            new FieldSpec("damage", Kind.NUMBER, false)
+                .def(0.0).doc("Flat damage dealt to living entities near the dash path; the damage sweep runs when either this or weapon_damage_scale is above 0; default 0."),
+            new FieldSpec("damage_radius", Kind.NUMBER, false)
+                .def(2.0).doc("Radius around the dash path within which entities are hit when the damage sweep runs; default 2.0."),
+            new FieldSpec("weapon_damage_scale", Kind.NUMBER, false)
+                .def(0.0).doc("Adds this fraction of the held weapon's attack damage on top of 'damage' (1.0 = full weapon damage); default 0."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));

@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "name": { "text": "Inner Calm" },
+  "description": { "text": "While meditating (crouched), your circulating Qi mends your wounds." },
+  "toggleable": false,
+  "condition": { "type": "neoorigins:sneaking" },
+  "effects": [
+    { "effect": "minecraft:regeneration", "amplifier": 0, "show_icon": true }
+  ]
+}

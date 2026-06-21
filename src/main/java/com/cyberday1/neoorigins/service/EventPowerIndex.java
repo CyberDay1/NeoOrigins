@@ -39,6 +39,7 @@ public final class EventPowerIndex {
         // ----- core lifecycle / combat -----
         ATTACK,                 // player attacked something
         HIT_TAKEN,              // player took damage
+        HIT_DEALT,              // player dealt damage to a living entity (attacker side)
         KILL,                   // player killed a living entity
         DEATH,                  // player died
         BLOCK_BREAK,
@@ -293,6 +294,17 @@ public final class EventPowerIndex {
             this(amount, source, null);
         }
     }
+
+    /**
+     * Context for {@link Event#HIT_DEALT}: fired on the ATTACKER (a player) when
+     * they deal damage to a living entity. Carries the final post-modifier damage
+     * amount, the victim, and the damage source — the attacker-side mirror of
+     * {@link HitTakenContext}. Lets {@code neoorigins:hit_dealt_amount} gate on the
+     * most recent damage the player dealt to a target.
+     */
+    public record HitDealtContext(float amount,
+                                  net.minecraft.world.entity.LivingEntity target,
+                                  net.minecraft.world.damagesource.DamageSource source) {}
 
     /**
      * Context for {@link Event#KILL}: the killed entity plus (when available)

@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:condition_passive",
+  "name": { "text": "Dantian Expansion" },
+  "description": { "text": "Your inner core has been widened and tempered: Qi now circulates and replenishes even as you move and fight." },
+  "interval": 20,
+  "condition": { "type": "neoorigins:sneaking", "inverted": true },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "neoorigins:qi_resource",
+    "operation": "add",
+    "change": 2
+  }
+}

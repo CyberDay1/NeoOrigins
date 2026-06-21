@@ -1,0 +1,22 @@
+{
+  "name": { "text": "Iron Monk" },
+  "description": { "text": "A defender monk whose every art draws on one pool of stamina. Raise your guard to shrug off blows, but block and strike both burn the same reserve, and an exhausted Iron Monk is wide open. With training the stance turns the fight: blows rebound on the attacker, stamina trickles back even mid-guard, and the Lohan Palm clears everything around you." },
+  "icon": "minecraft:shield",
+  "impact": "medium",
+  "order": 104,
+  "powers": [
+    "neoorigins:iron_monk_stamina",
+    "neoorigins:iron_monk_guard",
+    "neoorigins:iron_monk_guard_drain",
+    "neoorigins:iron_monk_guard_block",
+    "neoorigins:iron_monk_guard_react",
+    "neoorigins:iron_monk_palm_strike",
+    "neoorigins:iron_monk_iron_resolve"
+  ],
+  "upgrades": [],
+  "tier_powers": [
+    { "tier": 1, "add": [ "neoorigins:iron_monk_counter_stance" ], "remove": [] },
+    { "tier": 2, "add": [ "neoorigins:iron_monk_sea_of_stamina" ], "remove": [] },
+    { "tier": 3, "add": [ "neoorigins:iron_monk_lohan_palm" ], "remove": [] }
+  ]
+}

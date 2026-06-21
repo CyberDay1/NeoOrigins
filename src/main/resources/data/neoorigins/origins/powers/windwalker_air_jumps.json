@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:resource",
+  "name": { "text": "Air Steps" },
+  "description": { "text": "Mid-air jumps available before you next touch the ground." },
+  "min": 0,
+  "max": 2,
+  "start_value": 2,
+  "regen_rate": 2,
+  "regen_interval": 1,
+  "regen_condition": { "type": "neoorigins:on_ground" },
+  "hidden": true
+}

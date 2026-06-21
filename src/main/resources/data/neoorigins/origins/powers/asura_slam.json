@@ -1,0 +1,35 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:mace",
+  "name": { "text": "Asura Slam" },
+  "description": { "text": "Crash forward and hammer the ground, hurling every nearby foe away as you lunge through them." },
+  "cooldown_ticks": 80,
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.generic.explode",
+        "volume": 0.8,
+        "pitch": 0.7
+      },
+      {
+        "type": "neoorigins:area_of_effect",
+        "radius": 4.0,
+        "include_source": false,
+        "entity_action": { "type": "neoorigins:damage", "amount": 6 }
+      },
+      {
+        "type": "neoorigins:pull_entities",
+        "radius": 4.0,
+        "strength": -1.6,
+        "include_players": true
+      },
+      {
+        "type": "neoorigins:dash",
+        "strength": 1.1,
+        "allow_vertical": false
+      }
+    ]
+  }
+}

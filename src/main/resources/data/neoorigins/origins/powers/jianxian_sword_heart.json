@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Sword Heart" },
+  "description": { "text": "With a blade in hand you strike far harder. Empty-handed, you are merely mortal." },
+  "attribute": "minecraft:generic.attack_damage",
+  "amount": 4,
+  "operation": "add_value",
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  }
+}

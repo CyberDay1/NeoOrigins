@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "name": { "text": "Unmovable Wrath" },
+  "description": { "text": "On the brink at 25% health, nothing can move you: 100% knockback resistance." },
+  "attribute": "minecraft:generic.knockback_resistance",
+  "amount": 1.0,
+  "operation": "add_value",
+  "condition": { "type": "neoorigins:relative_health", "comparison": "<=", "compare_to": 0.25 }
+}

@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:iron_ingot",
+  "name": { "text": "Palm Strike" },
+  "description": { "text": "Slam a shockwave into everything around you, damaging and tossing nearby foes. Costs 20 stamina." },
+  "cooldown_ticks": 40,
+  "resource_cost": "neoorigins:iron_monk_stamina",
+  "resource_cost_amount": 20,
+  "entity_action": {
+    "type": "neoorigins:area_of_effect",
+    "radius": 3.5,
+    "include_source": false,
+    "entity_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        { "type": "neoorigins:damage", "amount": 5 },
+        { "type": "neoorigins:add_velocity", "y": 0.5, "set": false, "space": "world" }
+      ]
+    }
+  }
+}

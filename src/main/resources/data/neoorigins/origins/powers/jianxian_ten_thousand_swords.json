@@ -1,0 +1,36 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:netherite_sword",
+  "name": { "text": "Ten Thousand Swords Return" },
+  "description": { "text": "Hurl a spectral blade along your aim. Where it strikes, a storm of swords rains from the sky and stabs into the ground all around, cutting and hurling every foe caught in the storm. Requires a sword in hand." },
+  "cooldown_ticks": 600,
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:play_sound", "sound": "minecraft:entity.player.attack.sweep", "volume": 1.6, "pitch": 0.8 },
+      { "type": "neoorigins:play_sound", "sound": "minecraft:item.trident.throw", "volume": 1.2, "pitch": 1.1 },
+      {
+        "type": "neoorigins:spawn_projectile",
+        "entity_type": "neoorigins:thrown_sword",
+        "speed": 1.6,
+        "on_hit_action": {
+          "type": "neoorigins:spawn_projectile_rain",
+          "origin": "impact",
+          "radius": 11,
+          "count": 56,
+          "duration_ticks": 200,
+          "telegraph_ticks": 14,
+          "damage_per_impact": 4,
+          "weapon_damage_scale": 0.4,
+          "knockup": 0.6,
+          "impact_radius": 2.5
+        }
+      }
+    ]
+  }
+}

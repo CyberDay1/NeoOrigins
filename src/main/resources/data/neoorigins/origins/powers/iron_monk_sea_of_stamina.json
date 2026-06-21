@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:condition_passive",
+  "name": { "text": "Sea of Stamina" },
+  "description": { "text": "Your reserves have deepened into a sea: stamina trickles back even while your guard is held, so you no longer run dry mid-stance." },
+  "interval": 20,
+  "condition": { "type": "neoorigins:power_active", "power": "neoorigins:iron_monk_guard" },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "neoorigins:iron_monk_stamina",
+    "operation": "add",
+    "change": 1
+  }
+}

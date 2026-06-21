@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:thorns_on_hit",
+  "name": { "text": "Hard Qigong" },
+  "description": { "text": "Strikes against your tempered body rebound on the attacker." },
+  "damage": 4,
+  "fire_ticks": 0
+}

@@ -420,17 +420,165 @@ face-culled vertex data, and renders it efficiently every frame.
 
 ---
 
+## Level 4: Arbitrary triangle meshes (`BakedMeshModel`)
+
+**Goal:** render a model that *isn't* cube-soup — a curved blade, an organic
+shape, anything modelled in Blender and exported to glTF/GLB — that
+`GeoJsonModel` (Level 3) cannot represent.
+
+**Why a separate path.** `GeoJsonModel` only bakes Bedrock cubes; an arbitrary
+triangle mesh has no cube representation. Rather than ship a full glTF parser in
+the mod, the model is converted **offline** into a flat vertex array and shipped
+as a small binary `.bakedmesh` blob (the `NBM1` format). At runtime
+`BakedMeshModel` reads that array straight into the same quad-based
+`VertexConsumer` path Level 3 already uses — so the only new cost is the offline
+bake step.
+
+### The asset files
+
+```
+assets/yourmod/geo/yourmodel.bakedmesh        <- baked NBM1 blob (binary)
+assets/yourmod/textures/entity/yourmodel.png  <- texture (UVs are baked into the mesh)
+```
+
+### The `NBM1` blob format
+
+A `.bakedmesh` file is a flat little-endian binary blob:
+
+| Offset | Field | Type | Notes |
+|---|---|---|---|
+| 0 | magic | 4 bytes ASCII | Always `NBM1`. A file that doesn't start with these bytes is rejected (and the fallback quad is used). |
+| 4 | `quadCount` | uint32 | Number of quads. |
+| 8 | `radius` | float32 | Bounding radius in **model units** (pre-scale). |
+| 12 | `vertices` | `quadCount × 4 × 8` float32 | Per vertex: `x, y, z, u, v, nx, ny, nz`. |
+
+- **8 floats per vertex** (position, UV, normal), **4 vertices per quad**.
+- Source triangles are expanded into **degenerate quads** (`v0, v1, v2, v2`) at
+  bake time so the output matches the quad-based vertex path. A triangle mesh of
+  N triangles bakes to N quads.
+- Positions are **recentered to the origin** at bake time but kept in the source
+  model's units, which are typically far larger than a block — that's what the
+  load-time `scale` is for (below).
+
+### Baking the blob
+
+The blob is produced offline by the reference `bake_glb.js` baker (a small Node
+script that reads a GLB and writes `NBM1`) — it is **not** part of the runtime
+mod. The workflow:
+
+1. Model and UV-map your mesh, export to **GLB**.
+2. Run the baker to emit `yourmodel.bakedmesh`.
+3. Drop it (and its `.png`) into `assets/yourmod/geo|textures/`.
+
+Because the format is the documented flat array above, any tool that emits the
+same layout works — the baker is just the reference producer.
+
+### Loading
+
+```java
+private static final String MODEL_PATH = "/assets/yourmod/geo/yourmodel.bakedmesh";
+/** Source model is ~20 units long; scale to ~1.1 blocks for a flying blade. */
+private static final float MODEL_SCALE = 0.055f;
+private static BakedMeshModel model;
+// ...later, lazily on first render:
+if (model == null) {
+    model = BakedMeshModel.load(MODEL_PATH, MODEL_SCALE);
+}
+```
+
+- `load(classpathPath, scale)` pre-multiplies **every vertex position and the
+  bounding radius** by `scale`, so the baked floats land in block units (matching
+  `GeoJsonModel`'s convention). Choose `scale` to bring the source-model size
+  down to blocks; the renderer's own `poseStack.scale(...)` then stays a purely
+  cosmetic fine-tune.
+- A missing or malformed file **never crashes** — `load` logs the error and
+  returns a tiny 0.25-block fallback quad, so a bad asset is visible but harmless.
+- Parse once and cache in a `static` field (lazily on first render, or at class
+  load). The same blob can back several renderers — `ProjectileRainRenderer`
+  caches one `BakedMeshModel` per model id in a map.
+
+### Rendering
+
+Aim and spin in the renderer, then hand the `PoseStack` + `VertexConsumer` to the
+model inside a `submitCustomGeometry` callback. This is the real thrown-sword
+renderer, trimmed to the 26.x submit pipeline (the aimed velocity and age are
+snapshotted into the render state during `extractRenderState`):
+
+```java
+public class ThrownSwordRenderer
+        extends EntityRenderer<ThrownSwordProjectile, ThrownSwordRenderState> {
+
+    private static final RenderType RENDER_TYPE = RenderTypes.entityTranslucent(TEXTURE);
+    private static final int TINT_R = 175, TINT_G = 215, TINT_B = 255, TINT_A = 235;
+
+    @Override
+    public ThrownSwordRenderState createRenderState() { return new ThrownSwordRenderState(); }
+
+    @Override
+    public void extractRenderState(ThrownSwordProjectile entity,
+                                   ThrownSwordRenderState state, float partialTick) {
+        super.extractRenderState(entity, state, partialTick);
+        var v = entity.getDeltaMovement();
+        state.velX = v.x; state.velY = v.y; state.velZ = v.z;
+        state.age = entity.tickCount;
+    }
+
+    @Override
+    public void submit(ThrownSwordRenderState state, PoseStack poseStack,
+                       SubmitNodeCollector collector, CameraRenderState camera) {
+        if (model == null) model = BakedMeshModel.load(MODEL_PATH, MODEL_SCALE);
+
+        // Aim the blade's +Z down its velocity vector, then spin about that axis.
+        float spin = (state.age + state.partialTick) * SPIN_PER_TICK;
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(aimYaw));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-aimPitch));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(spin));
+
+        collector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, consumer) ->
+            model.renderTinted(pose, consumer, TINT_R, TINT_G, TINT_B, TINT_A,
+                0xF000F0, OverlayTexture.NO_OVERLAY));
+        poseStack.popPose();
+
+        super.submit(state, poseStack, collector, camera);
+    }
+}
+```
+
+- `render(poseStack, consumer, packedLight, packedOverlay)` draws the mesh white;
+  `renderTinted(..., r, g, b, a, ...)` applies a per-vertex tint + alpha — use it
+  for `effect_type`-themed colour variants.
+- `getRadius()` returns the **post-scale** bounding radius in blocks: divide your
+  desired on-screen size by it to derive a scale, or use it for cull/spacing math
+  (the rain renderer uses it to space blades).
+- `getQuadCount()` is for debugging.
+
+### Registration & DSL
+
+Same as Level 3 — register the entity type and its renderer; pack JSON points at
+the entity via `spawn_projectile` / `spawn_projectile_rain` (the rain action's
+`model` field selects which baked mesh to use). The thrown sword and the
+sword-rain it seeds both reference one `spectral_sword.bakedmesh`, so they read
+as a single effect.
+
+**When to use this:** the visual is a genuine triangle mesh — curved blades,
+organic forms, imported art — rather than cube-soup. If Blockbench can build the
+shape from cubes, prefer Level 3 and skip the offline bake entirely.
+
+---
+
 ## How the pieces fit together
 
-Two rendering paths:
+Rendering paths:
 
 | Path | Asset files | Java classes | Best for |
 |---|---|---|---|
 | Level 1 (pack-author) | none | 0 | Themed color variants of the default magic orb |
 | Level 2 (procedural) | none | 3 (entity + state + renderer) | Custom animation math without geometry |
 | Level 3 (model-loaded) | .geo.json + .png | 3 (entity + state + renderer) + assets | Distinctive geometric shapes |
+| Level 4 (baked mesh) | .bakedmesh + .png | 3 (entity + state + renderer) + assets + offline bake | Arbitrary triangle meshes (glTF/GLB) that aren't cube-soup |
 
-All three plug into `spawn_projectile` identically — the pack author
+They all plug into `spawn_projectile` identically — the pack author
 doesn't know (or care) which level implemented the visual.
 
 ### When you need the entity to actually *do* things during flight
@@ -502,5 +650,12 @@ your mod's constructor before common setup.
   `AbstractVfxEntity` subclass with server-emitted particles
 - `content/HomingProjectile` — custom per-tick AI on a projectile
 - `api/content/vfx/GeoJsonModel` — Level 3 model loader internals
+- `api/content/vfx/BakedMeshModel` — Level 4 baked-mesh loader internals (the
+  `NBM1` format reader + fallback quad)
+- `content/ThrownSwordProjectile` + `client/renderer/ThrownSwordRenderer` —
+  Level 4 baked mesh aimed + spun along its velocity
+- `client/renderer/ProjectileRainRenderer` — Level 4 baked mesh rendered many
+  times from one cached model (the sword-rain storm); asset
+  `assets/neoorigins/geo/spectral_sword.bakedmesh`
 
 All free to copy, adapt, or extend from.

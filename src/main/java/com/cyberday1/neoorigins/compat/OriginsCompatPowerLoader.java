@@ -812,7 +812,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     }
                     if (cooldown > 0) {
                         PlayerOriginData data = player.getData(OriginAttachments.originData());
-                        if (data.isOnCooldown(idStr, player.tickCount)) return;
+                        if (data.isOnCooldown(player, idStr)) return;
                         data.setCooldown(idStr, player.tickCount, cooldown);
                     }
                     action.execute(player);
@@ -835,7 +835,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     if (!condition.test(player)) return;
                     if (cooldown > 0) {
                         PlayerOriginData data = player.getData(OriginAttachments.originData());
-                        if (data.isOnCooldown(idStr, player.tickCount)) return;
+                        if (data.isOnCooldown(player, idStr)) return;
                         data.setCooldown(idStr, player.tickCount, cooldown);
                     }
                     action.execute(player);
@@ -921,7 +921,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     if (pressed && condition.test(player)) {
                         if (cooldown > 0) {
                             PlayerOriginData data = player.getData(OriginAttachments.originData());
-                            if (data.isOnCooldown(idStr, player.tickCount)) return;
+                            if (data.isOnCooldown(player, idStr)) return;
                             data.setCooldown(idStr, player.tickCount, cooldown);
                         }
                         action.execute(player);
@@ -934,7 +934,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
                     if (pressed && !wasPressedLastTick && condition.test(player)) {
                         if (cooldown > 0) {
-                            if (data.isOnCooldown(idStr, player.tickCount)) return;
+                            if (data.isOnCooldown(player, idStr)) return;
                             data.setCooldown(idStr, player.tickCount, cooldown);
                         }
                         action.execute(player);
@@ -1193,7 +1193,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // HUD display metadata — parse from hud_render block or fall back to defaults.
         String label = "Resource";
         int color = 0xFF55AAFF;
-        boolean hidden = false;
+        boolean hidden = json.has("hidden") && json.get("hidden").getAsBoolean();
         // Apoli hud_render sprite indices into resource_bar.png; -1 == unset
         // (HUD then draws a color-tinted fill inside the frame instead).
         int barIndex = -1;
@@ -1836,7 +1836,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (!condition.test(player)) return;
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
-                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    if (data.isOnCooldown(player, idStr)) return;
                     data.setCooldown(idStr, player.tickCount, cooldown);
                 }
                 action.execute(player);
@@ -1872,7 +1872,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (!condition.test(player)) return;
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
-                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    if (data.isOnCooldown(player, idStr)) return;
                     data.setCooldown(idStr, player.tickCount, cooldown);
                 }
                 action.execute(player);
@@ -1962,7 +1962,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .onActivated(player -> {
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
-                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    if (data.isOnCooldown(player, idStr)) return;
                     data.setCooldown(idStr, player.tickCount, cooldown);
                 }
                 if (!(player.level() instanceof ServerLevel sl)) return;
@@ -2064,7 +2064,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
-                    if (data.isOnCooldown(idStr, player.tickCount)) return;
+                    if (data.isOnCooldown(player, idStr)) return;
                     data.setCooldown(idStr, player.tickCount, cooldown);
                 }
                 launchAction.execute(player);

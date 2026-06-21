@@ -1,0 +1,23 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:feather",
+  "name": { "text": "Cloud Steps" },
+  "description": { "text": "Press jump in mid-air to step off the air itself, up to twice before landing. Keeps your momentum." },
+  "key": "key.jump",
+  "cooldown_ticks": 0,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:on_ground", "inverted": true },
+      { "type": "neoorigins:resource", "resource": "neoorigins:windwalker_air_jumps", "comparison": ">=", "compare_to": 1 }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:change_resource", "resource": "neoorigins:windwalker_air_jumps", "operation": "add", "change": -1 },
+      { "type": "neoorigins:add_velocity", "y": 0.7, "set": false, "space": "world" },
+      { "type": "neoorigins:apply_effect", "effect": "minecraft:slow_falling", "duration": 20, "amplifier": 0 }
+    ]
+  }
+}

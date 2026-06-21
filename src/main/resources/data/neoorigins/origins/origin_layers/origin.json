@@ -50,7 +50,13 @@
     "neoorigins:darkness_mage",
     "neoorigins:wraith",
     "neoorigins:skeleton",
-    "neoorigins:slime"
+    "neoorigins:slime",
+    "neoorigins:asura",
+    "neoorigins:windwalker",
+    "neoorigins:qi_cultivator",
+    "neoorigins:golden_bell",
+    "neoorigins:iron_monk",
+    "neoorigins:jianxian"
   ],
   "allow_random": true,
   "auto_choose": false,

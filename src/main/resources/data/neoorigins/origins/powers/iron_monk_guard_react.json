@@ -1,0 +1,20 @@
+{
+  "type": "neoorigins:action_on_event",
+  "name": { "text": "Parry" },
+  "description": { "text": "Each blow you actually block rings out with a shield clang and bites a chunk from your stamina." },
+  "event": "hit_taken",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:power_active", "power": "neoorigins:iron_monk_guard" },
+      { "type": "neoorigins:resource", "resource": "neoorigins:iron_monk_stamina", "comparison": ">=", "compare_to": 1 }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:play_sound", "sound": "minecraft:item.shield.block" },
+      { "type": "neoorigins:change_resource", "resource": "neoorigins:iron_monk_stamina", "operation": "add", "change": -10 }
+    ]
+  }
+}

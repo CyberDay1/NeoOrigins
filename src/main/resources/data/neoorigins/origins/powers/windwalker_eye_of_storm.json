@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_icon": "minecraft:wind_charge",
+  "name": { "text": "Eye of the Storm" },
+  "description": { "text": "Call down a far greater cyclone than the Typhoon: a towering vortex that drags in, batters and hurls everything skyward." },
+  "cooldown_ticks": 700,
+  "entity_action": {
+    "type": "neoorigins:spawn_tornado",
+    "radius": 9.0,
+    "duration_ticks": 160,
+    "pull_strength": 1.5,
+    "lift_strength": 0.85,
+    "spin_strength": 0.8,
+    "damage_per_interval": 4.0,
+    "damage_interval_ticks": 10
+  }
+}
