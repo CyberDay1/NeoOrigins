@@ -70,6 +70,13 @@ public final class OriginsMultipleExpander {
             || "apace:multiple".equals(type);
     }
 
+    /** True if {@code json} carries a boolean {@code "hidden": true}. */
+    public static boolean readHiddenFlag(JsonObject json) {
+        return json.has("hidden") && json.get("hidden").isJsonPrimitive()
+            && json.get("hidden").getAsJsonPrimitive().isBoolean()
+            && json.get("hidden").getAsBoolean();
+    }
+
     /** Clears the expansion and display maps. Call at the start of PowerDataManager.apply(). */
     public static void reset() {
         MULTIPLE_EXPANSION_MAP.clear();
@@ -89,6 +96,12 @@ public final class OriginsMultipleExpander {
     public static Map<Identifier, JsonObject> expand(Identifier id, JsonObject src) {
         Map<Identifier, JsonObject> result = new HashMap<>();
         List<Identifier> syntheticIds = new ArrayList<>();
+
+        // A hidden parent multiple suppresses the whole entry in Origins; since we
+        // flatten it into per-sub-power synthetic IDs (which the origin lists
+        // individually), the flag must ride down onto every sub-power or they
+        // surface one-by-one in the info panel.
+        boolean parentHidden = readHiddenFlag(src);
 
         // Store display metadata from the parent multiple so the screen can collapse sub-powers.
         if (src.has("name") || src.has("description")) {
@@ -127,6 +140,7 @@ public final class OriginsMultipleExpander {
             // neoorigins:multiple sub-power is "not Origins format" and would
             // otherwise be stored as a single opaque power instead of flattened.
             String subType = OriginsFormatDetector.getType(subPowerJson);
+            if (parentHidden && !readHiddenFlag(subPowerJson)) subPowerJson.addProperty("hidden", true);
             if (isMultipleType(subType)) {
                 try {
                     Map<Identifier, JsonObject> nested = expand(syntheticId, subPowerJson);
@@ -163,7 +177,11 @@ public final class OriginsMultipleExpander {
             // Translate the sub-power via Route A
             Optional<JsonObject> translated = OriginsPowerTranslator.translate(syntheticId, subPowerJson);
             if (translated.isPresent()) {
-                result.put(syntheticId, translated.get());
+                JsonObject out = translated.get();
+                // Ensure the parent's hidden flag survives translation (the
+                // translator may not copy it through verbatim).
+                if (parentHidden && !readHiddenFlag(out)) out.addProperty("hidden", true);
+                result.put(syntheticId, out);
             }
             // If empty, Route B loader will handle it if the type is supported.
         }

@@ -126,11 +126,15 @@ public final class OriginGatedRecipe implements CraftingRecipe {
 
     @Override
     public boolean isSpecial() {
-        // Mark as "special" so the recipe book doesn't aggressively flag this
-        // recipe as completable based on inventory alone — without this, the
-        // book might highlight it as craftable for players who can't satisfy
-        // the gate. Slightly suboptimal UX (no auto-fill arrow) but correct.
-        return true;
+        // Delegate to the inner recipe (false for normal shaped/shapeless). A
+        // "special" recipe is excluded from the recipe book entirely AND skipped
+        // by ServerRecipeBook.addRecipes — so marking this special silently
+        // defeated parseRecipe's player.awardRecipes() call: gated recipes could
+        // never be unlocked or shown in the book. The per-player gate is still
+        // enforced at craft time by matches(); the book may show the recipe as
+        // a non-highlighted entry for players who can't yet satisfy the gate,
+        // which is the correct, discoverable behaviour.
+        return inner.isSpecial();
     }
 
     public static Identifier typeId() {

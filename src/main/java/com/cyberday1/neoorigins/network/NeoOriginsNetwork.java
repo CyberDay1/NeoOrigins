@@ -198,6 +198,12 @@ public class NeoOriginsNetwork {
             NeoOriginsNetwork::handleSyncPlayerMorph
         );
 
+        registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncKeybindRegistry
+        );
+
         registrar.playToServer(
             ChooseOriginPayload.TYPE,
             ChooseOriginPayload.STREAM_CODEC,
@@ -214,6 +220,18 @@ public class NeoOriginsNetwork {
             AirJumpPayload.TYPE,
             AirJumpPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleAirJump
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleVanillaKeyState
+        );
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleActivatePowerByKey
         );
 
         registrar.playToServer(
@@ -979,6 +997,35 @@ public class NeoOriginsNetwork {
         });
     }
 
+    private static void handleVanillaKeyState(
+            com.cyberday1.neoorigins.network.payload.VanillaKeyStatePayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            com.cyberday1.neoorigins.compat.CompatPlayerState.setVanillaKeyState(
+                sp, payload.useDown(), payload.attackDown());
+        });
+    }
+
+    private static void handleActivatePowerByKey(
+            com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.dispatch(
+                sp, payload.translationKey(), payload.held());
+        });
+    }
+
+    private static void handleSyncKeybindRegistry(
+            com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload payload, IPayloadContext ctx) {
+        // Registered playToClient; same dist-safety guard as handleOpenEditorScreen —
+        // HotkeyAssignments references client-only KeyMapping/Minecraft types.
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.HotkeyAssignments.set(
+                payload.declaredKeys(), payload.continuousFlags(), payload.powerToKey())
+        );
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void syncCooldownIfStarted(ServerPlayer sp, PowerHolder<?> holder, int slot) {
         String key;
@@ -1092,6 +1139,16 @@ public class NeoOriginsNetwork {
             entries.add(abilitySlotEntry(-1, classActives.get(0)));
         }
         PacketDistributor.sendToPlayer(player, new SyncAbilitySlotsPayload(entries));
+    }
+
+    /** Send the named-keybind registry snapshot to one player. */
+    public static void syncKeybindRegistryToPlayer(ServerPlayer player) {
+        List<String> keys = com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.declaredKeys();
+        List<Boolean> flags = new java.util.ArrayList<>(keys.size());
+        for (String k : keys) flags.add(com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.isContinuous(k));
+        PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload(
+                keys, flags, com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.powerToKey()));
     }
 
     private static SyncAbilitySlotsPayload.Entry abilitySlotEntry(int slot, PowerHolder<?> holder) {

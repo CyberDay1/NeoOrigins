@@ -284,12 +284,26 @@ public class OriginsCompatCommands {
         for (var entity : entities) {
             if (entity instanceof ServerPlayer player) {
                 var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                boolean changed = false;
                 for (Identifier id : targets) {
                     if (data.hasDynamicGrant(id)) continue;
                     var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(id);
-                    if (holder != null && data.addDynamicGrant(id)) {
-                        holder.onGranted(player);
+                    if (holder == null) continue;
+                    // Origin-inherent powers: record the dynamic flag but don't
+                    // re-fire onGranted (the origin already applied it).
+                    if (isFromOrigin(data, id)) {
+                        if (data.addDynamicGrant(id)) changed = true;
+                        continue;
                     }
+                    if (data.addDynamicGrant(id)) {
+                        holder.onGranted(player);
+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                            new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, id));
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
                 }
                 count++;
             }
@@ -310,16 +324,44 @@ public class OriginsCompatCommands {
         for (var entity : entities) {
             if (entity instanceof ServerPlayer player) {
                 var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+                boolean changed = false;
                 for (Identifier id : targets) {
-                    if (data.removeDynamicGrant(id)) {
-                        var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(id);
-                        if (holder != null) holder.onRevoked(player);
+                    if (!data.hasDynamicGrant(id)) continue;
+                    var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(id);
+                    if (data.removeDynamicGrant(id) && holder != null) {
+                        // Only tear the power down if it isn't still provided by
+                        // the player's origin — otherwise revoking the dynamic
+                        // grant would strip an origin-inherent power's effects.
+                        if (!isFromOrigin(data, id)) {
+                            holder.onRevoked(player);
+                            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                                new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, id));
+                        }
+                        changed = true;
                     }
+                }
+                if (changed) {
+                    com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
                 }
                 count++;
             }
         }
         return Math.max(count, 1);
+    }
+
+    /**
+     * Whether {@code id} is granted by one of the player's current origins
+     * (as opposed to a purely dynamic grant). Mirrors the origin-source check
+     * used by the {@code grant_power}/{@code revoke_power} actions so command
+     * and action paths agree on origin-inherent vs dynamic-grant semantics.
+     */
+    private static boolean isFromOrigin(
+            com.cyberday1.neoorigins.attachment.PlayerOriginData data, Identifier id) {
+        for (var entry : data.getOrigins().entrySet()) {
+            var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin != null && origin.powers().contains(id)) return true;
+        }
+        return false;
     }
 
     /**

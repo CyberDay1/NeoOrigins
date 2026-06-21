@@ -411,6 +411,9 @@ Spawns a tornado that pulls entities inward, lifts them upward, and spins them t
 | `spin_strength` | float | no | `0.5` | Tangential spin force |
 | `damage_per_interval` | float | no | `2.0` | Damage every `damage_interval_ticks` (set to 0 to disable) |
 | `damage_interval_ticks` | int | no | `10` | How often damage fires |
+| `move_speed` | float | no | `0.2` | Blocks/tick the funnel drifts forward along the caster's facing (0 = stationary) |
+| `gravity` | bool | no | `false` | When true the funnel falls under gravity until its base hits the ground, so a tornado spawned in mid-air drops while it drifts forward |
+| `impact_action` | action / array | no | — | Composable action run on each damage-interval tick against every entity caught in the funnel's inner radius. When set it **replaces** the built-in `damage_per_interval`. An array is wrapped in `neoorigins:and`. |
 | `effect_type` | string | no | `""` | Colour key |
 
 **Example:**
@@ -422,6 +425,118 @@ Spawns a tornado that pulls entities inward, lifts them upward, and spins them t
   "lift_strength": 0.8,
   "spin_strength": 0.8,
   "damage_per_interval": 1.5 }
+```
+
+**Composable payload** — drop the flat damage and run any action against each caught entity every interval (e.g. fling them upward):
+```json
+{ "type": "neoorigins:spawn_tornado",
+  "radius": 6.0,
+  "duration_ticks": 120,
+  "gravity": true,
+  "impact_action": { "type": "neoorigins:add_velocity", "y": 0.6, "set": false } }
+```
+
+---
+
+## `neoorigins:spawn_projectile_rain`
+
+Rains a storm of projectiles that fall from the sky across a disk, each landing at a random moment over the duration so the storm reads as a meteor shower rather than one instant pop. A ground telegraph plays during the lead-in before anything falls. Server-side the entity owns the staggered damage: as each projectile lands it hits living entities near that ground point (caster excluded) and launches them, so the damage scales naturally with how exposed a victim is.
+
+By default the falling object is a choreographed spectral-sword visual (`model: "sword"`); set `model` to pick a different baked mesh, or `projectile` to rain a **real** entity that falls under physics (see below).
+
+Also registered under the legacy alias **`neoorigins:spawn_sword_rain`** (same action) so packs written before it was generalised keep working.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | float | no | `6.0` | Radius of the disk the projectiles rain across |
+| `duration_ticks` | int | no | `70` | How long the storm lingers before fading |
+| `count` | int | no | `16` | Number of projectiles in the storm. Legacy alias: `sword_count` |
+| `damage_per_impact` | float | no | `4.0` | Flat damage each landing projectile deals to foes near it. Legacy alias: `damage_per_sword` |
+| `knockup` | float | no | `0.5` | Upward velocity applied to struck foes |
+| `impact_radius` | float | no | `2.0` | Horizontal radius of each projectile's hit |
+| `weapon_damage_scale` | float | no | `0.0` | Per-impact bonus = this × the caster's attack-damage attribute (folds in the held weapon), captured at cast time. `0` = flat damage |
+| `impact_action` | action | no | — | Composable action run at each landing point against entities within `impact_radius`. When set it **replaces** the built-in damage/knockup; omit to keep the default damage. Accepts a single action object or an array (run in order) |
+| `model` | string | no | `"sword"` | Which baked-mesh model the client renders for the falling object. Built-in: `"sword"` (spectral blade). Unknown ids fall back to `"sword"`. Ignored when `projectile` is set |
+| `projectile` | string | no | — | **Real-projectile mode.** A registered entity-type id (e.g. `minecraft:arrow`, `minecraft:trident`, `minecraft:snowball`) to rain instead of the choreographed baked-mesh blade. Each scatter point spawns this **actual** entity from the sky and lets it fall under real physics. `impact_action` becomes the projectile's on-hit (caster-owned projectiles only). Unknown/unset keeps the spectral-blade visual |
+| `projectile_speed` | float | no | `1.0` | Initial downward launch speed of each rained entity; gravity then accelerates it. Only used when `projectile` is set |
+| `spawn_height` | float | no | `18.0` | Blocks above each scatter point the entity spawns from. Only used when `projectile` is set |
+| `tag` | string | no | — | SNBT compound merged onto each rained entity (e.g. `"{pickup:1b}"` so fired arrows can be picked up). Only used when `projectile` is set |
+| `follow_terrain` | bool | no | `true` | Each blade/projectile lands on the surface Y under its own scatter point (`MOTION_BLOCKING` heightmap), so the storm follows hills/stairs instead of all dropping on one flat plane. Set `false` to lock every drop to the storm center's Y |
+| `origin` | string | no | `"self"` | Where the storm centers: `"self"` (around caster), `"look"` (what the caster aims at), or `"impact"` (projectile hit point, when cast from an on-hit context) |
+| `effect_type` | string | no | `""` | Colour key |
+
+In **real-projectile mode** the rain keeps owning the scatter pattern, the staggered launch schedule and the lead-in telegraph, but each blade is swapped for a genuine entity that flies and hits on its own — so you can rain any projectile you could otherwise `spawn_projectile`/summon (arrows, tridents, snowballs, fireballs, …). The client skips the fake-blade render so the visuals don't double up.
+
+**Example** — a heavy spectral-sword storm centered on what the caster is looking at, scaling with the held weapon, that applies Glowing instead of the built-in damage:
+```json
+{ "type": "neoorigins:spawn_projectile_rain",
+  "origin": "look",
+  "radius": 8.0,
+  "duration_ticks": 100,
+  "count": 40,
+  "weapon_damage_scale": 0.4,
+  "impact_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:glowing",
+    "duration": 60
+  } }
+```
+
+**Example** — rain real arrows from the sky that fall under physics and stick where they land, scattered over the duration:
+```json
+{ "type": "neoorigins:spawn_projectile_rain",
+  "origin": "look",
+  "radius": 7.0,
+  "duration_ticks": 80,
+  "count": 30,
+  "projectile": "minecraft:arrow",
+  "projectile_speed": 1.5,
+  "tag": "{pickup:1b}" }
+```
+
+**Example** — *throw a sword, and where it lands becomes the storm's centre.* This composes two primitives: [`spawn_projectile`](#neooriginsspawn_projectile) hurls a `neoorigins:thrown_sword` (a spinning spectral blade that flies under physics) along the caster's aim, and its `on_hit_action` fires `spawn_projectile_rain` with `origin: "impact"`, so the rain centres on the blade's landing point rather than the caster:
+```json
+{ "type": "neoorigins:spawn_projectile",
+  "entity_type": "neoorigins:thrown_sword",
+  "speed": 1.6,
+  "on_hit_action": {
+    "type": "neoorigins:spawn_projectile_rain",
+    "origin": "impact",
+    "radius": 11,
+    "count": 56,
+    "duration_ticks": 200,
+    "telegraph_ticks": 14,
+    "damage_per_impact": 4,
+    "weapon_damage_scale": 0.4,
+    "knockup": 0.6,
+    "impact_radius": 2.5
+  } }
+```
+
+---
+
+## `neoorigins:spawn_telegraph`
+
+Spawns a particle-only ground danger marker: a static outer ring marking the full footprint plus a reticle ring that contracts toward the centre over the wind-up, then optionally fires a composable action when it expires. Use it as a reusable "marked, dodgeable zone that pays off at the end" — the telegraph and the payoff are composed in the datapack rather than hard-wired together. The marker has no model and needs no client assets.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | float | no | `3.0` | Radius of the marked danger zone |
+| `duration_ticks` | int | no | `20` | Wind-up length: ticks the reticle takes to contract before it expires |
+| `on_expire` | action | no | — | Composable action run once when the wind-up ends, against entities within `radius` (caster excluded). Omit for a pure dodge cue with no payoff. Accepts a single action object or an array (run in order) |
+| `origin` | string | no | `"self"` | Where the marker centers: `"self"` (at caster), `"look"` (what the caster aims at), or `"impact"` (projectile hit point) |
+| `effect_type` | string | no | `""` | Colour key |
+
+**Example** — a 1-second marker on what the caster aims at that detonates for damage when it expires:
+```json
+{ "type": "neoorigins:spawn_telegraph",
+  "origin": "look",
+  "radius": 4.0,
+  "duration_ticks": 20,
+  "on_expire": {
+    "type": "neoorigins:damage",
+    "amount": 10.0
+  } }
 ```
 
 ---

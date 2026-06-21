@@ -69,7 +69,17 @@ public class PlayerLifecycleEvents {
 
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
-        ActiveOriginService.forEach(sp, holder -> holder.onTick(sp));
+        // Native active powers bound to a vanilla input key (e.g. key.jump
+        // double-jump) are polled here from the server-side input state. Cheap
+        // global guard skips the per-power lookup when no pack declares one.
+        boolean pollVanillaNative =
+            com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.hasVanillaNative();
+        ActiveOriginService.forEach(sp, holder -> {
+            holder.onTick(sp);
+            if (pollVanillaNative) {
+                com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.pollVanillaNative(sp, holder);
+            }
+        });
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
         // CLIMB fires each tick the player is on a climbable (ladder/vine).
@@ -100,6 +110,7 @@ public class PlayerLifecycleEvents {
         }
 
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
+        NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);
         NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
@@ -179,6 +190,7 @@ public class PlayerLifecycleEvents {
             // apoli:global set immediately grants/revokes for online players.
             com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
             NeoOriginsNetwork.syncRegistryToPlayer(sp);
+            NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
             NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
         });
     }

@@ -45,5 +45,13 @@ public class EnhancedVisionPower extends PowerType<EnhancedVisionPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public Set<String> capabilities(Config config) { return CAPS; }
+    public Set<String> capabilities(Config config) {
+        // Global kill-switch (content.toml): when an admin disables enhanced
+        // vision we withhold the capability entirely, so it never reaches the
+        // client and the LightTexture brightness boost stays off.
+        if (com.cyberday1.neoorigins.config.ContentTogglesConfig.isEnhancedVisionDisabled()) {
+            return Set.of();
+        }
+        return CAPS;
+    }
 }

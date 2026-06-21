@@ -2,7 +2,6 @@ package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.client.ClientActivePowers;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.LivingEntity;
@@ -38,7 +37,11 @@ public abstract class LivingEntityWalkOnFluidMixin {
         if (player.level().isClientSide()) {
             // Only the local player predicts its own movement; other entities'
             // collision contexts must not inherit the local player's capabilities.
-            if (!(player instanceof LocalPlayer)) return;
+            // The local-player check is routed through ClientActivePowers (a
+            // client-only class) so this common mixin never names LocalPlayer
+            // directly — a direct reference fails the mixin apply on a dedicated
+            // server with "invalid dist DEDICATED_SERVER".
+            if (!ClientActivePowers.isLocalPlayer(player)) return;
             walkWater = ClientActivePowers.hasCapability("walk_on_water");
             walkLava = ClientActivePowers.hasCapability("walk_on_lava");
         } else if (player instanceof ServerPlayer sp) {

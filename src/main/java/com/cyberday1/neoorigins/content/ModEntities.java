@@ -87,6 +87,45 @@ public class ModEntities {
                 .updateInterval(10)
                 .build(TORNADO_KEY));
 
+    // Registry id stays "sword_rain" for saved-entity back-compat; only the Java
+    // class/field names changed when spawn_sword_rain was generalised into the
+    // modular spawn_projectile_rain.
+    private static final ResourceKey<EntityType<?>> PROJECTILE_RAIN_KEY =
+        ResourceKey.create(Registries.ENTITY_TYPE,
+            Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "sword_rain"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<ProjectileRainVfxEntity>> PROJECTILE_RAIN =
+        ENTITY_TYPES.register("sword_rain", () ->
+            EntityType.Builder.<ProjectileRainVfxEntity>of(ProjectileRainVfxEntity::new, MobCategory.MISC)
+                .sized(1.0F, 1.0F)
+                .clientTrackingRange(24)
+                .updateInterval(10)
+                .build(PROJECTILE_RAIN_KEY));
+
+    private static final ResourceKey<EntityType<?>> TELEGRAPH_KEY =
+        ResourceKey.create(Registries.ENTITY_TYPE,
+            Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "telegraph"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<TelegraphVfxEntity>> TELEGRAPH =
+        ENTITY_TYPES.register("telegraph", () ->
+            EntityType.Builder.<TelegraphVfxEntity>of(TelegraphVfxEntity::new, MobCategory.MISC)
+                .sized(1.0F, 1.0F)
+                .clientTrackingRange(16)
+                .updateInterval(10)
+                .build(TELEGRAPH_KEY));
+
+    private static final ResourceKey<EntityType<?>> THROWN_SWORD_KEY =
+        ResourceKey.create(Registries.ENTITY_TYPE,
+            Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "thrown_sword"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<ThrownSwordProjectile>> THROWN_SWORD =
+        ENTITY_TYPES.register("thrown_sword", () ->
+            EntityType.Builder.<ThrownSwordProjectile>of(ThrownSwordProjectile::new, MobCategory.MISC)
+                .sized(0.5F, 0.5F)
+                .clientTrackingRange(8)
+                .updateInterval(10)
+                .build(THROWN_SWORD_KEY));
+
     public static void register(IEventBus modEventBus) {
         ENTITY_TYPES.register(modEventBus);
     }
