@@ -112,6 +112,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, TogglePower>              TOGGLE               = reg("toggle",               new TogglePower());
     public static final DeferredHolder<PowerType<?>, ParticlePower>            PARTICLE             = reg("particle",             new ParticlePower());
     public static final DeferredHolder<PowerType<?>, RestrictArmorPower>       RESTRICT_ARMOR       = reg("restrict_armor",       new RestrictArmorPower());
+    public static final DeferredHolder<PowerType<?>, ItemUsageGatePower>       ITEM_USAGE_GATE      = reg("item_usage_gate",      new ItemUsageGatePower());
     public static final DeferredHolder<PowerType<?>, KeepInventoryPower>       KEEP_INVENTORY       = reg("keep_inventory",       new KeepInventoryPower());
     public static final DeferredHolder<PowerType<?>, ModifyPlayerSpawnPower>   MODIFY_PLAYER_SPAWN  = reg("modify_player_spawn",  new ModifyPlayerSpawnPower());
     public static final DeferredHolder<PowerType<?>, EdibleItemPower>          EDIBLE_ITEM          = reg("edible_item",          new EdibleItemPower());

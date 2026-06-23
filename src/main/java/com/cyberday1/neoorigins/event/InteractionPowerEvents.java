@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
+import com.cyberday1.neoorigins.power.builtin.ItemUsageGatePower;
 import com.cyberday1.neoorigins.power.builtin.ModifyFoodNutritionPower;
 import com.cyberday1.neoorigins.power.builtin.PreventActionPower;
 import com.cyberday1.neoorigins.power.builtin.RareWanderingLootPower;
@@ -109,6 +110,27 @@ public class InteractionPowerEvents {
             event.getItemEntity().getItem());
     }
 
+    /**
+     * item_usage_gate use enforcement at the use-Start chokepoint. Cancellable
+     * and broader than {@link #onRightClickItem}: it also catches uses that begin
+     * without a RightClickItem (e.g. food/shield raise paths, items started
+     * programmatically). The hand isn't on this event, so all of the holder's
+     * hands are considered; the shared {@link ItemUsageGatePower#blocksUse}
+     * decision (with a null hand to mean "any") makes the call. Runs at HIGHEST so
+     * the cancel lands before vanilla begins the use.
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onItemUseGateStart(LivingEntityUseItemEvent.Start event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        ItemStack stack = event.getItem();
+        if (stack.isEmpty()) return;
+        final boolean[] blocked = {false};
+        ActiveOriginService.forEachOfType(sp, ItemUsageGatePower.class, cfg -> {
+            if (ItemUsageGatePower.blocksUse(sp, stack, null, cfg)) blocked[0] = true;
+        });
+        if (blocked[0]) event.setCanceled(true);
+    }
+
     @SubscribeEvent
     public static void onItemUseStart(LivingEntityUseItemEvent.Start event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -154,6 +176,17 @@ public class InteractionPowerEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         ItemStack stack = event.getItemStack();
         if (stack.isEmpty()) return;
+        // item_usage_gate use enforcement — cancel the right-click before any use
+        // animation starts (covers shields, bows, totems-by-raise, thrown items,
+        // and edible items below). Routed through the shared blocksUse decision.
+        final boolean[] useBlocked = {false};
+        ActiveOriginService.forEachOfType(sp, ItemUsageGatePower.class, cfg -> {
+            if (ItemUsageGatePower.blocksUse(sp, stack, event.getHand(), cfg)) useBlocked[0] = true;
+        });
+        if (useBlocked[0]) {
+            event.setCanceled(true);
+            return;
+        }
         // Walk the player's edible_item powers — first match starts the use
         // animation. Actual nutrition is applied in onEdibleUseFinish below
         // when the eat animation completes; this matches vanilla food UX
@@ -245,6 +278,13 @@ public class InteractionPowerEvents {
                     && PreventActionPower.isGateOpen(sp, cfg)) {
                 rejected[0] = true;
             }
+        });
+        // item_usage_gate equip enforcement — the modular gate's prevent_equip
+        // path. Mirrors the eject-on-block behaviour above via the shared
+        // ItemUsageGatePower.blocksEquip decision (slot scope + deny/allow-list +
+        // whole-power condition all routed through the one helper).
+        ActiveOriginService.forEachOfType(sp, ItemUsageGatePower.class, cfg -> {
+            if (ItemUsageGatePower.blocksEquip(sp, neu, slot, cfg)) rejected[0] = true;
         });
         if (rejected[0]) {
             sp.setItemSlot(slot, ItemStack.EMPTY);
