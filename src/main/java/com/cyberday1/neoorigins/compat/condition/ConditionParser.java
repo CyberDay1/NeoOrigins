@@ -699,13 +699,39 @@ public final class ConditionParser {
         };
     }
 
+    /**
+     * {@code origins:nbt} — partial-NBT match against the entity's full NBT, the
+     * way Apoli's {@code apoli:nbt} entity condition works. The {@code nbt} field
+     * is an SNBT string (e.g. {@code "{Tags:[\"seer_astral\"]}"}); the condition
+     * is true when the entity's serialized NBT <em>contains</em> that subtree.
+     *
+     * <p>Crucially this matches the vanilla {@code Tags} string-list — the
+     * scoreboard tags added by {@code /tag @s add ...} — which tag-state-machine
+     * packs (the Seer origin) gate nearly every power on. We use
+     * {@link net.minecraft.nbt.NbtUtils#compareNbt} with {@code compareListTag=true}
+     * so a single {@code Tags:["x"]} expectation is satisfied when the entity's
+     * full Tags list <em>includes</em> "x" (not only when the lists are equal).
+     *
+     * <p>The entity NBT is read via {@code saveWithoutId}; an unparseable SNBT
+     * string fails closed (never matches) with a one-shot warning.
+     */
     static EntityCondition parseNbt(JsonObject json) {
-        String nbtPath = json.has("nbt") ? json.get("nbt").getAsString() : null;
-        if (nbtPath == null) return EntityCondition.alwaysTrue();
-        // Simplified: check if the player's persisted data contains the key
+        String snbt = json.has("nbt") ? json.get("nbt").getAsString() : null;
+        if (snbt == null || snbt.isBlank()) return EntityCondition.alwaysTrue();
+        final CompoundTag expected;
+        try {
+            expected = net.minecraft.nbt.TagParser.parseTag(snbt);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.warn("[CompatB] origins:nbt: could not parse SNBT '{}' ({}); condition will never match",
+                snbt, e.getMessage());
+            return EntityCondition.alwaysFalse();
+        }
+        // An empty expectation ({}) is trivially contained — match everything,
+        // mirroring Apoli (an empty nbt block is a no-op gate).
+        if (expected.isEmpty()) return EntityCondition.alwaysTrue();
         return player -> {
-            CompoundTag tag = player.getPersistentData();
-            return tag.contains(nbtPath);
+            CompoundTag actual = player.saveWithoutId(new CompoundTag());
+            return net.minecraft.nbt.NbtUtils.compareNbt(expected, actual, true);
         };
     }
 
