@@ -72,12 +72,13 @@ public final class NeoOriginsClientConfig {
             .comment("Initial sort order for the origin selection / info screens, used",
                      "until you cycle the on-screen sort button (your cycled choice still",
                      "wins for the rest of the session). Options:",
-                     "  CLASS      - grouped by mod/namespace, alphabetical within (default)",
+                     "  MANUAL     - author-set `order` field ascending, alpha tie-break (default)",
+                     "  CLASS      - grouped by mod/namespace, alphabetical within",
                      "  NAME_ASC   - flat alphabetical",
                      "  NAME_DESC  - flat reverse-alphabetical",
                      "  IMPACT_ASC - by origin impact/influence (none -> low -> medium -> high)",
                      "Set IMPACT_ASC to open the picker sorted by influence.")
-            .defineEnum("default_sort", OriginSelectionPresenter.SortMode.CLASS);
+            .defineEnum("default_sort", OriginSelectionPresenter.SortMode.MANUAL);
 
         BUILDER.pop();
 

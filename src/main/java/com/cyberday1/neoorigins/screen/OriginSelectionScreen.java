@@ -303,6 +303,7 @@ public class OriginSelectionScreen extends Screen {
     /** Translation-key label for a sort mode, wrapped in the active theme font. */
     private Component sortModeLabel(OriginSelectionPresenter.SortMode mode) {
         String key = switch (mode) {
+            case MANUAL     -> "gui.neoorigins.sort.manual";
             case NAME_ASC   -> "gui.neoorigins.sort.name_asc";
             case NAME_DESC  -> "gui.neoorigins.sort.name_desc";
             case CLASS      -> "gui.neoorigins.sort.class";
