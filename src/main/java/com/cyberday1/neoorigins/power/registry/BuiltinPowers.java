@@ -178,6 +178,7 @@ public final class BuiltinPowers {
         // follow FTB Ultimine's own server config. See docs/POWER_TYPES.md.
         define("ultimine",                 UltiminePower.class,               List.of());
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
+        define("xeno_passive",             XenoPassivePower.class,            List.of());
         define("flight",                   FlightPower.class,                 List.of(
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("creative_flight",          CreativeFlightPower.class,         List.of(
@@ -432,6 +433,12 @@ public final class BuiltinPowers {
                 .def("addition").doc("How value combines with the vanilla lava factor: addition, multiply_base, multiply_total."),
             new FieldSpec("value", Kind.NUMBER, true)
                 .doc("Amount applied to lava movement speed (vanilla factor is 0.02; addition ~0.04 ≈ water-swim pace).")));
+        define("modify_flight_speed", ModifyFlightSpeedPower.class, List.of(
+            new FieldSpec("operation", Kind.ENUM, false)
+                .options("addition", "multiply_base", "multiply_total")
+                .def("multiply_base").doc("How value combines with the vanilla flight speed (base 0.05): addition, multiply_base, multiply_total."),
+            new FieldSpec("value", Kind.NUMBER, true)
+                .doc("Amount applied to creative/hover flight speed (vanilla base 0.05). multiply_base 1.0 doubles it, -0.5 halves it, -0.25 ≈ Pehkui flight scale 0.75. Does not affect elytra gliding.")));
         define("overlay", OverlayPower.class, List.of(
             new FieldSpec("texture", Kind.STRING, true)
                 .doc("Resource location of the full-screen texture rendered over the view."),

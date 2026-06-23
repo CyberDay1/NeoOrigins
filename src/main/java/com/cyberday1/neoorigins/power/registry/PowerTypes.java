@@ -39,10 +39,12 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, EntitySetPower>           ENTITY_SET           = reg("entity_set",           new EntitySetPower());
     public static final DeferredHolder<PowerType<?>, EnhancedVisionPower>      ENHANCED_VISION      = reg("enhanced_vision",      new EnhancedVisionPower());
     public static final DeferredHolder<PowerType<?>, EnderGazeImmunityPower>   ENDER_GAZE_IMMUNITY  = reg("ender_gaze_immunity",  new EnderGazeImmunityPower());
+    public static final DeferredHolder<PowerType<?>, XenoPassivePower>         XENO_PASSIVE         = reg("xeno_passive",         new XenoPassivePower());
 
     // --- Passive: movement & environment ---
     public static final DeferredHolder<PowerType<?>, PreventActionPower>       PREVENT_ACTION       = reg("prevent_action",       new PreventActionPower());
     public static final DeferredHolder<PowerType<?>, FlightPower>              FLIGHT               = reg("flight",               new FlightPower());
+    public static final DeferredHolder<PowerType<?>, CreativeFlightPower>      CREATIVE_FLIGHT      = reg("creative_flight",      new CreativeFlightPower());
     public static final DeferredHolder<PowerType<?>, NoSlowdownPower>          NO_SLOWDOWN          = reg("no_slowdown",          new NoSlowdownPower());
     public static final DeferredHolder<PowerType<?>, WallClimbingPower>        WALL_CLIMBING        = reg("wall_climbing",        new WallClimbingPower());
     public static final DeferredHolder<PowerType<?>, ElytraBoostPower>         ELYTRA_BOOST         = reg("elytra_boost",         new ElytraBoostPower());
@@ -69,6 +71,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ExtraInventoryPower>      EXTRA_INVENTORY      = reg("extra_inventory",     new ExtraInventoryPower());
     public static final DeferredHolder<PowerType<?>, LavaVisionPower>          LAVA_VISION          = reg("lava_vision",         new LavaVisionPower());
     public static final DeferredHolder<PowerType<?>, ModifyLavaSpeedPower>    MODIFY_LAVA_SPEED    = reg("modify_lava_speed",   new ModifyLavaSpeedPower());
+    public static final DeferredHolder<PowerType<?>, ModifyFlightSpeedPower>  MODIFY_FLIGHT_SPEED  = reg("modify_flight_speed", new ModifyFlightSpeedPower());
     public static final DeferredHolder<PowerType<?>, OverlayPower>             OVERLAY              = reg("overlay",             new OverlayPower());
     public static final DeferredHolder<PowerType<?>, ModelColorPower>          MODEL_COLOR          = reg("model_color",         new ModelColorPower());
     public static final DeferredHolder<PowerType<?>, EntityModelPower>         ENTITY_MODEL         = reg("entity_model",        new EntityModelPower());

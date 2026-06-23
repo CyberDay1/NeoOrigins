@@ -98,6 +98,7 @@
         "neoorigins:mobs_ignore_player",
         "neoorigins:model_color",
         "neoorigins:modify_damage",
+        "neoorigins:modify_flight_speed",
         "neoorigins:modify_food_nutrition",
         "neoorigins:modify_lava_speed",
         "neoorigins:modify_player_spawn",
@@ -158,7 +159,8 @@
         "neoorigins:walk_on_fluid",
         "neoorigins:wall_climbing",
         "neoorigins:water_breathing",
-        "neoorigins:wraith_phase"
+        "neoorigins:wraith_phase",
+        "neoorigins:xeno_passive"
       ]
     },
     "name": {
@@ -2284,6 +2286,32 @@
       ]
     },
     {
+      "$comment": "neoorigins:modify_flight_speed",
+      "properties": {
+        "type": {
+          "const": "neoorigins:modify_flight_speed"
+        },
+        "operation": {
+          "description": "How value combines with the vanilla flight speed (base 0.05): addition, multiply_base, multiply_total.",
+          "type": "string",
+          "enum": [
+            "addition",
+            "multiply_base",
+            "multiply_total"
+          ],
+          "default": "multiply_base"
+        },
+        "value": {
+          "description": "Amount applied to creative/hover flight speed (vanilla base 0.05). multiply_base 1.0 doubles it, -0.5 halves it, -0.25 ≈ Pehkui flight scale 0.75. Does not affect elytra gliding.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    {
       "$comment": "neoorigins:modify_food_nutrition",
       "properties": {
         "type": {
@@ -4065,6 +4093,17 @@
       ]
     },
     {
+      "$comment": "neoorigins:xeno_passive",
+      "properties": {
+        "type": {
+          "const": "neoorigins:xeno_passive"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
@@ -4129,6 +4168,7 @@
               "neoorigins:mobs_ignore_player",
               "neoorigins:model_color",
               "neoorigins:modify_damage",
+              "neoorigins:modify_flight_speed",
               "neoorigins:modify_food_nutrition",
               "neoorigins:modify_lava_speed",
               "neoorigins:modify_player_spawn",
@@ -4179,7 +4219,8 @@
               "neoorigins:walk_on_fluid",
               "neoorigins:wall_climbing",
               "neoorigins:water_breathing",
-              "neoorigins:wraith_phase"
+              "neoorigins:wraith_phase",
+              "neoorigins:xeno_passive"
             ]
           }
         }
