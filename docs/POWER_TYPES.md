@@ -478,6 +478,32 @@ Accepts only the standard toggle HUD fields beyond `name` and `description`:
 
 ---
 
+## `neoorigins:variable`
+
+A named, persistent, **always-hidden integer counter** — a "local variable" for power logic. Unlike a resource (`neoorigins:resource`), a variable has no HUD bar, no regeneration and no per-tick cost: it only changes when an action explicitly touches it (`change_resource` / `set_resource`), and it is read as a gate by the `resource` condition. The same authoring surface drives both passive and active abilities — use it for combo counters, charge stacks, one-shot flags, cooldown bookkeeping, etc.
+
+The counter's storage key is the declaring power's own id, so variables share the resource keyspace; `change_resource` and the `resource` condition operate on them with no extra wiring, and a variable can never collide with a resource name (two powers can't share an id).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `start` | int | no | `0` | Value seeded on grant, and the value reads fall back to before the first write. Alias: `start_value` |
+| `min` | int | no | unbounded | Lower clamp on additive writes; omit for an unbounded counter |
+| `max` | int | no | unbounded | Upper clamp on additive writes; omit for an unbounded counter |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:variable",
+  "start": 0,
+  "min": 0,
+  "max": 99,
+  "name": "Combo Counter",
+  "description": "Tracks consecutive hits."
+}
+```
+
+---
+
 ## `neoorigins:night_vision`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:persistent_effect`. See [MIGRATION.md](MIGRATION.md).
@@ -2227,7 +2253,8 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation �
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `cooldown_ticks` | int | no | `60` | Cooldown after each use |
+| `cooldown_ticks` | int | no | `60` | Cooldown after each use. Ignored when `cooldown_resource` is set. |
+| `cooldown_resource` | string | no | `""` | Id of a `neoorigins:variable` (or `neoorigins:resource`) counter whose **live value, in ticks**, is read at activation time and used as the cooldown length — overriding `cooldown_ticks`. Empty = fixed cooldown. Edit the counter with `change_resource`/`set_resource` to make a power's cooldown scale with game state (stacks consumed, upgrades bought, etc.). A missing counter falls back to its declared `start`; negative values clamp to 0 (instant reuse). |
 | `hunger_cost` | int | no | `0` | Food points removed per use (1 shank = 2 points). Silently aborts if player has less food (cooldown not consumed). |
 | `resource_cost` | string | no | `""` | Id of a `neoorigins:resource` power to debit per use. Empty = no resource cost. |
 | `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. Silently aborts (cooldown not consumed) if the resource can't cover it. If resource bars are globally disabled in config, the cost is charged as hunger instead. |
@@ -2258,6 +2285,23 @@ Hunger gating is handled at the `AbstractActivePower` base class level — when 
   "description": "Launches the player upward."
 }
 ```
+
+**Example — cooldown driven by a counter.** Declare a hidden `neoorigins:variable` counter elsewhere in the origin (say `myorigin:dash_cooldown`, `start: 100`), then point the ability at it. Other powers can shorten or lengthen the reuse delay by writing to that counter — e.g. a passive that runs `set_resource myorigin:dash_cooldown 40` while sprinting, or a `change_resource` that adds 20 ticks per consecutive use:
+```json
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_resource": "myorigin:dash_cooldown",
+  "entity_action": {
+    "type": "neoorigins:add_velocity",
+    "x": 3.0,
+    "client": true,
+    "server": true
+  },
+  "name": "Adaptive Dash",
+  "description": "Dash whose cooldown follows the dash_cooldown counter."
+}
+```
+The counter's value is read live on every activation, so the same key can be tuned at runtime by any action. Because counters share the resource keyspace and are declared at power-load time, the cooldown reads correctly even on the very first use (it falls back to the counter's `start`).
 
 Legacy active types (`active_teleport`, `active_dash`, etc.) remain registered during the deprecation window. The `migrateLegacyPowers` gradle task can rewrite pack JSON to this type; `LegacyPowerTypeAliases` covers unmigrated JSON once per-type field remappers are landed.
 
@@ -3659,6 +3703,34 @@ See [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture-autho
   "description": "Magical energy that regenerates outside of combat."
 }
 ```
+
+---
+
+## `neoorigins:variable`
+
+A named, persistent, **always-hidden** integer counter — a "local variable" for your origin. Unlike [`neoorigins:resource`](#neooriginsresource), a variable has no HUD bar, no regeneration, and no per-tick cost: it only changes when an action explicitly writes to it. It's the lightweight way to track state (combos, charges, kill counts, stages) and gate other abilities on it.
+
+The counter is stored per-player and saved across login sessions. Its storage key is the **power's own id**, so it shares the same keyspace as resources — read it with the [`resource` condition](CONDITIONS.md) and write it with [`change_resource` / `set_resource`](ACTIONS.md), exactly as you would a resource. Because two powers can never share an id, a variable can never collide with a resource of the same name.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `start` | int | no | `0` | Value seeded when the power is granted. Also the value reads fall back to before the first write. |
+| `min` | int | no | unbounded | Lower clamp applied to additive (`change_resource`) writes. Omit for an unbounded counter. |
+| `max` | int | no | unbounded | Upper clamp applied to additive (`change_resource`) writes. Omit for an unbounded counter. |
+
+Declare more than one by adding a `neoorigins:variable` power for each counter. Because a read resolves the declared `start` value even before the power's own seed runs (declarations are registered when powers load), the counter reads correctly no matter where it sits in the origin's power list — but listing your variable powers first keeps intent clear ("declared at the start of the power stack").
+
+**Example — a combo counter that powers a finisher:**
+```json
+{
+  "type": "neoorigins:variable",
+  "start": 0,
+  "min": 0,
+  "max": 5,
+  "name": "Combo"
+}
+```
+Increment it on hit (via an `action_on_event` / `change_resource` of `{ "resource": "<this power's id>", "change": 1 }`), gate the finisher ability behind a `resource` condition (`comparison: ">=", compare_to: 5`), and reset it with `set_resource` once the finisher fires.
 
 ---
 
