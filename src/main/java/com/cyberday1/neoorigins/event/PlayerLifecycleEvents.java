@@ -313,6 +313,13 @@ public class PlayerLifecycleEvents {
         } else {
             ActiveOriginService.forEach(sp, holder -> holder.onRespawn(sp));
             NeoOriginsNetwork.syncToPlayer(sp);
+            // Vanilla creates the respawned ServerPlayer with default (20) max_health
+            // and fills it, THEN onRespawn re-applies the origin's max_health modifier
+            // — which raises the max but never the current health. Without this the
+            // player would respawn at 20/30 instead of full. Respawn is already a
+            // full-heal moment in vanilla, so healing to the boosted max here matches
+            // that and fills the bonus hearts.
+            sp.setHealth(sp.getMaxHealth());
         }
         // modify_player_spawn — per-power respawn override. Runs before the
         // bed-less fallback and may also override the bed if override_bed=true.
