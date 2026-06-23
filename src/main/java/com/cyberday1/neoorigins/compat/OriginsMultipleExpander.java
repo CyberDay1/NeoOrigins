@@ -118,10 +118,15 @@ public final class OriginsMultipleExpander {
 
             JsonObject subPowerJson = entry.getValue().getAsJsonObject();
 
-            // Synthetic ID: namespace:path/subkey
+            // Synthetic ID: namespace:parentPath_subkey — the Apoli convention.
+            // A multiple's sub-powers are addressed as parentPath + "_" + subkey
+            // (e.g. "..._resource"), which is exactly how datapacks reference them
+            // in change_resource / has_power / *:*_subkey. Joining with "/" here
+            // (the old behaviour) desynced authored underscore references from the
+            // registered power id.
             ResourceLocation syntheticId = ResourceLocation.fromNamespaceAndPath(
                 id.getNamespace(),
-                id.getPath() + "/" + key
+                id.getPath() + "_" + key
             );
 
             // Resolve *:* self-references: in Origins/Apoli, "*:*_subkey" within
@@ -262,12 +267,13 @@ public final class OriginsMultipleExpander {
 
     /**
      * Rewrites {@code *:*_<subkey>} self-references in a sub-power JSON to
-     * the resolved synthetic form {@code namespace:parentPath/subkey}.
+     * the resolved synthetic form {@code namespace:parentPath_subkey} (Apoli
+     * convention — matches how the synthetic sub-power id is built above).
      */
     static JsonObject resolveSelfReferences(JsonObject json, ResourceLocation parentId) {
         String raw = json.toString();
         if (!raw.contains("*:*")) return json;
-        String resolved = raw.replace("*:*_", parentId.getNamespace() + ":" + parentId.getPath() + "/");
+        String resolved = raw.replace("*:*_", parentId.getNamespace() + ":" + parentId.getPath() + "_");
         resolved = resolved.replace("*:*", parentId.toString());
         return JsonParser.parseString(resolved).getAsJsonObject();
     }

@@ -89,7 +89,11 @@ public record OriginDetailViewModel(
                     ? resolveDisplayString(display.get("name")) : formatPowerId(parentId));
                 descs.add(display != null && display.has("description")
                     ? resolveDisplayString(display.get("description")) : "");
-                keyTags.add("");
+                // A multiple collapses its un-named sub-powers into one parent row.
+                // Surface the keys of ALL its keybind sub-powers (e.g. a grow/shrink
+                // pair) instead of a blank tag, so multi-keybind multiples still show
+                // their hotkeys in the info panel.
+                keyTags.add(aggregateChildKeyTags(parentId, slotMap));
                 continue;
             }
 
@@ -103,6 +107,22 @@ public record OriginDetailViewModel(
             Collections.unmodifiableList(names),
             Collections.unmodifiableList(descs),
             Collections.unmodifiableList(keyTags));
+    }
+
+    /**
+     * Collected, de-duplicated hotkey tags for every sub-power of a collapsed
+     * {@code multiple} parent row, space-joined (e.g. "[1] [2]"). Empty when no
+     * sub-power is keybound. Order follows the expansion map (powers() order).
+     */
+    private static String aggregateChildKeyTags(ResourceLocation parentId, Map<ResourceLocation, Integer> slotMap) {
+        List<ResourceLocation> children = OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.get(parentId);
+        if (children == null || children.isEmpty()) return "";
+        LinkedHashSet<String> tags = new LinkedHashSet<>();
+        for (ResourceLocation child : children) {
+            String tag = keyTagFor(child, slotMap);
+            if (!tag.isEmpty()) tags.add(tag);
+        }
+        return String.join(" ", tags);
     }
 
     /**
