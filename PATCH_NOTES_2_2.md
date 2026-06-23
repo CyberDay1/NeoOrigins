@@ -4,7 +4,7 @@
 
 ## v2.2.7
 
-> A big content update built around **six brand-new martial-arts origins** — each with a full kit and a three-tier evolution path that unlocks a new signature art as you advance. Underpinning them is a wave of new systems: true creative-style flight, the ability to bind powers to vanilla keys, a modular projectile-rain / telegraph / thrown-sword VFX toolkit, an on-hit event hook, and global vision toggles — plus the usual polish and fixes.
+> A big content update built around **six brand-new martial-arts origins** — each with a full kit and a three-tier evolution path that unlocks a new signature art as you advance. Underpinning them is a wave of new systems: a `variable` power type, true creative-style flight, the ability to bind powers to vanilla keys, a modular projectile-rain / telegraph / thrown-sword VFX toolkit, an on-hit event hook, and global vision toggles — plus the usual polish and fixes.
 >
 > **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
 
@@ -31,6 +31,7 @@ Six new origins join the roster, each a self-contained eastern martial-arts fant
 
 ### New Powers & Systems
 
+- **`variable` power type.** A named, hidden counter that persists across sessions, with no HUD bar, regen, or per-tick cost — it only changes when actions touch it. Use it as a hidden state-tracker for charges, stacks, or progress that resources aren't suited to.
 - **`creative_flight` power.** Grants true creative-style hover flight while active and cleanly restores normal movement when toggled off (without stripping flight from players already in creative/spectator) — built for "levitating cultivator" fantasies, distinct from elytra and natural glide.
 - **Bind powers to vanilla keys.** Active and reactive powers can now key off vanilla inputs — jump, sneak, sprint, use, attack, and the four movement keys (forward / back / left / right) — instead of consuming a named hotkey slot, so lightweight powers like double-jump fire on the keys players already use. Held `key.use` / `key.attack` powers now also fire correctly while the key is held down, where before they only triggered on an actual interaction or attack swing. A worked `double_jump` example ships in the example pack.
 - **`hit_dealt` event + `hit_dealt_amount` condition.** Powers can react to the damage *you deal* — mirroring the existing hit-taken hook — so `action_on_event` can fire on a landed hit (used for life-drain) and conditions can test how hard a blow landed.
