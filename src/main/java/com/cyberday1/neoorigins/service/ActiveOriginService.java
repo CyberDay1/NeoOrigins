@@ -307,6 +307,11 @@ public final class ActiveOriginService {
      */
     public static void applyOriginPowers(ServerPlayer player, Identifier layerId,
                                           Identifier oldOriginId, Identifier newOriginId) {
+        // Snapshot max_health before grant/revoke so we can fill the newly-gained
+        // hearts below. attribute_modifier powers raise max_health at grant time
+        // but never touch current health, so picking a +HP origin would otherwise
+        // leave the bonus hearts empty until natural regen.
+        float maxHealthBefore = player.getMaxHealth();
         if (oldOriginId != null) {
             Origin oldOrigin = OriginDataManager.INSTANCE.getOrigin(oldOriginId);
             if (oldOrigin != null) {
@@ -336,10 +341,17 @@ public final class ActiveOriginService {
                 }
             }
         }
-        // Clamp health to the new max — attribute modifiers may have changed
-        // max_health (e.g. swapping from a +HP origin to one without).
-        if (player.getHealth() > player.getMaxHealth()) {
-            player.setHealth(player.getMaxHealth());
+        // Reconcile current health with the (possibly changed) max_health.
+        // If max went UP (e.g. picking a +HP origin), raise current health by the
+        // gained delta so the new hearts come in full instead of empty — matching
+        // what respawn already does. We add only the delta rather than healing to
+        // full, so a lateral/downgrade swap can't be abused as a free full-heal.
+        // If max went DOWN (swapping away from +HP), clamp current health to it.
+        float maxHealthAfter = player.getMaxHealth();
+        if (maxHealthAfter > maxHealthBefore) {
+            player.setHealth(Math.min(player.getHealth() + (maxHealthAfter - maxHealthBefore), maxHealthAfter));
+        } else if (player.getHealth() > maxHealthAfter) {
+            player.setHealth(maxHealthAfter);
         }
     }
 
