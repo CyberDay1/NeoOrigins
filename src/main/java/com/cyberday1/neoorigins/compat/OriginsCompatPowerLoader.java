@@ -222,12 +222,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 CompatTranslationLog.pass(id, type + " -> Route B compiled");
                 NeoOrigins.LOGGER.debug("[CompatB] loaded {} ({})", id, type);
 
-                // If this is a synthetic sub-power, update the expansion map
-                String idPath = id.getPath();
-                int lastSlash = idPath.lastIndexOf('/');
-                if (lastSlash > 0) {
-                    String parentPath = idPath.substring(0, lastSlash);
-                    Identifier parentId = Identifier.fromNamespaceAndPath(id.getNamespace(), parentPath);
+                // If this is a synthetic sub-power, update the expansion map.
+                // Parent is looked up from the authoritative map recorded at expansion
+                // time — the synthetic id join is now "_" (Apoli convention) and can no
+                // longer be recovered by splitting the id string.
+                Identifier parentId = syntheticParentage.get(id);
+                if (parentId != null) {
                     newExpansions.computeIfAbsent(parentId, k -> new ArrayList<>()).add(id);
                 }
             } catch (Exception e) {
@@ -467,7 +467,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * Returns a flat map of id → JsonObject covering both direct powers and sub-powers.
      * Does NOT call OriginsMultipleExpander (avoids touching its state twice).
      */
+    /**
+     * Child synthetic id -> immediate parent id, recorded during {@link #inlineExpand}
+     * so synthetic sub-powers can be tied back to their parent without parsing the id
+     * string. The synthetic id now joins parent + "_" + subkey (Apoli convention), so
+     * the separator is ambiguous and the parent can no longer be recovered by splitting.
+     */
+    private final Map<Identifier, Identifier> syntheticParentage = new HashMap<>();
+
     private Map<Identifier, JsonObject> inlineExpand(Map<Identifier, JsonElement> data) {
+        syntheticParentage.clear();
         Map<Identifier, JsonObject> result = new HashMap<>();
         for (var entry : data.entrySet()) {
             if (!entry.getValue().isJsonObject()) continue;
@@ -493,8 +502,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             if (!subEntry.getValue().isJsonObject()) continue;
             JsonObject subJson = subEntry.getValue().getAsJsonObject();
             Identifier syntheticId = Identifier.fromNamespaceAndPath(
-                parentId.getNamespace(), parentId.getPath() + "/" + subEntry.getKey()
+                parentId.getNamespace(), parentId.getPath() + "_" + subEntry.getKey()
             );
+            syntheticParentage.put(syntheticId, parentId);
             String subType = OriginsFormatDetector.getType(subJson);
             if (OriginsMultipleExpander.isMultipleType(subType)) {
                 // A hidden parent hides the whole subtree — carry the flag down.
