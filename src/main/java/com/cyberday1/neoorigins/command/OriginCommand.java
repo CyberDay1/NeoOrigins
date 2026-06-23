@@ -62,11 +62,17 @@ public class OriginCommand {
             MobOriginDataManager.INSTANCE.getMobOrigins().keySet(), builder);
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // NeoOrigins-specific commands live ONLY under `/neoorigins`. The
-        // `/origin` namespace belongs to the Origins mod — Origins-mod compat
-        // commands (`/resource`, `/power`) are registered by
-        // {@link OriginsCompatCommands} under their own literals.
+        // Primary command tree.
         dispatcher.register(buildCommandTree("neoorigins"));
+        // `/origin` alias — registered as a REAL command literal (identical tree),
+        // not just rewritten on chat parse-fail by LegacyCommandRewriter. That
+        // rewriter never fires during datapack-load function compilation, so an
+        // `origin ...` line inside a vanilla .mcfunction (common in imported Fabric
+        // Origins packs) would fail to compile and take the whole function down.
+        // Registering the literal makes those functions compile. Safe on NeoForge:
+        // the Fabric Origins mod (the original `/origin` owner) cannot coexist here,
+        // and NeoOrigins IS the Origins implementation for this platform.
+        dispatcher.register(buildCommandTree("origin"));
         OriginsCompatCommands.register(dispatcher);
     }
 
