@@ -26,7 +26,8 @@ public final class NumericModifierRegistry {
 
     public enum Kind {
         LAVA_SPEED,
-        XP_GAIN
+        XP_GAIN,
+        FLYING_SPEED
     }
 
     public record Entry(String powerId, OriginsModifierMath.Modifier modifier) {}

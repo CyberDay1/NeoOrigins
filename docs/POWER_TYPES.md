@@ -317,6 +317,32 @@ Modifies the player's movement speed while submerged in lava. Uses the `NumericM
 
 ---
 
+## `neoorigins:modify_flight_speed`
+
+Scales creative / hover flight speed — the vanilla `Abilities.flyingSpeed` value (base `0.05`) that the game reads while a player is flying. This is the in-mod equivalent of Pehkui's `pehkui:flight` scale, so packs no longer need a Pehkui dependency to retune flight speed. It composes with any flight source (the `creative_flight` / `flight` powers, vanilla creative, or another mod's mayfly) because it edits the shared flight-speed input rather than a specific flight mechanic.
+
+It does **not** affect elytra / fall-flying gliding, which is physics-driven and never reads `flyingSpeed` — matching Pehkui's flight scale.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `operation` | string | no | `"multiply_base"` | `"addition"`, `"multiply_base"`, or `"multiply_total"` |
+| `value` | double | yes | — | Amount applied to the `0.05` base. `multiply_base 1.0` doubles flight speed, `-0.5` halves it, `-0.25` ≈ Pehkui flight scale `0.75`. |
+
+Multiple holders of this power stack the Apoli way (additions sum, then the multiplier deltas sum), exactly like `modify_lava_speed`.
+
+**Example — Pehkui flight scale 0.75 equivalent:**
+```json
+{
+  "type": "neoorigins:modify_flight_speed",
+  "operation": "multiply_base",
+  "value": -0.25,
+  "name": "Measured Flight",
+  "description": "Hovers at three-quarters the usual flight speed."
+}
+```
+
+---
+
 ## `neoorigins:modify_damage`
 
 Multiplies damage dealt or received, optionally filtered to a specific damage type and, for `direction: out`, restricted to a target entity group.
@@ -3047,6 +3073,27 @@ Endermen do not aggro when the player looks at them. Emits the `ender_gaze_immun
   "type": "neoorigins:ender_gaze_immunity",
   "name": "Void Gaze",
   "description": "Endermen ignore your gaze."
+}
+```
+
+---
+
+## `neoorigins:xeno_passive`
+
+Soft-dependency compat with the Aliens vs Predator mod (`avp_alien`). Emits the `xeno_passive` capability tag, which an `@Pseudo` mixin reads from inside AvP's `AlienPredicates.isHost` to short-circuit host eligibility — facehuggers (and the ovomorph hatch-desire / parasite-attachment logic gated off the same predicate) stop treating the holder as a viable host, as if already infected or immune.
+
+This only governs the facehugger host gate. The companion "xenomorphs ignore me entirely" behaviour is delivered separately via a `mobs_ignore_player` power scoped to the `#avp_alien:aliens` / `#avp_alien:parasites` tags. When AvP is not installed the capability simply goes unread and this power is an inert marker.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:xeno_passive",
+  "name": "Tainted Blood",
+  "description": "Facehuggers find you an unfit host."
 }
 ```
 
