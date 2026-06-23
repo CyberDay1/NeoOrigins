@@ -1128,6 +1128,30 @@ public final class BuiltinPowers {
             new FieldSpec("restrictions", Kind.ARRAY, false)
                 .doc("List of slot restrictions, each {slot, item?, tag?}: when a matching item (by id and/or #tag) is equipped in that EquipmentSlot (head/chest/legs/feet/mainhand/offhand) it is ejected back to the inventory. An entry with neither item nor tag bars the whole slot. Empty list (default) restricts nothing.")));
 
+        //   • item_usage_gate: one modular gate over equipping AND using items.
+        //     Hand-rolled Codec (item_condition is parsed by ItemConditionParser,
+        //     not a Codec). The Config record components are item_condition (REF),
+        //     slots / hands (ARRAY of enum names), prevent_equip / prevent_use /
+        //     deny (BOOLEAN), and condition (Optional<EntityCondition> → REF, not
+        //     required). `type` is internal plumbing (excluded by the audit).
+        define("item_usage_gate", ItemUsageGatePower.class, List.of(
+            new FieldSpec("item_condition", Kind.REF, false).ref("item_condition.schema.json")
+                .doc("Apoli-style item condition (id / tag / nbt / enchantment / empty, with and/or/not composition) selecting which stacks the gate matches. Omit to match every stack (allow-list with no condition permits everything; blacklist with none forbids everything)."),
+            new FieldSpec("slots", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("EquipmentSlot names the equip gate applies to: mainhand, offhand, head, chest, legs, feet, body. Empty (default) = all slots."),
+            new FieldSpec("hands", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("InteractionHand names the use gate applies to: mainhand, offhand. Empty (default) = both hands."),
+            new FieldSpec("prevent_equip", Kind.BOOLEAN, false)
+                .def(false).doc("When true, equipping a matched item into a gated slot is rejected (ejected back to the inventory). Default false."),
+            new FieldSpec("prevent_use", Kind.BOOLEAN, false)
+                .def(false).doc("When true, USING a matched item (right-click / raise: shields, totems, bows, food, ...) in a gated hand is cancelled — including stopping a totem of undying from saving the holder. Default false."),
+            new FieldSpec("deny", Kind.BOOLEAN, false)
+                .def(true).doc("true (default) = blacklist: matched items are forbidden. false = allow-list: ONLY matched items are permitted for the gated action; every other item is forbidden."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gating the whole power: the gate is inert unless it passes (default always-true).")));
+
         //   • modify_player_spawn: the codec reads exactly two fields — a NESTED
         //     `location` LocationCondition object (fieldOf, no default → the only
         //     hard-fail, so required=true) and a top-level `override_bed` boolean

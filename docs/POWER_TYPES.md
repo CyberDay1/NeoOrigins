@@ -2152,6 +2152,55 @@ Config entries are checked alongside the tags — items in either source count a
 
 ---
 
+## `neoorigins:item_usage_gate`
+
+One modular, multipurpose gate over **equipping** and **using** items. A single flexible power that covers both blacklist and allow-list semantics for any item matched by a reusable item condition, across any equipment slot and/or hand. Unlike `restrict_armor` (equip-only), this can also cancel item *use* — and, done properly, that means stopping a totem of undying from saving the holder (vanilla consumes the totem before the death event, so this is enforced via a mixin into `checkTotemDeathProtection`).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `item_condition` | item condition | no | matches all | Apoli-style item condition (`id` / `tag` / `nbt` / `enchantment` / `empty`, with `and`/`or`/`not` composition) selecting which stacks the gate matches. Omit to match every stack. |
+| `slots` | list of strings | no | `[]` (all) | EquipmentSlot names the *equip* gate applies to: `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body`. Empty = all slots. |
+| `hands` | list of strings | no | `[]` (both) | InteractionHand names the *use* gate applies to: `mainhand`, `offhand`. Empty = both hands. |
+| `prevent_equip` | boolean | no | `false` | When true, equipping a matched item into a gated slot is rejected (ejected back to the inventory). |
+| `prevent_use` | boolean | no | `false` | When true, *using* a matched item (right-click / raise: shields, totems, bows, food, ...) in a gated hand is cancelled — including stopping a totem of undying from popping. |
+| `deny` | boolean | no | `true` | `true` = blacklist: matched items are forbidden. `false` = allow-list: ONLY matched items are permitted for the gated action; everything else is forbidden. |
+| `condition` | EntityCondition | no | always true | Optional whole-power gate: the power is inert unless it passes. |
+
+The single decision is `match → forbidden`: in blacklist mode a matched item is forbidden; in allow-list mode an *un*matched item is forbidden. The same decision drives equip, use, and the totem mixin, so they can never disagree.
+
+**Example — a "fragile" origin can't use shields and can't be saved by totems:**
+```json
+{
+  "type": "neoorigins:item_usage_gate",
+  "item_condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      { "item": "minecraft:shield" },
+      { "item": "minecraft:totem_of_undying" }
+    ]
+  },
+  "prevent_use": true,
+  "deny": true,
+  "name": "Fragile",
+  "description": "Cannot raise a shield, and a totem of undying will not save you."
+}
+```
+
+**Example — allow-list: can only ever hold a wooden sword in the main hand:**
+```json
+{
+  "type": "neoorigins:item_usage_gate",
+  "item_condition": { "item": "minecraft:wooden_sword" },
+  "slots": ["mainhand"],
+  "prevent_equip": true,
+  "deny": false,
+  "name": "Pacifist's Vow",
+  "description": "Refuses to wield anything but a wooden sword."
+}
+```
+
+---
+
 ## `neoorigins:keep_inventory`
 
 On death, selectively retain inventory items matching the power's filters. Matching items are removed from drops and restored on respawn — to the player's inventory for vanilla slots, or re-equipped into their original slot for trinkets.

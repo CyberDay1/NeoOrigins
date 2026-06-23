@@ -24,6 +24,7 @@
     "LiquidBlockWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin",
     "LivingEntityUndeadPotionMixin",
+    "LivingEntityTotemGateMixin",
     "EntityMountPositionMixin",
     "EntityMountEndMixin",
     "AbstractVillagerTradePriceMixin",
