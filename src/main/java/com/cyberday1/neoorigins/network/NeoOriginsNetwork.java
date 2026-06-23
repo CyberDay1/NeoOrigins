@@ -1044,7 +1044,9 @@ public class NeoOriginsNetwork {
             key = candidateKey.equals(ap.getClass().getName())
                     ? holder.id().toString()   // default impl fell back — use real ID
                     : candidateKey;            // subclass override (e.g. SummonMinionPower)
-            totalTicks = cfg.cooldownTicks();
+            // Resolve dynamic cooldown (cooldown_resource) so the ring total
+            // matches the live counter value, not just the fixed cooldownTicks().
+            totalTicks = ap.resolveCooldown(sp, cfg);
             icon = cfg.cooldownIcon();
             countdown = cfg.cooldownCountdown();
         } else if (holder.type() instanceof com.cyberday1.neoorigins.compat.CompatPower

@@ -372,7 +372,10 @@ public final class ConditionParser {
                 }
                 return false;
             }
-            int cur = state.get(powerId, 0);
+            // Default to the declared variable start (0 for resources / undeclared
+            // keys) so a counter declared elsewhere in the power stack reads its
+            // start value even before its seed runs.
+            int cur = state.get(powerId, CompatAttachments.variableStart(powerId));
             return comparison.test(cur, target);
         };
     }

@@ -9,6 +9,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.network.chat.Component;
+import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.CompatTranslationLog;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
@@ -212,6 +213,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         this.rawPowerJson = Collections.unmodifiableMap(rawSnapshot);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         this.version++;
+        registerVariableDeclarations(loaded);
         recomputeUltiminePowerInUse();
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
@@ -336,6 +338,41 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             if (obj.has("translate")) return Component.translatable(obj.get("translate").getAsString());
         }
         return Component.empty();
+    }
+
+    /**
+     * Rebuilds the global {@code neoorigins:variable} declaration registry from
+     * the freshly loaded power set. Registering at load time (rather than only
+     * per-player on grant) means a {@code resource} condition / {@code change_resource}
+     * read resolves the declared start/bounds regardless of where the variable
+     * sits in an origin's power list — "declared at the start of the power stack"
+     * is true by construction, not by authoring order. A variable's storage key
+     * is its own power id, so it can never collide with another power's id; the
+     * only same-key case is a variable and a resource declared under the same id,
+     * which we warn about (the map already deduped to one survivor by then).
+     */
+    private void registerVariableDeclarations(Map<Identifier, PowerHolder<?>> loaded) {
+        CompatAttachments.clearVariables();
+        java.util.Set<String> resourceKeys = new java.util.HashSet<>();
+        for (var entry : loaded.entrySet()) {
+            if (entry.getValue().type() instanceof com.cyberday1.neoorigins.power.builtin.ResourcePower) {
+                resourceKeys.add(entry.getKey().toString());
+            }
+        }
+        int count = 0;
+        for (var entry : loaded.entrySet()) {
+            if (!(entry.getValue().type() instanceof com.cyberday1.neoorigins.power.builtin.VariablePower)) continue;
+            String key = entry.getKey().toString();
+            if (resourceKeys.contains(key)) {
+                NeoOrigins.LOGGER.warn("neoorigins:variable {} shares an id with a resource of the same name; "
+                    + "they would share one stored value. Rename one.", key);
+            }
+            var cfg = (com.cyberday1.neoorigins.power.builtin.VariablePower.Config) entry.getValue().config();
+            CompatAttachments.registerVariable(key,
+                new CompatAttachments.VariableDecl(cfg.start(), cfg.min(), cfg.max()));
+            count++;
+        }
+        if (count > 0) NeoOrigins.LOGGER.info("Registered {} neoorigins:variable declaration(s)", count);
     }
 
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
