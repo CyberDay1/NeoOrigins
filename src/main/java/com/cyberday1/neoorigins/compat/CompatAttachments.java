@@ -240,6 +240,29 @@ public class CompatAttachments {
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
     public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
 
+    // ---- Variable declarations (neoorigins:variable) ----
+    // A variable is an always-hidden counter that shares the ResourceState
+    // keyspace (keyed by its own power id). Declarations are registered at
+    // power-load time so a read resolves the declared start/bounds regardless
+    // of where the variable sits in an origin's power list. start doubles as
+    // the read fallback for a declared-but-not-yet-seeded key.
+    public record VariableDecl(int start, int min, int max) {}
+
+    private static final Map<String, VariableDecl> VARIABLE_DECLS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerVariable(String key, VariableDecl decl) { VARIABLE_DECLS.put(key, decl); }
+    public static void unregisterVariable(String key) { VARIABLE_DECLS.remove(key); }
+    public static VariableDecl getVariable(String key) { return VARIABLE_DECLS.get(key); }
+    public static boolean isDeclaredVariable(String key) { return VARIABLE_DECLS.containsKey(key); }
+    public static Map<String, VariableDecl> allVariables() { return Map.copyOf(VARIABLE_DECLS); }
+    public static void clearVariables() { VARIABLE_DECLS.clear(); }
+
+    /** Declared start value for a variable key, or 0 when the key isn't a declared variable. */
+    public static int variableStart(String key) {
+        VariableDecl d = VARIABLE_DECLS.get(key);
+        return d != null ? d.start() : 0;
+    }
+
     // ---- Apoli hud_render.condition: a bar renders only while its condition holds ----
     // Evaluated server-side; a bar whose condition currently fails is excluded from
     // both syncs (so it never reaches the client). The defining power's onTick drives

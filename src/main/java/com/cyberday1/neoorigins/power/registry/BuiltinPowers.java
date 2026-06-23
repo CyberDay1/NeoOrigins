@@ -1032,7 +1032,9 @@ public final class BuiltinPowers {
                 .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.")));
         define("active_ability", ActiveAbilityPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
-                .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60."),
+                .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set."),
+            new FieldSpec("cooldown_resource", Kind.STRING, false)
+                .def("").doc("Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).range(0.0, null).doc("Food/exhaustion points consumed per successful activation; default 0."),
             new FieldSpec("resource_cost", Kind.STRING, false)
@@ -1324,6 +1326,21 @@ public final class BuiltinPowers {
                 new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted."),
                 new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
                 .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.")));
+
+        // variable — a named, always-hidden, persistent integer counter. Shares
+        // the ResourceState keyspace (keyed by its own power id), so it can be
+        // read by the `resource` condition and written by `change_resource` /
+        // `set_resource` with no extra wiring — but with no HUD, no regen, and no
+        // per-tick cost. `start` doubles as the value reads fall back to before
+        // the first write. Declare more than one (one power each) and list them
+        // first in an origin's powers to have them "at the start of the stack".
+        define("variable", com.cyberday1.neoorigins.power.builtin.VariablePower.class, List.of(
+            new FieldSpec("start", Kind.INTEGER, false).def(0)
+                .doc("Initial counter value seeded on grant; also the value reads fall back to before the first write. Default 0."),
+            new FieldSpec("min", Kind.INTEGER, false)
+                .doc("Lower clamp applied to additive (change_resource) writes; omit for an unbounded counter."),
+            new FieldSpec("max", Kind.INTEGER, false)
+                .doc("Upper clamp applied to additive (change_resource) writes; omit for an unbounded counter.")));
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<type>"} id, or {@code null}. */

@@ -53,7 +53,8 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
-        boolean alwaysShowIcon
+        boolean alwaysShowIcon,
+        String cooldownResource
     ) implements AbstractActivePower.Config {
 
         @Override public int cooldownTicks() { return cooldownTicks; }
@@ -63,6 +64,7 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
         @Override public String cooldownIcon() { return cooldownIcon; }
         @Override public boolean cooldownCountdown() { return cooldownCountdown; }
         @Override public boolean alwaysShowIcon() { return alwaysShowIcon; }
+        @Override public String cooldownResource() { return cooldownResource; }
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -94,7 +96,10 @@ public class ActiveAbilityPower extends AbstractActivePower<ActiveAbilityPower.C
                 String cdIcon = obj.has("cooldown_icon") ? obj.get("cooldown_icon").getAsString() : "";
                 boolean cdCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
                 boolean alwaysShow = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
-                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, failAction, t, cdIcon, cdCountdown, alwaysShow), ops.empty()));
+                // Optional: a variable/resource counter id whose live value (ticks)
+                // overrides cooldown_ticks at activation time. Empty = fixed cooldown.
+                String cdResource = obj.has("cooldown_resource") ? obj.get("cooldown_resource").getAsString() : "";
+                return DataResult.success(Pair.of(new Config(cooldown, hunger, resCost, resCostAmt, action, condition, failAction, t, cdIcon, cdCountdown, alwaysShow, cdResource), ops.empty()));
             }
 
             @Override

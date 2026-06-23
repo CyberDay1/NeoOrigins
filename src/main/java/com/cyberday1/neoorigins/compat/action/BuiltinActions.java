@@ -2108,16 +2108,10 @@ public final class BuiltinActions {
                     var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
                     if (wildcard) {
                         for (String k : state.matchingKeys(key)) {
-                            var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(k);
-                            int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
-                            int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
-                            state.clampedAdd(k, fChange, lo, hi);
+                            clampedAddBounded(state, k, fChange);
                         }
                     } else {
-                        var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
-                        int lo = meta != null ? meta.min() : Integer.MIN_VALUE;
-                        int hi = meta != null ? meta.max() : Integer.MAX_VALUE;
-                        state.clampedAdd(key, fChange, lo, hi);
+                        clampedAddBounded(state, key, fChange);
                     }
                     com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                 };
@@ -2821,6 +2815,32 @@ public final class BuiltinActions {
                 new FieldSpec("components", FormFieldSpec.Kind.ARRAY, true)
                     .itemPattern("^(compat:)?[a-z0-9_.]+$")
                     .doc("The ordered component list, EFFECT-FIRST: each effect id is followed by the modifier ids that apply to it (a modifier binds to the PRECEDING effect; one before the first effect is silently dropped). Effect/modifier ids come from Build A Spell; `compat:*` ids pass through verbatim. Easiest path: build the spell in-game and use BaS's \"Export to Power\" button, which emits this list in the correct order.")));
+    }
+
+    /**
+     * Clamped additive write that honours the key's declared bounds. Bounds
+     * come from a resource's {@code ResourceMeta} when present, otherwise from a
+     * {@code neoorigins:variable} declaration, otherwise unbounded. For a declared
+     * variable not yet seeded for this player (grant-order race), the declared
+     * start is seeded first so the result is {@code start + delta} rather than
+     * {@code 0 + delta}.
+     */
+    private static void clampedAddBounded(
+            com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState state, String key, int delta) {
+        var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
+        int lo, hi;
+        if (meta != null) {
+            lo = meta.min();
+            hi = meta.max();
+        } else {
+            var vd = com.cyberday1.neoorigins.compat.CompatAttachments.getVariable(key);
+            lo = vd != null ? vd.min() : Integer.MIN_VALUE;
+            hi = vd != null ? vd.max() : Integer.MAX_VALUE;
+            if (vd != null && !state.has(key) && vd.start() != 0) {
+                state.set(key, vd.start());
+            }
+        }
+        state.clampedAdd(key, delta, lo, hi);
     }
 
     /**
