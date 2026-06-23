@@ -3,6 +3,9 @@
   "minVersion": "0.8",
   "package": "com.cyberday1.neoorigins.mixin.compat",
   "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AvpAlienHostMixin"
+  ],
   "client": [
     "EpicFightScaleMixin"
   ],
