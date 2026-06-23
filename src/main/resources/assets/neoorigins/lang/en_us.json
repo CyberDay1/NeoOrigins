@@ -22,6 +22,7 @@
   "gui.neoorigins.power.key_tag": "[%s]",
   "gui.neoorigins.power.key_tag.toggle": "[%s] Toggle",
   "gui.neoorigins.sort.label": "Sort",
+  "gui.neoorigins.sort.manual": "Default",
   "gui.neoorigins.sort.name_asc": "Name (A-Z)",
   "gui.neoorigins.sort.name_desc": "Name (Z-A)",
   "gui.neoorigins.sort.class": "Class",

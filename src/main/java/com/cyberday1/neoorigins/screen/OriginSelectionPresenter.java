@@ -22,12 +22,15 @@ import java.util.*;
 public class OriginSelectionPresenter {
 
     /**
-     * Sort modes for the origin list. The default {@link #CLASS} preserves
-     * the existing namespace-grouped layout (origins from the same mod /
-     * pack stay together, alphabetical within each group), so the screen
-     * looks unchanged until the user explicitly cycles the dropdown.
+     * Sort modes for the origin list. The default {@link #MANUAL} honours the
+     * author-set {@code order} field on each origin (ascending), so packs get
+     * the exact ordering they declared at create time; ties fall back to
+     * alphabetical for a stable result. {@link #CLASS} preserves the older
+     * namespace-grouped layout (origins from the same mod / pack stay together,
+     * alphabetical within each group).
      */
     public enum SortMode {
+        MANUAL,      // author-set `order` field ascending, alpha tie-break, no headers
         NAME_ASC,    // flat alphabetical, no headers
         NAME_DESC,   // flat reverse-alphabetical, no headers
         CLASS,       // grouped by namespace ("class" / mod), alpha within
@@ -40,7 +43,7 @@ public class OriginSelectionPresenter {
     private int listScrollOffset             = 0;
     private String searchText                = "";
     private boolean forceReselect            = false;
-    private SortMode sortMode                = SortMode.CLASS;
+    private SortMode sortMode                = SortMode.MANUAL;
 
     private final List<OriginListEntry> allRows      = new ArrayList<>();
     private final List<OriginListEntry> filteredRows = new ArrayList<>();
@@ -93,6 +96,7 @@ public class OriginSelectionPresenter {
         }
 
         switch (sortMode) {
+            case MANUAL     -> buildRowsFlatByManualOrder(rawIds);
             case CLASS      -> buildRowsGroupedByNamespace(rawIds);
             case NAME_ASC   -> buildRowsFlatByName(rawIds, false);
             case NAME_DESC  -> buildRowsFlatByName(rawIds, true);
@@ -142,6 +146,32 @@ public class OriginSelectionPresenter {
             allRows.add(OriginListEntry.origin(id, getOriginDisplayName(id), id.getNamespace()));
             allOriginIds.add(id);
         }
+    }
+
+    private void buildRowsFlatByManualOrder(List<ResourceLocation> rawIds) {
+        List<ResourceLocation> sorted = new ArrayList<>(rawIds);
+        // Author-declared `order` field, ascending. This is the create-time
+        // ordering a pack sets on each origin (default 0). Equal orders — the
+        // common case for packs that never bothered setting it — fall back to
+        // alphabetical so the result is stable and predictable rather than
+        // dependent on datapack scan order.
+        sorted.sort((a, b) -> {
+            int oa = orderRank(a);
+            int ob = orderRank(b);
+            if (oa != ob) return Integer.compare(oa, ob);
+            return getOriginDisplayName(a).compareToIgnoreCase(getOriginDisplayName(b));
+        });
+        for (ResourceLocation id : sorted) {
+            allRows.add(OriginListEntry.origin(id, getOriginDisplayName(id), id.getNamespace()));
+            allOriginIds.add(id);
+        }
+    }
+
+    private static int orderRank(ResourceLocation id) {
+        Origin o = OriginDataManager.INSTANCE.getOrigin(id);
+        // Missing origins sort to the end (consistent with impactRank) so a
+        // corrupt entry never leads the list.
+        return o == null ? Integer.MAX_VALUE : o.order();
     }
 
     private void buildRowsFlatByImpact(List<ResourceLocation> rawIds) {
