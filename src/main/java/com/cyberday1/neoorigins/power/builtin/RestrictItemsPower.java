@@ -25,7 +25,7 @@ import java.util.Set;
 
 /**
  * One modular, multipurpose gate over <em>equipping</em> and <em>using</em>
- * items: {@code neoorigins:item_usage_gate}. A single flexible power that covers
+ * items: {@code neoorigins:restrict_items}. A single flexible power that covers
  * both blacklist ({@code deny: true}) and allow-list ({@code deny: false})
  * semantics for any item matched by a reusable {@link ItemCondition} predicate,
  * across any equipment slot and/or hand.
@@ -56,7 +56,7 @@ import java.util.Set;
  * {@link com.cyberday1.neoorigins.event.InteractionPowerEvents} (equip + use)
  * and {@code LivingEntityTotemGateMixin} (totem-of-undying).
  */
-public class ItemUsageGatePower extends PowerType<ItemUsageGatePower.Config> {
+public class RestrictItemsPower extends PowerType<RestrictItemsPower.Config> {
 
     public record Config(
         ItemCondition itemCondition,
@@ -76,14 +76,14 @@ public class ItemUsageGatePower extends PowerType<ItemUsageGatePower.Config> {
                 try {
                     json = ops.convertTo(JsonOps.INSTANCE, input);
                 } catch (Exception e) {
-                    return DataResult.error(() -> "item_usage_gate: could not convert to JSON: " + e.getMessage());
+                    return DataResult.error(() -> "restrict_items: could not convert to JSON: " + e.getMessage());
                 }
                 if (!json.isJsonObject()) {
-                    return DataResult.error(() -> "item_usage_gate: expected JSON object");
+                    return DataResult.error(() -> "restrict_items: expected JSON object");
                 }
                 JsonObject obj = json.getAsJsonObject();
 
-                String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:item_usage_gate";
+                String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:restrict_items";
 
                 // item_condition: reuse the shared Apoli item-condition parser.
                 // Absent → match every stack (alwaysTrue), so an allow-list with no

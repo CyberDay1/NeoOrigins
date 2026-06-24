@@ -1,6 +1,6 @@
 package com.cyberday1.neoorigins.mixin;
 
-import com.cyberday1.neoorigins.power.builtin.ItemUsageGatePower;
+import com.cyberday1.neoorigins.power.builtin.RestrictItemsPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Makes {@code item_usage_gate}'s {@code prevent_use} genuinely stop a totem of
+ * Makes {@code restrict_items}'s {@code prevent_use} genuinely stop a totem of
  * undying from saving the holder.
  *
  * <p>Vanilla consumes the totem inside {@code LivingEntity.checkTotemDeathProtection},
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * (no protection) before the totem is consumed: the player dies and keeps the
  * totem.
  *
- * <p>The decision is routed through the SAME {@link ItemUsageGatePower#blocksUse}
+ * <p>The decision is routed through the SAME {@link RestrictItemsPower#blocksUse}
  * helper the equip/use handlers use, so the totem path can't drift from the rest
  * of the gate. Only {@link ServerPlayer} holders are checked (the power's
  * condition DSL targets players); other entities fall through to vanilla.
@@ -41,8 +41,8 @@ public abstract class LivingEntityTotemGateMixin {
             ItemStack held = sp.getItemInHand(hand);
             if (held.isEmpty()) continue;
             final boolean[] blocked = {false};
-            ActiveOriginService.forEachOfType(sp, ItemUsageGatePower.class, cfg -> {
-                if (ItemUsageGatePower.blocksUse(sp, held, hand, cfg)) blocked[0] = true;
+            ActiveOriginService.forEachOfType(sp, RestrictItemsPower.class, cfg -> {
+                if (RestrictItemsPower.blocksUse(sp, held, hand, cfg)) blocked[0] = true;
             });
             if (blocked[0]) {
                 cir.setReturnValue(false);
