@@ -2170,7 +2170,7 @@ Config entries are checked alongside the tags — items in either source count a
 
 ---
 
-## `neoorigins:item_usage_gate`
+## `neoorigins:restrict_items`
 
 One modular, multipurpose gate over **equipping** and **using** items. A single flexible power that covers both blacklist and allow-list semantics for any item matched by a reusable item condition, across any equipment slot and/or hand. Unlike `restrict_armor` (equip-only), this can also cancel item *use* — and, done properly, that means stopping a totem of undying from saving the holder (vanilla consumes the totem before the death event, so this is enforced via a mixin into `checkTotemDeathProtection`).
 
@@ -2189,7 +2189,7 @@ The single decision is `match → forbidden`: in blacklist mode a matched item i
 **Example — a "fragile" origin can't use shields and can't be saved by totems:**
 ```json
 {
-  "type": "neoorigins:item_usage_gate",
+  "type": "neoorigins:restrict_items",
   "item_condition": {
     "type": "neoorigins:or",
     "conditions": [
@@ -2207,7 +2207,7 @@ The single decision is `match → forbidden`: in blacklist mode a matched item i
 **Example — allow-list: can only ever hold a wooden sword in the main hand:**
 ```json
 {
-  "type": "neoorigins:item_usage_gate",
+  "type": "neoorigins:restrict_items",
   "item_condition": { "item": "minecraft:wooden_sword" },
   "slots": ["mainhand"],
   "prevent_equip": true,

@@ -84,7 +84,6 @@
         "neoorigins:ignore_water",
         "neoorigins:invulnerability",
         "neoorigins:item_magnetism",
-        "neoorigins:item_usage_gate",
         "neoorigins:keep_inventory",
         "neoorigins:knockback_modifier",
         "neoorigins:lava_vision",
@@ -126,6 +125,7 @@
         "neoorigins:repulse",
         "neoorigins:resource",
         "neoorigins:restrict_armor",
+        "neoorigins:restrict_items",
         "neoorigins:scare_entities",
         "neoorigins:shader",
         "neoorigins:shadow_orb",
@@ -1852,66 +1852,6 @@
       ]
     },
     {
-      "$comment": "neoorigins:item_usage_gate",
-      "properties": {
-        "type": {
-          "const": "neoorigins:item_usage_gate"
-        },
-        "item_condition": {
-          "description": "Apoli-style item condition (id / tag / nbt / enchantment / empty, with and/or/not composition) selecting which stacks the gate matches. Omit to match every stack (allow-list with no condition permits everything; blacklist with none forbids everything).",
-          "$ref": "item_condition.schema.json"
-        },
-        "slots": {
-          "description": "EquipmentSlot names the equip gate applies to: mainhand, offhand, head, chest, legs, feet, body. Empty (default) = all slots.",
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
-          }
-        },
-        "hands": {
-          "description": "InteractionHand names the use gate applies to: mainhand, offhand. Empty (default) = both hands.",
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
-          }
-        },
-        "prevent_equip": {
-          "description": "When true, equipping a matched item into a gated slot is rejected (ejected back to the inventory). Default false.",
-          "type": "boolean",
-          "default": false
-        },
-        "prevent_use": {
-          "description": "When true, USING a matched item (right-click / raise: shields, totems, bows, food, ...) in a gated hand is cancelled — including stopping a totem of undying from saving the holder. Default false.",
-          "type": "boolean",
-          "default": false
-        },
-        "deny": {
-          "description": "true (default) = blacklist: matched items are forbidden. false = allow-list: ONLY matched items are permitted for the gated action; every other item is forbidden.",
-          "type": "boolean",
-          "default": true
-        },
-        "condition": {
-          "description": "Optional EntityCondition gating the whole power: the gate is inert unless it passes (default always-true).",
-          "oneOf": [
-            {
-              "$ref": "condition.schema.json"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "condition.schema.json"
-              }
-            }
-          ]
-        }
-      },
-      "required": [
-        "type"
-      ]
-    },
-    {
       "$comment": "neoorigins:keep_inventory",
       "properties": {
         "type": {
@@ -3136,6 +3076,66 @@
       ]
     },
     {
+      "$comment": "neoorigins:restrict_items",
+      "properties": {
+        "type": {
+          "const": "neoorigins:restrict_items"
+        },
+        "item_condition": {
+          "description": "Apoli-style item condition (id / tag / nbt / enchantment / empty, with and/or/not composition) selecting which stacks the gate matches. Omit to match every stack (allow-list with no condition permits everything; blacklist with none forbids everything).",
+          "$ref": "item_condition.schema.json"
+        },
+        "slots": {
+          "description": "EquipmentSlot names the equip gate applies to: mainhand, offhand, head, chest, legs, feet, body. Empty (default) = all slots.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "hands": {
+          "description": "InteractionHand names the use gate applies to: mainhand, offhand. Empty (default) = both hands.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "prevent_equip": {
+          "description": "When true, equipping a matched item into a gated slot is rejected (ejected back to the inventory). Default false.",
+          "type": "boolean",
+          "default": false
+        },
+        "prevent_use": {
+          "description": "When true, USING a matched item (right-click / raise: shields, totems, bows, food, ...) in a gated hand is cancelled — including stopping a totem of undying from saving the holder. Default false.",
+          "type": "boolean",
+          "default": false
+        },
+        "deny": {
+          "description": "true (default) = blacklist: matched items are forbidden. false = allow-list: ONLY matched items are permitted for the gated action; every other item is forbidden.",
+          "type": "boolean",
+          "default": true
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the whole power: the gate is inert unless it passes (default always-true).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:scare_entities",
       "properties": {
         "type": {
@@ -4063,7 +4063,6 @@
               "neoorigins:ignore_water",
               "neoorigins:invulnerability",
               "neoorigins:item_magnetism",
-              "neoorigins:item_usage_gate",
               "neoorigins:keep_inventory",
               "neoorigins:lava_vision",
               "neoorigins:less_item_use_slowdown",
@@ -4097,6 +4096,7 @@
               "neoorigins:rare_wandering_loot",
               "neoorigins:resource",
               "neoorigins:restrict_armor",
+              "neoorigins:restrict_items",
               "neoorigins:scare_entities",
               "neoorigins:shader",
               "neoorigins:shadow_orb",

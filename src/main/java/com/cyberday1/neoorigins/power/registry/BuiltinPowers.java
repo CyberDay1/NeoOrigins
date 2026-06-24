@@ -1100,13 +1100,13 @@ public final class BuiltinPowers {
             new FieldSpec("restrictions", Kind.ARRAY, false)
                 .doc("List of slot restrictions, each {slot, item?, tag?}: when a matching item (by id and/or #tag) is equipped in that EquipmentSlot (head/chest/legs/feet/mainhand/offhand) it is ejected back to the inventory. An entry with neither item nor tag bars the whole slot. Empty list (default) restricts nothing.")));
 
-        //   • item_usage_gate: one modular gate over equipping AND using items.
+        //   • restrict_items: one modular gate over equipping AND using items.
         //     Hand-rolled Codec (item_condition is parsed by ItemConditionParser,
         //     not a Codec). The Config record components are item_condition (REF),
         //     slots / hands (ARRAY of enum names), prevent_equip / prevent_use /
         //     deny (BOOLEAN), and condition (Optional<EntityCondition> → REF, not
         //     required). `type` is internal plumbing (excluded by the audit).
-        define("item_usage_gate", ItemUsageGatePower.class, List.of(
+        define("restrict_items", RestrictItemsPower.class, List.of(
             new FieldSpec("item_condition", Kind.REF, false).ref("item_condition.schema.json")
                 .doc("Apoli-style item condition (id / tag / nbt / enchantment / empty, with and/or/not composition) selecting which stacks the gate matches. Omit to match every stack (allow-list with no condition permits everything; blacklist with none forbids everything)."),
             new FieldSpec("slots", Kind.ARRAY, false)
