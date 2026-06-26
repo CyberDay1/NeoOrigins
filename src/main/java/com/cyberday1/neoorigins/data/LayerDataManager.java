@@ -262,6 +262,15 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
             JsonArray origins = obj.getAsJsonArray("origins");
             JsonArray expanded = new JsonArray();
             for (JsonElement el : origins) {
+                // gson 2.10.1's JsonParser does NOT reject a trailing comma in a
+                // JSON array — it silently injects a JsonNull element. A layer
+                // file with `"origins": ["kitsune:kitsunered",]` therefore parses
+                // as ["kitsune:kitsunered", null], and ConditionedOrigin.CODEC
+                // .listOf() would then fail the ENTIRE list, dropping the whole
+                // layer. Strip null elements before the codec ever sees them.
+                if (el == null || el.isJsonNull()) {
+                    continue;
+                }
                 if (el.isJsonObject()) {
                     JsonObject entry = el.getAsJsonObject();
                     // Batch format: {"condition": {...}, "origins": ["id1", "id2", ...]}

@@ -145,6 +145,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, LowHPThresholdPower>      LOW_HP_THRESHOLD       = reg("low_hp_threshold",       new LowHPThresholdPower());
     public static final DeferredHolder<PowerType<?>, DodgeChancePower>         DODGE_CHANCE           = reg("dodge_chance",           new DodgeChancePower());
     public static final DeferredHolder<PowerType<?>, SneakyPower>                SNEAKY                 = reg("sneaky",                 new SneakyPower());
+    public static final DeferredHolder<PowerType<?>, MuffleSoundPower>           MUFFLE_SOUND           = reg("muffle_sound",           new MuffleSoundPower());
     public static final DeferredHolder<PowerType<?>, StealthPower>               STEALTH                = reg("stealth",                new StealthPower());
     public static final DeferredHolder<PowerType<?>, TreeFellingPower>           TREE_FELLING           = reg("tree_felling",           new TreeFellingPower());
     // Soft-dep on ftbultimine — marker power; the FtbUltimineCompat bridge gates

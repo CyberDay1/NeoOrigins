@@ -2902,6 +2902,26 @@ Reduces mob detection range — hostile mobs only target the player when signifi
 
 ---
 
+## `neoorigins:muffle_sound`
+
+Suppresses the game-event vibrations the player emits, so sculk sensors, calibrated sculk sensors and wardens stop detecting their footsteps, item use, block interactions and the like. Handled via NeoForge's cancelable `VanillaGameEvent`: when the cause is a player holding this power, the emission is canceled before any `GameEventListener` (sculk / warden) receives it.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `strength` | double | no | `1.0` | Fraction (`0.0`-`1.0`) of emitted vibrations suppressed. `1.0` = fully silent; `0.0` = no muffling; `0.5` = roughly half the player's vibrations are dropped. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:muffle_sound",
+  "strength": 1.0,
+  "name": "Silent Step",
+  "description": "Sculk sensors and the Warden can no longer hear you."
+}
+```
+
+---
+
 ## `neoorigins:stealth`
 
 After sneaking continuously for a threshold number of ticks, the player gains Invisibility. The effect clears when sneaking stops. Toggleable off via keybind.
