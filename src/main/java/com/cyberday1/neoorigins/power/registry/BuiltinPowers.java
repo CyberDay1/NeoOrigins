@@ -227,6 +227,9 @@ public final class BuiltinPowers {
         define("sneaky", SneakyPower.class, List.of(
             new FieldSpec("detection_multiplier", Kind.NUMBER, false)
                 .def(0.3).doc("Mob detection range multiplier; lower = sneakier (default 0.3).")));
+        define("muffle_sound", MuffleSoundPower.class, List.of(
+            new FieldSpec("strength", Kind.NUMBER, false)
+                .def(1.0).doc("Fraction of emitted game-event vibrations suppressed (0.0-1.0); 1.0 = sculk sensors and wardens never hear you (default 1.0).")));
         define("tamed_potion_diffusal", TamedPotionDiffusalPower.class, List.of(
             new FieldSpec("radius", Kind.NUMBER, false)
                 .def(16.0).doc("Block radius for sharing positive potion effects with tamed animals.")));

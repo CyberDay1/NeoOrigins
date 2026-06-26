@@ -81,8 +81,22 @@ public final class OriginsOriginTranslator {
         // ---- impact: integer → string ----
         if (src.has("impact")) {
             JsonElement impactEl = src.get("impact");
-            if (impactEl.isJsonPrimitive() && impactEl.getAsJsonPrimitive().isNumber()) {
-                int level = impactEl.getAsInt();
+            Integer level = null;
+            if (impactEl.isJsonPrimitive()) {
+                var prim = impactEl.getAsJsonPrimitive();
+                if (prim.isNumber()) {
+                    level = prim.getAsInt();
+                } else if (prim.isString()) {
+                    // Real Apoli packs commonly quote the numeric impact
+                    // ("impact": "2"); treat that as the integer form too.
+                    try {
+                        level = Integer.parseInt(prim.getAsString().trim());
+                    } catch (NumberFormatException ignored) {
+                        // genuine named string ("low"/"medium"/...) — pass through
+                    }
+                }
+            }
+            if (level != null) {
                 String impactStr = switch (level) {
                     case 0  -> "none";
                     case 1  -> "low";
@@ -92,7 +106,7 @@ public final class OriginsOriginTranslator {
                 };
                 out.addProperty("impact", impactStr);
             } else {
-                out.add("impact", impactEl); // already a string — pass through
+                out.add("impact", impactEl); // already a named string — pass through
             }
         }
 

@@ -23,7 +23,7 @@ public final class OriginsFormatDetector {
      */
     public static boolean isOriginsOriginFormat(JsonObject json) {
         if (json.has("impact") && json.get("impact").isJsonPrimitive()
-                && json.get("impact").getAsJsonPrimitive().isNumber()) {
+                && isNumericImpact(json.get("impact").getAsJsonPrimitive())) {
             return true;
         }
         if (json.has("icon") && json.get("icon").isJsonObject()) {
@@ -37,6 +37,26 @@ public final class OriginsFormatDetector {
         }
         if (json.has("hidden")) {
             return true;
+        }
+        return false;
+    }
+
+    /**
+     * True if an impact primitive is the Origins numeric form — either a real
+     * JSON number ({@code "impact": 2}) or a quoted number ({@code "impact": "2"},
+     * common in real Apoli packs). The quoted-numeric case is the integer form
+     * with quotes around it, so it should be treated as Origins format, not as a
+     * native string impact ("low"/"medium"/...).
+     */
+    private static boolean isNumericImpact(com.google.gson.JsonPrimitive prim) {
+        if (prim.isNumber()) return true;
+        if (prim.isString()) {
+            try {
+                Integer.parseInt(prim.getAsString().trim());
+                return true;
+            } catch (NumberFormatException ignored) {
+                return false;
+            }
         }
         return false;
     }
