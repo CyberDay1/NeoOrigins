@@ -142,10 +142,25 @@ public final class FormModel {
         java.util.List<com.cyberday1.neoorigins.compat.registry.FieldSpec> declared =
             com.cyberday1.neoorigins.power.registry.BuiltinPowers.fieldsFor(typeId);
         if (declared != null) {
-            base = new ArrayList<>(declared.size());
+            // Registered builtin powers declare ONLY their type-specific fields,
+            // but the common root keys (name/description/hidden/required_mods)
+            // are still authorable on every power. Prepend the schema's common
+            // fields, deduped by name so a declared field that re-declares a
+            // common key (e.g. entity_set's own `name`) wins. This mirrors the
+            // schema/codec-reflection fallback paths (which already include the
+            // common fields) and the web editor's commonRootFields().
+            List<FormFieldSpec> declaredSpecs = new ArrayList<>(declared.size());
+            java.util.Set<String> declaredNames = new java.util.HashSet<>();
             for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : declared) {
-                base.add(fs.toFormSpec());
+                FormFieldSpec fSpec = fs.toFormSpec();
+                declaredSpecs.add(fSpec);
+                declaredNames.add(fSpec.name());
             }
+            base = new ArrayList<>(declaredSpecs.size() + schema().commonFields().size());
+            for (FormFieldSpec common : schema().commonFields()) {
+                if (!declaredNames.contains(common.name())) base.add(common);
+            }
+            base.addAll(declaredSpecs);
         } else if (schema().hasStructuredForm(key)) {
             base = schema().formFor(key);
         } else {
