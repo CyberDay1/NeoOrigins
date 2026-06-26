@@ -40,7 +40,8 @@
     "client.LocalPlayerNaturalGlideMixin",
     "client.LocalPlayerElytraSoundMixin",
     "client.LocalPlayerNoPhysicsMixin",
-    "client.MerchantScreenTreasureGlowMixin"
+    "client.MerchantScreenTreasureGlowMixin",
+    "client.HumanoidArmorLayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -685,6 +685,28 @@ Applies a ghostly state to the player: permanent invisibility and/or removal of 
 
 ---
 
+## `neoorigins:invisibility`
+
+Makes the player invisible. Unlike a plain invisibility status effect, this power can also hide worn armor for true invisibility (vanilla leaves armor visible on an invisible body). The invisibility rides the vanilla invisibility effect, so it is gated by the power's top-level `condition`: it applies only while the condition holds and lapses when it stops.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `render_armor` | bool | no | `true` | When `true`, worn armor stays visible (vanilla behaviour). When `false`, worn armor is also hidden client-side for true invisibility. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:invisibility",
+  "render_armor": false,
+  "name": "Vanish",
+  "description": "Become completely invisible, armor and all."
+}
+```
+
+This is the native type the Apoli compat layer maps `origins:invisibility` (and `apace:invisibility`) onto, carrying the `render_armor` field through.
+
+---
+
 ## `neoorigins:effect_immunity`
 
 Prevents listed potion effects from being applied to the player. Uses NeoForge's `MobEffectEvent.Applicable` to cancel before application.
