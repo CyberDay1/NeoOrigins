@@ -106,6 +106,7 @@
         "neoorigins:more_animal_loot",
         "neoorigins:more_smoker_xp",
         "neoorigins:mount",
+        "neoorigins:muffle_sound",
         "neoorigins:multiple",
         "neoorigins:natural_glide",
         "neoorigins:natural_regen_modifier",
@@ -2535,6 +2536,22 @@
       ]
     },
     {
+      "$comment": "neoorigins:muffle_sound",
+      "properties": {
+        "type": {
+          "const": "neoorigins:muffle_sound"
+        },
+        "strength": {
+          "description": "Fraction of emitted game-event vibrations suppressed (0.0-1.0); 1.0 = sculk sensors and wardens never hear you (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:natural_glide",
       "properties": {
         "type": {
@@ -4253,6 +4270,7 @@
               "neoorigins:modify_player_spawn",
               "neoorigins:more_smoker_xp",
               "neoorigins:mount",
+              "neoorigins:muffle_sound",
               "neoorigins:natural_glide",
               "neoorigins:no_mob_spawns_nearby",
               "neoorigins:no_natural_regen",

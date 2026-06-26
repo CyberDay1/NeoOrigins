@@ -25,6 +25,7 @@ import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.VanillaGameEvent;
 
 import java.util.*;
 
@@ -334,5 +335,20 @@ public class WorldPowerEvents {
     private static boolean isStrippedBlock(BlockState state) {
         ResourceLocation id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
         return id != null && id.getPath().startsWith("stripped_");
+    }
+
+    // ── neoorigins:muffle_sound ─────────────────────────────────────────────
+    // A player holding muffle_sound stops emitting game-event vibrations, so
+    // sculk sensors and wardens don't detect their footsteps, item use, etc.
+    // VanillaGameEvent is cancelable and fires for every Level.gameEvent call
+    // with the player as cause, which is exactly the emission a GameEventListener
+    // (sculk / warden) would otherwise pick up.
+    @SubscribeEvent
+    public static void onMuffleGameEvent(VanillaGameEvent event) {
+        if (event.isCanceled()) return;
+        if (!(event.getCause() instanceof ServerPlayer sp)) return;
+        if (MuffleSoundPower.shouldMuffle(sp)) {
+            event.setCanceled(true);
+        }
     }
 }
