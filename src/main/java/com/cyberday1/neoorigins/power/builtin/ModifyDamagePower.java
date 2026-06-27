@@ -25,8 +25,33 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
         Optional<String> damageType,
         Optional<String> targetGroup,
         Optional<EntityCondition> condition,
+        // Apoli total-clamp ops, applied to the post-multiplier damage value:
+        //   setTotal   = origins:set_total  → replace the value outright
+        //   maxTotal   = origins:max_total  → CAP the value (Math.min(value, maxTotal))
+        //   minTotal   = origins:min_total  → FLOOR the value (Math.max(value, minTotal))
+        // (Despite the names, max_total is an upper cap and min_total a lower floor
+        //  in Apoli.) Empty = that clamp is not applied. Order: setTotal, then
+        //  maxTotal cap, then minTotal floor — matching Apoli's stage ordering.
+        Optional<Float> setTotal,
+        Optional<Float> maxTotal,
+        Optional<Float> minTotal,
         String type
     ) implements PowerConfiguration {
+
+        /**
+         * Apply the configured arithmetic to an incoming damage value.
+         * multiplier scales first, then the total-clamp ops in Apoli order.
+         * Returns the final (non-NaN) damage; callers decide whether
+         * {@code <= 0} cancels the event.
+         */
+        public float apply(float amount) {
+            float v = amount * multiplier;
+            if (setTotal.isPresent()) v = setTotal.get();
+            if (maxTotal.isPresent()) v = Math.min(v, maxTotal.get());
+            if (minTotal.isPresent()) v = Math.max(v, minTotal.get());
+            if (!Float.isFinite(v)) v = Float.MAX_VALUE;
+            return v;
+        }
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -55,8 +80,15 @@ public class ModifyDamagePower extends PowerType<ModifyDamagePower.Config> {
                     ? Optional.of(ConditionParser.parseField(obj, "condition", t))
                     : Optional.empty();
 
+                Optional<Float> setTotal = obj.has("set_total")
+                    ? Optional.of(obj.get("set_total").getAsFloat()) : Optional.empty();
+                Optional<Float> maxTotal = obj.has("max_total")
+                    ? Optional.of(obj.get("max_total").getAsFloat()) : Optional.empty();
+                Optional<Float> minTotal = obj.has("min_total")
+                    ? Optional.of(obj.get("min_total").getAsFloat()) : Optional.empty();
+
                 return DataResult.success(Pair.of(
-                    new Config(dir, mult, dmg, grp, cond, t), ops.empty()));
+                    new Config(dir, mult, dmg, grp, cond, setTotal, maxTotal, minTotal, t), ops.empty()));
             }
 
             @Override

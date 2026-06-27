@@ -35,6 +35,14 @@ public class PlayerLifecycleEvents {
     /** Grace period (in ticks) after login to retry the origin check if data wasn't loaded yet. */
     private static final int LOGIN_RETRY_TICKS = 100;
     private static final java.util.Map<java.util.UUID, Integer> pendingOriginCheck = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Players whose origin powers could not be derived at login because the
+     * datapack-driven managers weren't loaded yet (UUID → ticks remaining).
+     * Drained in the tick handler: once the managers can resolve the player's
+     * persisted origin, we re-apply the full power set and re-sync. This is the
+     * self-healing fallback for the relog/login data-load race.
+     */
+    private static final java.util.Map<java.util.UUID, Integer> pendingPowerReapply = new java.util.concurrent.ConcurrentHashMap<>();
 
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
@@ -53,6 +61,25 @@ public class PlayerLifecycleEvents {
             } else {
                 pendingOriginCheck.remove(sp.getUUID());
                 checkAndPromptOrigin(sp);
+            }
+        }
+
+        // Drain deferred power re-apply: the player logged in with a persisted
+        // origin before the datapack managers were ready, so the power set
+        // derived empty. Once the managers can resolve the origin, re-apply the
+        // full set server-authoritatively and re-sync; otherwise count down and
+        // give up after the grace window (managers genuinely have no such origin).
+        Integer reapplyRemaining = pendingPowerReapply.get(sp.getUUID());
+        if (reapplyRemaining != null) {
+            if (!powerDataNotReady(sp)) {
+                pendingPowerReapply.remove(sp.getUUID());
+                ActiveOriginService.invalidate(sp.getUUID());
+                com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(sp.getUUID());
+                applyLoginPowers(sp);
+            } else if (reapplyRemaining <= 0) {
+                pendingPowerReapply.remove(sp.getUUID());
+            } else {
+                pendingPowerReapply.put(sp.getUUID(), reapplyRemaining - 1);
             }
         }
 
@@ -96,6 +123,48 @@ public class PlayerLifecycleEvents {
 
         repairCorruptedVitals(sp);
 
+        // Drop any cache entry left under this UUID by a previous session. The
+        // per-player power cache is keyed by UUID and its version tuple
+        // (PlayerOriginData.version() is transient and resets to 0 on every
+        // deserialize), so a quick relog could otherwise resolve against a stale
+        // entry built during the prior session's disconnect window — leaving the
+        // origin intact but the resolved power set empty/partial. The CacheEntry
+        // identity guard already prevents the cross-session hit; this is the
+        // belt-and-suspenders so the very first read this login rebuilds clean.
+        ActiveOriginService.invalidate(sp.getUUID());
+        com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(sp.getUUID());
+
+        // Server-authoritative (re)application of the full power set derived from
+        // the persisted origin selection. This is the self-healing path: it runs
+        // every join and is idempotent (onGranted/onLogin re-apply attribute
+        // modifiers and re-register event handlers from a clean slate above), so
+        // a player who lost powers to any prior race recovers them on next login.
+        applyLoginPowers(sp);
+
+        if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
+            // Data hasn't loaded yet — defer the origin check to tick handler
+            pendingOriginCheck.put(sp.getUUID(), LOGIN_RETRY_TICKS);
+        } else {
+            checkAndPromptOrigin(sp);
+        }
+
+        // If the datapack-driven origin/power managers weren't fully loaded when
+        // we derived the power set above, the resolved set could be empty even
+        // though the player has a persisted origin. Schedule a re-apply+re-sync
+        // that fires once the managers report content, so powers self-heal
+        // without a manual relog. No-op when everything was already loaded.
+        if (powerDataNotReady(sp)) {
+            pendingPowerReapply.put(sp.getUUID(), LOGIN_RETRY_TICKS);
+        }
+    }
+
+    /**
+     * Re-derives and re-applies the player's full power set from their persisted
+     * origin, server-authoritatively, then pushes the authoritative state to the
+     * client. Safe to call repeatedly — power lifecycle re-application is
+     * idempotent and the client mirror is fully replaced by the sync.
+     */
+    private static void applyLoginPowers(ServerPlayer sp) {
         // Global power sets (apoli:global): grant/reconcile before onLogin so the
         // freshly-granted powers receive their onLogin dispatch in the same pass.
         com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
@@ -114,13 +183,23 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);
         NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
+    }
 
-        if (LayerDataManager.INSTANCE.getSortedLayers().isEmpty()) {
-            // Data hasn't loaded yet — defer the origin check to tick handler
-            pendingOriginCheck.put(sp.getUUID(), LOGIN_RETRY_TICKS);
-        } else {
-            checkAndPromptOrigin(sp);
+    /**
+     * True when the player has a persisted origin but the datapack-driven managers
+     * can't yet resolve its powers (managers still empty at login). In that state
+     * the derived power set would be empty, so we must defer a re-apply until the
+     * datapack finishes loading rather than locking in an empty grant.
+     */
+    private static boolean powerDataNotReady(ServerPlayer sp) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+        if (data.getOrigins().isEmpty()) return false; // nothing to re-derive
+        for (var entry : data.getOrigins().entrySet()) {
+            if (OriginDataManager.INSTANCE.getOrigin(entry.getValue()) != null) {
+                return false; // at least one origin resolves — managers are up
+            }
         }
+        return true; // has stored origins but none resolve yet → managers not ready
     }
 
     private static void checkAndPromptOrigin(ServerPlayer sp) {
@@ -200,6 +279,7 @@ public class PlayerLifecycleEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var uuid = sp.getUUID();
         pendingOriginCheck.remove(uuid);
+        pendingPowerReapply.remove(uuid);
         pendingResync.remove(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);

@@ -39,7 +39,8 @@
         "neoorigins:necromancer_apex_night_vision"
       ],
       "remove": [
-        "neoorigins:necromancer_ascended_hp"
+        "neoorigins:necromancer_ascended_hp",
+        "neoorigins:necromancer_night_vision"
       ]
     }
   ]

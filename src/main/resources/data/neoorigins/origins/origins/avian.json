@@ -20,7 +20,9 @@
         "neoorigins:avian_evolved_hp",
         "neoorigins:avian_evolved_slow_fall"
       ],
-      "remove": []
+      "remove": [
+        "neoorigins:avian_slow_fall"
+      ]
     },
     {
       "tier": 2,

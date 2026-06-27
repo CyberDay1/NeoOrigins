@@ -38,7 +38,8 @@
         "neoorigins:caveborn_ascended_night_vision"
       ],
       "remove": [
-        "neoorigins:caveborn_evolved_hp"
+        "neoorigins:caveborn_evolved_hp",
+        "neoorigins:caveborn_night_vision"
       ]
     },
     {

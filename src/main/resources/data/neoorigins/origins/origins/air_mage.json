@@ -31,7 +31,8 @@
         "neoorigins:air_mage_ascended_slow_falling"
       ],
       "remove": [
-        "neoorigins:air_mage_evolved_hp"
+        "neoorigins:air_mage_evolved_hp",
+        "neoorigins:air_mage_slow_fall"
       ]
     },
     {

@@ -33,7 +33,8 @@
         "neoorigins:sculkborn_ascended_night_vision"
       ],
       "remove": [
-        "neoorigins:sculkborn_evolved_hp"
+        "neoorigins:sculkborn_evolved_hp",
+        "neoorigins:sculkborn_night_vision"
       ]
     },
     {
