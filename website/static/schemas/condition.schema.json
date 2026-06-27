@@ -41,6 +41,7 @@
         "apace:daytime",
         "apace:dimension",
         "apace:distance",
+        "apace:distance_from_coordinates",
         "apace:enchantment",
         "apace:entity_type",
         "apace:equal",
@@ -147,6 +148,7 @@
         "neoorigins:daytime",
         "neoorigins:dimension",
         "neoorigins:distance",
+        "neoorigins:distance_from_coordinates",
         "neoorigins:enchantment",
         "neoorigins:entity_type",
         "neoorigins:equal",
@@ -779,6 +781,80 @@
           "description": "Distance threshold to the target (default 0).",
           "type": "number",
           "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:distance_from_coordinates",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:distance_from_coordinates",
+            "apace:distance_from_coordinates"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default ==).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": "=="
+        },
+        "compare_to": {
+          "description": "Distance threshold (required in practice).",
+          "type": "number",
+          "default": 0.0
+        },
+        "reference": {
+          "description": "Reference point: world_origin (0,0,0) or world_spawn (default world_origin).",
+          "type": "string",
+          "enum": [
+            "world_origin",
+            "world_spawn"
+          ],
+          "default": "world_origin"
+        },
+        "offset": {
+          "description": "Per-axis {x,y,z} offset added to the reference point.",
+          "type": "string"
+        },
+        "shape": {
+          "description": "Distance metric: cube (Chebyshev), star (Manhattan), sphere (Euclidean). Default cube.",
+          "type": "string",
+          "enum": [
+            "cube",
+            "star",
+            "sphere"
+          ],
+          "default": "cube"
+        },
+        "ignore_x": {
+          "description": "Exclude the X axis from the distance (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "ignore_y": {
+          "description": "Exclude the Y axis from the distance (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "ignore_z": {
+          "description": "Exclude the Z axis from the distance (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "result_on_the_wrong_dimension": {
+          "description": "Distance value substituted when off the reference's dimension (absent → use real distance).",
+          "type": "number"
         }
       },
       "required": [
@@ -2432,6 +2508,7 @@
               "apace:daytime",
               "apace:dimension",
               "apace:distance",
+              "apace:distance_from_coordinates",
               "apace:enchantment",
               "apace:entity_type",
               "apace:equal",
@@ -2538,6 +2615,7 @@
               "neoorigins:daytime",
               "neoorigins:dimension",
               "neoorigins:distance",
+              "neoorigins:distance_from_coordinates",
               "neoorigins:enchantment",
               "neoorigins:entity_type",
               "neoorigins:equal",

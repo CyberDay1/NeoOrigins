@@ -56,6 +56,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     /** Edge-detection tracker for synthetic cooldown bars (Route B active_self hud_render).
      *  Key: {@code <playerUUID>:cdbar:<powerId>}. Value: previous tick's bar value. */
     private static final java.util.Map<String, Integer> PREV_COOLDOWN_BAR = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Safety-net tracker for the gamemode auto-revert (see {@link #parseActionOverTime}).
+     * Records the player's gamemode at the moment a gamemode-forcing, condition-gated
+     * action_over_time's gate FIRST becomes satisfied, so it can be restored when the
+     * gate transitions back to unsatisfied. Only populated for the narrow case of a
+     * repeating action that forces {@code gamemode} and the pack defines no
+     * {@code falling_action} of its own.
+     * Key: {@code <playerUUID>:<powerId>}. Value: remembered {@link net.minecraft.world.level.GameType}. */
+    private static final java.util.Map<String, net.minecraft.world.level.GameType> GAMEMODE_REVERT =
+        new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Power types that Route B handles (Route A SKIPs these). */
     private static final Set<String> ROUTE_B_TYPES = Set.of(
@@ -364,7 +374,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:master_of_webs",       () -> json("neoorigins:wall_climbing")),
             Map.entry("origins:arthropod",            () -> json("neoorigins:entity_group", "group", "arthropod")),
             Map.entry("origins:fragile",              () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -6.0, "operation", "add_value")),
-            Map.entry("origins:phasing",              () -> json("neoorigins:phantom_form")),
+            // origins:phasing is Apoli's noclip-through-walls (gravity intact,
+            // sneak-to-phase-down) — it does NOT grant flight. phantom_form
+            // (origins:phantomize, line above) DOES arm creative flight, so it
+            // was the wrong target: it let phasing players jump-fly. wraith_phase
+            // is the velocity-driven, flight-free noclip purpose-built for this.
+            Map.entry("origins:phasing",              () -> json("neoorigins:wraith_phase")),
             Map.entry("origins:burn_in_daylight",     () -> json("neoorigins:condition_passive")),
             Map.entry("origins:damage_from_potions",  () -> json("neoorigins:effect_immunity")),
             Map.entry("origins:more_kinetic_damage",  () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", -2.0, "operation", "add_value")),
@@ -628,7 +643,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // parseSingleModifier accepts both "value" and "amount" per entry. Mirrors
         // the precedent set by parseModifyFood / parseNumericModifier so real
         // Apoli packs (which commonly emit `modifiers`/`amount`) don't silently no-op.
-        float multiplier = collapseDamageModifiers(parseModifierList(json, "modifier"));
+        DamageMath dmgMath = collapseDamageMath(parseModifierList(json, "modifier"));
 
         // Optional damage type filter — msgId-based, mirrors native ModifyDamagePower.
         String damageTypeFilter = null;
@@ -648,7 +663,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         EntityCondition condition = parseConditionField(json, "condition", idStr);
 
-        final float  finalMultiplier = multiplier;
+        final DamageMath finalMath    = dmgMath;
         final String finalDmgFilter  = damageTypeFilter;
         final ResourceLocation finalDmgTypeKey = damageTypeKeyFilter;
         final DamageAmountFilter finalAmountFilter = amountFilter;
@@ -667,11 +682,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
                 // origins:amount damage_condition — gate on the incoming damage value.
                 if (finalAmountFilter != null && !finalAmountFilter.test(event.getAmount())) return;
-                // Overflow-safe multiply (same clamp used by CombatPowerEvents native path).
-                float scaled = event.getAmount() * finalMultiplier;
-                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                // Overflow-safe multiply + Apoli total-clamp (set/max/min_total),
+                // identical math to native ModifyDamagePower.Config.apply.
+                float scaled = finalMath.apply(event.getAmount());
                 event.setAmount(scaled);
-                // A 0-multiplier effectively cancels the hit; callers commonly rely on that.
+                // A 0-result effectively cancels the hit; callers commonly rely on that.
                 if (scaled <= 0.0f) event.setCanceled(true);
             })
             .build();
@@ -682,7 +697,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         // See parseConditionedModifyDamageTaken — same singular/plural and value/amount
         // tolerance for symmetry with Apoli.
-        float multiplier = collapseDamageModifiers(parseModifierList(json, "modifier"));
+        DamageMath dmgMath = collapseDamageMath(parseModifierList(json, "modifier"));
 
         String damageTypeFilter = null;
         ResourceLocation damageTypeKeyFilter = null;
@@ -701,7 +716,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         EntityCondition condition = parseConditionField(json, "condition", idStr);
 
-        final float finalMultiplier = multiplier;
+        final DamageMath finalMath = dmgMath;
         final String finalDmgFilter = damageTypeFilter;
         final ResourceLocation finalDmgTypeKey = damageTypeKeyFilter;
         final DamageAmountFilter finalAmountFilter = amountFilter;
@@ -723,8 +738,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // origins:amount damage_condition — gate on the damage value itself
                 // (the most recent damage being dealt to the target).
                 if (finalAmountFilter != null && !finalAmountFilter.test(event.getAmount())) return;
-                float scaled = event.getAmount() * finalMultiplier;
-                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                float scaled = finalMath.apply(event.getAmount());
                 event.setAmount(scaled);
                 if (scaled <= 0.0f) event.setCanceled(true);
             })
@@ -758,7 +772,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      *   - vanillaInputKey: a movement/use/attack key the server can poll directly
      *   - namedHotkey: a pack-declared translation key (must be registered into PowerKeybindRegistry)
      */
-    private record KeySpec(String key, boolean continuous, boolean slotKey, boolean vanillaInputKey) {
+    private record KeySpec(String key, boolean continuous, boolean slotKey,
+                           boolean vanillaInputKey, boolean toolbarKey) {
         boolean namedHotkey() { return !slotKey && !vanillaInputKey; }
     }
 
@@ -775,16 +790,26 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
         }
-        if (key == null) return new KeySpec(null, continuous, false, false);
-        boolean slotKey = key.contains("primary_active") || key.contains("secondary_active")
-            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
-            || key.contains("pickItem");
+        if (key == null) return new KeySpec(null, continuous, false, false, false);
+        // The two toolbar (creative-hotbar save/load) keys are a special case.
+        // Apoli packs bind MANY condition-gated active_self powers to the same
+        // toolbar key (the Seer progression rituals are six powers all on
+        // saveToolbarActivator), expecting every one to be evaluated on each
+        // press — exactly the multi-binding fan-out the named-hotkey dispatch
+        // path provides. The skill-slot model can only host a single power per
+        // slot AND the client never sends an activation for the vanilla toolbar
+        // keys, so routing these to a skill slot silently drops them. Treat them
+        // as a dedicated bucket that flows through PowerKeybindRegistry instead.
+        boolean toolbarKey = key.contains("loadToolbarActivator")
+            || key.contains("saveToolbarActivator");
+        boolean slotKey = !toolbarKey && (key.contains("primary_active")
+            || key.contains("secondary_active") || key.contains("pickItem"));
         boolean vanillaInputKey = switch (key) {
             case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
                  "key.forward", "key.back", "key.left", "key.right" -> true;
             default -> false;
         };
-        return new KeySpec(key, continuous, slotKey, vanillaInputKey);
+        return new KeySpec(key, continuous, slotKey, vanillaInputKey, toolbarKey);
     }
 
     private CompatPower.Config parseActiveSelf(ResourceLocation id, JsonObject json) {
@@ -1116,14 +1141,50 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Stagger by ID hash so not all action_over_time powers run on the same tick.
         int offset = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
 
+        // ── Gamemode auto-revert safety net ──────────────────────────────────
+        // A condition-gated repeating action that forces `gamemode` (the seer
+        // pocket-dimension pattern: every tick run `gamemode adventure @s` while
+        // in the pocket dim) but defines NO falling_action of its own will leave
+        // the player stuck in that gamemode if they leave the gated state by any
+        // path other than the pack's own one-shot revert. We narrowly remember
+        // the player's gamemode when the gate first becomes satisfied and restore
+        // it when the gate transitions back to unsatisfied — ONLY for this case.
+        //
+        // Conditions for the net to engage (kept deliberately tight):
+        //   • the repeating entity_action issues a `gamemode` command,
+        //   • the power has a real gate condition (not always-true), and
+        //   • the pack defined NO falling_action (if it did, we trust it).
+        // It never touches one-shot actions, packs with their own cleanup, or a
+        // player's manual /gamemode (we only restore the value we ourselves
+        // recorded at the rising edge of THIS power's gate).
+        // The set of gamemodes this action would force on the player (e.g.
+        // {ADVENTURE} for the seer pocket). Used at the rising edge so we never
+        // "remember" a value the action itself just set — otherwise the restore
+        // on the falling edge would push the player back into the forced mode
+        // and fight the pack's own cleanup (the seer pack already runs
+        // `gamemode survival` on projection; a remembered ADVENTURE would undo it).
+        final java.util.Set<net.minecraft.world.level.GameType> forcedGameTypes =
+            forcedGameTypes(json);
+        boolean gateForcesGamemode =
+            !hasFallingAction(json)
+            && (json.has("condition") || json.has("entity_condition"))
+            && !forcedGameTypes.isEmpty();
+        // When engaged, we must observe both edges of the gate, so route through
+        // the edge-tracking path even if the pack declared no rising/falling action.
+        boolean trackEdges = hasEdgeActions || gateForcesGamemode;
+        if (gateForcesGamemode) {
+            NeoOrigins.LOGGER.debug("[CompatB] action_over_time {} forces gamemode without a falling_action — enabling gamemode auto-revert safety net", idStr);
+        }
+
         return CompatPower.Config.builder()
             .onTick(player -> {
                 if (player.level().getServer() == null) return;
                 long tick = player.level().getServer().getTickCount();
                 // Edge transitions are only tracked when the power declares
                 // rising_action/falling_action — powers without them keep the
-                // cheaper interval-gated condition evaluation below.
-                if (hasEdgeActions) {
+                // cheaper interval-gated condition evaluation below. The gamemode
+                // safety net also opts into edge tracking (trackEdges).
+                if (trackEdges) {
                     boolean cur = condition.test(player);
                     String edgeKey = player.getUUID() + ":" + idStr;
                     // Default-prev = false matches Apoli: rising_action fires on
@@ -1131,8 +1192,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     // "no prior state" = false).
                     Boolean prev = PREV_AOT_CONDITIONS.put(edgeKey, cur);
                     boolean prevVal = prev != null && prev;
-                    if (cur && !prevVal) risingAction.execute(player);
-                    else if (!cur && prevVal) fallingAction.execute(player);
+                    if (cur && !prevVal) {
+                        if (gateForcesGamemode) rememberGamemode(player, idStr, forcedGameTypes);
+                        risingAction.execute(player);
+                    } else if (!cur && prevVal) {
+                        fallingAction.execute(player);
+                        if (gateForcesGamemode) restoreGamemode(player, idStr);
+                    }
                     if ((tick + offset) % interval == 0 && cur) {
                         action.execute(player);
                     }
@@ -1143,6 +1209,164 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .build();
+    }
+
+    /** True if the power declares its own {@code falling_action} (then we leave cleanup to the pack). */
+    private static boolean hasFallingAction(JsonObject json) {
+        return json.has("falling_action");
+    }
+
+    /**
+     * Whether this action_over_time's repeating {@code entity_action} issues a
+     * {@code gamemode} command. Walks the (possibly nested {@code and}/array)
+     * action tree collecting {@code command} strings and checks whether any —
+     * after legacy rewriting — runs {@code gamemode} (either directly or as the
+     * run-verb of an {@code execute ... run gamemode ...}). Intentionally
+     * conservative: only string commands, only the {@code gamemode} verb.
+     */
+    private static boolean entityActionForcesGamemode(JsonObject json) {
+        if (!json.has("entity_action") || !json.get("entity_action").isJsonObject()) return false;
+        java.util.List<String> commands = new java.util.ArrayList<>();
+        collectActionCommands(json.getAsJsonObject("entity_action"), commands, 0);
+        for (String cmd : commands) {
+            if (commandRunsGamemode(LegacyCommandRewriter.rewrite(cmd))) return true;
+        }
+        return false;
+    }
+
+    /** Recursively gather {@code command} strings from an Apoli action JSON tree (depth-guarded). */
+    private static void collectActionCommands(JsonObject action, java.util.List<String> out, int depth) {
+        if (action == null || depth > 16) return;
+        if (action.has("command") && action.get("command").isJsonPrimitive()) {
+            out.add(action.get("command").getAsString());
+        }
+        // and/chain wrappers nest sub-actions under "actions"; some forks use "action".
+        if (action.has("actions") && action.get("actions").isJsonArray()) {
+            for (JsonElement el : action.getAsJsonArray("actions")) {
+                if (el.isJsonObject()) collectActionCommands(el.getAsJsonObject(), out, depth + 1);
+            }
+        }
+        if (action.has("action") && action.get("action").isJsonObject()) {
+            collectActionCommands(action.getAsJsonObject("action"), out, depth + 1);
+        }
+    }
+
+    /**
+     * Whether a (rewritten) command line ultimately runs the {@code gamemode}
+     * command — directly, or as the trailing {@code run gamemode ...} of an
+     * {@code execute} chain (the seer pack's
+     * {@code execute if entity @s[...] run gamemode adventure @s} form).
+     */
+    private static boolean commandRunsGamemode(String cmd) {
+        if (cmd == null) return false;
+        String c = cmd.trim();
+        if (c.startsWith("/")) c = c.substring(1).trim();
+        if (c.startsWith("gamemode ")) return true;
+        int run = c.indexOf(" run ");
+        if (c.startsWith("execute ") && run >= 0) {
+            String tail = c.substring(run + 5).trim();
+            return tail.startsWith("gamemode ");
+        }
+        return false;
+    }
+
+    /**
+     * The set of {@link net.minecraft.world.level.GameType}s this action_over_time's
+     * repeating {@code entity_action} would force on the player. Walks the (possibly
+     * nested {@code and}/array) action tree, rewrites each {@code command} for legacy
+     * verbs, and for every line that ultimately runs {@code gamemode <mode>} parses
+     * the target mode. An empty set means the action forces no gamemode (the safety
+     * net stays disengaged). Mirrors {@link #entityActionForcesGamemode}'s walk.
+     */
+    private static java.util.Set<net.minecraft.world.level.GameType> forcedGameTypes(JsonObject json) {
+        java.util.EnumSet<net.minecraft.world.level.GameType> out =
+            java.util.EnumSet.noneOf(net.minecraft.world.level.GameType.class);
+        if (!json.has("entity_action") || !json.get("entity_action").isJsonObject()) return out;
+        java.util.List<String> commands = new java.util.ArrayList<>();
+        collectActionCommands(json.getAsJsonObject("entity_action"), commands, 0);
+        for (String cmd : commands) {
+            net.minecraft.world.level.GameType gt = forcedGameType(LegacyCommandRewriter.rewrite(cmd));
+            if (gt != null) out.add(gt);
+        }
+        return out;
+    }
+
+    /**
+     * Parse the target gamemode of a (rewritten) command line that runs
+     * {@code gamemode <mode> ...} — directly or as the trailing {@code run gamemode}
+     * of an {@code execute} chain. Returns null if the line doesn't run gamemode or
+     * the mode token is unrecognised.
+     */
+    private static net.minecraft.world.level.GameType forcedGameType(String cmd) {
+        if (cmd == null) return null;
+        String c = cmd.trim();
+        if (c.startsWith("/")) c = c.substring(1).trim();
+        String tail;
+        if (c.startsWith("gamemode ")) {
+            tail = c.substring("gamemode ".length()).trim();
+        } else {
+            int run = c.indexOf(" run ");
+            if (!c.startsWith("execute ") || run < 0) return null;
+            String afterRun = c.substring(run + 5).trim();
+            if (!afterRun.startsWith("gamemode ")) return null;
+            tail = afterRun.substring("gamemode ".length()).trim();
+        }
+        int sp = tail.indexOf(' ');
+        String mode = (sp >= 0 ? tail.substring(0, sp) : tail).trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (mode) {
+            case "survival", "s", "0"   -> net.minecraft.world.level.GameType.SURVIVAL;
+            case "creative", "c", "1"   -> net.minecraft.world.level.GameType.CREATIVE;
+            case "adventure", "a", "2"  -> net.minecraft.world.level.GameType.ADVENTURE;
+            case "spectator", "sp", "3" -> net.minecraft.world.level.GameType.SPECTATOR;
+            default -> null;
+        };
+    }
+
+    /**
+     * Remember a player's current gamemode for {@code powerId} at the rising edge
+     * of the gate, so {@link #restoreGamemode} can put them back when the gate
+     * falls. Refreshed every rising edge ({@code put}, not {@code putIfAbsent})
+     * so a stale value from a prior projection/respawn cycle can never poison a
+     * later restore.
+     *
+     * <p>Crucially, if the player is ALREADY in the gamemode this power forces
+     * (e.g. they re-entered the pocket while still ADVENTURE from a previous
+     * cycle, or a respawn left them there), that value is untrustworthy as the
+     * "real previous mode" — remembering it would make the falling-edge restore
+     * shove them back into the forced mode and undo the pack's own cleanup. In
+     * that case fall back to the server's default gamemode (normally survival),
+     * which is the mode a sealed-pocket player is meant to return to.
+     */
+    private static void rememberGamemode(ServerPlayer player, String powerId,
+            java.util.Set<net.minecraft.world.level.GameType> forcedGameTypes) {
+        String key = player.getUUID() + ":" + powerId;
+        net.minecraft.world.level.GameType current = player.gameMode.getGameModeForPlayer();
+        net.minecraft.world.level.GameType toRemember = current;
+        if (forcedGameTypes.contains(current)) {
+            var server = player.level().getServer();
+            net.minecraft.world.level.GameType fallback =
+                server != null ? server.getDefaultGameType()
+                               : net.minecraft.world.level.GameType.SURVIVAL;
+            // If even the server default is one the action forces, prefer plain
+            // SURVIVAL so the player is never permanently locked out of building.
+            toRemember = forcedGameTypes.contains(fallback)
+                ? net.minecraft.world.level.GameType.SURVIVAL : fallback;
+        }
+        GAMEMODE_REVERT.put(key, toRemember);
+    }
+
+    /**
+     * Restore the gamemode remembered at the rising edge (falling edge) and clear
+     * the record. No-op if nothing was remembered, or if the player has since
+     * landed back on the remembered gamemode on their own.
+     */
+    private static void restoreGamemode(ServerPlayer player, String powerId) {
+        String key = player.getUUID() + ":" + powerId;
+        net.minecraft.world.level.GameType remembered = GAMEMODE_REVERT.remove(key);
+        if (remembered == null) return;
+        if (player.gameMode.getGameModeForPlayer() != remembered) {
+            player.setGameMode(remembered);
+        }
     }
 
     private CompatPower.Config parseActionOnCallback(ResourceLocation id, JsonObject json) {
@@ -1175,30 +1399,104 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 parseActionField(json, "removed_action", idStr));
         }
 
-        // Upstream Origins has separate triggers for "gained" (every grant, including
-        // login) and "chosen" (only when the player selects from the GUI). We merge
-        // both into onGranted — the distinction is lost, but most addon packs use
-        // entity_action_chosen for one-time setup (e.g. granting starter items via
-        // /function) and the commands are typically idempotent.
-        EntityAction addedAction = EntityAction.noop();
-        if (json.has("entity_action_chosen")) {
-            addedAction = parseActionField(json, "entity_action_chosen", idStr);
-        }
+        // Upstream Origins has two distinct grant-side triggers that we must keep
+        // separate:
+        //   entity_action_gained / added_action — fire on EVERY grant (login,
+        //     respawn, origin-swap). Mapped straight to onGranted.
+        //   entity_action_chosen — fires ONLY when the player selects the origin
+        //     from the picker. Routed through the CHOSEN event (EventPowerIndex)
+        //     rather than onGranted: NeoOriginsNetwork DEFERS the CHOSEN dispatch
+        //     until every layer has been picked (firstTimeAllFilled). Wiring it to
+        //     onGranted instead fires it during applyOriginPowers — immediately on
+        //     grant, mid-walkthrough — so a chosen action that relocates the player
+        //     across dimensions (e.g. Seer's pocket-dimension teleport) tears down
+        //     the picker via the vanilla respawn screen-swap before the class layer
+        //     is ever shown (the "class skip" bug). The deferred CHOSEN path is the
+        //     only correct home for it.
+        EntityAction gainedAction = EntityAction.noop();
         if (json.has("entity_action_gained")) {
-            addedAction = mergeActions(addedAction,
-                parseActionField(json, "entity_action_gained", idStr));
+            gainedAction = parseActionField(json, "entity_action_gained", idStr);
         }
         if (json.has("added_action")) {
-            addedAction = mergeActions(addedAction,
+            gainedAction = mergeActions(gainedAction,
                 parseActionField(json, "added_action", idStr));
         }
 
-        EntityAction finalAdded = addedAction;
+        EntityAction chosenAction = json.has("entity_action_chosen")
+            ? parseActionField(json, "entity_action_chosen", idStr)
+            : EntityAction.noop();
+
+        EntityAction finalGained = gainedAction;
+        EntityAction finalChosen = chosenAction;
+        EntityAction finalRemoved = removedAction;
+        boolean hasChosen = chosenAction != EntityAction.noop();
+        ResourceLocation powerId = id;
+
         return CompatPower.Config.builder()
-            .onGranted(finalAdded::execute)
-            .onRevoked(removedAction::execute)
+            .onGranted(player -> {
+                finalGained.execute(player);
+                if (hasChosen) registerChosenHandler(player, powerId, finalChosen);
+            })
+            .onRevoked(player -> {
+                finalRemoved.execute(player);
+                if (hasChosen) unregisterChosenHandler(player, powerId);
+            })
             .onRespawn(respawnAction::execute)
             .build();
+    }
+
+    /** Per-player CHOSEN-handler tokens for action_on_callback powers, keyed by
+     *  power id so each instance registers + unregisters exactly one handler.
+     *  Mirrors {@link #FALL_DAMAGE_TOKENS}: idempotent re-grant (login/respawn/
+     *  origin-swap all re-call onGranted) drops the prior token first. */
+    private static final java.util.Map<java.util.UUID,
+        java.util.Map<String, com.cyberday1.neoorigins.service.EventPowerIndex.Token>>
+        CHOSEN_ACTION_TOKENS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Register {@code chosenAction} on the CHOSEN event. The deferred dispatch in
+     *  {@link com.cyberday1.neoorigins.network.NeoOriginsNetwork} fires CHOSEN once
+     *  per picked origin (in layer order), so the handler runs only when the
+     *  dispatched origin actually owns this power — otherwise a non-idempotent
+     *  chosen action (e.g. "give N starter items") would fire once per layer. */
+    private static void registerChosenHandler(ServerPlayer player, ResourceLocation powerId,
+                                              EntityAction chosenAction) {
+        String key = powerId.toString();
+        var perPower = CHOSEN_ACTION_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var existing = perPower.remove(key);
+            if (existing != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(existing);
+            }
+        }
+        com.cyberday1.neoorigins.service.EventPowerIndex.Handler handler = (sp, ctx) -> {
+            if (ctx instanceof ResourceLocation chosenOrigin
+                    && !originOwnsPower(chosenOrigin, powerId)) {
+                return;
+            }
+            chosenAction.execute(sp);
+        };
+        var tok = com.cyberday1.neoorigins.service.EventPowerIndex.register(
+            player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, handler);
+        CHOSEN_ACTION_TOKENS.computeIfAbsent(player.getUUID(),
+            k -> new java.util.concurrent.ConcurrentHashMap<>()).put(key, tok);
+    }
+
+    private static void unregisterChosenHandler(ServerPlayer player, ResourceLocation powerId) {
+        var perPower = CHOSEN_ACTION_TOKENS.get(player.getUUID());
+        if (perPower == null) return;
+        var tok = perPower.remove(powerId.toString());
+        if (tok != null) {
+            com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
+        }
+        if (perPower.isEmpty()) CHOSEN_ACTION_TOKENS.remove(player.getUUID());
+    }
+
+    /** True if {@code originId}'s effective power set (base + all tier overlays)
+     *  contains {@code powerId}. Used to scope a CHOSEN handler to the origin that
+     *  actually granted the power. */
+    private static boolean originOwnsPower(ResourceLocation originId, ResourceLocation powerId) {
+        var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(originId);
+        return origin != null && origin.powersForTier(3).contains(powerId);
     }
 
     /** Combine two entity actions into one that runs both sequentially. */
@@ -2493,20 +2791,44 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * Empty list ⇒ 1.0 (no-op), matching the previous "missing modifier"
      * fall-through that left {@code multiplier = 1.0f}.
      */
-    private static float collapseDamageModifiers(java.util.List<OriginsModifierMath.Modifier> mods) {
-        if (mods == null || mods.isEmpty()) return 1.0f;
+    /**
+     * Resolved damage arithmetic from a list of Apoli modifier entries: a
+     * multiplier plus optional Apoli total-clamp ops. Mirrors
+     * {@link com.cyberday1.neoorigins.power.builtin.ModifyDamagePower.Config#apply}
+     * so Route A (native power) and Route B (this compiled lambda) clamp damage
+     * identically. {@code max_total} is an upper CAP, {@code min_total} a lower
+     * FLOOR (Apoli's confusing naming), {@code set_total} replaces outright.
+     */
+    private record DamageMath(float multiplier, Float setTotal, Float maxTotal, Float minTotal) {
+        float apply(float amount) {
+            float v = amount * multiplier;
+            if (setTotal != null) v = setTotal;
+            if (maxTotal != null) v = Math.min(v, maxTotal);
+            if (minTotal != null) v = Math.max(v, minTotal);
+            if (!Float.isFinite(v)) v = Float.MAX_VALUE;
+            return v;
+        }
+    }
+
+    private static DamageMath collapseDamageMath(java.util.List<OriginsModifierMath.Modifier> mods) {
+        if (mods == null || mods.isEmpty()) return new DamageMath(1.0f, null, null, null);
         double additive = 0.0;
         Double setTotal = null;
+        Float maxTotal = null;
+        Float minTotal = null;
         for (OriginsModifierMath.Modifier m : mods) {
             String op = m.operation() == null ? "addition" : m.operation();
-            if ("set_total".equals(op)) {
-                setTotal = m.value();
-            } else {
-                additive += m.value();
+            switch (op) {
+                case "set_total", "set" -> setTotal = m.value();
+                case "max_total"        -> maxTotal = (float) m.value();
+                case "min_total"        -> minTotal = (float) m.value();
+                default                 -> additive += m.value();
             }
         }
-        double result = setTotal != null ? Math.max(0.0, 1.0 + setTotal) : (1.0 + additive);
-        return (float) result;
+        // No set_total: damage is (1 + Σ additive) ×. set_total replaces post-scale.
+        float multiplier = (float) (1.0 + additive);
+        Float setTotalF = setTotal != null ? (float) (double) setTotal : null;
+        return new DamageMath(multiplier, setTotalF, maxTotal, minTotal);
     }
 
     // ---- Compile-time predicate builders for event powers ----
@@ -2553,7 +2875,22 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return ItemStack::isEmpty;
         }
 
-        // No recognized filter — match everything (fail-closed for restrictions)
+        // "origins:food" type — match items with a food component. Without this
+        // the food filter fell through to the match-everything catch-all below,
+        // which made a `prevent_item_use` food restriction (e.g. the seer's "no
+        // eating while astral") deny EVERY item-on-block useOn — including block
+        // placement (BlockItem.useOn), so the player couldn't place any blocks.
+        if (type.contains("food")) {
+            return stack -> stack.has(net.minecraft.core.component.DataComponents.FOOD);
+        }
+
+        // No recognized filter — match everything (fail-closed for restrictions).
+        // Warn so future unhandled item-condition types surface instead of
+        // silently over-restricting (as origins:food did above).
+        if (!type.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] compileItemPredicate: unhandled item_condition type '{}' "
+                + "— matching all items (fail-closed)", type);
+        }
         return stack -> true;
     }
 

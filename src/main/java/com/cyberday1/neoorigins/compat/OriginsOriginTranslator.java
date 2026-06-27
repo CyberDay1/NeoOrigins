@@ -38,7 +38,8 @@ public final class OriginsOriginTranslator {
         "order",       // re-emitted as-is
         "special",     // re-emitted as-is
         "upgrades",    // re-emitted as-is
-        "powers"       // multiple-power IDs rewritten to synthetic sub-power IDs
+        "powers",      // multiple-power IDs rewritten to synthetic sub-power IDs
+        "tier_powers"  // evolution add/remove lists rewritten the same way
     );
 
     /**
@@ -124,21 +125,29 @@ public final class OriginsOriginTranslator {
 
         // ---- powers: rewrite multiple IDs to synthetic sub-power IDs ----
         if (src.has("powers")) {
-            JsonArray translatedPowers = new JsonArray();
-            for (JsonElement el : src.getAsJsonArray("powers")) {
-                if (!el.isJsonPrimitive()) continue;
-                String powerIdStr = el.getAsString();
-                ResourceLocation powerIdent = ResourceLocation.tryParse(powerIdStr);
-                if (powerIdent != null && OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.containsKey(powerIdent)) {
-                    // Replace the multiple power ID with all its synthetic sub-power IDs
-                    for (ResourceLocation synthId : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.get(powerIdent)) {
-                        translatedPowers.add(synthId.toString());
-                    }
-                } else {
-                    translatedPowers.add(powerIdStr);
+            out.add("powers", rewritePowerIds(src.getAsJsonArray("powers")));
+        }
+
+        // ---- tier_powers: rewrite each overlay's add/remove lists too ----
+        // The base `powers` array is expanded above, so a multiple-type power
+        // referenced in a tier's add/remove must be expanded to the same
+        // synthetic sub-power IDs — otherwise the parent ID has no registered
+        // holder and the add/remove silently no-ops (evolution HP/stat powers
+        // never apply or never get cleared).
+        if (src.has("tier_powers") && src.get("tier_powers").isJsonArray()) {
+            JsonArray translatedTiers = new JsonArray();
+            for (JsonElement tierEl : src.getAsJsonArray("tier_powers")) {
+                if (!tierEl.isJsonObject()) { translatedTiers.add(tierEl); continue; }
+                JsonObject overlay = tierEl.getAsJsonObject().deepCopy();
+                if (overlay.has("add") && overlay.get("add").isJsonArray()) {
+                    overlay.add("add", rewritePowerIds(overlay.getAsJsonArray("add")));
                 }
+                if (overlay.has("remove") && overlay.get("remove").isJsonArray()) {
+                    overlay.add("remove", rewritePowerIds(overlay.getAsJsonArray("remove")));
+                }
+                translatedTiers.add(overlay);
             }
-            out.add("powers", translatedPowers);
+            out.add("tier_powers", translatedTiers);
         }
 
         // ---- pass through all remaining keys verbatim ----
@@ -150,6 +159,31 @@ public final class OriginsOriginTranslator {
             }
         }
 
+        return out;
+    }
+
+    /**
+     * Rewrites a list of power-ID strings, replacing any {@code multiple}-type
+     * power ID with its expanded synthetic sub-power IDs (from
+     * {@link OriginsMultipleExpander#MULTIPLE_EXPANSION_MAP}). Non-multiple IDs
+     * and non-string entries pass through unchanged. Shared by the base
+     * {@code powers} array and every {@code tier_powers} add/remove list so a
+     * multiple power resolves to the same registered holders everywhere.
+     */
+    private static JsonArray rewritePowerIds(JsonArray ids) {
+        JsonArray out = new JsonArray();
+        for (JsonElement el : ids) {
+            if (!el.isJsonPrimitive()) { out.add(el); continue; }
+            String powerIdStr = el.getAsString();
+            ResourceLocation powerIdent = ResourceLocation.tryParse(powerIdStr);
+            if (powerIdent != null && OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.containsKey(powerIdent)) {
+                for (ResourceLocation synthId : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.get(powerIdent)) {
+                    out.add(synthId.toString());
+                }
+            } else {
+                out.add(powerIdStr);
+            }
+        }
         return out;
     }
 

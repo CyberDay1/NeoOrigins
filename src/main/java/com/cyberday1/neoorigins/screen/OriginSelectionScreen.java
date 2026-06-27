@@ -3,7 +3,9 @@ package com.cyberday1.neoorigins.screen;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
+import com.cyberday1.neoorigins.api.origin.OriginTierOverlay;
 import com.cyberday1.neoorigins.client.ClientOriginState;
+import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.client.theme.PanelRenderer;
 import com.cyberday1.neoorigins.client.theme.UITheme;
 import com.cyberday1.neoorigins.data.LayerDataManager;
@@ -78,6 +80,13 @@ public class OriginSelectionScreen extends Screen {
     private OriginDetailViewModel detailViewModel = OriginDetailViewModel.EMPTY;
     private List<FormattedCharSequence> descLines = List.of();
     private List<List<FormattedCharSequence>> wrappedPowerDescs = List.of();
+    /** Precomputed evolution-path display: per tier, the added powers (name +
+     *  wrapped description) and the removed power names. Synthetic
+     *  multiple-power sub-ids are collapsed back to their parent display. Shown
+     *  statically below the info (no live kill-progress in the picker). */
+    private record EvoLine(String name, List<FormattedCharSequence> desc) {}
+    private record EvoTier(int tier, List<EvoLine> added, List<String> removed) {}
+    private List<EvoTier> evoTiers = List.of();
     private int detailScrollOffset = 0;
     private int detailContentH     = 0;
 
@@ -145,7 +154,8 @@ public class OriginSelectionScreen extends Screen {
 
     private void confirmSelection() {
         if (presenter.selectedOriginId() == null) return;
-        if (!presenter.confirm()) { onClose(); return; }
+        boolean keepGoing = presenter.confirm();
+        if (!keepGoing) { onClose(); return; }
         advanceLayer();
     }
 
@@ -171,13 +181,51 @@ public class OriginSelectionScreen extends Screen {
             }
             wrappedPowerDescs = wrapped;
 
+            evoTiers = computeEvoTiers(powerDescW);
+
             // Compute content height with wrapped lines
             detailContentH = computeContentHeight();
         } else {
             descLines = List.of();
             wrappedPowerDescs = List.of();
+            evoTiers = List.of();
             detailContentH = 0;
         }
+    }
+
+    /** Build the per-tier evolution display, collapsing synthetic multiple-power
+     *  sub-ids back to their parent name/description and wrapping the
+     *  descriptions of added powers to {@code descW}. Tiers sorted ascending
+     *  (Evolved → Ascended → Apex). */
+    private List<EvoTier> computeEvoTiers(int descW) {
+        Origin origin = detailViewModel.origin();
+        if (origin == null || origin.tierPowers().isEmpty()) return List.of();
+        var sorted = new ArrayList<>(origin.tierPowers());
+        sorted.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
+        List<EvoTier> out = new ArrayList<>();
+        for (OriginTierOverlay overlay : sorted) {
+            List<EvoLine> added = new ArrayList<>();
+            for (var d : OriginDetailViewModel.resolveTierPowerDisplays(overlay.add())) {
+                List<FormattedCharSequence> desc = d.description().isEmpty()
+                    ? List.of()
+                    : font.split(themed(Component.literal(d.description())), descW);
+                added.add(new EvoLine(d.name(), desc));
+            }
+            List<String> removed = new ArrayList<>();
+            for (var d : OriginDetailViewModel.resolveTierPowerDisplays(overlay.remove())) {
+                removed.add(d.name());
+            }
+            out.add(new EvoTier(overlay.tier(), added, removed));
+        }
+        return out;
+    }
+
+    private static String tierName(int tier) {
+        if (tier >= 0 && tier < EssenceEvolutionManager.TIER_NAMES.length) {
+            String n = EssenceEvolutionManager.TIER_NAMES[tier];
+            if (!n.isEmpty()) return n;
+        }
+        return "Tier " + tier;
     }
 
     private int computeContentHeight() {
@@ -185,6 +233,19 @@ public class OriginSelectionScreen extends Screen {
         if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()
             && !detailViewModel.origin().spawnLocation().get().formatSummary().isEmpty()) {
             h += LINE_H;
+        }
+        // Evolution path section (rendered after the powers list).
+        if (!evoTiers.isEmpty()) {
+            h += 8;          // gap before section
+            h += 9 + 4;      // "Evolution Path" header
+            for (EvoTier tier : evoTiers) {
+                h += 11;     // tier subheader
+                for (EvoLine line : tier.added()) {
+                    h += LINE_H;                       // "+ Name"
+                    h += line.desc().size() * LINE_H;  // wrapped description
+                }
+                h += tier.removed().size() * LINE_H;   // "- Name"
+            }
         }
         List<String> pNames = detailViewModel.powerNames();
         if (!pNames.isEmpty()) {
@@ -427,6 +488,36 @@ public class OriginSelectionScreen extends Screen {
                     }
                 }
                 sy += POWER_GAP;
+            }
+        }
+
+        // ── Evolution Path section (static names + descriptions) ───────────
+        // Rendered below the powers list so the base kit reads first, then how
+        // it grows with evolution tiers.
+        if (!evoTiers.isEmpty()) {
+            sy += 8;
+            g.drawString(font, themedBold(Component.translatable("gui.neoorigins.info.evolution_path")),
+                rightX + DETAIL_PAD, sy, theme.headerColor(), false);
+            sy += 9 + 4;
+            for (EvoTier tier : evoTiers) {
+                g.drawString(font, themed(Component.literal(tierName(tier.tier()))),
+                    rightX + DETAIL_PAD, sy, theme.powerNameColor(), false);
+                sy += 11;
+                for (EvoLine line : tier.added()) {
+                    g.drawString(font, themed(Component.literal("+ " + line.name())),
+                        rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                    sy += LINE_H;
+                    for (FormattedCharSequence dl : line.desc()) {
+                        g.drawString(font, dl, rightX + DETAIL_PAD + 16, sy,
+                            theme.powerDescriptionColor(), false);
+                        sy += LINE_H;
+                    }
+                }
+                for (String rname : tier.removed()) {
+                    g.drawString(font, themed(Component.literal("- " + rname)),
+                        rightX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
+                    sy += LINE_H;
+                }
             }
         }
         g.disableScissor();

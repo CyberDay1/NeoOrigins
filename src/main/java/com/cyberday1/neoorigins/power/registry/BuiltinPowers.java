@@ -1254,6 +1254,43 @@ public final class BuiltinPowers {
                 .doc("Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false)."),
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
+        //   • effect_over_time: sustained aura type, one entity_action tree pulsed
+        //     on an interval behind an `activation` selector. passive (default) =
+        //     always-on, no upkeep; with toggleable:true it gains a free on/off
+        //     keybind and starts ON. active = keybind-toggled with a per-interval
+        //     upkeep (hunger/resource) that auto-disables the aura when unaffordable,
+        //     and starts OFF ("toggle" is an accepted alias for active). The codec
+        //     reads entity_action under the `entity_action` JSON key (bound to the
+        //     `action` component), defaulting to noop; condition defaults to
+        //     always-true. Every field defaults — nothing required. One-shot
+        //     cooldown abilities belong on active_ability, not here.
+        define("effect_over_time", EffectOverTimePower.class, List.of(
+            new FieldSpec("activation", Kind.STRING, false)
+                .def("passive").options("passive", "active")
+                .doc("Aura mode (default passive). 'passive' pulses entity_action every interval while granted, no upkeep (add toggleable:true for a free on/off keybind). 'active' binds a keybind that toggles the aura on/off; while on it pulses every interval AND pays the upkeep cost (hunger_cost/resource_cost), switching itself off when it can no longer pay. ('toggle' is accepted as an alias for active.)"),
+            new FieldSpec("toggleable", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("Passive mode only: when true the aura gains an on/off keybind (still free, no upkeep) and starts ON by default. Active auras are always toggleable and start OFF; this flag is ignored for them. Default false (plain always-on passive)."),
+            new FieldSpec("interval", Kind.INTEGER, false)
+                .def(20).range(1.0, null)
+                .doc("Ticks between aura pulses — and, in active mode, between upkeep charges (min 1; default 20 = 1s)."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gate: entity_action pulses each interval only while it passes; else_action runs while it does not (default always-true). In active mode upkeep is still charged while the aura is on, regardless of the condition."),
+            new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
+                .doc("EntityAction tree pulsed on the player each interval — typically an origins:area_of_effect applying damage/effects to nearby entities. Inside an area_of_effect, spawn_particles/apply_effect/damage/heal/clear_effect now run on each AFFECTED entity, so you can paint custom particles (and remove a potion's default ones via apply_effect show_particles:false) on everyone the aura touches (defaults to noop)."),
+            new FieldSpec("else_action", Kind.REF, false).ref("action.schema.json")
+                .doc("EntityAction pulsed on the player each interval while the condition does NOT pass (defaults to noop)."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("Active mode upkeep: food points drained each interval to keep the aura up; the aura auto-disables when the holder can't pay. Default 0 = a free on/off toggle. Ignored in passive mode."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Active mode upkeep: optional resource power id drained each interval; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled. Ignored in passive mode."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).doc("Active mode upkeep: amount of the resource_cost resource drained each interval; default 0."),
+            new FieldSpec("default_off", Kind.BOOLEAN, false)
+                .doc("Override the initial on/off state of a toggleable aura. By default an active aura starts OFF (opt-in) and a toggleable passive starts ON; set this to force either. Ignored for plain (non-toggleable) passive auras."),
+            COOLDOWN_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+
         //   • prevent_death: NO schema branch (already on the permissive fallback),
         //     so this is a pure register-to-codec + field_docs collapse. The codec
         //     reads damage_types (Optional<String>), invert (default false),

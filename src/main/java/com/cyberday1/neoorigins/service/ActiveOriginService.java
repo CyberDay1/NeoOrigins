@@ -47,6 +47,23 @@ public final class ActiveOriginService {
 
     /** Immutable snapshot of a player's resolved (dimension-filtered) power set. */
     private static final class CacheEntry {
+        /**
+         * Weak handle to the exact {@link ServerPlayer} instance this entry was
+         * built against. {@link PlayerOriginData#version()} is {@code transient}
+         * and resets to 0 every time the attachment is deserialized, so after a
+         * relog the (dimension, dataVersion=0, mgr versions, restrictions)
+         * tuple of a brand-new session is byte-for-byte identical to the stale
+         * entry left by the previous session — which is keyed by the same UUID.
+         * Without this identity guard {@code getOrBuild} would hand a returning
+         * player the OLD session's resolved power list (which, if it was built
+         * during the disconnect/login window before the datapack managers or
+         * the player's own attachment had finished loading, can be empty or
+         * partial), so the player keeps their origin but loses most powers until
+         * something bumps a version. Tying the entry to the live instance makes
+         * a cross-session hit impossible: a new ServerPlayer never {@code ==} the
+         * old one, so the entry is rebuilt from the freshly-loaded data.
+         */
+        final java.lang.ref.WeakReference<ServerPlayer> owner;
         final ResourceKey<Level> dimension;
         final int dataVersion;
         final int originMgrVersion;
@@ -56,10 +73,11 @@ public final class ActiveOriginService {
         final List<PowerHolder<?>> originActive;
         final List<PowerHolder<?>> classActive;
 
-        CacheEntry(ResourceKey<Level> dim, int dv, int omv, int pmv, int rv,
+        CacheEntry(ServerPlayer owner, ResourceKey<Level> dim, int dv, int omv, int pmv, int rv,
                    List<PowerHolder<?>> all,
                    List<PowerHolder<?>> originActive,
                    List<PowerHolder<?>> classActive) {
+            this.owner = new java.lang.ref.WeakReference<>(owner);
             this.dimension = dim;
             this.dataVersion = dv;
             this.originMgrVersion = omv;
@@ -82,6 +100,7 @@ public final class ActiveOriginService {
         UUID uuid = player.getUUID();
         CacheEntry cur = CACHE.get(uuid);
         if (cur != null
+            && cur.owner.get() == player
             && cur.dimension.equals(dim)
             && cur.dataVersion == dv
             && cur.originMgrVersion == omv
@@ -129,7 +148,7 @@ public final class ActiveOriginService {
             }
         }
 
-        CacheEntry fresh = new CacheEntry(dim, dv, omv, pmv, rv,
+        CacheEntry fresh = new CacheEntry(player, dim, dv, omv, pmv, rv,
             List.copyOf(all),
             List.copyOf(originActive),
             List.copyOf(classActive));
@@ -162,6 +181,12 @@ public final class ActiveOriginService {
     void forEachOfType(ServerPlayer player, Class<T> typeClass, Consumer<C> action) {
         for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
             if (typeClass.isInstance(holder.type())) {
+                // Honour the power's top-level condition gate (power_condition).
+                // Powers without a condition are always satisfied; conditioned
+                // compat powers (e.g. an invulnerability gated to one dimension)
+                // must NOT apply their effect when the condition is unmet. Mirrors
+                // PowerHolder.onTick/onHit and hasCapability, which already gate.
+                if (!holder.isConditionSatisfied(player)) continue;
                 action.accept((C) holder.config());
             }
         }
@@ -183,6 +208,9 @@ public final class ActiveOriginService {
     void forEachOfTypeActive(ServerPlayer player, Class<T> typeClass, Consumer<C> action) {
         for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
             if (!typeClass.isInstance(holder.type())) continue;
+            // Top-level condition gate (see forEachOfType): a conditioned power
+            // whose condition is unmet must not fire.
+            if (!holder.isConditionSatisfied(player)) continue;
             if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
                     && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
                             .isToggledOff(player, holder.config())) {
@@ -197,7 +225,15 @@ public final class ActiveOriginService {
     public static <C extends PowerConfiguration, T extends PowerType<C>>
     boolean has(ServerPlayer player, Class<T> typeClass, Predicate<C> predicate) {
         for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
+            // Honour the power's top-level condition gate (power_condition) so a
+            // conditioned power (e.g. invulnerability limited to the pocket
+            // dimension) does not report "has" when its condition is unmet.
+            // Null condition → always satisfied, so unconditioned native powers
+            // are unaffected. Fixes blanket invulnerability from a dimension- or
+            // tag-gated origins:invulnerability that compat-translated correctly
+            // but was evaluated ungated here.
             if (typeClass.isInstance(holder.type())
+                && holder.isConditionSatisfied(player)
                 && predicate.test((C) holder.config())) {
                 return true;
             }

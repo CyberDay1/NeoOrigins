@@ -31,7 +31,8 @@
         "neoorigins:sporeling_ascended_night_vision"
       ],
       "remove": [
-        "neoorigins:sporeling_evolved_hp"
+        "neoorigins:sporeling_evolved_hp",
+        "neoorigins:sporeling_night_vision"
       ]
     },
     {

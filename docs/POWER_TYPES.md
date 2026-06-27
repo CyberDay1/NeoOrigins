@@ -238,6 +238,31 @@ Continuously applies a potion effect while the origin is active. The effect is r
 
 ---
 
+## `neoorigins:stacking_status_effects`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:persistent_effect`. See [MIGRATION.md](MIGRATION.md).
+
+Continuously applies a list of potion effects while the origin is active. Unlike `status_effect` (single effect) this carries a full `effects` array, and unlike `persistent_effect` it is always-on: the alias forces `toggleable` off, so the effects cannot be keybind-toggled.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `effects` | list of EffectSpec | yes | — | Mob effects to apply, passed through verbatim. Same per-entry shape as `persistent_effect`'s `EffectSpec` (`effect`/`id`, `amplifier`, `ambient`, `show_particles`, `show_icon`). |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:stacking_status_effects",
+  "effects": [
+    { "effect": "minecraft:strength", "amplifier": 0 },
+    { "effect": "minecraft:speed",    "amplifier": 1 }
+  ],
+  "name": "Battle Trance",
+  "description": "Permanently empowered."
+}
+```
+
+---
+
 ## `neoorigins:prevent_action`
 
 Prevents a specific harmful action or event from affecting the player.
@@ -467,32 +492,6 @@ Accepts only the standard toggle HUD fields beyond `name` and `description`:
   "type": "neoorigins:creative_flight",
   "name": "Riding the Wind",
   "description": "Double-tap jump to take to the air and fly freely."
-}
-```
-
----
-
-## `neoorigins:variable`
-
-A named, persistent, **always-hidden integer counter** — a "local variable" for power logic. Unlike a resource (`neoorigins:resource`), a variable has no HUD bar, no regeneration and no per-tick cost: it only changes when an action explicitly touches it (`change_resource` / `set_resource`), and it is read as a gate by the `resource` condition. The same authoring surface drives both passive and active abilities — use it for combo counters, charge stacks, one-shot flags, cooldown bookkeeping, etc.
-
-The counter's storage key is the declaring power's own id, so variables share the resource keyspace; `change_resource` and the `resource` condition operate on them with no extra wiring, and a variable can never collide with a resource name (two powers can't share an id).
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `start` | int | no | `0` | Value seeded on grant, and the value reads fall back to before the first write. Alias: `start_value` |
-| `min` | int | no | unbounded | Lower clamp on additive writes; omit for an unbounded counter |
-| `max` | int | no | unbounded | Upper clamp on additive writes; omit for an unbounded counter |
-
-**Example:**
-```json
-{
-  "type": "neoorigins:variable",
-  "start": 0,
-  "min": 0,
-  "max": 99,
-  "name": "Combo Counter",
-  "description": "Tracks consecutive hits."
 }
 ```
 
@@ -770,6 +769,31 @@ Deals periodic damage to the player when they are in direct sunlight (sky-expose
 
 ---
 
+## `neoorigins:damage_in_water`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
+
+Deals periodic drown damage to the player while they are in water, and — when `include_rain` is enabled — while they are exposed to rain. Damage is applied once per second.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `damage_per_second` | float | no | `1.0` | Damage dealt each second (half-hearts). Set to `0` to disable damage entirely: the power still loads but substitutes a no-op so no hurt sound/animation fires. |
+| `multiplier` | float | no | — | Alias for `damage_per_second`, accepted for consistency with other weakness powers. `damage_per_second` wins if both are present. |
+| `include_rain` | bool | no | `true` | When true, damage also applies while exposed to rain (`in_water` OR `in_rain`); when false, only while in water. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:damage_in_water",
+  "damage_per_second": 2.0,
+  "include_rain": true,
+  "name": "Hydrophobia",
+  "description": "Burns when touched by water or rain."
+}
+```
+
+---
+
 ## `neoorigins:knockback_modifier`
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
@@ -789,6 +813,160 @@ Multiplies knockback dealt or received.
   "multiplier": 0.5,
   "name": "Sturdy",
   "description": "Resistant to knockback."
+}
+```
+
+---
+
+## `neoorigins:longer_potions`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Multiplies the duration of potion effects applied to the player (`mod_potion_duration` event).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `duration_multiplier` | float | no | `1.0` | Multiplier applied to potion effect duration |
+
+**Example — potions last twice as long:**
+```json
+{
+  "type": "neoorigins:longer_potions",
+  "duration_multiplier": 2.0,
+  "name": "Slow Metabolism",
+  "description": "Potions linger far longer."
+}
+```
+
+---
+
+## `neoorigins:more_animal_loot`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Multiplies the number of drops harvested from killed animals/mobs (`mod_harvest_drops` event).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `multiplier` | float | no | `1.0` | Multiplier applied to harvest drop count |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:more_animal_loot",
+  "multiplier": 2.0,
+  "name": "Hunter's Bounty",
+  "description": "Animals yield double drops."
+}
+```
+
+---
+
+## `neoorigins:efficient_repairs`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Multiplies the experience-level cost of anvil repairs (`mod_anvil_cost` event). Use a value below `1.0` to make repairs cheaper.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `cost_multiplier` | float | no | `1.0` | Multiplier applied to the anvil level cost |
+
+**Example — half-price anvil repairs:**
+```json
+{
+  "type": "neoorigins:efficient_repairs",
+  "cost_multiplier": 0.5,
+  "name": "Master Smith",
+  "description": "Anvil repairs cost half the levels."
+}
+```
+
+---
+
+## `neoorigins:better_enchanting`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Adds a flat bonus to the enchantment power level available at the enchanting table (`mod_enchant_level` event). The bonus is additive (`add_base`), not a multiplier.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `bonus_levels` | int | no | `5` | Bonus enchanting levels added |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:better_enchanting",
+  "bonus_levels": 5,
+  "name": "Arcane Affinity",
+  "description": "Enchants as though surrounded by extra bookshelves."
+}
+```
+
+---
+
+## `neoorigins:better_crafted_food`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Adds a flat saturation bonus to food the player crafts (`mod_crafted_food_saturation` event). Additive (`add_base`).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `saturation_bonus` | float | no | `0.5` | Extra saturation added to crafted food |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:better_crafted_food",
+  "saturation_bonus": 1.0,
+  "name": "Home Cooking",
+  "description": "Food you make is more filling."
+}
+```
+
+---
+
+## `neoorigins:better_bone_meal`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Grants extra bone-meal growth applications per use (`mod_bonemeal_extra` event). Additive (`add_base`).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `extra_applications` | int | no | `1` | Additional bone-meal growth applications per use |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:better_bone_meal",
+  "extra_applications": 2,
+  "name": "Green Thumb",
+  "description": "Bone meal goes further."
+}
+```
+
+---
+
+## `neoorigins:teleport_range_modifier`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
+
+Multiplies the player's teleport range (e.g. ender-pearl throw distance) via the `mod_teleport_range` event.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `multiplier` | float | no | `2.0` | Multiplier applied to teleport range |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:teleport_range_modifier",
+  "multiplier": 2.0,
+  "name": "Far Step",
+  "description": "Teleports reach twice as far."
 }
 ```
 
@@ -1476,6 +1654,55 @@ Active ability that launches the player straight upward. Useful paired with `ely
 
 ---
 
+## `neoorigins:healing_mist`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:active_ability`. See [MIGRATION.md](MIGRATION.md).
+
+Cooldown-gated active ability that heals nearby players in a sphere around the caster. The AoE is players-only, matching the legacy filter.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `heal_amount` | float | no | `6.0` | Health restored to each affected player (half-hearts) |
+| `radius` | float | no | `8.0` | Radius of the heal sphere (blocks) |
+| `heal_self` | bool | no | `true` | When true the caster is also healed; when false only other players in range are healed |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:healing_mist",
+  "heal_amount": 6.0,
+  "radius": 8.0,
+  "name": "Healing Mist",
+  "description": "Releases a restorative mist that heals nearby allies."
+}
+```
+
+---
+
+## `neoorigins:repulse`
+
+> **Deprecated in 2.0** — this type is now an alias for `neoorigins:active_ability`. See [MIGRATION.md](MIGRATION.md).
+
+Cooldown-gated active ability that pushes nearby entities outward from the caster (including other players).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `radius` | float | no | `6.0` | Radius of the push (blocks) |
+| `strength` | float | no | `1.0` | Outward push strength applied to each entity |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:repulse",
+  "radius": 6.0,
+  "strength": 1.5,
+  "name": "Force Repulse",
+  "description": "Blasts nearby entities away."
+}
+```
+
+---
+
 ## `neoorigins:active_recall`
 
 Active ability that teleports the player to their bed or respawn point. Falls back to world spawn if none is set.
@@ -1875,6 +2102,70 @@ See [EVENTS.md](EVENTS.md) / the Apoli compat docs for the full condition and ac
   "description": "Burns while in the Nether."
 }
 ```
+
+---
+
+## `neoorigins:effect_over_time`
+
+Sustained **aura** type — one `entity_action` tree pulsed on an `interval`, in one of two modes via the `activation` field. An aura is a constant effect (usually an `origins:area_of_effect` radiating from the holder); a **passive** aura is always on with no cost, while an **active** aura is keybind-toggled and drains an upkeep each interval to stay up, switching itself off when you can't pay. A passive aura can also be made **toggleable** (`toggleable: true`) — still free, but with an on/off keybind. Active auras start **off** by default (opt-in); toggleable passives start **on**. (For one-shot, cooldown-gated abilities use [`active_ability`](#neooriginsactive_ability) instead — this type is specifically for auras.)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `activation` | enum | no | `passive` | `passive` \| `active` (`toggle` accepted as an alias for `active`). `passive` pulses `entity_action` every `interval` while granted — no upkeep. `active` binds a keybind that toggles the aura on/off; while on it pulses every interval AND pays the upkeep. Unrecognised values fall back to `passive`. |
+| `toggleable` | bool | no | `false` | Passive mode only: add a free on/off keybind (no upkeep). A toggleable passive starts **on**. Active auras are always toggleable and start **off**; this flag is ignored for them. |
+| `interval` | int | no | `20` | Ticks between aura pulses — and, in active mode, between upkeep charges (clamped ≥ 1). |
+| `condition` | EntityCondition | no | always-true | Gate: `entity_action` pulses each interval only while it passes, else `else_action`. In active mode the upkeep is still charged while the aura is on, regardless of this gate. |
+| `entity_action` | EntityAction | no | noop | Action pulsed on the player each interval — typically an `origins:area_of_effect` applying damage/effects to nearby entities. Inside an `area_of_effect`, `damage`, `heal`, `apply_effect`, `clear_effect` and `spawn_particles` run on **each affected entity** — so you can paint custom particles (and apply/strip status effects) on everyone the aura touches. |
+| `else_action` | EntityAction | no | noop | Action pulsed each interval while `condition` is false. |
+| `hunger_cost` | int | no | `0` | Active upkeep: food points drained each interval; the aura auto-disables when the holder can't pay. `0` = a free on/off toggle. Ignored in passive mode. |
+| `resource_cost` | string | no | `""` | Active upkeep: resource power id drained each interval; falls back to `hunger_cost` when resource bars are globally disabled. Ignored in passive mode. |
+| `resource_cost_amount` | int | no | `0` | Active upkeep: amount of `resource_cost` drained each interval. |
+| `default_off` | bool | no | mode-dependent | Override the initial on/off state of a toggleable aura. Default: active → **off**, toggleable passive → **on**. Ignored for plain (non-toggleable) passive auras. |
+
+See [EVENTS.md](EVENTS.md) / the Apoli compat docs for the full condition and action DSL.
+
+> **Custom particles & status effects on affected entities.** Put `spawn_particles` (and `apply_effect`/`damage`/`heal`/`clear_effect`) *inside* the `area_of_effect`'s `entity_action` to apply them to each entity the aura hits, at that entity's position. Put `spawn_particles` *outside* (a sibling of the `area_of_effect`) to draw on the holder instead. To apply a potion effect without its swirling vanilla particles, use `apply_effect` with `"show_particles": false`.
+
+> **Filtering who the aura affects.** Set the `area_of_effect`'s `entity_condition` to control which entities are touched. Entity-general conditions filter **mobs and players** alike: `entity_type: minecraft:player` = players only; `entity_type: "#minecraft:skeletons"` = a tag group; `target_group` = a vanilla mob category; `health`/`relative_health`/`has_effect`/`on_fire`/`living`; and `and`/`or`/`not` of those (plus Apoli's `inverted: true`). For example, wrap `not { entity_type: minecraft:player }` to scorch hostile mobs without burning your allies. See [`area_of_effect`](ACTIONS.md#neooriginsarea_of_effect) for the full list.
+
+**Example — active damage aura: toggle it on to scorch nearby mobs every second, draining 2 hunger per second to keep it up. The flame particles spawn on each burned entity (inside the `area_of_effect`), not on you:**
+```json
+{
+  "type": "neoorigins:effect_over_time",
+  "activation": "active",
+  "interval": 20,
+  "hunger_cost": 2,
+  "entity_action": {
+    "type": "origins:area_of_effect",
+    "radius": 6,
+    "shape": "sphere",
+    "include_source": false,
+    "entity_action": {
+      "type": "origins:and",
+      "actions": [
+        {
+          "type": "origins:damage",
+          "amount": 3.0,
+          "damage_type": "minecraft:on_fire"
+        },
+        {
+          "type": "origins:spawn_particles",
+          "particle": "minecraft:flame",
+          "count": 12,
+          "speed": 0.02,
+          "offset_y": 1.0,
+          "spread": { "x": 0.4, "y": 0.6, "z": 0.4 }
+        }
+      ]
+    }
+  },
+  "cooldown_icon": "minecraft:blaze_powder",
+  "name": "Searing Aura",
+  "description": "A ring of flame that burns nearby foes while it drains your stamina."
+}
+```
+
+For a **plain passive** aura (always on, no cost — e.g. a constant self-healing field), set `"activation": "passive"` and drop the cost fields. For a **toggleable passive** (free, but with an on/off keybind, on by default), add `"toggleable": true`.
 
 ---
 

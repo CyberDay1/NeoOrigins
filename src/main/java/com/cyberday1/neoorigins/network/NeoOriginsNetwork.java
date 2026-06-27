@@ -386,9 +386,9 @@ public class NeoOriginsNetwork {
     }
 
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(payload.isOrb(), payload.forceReselect())
-        );
+        ctx.enqueueWork(() -> {
+            com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(payload.isOrb(), payload.forceReselect());
+        });
     }
 
     private static void handleSyncCooldown(SyncCooldownPayload payload, IPayloadContext ctx) {
@@ -875,8 +875,21 @@ public class NeoOriginsNetwork {
                 OriginClaimsData.get(sp.getServer()).claim(layerId, event.getNewOrigin(), sp.getUUID());
             }
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
-            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
-                sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
+            // CHOSEN runs the origin's entity_action_chosen callbacks
+            // (action_on_callback). During the initial multi-layer walkthrough
+            // this is DEFERRED until every layer is picked (fired in the
+            // firstTimeAllFilled block below) — a CHOSEN action that relocates
+            // the player across dimensions (e.g. a "tp into a pocket dimension"
+            // setup) would otherwise tear down the client selection screen via
+            // the vanilla respawn screen-swap before the remaining layers (class,
+            // etc.) were ever shown, stranding the player with an incomplete
+            // pick. This mirrors the spawn_location teleport gate below. Re-picks
+            // after completion (admin /origin gui, Orb of Origin — hadAllOrigins
+            // already true) still fire immediately.
+            if (data.isHadAllOrigins()) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                    sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
+            }
             // KubeJS: originChosen is UI-specific (first pick via the picker).
             // originChanged is fired from inside applyOriginPowers so admin /set,
             // /reset, and cascade invalidation all cover it.
@@ -942,6 +955,22 @@ public class NeoOriginsNetwork {
             // on re-picks would relocate the player against their wishes.
             if (firstTimeAllFilled) {
                 com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
+
+                // Now that every layer is chosen, fire the deferred CHOSEN events
+                // for each picked origin in layer order. The per-pick dispatch in
+                // the walk-through is suppressed (gated on isHadAllOrigins above)
+                // because an origin's entity_action_chosen may tear down the
+                // picker mid-flow — e.g. Seer's callback teleports the player to a
+                // pocket dimension, which closes the client screen before the
+                // class layer can show (the "class skip" bug). Deferring to here
+                // lets the player finish every layer first.
+                for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
+                    ResourceLocation chosen = data.getOrigin(l.id());
+                    if (chosen != null) {
+                        com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, chosen);
+                    }
+                }
             }
 
             // Grant a brief invulnerability grace once the initial pick completes

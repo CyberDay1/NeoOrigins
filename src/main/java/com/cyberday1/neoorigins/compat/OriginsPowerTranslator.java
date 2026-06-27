@@ -993,15 +993,20 @@ public final class OriginsPowerTranslator {
                 : mod.has("amount") ? mod.get("amount").getAsDouble() : Double.NaN;
             if (!Double.isNaN(value)) {
                 String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
-                float multiplier;
-                if ("set_total".equals(op)) {
-                    // set_total with -1 means "cancel all damage"
-                    multiplier = (float) Math.max(0, 1.0 + value);
-                } else {
+                switch (op) {
+                    // set_total replaces the post-multiplier value outright. set_total 0
+                    // (often -1+1) = "cancel all damage"; native ModifyDamagePower
+                    // applies this clamp directly (no longer faked via a multiplier).
+                    case "set_total", "set" -> out.addProperty("set_total", (float) value);
+                    // max_total = upper CAP (Math.min(value, amount)); min_total = lower
+                    // FLOOR. Despite the names these are NOT the modifier value — they're
+                    // absolute clamp thresholds on the resulting damage. Collapsing them
+                    // to (1+value) is what made `max_total 4` become a 5x MULTIPLIER.
+                    case "max_total" -> out.addProperty("max_total", (float) value);
+                    case "min_total" -> out.addProperty("min_total", (float) value);
                     // [LOSSY] multiply_total / multiply_base / addition all collapse to (1 + value).
-                    multiplier = (float)(1.0 + value);
+                    default -> out.addProperty("multiplier", (float)(1.0 + value));
                 }
-                out.addProperty("multiplier", multiplier);
             }
         }
 

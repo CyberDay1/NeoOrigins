@@ -128,7 +128,13 @@ public class InteractionPowerEvents {
         ActiveOriginService.forEachOfType(sp, RestrictItemsPower.class, cfg -> {
             if (RestrictItemsPower.blocksUse(sp, stack, null, cfg)) blocked[0] = true;
         });
-        if (blocked[0]) event.setCanceled(true);
+        if (blocked[0]) {
+            event.setCanceled(true);
+            // Item use is client-predicted (shields raise locally before the server
+            // round-trips); cancelling server-side alone leaves the client visually
+            // "using" it. Snap the prediction back to the authoritative state.
+            RestrictItemsPower.resyncUseState(sp);
+        }
     }
 
     @SubscribeEvent
@@ -185,6 +191,8 @@ public class InteractionPowerEvents {
         });
         if (useBlocked[0]) {
             event.setCanceled(true);
+            // Correct the client's predicted raise/use (see onItemUseGateStart).
+            RestrictItemsPower.resyncUseState(sp);
             return;
         }
         // Walk the player's edible_item powers — first match starts the use

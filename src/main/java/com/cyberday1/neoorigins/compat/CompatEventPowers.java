@@ -201,7 +201,14 @@ public class CompatEventPowers {
             // Holder gate: skip if the power-level condition isn't satisfied.
             if (power.entityCondition() != null && !power.entityCondition().test(sp)) continue;
             if (power.blockPredicate() == null || power.blockPredicate().test(sp, event.getPos())) {
-                event.setCanceled(true);
+                // Deny only the block's own interaction (opening chests, beds,
+                // furnaces, crafting tables, etc.) — NOT the held item's useOn.
+                // A full setCanceled() denies useItem too, which silently blocks
+                // block PLACEMENT (a BlockItem places via useOn). prevent_block_use
+                // means "can't use blocks", not "can't place blocks" — placement
+                // suppression is prevent_item_use's job. (Seer "Intangible Will"
+                // was blocking all placement while astral via this path.)
+                event.setUseBlock(net.neoforged.neoforge.common.util.TriState.FALSE);
                 return;
             }
         }

@@ -33,7 +33,8 @@
       ],
       "remove": [
         "neoorigins:feline_evolved_hp",
-        "neoorigins:feline_evolved_fall_resist"
+        "neoorigins:feline_evolved_fall_resist",
+        "neoorigins:feline_night_vision"
       ]
     },
     {

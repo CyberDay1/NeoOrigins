@@ -7,6 +7,8 @@ import com.cyberday1.neoorigins.compat.CompatPolicy;
 import com.cyberday1.neoorigins.compat.CompatTickScheduler;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.cyberday1.neoorigins.compat.condition.TargetCondition;
+import com.cyberday1.neoorigins.compat.condition.TargetConditionParser;
 import com.cyberday1.neoorigins.compat.registry.ActionType;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -571,9 +573,22 @@ public final class ActionParser {
         }
         EntityAction action = innerJson != null ? parse(innerJson, contextId) : EntityAction.noop();
         TargetAction targetAction = innerJson != null ? TargetActionParser.parse(innerJson, contextId) : null;
-        EntityCondition targetCondition = json.has("entity_condition")
-            ? ConditionParser.parse(json.getAsJsonObject("entity_condition"), contextId)
+        // entity_condition is parsed two ways, mirroring the action above:
+        //   - as a player-typed EntityCondition (legacy: only player targets are
+        //     gated by it), and
+        //   - as an entity-general TargetCondition when the verb is generalizable
+        //     (entity_type/#tag, target_group, health, has_effect, and/or/not, ...).
+        // When a TargetCondition form exists it filters BOTH players and mobs — so
+        // an aura can finally restrict who it affects ("players only", a #tag group,
+        // a specific mob). When it doesn't (player-only condition verb), the legacy
+        // behaviour stands: players are gated, mobs bypass the condition as before.
+        JsonObject condJson = json.has("entity_condition") && json.get("entity_condition").isJsonObject()
+            ? json.getAsJsonObject("entity_condition") : null;
+        EntityCondition targetCondition = condJson != null
+            ? ConditionParser.parse(condJson, contextId)
             : EntityCondition.alwaysTrue();
+        TargetCondition targetCond = condJson != null
+            ? TargetConditionParser.parse(condJson, contextId) : null;
 
         final float  finalRadius       = radius;
         final boolean finalIncludeSelf = includeSelf;
@@ -581,6 +596,7 @@ public final class ActionParser {
         final EntityAction finalAction = action;
         final TargetAction finalTargetAction = targetAction;
         final EntityCondition finalCond = targetCondition;
+        final TargetCondition finalTargetCond = targetCond;
 
         return source -> {
             var level = source.level();
@@ -611,11 +627,16 @@ public final class ActionParser {
                 if (entity == source && !finalIncludeSelf) continue;
 
                 boolean isPlayer = entity instanceof net.minecraft.server.level.ServerPlayer;
-                // entity_condition gate. EntityCondition is player-typed, so — as
-                // before — it can only be tested against ServerPlayer targets. Mobs
-                // were never condition-gated in the legacy fan-out, so they keep
-                // bypassing it here.
-                if (isPlayer && !finalCond.test((net.minecraft.server.level.ServerPlayer) entity)) continue;
+                // entity_condition gate. When the condition is entity-general
+                // (TargetCondition present), it filters BOTH players and mobs —
+                // this is what lets an aura target "players only", a #tag group,
+                // etc. Otherwise it stays player-typed: only player targets are
+                // gated and mobs bypass it, exactly as in the legacy fan-out.
+                if (finalTargetCond != null) {
+                    if (!finalTargetCond.test(entity, source)) continue;
+                } else if (isPlayer && !finalCond.test((net.minecraft.server.level.ServerPlayer) entity)) {
+                    continue;
+                }
 
                 if (!isPlayer) {
                     // Friendly-fire filter applies ONLY to non-player mob targets —

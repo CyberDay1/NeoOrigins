@@ -244,4 +244,44 @@ public class RestrictItemsPower extends PowerType<RestrictItemsPower.Config> {
         }
         return false;
     }
+
+    /**
+     * Server-authoritative correction for a use the gate just cancelled.
+     *
+     * <p>Item <em>use</em> is client-predicted: when the player right-clicks a
+     * shield (or any {@link net.minecraft.world.item.UseAnim BLOCK}/bow/food item),
+     * the client's {@code MultiPlayerGameMode.useItem} fires its own
+     * {@code RightClickItem} / {@code startUsingItem} and raises the item locally
+     * <em>before</em> the server round-trips. Our use handlers are server-only
+     * ({@code instanceof ServerPlayer}), so cancelling them stops the use on the
+     * server — {@code isUsingItem()} stays false, so a shield grants no protection —
+     * but the server never tells the predicting client to drop the raise. The result
+     * the tester sees is "I can still raise / use a shield" even though it's purely
+     * cosmetic prediction with no server effect.
+     *
+     * <p>This pushes the player's authoritative state back down so the client's
+     * prediction is overwritten: the living-entity flags (the using-item bit the
+     * shield-raise visual reads) and the held items. Per the project rule "server is
+     * source of truth, sync to clients" — the gate decision is unchanged; we only
+     * make the rejected client prediction snap back.
+     */
+    public static void resyncUseState(net.minecraft.server.level.ServerPlayer sp) {
+        // Re-broadcast the authoritative entity data (DATA_LIVING_ENTITY_FLAGS holds
+        // the "using item" / "offhand" bits the client reads to draw a raised shield).
+        // Since the server cancelled the use, those bits are clear, and resending them
+        // makes the client's onSyncedDataUpdated drop its predicted useItem.
+        var values = sp.getEntityData().getNonDefaultValues();
+        if (values != null && !values.isEmpty()) {
+            sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(
+                sp.getId(), values));
+        }
+        // Resend both hands so a predicted consume/raise that touched the stack is
+        // corrected too (mirrors vanilla's held-item resync on a rejected use).
+        sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket(
+            sp.getId(), java.util.List.of(
+                com.mojang.datafixers.util.Pair.of(net.minecraft.world.entity.EquipmentSlot.MAINHAND,
+                    sp.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)),
+                com.mojang.datafixers.util.Pair.of(net.minecraft.world.entity.EquipmentSlot.OFFHAND,
+                    sp.getItemInHand(net.minecraft.world.InteractionHand.OFF_HAND)))));
+    }
 }

@@ -73,8 +73,7 @@ public class CombatPowerEvents {
                 if (config.damageType().isPresent()
                         && !matchesDamageType(event.getSource(), config.damageType().get())) return;
                 if (config.targetGroup().isPresent() && !matchesEntityGroup(outTarget, config.targetGroup().get())) return;
-                float scaled = event.getAmount() * config.multiplier();
-                if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                float scaled = config.apply(event.getAmount());
                 event.setAmount(scaled);
             });
 
@@ -256,8 +255,7 @@ public class CombatPowerEvents {
                     // shaking, undying state with NaN health persisted
                     // to NBT — the save-bricking bug reported against
                     // Feline on v1.3.0.
-                    float scaled = event.getAmount() * config.multiplier();
-                    if (!Float.isFinite(scaled)) scaled = Float.MAX_VALUE;
+                    float scaled = config.apply(event.getAmount());
                     if (scaled <= 0.0f) {
                         event.setCanceled(true);
                         return;

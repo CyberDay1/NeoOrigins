@@ -188,6 +188,22 @@ Forces the target to stop riding its current vehicle. Takes no fields.
 
 ---
 
+## `neoorigins:mount`
+
+Makes the player start riding a nearby entity. Searches a radius around the player and mounts the first alive, non-passenger entity found; with `entity_type` set, only entities of that type are considered. Server-side only.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_type` | resource id | no | — | Entity type id to mount; omit to mount any nearby entity |
+| `radius` | float | no | `5.0` | Search radius around the player |
+
+**Example:**
+```json
+{ "type": "neoorigins:mount", "entity_type": "minecraft:horse", "radius": 5.0 }
+```
+
+---
+
 ## `neoorigins:set_fall_distance`
 
 Writes directly to the target's `fallDistance` field — useful to cancel imminent fall damage.
@@ -264,6 +280,22 @@ Gives an item to the target. If the inventory is full, the stack drops at their 
 
 ---
 
+## `neoorigins:add_xp`
+
+Grants experience to the target player as points and/or whole levels. Both fields default to 0, so set at least one. Player-only.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `points` | int | no | `0` | Experience points to grant |
+| `levels` | int | no | `0` | Experience levels to grant |
+
+**Example:**
+```json
+{ "type": "neoorigins:add_xp", "levels": 1, "points": 50 }
+```
+
+---
+
 ## `neoorigins:spawn_entity`
 
 Spawns an entity at the target's feet. No orientation control — the entity faces world-default.
@@ -334,6 +366,56 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 `effect_type` and the explicit fields compose: `effect_type` fills any field
 you leave out, and any field you set wins. See
 [CUSTOM_PROJECTILES.md](CUSTOM_PROJECTILES.md) for the full visual model.
+
+---
+
+## `neoorigins:fire_projectile`
+
+Legacy Apoli alias for [`neoorigins:spawn_projectile`](#neooriginsspawn_projectile) — identical fields and behaviour. Use `spawn_projectile` in new packs.
+
+**Example:**
+```json
+{ "type": "neoorigins:fire_projectile", "entity_type": "minecraft:arrow", "speed": 2.0 }
+```
+
+---
+
+## `neoorigins:spawn_effect_cloud`
+
+Spawns a vanilla area-effect cloud at the target that applies a mob effect to entities passing through it. Omit `effect` for an empty (visual-only) cloud.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `effect` | resource id or object | no | — | Mob effect id (bare string), or object `{effect, duration, amplifier}`. Omit for an empty cloud |
+| `duration` | int ticks | no | `200` | Cloud + effect duration |
+| `amplifier` | int | no | `0` | Effect amplifier level |
+| `radius` | float | no | `3.0` | Cloud radius in blocks |
+| `wait_time` | int ticks | no | `10` | Ticks before the cloud starts applying its effect |
+
+**Example:**
+```json
+{ "type": "neoorigins:spawn_effect_cloud", "effect": "minecraft:poison", "duration": 200, "radius": 4.0 }
+```
+
+---
+
+## `neoorigins:spawn_particles`
+
+Broadcasts particles from the target's position via the server, so all nearby clients see them. Simple (data-less) particle types only: data-bearing particles (`dust`/`block`/`item`) can't be reached from a plain id and no-op with a warning.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `particle` | resource id | no | `minecraft:poof` | Particle id (simple particles only) |
+| `count` | int | no | `1` | Number of particles |
+| `speed` | float | no | `0.0` | Particle speed / extra-data scalar |
+| `offset_y` | float | no | `0.0` | Vertical offset from the player's feet |
+| `spread` | object | no | — | `{x,y,z}` per-axis gaussian spread radius |
+| `force` | bool | no | `false` | Apoli force-render flag (accepted; the server always broadcasts) |
+
+**Example:**
+```json
+{ "type": "neoorigins:spawn_particles", "particle": "minecraft:flame", "count": 20, "offset_y": 1.0, "spread": { "x": 0.5, "y": 0.5, "z": 0.5 } }
+```
 
 ---
 
@@ -509,6 +591,17 @@ In **real-projectile mode** the rain keeps owning the scatter pattern, the stagg
 
 ---
 
+## `neoorigins:spawn_sword_rain`
+
+Legacy alias for [`neoorigins:spawn_projectile_rain`](#neooriginsspawn_projectile_rain) — same action and fields, kept so packs written before the verb was generalised keep working. The legacy field names `sword_count` (→ `count`) and `damage_per_sword` (→ `damage_per_impact`) are accepted. Prefer `spawn_projectile_rain` in new packs.
+
+**Example:**
+```json
+{ "type": "neoorigins:spawn_sword_rain", "radius": 6.0, "sword_count": 16, "damage_per_sword": 4.0 }
+```
+
+---
+
 ## `neoorigins:spawn_telegraph`
 
 Spawns a particle-only ground danger marker: a static outer ring marking the full footprint plus a reticle ring that contracts toward the centre over the wind-up, then optionally fires a composable action when it expires. Use it as a reusable "marked, dodgeable zone that pays off at the end" — the telegraph and the payoff are composed in the datapack rather than hard-wired together. The marker has no model and needs no client assets.
@@ -548,6 +641,17 @@ Also accepted under the alias `command` (Apoli's verb name, same field shape), s
 **Example:**
 ```json
 { "type": "neoorigins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
+```
+
+---
+
+## `neoorigins:command`
+
+Apoli-verb alias for [`neoorigins:execute_command`](#neooriginsexecute_command) — same factory, same `command` field, same level-2 permission and command blacklist. Lets `apoli:command` / `origins:command` actions in imported packs dispatch directly.
+
+**Example:**
+```json
+{ "type": "neoorigins:command", "command": "say hello" }
 ```
 
 Runs only if the target is on a server (`player.level().getServer() != null`).
@@ -773,6 +877,33 @@ Clamped to `[Integer.MIN_VALUE, Integer.MAX_VALUE]` on add.
 
 ---
 
+## `neoorigins:modify_resource`
+
+Apoli legacy alias for [`neoorigins:change_resource`](#neooriginschange_resource) — same factory and field shape (`resource`, `operation`, `change`). The `change` field also accepts Apoli's nested `modifier` `{operation, amount}` form. Prefer `change_resource` in new packs.
+
+**Example:**
+```json
+{ "type": "neoorigins:modify_resource", "resource": "examplepack:mana", "change": 10 }
+```
+
+---
+
+## `neoorigins:set_resource`
+
+Assigns a `resource` power's stored integer to a fixed value (the `set`-only sibling of `change_resource`). Same attachment-backed state and the same full-power-id requirement (no `*` wildcard).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `resource` | resource id | yes | — | Power id owning the resource |
+| `value` / `change` | int | no | `0` | Value to assign (`change` is an accepted alias) |
+
+**Example:**
+```json
+{ "type": "neoorigins:set_resource", "resource": "examplepack:mana", "value": 0 }
+```
+
+---
+
 ## `neoorigins:trigger_cooldown`
 
 Manually places a power on cooldown. Used when an ability's fire path is custom but should still show the HUD cooldown bar.
@@ -874,6 +1005,24 @@ Probabilistic dispatch. Uses the target's RNG source.
 
 ---
 
+## `neoorigins:choice`
+
+Picks one action from a weighted list and runs it. Each entry pairs an `action` with a `weight`; one is selected weighted-randomly per dispatch.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `actions` | array of `{action, weight}` | yes | — | Candidate entries; one is picked weighted-randomly |
+
+**Example:**
+```json
+{ "type": "neoorigins:choice", "actions": [
+  { "weight": 3, "action": { "type": "neoorigins:heal", "amount": 2.0 } },
+  { "weight": 1, "action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
+] }
+```
+
+---
+
 ## `neoorigins:delay`
 
 Schedules the inner action to run N ticks in the future via `CompatTickScheduler`.
@@ -892,25 +1041,72 @@ Server-side only.
 
 ---
 
+## `neoorigins:offset`
+
+Apoli-compatibility wrapper that runs its inner `action`. The `x`/`y`/`z` offset fields are accepted for parity with Apoli's positional offset verb but have **no positional effect** here: position comes from the dispatch context, so this is effectively a transparent pass-through to the inner action.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` | action | no | noop | Inner action to run |
+| `x` | float | no | `0.0` | Accepted for Apoli parity; no positional effect |
+| `y` | float | no | `0.0` | Accepted for Apoli parity; no positional effect |
+| `z` | float | no | `0.0` | Accepted for Apoli parity; no positional effect |
+
+**Example:**
+```json
+{ "type": "neoorigins:offset", "action": { "type": "neoorigins:spawn_particles", "particle": "minecraft:flame" } }
+```
+
+---
+
+## `neoorigins:block_action_at`
+
+Runs `block_action` at the entity's current block position, publishing that block position to the dispatch context so nested verbs (e.g. `execute_command` with `~ ~ ~`) resolve to the block centre.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `block_action` | action | no | noop | Action run at the entity's block position |
+
+**Example:**
+```json
+{ "type": "neoorigins:block_action_at", "block_action": { "type": "neoorigins:set_block", "block": "minecraft:torch" } }
+```
+
+---
+
 ## `neoorigins:area_of_effect`
 
-Iterates every `ServerPlayer` within the radius and runs `entity_action` against each. **Gotcha:** non-player living entities are skipped — `EntityAction` is typed on `ServerPlayer`, so AoE cannot target mobs in the current compat layer.
+Iterates every living entity within the radius and runs `entity_action` against each. Mobs **and** players are hit when `entity_action` uses an *entity-general* verb — `damage`, `heal`, `apply_effect`, `clear_effect`, `set_on_fire`, `add_velocity`, `spawn_particles`, `shear`, `dye`, … (and an `and` of only those). A player-only verb (e.g. `launch`, `set_block`) still runs on player targets only and skips mobs. Mob targets are also subject to the friendly-fire protections in `gameplay.toml` (pets/minions/villagers/iron golems/animals).
+
+`entity_condition` filters which entities are affected. When it uses an entity-general condition — `entity_type` (incl. a `#tag` group), `target_group`, `health`, `relative_health`, `has_effect`/`status_effect`, `on_fire`, `living`, and `and`/`or`/`not` of those — it filters **both mobs and players**, so an aura can restrict itself to *players only* (`entity_type: minecraft:player`), a tag group, a specific mob, etc. A player-only condition verb only gates player targets (mobs bypass it, as before).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `radius` | float | no | `16.0` | Radius |
 | `shape` | string | no | `"sphere"` | `"sphere"` culls by squared distance; any other string skips the distance cull (behaves like a cube/AABB) |
-| `include_source` | bool | no | `true` | Whether the source player is included |
-| `entity_action` | action | no | noop | Runs per target |
-| `entity_condition` | condition | no | always-true | Target filter |
+| `include_source` | bool | no | `true` | Whether the source entity is included |
+| `entity_action` | action | no | noop | Runs per affected entity (mobs + players for entity-general verbs) |
+| `entity_condition` | condition | no | always-true | Target filter; entity-general conditions filter mobs + players (see above) |
 
-**Example:**
+**Example — burn nearby mobs but never other players:**
 ```json
 { "type": "neoorigins:area_of_effect",
   "radius": 8.0,
   "shape": "sphere",
   "include_source": false,
+  "entity_condition": {
+    "type": "neoorigins:not",
+    "condition": { "type": "neoorigins:entity_type", "entity_type": "minecraft:player" }
+  },
   "entity_action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
+```
+
+**Example — affect players only (e.g. a support aura):**
+```json
+{ "type": "neoorigins:area_of_effect",
+  "radius": 8.0,
+  "entity_condition": { "type": "neoorigins:entity_type", "entity_type": "minecraft:player" },
+  "entity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:regeneration", "duration": 60 } }
 ```
 
 ---
@@ -974,6 +1170,48 @@ Swaps actor and target, then runs the inner bientity action against the swapped 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `action` | bientity action | no | noop | Action run with actor/target swapped |
+
+## `riding_action`
+
+Runs the inner action against the entity the holder is **riding** (its vehicle), but only when that vehicle is a player. If the holder isn't riding a player, it no-ops.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` / `entity_action` | entity action | no | noop | Action run on the ridden entity (`entity_action` is an accepted alias) |
+
+**Example:**
+```json
+{ "type": "neoorigins:riding_action", "action": { "type": "neoorigins:heal", "amount": 2.0 } }
+```
+
+## `passenger_action`
+
+Runs the inner action against every **passenger** of the holder. Only `ServerPlayer` passengers are affected; non-player passengers are skipped.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `action` / `entity_action` | entity action | no | noop | Action run on each player passenger (`entity_action` is an accepted alias) |
+
+**Example:**
+```json
+{ "type": "neoorigins:passenger_action", "action": { "type": "neoorigins:apply_effect", "effect": "minecraft:speed", "duration": 100 } }
+```
+
+## `selector_action`
+
+Resolves a vanilla entity selector relative to the holder's command source, then runs `bientity_action` once per selected entity. Each selected entity is published as the action's source (its origin + rotation), so a nested `spawn_projectile` / `fire_projectile` fires **from** that entity. `sort` / `limit` / `tag` predicates inside the selector string are honoured by vanilla's parser.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `selector` | string | yes | — | Vanilla entity selector (e.g. `@e[type=area_effect_cloud,tag=foo,limit=2,sort=nearest]`) |
+| `bientity_action` / `entity_action` | action | yes | — | Action run once per selected entity (`entity_action` is an accepted alias) |
+
+**Example:**
+```json
+{ "type": "neoorigins:selector_action",
+  "selector": "@e[type=minecraft:area_effect_cloud,tag=volley,limit=4]",
+  "bientity_action": { "type": "neoorigins:fire_projectile", "entity_type": "minecraft:arrow", "speed": 2.0 } }
+```
 
 ## `and` / `chance` (bientity form)
 
@@ -1377,6 +1615,25 @@ Like `force_drop`, but transfers the item from the **context target's** named sl
 
 ---
 
+## `neoorigins:drop_inventory`
+
+Drops items from the target player's vanilla inventory. By default it scatters every slot's contents; restrict by slot list and/or an item condition. Only the `inventory` container is supported.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `inventory_type` | string | no | `"inventory"` | Only `inventory` (the vanilla player inventory) is supported; `power` inventories no-op |
+| `slots` | array of string | no | — | Restrict to these vanilla/Apoli slot names (e.g. `weapon.mainhand`, `weapon.offhand`, `armor.head`). Omit or leave empty to scan every slot |
+| `item_condition` | item condition | no | — | Only drop stacks matching this condition. Omit to drop everything |
+| `throw_randomly` | bool | no | `true` | Scatter the dropped items |
+| `retain_ownership` | bool | no | `false` | Tag drops with the thrower for pickup priority |
+
+**Example — drop just the held weapon:**
+```json
+{ "type": "neoorigins:drop_inventory", "slots": ["weapon.mainhand"] }
+```
+
+---
+
 ## Block-target verbs
 
 These act on the **block on the other side of the interaction** — the block a projectile or raycast impacted — rather than on an entity. They resolve the impacted block from the active dispatch context (a projectile `on_hit_action` that lands on a block, or a `raycast` `block_action`), so you can write them directly as an `on_hit_action` / `block_action` and they self-resolve the hit block. Each no-ops cleanly when no block resolves or the block isn't applicable. To run one against a specific resolved block context explicitly, wrap it in [`block_target_action`](#neoorigins-block_target_action).
@@ -1577,6 +1834,32 @@ Any id that isn't a known effect, a known modifier, or a `compat:`-prefixed comp
 }
 ```
 (The inner `cast_spell` block is a plain `entity_action` — lift it into `action_on_event` / `condition_passive` for a passive trigger.)
+
+---
+
+## `neoorigins:crafting_table`
+
+Opens a 3×3 crafting menu for the target player, anchored at the player's position (so any recipe needing the table works). Takes no fields. Player-only.
+
+**Example:**
+```json
+{ "type": "neoorigins:crafting_table" }
+```
+
+---
+
+## `neoorigins:kubejs_callback`
+
+Invokes a KubeJS-registered callback by id, handing it the dispatch context. Use it to run custom script logic from a power. Requires the registered callback to exist; no-ops otherwise.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `id` | string | yes | — | Id of the KubeJS-registered callback to invoke |
+
+**Example:**
+```json
+{ "type": "neoorigins:kubejs_callback", "id": "examplepack:on_dash" }
+```
 
 ---
 

@@ -303,6 +303,28 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseDistance(json),
             List.of(comparison("<=", "Comparison operator (default <=)."),
                     compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Distance threshold to the target (default 0).")));
+        // distance_from_coordinates — player's distance from a reference point
+        // (world_origin/world_spawn) + offset, via cube/star/sphere metric.
+        define("distance_from_coordinates",
+            (json, ctx) -> ConditionParser.parseDistanceFromCoordinates(json),
+            List.of(comparison("==", "Comparison operator (default ==)."),
+                    compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Distance threshold (required in practice)."),
+                    new FieldSpec("reference", FormFieldSpec.Kind.ENUM, false)
+                        .options("world_origin", "world_spawn").def("world_origin")
+                        .doc("Reference point: world_origin (0,0,0) or world_spawn (default world_origin)."),
+                    new FieldSpec("offset", FormFieldSpec.Kind.STRING, false)
+                        .doc("Per-axis {x,y,z} offset added to the reference point."),
+                    new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false)
+                        .options("cube", "star", "sphere").def("cube")
+                        .doc("Distance metric: cube (Chebyshev), star (Manhattan), sphere (Euclidean). Default cube."),
+                    new FieldSpec("ignore_x", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                        .doc("Exclude the X axis from the distance (default false)."),
+                    new FieldSpec("ignore_y", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                        .doc("Exclude the Y axis from the distance (default false)."),
+                    new FieldSpec("ignore_z", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                        .doc("Exclude the Z axis from the distance (default false)."),
+                    new FieldSpec("result_on_the_wrong_dimension", FormFieldSpec.Kind.NUMBER, false)
+                        .doc("Distance value substituted when off the reference's dimension (absent → use real distance).")));
         define("can_see", (json, ctx) -> ConditionParser.parseCanSee(), List.of());
         define("equal", (json, ctx) -> ConditionParser.parseEqual(), List.of());
         define("target_type",

@@ -36,6 +36,14 @@ neoForge {
             sourceSet sourceSets.main
         }
     }
+
+    // FML-bootstrapped JUnit harness — lets headless tests exercise real game
+    // code (registries, item conditions) without launching the client/server.
+    // Used by RestrictItemsShieldGateTest (restrict_items shield-USE regression).
+    unitTest {
+        enable()
+        testedMod = mods."${mod_id}"
+    }
 }
 
 repositories {
@@ -52,6 +60,12 @@ repositories {
 }
 
 dependencies {
+    // JUnit 5 — FML-bootstrapped headless tests (neoForge.unitTest harness).
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+
     // JEI – compile-only so the mod works without JEI installed
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
@@ -114,8 +128,6 @@ dependencies {
 }
 
 sourceSets {
-    test.java.srcDirs = []   // tests need NeoForge test harness — disabled for now
-
     // Build A Spell compile-only API stub (see the buildaspell note above).
     apiStubs {
         java { srcDir 'src/apistubs/java' }
@@ -264,6 +276,11 @@ tasks.register('compatTest', JavaExec) {
     mainClass = 'com.cyberday1.neoorigins.dev.CompatTestHarness'
     // Default: scan internal data + example pack
     args 'src/main/resources/data', 'example-pack/data'
+}
+
+// FML-bootstrapped JUnit harness (RestrictItemsShieldGateTest et al.).
+tasks.named('test', Test) {
+    useJUnitPlatform()
 }
 
 // ── Compat-verb golden master (registry-refactor Layer-1 regression net) ─────

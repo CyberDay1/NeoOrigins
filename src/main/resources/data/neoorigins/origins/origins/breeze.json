@@ -39,7 +39,8 @@
         "neoorigins:breeze_apex_jump_boost"
       ],
       "remove": [
-        "neoorigins:breeze_ascended_hp"
+        "neoorigins:breeze_ascended_hp",
+        "neoorigins:breeze_jump_boost"
       ]
     }
   ]

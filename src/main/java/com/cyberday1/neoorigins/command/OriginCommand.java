@@ -249,7 +249,15 @@ public class OriginCommand {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int oldTier = data.getEvolutionTier();
         data.setEvolutionTier(tier);
+        // Grant/revoke tier-overlay powers and reconcile health, same as the
+        // accept-prompt path. Without this the force-set only changed the tier
+        // field and the attribute modifiers (e.g. evolution HP) wouldn't apply
+        // until a relog rebuilt the power cache (and a reset never revoked them).
+        if (oldTier != tier) {
+            EssenceEvolutionManager.applyTierPowerChange(player, oldTier, tier);
+        }
         NeoOriginsNetwork.syncEvolutionToPlayer(player);
+        NeoOriginsNetwork.syncToPlayer(player);
         if (oldTier != tier) {
             com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireEvolutionTierChanged(
                 player, oldTier, tier);
