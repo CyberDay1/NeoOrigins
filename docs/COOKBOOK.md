@@ -301,13 +301,13 @@ clutter. Set `toggleable: false` so the player can't turn it off.
   "name": "Aquatic Recovery",
   "description": "Regenerates while submerged in water.",
   "condition": { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
-  "entity_action": { "type": "neoorigins:feed", "amount": 0.5 },
-  "interval_ticks": 40
+  "entity_action": { "type": "neoorigins:heal", "amount": 0.5 },
+  "interval": 40
 }
 ```
 
 `condition_passive` is the workhorse 2.0 type — pair any condition with any
-action, and it fires every `interval_ticks` when the condition holds.
+action, and it fires every `interval` ticks when the condition holds.
 Replaces the old `biome_buff`, `regen_in_fluid`, `burn_at_health_threshold`,
 and several others.
 
@@ -319,7 +319,7 @@ and several others.
   "name": "Blood Diet",
   "description": "Feed on the fallen.",
   "event": "kill",
-  "entity_action": { "type": "neoorigins:feed", "amount": 4 }
+  "entity_action": { "type": "neoorigins:heal", "amount": 4 }
 }
 ```
 
@@ -377,7 +377,7 @@ summoner, and they fight back against whatever the summoner is fighting.
   "description": "Takes damage while exposed to daylight.",
   "condition": { "type": "neoorigins:exposed_to_sun" },
   "entity_action": { "type": "neoorigins:damage", "amount": 1, "source": "on_fire" },
-  "interval_ticks": 40
+  "interval": 40
 }
 ```
 
