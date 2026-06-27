@@ -83,6 +83,7 @@
         "neoorigins:horde_regen",
         "neoorigins:hunger_drain_modifier",
         "neoorigins:ignore_water",
+        "neoorigins:invisibility",
         "neoorigins:invulnerability",
         "neoorigins:item_magnetism",
         "neoorigins:keep_inventory",
@@ -1885,6 +1886,22 @@
       "properties": {
         "type": {
           "const": "neoorigins:ignore_water"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:invisibility",
+      "properties": {
+        "type": {
+          "const": "neoorigins:invisibility"
+        },
+        "render_armor": {
+          "description": "When true (default) the player turns invisible but worn armor stays visible (vanilla behaviour). When false, worn armor is also hidden client-side for true invisibility. The base invisibility rides the vanilla invisibility effect, so it is gated by the power's top-level condition like any passive.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -4179,6 +4196,7 @@
               "neoorigins:hide_hud_bar",
               "neoorigins:horde_regen",
               "neoorigins:ignore_water",
+              "neoorigins:invisibility",
               "neoorigins:invulnerability",
               "neoorigins:item_magnetism",
               "neoorigins:keep_inventory",

@@ -762,6 +762,15 @@ Numeric comparison against the hit damage currently being taken. Requires an act
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Damage threshold |
 
+## `neoorigins:hit_dealt_amount`
+
+Numeric comparison against the most recent damage the player **dealt** to a target. Requires an active `HitDealtContext` — the attacker-side mirror of `hit_taken_amount`, populated when the player damages a living entity (player-vs-mob included). Hook it from an `action_on_event` power with `"event": "hit_dealt"`. Inside that dispatch a bientity `target_action` resolves the victim that was struck.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Dealt-damage threshold |
+
 ## `neoorigins:food_item_in_tag`
 
 True if the item being eaten in the current `FOOD_EATEN` dispatch matches a tag or item ID. Requires an active `FoodContext`. Used by `food_restriction` aliases.
