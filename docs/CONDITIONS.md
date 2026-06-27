@@ -331,6 +331,20 @@ Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Level threshold |
 
+## `neoorigins:xp_levels`
+
+Numeric comparison against the entity's experience level. A synonym of [`neoorigins:xp_level`](#neooriginsxp_level) (same fields, same behaviour — both are canonical types).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `0` | Experience-level threshold |
+
+**Example:**
+```json
+{ "type": "neoorigins:xp_levels", "comparison": ">=", "compare_to": 30 }
+```
+
 ## `neoorigins:xp_points`
 
 Numeric comparison against `totalExperience`.
@@ -429,6 +443,21 @@ Numeric comparison against ambient light at the entity's block position. Also re
 | `compare_to` | int | no | `0` | Light threshold (0–15) |
 
 Omitting `light_type` (or any value other than `"sky"`/`"block"`) samples the max local brightness — the higher of the sky and block light layers.
+
+## `neoorigins:brightness`
+
+Numeric comparison against ambient light at the entity's block position. A synonym of [`neoorigins:light_level`](#neooriginslight_level) (same fields, same behaviour — both are canonical types).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `light_type` | string | no | `"any"` | Which light layer to sample: `"sky"`, `"block"`, or `"any"` (max local brightness) |
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `0` | Light threshold (0–15) |
+
+**Example:**
+```json
+{ "type": "neoorigins:brightness", "comparison": "<=", "compare_to": 7 }
+```
 
 ## `neoorigins:time_of_day`
 
@@ -552,6 +581,21 @@ Numeric comparison against a named resource power's stored value.
 | `compare_to` | int | no | `0` | Threshold |
 
 > ⚠️ `resource` must be the **full** namespaced power ID (e.g. `mypack:thorns/resource`). Unlike `power_active`, the `*:` / `*:*` self-reference wildcard is **not** resolved here — a reference containing `*` silently reads as `0` (and is warned about at load). The same applies to the `change_resource` / `set_resource` actions.
+
+## `neoorigins:resource_level`
+
+Synonym of [`neoorigins:resource`](#neooriginsresource) — same factory and fields (`resource`, `comparison`, `compare_to`), accepted so Apoli-format packs using `resource_level` dispatch directly. The same full-power-id requirement (no `*` wildcard) applies.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `resource` | resource location | yes | — | Power ID storing the resource |
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `0` | Threshold |
+
+**Example:**
+```json
+{ "type": "neoorigins:resource_level", "resource": "mypack:mana", "comparison": ">=", "compare_to": 20 }
+```
 
 ## `neoorigins:power`
 
@@ -768,6 +812,32 @@ Numeric comparison against 3D distance from actor to target. **Default compariso
 | `comparison` | string | no | `"<="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Distance in blocks |
 
+## `neoorigins:distance_from_coordinates`
+
+Numeric comparison against the entity's distance from a reference point (`world_origin` at 0,0,0 or `world_spawn`), with selectable distance metric and per-axis exclusion.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `"=="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Distance threshold (required in practice) |
+| `reference` | string | no | `"world_origin"` | Reference point: `world_origin` (0,0,0) or `world_spawn` |
+| `offset` | object | no | — | Per-axis `{x,y,z}` offset added to the reference point |
+| `shape` | string | no | `"cube"` | Distance metric: `cube` (Chebyshev), `star` (Manhattan), `sphere` (Euclidean) |
+| `ignore_x` | bool | no | `false` | Exclude the X axis from the distance |
+| `ignore_y` | bool | no | `false` | Exclude the Y axis from the distance |
+| `ignore_z` | bool | no | `false` | Exclude the Z axis from the distance |
+| `result_on_the_wrong_dimension` | number | no | — | Distance value substituted when off the reference's dimension (absent → use real distance) |
+
+**Example — within 100 blocks of world spawn (horizontal only):**
+```json
+{ "type": "neoorigins:distance_from_coordinates",
+  "reference": "world_spawn",
+  "shape": "sphere",
+  "ignore_y": true,
+  "comparison": "<=",
+  "compare_to": 100 }
+```
+
 ## `neoorigins:can_see`
 
 True when the actor has line-of-sight to the target. No fields.
@@ -950,6 +1020,15 @@ At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empt
 { "type": "neoorigins:near_block",
   "tags": ["minecraft:campfires", "#c:fire"],
   "radius": 5 }
+```
+
+## `neoorigins:block_in_radius`
+
+Synonym of [`neoorigins:near_block`](#neooriginsnear_block) — same factory and fields, accepted so Origins-format packs using `block_in_radius` dispatch directly. Also accepts the Origins `block_condition` (nested `in_tag`/`block`) shape.
+
+**Example:**
+```json
+{ "type": "neoorigins:block_in_radius", "block": "minecraft:campfire", "radius": 5 }
 ```
 
 ## `neoorigins:near_entity`

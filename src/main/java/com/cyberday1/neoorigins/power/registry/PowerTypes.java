@@ -105,6 +105,10 @@ public class PowerTypes {
     // damage_in_biome/daylight/water, burn_at_health_threshold, mobs_ignore_player,
     // no_mob_spawns_nearby, item_magnetism — and supersedes tick_action.
     public static final DeferredHolder<PowerType<?>, ConditionPassivePower>    CONDITION_PASSIVE    = reg("condition_passive",    new ConditionPassivePower());
+    // Unified aura / effect-over-time: one entity_action tree, three modes via
+    // the `activation` field (passive | active | toggle). Bridges the gap that
+    // previously forced authors to pick active_ability OR condition_passive.
+    public static final DeferredHolder<PowerType<?>, EffectOverTimePower>      EFFECT_OVER_TIME     = reg("effect_over_time",     new EffectOverTimePower());
     public static final DeferredHolder<PowerType<?>, MobBehaviorPower>         MOB_BEHAVIOR         = reg("mob_behavior",         new MobBehaviorPower());
     public static final DeferredHolder<PowerType<?>, TickActionPower>          TICK_ACTION          = reg("tick_action",          new TickActionPower());
     public static final DeferredHolder<PowerType<?>, ConditionalPower>         CONDITIONAL          = reg("conditional",          new ConditionalPower());

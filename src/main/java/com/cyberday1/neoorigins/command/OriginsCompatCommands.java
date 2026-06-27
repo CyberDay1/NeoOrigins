@@ -109,6 +109,105 @@ public class OriginsCompatCommands {
                     .then(Commands.argument("power", IdentifierArgument.id())
                         .suggests(SUGGEST_POWERS)
                         .executes(OriginsCompatCommands::executePowerRevoke)))));
+
+        // /scale shim (Pehkui parity) — ONLY when Pehkui itself is absent.
+        //
+        // Origins/Apoli packs that depend on Pehkui (e.g. the "seer" astral
+        // origin) call `scale set pehkui:flight 0.75` from their init
+        // mcfunctions. Without a registered `/scale` command, Brigadier fails
+        // to PARSE the entire function at datapack-load time, so EVERY other
+        // line in that function silently never runs — including the actual
+        // teleport into the pack's pocket dimension. (NeoOrigins' PehkuiBridge
+        // is API-only via reflection and never registers the command.)
+        //
+        // We register `scale` with a greedy-string tail so ANY argument grammar
+        // parses regardless of Pehkui's exact Brigadier tree; the executor then
+        // parses `<sub> <type> <value> [targets]` loosely and does best-effort
+        // application. Correctness of e.g. pehkui:flight is NOT required — the
+        // point is that the function loads and its OTHER commands run.
+        //
+        // Guarded on !isLoaded("pehkui"): if Pehkui is present it registers its
+        // own real /scale and a second literal would be a Brigadier conflict.
+        if (!net.neoforged.fml.ModList.get().isLoaded("pehkui")) {
+            dispatcher.register(Commands.literal("scale")
+                .requires(Commands.hasPermission(new net.minecraft.server.permissions.PermissionCheck.Require(
+                    net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)))
+                .executes(OriginsCompatCommands::executeScaleBare)
+                .then(Commands.argument("args", StringArgumentType.greedyString())
+                    .executes(OriginsCompatCommands::executeScale)));
+        }
+    }
+
+    // ── /scale (Pehkui shim — see register() for rationale) ────────────────
+
+    /** Bare {@code /scale} with no args: succeed silently so functions parse. */
+    private static int executeScaleBare(CommandContext<CommandSourceStack> ctx) {
+        return 1;
+    }
+
+    /**
+     * Best-effort {@code /scale <sub> <type> <value> [targets]} shim.
+     *
+     * <p>Loose by design: we only need to (a) make the command parse so the
+     * containing mcfunction loads, and (b) apply the scale when we can map it.
+     * Unrecognised forms still return success so the function keeps running.
+     */
+    private static int executeScale(CommandContext<CommandSourceStack> ctx) {
+        String raw = StringArgumentType.getString(ctx, "args").trim();
+        String[] parts = raw.split("\\s+");
+        // Recognised vanilla-mappable form: `set|reset <type> [value] [targets]`.
+        // pehkui:base/width/height → vanilla minecraft:scale attribute (mirrors
+        // SizeScalingPower). Other types (e.g. pehkui:flight) have no vanilla
+        // equivalent → clean no-op that still reports success.
+        try {
+            if (parts.length >= 3) {
+                String sub = parts[0];
+                String type = parts[1];
+                float value;
+                try {
+                    value = Float.parseFloat(parts[2]);
+                } catch (NumberFormatException nfe) {
+                    return 1; // unparseable value — still succeed so the function continues
+                }
+                if (("set".equals(sub) || "add".equals(sub) || "reset".equals(sub))
+                        && isVanillaScalableType(type)) {
+                    applyVanillaScale(ctx.getSource(), value);
+                }
+            }
+        } catch (Exception ignored) {
+            // Never let the shim break the function's execution flow.
+        }
+        return 1;
+    }
+
+    /** Pehkui scale types that map cleanly onto the vanilla {@code minecraft:scale} attribute. */
+    private static boolean isVanillaScalableType(String type) {
+        return "pehkui:base".equals(type)
+            || "pehkui:width".equals(type)
+            || "pehkui:height".equals(type)
+            || "pehkui:model_width".equals(type)
+            || "pehkui:model_height".equals(type);
+    }
+
+    /**
+     * Apply a body scale to the command source's executing player via the
+     * vanilla {@code minecraft:scale} attribute (a transient compat modifier)
+     * and best-effort mirror to Pehkui's BASE (no-ops when Pehkui is absent —
+     * which it is whenever this shim is registered, but harmless either way).
+     */
+    private static void applyVanillaScale(CommandSourceStack source, float value) {
+        if (!(source.getEntity() instanceof ServerPlayer player)) return;
+        var attr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SCALE);
+        if (attr != null) {
+            Identifier modId =
+                Identifier.fromNamespaceAndPath("neoorigins", "compat_scale_shim");
+            attr.removeModifier(modId);
+            // scale attribute uses ADD_VALUE on a base of 1.0, so delta = value - 1.0
+            attr.addTransientModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                modId, value - 1.0,
+                net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE));
+        }
+        com.cyberday1.neoorigins.compat.pehkui.PehkuiBridge.applyOriginScale(player, value);
     }
 
     // ── /resource (Apoli parity) ───────────────────────────────────────────

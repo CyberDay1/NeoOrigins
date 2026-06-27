@@ -81,10 +81,11 @@ public final class TargetActionParser {
                 };
             }
 
-            case "neoorigins:apply_effect" -> parseApplyEffect(json);
-            case "neoorigins:clear_effect" -> parseClearEffect(json);
-            case "neoorigins:play_sound"   -> parsePlaySound(json);
-            case "neoorigins:damage"       -> parseDamage(json);
+            case "neoorigins:apply_effect"    -> parseApplyEffect(json);
+            case "neoorigins:clear_effect"    -> parseClearEffect(json);
+            case "neoorigins:play_sound"      -> parsePlaySound(json);
+            case "neoorigins:damage"          -> parseDamage(json);
+            case "neoorigins:spawn_particles" -> parseSpawnParticles(json);
 
             // and — compose child target-actions. Generalizable ONLY when every
             // child is generalizable; if any child is player-only we return null
@@ -208,6 +209,49 @@ public final class TargetActionParser {
         final boolean fPart = particles;
         final boolean fIcon = icon;
         return (t, a) -> t.addEffect(new MobEffectInstance(effectHolder, fDur, fAmp, fAmb, fPart, fIcon));
+    }
+
+    /**
+     * Mirrors {@code BuiltinActions.spawn_particles}, but emits at the TARGET's
+     * position instead of the actor's. This is what lets an {@code area_of_effect}
+     * aura paint custom particles onto every entity it touches (the player-path
+     * version only ever draws on the holder). Same field contract as the
+     * BuiltinActions counterpart: simple/data-less particles only.
+     */
+    private static TargetAction parseSpawnParticles(JsonObject json) {
+        String particleId = json.has("particle") ? json.get("particle").getAsString() : "minecraft:poof";
+        int count = json.has("count") ? json.get("count").getAsInt() : 1;
+        double speed = json.has("speed") ? json.get("speed").getAsDouble() : 0.0;
+        double offsetY = json.has("offset_y") ? json.get("offset_y").getAsDouble() : 0.0;
+        double sx = 0, sy = 0, sz = 0;
+        if (json.has("spread") && json.get("spread").isJsonObject()) {
+            var sp = json.getAsJsonObject("spread");
+            sx = sp.has("x") ? sp.get("x").getAsDouble() : 0.0;
+            sy = sp.has("y") ? sp.get("y").getAsDouble() : 0.0;
+            sz = sp.has("z") ? sp.get("z").getAsDouble() : 0.0;
+        }
+        net.minecraft.core.particles.ParticleOptions options = null;
+        var pid = Identifier.tryParse(particleId);
+        if (pid != null) {
+            var ptypeOpt = BuiltInRegistries.PARTICLE_TYPE.get(pid);
+            if (ptypeOpt.isPresent()
+                    && ptypeOpt.get().value() instanceof net.minecraft.core.particles.ParticleOptions po) {
+                options = po;
+            }
+        }
+        if (options == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] spawn_particles (target): unsupported/unknown particle '{}' — no-op", particleId);
+            return (t, a) -> {};
+        }
+        final net.minecraft.core.particles.ParticleOptions fOpts = options;
+        final double fsx = sx, fsy = sy, fsz = sz, foffY = offsetY, fspeed = speed;
+        final int fcount = count;
+        return (t, a) -> {
+            if (t.level() instanceof ServerLevel lvl) {
+                lvl.sendParticles(fOpts, t.getX(), t.getY() + foffY, t.getZ(),
+                    fcount, fsx, fsy, fsz, fspeed);
+            }
+        };
     }
 
     /** Mirrors {@code BuiltinActions.clear_effect}: one effect, or all when absent. */

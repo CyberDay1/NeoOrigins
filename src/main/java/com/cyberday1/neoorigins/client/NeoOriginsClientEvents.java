@@ -111,6 +111,19 @@ public class NeoOriginsClientEvents {
             }
         }
 
+        // Vanilla creative-toolbar keys (saveToolbarActivator / loadToolbarActivator).
+        // Apoli packs bind active_self powers to these — typically several
+        // condition-gated ritual powers on the same key (the Seer progression
+        // rituals). The compat loader routes them through PowerKeybindRegistry so
+        // every binding fires with its own condition; here we feed presses of the
+        // REAL vanilla key into that same dispatch channel. We only send when the
+        // pack actually declared a binding for the key, so we don't spam the
+        // server on every toolbar press in creative.
+        pollVanillaToolbarKey(Minecraft.getInstance().options.keySaveHotbarActivator,
+            com.cyberday1.neoorigins.client.HotkeyAssignments.SAVE_TOOLBAR_KEY);
+        pollVanillaToolbarKey(Minecraft.getInstance().options.keyLoadHotbarActivator,
+            com.cyberday1.neoorigins.client.HotkeyAssignments.LOAD_TOOLBAR_KEY);
+
         // Stream the real held-state of the USE / ATTACK keys so compat
         // key.use / key.attack active_self powers fire on a genuine key hold —
         // not just when there's something under the crosshair to interact with
@@ -139,6 +152,28 @@ public class NeoOriginsClientEvents {
         if (jumpPressed && !player.onGround() && !player.isInWater()
                 && !player.isFallFlying() && !player.isPassenger()) {
             ClientPacketDistributor.sendToServer(new AirJumpPayload());
+        }
+    }
+
+    /**
+     * Feed presses of a vanilla creative-toolbar KeyMapping into the named-hotkey
+     * dispatch channel, but only when the loaded pack actually declared a power on
+     * that key (so non-Seer worlds never pay for the extra payloads, and a creative
+     * player's normal hotbar save/load isn't shadowed). Continuous bindings send
+     * every held tick; otherwise we edge-fire on consumeClick.
+     */
+    private static void pollVanillaToolbarKey(KeyMapping km, String translationKey) {
+        if (!com.cyberday1.neoorigins.client.HotkeyAssignments.isToolbarKeyDeclared(translationKey)) {
+            return;
+        }
+        boolean continuous = com.cyberday1.neoorigins.client.HotkeyAssignments.isContinuous(translationKey);
+        if (continuous) {
+            while (km.consumeClick()) { /* discard */ }
+            if (km.isDown()) {
+                ClientPacketDistributor.sendToServer(new ActivatePowerByKeyPayload(translationKey, true));
+            }
+        } else if (km.consumeClick()) {
+            ClientPacketDistributor.sendToServer(new ActivatePowerByKeyPayload(translationKey, false));
         }
     }
 

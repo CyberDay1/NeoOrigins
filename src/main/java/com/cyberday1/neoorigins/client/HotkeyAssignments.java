@@ -79,6 +79,10 @@ public final class HotkeyAssignments {
 
         int slotIdx = 0;
         for (String key : declaredKeys) {
+            // The two vanilla toolbar (creative save/load hotbar) keys are driven
+            // by their real vanilla KeyMapping in the client tick loop, not by a
+            // NeoOrigins pool slot — so don't consume a pool slot for them.
+            if (isVanillaToolbarKey(key)) continue;
             KeyMapping ext = externalCandidates.get(key);
             if (ext != null) {
                 external.put(ext, key);
@@ -145,6 +149,20 @@ public final class HotkeyAssignments {
     /** True if any binding for this translation key fires continuously while held. */
     public static boolean isContinuous(String translationKey) {
         return Boolean.TRUE.equals(continuousByKey.get(translationKey));
+    }
+
+    /** Translation keys for the two vanilla creative toolbar (save/load hotbar) keys. */
+    public static final String SAVE_TOOLBAR_KEY = "key.saveToolbarActivator";
+    public static final String LOAD_TOOLBAR_KEY = "key.loadToolbarActivator";
+
+    /** True if the translation key is one of the vanilla creative toolbar keys. */
+    public static boolean isVanillaToolbarKey(String translationKey) {
+        return SAVE_TOOLBAR_KEY.equals(translationKey) || LOAD_TOOLBAR_KEY.equals(translationKey);
+    }
+
+    /** True if at least one compat power is bound to the given vanilla toolbar key. */
+    public static boolean isToolbarKeyDeclared(String translationKey) {
+        return continuousByKey.containsKey(translationKey);
     }
 
     /** Snapshot of external (keybindjs-owned) mappings to poll alongside the pool. */

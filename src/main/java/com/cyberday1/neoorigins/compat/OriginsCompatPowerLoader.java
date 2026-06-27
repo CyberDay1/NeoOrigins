@@ -56,6 +56,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     /** Edge-detection tracker for synthetic cooldown bars (Route B active_self hud_render).
      *  Key: {@code <playerUUID>:cdbar:<powerId>}. Value: previous tick's bar value. */
     private static final java.util.Map<String, Integer> PREV_COOLDOWN_BAR = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Safety-net tracker for the gamemode auto-revert (see {@link #parseActionOverTime}).
+     * Records the player's gamemode at the moment a gamemode-forcing, condition-gated
+     * action_over_time's gate FIRST becomes satisfied, so it can be restored when the
+     * gate transitions back to unsatisfied. Only populated for the narrow case of a
+     * repeating action that forces {@code gamemode} and the pack defines no
+     * {@code falling_action} of its own.
+     * Key: {@code <playerUUID>:<powerId>}. Value: remembered {@link net.minecraft.world.level.GameType}. */
+    private static final java.util.Map<String, net.minecraft.world.level.GameType> GAMEMODE_REVERT =
+        new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Power types that Route B handles (Route A SKIPs these). */
     private static final Set<String> ROUTE_B_TYPES = Set.of(
@@ -309,9 +319,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             }
             if (key == null) continue;
 
-            boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
-                || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
-                || key.contains("pickItem");
+            // Toolbar (creative save/load hotbar) keys must NOT be treated as
+            // skill slots — they have no client-side activation and would be
+            // silently dropped. Route them through the named-hotkey path instead
+            // (see parseActiveSelf for the full rationale / Seer ritual case).
+            boolean isToolbarKey = key.contains("loadToolbarActivator")
+                || key.contains("saveToolbarActivator");
+            boolean isSlotKey = !isToolbarKey && (key.contains("primary_active")
+                || key.contains("secondary_active") || key.contains("pickItem"));
             boolean isVanillaInputKey = switch (key) {
                 case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
                      "key.forward", "key.back", "key.left", "key.right" -> true;
@@ -833,9 +848,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Skill-slot keys: primary_active, secondary_active, and the two toolbar
         // keys (loadToolbarActivator, saveToolbarActivator) which have no server-side
         // input state and must be mapped to skill slots to be usable.
-        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
-            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
-            || key.contains("pickItem");
+        // The two toolbar (creative-hotbar save/load) keys are a special case.
+        // Apoli packs bind MANY condition-gated active_self powers to the same
+        // toolbar key (the Seer progression rituals are six powers all on
+        // saveToolbarActivator), expecting every one to be evaluated on each
+        // press — exactly the multi-binding fan-out the named-hotkey dispatch
+        // path provides. A skill slot can only host a single power per slot AND
+        // the client never sends an activation for the vanilla toolbar keys, so
+        // routing these to a skill slot silently drops them. Treat them as a
+        // dedicated bucket that flows through PowerKeybindRegistry instead.
+        boolean isToolbarKey = key.contains("loadToolbarActivator")
+            || key.contains("saveToolbarActivator");
+        boolean isSlotKey = !isToolbarKey && (key.contains("primary_active")
+            || key.contains("secondary_active") || key.contains("pickItem"));
         // Continuous slot powers DON'T use onActivated — they need every-tick
         // execution which onActivated (single-fire per keypress) can't provide.
         if (isSlotKey && !continuous) {
@@ -1039,14 +1064,42 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Stagger by ID hash so not all action_over_time powers run on the same tick.
         int offset = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
 
+        // ── Gamemode auto-revert safety net ──────────────────────────────────
+        // A condition-gated repeating action that forces `gamemode` (the seer
+        // pocket-dimension pattern: every tick run `gamemode adventure @s` while
+        // in the pocket dim) but defines NO falling_action of its own will leave
+        // the player stuck in that gamemode if they leave the gated state by any
+        // path other than the pack's own one-shot revert. We narrowly remember
+        // the player's gamemode when the gate first becomes satisfied and restore
+        // it when the gate transitions back to unsatisfied — ONLY for this case.
+        //
+        // Conditions for the net to engage (kept deliberately tight):
+        //   • the repeating entity_action issues a `gamemode` command,
+        //   • the power has a real gate condition (not always-true), and
+        //   • the pack defined NO falling_action (if it did, we trust it).
+        // It never touches one-shot actions, packs with their own cleanup, or a
+        // player's manual /gamemode (we only restore the value we ourselves
+        // recorded at the rising edge of THIS power's gate).
+        boolean gateForcesGamemode =
+            !hasFallingAction(json)
+            && (json.has("condition") || json.has("entity_condition"))
+            && entityActionForcesGamemode(json);
+        // When engaged, we must observe both edges of the gate, so route through
+        // the edge-tracking path even if the pack declared no rising/falling action.
+        boolean trackEdges = hasEdgeActions || gateForcesGamemode;
+        if (gateForcesGamemode) {
+            NeoOrigins.LOGGER.debug("[CompatB] action_over_time {} forces gamemode without a falling_action — enabling gamemode auto-revert safety net", idStr);
+        }
+
         return CompatPower.Config.builder()
             .onTick(player -> {
                 if (player.level().getServer() == null) return;
                 long tick = player.level().getServer().getTickCount();
                 // Edge transitions are only tracked when the power declares
                 // rising_action/falling_action — powers without them keep the
-                // cheaper interval-gated condition evaluation below.
-                if (hasEdgeActions) {
+                // cheaper interval-gated condition evaluation below. The gamemode
+                // safety net also opts into edge tracking (trackEdges).
+                if (trackEdges) {
                     boolean cur = condition.test(player);
                     String edgeKey = player.getUUID() + ":" + idStr;
                     // Default-prev = false matches Apoli: rising_action fires on
@@ -1054,8 +1107,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     // "no prior state" = false).
                     Boolean prev = PREV_AOT_CONDITIONS.put(edgeKey, cur);
                     boolean prevVal = prev != null && prev;
-                    if (cur && !prevVal) risingAction.execute(player);
-                    else if (!cur && prevVal) fallingAction.execute(player);
+                    if (cur && !prevVal) {
+                        if (gateForcesGamemode) rememberGamemode(player, idStr);
+                        risingAction.execute(player);
+                    } else if (!cur && prevVal) {
+                        fallingAction.execute(player);
+                        if (gateForcesGamemode) restoreGamemode(player, idStr);
+                    }
                     if ((tick + offset) % interval == 0 && cur) {
                         action.execute(player);
                     }
@@ -1066,6 +1124,85 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .build();
+    }
+
+    /** True if the power declares its own {@code falling_action} (then we leave cleanup to the pack). */
+    private static boolean hasFallingAction(JsonObject json) {
+        return json.has("falling_action");
+    }
+
+    /**
+     * Whether this action_over_time's repeating {@code entity_action} issues a
+     * {@code gamemode} command. Walks the (possibly nested {@code and}/array)
+     * action tree collecting {@code command} strings and checks whether any —
+     * after legacy rewriting — runs {@code gamemode} (either directly or as the
+     * run-verb of an {@code execute ... run gamemode ...}). Intentionally
+     * conservative: only string commands, only the {@code gamemode} verb.
+     */
+    private static boolean entityActionForcesGamemode(JsonObject json) {
+        if (!json.has("entity_action") || !json.get("entity_action").isJsonObject()) return false;
+        java.util.List<String> commands = new java.util.ArrayList<>();
+        collectActionCommands(json.getAsJsonObject("entity_action"), commands, 0);
+        for (String cmd : commands) {
+            if (commandRunsGamemode(LegacyCommandRewriter.rewrite(cmd))) return true;
+        }
+        return false;
+    }
+
+    /** Recursively gather {@code command} strings from an Apoli action JSON tree (depth-guarded). */
+    private static void collectActionCommands(JsonObject action, java.util.List<String> out, int depth) {
+        if (action == null || depth > 16) return;
+        if (action.has("command") && action.get("command").isJsonPrimitive()) {
+            out.add(action.get("command").getAsString());
+        }
+        // and/chain wrappers nest sub-actions under "actions"; some forks use "action".
+        if (action.has("actions") && action.get("actions").isJsonArray()) {
+            for (JsonElement el : action.getAsJsonArray("actions")) {
+                if (el.isJsonObject()) collectActionCommands(el.getAsJsonObject(), out, depth + 1);
+            }
+        }
+        if (action.has("action") && action.get("action").isJsonObject()) {
+            collectActionCommands(action.getAsJsonObject("action"), out, depth + 1);
+        }
+    }
+
+    /**
+     * Whether a (rewritten) command line ultimately runs the {@code gamemode}
+     * command — directly, or as the trailing {@code run gamemode ...} of an
+     * {@code execute} chain (the seer pack's
+     * {@code execute if entity @s[...] run gamemode adventure @s} form).
+     */
+    private static boolean commandRunsGamemode(String cmd) {
+        if (cmd == null) return false;
+        String c = cmd.trim();
+        if (c.startsWith("/")) c = c.substring(1).trim();
+        if (c.startsWith("gamemode ")) return true;
+        int run = c.indexOf(" run ");
+        if (c.startsWith("execute ") && run >= 0) {
+            String tail = c.substring(run + 5).trim();
+            return tail.startsWith("gamemode ");
+        }
+        return false;
+    }
+
+    /** Remember a player's current gamemode for {@code powerId} (rising edge), if not already stored. */
+    private static void rememberGamemode(ServerPlayer player, String powerId) {
+        String key = player.getUUID() + ":" + powerId;
+        GAMEMODE_REVERT.putIfAbsent(key, player.gameMode.getGameModeForPlayer());
+    }
+
+    /**
+     * Restore the gamemode remembered at the rising edge (falling edge) and clear
+     * the record. No-op if nothing was remembered, or if the player has since
+     * landed back on the remembered gamemode on their own.
+     */
+    private static void restoreGamemode(ServerPlayer player, String powerId) {
+        String key = player.getUUID() + ":" + powerId;
+        net.minecraft.world.level.GameType remembered = GAMEMODE_REVERT.remove(key);
+        if (remembered == null) return;
+        if (player.gameMode.getGameModeForPlayer() != remembered) {
+            player.setGameMode(remembered);
+        }
     }
 
     private CompatPower.Config parseActionOnCallback(Identifier id, JsonObject json) {
@@ -1361,9 +1498,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
         }
-        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
-            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
-            || key.contains("pickItem");
+        // The two toolbar (creative-hotbar save/load) keys are a special case.
+        // Apoli packs bind MANY condition-gated active_self powers to the same
+        // toolbar key (the Seer progression rituals are six powers all on
+        // saveToolbarActivator), expecting every one to be evaluated on each
+        // press — exactly the multi-binding fan-out the named-hotkey dispatch
+        // path provides. A skill slot can only host a single power per slot AND
+        // the client never sends an activation for the vanilla toolbar keys, so
+        // routing these to a skill slot silently drops them. Treat them as a
+        // dedicated bucket that flows through PowerKeybindRegistry instead.
+        boolean isToolbarKey = key.contains("loadToolbarActivator")
+            || key.contains("saveToolbarActivator");
+        boolean isSlotKey = !isToolbarKey && (key.contains("primary_active")
+            || key.contains("secondary_active") || key.contains("pickItem"));
         boolean isVanillaInputKey = switch (key) {
             case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
                  "key.forward", "key.back", "key.left", "key.right" -> true;
@@ -2051,9 +2198,19 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
         }
-        boolean isSlotKey = key.contains("primary_active") || key.contains("secondary_active")
-            || key.contains("loadToolbarActivator") || key.contains("saveToolbarActivator")
-            || key.contains("pickItem");
+        // The two toolbar (creative-hotbar save/load) keys are a special case.
+        // Apoli packs bind MANY condition-gated active_self powers to the same
+        // toolbar key (the Seer progression rituals are six powers all on
+        // saveToolbarActivator), expecting every one to be evaluated on each
+        // press — exactly the multi-binding fan-out the named-hotkey dispatch
+        // path provides. A skill slot can only host a single power per slot AND
+        // the client never sends an activation for the vanilla toolbar keys, so
+        // routing these to a skill slot silently drops them. Treat them as a
+        // dedicated bucket that flows through PowerKeybindRegistry instead.
+        boolean isToolbarKey = key.contains("loadToolbarActivator")
+            || key.contains("saveToolbarActivator");
+        boolean isSlotKey = !isToolbarKey && (key.contains("primary_active")
+            || key.contains("secondary_active") || key.contains("pickItem"));
         boolean isVanillaInputKey = switch (key) {
             case "key.sneak", "key.use", "key.attack", "key.jump", "key.sprint",
                  "key.forward", "key.back", "key.left", "key.right" -> true;
