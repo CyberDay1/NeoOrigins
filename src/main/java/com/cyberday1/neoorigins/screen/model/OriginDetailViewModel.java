@@ -254,4 +254,52 @@ public record OriginDetailViewModel(
         }
         return "";
     }
+
+    /** A resolved display row for the evolution panel: localized name + (possibly empty) description. */
+    public record TierPowerDisplay(String name, String description) {}
+
+    /**
+     * Resolves an evolution tier's power-id list (an overlay's {@code add} or
+     * {@code remove} array) into deduped display rows for the info panel's
+     * Evolution Path section. Synthetic sub-powers of an un-named {@code multiple}
+     * collapse to a single parent row (name + description from
+     * {@link OriginsMultipleExpander#MULTIPLE_DISPLAY_MAP}), exactly as the main
+     * Powers section renders them — so a multiple-type evolution shows its own
+     * authored name/description instead of one raw row per synthetic sub-power.
+     */
+    public static List<TierPowerDisplay> resolveTierPowerDisplays(List<Identifier> ids) {
+        Map<Identifier, Identifier> subToParent = new HashMap<>();
+        for (var entry : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.entrySet())
+            for (Identifier subId : entry.getValue())
+                subToParent.put(subId, entry.getKey());
+        Set<Identifier> seenParents = new HashSet<>();
+        Language lang = Language.getInstance();
+        List<TierPowerDisplay> out = new ArrayList<>();
+        for (Identifier powerId : ids) {
+            Component nameC = resolvePowerName(powerId);
+            Component descC = resolvePowerDesc(powerId);
+            String holderName = nameC != null ? nameC.getString() : "";
+            String holderDesc = descC != null ? descC.getString() : "";
+            String nameKey = "power." + powerId.getNamespace() + "." + powerId.getPath() + ".name";
+            String descKey = "power." + powerId.getNamespace() + "." + powerId.getPath() + ".description";
+            String resolvedName = !holderName.isEmpty() ? holderName
+                : lang.has(nameKey) ? lang.getOrDefault(nameKey, "") : "";
+            String resolvedDesc = !holderDesc.isEmpty() ? holderDesc
+                : lang.has(descKey) ? lang.getOrDefault(descKey, "") : "";
+            boolean isNamed = !resolvedName.isEmpty();
+            Identifier parentId = subToParent.get(powerId);
+            if (parentId != null && !isNamed) {
+                if (!seenParents.add(parentId)) continue;
+                JsonObject display = OriginsMultipleExpander.MULTIPLE_DISPLAY_MAP.get(parentId);
+                String pn = display != null && display.has("name")
+                    ? resolveDisplayString(display.get("name")) : formatPowerId(parentId);
+                String pd = display != null && display.has("description")
+                    ? resolveDisplayString(display.get("description")) : "";
+                out.add(new TierPowerDisplay(pn, pd));
+                continue;
+            }
+            out.add(new TierPowerDisplay(isNamed ? resolvedName : formatPowerId(powerId), resolvedDesc));
+        }
+        return out;
+    }
 }

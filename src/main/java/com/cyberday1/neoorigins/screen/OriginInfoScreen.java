@@ -88,6 +88,12 @@ public class OriginInfoScreen extends Screen {
     // Current tab detail
     private List<FormattedCharSequence> descLines = List.of();
     private List<List<FormattedCharSequence>> wrappedPowerDescs = List.of();
+    /** Precomputed evolution-path display: per tier, the added powers (name +
+     *  wrapped description lines) and the removed power names. Synthetic
+     *  multiple-power sub-ids are collapsed back to their parent display. */
+    private record EvoLine(String name, List<FormattedCharSequence> desc) {}
+    private record EvoTier(int tier, List<EvoLine> added, List<String> removed) {}
+    private List<EvoTier> evoTiers = List.of();
     /** True when the browsed origin is the player's own pick for the current layer. */
     private boolean viewingOwn = true;
     private int detailScrollOffset = 0;
@@ -271,6 +277,7 @@ public class OriginInfoScreen extends Screen {
             viewingOwn = true;
             descLines = List.of();
             wrappedPowerDescs = List.of();
+            evoTiers = List.of();
             detailContentH = 0;
             return;
         }
@@ -289,10 +296,12 @@ public class OriginInfoScreen extends Screen {
                 wrapped.add(desc.isEmpty() ? List.of() : font.split(themed(Component.literal(desc)), powerDescW));
             }
             wrappedPowerDescs = wrapped;
+            evoTiers = computeEvoTiers(vm, powerDescW);
             detailContentH = computeContentHeight(vm);
         } else {
             descLines = List.of();
             wrappedPowerDescs = List.of();
+            evoTiers = List.of();
             detailContentH = 0;
         }
     }
@@ -303,7 +312,7 @@ public class OriginInfoScreen extends Screen {
             && !vm.origin().spawnLocation().get().formatSummary().isEmpty()) {
             h += LINE_H;
         }
-        // Evolution path section (inline, after spawn location, before powers).
+        // Evolution path section (rendered after the powers list).
         h += evolutionSectionHeight(vm);
         if (!vm.powerNames().isEmpty()) {
             h += 9 + 4;
@@ -331,17 +340,46 @@ public class OriginInfoScreen extends Screen {
             h += LINE_H;
         }
         h += 9 + 4;                 // "Evolution Path" header
-        for (OriginTierOverlay overlay : vm.origin().tierPowers()) {
+        for (EvoTier tier : evoTiers) {
             h += 11;                // tier subheader ("Evolved" / "Ascended" / "Apex")
             // Per-tier progress annotation ("23 / 1000 kills" / "Achieved").
             // Only emitted when evolution is enabled.
             if (evoOn) {
                 h += LINE_H;
             }
-            h += overlay.add().size() * LINE_H;
-            h += overlay.remove().size() * LINE_H;
+            for (EvoLine line : tier.added()) {
+                h += LINE_H;                          // "+ Name"
+                h += line.desc().size() * LINE_H;     // wrapped description
+            }
+            h += tier.removed().size() * LINE_H;      // "- Name"
         }
         return h;
+    }
+
+    /** Build the per-tier evolution display, collapsing synthetic multiple-power
+     *  sub-ids back to their parent's name/description and wrapping the
+     *  descriptions of added powers to {@code descW}. Tiers are sorted ascending
+     *  so the display order is Evolved → Ascended → Apex. */
+    private List<EvoTier> computeEvoTiers(OriginDetailViewModel vm, int descW) {
+        if (vm.origin() == null || vm.origin().tierPowers().isEmpty()) return List.of();
+        var sorted = new ArrayList<>(vm.origin().tierPowers());
+        sorted.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
+        List<EvoTier> out = new ArrayList<>();
+        for (OriginTierOverlay overlay : sorted) {
+            List<EvoLine> added = new ArrayList<>();
+            for (var d : OriginDetailViewModel.resolveTierPowerDisplays(overlay.add())) {
+                List<FormattedCharSequence> desc = d.description().isEmpty()
+                    ? List.of()
+                    : font.split(themed(Component.literal(d.description())), descW);
+                added.add(new EvoLine(d.name(), desc));
+            }
+            List<String> removed = new ArrayList<>();
+            for (var d : OriginDetailViewModel.resolveTierPowerDisplays(overlay.remove())) {
+                removed.add(d.name());
+            }
+            out.add(new EvoTier(overlay.tier(), added, removed));
+        }
+        return out;
     }
 
     /** Wraps a Component with the theme's font Style so a custom font provider can take effect. */
@@ -363,24 +401,6 @@ public class OriginInfoScreen extends Screen {
                 ? styled.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid))
                 : styled;
         });
-    }
-
-    /** Best-effort human display name for a power id. */
-    private static String powerDisplayName(Identifier powerId) {
-        var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(powerId);
-        if (holder != null && holder.name() != null) {
-            String s = holder.name().getString();
-            if (!s.isEmpty()) return s;
-        }
-        var entry = com.cyberday1.neoorigins.client.ClientPowerCache.get(powerId);
-        if (entry != null && entry.name() != null) {
-            String s = entry.name().getString();
-            if (!s.isEmpty()) return s;
-        }
-        String key = "power." + powerId.getNamespace() + "." + powerId.getPath() + ".name";
-        net.minecraft.locale.Language lang = net.minecraft.locale.Language.getInstance();
-        if (lang.has(key)) return lang.getOrDefault(key, "");
-        return OriginDetailViewModel.formatPowerId(powerId);
     }
 
     private static String tierName(int tier) {
@@ -465,74 +485,6 @@ public class OriginInfoScreen extends Screen {
             }
         }
 
-        // ── Evolution Path section ─────────────────────────────────────────
-        // Renders inline between spawn-location and powers. Skipped when the
-        // origin has no tier overlays.
-        if (!origin.tierPowers().isEmpty()) {
-            sy += 8;
-            // Live progress summary line. Hidden entirely when the server
-            // has evolution disabled, or when browsing another origin (the
-            // kill counts are the player's own) -- the static Evolution Path
-            // listing still renders so players can see what *would* unlock.
-            boolean evoOn = ClientEvolutionConfig.isEnabled() && viewingOwn;
-            if (evoOn) {
-                int curTier = ClientEvolutionConfig.getCurrentTier();
-                int curKills = ClientEvolutionConfig.getCurrentKills();
-                Component summary;
-                if (curTier >= 3) {
-                    summary = Component.translatable("gui.neoorigins.info.evolution_apex");
-                } else {
-                    int need = ClientEvolutionConfig.killsForTier(curTier + 1);
-                    summary = Component.translatable(
-                        "gui.neoorigins.info.evolution_progress",
-                        String.valueOf(curKills), String.valueOf(need));
-                }
-                g.text(font, themed(summary), panelX + DETAIL_PAD, sy, theme.accentColor(), false);
-                sy += LINE_H;
-            }
-            g.text(font, themed(Component.translatable("gui.neoorigins.info.evolution_path")),
-                panelX + DETAIL_PAD, sy, theme.headerColor(), false);
-            sy += 9 + 4;
-            // Sort by tier ascending so display order is Evolved → Ascended → Apex
-            // even if the JSON listed them in a different order.
-            var sortedTiers = new java.util.ArrayList<>(origin.tierPowers());
-            sortedTiers.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
-            int curTier = evoOn ? ClientEvolutionConfig.getCurrentTier() : -1;
-            int curKills = evoOn ? ClientEvolutionConfig.getCurrentKills() : 0;
-            for (OriginTierOverlay overlay : sortedTiers) {
-                String name = tierName(overlay.tier());
-                g.text(font, themed(Component.literal(name)),
-                    panelX + DETAIL_PAD, sy, theme.powerNameColor(), false);
-                sy += 11;
-                if (evoOn) {
-                    // Per-tier annotation: progress on the next-up tier,
-                    // "Achieved" for tiers already reached, otherwise the
-                    // raw threshold so players see what they're working toward.
-                    Component annotation;
-                    if (overlay.tier() <= curTier) {
-                        annotation = Component.translatable("gui.neoorigins.info.evolution_tier_achieved");
-                    } else {
-                        int need = ClientEvolutionConfig.killsForTier(overlay.tier());
-                        annotation = Component.translatable(
-                            "gui.neoorigins.info.evolution_tier_progress",
-                            String.valueOf(curKills), String.valueOf(need));
-                    }
-                    g.text(font, themed(annotation), panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
-                    sy += LINE_H;
-                }
-                for (Identifier pid : overlay.add()) {
-                    g.text(font, themed(Component.literal("+ " + powerDisplayName(pid))),
-                        panelX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
-                    sy += LINE_H;
-                }
-                for (Identifier pid : overlay.remove()) {
-                    g.text(font, themed(Component.literal("- " + powerDisplayName(pid))),
-                        panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
-                    sy += LINE_H;
-                }
-            }
-        }
-
         sy += 8;
         List<String> pNames = vm.powerNames();
         if (!pNames.isEmpty()) {
@@ -557,6 +509,74 @@ public class OriginInfoScreen extends Screen {
                     }
                 }
                 sy += POWER_GAP;
+            }
+        }
+
+        // ── Evolution Path section ─────────────────────────────────────────
+        // Renders below the powers list so the base kit reads first, then how
+        // it grows with evolution. Skipped when the origin has no tier overlays.
+        if (!origin.tierPowers().isEmpty()) {
+            sy += 8;
+            // Live progress summary line. Hidden entirely when the server
+            // has evolution disabled, or when browsing another origin (the
+            // kill counts are the player's own) -- the static Evolution Path
+            // section still renders so players can see what *would* unlock.
+            boolean evoOn = ClientEvolutionConfig.isEnabled() && viewingOwn;
+            if (evoOn) {
+                int curTier = ClientEvolutionConfig.getCurrentTier();
+                int curKills = ClientEvolutionConfig.getCurrentKills();
+                Component summary;
+                if (curTier >= 3) {
+                    summary = Component.translatable("gui.neoorigins.info.evolution_apex");
+                } else {
+                    int need = ClientEvolutionConfig.killsForTier(curTier + 1);
+                    summary = Component.translatable(
+                        "gui.neoorigins.info.evolution_progress",
+                        String.valueOf(curKills), String.valueOf(need));
+                }
+                g.text(font, themed(summary), panelX + DETAIL_PAD, sy, theme.accentColor(), false);
+                sy += LINE_H;
+            }
+            g.text(font, themed(Component.translatable("gui.neoorigins.info.evolution_path")),
+                panelX + DETAIL_PAD, sy, theme.headerColor(), false);
+            sy += 9 + 4;
+            int curTier = evoOn ? ClientEvolutionConfig.getCurrentTier() : -1;
+            int curKills = evoOn ? ClientEvolutionConfig.getCurrentKills() : 0;
+            for (EvoTier tier : evoTiers) {
+                String name = tierName(tier.tier());
+                g.text(font, themed(Component.literal(name)),
+                    panelX + DETAIL_PAD, sy, theme.powerNameColor(), false);
+                sy += 11;
+                if (evoOn) {
+                    // Per-tier annotation: progress on the next-up tier,
+                    // "Achieved" for tiers already reached, "Apex reached"
+                    // for the top tier once attained.
+                    Component annotation;
+                    if (tier.tier() <= curTier) {
+                        annotation = Component.translatable("gui.neoorigins.info.evolution_tier_achieved");
+                    } else {
+                        int need = ClientEvolutionConfig.killsForTier(tier.tier());
+                        annotation = Component.translatable(
+                            "gui.neoorigins.info.evolution_tier_progress",
+                            String.valueOf(curKills), String.valueOf(need));
+                    }
+                    g.text(font, themed(annotation), panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
+                    sy += LINE_H;
+                }
+                for (EvoLine line : tier.added()) {
+                    g.text(font, themed(Component.literal("+ " + line.name())),
+                        panelX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
+                    sy += LINE_H;
+                    for (FormattedCharSequence dl : line.desc()) {
+                        g.text(font, dl, panelX + DETAIL_PAD + 16, sy, theme.powerDescriptionColor(), false);
+                        sy += LINE_H;
+                    }
+                }
+                for (String rname : tier.removed()) {
+                    g.text(font, themed(Component.literal("- " + rname)),
+                        panelX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
+                    sy += LINE_H;
+                }
             }
         }
         g.disableScissor();

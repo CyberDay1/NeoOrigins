@@ -152,17 +152,10 @@ public final class EssenceEvolutionManager {
             return;
         }
 
-        // Compute power diff before changing tier
-        var oldPowers = getEffectivePowers(player, data, currentTier);
+        // Persist the new tier, then grant/revoke the tier overlay powers and
+        // reconcile health. Shared with the datapack/admin force-set path.
         data.setEvolutionTier(nextTier);
-        var newPowers = getEffectivePowers(player, data, nextTier);
-
-        // Revoke removed powers, grant added powers
-        applyPowerDiff(player, oldPowers, newPowers);
-
-        // Sync max_health changes to current health — without this the player's
-        // HP bar doesn't reflect the new maximum until they die and respawn.
-        player.setHealth(player.getMaxHealth());
+        applyTierPowerChange(player, currentTier, nextTier);
 
         String tierName = TIER_NAMES[nextTier];
         ChatFormatting color = TIER_COLORS[nextTier];
@@ -195,6 +188,32 @@ public final class EssenceEvolutionManager {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int tier = data.getEvolutionTier();
         return tier > 0 && tier < TIER_NAMES.length ? TIER_NAMES[tier] + " " : "";
+    }
+
+    /**
+     * Applies the power/attribute diff for an evolution tier change and syncs
+     * the player's current health to the (possibly changed) maximum. Shared by
+     * the accept-prompt path ({@link #acceptEvolution}) and the datapack/admin
+     * force-set command so both routes grant/revoke tier-overlay powers
+     * identically — otherwise a force-set only updated the tier field and the
+     * attribute modifiers (e.g. evolution HP) never applied until a relog
+     * rebuilt the power cache, and a reset never revoked them.
+     *
+     * <p>The caller must have already persisted the new tier via
+     * {@link PlayerOriginData#setEvolutionTier}. {@code getEffectivePowers}
+     * resolves powers from the explicit tier argument, not the stored tier, so
+     * the persisted value does not affect the diff itself.
+     */
+    public static void applyTierPowerChange(ServerPlayer player, int oldTier, int newTier) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        var oldPowers = getEffectivePowers(player, data, oldTier);
+        var newPowers = getEffectivePowers(player, data, newTier);
+
+        applyPowerDiff(player, oldPowers, newPowers);
+
+        // Sync max_health changes to current health — without this the player's
+        // HP bar doesn't reflect the new maximum until they die or relog.
+        player.setHealth(player.getMaxHealth());
     }
 
     // ── Power diff helpers ─────────────────────────────────────────────

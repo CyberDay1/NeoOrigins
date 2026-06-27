@@ -26,8 +26,9 @@ import java.util.List;
  *       <ul>
  *         <li>On the surface: horizontal collision disabled, vertical collision
  *             kept (walk on the ground, gravity works).</li>
- *         <li>Inside a solid block or holding shift: full noclip (flight is
- *             enabled server-side so jump = up, shift = down).</li>
+ *         <li>Inside a solid block: full noclip with velocity-driven vertical
+ *             control (jump = up, sneak = down, neither = slow settle),
+ *             mirrored on the server — no creative flight.</li>
  *       </ul>
  *   </li>
  * </ul>
@@ -51,15 +52,41 @@ public abstract class LocalPlayerNoPhysicsMixin {
             self.verticalCollision = false;
             self.verticalCollisionBelow = false;
             self.setDeltaMovement(movement);
-        } else if (neoorigins$isInsideSolid(self) || net.minecraft.client.Minecraft.getInstance().options.keyShift.isDown()) {
-            // Wall phase + inside a block or holding shift -- full noclip (server enables flight)
+        } else if (neoorigins$isInsideSolid(self)
+                || (net.minecraft.client.Minecraft.getInstance().options.keyShift.isDown() && neoorigins$hasSolidBelow(self))) {
+            // Wall phase + inside a block (OR sneaking with ground below to
+            // sink into) -- full noclip. The hasSolidBelow guard mirrors
+            // WraithPhasePower.tickEffect (seerfix4): sneaking in OPEN AIR must
+            // NOT enter the noclip branch, otherwise shift made the player
+            // descend freely with no gravity and let them "jump off air" — the
+            // Seer tester's exact report. Without ground below, fall through to
+            // the surface branch where vertical collision/gravity still applies.
+            //
+            // Vertical motion is driven by intent, NOT creative flight and NOT
+            // the gravity-derived movement.y vanilla handed us: jump = up,
+            // sneak = down, neither = slow settle (phaseVerticalVelocity). The
+            // CLIENT is authoritative for the phasing Y here: on 1.21.1 the
+            // server cannot read an on-foot player's jump input, so it does NOT
+            // recompute this velocity — it damps its own Y and snaps to the
+            // position we send (noPhysics -> absMoveTo). That keeps server and
+            // client agreeing on position, which is what lets survival block
+            // placement raytrace correctly (no ghost blocks) and stops the
+            // rubber-banding.
+            var options = net.minecraft.client.Minecraft.getInstance().options;
+            double vy = com.cyberday1.neoorigins.power.builtin.WraithPhasePower.phaseVerticalVelocity(
+                options.keyJump.isDown(), options.keyShift.isDown());
+            Vec3 intended = new Vec3(movement.x, vy, movement.z);
             // But block movement into blacklisted blocks
-            Vec3 clamped = neoorigins$clampAgainstBlocked(self, movement);
+            Vec3 clamped = neoorigins$clampAgainstBlocked(self, intended);
             self.setPos(self.getX() + clamped.x, self.getY() + clamped.y, self.getZ() + clamped.z);
             self.horizontalCollision = false;
             self.minorHorizontalCollision = false;
             self.verticalCollision = false;
             self.verticalCollisionBelow = false;
+            // Noclipping through a solid -- never on the ground here, or the
+            // stuck-true flag re-enables vanilla spam-jump flight (see surface
+            // branch below).
+            self.setOnGround(false);
             self.setDeltaMovement(clamped);
         } else {
             // Wall phase + on surface -- horizontal noclip (except blacklisted blocks), vertical collision kept
@@ -77,9 +104,15 @@ public abstract class LocalPlayerNoPhysicsMixin {
             self.minorHorizontalCollision = false;
             self.verticalCollision = movement.y != verticalOnly.y;
             self.verticalCollisionBelow = self.verticalCollision && movement.y < 0;
-            if (self.verticalCollisionBelow) {
-                self.setOnGround(true);
-            }
+            // Drive onGround off the actual below-collision EVERY tick, not just
+            // when landing. The old code only ever set it true and never cleared
+            // it, so a player who phased while standing kept onGround=true after
+            // rising into open air — the client then reported onGround=true to
+            // the server, vanilla treated every jump press as a fresh ground
+            // jump (spam-space flight), and the Seer air_jump reset_jumps
+            // (gated on on_block) refilled forever. Clearing it while airborne
+            // restores normal jump/fall semantics during surface phasing.
+            self.setOnGround(self.verticalCollisionBelow);
             self.setDeltaMovement(hClamped.x, verticalOnly.y, hClamped.z);
         }
         self.fallDistance = 0.0F;
@@ -129,6 +162,26 @@ public abstract class LocalPlayerNoPhysicsMixin {
         for (BlockPos pos : BlockPos.betweenClosed(
                 BlockPos.containing(box.minX, box.minY + 0.1, box.minZ),
                 BlockPos.containing(box.maxX, box.maxY - 0.1, box.maxZ))) {
+            BlockState state = entity.level().getBlockState(pos);
+            if (!state.isAir() && !state.getCollisionShape(entity.level(), pos).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Client-side mirror of {@code WraithPhasePower.hasSolidBelow}: true if a
+     * solid block sits directly beneath the player's feet (ground to phase down
+     * into). Keeps the crouch-noclip branch from arming in open air.
+     */
+    @Unique
+    private static boolean neoorigins$hasSolidBelow(Entity entity) {
+        AABB box = entity.getBoundingBox().deflate(0.05);
+        double feetY = box.minY;
+        for (BlockPos pos : BlockPos.betweenClosed(
+                BlockPos.containing(box.minX, feetY - 0.5, box.minZ),
+                BlockPos.containing(box.maxX, feetY - 0.01, box.maxZ))) {
             BlockState state = entity.level().getBlockState(pos);
             if (!state.isAir() && !state.getCollisionShape(entity.level(), pos).isEmpty()) {
                 return true;
