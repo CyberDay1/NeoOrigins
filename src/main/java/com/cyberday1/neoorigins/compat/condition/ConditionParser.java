@@ -53,7 +53,8 @@ public final class ConditionParser {
         "neoorigins:cooldown", "neoorigins:cover", "neoorigins:creative_flying",
         "neoorigins:creative_mode", "neoorigins:damage_name",
         "neoorigins:damage_tag", "neoorigins:damage_type", "neoorigins:daytime",
-        "neoorigins:dimension", "neoorigins:distance", "neoorigins:enchantment",
+        "neoorigins:dimension", "neoorigins:distance",
+        "neoorigins:distance_from_coordinates", "neoorigins:enchantment",
         "neoorigins:entity_type", "neoorigins:equal", "neoorigins:equipped_item",
         "neoorigins:exists", "neoorigins:exposed_to_sky", "neoorigins:exposed_to_sun",
         "neoorigins:fall_distance", "neoorigins:fall_flying", "neoorigins:fluid_height",
@@ -409,7 +410,7 @@ public final class ConditionParser {
     static EntityCondition parseOnBlock(JsonObject json, String contextId) {
         if (!json.has("block_condition") || !json.get("block_condition").isJsonObject()) {
             // Some packs omit block_condition entirely — treat as "standing on any block"
-            return p -> p.onGround();
+            return p -> p != null && p.onGround();
         }
         JsonObject blockCond = json.getAsJsonObject("block_condition");
         String bcType = blockCond.has("type") ? blockCond.get("type").getAsString() : "";
@@ -465,7 +466,7 @@ public final class ConditionParser {
         }
         // Fallback: unknown block_condition type — pass through as always-on-ground
         NeoOrigins.LOGGER.debug("[CompatB] on_block: unknown block_condition type '{}' in {} — falling back to onGround()", bcType, contextId);
-        return p -> p.onGround();
+        return p -> p != null && p.onGround();
     }
 
     // ---- Phase 1: New condition parsers ----
@@ -1181,6 +1182,96 @@ public final class ConditionParser {
             var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
             if (le == null) return false;
             return comparison.test(p.distanceTo(le), target);
+        };
+    }
+
+    /**
+     * distance_from_coordinates: compares the player's distance from a reference
+     * coordinate set against {@code compare_to}. Mirrors Apoli's
+     * {@code DistanceFromCoordinatesCondition}.
+     *
+     * <p>The reference point is {@code world_origin} (0,0,0) or {@code world_spawn}
+     * (the level's shared spawn), shifted by an optional per-axis {@code offset}.
+     * Each axis can be excluded via {@code ignore_x/y/z}. The metric is selected
+     * by {@code shape}: {@code cube} (Chebyshev / max-axis, the Apoli default),
+     * {@code star} (Manhattan / sum-of-axes), or {@code sphere} (Euclidean).
+     * Result is compared with the vanilla operator vocabulary.
+     *
+     * <p>{@code result_on_the_wrong_dimension}: when the player is not in the
+     * reference's dimension (the overworld for world_origin/world_spawn), the
+     * configured value is substituted for the computed distance before comparison
+     * — packs use a large sentinel (e.g. 999999) to force a {@code <}-style gate
+     * to fail off-dimension. Absent → the real cross-dimension distance is used.
+     *
+     * <pre>{ "type": "neoorigins:distance_from_coordinates",
+     *        "offset": { "x": 0, "y": 0, "z": 3 },
+     *        "comparison": "<", "compare_to": 2,
+     *        "result_on_the_wrong_dimension": 999999 }</pre>
+     */
+    static EntityCondition parseDistanceFromCoordinates(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : "==";
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        double compareTo = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+
+        String reference = json.has("reference") ? json.get("reference").getAsString() : "world_origin";
+
+        double offX = 0, offY = 0, offZ = 0;
+        if (json.has("offset") && json.get("offset").isJsonObject()) {
+            JsonObject off = json.getAsJsonObject("offset");
+            offX = off.has("x") ? off.get("x").getAsDouble() : 0;
+            offY = off.has("y") ? off.get("y").getAsDouble() : 0;
+            offZ = off.has("z") ? off.get("z").getAsDouble() : 0;
+        }
+        final double fOffX = offX, fOffY = offY, fOffZ = offZ;
+
+        final boolean ignoreX = json.has("ignore_x") && json.get("ignore_x").getAsBoolean();
+        final boolean ignoreY = json.has("ignore_y") && json.get("ignore_y").getAsBoolean();
+        final boolean ignoreZ = json.has("ignore_z") && json.get("ignore_z").getAsBoolean();
+
+        final String shape = json.has("shape") ? json.get("shape").getAsString() : "cube";
+
+        final Double wrongDim = json.has("result_on_the_wrong_dimension")
+            ? json.get("result_on_the_wrong_dimension").getAsDouble() : null;
+
+        final boolean fromSpawn = "world_spawn".equals(reference);
+
+        return p -> {
+            if (!(p.level() instanceof ServerLevel sl)) return false;
+
+            // Reference (and its dimension) is the OVERWORLD for both
+            // world_origin and world_spawn. Off-dimension → substitute the
+            // configured sentinel distance, else fall through to the real value.
+            boolean wrongDimension =
+                !sl.dimension().equals(net.minecraft.world.level.Level.OVERWORLD);
+
+            double refX, refY, refZ;
+            if (fromSpawn) {
+                // 26.x removed ServerLevel#getSharedSpawnPos(); the world spawn is
+                // now reached via the level's RespawnData (see ActiveRecallPower /
+                // SpawnHelper). overworld() resolves the reference dimension.
+                BlockPos spawn = sl.getServer() != null
+                    ? sl.getServer().overworld().getRespawnData().pos()
+                    : sl.getRespawnData().pos();
+                refX = spawn.getX(); refY = spawn.getY(); refZ = spawn.getZ();
+            } else {
+                refX = 0; refY = 0; refZ = 0;
+            }
+            refX += fOffX; refY += fOffY; refZ += fOffZ;
+
+            double dist;
+            if (wrongDimension && wrongDim != null) {
+                dist = wrongDim;
+            } else {
+                double dx = ignoreX ? 0 : Math.abs(p.getX() - refX);
+                double dy = ignoreY ? 0 : Math.abs(p.getY() - refY);
+                double dz = ignoreZ ? 0 : Math.abs(p.getZ() - refZ);
+                dist = switch (shape) {
+                    case "star"   -> dx + dy + dz;                       // Manhattan
+                    case "sphere" -> Math.sqrt(dx * dx + dy * dy + dz * dz); // Euclidean
+                    default       -> Math.max(dx, Math.max(dy, dz));     // cube / Chebyshev
+                };
+            }
+            return comparison.test(dist, compareTo);
         };
     }
 

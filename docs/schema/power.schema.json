@@ -63,6 +63,7 @@
         "neoorigins:dodge_chance",
         "neoorigins:edible_item",
         "neoorigins:effect_immunity",
+        "neoorigins:effect_over_time",
         "neoorigins:efficient_repairs",
         "neoorigins:elytra_boost",
         "neoorigins:ender_gaze_immunity",
@@ -1473,6 +1474,105 @@
           "description": "Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity.",
           "type": "array",
           "items": {}
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:effect_over_time",
+      "properties": {
+        "type": {
+          "const": "neoorigins:effect_over_time"
+        },
+        "activation": {
+          "description": "Aura mode (default passive). 'passive' pulses entity_action every interval while granted, no upkeep (add toggleable:true for a free on/off keybind). 'active' binds a keybind that toggles the aura on/off; while on it pulses every interval AND pays the upkeep cost (hunger_cost/resource_cost), switching itself off when it can no longer pay. ('toggle' is accepted as an alias for active.)",
+          "type": "string",
+          "default": "passive"
+        },
+        "toggleable": {
+          "description": "Passive mode only: when true the aura gains an on/off keybind (still free, no upkeep) and starts ON by default. Active auras are always toggleable and start OFF; this flag is ignored for them. Default false (plain always-on passive).",
+          "type": "boolean",
+          "default": false
+        },
+        "interval": {
+          "description": "Ticks between aura pulses — and, in active mode, between upkeep charges (min 1; default 20 = 1s).",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "condition": {
+          "description": "Optional EntityCondition gate: entity_action pulses each interval only while it passes; else_action runs while it does not (default always-true). In active mode upkeep is still charged while the aura is on, regardless of the condition.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "entity_action": {
+          "description": "EntityAction tree pulsed on the player each interval — typically an origins:area_of_effect applying damage/effects to nearby entities. Inside an area_of_effect, spawn_particles/apply_effect/damage/heal/clear_effect now run on each AFFECTED entity, so you can paint custom particles (and remove a potion's default ones via apply_effect show_particles:false) on everyone the aura touches (defaults to noop).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "else_action": {
+          "description": "EntityAction pulsed on the player each interval while the condition does NOT pass (defaults to noop).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "hunger_cost": {
+          "description": "Active mode upkeep: food points drained each interval to keep the aura up; the aura auto-disables when the holder can't pay. Default 0 = a free on/off toggle. Ignored in passive mode.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Active mode upkeep: optional resource power id drained each interval; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled. Ignored in passive mode.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Active mode upkeep: amount of the resource_cost resource drained each interval; default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "default_off": {
+          "description": "Override the initial on/off state of a toggleable aura. By default an active aura starts OFF (opt-in) and a toggleable passive starts ON; set this to force either. Ignored for plain (non-toggleable) passive auras.",
+          "type": "boolean"
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -4064,6 +4164,7 @@
               "neoorigins:dodge_chance",
               "neoorigins:edible_item",
               "neoorigins:effect_immunity",
+              "neoorigins:effect_over_time",
               "neoorigins:elytra_boost",
               "neoorigins:ender_gaze_immunity",
               "neoorigins:enhanced_vision",
