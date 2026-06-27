@@ -1178,6 +1178,13 @@ public final class BuiltinPowers {
             new FieldSpec("effects", Kind.ARRAY, false)
                 .doc("Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity.")));
 
+        // invisibility: native replacement for the old compat status_effect rewrite,
+        // carrying Apoli's render_armor field the rewrite used to drop. Single boolean
+        // component (render_armor, default true) — registers as one BOOLEAN field.
+        define("invisibility", InvisibilityPower.class, List.of(
+            new FieldSpec("render_armor", Kind.BOOLEAN, false)
+                .def(true).doc("When true (default) the player turns invisible but worn armor stays visible (vanilla behaviour). When false, worn armor is also hidden client-side for true invisibility. The base invisibility rides the vanilla invisibility effect, so it is gated by the power's top-level condition like any passive.")));
+
         // ── Group D — key-alias batch 2 (condition_passive / prevent_death) ──────
         // Both hand-rolled codecs read their `EntityAction action` component from
         // the `entity_action` JSON key (ConditionPassivePower / PreventDeathPower

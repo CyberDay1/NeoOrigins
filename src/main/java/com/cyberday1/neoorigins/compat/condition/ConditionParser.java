@@ -19,6 +19,8 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -697,14 +699,74 @@ public final class ConditionParser {
         };
     }
 
+    /**
+     * {@code origins:nbt} — partial-NBT match against the entity's full NBT, the
+     * way Apoli's {@code apoli:nbt} entity condition works. The {@code nbt} field
+     * is an SNBT string (e.g. {@code "{Tags:[\"seer_astral\"]}"}); the condition
+     * is true when the entity's serialized NBT <em>contains</em> that subtree.
+     *
+     * <p>Crucially this matches the vanilla {@code Tags} string-list — the
+     * scoreboard tags added by {@code /tag @s add ...} — which tag-state-machine
+     * packs (the Seer origin) gate nearly every power on.
+     *
+     * <p>The entity NBT is read via {@code saveWithoutId} bridged through
+     * {@code TagValueOutput} (26.2 entity save/load flows through ValueOutput/
+     * ValueInput rather than raw CompoundTag). An unparseable SNBT string fails
+     * closed (never matches) with a one-shot warning.
+     */
     static EntityCondition parseNbt(JsonObject json) {
-        String nbtPath = json.has("nbt") ? json.get("nbt").getAsString() : null;
-        if (nbtPath == null) return EntityCondition.alwaysTrue();
-        // Simplified: check if the player's persisted data contains the key
+        String snbt = json.has("nbt") ? json.get("nbt").getAsString() : null;
+        if (snbt == null || snbt.isBlank()) return EntityCondition.alwaysTrue();
+        final CompoundTag expected;
+        try {
+            // 26.2: TagParser.parseTag is gone; use parseCompoundFully.
+            expected = TagParser.parseCompoundFully(snbt);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.warn("[CompatB] origins:nbt: could not parse SNBT '{}' ({}); condition will never match",
+                snbt, e.getMessage());
+            return EntityCondition.alwaysFalse();
+        }
+        // An empty expectation ({}) is trivially contained — match everything,
+        // mirroring Apoli (an empty nbt block is a no-op gate).
+        if (expected.isEmpty()) return EntityCondition.alwaysTrue();
         return player -> {
-            CompoundTag tag = player.getPersistentData();
-            return tag.contains(nbtPath);
+            var provider = player.level().registryAccess();
+            var out = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                net.minecraft.util.ProblemReporter.DISCARDING, provider);
+            player.saveWithoutId(out);
+            CompoundTag actual = out.buildResult();
+            return neoorigins$nbtContains(actual, expected);
         };
+    }
+
+    /**
+     * Recursive structural-containment match: returns true when {@code actual}
+     * contains every key/value declared in {@code expected}. For list tags,
+     * every element in the expected list must appear somewhere in the actual list
+     * (required for Tags:[\"x\"] partial-list matching, mirroring Apoli behaviour).
+     */
+    private static boolean neoorigins$nbtContains(CompoundTag actual, CompoundTag expected) {
+        for (String key : expected.keySet()) {
+            if (!actual.contains(key)) return false;
+            Tag exp = expected.get(key);
+            Tag act = actual.get(key);
+            if (exp instanceof CompoundTag expCt && act instanceof CompoundTag actCt) {
+                if (!neoorigins$nbtContains(actCt, expCt)) return false;
+            } else if (exp instanceof net.minecraft.nbt.ListTag expList
+                    && act instanceof net.minecraft.nbt.ListTag actList) {
+                // Each element in expected must be present in actual list.
+                for (Tag expElem : expList) {
+                    boolean found = false;
+                    for (Tag actElem : actList) {
+                        if (expElem.equals(actElem)) { found = true; break; }
+                    }
+                    if (!found) return false;
+                }
+            } else if (exp != null && !exp.equals(act)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     static EntityCondition parseScoreboard(JsonObject json) {

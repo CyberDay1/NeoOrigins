@@ -189,6 +189,7 @@ public class NeoOriginsClientEvents {
         // a disconnect/reconnect within the same client JVM.
         ClientMorphState.clear();
         MorphRenderHandler.clearCache();
+        ClientInvisibilityArmorState.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one.
         HotkeyAssignments.clear();
