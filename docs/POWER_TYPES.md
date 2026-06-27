@@ -757,19 +757,19 @@ No additional fields beyond `name` and `description`.
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
 
-Deals periodic damage to the player when they are in direct sunlight (sky-exposed, not in shade or water).
+Deals periodic damage to the player when they are in direct sunlight (sky-exposed, not in shade or water). Fires once per second (the interval is fixed at 20 ticks). Damage and ignition can be combined; set `damage_per_second` to `0` for an ignite-only effect.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `damage` | float | no | `1.0` | Damage dealt per interval (half-hearts) |
-| `interval_ticks` | int | no | `20` | How often damage is applied (ticks) |
+| `damage_per_second` | float | no | `1.0` | Damage applied each second (set `0` to disable) |
+| `ignite` | bool | no | `false` | Also set the player on fire each second |
+| `fire_ticks` | int | no | `40` | Burn duration in ticks when `ignite` is true |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:damage_in_daylight",
-  "damage": 1.0,
-  "interval_ticks": 20,
+  "damage_per_second": 1.0,
   "name": "Sun Allergy",
   "description": "Burns in direct sunlight."
 }
@@ -1356,21 +1356,19 @@ Filters are combined with AND: every configured filter must match for the action
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
 
-Grants periodic health regeneration while submerged in the specified fluid.
+Grants periodic health regeneration while submerged in the specified fluid. Healing fires once per second (the interval is fixed at 20 ticks).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid to trigger in: `water` or `lava` |
-| `heal_amount` | float | no | `1.0` | Health restored per interval |
-| `interval_ticks` | int | no | `40` | Ticks between heal pulses |
+| `amount_per_second` | float | no | `1.0` | Health restored each second |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:regen_in_fluid",
   "fluid": "water",
-  "heal_amount": 1.0,
-  "interval_ticks": 40,
+  "amount_per_second": 1.0,
   "name": "Aquatic Regeneration",
   "description": "Regenerates health while underwater."
 }
@@ -1457,21 +1455,23 @@ Applies a status effect while the player is standing in a biome matching the giv
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
 
-Deals periodic damage to the player while in a biome matching the given tag.
+Deals periodic damage to the player while in a matching biome. Match by tag (`biome_tag`) or by an explicit list (`biomes`); damage fires once per second (the interval is fixed at 20 ticks).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `biome_tag` | Identifier | yes | — | Biome tag to match, e.g. `minecraft:is_nether` |
-| `damage` | float | no | `1.0` | Damage per interval |
-| `interval_ticks` | int | no | `40` | Ticks between damage pulses |
+| `biome_tag` | Identifier | no* | — | Biome tag to match, e.g. `minecraft:is_nether`. Use this *or* `biomes`. |
+| `biomes` | array of Identifier | no* | — | Explicit biome IDs; matches if the player is in any of them. Use this *or* `biome_tag`. |
+| `damage_per_second` | float | no | `1.0` | Damage applied each second |
+| `damage_type` | string | no | `generic` | Damage type used for the hit |
+
+<sub>* Provide either `biome_tag` or `biomes`. If both are omitted the condition matches no biome.</sub>
 
 **Example:**
 ```json
 {
   "type": "neoorigins:damage_in_biome",
   "biome_tag": "minecraft:is_nether",
-  "damage": 1.0,
-  "interval_ticks": 40,
+  "damage_per_second": 1.0,
   "name": "Nether Intolerance",
   "description": "Takes damage in the Nether."
 }
@@ -2343,7 +2343,6 @@ Pure data-holder power. Its presence in a player's active power set declares tha
 {
   "type": "neoorigins:entity_set",
   "name": "mypack:hunted",
-  "name_text": "Marked Prey",
   "description": "Tracks entities marked as hunted by this origin."
 }
 ```
@@ -2642,9 +2641,7 @@ Hunger gating is handled at the `AbstractActivePower` base class level — when 
   "cooldown_ticks": 80,
   "entity_action": {
     "type": "neoorigins:add_velocity",
-    "y": 2.0,
-    "client": true,
-    "server": true
+    "y": 2.0
   },
   "name": "Leap",
   "description": "Launches the player upward."
@@ -2658,9 +2655,7 @@ Hunger gating is handled at the `AbstractActivePower` base class level — when 
   "cooldown_resource": "myorigin:dash_cooldown",
   "entity_action": {
     "type": "neoorigins:add_velocity",
-    "x": 3.0,
-    "client": true,
-    "server": true
+    "x": 3.0
   },
   "name": "Adaptive Dash",
   "description": "Dash whose cooldown follows the dash_cooldown counter."
@@ -3849,7 +3844,7 @@ Origins compat: translates `origins:model_color`.
 {
   "type": "neoorigins:model_color",
   "red": 0.9, "green": 0.2, "blue": 0.2, "alpha": 0.7,
-  "condition": { "type": "neoorigins:health", "comparison": "<=", "value": 6 },
+  "condition": { "type": "neoorigins:health", "comparison": "<=", "compare_to": 6 },
   "name": "Blood Rage",
   "description": "Your body glows red when near death."
 }
