@@ -84,7 +84,7 @@ Sub-powers may be native `neoorigins:` powers or imported `origins:`/`apoli:` po
   "poison_on_hit": {
     "type": "neoorigins:action_on_hit",
     "hidden": true,
-    "entity_action": { "type": "neoorigins:add_status_effect", "effect": "minecraft:poison", "duration": 60 }
+    "entity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 60 }
   },
   "immune": {
     "type": "neoorigins:effect_immunity",
@@ -2240,8 +2240,11 @@ For action-style events set `entity_action`; for modifier-style events set `modi
   "type": "neoorigins:action_on_event",
   "event": "effect_applied",
   "effect": "spore:mycelium_ef",
-  "condition": { "type": "neoorigins:random_chance", "chance": 0.9 },
-  "entity_action": { "type": "neoorigins:cancel_event" },
+  "entity_action": {
+    "type": "neoorigins:chance",
+    "chance": 0.9,
+    "action": { "type": "neoorigins:cancel_event" }
+  },
   "immunity_ticks": 40
 }
 ```
