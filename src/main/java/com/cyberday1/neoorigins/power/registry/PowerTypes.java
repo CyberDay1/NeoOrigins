@@ -31,6 +31,7 @@ public class PowerTypes {
     // regen_in_fluid. Legacy types below remain during the deprecation window.
     public static final DeferredHolder<PowerType<?>, PersistentEffectPower>    PERSISTENT_EFFECT    = reg("persistent_effect",    new PersistentEffectPower());
     public static final DeferredHolder<PowerType<?>, AttributeModifierPower>   ATTRIBUTE_MODIFIER   = reg("attribute_modifier",   new AttributeModifierPower());
+    public static final DeferredHolder<PowerType<?>, InvisibilityPower>        INVISIBILITY         = reg("invisibility",         new InvisibilityPower());
     // status_effect, stacking_status_effects, night_vision, glow retired in 2.0;
     // their type IDs now alias to persistent_effect via LegacyPowerTypeAliases.
     public static final DeferredHolder<PowerType<?>, WaterBreathingPower>      WATER_BREATHING      = reg("water_breathing",      new WaterBreathingPower());

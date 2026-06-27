@@ -7,16 +7,19 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Wraith Phase -- toggleable spectral phasing.
@@ -64,8 +67,55 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         return PHASE_SETTLE_VELOCITY;
     }
 
-    /** Cached parsed blocked-block sets, keyed by the string list to avoid per-tick allocation. */
-    private static final ConcurrentHashMap<List<String>, Set<Identifier>> BLOCKED_CACHE = new ConcurrentHashMap<>();
+    /**
+     * Cached parsed blocked-block matchers, keyed by the string list to avoid
+     * per-tick allocation and per-tick registry lookups.
+     *
+     * <p>Each entry in {@code blocked_blocks} may be either a plain block id
+     * ({@code minecraft:obsidian}) or a tag reference ({@code #seer:anchor_protected}).
+     * Apoli phasing block_conditions are frequently tag-based (the Seer origin's
+     * {@code seer:anchor_protected}), and the compat translator carries those over
+     * as {@code #tag} entries. Plain {@link Identifier#parse} chokes on the
+     * leading {@code #}, so the entries are split here into a literal-id set and a
+     * tag-key set; parsing is wrapped so one malformed entry never aborts the whole
+     * tick (which previously left {@code noPhysics} unset and rubber-banded the
+     * player back out of the wall on dedicated servers).
+     */
+    private static final Map<List<String>, BlockedMatcher> BLOCKED_CACHE = new ConcurrentHashMap<>();
+
+    /** Resolved blocked-block matcher: literal block ids plus block tags. */
+    private record BlockedMatcher(Set<Identifier> ids, List<TagKey<Block>> tags) {
+        boolean matches(BlockState state) {
+            if (ids.isEmpty() && tags.isEmpty()) return false;
+            if (!ids.isEmpty()) {
+                Identifier key = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+                if (ids.contains(key)) return true;
+            }
+            for (TagKey<Block> tag : tags) {
+                if (state.is(tag)) return true;
+            }
+            return false;
+        }
+    }
+
+    private static BlockedMatcher resolveBlocked(List<String> list) {
+        java.util.Set<Identifier> ids = new java.util.HashSet<>();
+        java.util.List<TagKey<Block>> tags = new java.util.ArrayList<>();
+        for (String raw : list) {
+            if (raw == null || raw.isEmpty()) continue;
+            try {
+                if (raw.charAt(0) == '#') {
+                    tags.add(TagKey.create(Registries.BLOCK, Identifier.parse(raw.substring(1))));
+                } else {
+                    ids.add(Identifier.parse(raw));
+                }
+            } catch (RuntimeException e) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[wraith_phase] ignoring unparseable blocked_blocks entry '{}': {}", raw, e.getMessage());
+            }
+        }
+        return new BlockedMatcher(Set.copyOf(ids), List.copyOf(tags));
+    }
 
     /**
      * Cached capability sets per blocked-block list. Besides {@code wall_phase}
@@ -74,7 +124,7 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
      * ({@code LocalPlayerNoPhysicsMixin}) learns the blacklist, since power
      * bodies are never synced to the client but capability tags are.
      */
-    private static final ConcurrentHashMap<List<String>, Set<String>> CAPS_CACHE = new ConcurrentHashMap<>();
+    private static final Map<List<String>, Set<String>> CAPS_CACHE = new ConcurrentHashMap<>();
 
     /**
      * Players whose hitbox currently overlaps a blacklisted block, refreshed
@@ -135,9 +185,9 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
 
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {
-        // --- blocked-block check ---
-        Set<Identifier> blocked = BLOCKED_CACHE.computeIfAbsent(config.blockedBlocks(),
-            list -> list.stream().map(Identifier::parse).collect(Collectors.toUnmodifiableSet()));
+        // --- blocked-block check (cached to avoid per-tick allocation) ---
+        BlockedMatcher blocked = BLOCKED_CACHE.computeIfAbsent(config.blockedBlocks(),
+            WraithPhasePower::resolveBlocked);
 
         AABB box = player.getBoundingBox().deflate(0.05);
         boolean inBlockedBlock = false;
@@ -145,12 +195,9 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
                 BlockPos.containing(box.minX, box.minY, box.minZ),
                 BlockPos.containing(box.maxX, box.maxY, box.maxZ))) {
             BlockState state = player.level().getBlockState(pos);
-            if (!state.isAir()) {
-                Identifier blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
-                if (blocked.contains(blockId)) {
-                    inBlockedBlock = true;
-                    break;
-                }
+            if (!state.isAir() && blocked.matches(state)) {
+                inBlockedBlock = true;
+                break;
             }
         }
 

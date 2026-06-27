@@ -132,18 +132,28 @@ public abstract class LocalPlayerNoPhysicsMixin {
     private static Vec3 neoorigins$clampAgainstBlocked(Entity entity, Vec3 movement) {
         java.util.Set<net.minecraft.resources.Identifier> blocked =
             ClientActivePowers.phaseBlockedBlocks();
-        if (blocked.isEmpty()) return movement;
+        java.util.List<net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>> blockedTags =
+            ClientActivePowers.phaseBlockedTags();
+        if (blocked.isEmpty() && blockedTags.isEmpty()) return movement;
         AABB moved = entity.getBoundingBox().move(movement);
         // Collect collision shapes of blacklisted blocks ONLY — colliding
         // against everything would also stop the player at the ordinary
-        // blocks they're legitimately phasing through.
+        // blocks they're legitimately phasing through. A block is blacklisted
+        // if its id is listed OR it carries a blacklisted block tag.
         java.util.List<VoxelShape> shapes = new java.util.ArrayList<>();
         for (BlockPos pos : BlockPos.betweenClosed(
                 BlockPos.containing(moved.minX, moved.minY, moved.minZ),
                 BlockPos.containing(moved.maxX, moved.maxY, moved.maxZ))) {
             BlockState state = entity.level().getBlockState(pos);
-            if (!state.isAir() && blocked.contains(
-                    net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()))) {
+            if (state.isAir()) continue;
+            boolean isBlocked = blocked.contains(
+                    net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()));
+            if (!isBlocked) {
+                for (var tag : blockedTags) {
+                    if (state.is(tag)) { isBlocked = true; break; }
+                }
+            }
+            if (isBlocked) {
                 VoxelShape shape = state.getCollisionShape(entity.level(), pos);
                 if (!shape.isEmpty()) {
                     shapes.add(shape.move(pos.getX(), pos.getY(), pos.getZ()));

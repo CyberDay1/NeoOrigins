@@ -337,7 +337,7 @@ public final class OriginsPowerTranslator {
             case "origins:entity_size",            "apace:entity_size"            -> translateEntitySize(src);
             case "origins:modify_break_speed",     "apace:modify_break_speed"     -> translateModifyBreakSpeed(src);
             case "origins:entity_group",           "apace:entity_group"           -> translateEntityGroup(src);
-            case "origins:invisibility",           "apace:invisibility"           -> translateInvisibility();
+            case "origins:invisibility",           "apace:invisibility"           -> translateInvisibility(src);
             case "origins:modify_exhaustion",      "apace:modify_exhaustion"      -> translateModifyExhaustion(src);
             // Phase 4: New Route A translations
             case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
@@ -1192,13 +1192,16 @@ public final class OriginsPowerTranslator {
         return Optional.of(out);
     }
 
-    private static Optional<JsonObject> translateInvisibility() {
-        // Map origins:invisibility to a permanent invisibility status effect (no particles).
+    private static Optional<JsonObject> translateInvisibility(JsonObject src) {
+        // Map origins:/apace:invisibility onto the native neoorigins:invisibility power.
+        // This is a pure MAPPING — no behaviour lives here: the native power owns the
+        // invisibility effect AND the render_armor armor-hiding. Apoli's render_armor
+        // field (default true) is carried straight through; the top-level `condition`
+        // gate is routed to power_condition generically by passThroughUnhandledKeys.
         JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:status_effect");
-        out.addProperty("effect", "minecraft:invisibility");
-        out.addProperty("ambient", true);
-        out.addProperty("show_particles", false);
+        out.addProperty("type", "neoorigins:invisibility");
+        boolean renderArmor = !src.has("render_armor") || src.get("render_armor").getAsBoolean();
+        out.addProperty("render_armor", renderArmor);
         return Optional.of(out);
     }
 

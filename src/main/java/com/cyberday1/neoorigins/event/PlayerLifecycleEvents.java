@@ -312,6 +312,7 @@ public class PlayerLifecycleEvents {
         if (!(event.getEntity() instanceof ServerPlayer observer)) return;
         if (!(event.getTarget() instanceof ServerPlayer tracked)) return;
         NeoOriginsNetwork.sendMorphStateTo(observer, tracked);
+        NeoOriginsNetwork.sendInvisibilityArmorStateTo(observer, tracked);
     }
 
     /**

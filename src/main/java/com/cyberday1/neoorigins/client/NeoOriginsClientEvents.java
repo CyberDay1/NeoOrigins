@@ -189,6 +189,7 @@ public class NeoOriginsClientEvents {
         // a disconnect/reconnect within the same client JVM.
         ClientMorphState.clear();
         MorphRenderHandler.clearCache();
+        com.cyberday1.neoorigins.client.ClientInvisibilityArmorState.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one.
         HotkeyAssignments.clear();
@@ -229,5 +230,30 @@ public class NeoOriginsClientEvents {
             com.cyberday1.neoorigins.client.renderer.TelegraphRenderer::new);
         event.registerEntityRenderer(ModEntities.THROWN_SWORD.get(),
             com.cyberday1.neoorigins.client.renderer.ThrownSwordRenderer::new);
+    }
+
+    /**
+     * Stamp the {@code neoorigins:invisibility} armor-hide flag onto each player's
+     * render state so the entity-less {@code HumanoidArmorLayer} (26.1 renders from
+     * a render state, not the live entity) can suppress worn armor for true
+     * invisibility. The flag mirrors the server-synced
+     * {@link ClientInvisibilityArmorState} set, keyed by entity id. We only set the
+     * key when hiding is wanted — absence is the default the armor-layer mixin reads
+     * as "render armor". Mod-bus, client only.
+     */
+    public static void onRegisterRenderStateModifiers(
+            net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent event) {
+        // 26.1: AvatarRenderer uses intersection-type generics that javac can't infer
+        // from a raw Class<>; use the dedicated registerAvatarEntityModifier helper.
+        event.registerAvatarEntityModifier(
+            new net.neoforged.neoforge.client.renderstate.AvatarRenderStateModifier() {
+                @Override
+                public <T extends net.minecraft.world.entity.Avatar & net.minecraft.client.entity.ClientAvatarEntity>
+                        void accept(T avatar, net.minecraft.client.renderer.entity.state.AvatarRenderState state) {
+                    if (ClientInvisibilityArmorState.shouldHideArmor(avatar.getId())) {
+                        state.setRenderData(ClientInvisibilityArmorState.HIDE_ARMOR_KEY, Boolean.TRUE);
+                    }
+                }
+            });
     }
 }

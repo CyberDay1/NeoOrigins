@@ -32,6 +32,7 @@ import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncPlayerMorphPayload;
 import com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload;
+import com.cyberday1.neoorigins.network.payload.SyncInvisibilityArmorPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
 import com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry;
 import com.cyberday1.neoorigins.power.builtin.EntityModelPower;
@@ -205,6 +206,12 @@ public class NeoOriginsNetwork {
             SyncKeybindRegistryPayload.TYPE,
             SyncKeybindRegistryPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncKeybindRegistry
+        );
+
+        registrar.playToClient(
+            SyncInvisibilityArmorPayload.TYPE,
+            SyncInvisibilityArmorPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncInvisibilityArmor
         );
 
         registrar.playToServer(
@@ -1185,6 +1192,9 @@ public class NeoOriginsNetwork {
         // Morph state (entity_model power) must reach every client that can see
         // this player, not just the player themselves — broadcast it separately.
         broadcastMorphState(player, morphTypeFrom(capabilities));
+        // Same for the invisibility armor-hide flag (neoorigins:invisibility with
+        // render_armor:false) — every viewer's armor-layer mixin needs it.
+        broadcastInvisibilityArmor(player, hidesArmorFrom(capabilities));
     }
 
     /**
@@ -1300,6 +1310,45 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientMorphState.set(
                 payload.entityId(), payload.entityType().orElse(null)));
+    }
+
+    /**
+     * True if the capability set carries the {@code neoorigins:invisibility}
+     * armor-hide tag (render_armor:false while active). Reuses the same caps
+     * already computed for {@link #syncActivePowersToPlayer} so armor-hide stays
+     * in lockstep with the power's actual active state (the top-level condition
+     * gate is applied when the caps are collected).
+     */
+    private static boolean hidesArmorFrom(Set<String> capabilities) {
+        return capabilities.contains(
+            com.cyberday1.neoorigins.power.builtin.InvisibilityPower.CAP_HIDE_ARMOR);
+    }
+
+    /** Broadcast a player's invisibility armor-hide flag to all tracking clients and the player. */
+    private static void broadcastInvisibilityArmor(ServerPlayer player, boolean hideArmor) {
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+            new SyncInvisibilityArmorPayload(player.getId(), hideArmor));
+    }
+
+    /**
+     * Send {@code tracked}'s current invisibility armor-hide flag to a single
+     * observer who just started tracking them (so a late-joining viewer hides the
+     * armor of an already-invisible player). Only sent when the flag is set —
+     * absence is the client default.
+     */
+    public static void sendInvisibilityArmorStateTo(ServerPlayer observer, ServerPlayer tracked) {
+        Map<Identifier, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(tracked, powerMap, capabilities);
+        if (!hidesArmorFrom(capabilities)) return;
+        PacketDistributor.sendToPlayer(observer,
+            new SyncInvisibilityArmorPayload(tracked.getId(), true));
+    }
+
+    private static void handleSyncInvisibilityArmor(SyncInvisibilityArmorPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientInvisibilityArmorState.set(
+                payload.entityId(), payload.hideArmor()));
     }
 
     /**

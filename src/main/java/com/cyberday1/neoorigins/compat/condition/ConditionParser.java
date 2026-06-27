@@ -697,13 +697,60 @@ public final class ConditionParser {
         };
     }
 
+    /**
+     * {@code origins:nbt} — partial-NBT match against the entity's full NBT, the
+     * way Apoli's {@code apoli:nbt} entity condition works. The {@code nbt} field
+     * is an SNBT string (e.g. {@code "{Tags:[\"seer_astral\"]}"}); the condition
+     * is true when the entity's serialized NBT <em>contains</em> that subtree.
+     *
+     * <p>Crucially this matches the vanilla {@code Tags} string-list — the
+     * scoreboard tags added by {@code /tag @s add ...} — which tag-state-machine
+     * packs (the Seer origin) gate nearly every power on. We use
+     * {@link net.minecraft.nbt.NbtUtils#compareNbt} with {@code compareListTag=true}
+     * so a single {@code Tags:["x"]} expectation is satisfied when the entity's
+     * full Tags list <em>includes</em> "x" (not only when the lists are equal).
+     *
+     * <p>The entity NBT is read via {@code saveWithoutId}; an unparseable SNBT
+     * string fails closed (never matches) with a one-shot warning.
+     */
+    /**
+     * {@code origins:nbt} — partial-NBT match against the entity's full NBT, the
+     * way Apoli's {@code apoli:nbt} entity condition works. The {@code nbt} field
+     * is an SNBT string (e.g. {@code "{Tags:[\"seer_astral\"]}"}); the condition
+     * is true when the entity's serialized NBT <em>contains</em> that subtree.
+     *
+     * <p>Crucially this matches the vanilla {@code Tags} string-list — the
+     * scoreboard tags added by {@code /tag @s add ...} — which tag-state-machine
+     * packs (the Seer origin) gate nearly every power on. We use
+     * {@link net.minecraft.nbt.NbtUtils#compareNbt} with {@code compareListTag=true}
+     * so a single {@code Tags:["x"]} expectation is satisfied when the entity's
+     * full Tags list <em>includes</em> "x" (not only when the lists are equal).
+     *
+     * <p>26.1 note: entity serialization flows through {@code ValueOutput}/
+     * {@code ValueInput} rather than raw {@code CompoundTag}; we bridge via
+     * {@code TagValueOutput} (mirroring {@code BuiltinActions.applyEntityTag}).
+     * {@code TagParser.parseTag} is gone on 26.1 — use {@code parseCompoundFully}.
+     */
     static EntityCondition parseNbt(JsonObject json) {
-        String nbtPath = json.has("nbt") ? json.get("nbt").getAsString() : null;
-        if (nbtPath == null) return EntityCondition.alwaysTrue();
-        // Simplified: check if the player's persisted data contains the key
+        String snbt = json.has("nbt") ? json.get("nbt").getAsString() : null;
+        if (snbt == null || snbt.isBlank()) return EntityCondition.alwaysTrue();
+        final CompoundTag expected;
+        try {
+            expected = net.minecraft.nbt.TagParser.parseCompoundFully(snbt);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.warn("[CompatB] origins:nbt: could not parse SNBT '{}' ({}); condition will never match",
+                snbt, e.getMessage());
+            return EntityCondition.alwaysFalse();
+        }
+        // An empty expectation ({}) is trivially contained — match everything,
+        // mirroring Apoli (an empty nbt block is a no-op gate).
+        if (expected.isEmpty()) return EntityCondition.alwaysTrue();
         return player -> {
-            CompoundTag tag = player.getPersistentData();
-            return tag.contains(nbtPath);
+            var out = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                net.minecraft.util.ProblemReporter.DISCARDING, player.level().registryAccess());
+            player.saveWithoutId(out);
+            CompoundTag actual = out.buildResult();
+            return net.minecraft.nbt.NbtUtils.compareNbt(expected, actual, true);
         };
     }
 
@@ -771,18 +818,69 @@ public final class ConditionParser {
     }
 
     static EntityCondition parseInBlock(JsonObject json, String contextId) {
-        JsonObject blockCond = json.has("block_condition") ? json.getAsJsonObject("block_condition") : null;
+        // origins:in_block — the block occupying the player's own position must
+        // match the nested block_condition. The block_condition mirrors the
+        // block_condition.schema (block/id, in_tag, and/or/all_of/any_of) and
+        // each node honours its own `inverted` flag. Previously only a bare
+        // `block`/`id` was handled and `in_tag`/`inverted`/combinators silently
+        // fell through to always-true, which made tag-gated energy-drains
+        // (Seer's seer:intangible inverted check) fire unconditionally.
+        JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
+            ? json.getAsJsonObject("block_condition") : null;
         if (blockCond == null) return EntityCondition.alwaysTrue();
-        String blockId = blockCond.has("block") ? blockCond.get("block").getAsString() : null;
-        if (blockId == null) blockId = blockCond.has("id") ? blockCond.get("id").getAsString() : null;
-        if (blockId != null) {
+        java.util.function.Predicate<BlockState> pred = compileInBlockPredicate(blockCond, contextId);
+        if (pred == null) return EntityCondition.alwaysTrue();
+        return player -> pred.test(player.level().getBlockState(player.blockPosition()));
+    }
+
+    /**
+     * Recursively compiles an {@code origins:in_block} block_condition node into
+     * a {@link BlockState} predicate. Self-contained on purpose — kept separate
+     * from the {@code action_on_event} block-predicate compiler. Returns
+     * {@code null} for an unrecognised leaf so callers can fall back to
+     * always-true. Honours a per-node {@code inverted} flag.
+     */
+    private static java.util.function.Predicate<BlockState> compileInBlockPredicate(JsonObject bc, String contextId) {
+        boolean inverted = bc.has("inverted") && bc.get("inverted").getAsBoolean();
+        java.util.function.Predicate<BlockState> base = compileInBlockLeaf(bc, contextId);
+        if (base == null) return null;
+        return inverted ? base.negate() : base;
+    }
+
+    private static java.util.function.Predicate<BlockState> compileInBlockLeaf(JsonObject bc, String contextId) {
+        String type = bc.has("type") ? bc.get("type").getAsString() : "";
+        String bare = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+
+        String blockId = bc.has("block") ? bc.get("block").getAsString()
+                       : bc.has("id") ? bc.get("id").getAsString() : null;
+        if ((bare.equals("block") || blockId != null) && blockId != null && !blockId.isBlank()) {
             Identifier bid = Identifier.parse(blockId);
-            return player -> {
-                Block block = player.level().getBlockState(player.blockPosition()).getBlock();
-                return BuiltInRegistries.BLOCK.getKey(block).equals(bid);
+            return state -> BuiltInRegistries.BLOCK.getKey(state.getBlock()).equals(bid);
+        }
+        if (bare.equals("in_tag") && bc.has("tag")) {
+            TagKey<Block> tag = parseBlockTag(bc.get("tag").getAsString());
+            return state -> state.is(tag);
+        }
+        if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
+            boolean isAnd = bare.equals("and") || bare.equals("all_of");
+            JsonArray conditions = bc.has("conditions") ? bc.getAsJsonArray("conditions") : new JsonArray();
+            List<java.util.function.Predicate<BlockState>> subs = new ArrayList<>();
+            for (JsonElement el : conditions) {
+                if (!el.isJsonObject()) continue;
+                var sub = compileInBlockPredicate(el.getAsJsonObject(), contextId);
+                if (sub != null) subs.add(sub);
+            }
+            return state -> {
+                for (var s : subs) {
+                    boolean r = s.test(state);
+                    if (isAnd && !r) return false;
+                    if (!isAnd && r) return true;
+                }
+                return isAnd;
             };
         }
-        return EntityCondition.alwaysTrue();
+        NeoOrigins.LOGGER.debug("[CompatB] in_block: unknown block_condition type '{}' in {} — treating as match-none", type, contextId);
+        return null;
     }
 
     static EntityCondition parseHeight(JsonObject json) {

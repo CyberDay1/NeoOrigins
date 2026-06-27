@@ -1,8 +1,12 @@
 package com.cyberday1.neoorigins.client;
 
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.Block;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,27 +25,41 @@ public final class ClientActivePowers {
     private static Map<Identifier, Boolean> powers = Map.of();
     private static Set<String> capabilities = Set.of();
     private static Set<Identifier> phaseBlockedBlocks = Set.of();
+    private static List<TagKey<Block>> phaseBlockedTags = List.of();
 
     public static void set(Map<Identifier, Boolean> powersData, Set<String> capData) {
         powers = Map.copyOf(powersData);
         capabilities = Set.copyOf(capData);
-        // Pre-parse the phase blacklist carried as "phase_blocked:<block id>"
+        // Pre-parse the phase blacklist carried as "phase_blocked:<entry>"
         // capability tags (see WraithPhasePower.capabilities) so the per-frame
-        // movement mixin doesn't string-parse on the hot path.
+        // movement mixin doesn't string-parse on the hot path. An entry is
+        // either a plain block id (minecraft:obsidian) or a tag reference
+        // (#seer:anchor_protected) — Apoli phasing block_conditions are often
+        // tag-based, so both must clamp client-side to keep the blacklist
+        // symmetric with the server.
         java.util.Set<Identifier> blocked = new java.util.HashSet<>();
+        java.util.List<TagKey<Block>> blockedTags = new java.util.ArrayList<>();
         for (String cap : capabilities) {
             if (cap.startsWith("phase_blocked:")) {
-                Identifier id = Identifier.tryParse(cap.substring("phase_blocked:".length()));
-                if (id != null) blocked.add(id);
+                String entry = cap.substring("phase_blocked:".length());
+                if (entry.startsWith("#")) {
+                    Identifier tagId = Identifier.tryParse(entry.substring(1));
+                    if (tagId != null) blockedTags.add(TagKey.create(Registries.BLOCK, tagId));
+                } else {
+                    Identifier id = Identifier.tryParse(entry);
+                    if (id != null) blocked.add(id);
+                }
             }
         }
         phaseBlockedBlocks = Set.copyOf(blocked);
+        phaseBlockedTags = List.copyOf(blockedTags);
     }
 
     public static void clear() {
         powers = Map.of();
         capabilities = Set.of();
         phaseBlockedBlocks = Set.of();
+        phaseBlockedTags = List.of();
     }
 
     /**
@@ -52,6 +70,17 @@ public final class ClientActivePowers {
      */
     public static Set<Identifier> phaseBlockedBlocks() {
         return phaseBlockedBlocks;
+    }
+
+    /**
+     * Block tags the active wall-phase power may NOT pass through
+     * ({@code blocked_blocks} tag entries on wraith_phase, e.g.
+     * {@code #seer:anchor_protected}), synced as {@code phase_blocked:#tag}
+     * capability tags. Empty when no phase power is active or its blacklist
+     * carries no tags.
+     */
+    public static List<TagKey<Block>> phaseBlockedTags() {
+        return phaseBlockedTags;
     }
 
     /** True if the local player has power {@code id} granted, regardless of toggle state. */
