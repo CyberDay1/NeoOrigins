@@ -2,6 +2,51 @@
 
 ---
 
+## v2.2.8
+
+> A systems and compatibility release: a native **aura** power, entity filtering for area effects, four more native powers (invisibility, item gating, flight-speed scaling, sound muffling), a batch of Apoli/Origins compat fixes, author-controlled origin-picker order, evolution-tier fixes, and phasing/respawn/health polish.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Powers & Systems
+
+- **`effect_over_time` aura power.** A native sustained area-of-effect power that runs an action on a fixed `interval` for as long as it is active. Set `activation` to `passive` for an always-on aura or to an active toggle for an upkeep-style aura, and mark it `toggleable` so players can switch it on and off. Pair it with `area_of_effect` to wrap nearby entities in regeneration, particles, or any action you like — the basis for healing auras, damage fields, and persistent buffs.
+- **Entity filtering on `area_of_effect`.** Area effects now accept an `entity_condition` that filters *every* entity in the radius — mobs and players alike — so an aura can target only players, only hostiles, only a tagged entity type, and so on. This makes auras like a heal-allies-but-ignore-mobs field possible without touching the action itself.
+- **`invisibility` power.** A native invisibility power with an optional `render_armor` flag to hide worn armor along with the body, instead of routing through the status-effect compat layer.
+- **`restrict_items` power.** A modular item-gate that can block equipping, using, or totem-popping items, driven by either a deny-list or an allow-list — for origins that can't wield certain gear.
+- **`modify_flight_speed` power.** Scales a flying player's speed by a multiplier, a native replacement for the Pehkui-based approach.
+- **`muffle_sound` power.** A native power that dampens sound for the holder.
+- **`distance_from_coordinates` condition.** Tests the player's distance from a reference point — world origin or world spawn, plus an optional per-axis offset — under a cube (Chebyshev), star (Manhattan), or sphere (Euclidean) metric, with optional per-axis exclusion and an off-dimension fallback. An Apoli-compatible condition for proximity-gated powers.
+
+### Compatibility (Apoli / Origins)
+
+- **`origins:phasing` is now server-authoritative,** with its `in_block` gate honoring block tags and inverted conditions correctly.
+- **`origins:nbt` partial-NBT matching implemented** — the condition now parses SNBT and matches against an entity's `Tags`, instead of being ignored.
+- **Fixed Apoli `multiple` sub-power desync** where synthetic sub-power IDs containing a slash drifted out of sync with the client; slashes are now normalized to underscores on both sides.
+- **AvP (Aliens vs Predator) soft-dependency compat** — a new `xeno_passive` host gate, plus registration fixes for `xeno_passive` and `creative_flight` so both load reliably.
+- **`/scale` shim for Pehkui-dependent packs.** When Pehkui is not installed, a stand-in `/scale` command is registered so Origins/Apoli packs that call it (for example the seer astral origin's init functions) still parse and run the rest of their commands instead of silently failing to load.
+
+### Origin Picker & Commands
+
+- **Author-set picker order is honored.** The origin picker can now sort by the `order` field an author assigns, so packs control exactly where each origin appears in the list.
+- **`/origin` is a real command alias.** It is now registered as a proper command literal rather than a loose alias, so it tab-completes and parses like the full command.
+
+### Bug Fixes
+
+- **Boosted max health is restored to full on respawn.** Origins that raise max HP no longer leave the player short after dying.
+- **Newly granted hearts fill immediately.** When a +HP origin is granted, the new hearts are filled rather than left empty.
+- **In-game power editor shows name and description fields again.** Both fields were missing from the editor and are now back.
+- **Phasing no longer ghost-blocks or grants spam-jump flight.** Wraith-phase / astral projection now drives vertical movement with velocity nudges (jump up, sneak down, neither settles slowly) instead of arming creative flight, and keeps the server and client agreeing on position — so block placement raytraces correctly and players can no longer rise freely by spamming jump.
+- **Evolution tiers no longer double-stack lower-tier buffs.** Advancing a tier now removes the previous overlay (night vision, slow fall) before granting the upgraded one, so effects like night vision are no longer applied twice at tier 2+.
+- **Evolution tier force-set applies powers properly.** Setting an evolution tier from a command now grants/revokes tier powers and reconciles max health the same way the accept-prompt path does, instead of only changing the tier field until the next relog.
+- **Evolution panel shows tier-power names and descriptions.** The origin picker's evolution section now resolves each tier power's name and description, collapsing a `multiple` power's synthetic sub-powers into a single authored row instead of showing blank entries.
+
+### Assets
+
+- **Community resource-bar GUI textures** contributed by huang and spiderkolo are now bundled.
+
+---
+
 ## v2.2.7
 
 > A big content update built around **six brand-new martial-arts origins** — each with a full kit and a three-tier evolution path that unlocks a new signature art as you advance. Underpinning them is a wave of new systems: a `variable` power type, true creative-style flight, the ability to bind powers to vanilla keys, a modular projectile-rain / telegraph / thrown-sword VFX toolkit, an on-hit event hook, and global vision toggles — plus the usual polish and fixes.
