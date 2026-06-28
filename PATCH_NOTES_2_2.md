@@ -2,6 +2,21 @@
 
 ---
 
+## v2.2.9
+
+> A hotfix for 2.2.8: condition-gated invisibility now ends the moment its condition lapses, true invisibility hides held items along with armor, and the cooldown-icon HUD honors the "hide idle icons" setting again.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **Condition-gated invisibility ends when its condition does.** An `invisibility` power that turns on only while a condition holds no longer keeps you invisible for up to 15 seconds after that condition stops — it now fades within a moment of the condition lapsing, like every other gated passive.
+- **True invisibility hides held items.** With `render_armor` off, the item in your hand is now hidden along with your armor and body, so a fully invisible player no longer trails a floating weapon or tool.
+- **The cooldown HUD honors "hide idle icons" again.** With **always show ability icons** turned off, idle ability icons now actually disappear: the ability HUD's default mode shows recharging cooldowns and toggles only, and an idle icon stays hidden unless its power opts in with `always_show_icon` or you re-enable the always-show setting.
+  - *Upgrading from an earlier version? An existing `config/neoorigins/client.toml` keeps its saved value — set `hud_ability_display = COOLDOWNS_AND_TOGGLES` (or delete the file to regenerate it) to pick up the new default.*
+
+---
+
 ## v2.2.8
 
 > A systems and compatibility release: a native **aura** power, entity filtering for area effects, four more native powers (invisibility, item gating, flight-speed scaling, sound muffling), a batch of Apoli/Origins compat fixes, author-controlled origin-picker order, evolution-tier fixes, and phasing/respawn/health polish.
