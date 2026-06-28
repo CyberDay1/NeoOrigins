@@ -105,12 +105,15 @@ public final class NeoOriginsClientConfig {
 
         HUD_ABILITY_DISPLAY = BUILDER
             .comment("What the ability HUD cluster shows besides live cooldowns.",
-                     "ALL_ACTIVE_ABILITIES (default): every keybind ability with an icon",
-                     "keeps a persistent slot — full-bright while idle, cooldown sweep",
-                     "while recharging, bright/dim for toggles.",
-                     "COOLDOWNS_AND_TOGGLES: cooldown slots only while recharging, plus",
-                     "icon-bearing toggleable powers (bright = on, dimmed = off).")
-            .defineEnum("hud_ability_display", HudAbilityDisplay.ALL_ACTIVE_ABILITIES);
+                     "COOLDOWNS_AND_TOGGLES (default): cooldown slots only while",
+                     "recharging, plus icon-bearing toggleable powers (bright = on,",
+                     "dimmed = off). Idle non-toggle icons stay hidden unless the power",
+                     "declares \"always_show_icon\": true or you enable",
+                     "always_show_ability_icons below.",
+                     "ALL_ACTIVE_ABILITIES: every keybind ability with an icon keeps a",
+                     "persistent slot — full-bright while idle, cooldown sweep while",
+                     "recharging, bright/dim for toggles.")
+            .defineEnum("hud_ability_display", HudAbilityDisplay.COOLDOWNS_AND_TOGGLES);
 
         ALWAYS_SHOW_ABILITY_ICONS = BUILDER
             .comment("Force every icon-bearing ability to stay on the HUD cluster even",

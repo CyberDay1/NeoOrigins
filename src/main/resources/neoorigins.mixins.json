@@ -41,7 +41,8 @@
     "client.LocalPlayerElytraSoundMixin",
     "client.LocalPlayerNoPhysicsMixin",
     "client.MerchantScreenTreasureGlowMixin",
-    "client.HumanoidArmorLayerMixin"
+    "client.HumanoidArmorLayerMixin",
+    "client.ItemInHandLayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

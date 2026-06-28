@@ -23,13 +23,15 @@ import java.util.Set;
  * {@code render_armor} through (see {@code OriginsPowerTranslator.translateInvisibility}).
  *
  * <p><b>Invisibility</b> rides the vanilla {@link MobEffects#INVISIBILITY} effect,
- * re-applied before it expires (mirrors {@code PersistentEffectPower}/
- * {@code PhantomFormPower}): server-authoritative and synced to every client as a
- * normal effect, so other players see the body vanish for free. Because the effect
- * is applied in {@link #onTick} — which {@code PowerHolder.onTick} skips while the
- * top-level {@code power_condition} gate is unsatisfied — a condition-gated
- * invisibility power switches off (the effect lapses) when its condition stops
- * holding, exactly like every other gated passive.
+ * re-applied with a SHORT duration every tick (mirrors the persistent-effect
+ * idiom): server-authoritative and synced to every client as a normal effect, so
+ * other players see the body vanish for free. Because the effect is applied in
+ * {@link #onTick} — which {@code PowerHolder.onTick} skips while the top-level
+ * {@code power_condition} gate is unsatisfied — and the applied duration is only a
+ * few ticks, a condition-gated invisibility power switches off (the effect lapses
+ * almost immediately) when its condition stops holding, exactly like every other
+ * gated passive. (A long apply duration would have left the player invisible for
+ * the remainder of that timer after the gate closed.)
  *
  * <p><b>Armor hiding</b> can't ride a vanilla mechanism — vanilla renders armor on
  * invisible entities. When {@code render_armor} is false this power emits the
@@ -48,8 +50,19 @@ public class InvisibilityPower extends PowerType<InvisibilityPower.Config> {
     /** Capability tag emitted while the power is active with {@code render_armor:false}. */
     public static final String CAP_HIDE_ARMOR = "invisibility_hide_armor";
 
-    private static final int APPLY_DURATION = 300;
-    private static final int REFRESH_THRESHOLD = 210;
+    // The effect is re-applied every onTick with a SHORT duration so that the
+    // moment the top-level power_condition gate stops holding — at which point
+    // PowerHolder.onTick stops dispatching to us — the already-applied effect
+    // lapses within a tick or two instead of riding out a long timer. (The old
+    // 300-tick / 15s apply meant a condition-gated invisibility stayed on for up
+    // to 15s after the condition went false, since the effect just ticked down on
+    // its own.) Unlike PersistentEffectPower — whose condition lives INSIDE its
+    // own config so its onTick still runs and can clearEffects when false — this
+    // power is gated purely by the external power_condition, so it can't rely on a
+    // "condition went false" callback: the short auto-lapsing duration is what
+    // gives it the same instant-off behaviour. onRevoked still removes the effect
+    // outright for the grant/toggle path.
+    private static final int APPLY_DURATION = 4;
 
     public record Config(boolean renderArmor) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -62,10 +75,9 @@ public class InvisibilityPower extends PowerType<InvisibilityPower.Config> {
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
-        var existing = player.getEffect(MobEffects.INVISIBILITY);
-        if (existing == null || existing.getDuration() < REFRESH_THRESHOLD) {
-            player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, APPLY_DURATION, 0, true, false));
-        }
+        // Refresh every tick so the effect persists while the gate holds, but
+        // expires almost immediately once the gate closes and dispatch stops.
+        player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, APPLY_DURATION, 0, true, false));
     }
 
     @Override
