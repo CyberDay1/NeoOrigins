@@ -325,6 +325,88 @@ public final class PowerOverridesConfig {
         p("warden_echolocation");       fb("enabled", true); ep();
         p("warden_tremor_sense");       fb("enabled", true); ep();
 
+        // ── Eastern / wuxia origins ──
+        // persistent_effect / condition_passive / creative_flight powers honor a
+        // top-level "enabled" kill-switch (admins set false to remove them entirely).
+        // persistent_effect also honors a top-level "amplifier" that retunes the
+        // first effect's strength without touching the nested effects[] array.
+
+        // Asura
+        p("asura_frail_frame");         f("amount", -6, -100, 100); ep();
+        p("asura_bloodrage_1");         fb("enabled", true); fi("amplifier", 0, 0, 255); ep();
+        p("asura_bloodrage_2");         fb("enabled", true); fi("amplifier", 1, 0, 255); ep();
+        p("asura_bloodrage_3");         fb("enabled", true); fi("amplifier", 2, 0, 255); ep();
+        p("asura_unmovable");           f("amount", 1.0, -1, 1); ep();
+        p("asura_slam");                fi("cooldown_ticks", 80, 0, 72000); ep();
+        p("asura_frenzy");              fi("cooldown_ticks", 400, 0, 72000); ep();
+        p("asura_undying_rage");        fb("enabled", true); fi("amplifier", 1, 0, 255); ep();
+        // (asura_blood_tithe heal amount is nested in entity_action; shallow
+        // overrides can't reach it. Edit JSON directly to retune.)
+        p("asura_wrath_eruption");      fi("cooldown_ticks", 500, 0, 72000); ep();
+
+        // Windwalker
+        // (windwalker_featherfall is a prevent_action with no numeric tunables.)
+        p("windwalker_air_jumps");      fi("min", 0, 0, 10000); fi("max", 2, 1, 100000); fi("start_value", 2, 0, 100000); fi("regen_rate", 2, -1000, 1000); fi("regen_interval", 1, 1, 72000); ep();
+        p("windwalker_lofty_leap");     f("amount", 0.12, -1, 10); ep();
+        p("windwalker_cloud_steps");    fi("cooldown_ticks", 0, 0, 72000); ep();
+        // (windwalker_wall_grace / windwalker_sky_dancer have no tunable fields.)
+        p("windwalker_gale_dash");      f("power", 2.0, 0, 10); fi("cooldown_ticks", 60, 0, 72000); ep();
+        p("windwalker_swift_current");  f("amount", 0.02, -1, 10); ep();
+        // (windwalker_typhoon / windwalker_eye_of_storm tornado params are nested
+        // in entity_action; only cooldown_ticks sits at the top level.)
+        p("windwalker_typhoon");        fi("cooldown_ticks", 800, 0, 72000); ep();
+        p("windwalker_riding_wind");    fb("enabled", true); ep();
+        p("windwalker_eye_of_storm");   fi("cooldown_ticks", 700, 0, 72000); ep();
+
+        // Qi Cultivator
+        p("qi_resource");               fi("min", 0, 0, 10000); fi("max", 100, 1, 100000); fi("start_value", 50, 0, 100000); fi("regen_rate", 1, -1000, 1000); fi("regen_interval", 20, 1, 72000); ep();
+        // (qi_meditation_charge / qi_dantian_expansion resource gain is nested in
+        // entity_action; only interval sits at the top level.)
+        p("qi_meditation_charge");      fi("interval", 10, 1, 72000); fb("enabled", true); ep();
+        p("qi_meditation_heal");        fb("enabled", true); fi("amplifier", 0, 0, 255); ep();
+        p("qi_vibrating_palm");         fi("cooldown_ticks", 20, 0, 72000); fi("resource_cost_amount", 25, 0, 100000); ep();
+        p("qi_hardened");               fi("cooldown_ticks", 160, 0, 72000); fi("resource_cost_amount", 30, 0, 100000); ep();
+        p("qi_dantian_expansion");      fi("interval", 20, 1, 72000); fb("enabled", true); ep();
+        p("qi_core_pressure");          f("multiplier", 1.3, 0, 100); ep();
+        p("qi_flying_sword");           fi("cooldown_ticks", 100, 0, 72000); fi("resource_cost_amount", 40, 0, 100000); ep();
+
+        // Golden Body (golden_bell_*)
+        p("golden_bell_iron_shirt");    f("amount", 8, -100, 100); ep();
+        p("golden_bell_rooted");        f("amount", 0.6, -1, 1); ep();
+        p("golden_bell_hard_qigong");   f("damage", 4, 0, 100); fi("fire_ticks", 0, 0, 72000); ep();
+        p("golden_bell_ring");          fi("cooldown_ticks", 600, 0, 72000); ep();
+        p("golden_bell_heavy_stance");  f("amount", -0.02, -1, 1); ep();
+        p("golden_bell_diamond_body");  f("amount", 6, -100, 100); ep();
+        p("golden_bell_reflected_force");f("damage", 8, 0, 100); fi("fire_ticks", 0, 0, 72000); ep();
+        p("golden_bell_bell_toll");     fi("cooldown_ticks", 400, 0, 72000); ep();
+
+        // Iron Monk
+        p("iron_monk_stamina");         fi("min", 0, 0, 10000); fi("max", 100, 1, 100000); fi("start_value", 100, 0, 100000); fi("regen_rate", 2, -1000, 1000); fi("regen_interval", 10, 1, 72000); ep();
+        p("iron_monk_guard");           fb("enabled", true); fi("amplifier", 0, 0, 255); ep();
+        // (iron_monk_guard_drain / iron_monk_sea_of_stamina stamina change is nested
+        // in entity_action; only interval sits at the top level.)
+        p("iron_monk_guard_drain");     fi("interval", 20, 1, 72000); fb("enabled", true); ep();
+        p("iron_monk_guard_block");     f("multiplier", 0.1, 0, 100); ep();
+        // (iron_monk_guard_react sound/stamina drain is nested in entity_action.)
+        p("iron_monk_palm_strike");     fi("cooldown_ticks", 40, 0, 72000); fi("resource_cost_amount", 20, 0, 100000); ep();
+        p("iron_monk_iron_resolve");    f("amount", 0.4, -1, 1); ep();
+        // (iron_monk_counter_stance damage_attacker amount_ratio is nested in
+        // entity_action; shallow overrides can't reach it.)
+        p("iron_monk_sea_of_stamina");  fi("interval", 20, 1, 72000); fb("enabled", true); ep();
+        p("iron_monk_lohan_palm");      fi("cooldown_ticks", 120, 0, 72000); fi("resource_cost_amount", 30, 0, 100000); ep();
+
+        // Sword Immortal (jianxian_*)
+        p("jianxian_sword_heart");      f("amount", 4, -100, 100); ep();
+        p("jianxian_keen_edge");        f("amount", 1, -100, 100); ep();
+        p("jianxian_sword_qi");         fi("cooldown_ticks", 25, 0, 72000); ep();
+        p("jianxian_riding_sword");     fb("enabled", true); ep();
+        p("jianxian_flickering_slash"); f("power", 2.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); f("damage", 6.0, 0, 100); f("damage_radius", 2.5, 0, 64); f("weapon_damage_scale", 0.5, 0, 10); ep();
+        // (jianxian_immortal_body is a prevent_action with no numeric tunables.)
+        p("jianxian_ten_thousand_swords");fi("cooldown_ticks", 600, 0, 72000); ep();
+        p("jianxian_sword_heart_unity");f("amount", 2, -100, 100); ep();
+        p("jianxian_heavenly_formation");fi("cooldown_ticks", 400, 0, 72000); ep();
+        p("jianxian_heaven_severing_slash");fi("cooldown_ticks", 300, 0, 72000); ep();
+
         // ── Classes ──
         p("class_warrior_damage");      f("amount", 1.0, -100, 100); ep();
         p("class_warrior_knockback_resist");f("amount", 0.3, -1, 1); ep();

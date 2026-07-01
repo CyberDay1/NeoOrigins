@@ -296,7 +296,23 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 }
                 expanded.add(el);
             }
-            obj.add("origins", expanded);
+            // Canonicalize any renamed origin references (e.g. jianxian →
+            // sword_immortal) so pre-rename layers/datapacks keep resolving.
+            JsonArray remapped = new JsonArray();
+            for (JsonElement el : expanded) {
+                if (el.isJsonPrimitive()) {
+                    remapped.add(LegacyOriginIds.remap(el.getAsString()));
+                } else if (el.isJsonObject()
+                        && el.getAsJsonObject().has("origin")
+                        && el.getAsJsonObject().get("origin").isJsonPrimitive()) {
+                    JsonObject entry = el.getAsJsonObject();
+                    entry.addProperty("origin", LegacyOriginIds.remap(entry.get("origin").getAsString()));
+                    remapped.add(entry);
+                } else {
+                    remapped.add(el);
+                }
+            }
+            obj.add("origins", remapped);
         }
     }
 
