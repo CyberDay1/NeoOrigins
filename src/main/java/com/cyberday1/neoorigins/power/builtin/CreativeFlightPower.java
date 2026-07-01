@@ -23,11 +23,16 @@ import net.minecraft.server.level.ServerPlayer;
 public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower.Config> {
 
     public record Config(
+        boolean enabled,
         String type,
         String cooldownIcon,
         boolean alwaysShowIcon
     ) implements PowerConfiguration, HudIconConfig {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            // Config kill-switch: a top-level "enabled":false (injected by the
+            // power_overrides system) turns the flight off — the ability is
+            // stripped each tick and never re-granted.
+            Codec.BOOL.optionalFieldOf("enabled", true).forGetter(Config::enabled),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
@@ -39,6 +44,12 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
 
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {
+        if (!config.enabled()) {
+            // Disabled via power_overrides — strip any flight the player may still
+            // hold and never re-grant it.
+            removeEffect(player, config);
+            return;
+        }
         var abilities = player.getAbilities();
         boolean changed = false;
         if (!abilities.mayfly) { abilities.mayfly = true; changed = true; }

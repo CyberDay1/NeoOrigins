@@ -492,6 +492,15 @@ Accepts only the standard toggle HUD fields beyond `name` and `description`:
 | `cooldown_icon` | string | no | `""` | HUD icon resource path (joins the ability-icon cluster) |
 | `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while toggled off |
 
+**Disabling it server-side.** `creative_flight` honors a top-level `enabled` flag (default `true`) that server owners can flip off in `config/neoorigins/power_overrides.toml`, keyed by the power id. When `enabled = false` the flight is stripped every tick and never re-granted — the origin keeps all its other powers. This is the intended way to ground a flying origin without editing datapacks; for example, the built-in Sword Immortal and Windwalker flights are:
+
+```toml
+[power_overrides.jianxian_riding_sword]
+    enabled = false   # ground the Sword Immortal
+[power_overrides.windwalker_riding_wind]
+    enabled = false   # ground the Windwalker
+```
+
 **Example:**
 ```json
 {
