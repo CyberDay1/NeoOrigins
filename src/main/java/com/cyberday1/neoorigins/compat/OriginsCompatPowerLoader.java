@@ -297,6 +297,22 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * the skill-slot roster. The holder's own condition gate still applies inside
      * {@code onActivated}, so no condition is duplicated onto the binding.
      */
+    /**
+     * NeoOrigins shorthand: a numeric {@code "key": N} targets named-hotkey pool
+     * slot N directly (canonical translation key {@code key.neoorigins.hotkey.N},
+     * 1-indexed). Deterministic — the client pins that declared key to pool slot
+     * N-1 (see {@code HotkeyAssignments.set}) rather than the sorted-order fallback
+     * used for string keys. A string {@code key} passes through unchanged. Returns
+     * {@code fallback} when the element is null/absent.
+     */
+    private static String normalizeKeyToken(JsonElement el, String fallback) {
+        if (el == null || el.isJsonNull()) return fallback;
+        if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isNumber()) {
+            return "key.neoorigins.hotkey." + el.getAsInt();
+        }
+        return el.getAsString();
+    }
+
     private void registerNativeActiveHotkeys() {
         for (var entry : PowerDataManager.INSTANCE.getPowers().entrySet()) {
             Identifier id = entry.getKey();
@@ -311,10 +327,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             boolean continuous = false;
             var keyEl = raw.get("key");
             if (keyEl.isJsonPrimitive()) {
-                key = keyEl.getAsString();
+                key = normalizeKeyToken(keyEl, key);
             } else if (keyEl.isJsonObject()) {
                 var keyObj = keyEl.getAsJsonObject();
-                key = keyObj.has("key") ? keyObj.get("key").getAsString() : null;
+                key = keyObj.has("key") ? normalizeKeyToken(keyObj.get("key"), key) : null;
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
             if (key == null) continue;
@@ -490,8 +506,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      */
     private final Map<Identifier, Identifier> syntheticParentage = new HashMap<>();
 
+    /**
+     * Canonical synthetic id -> its pre-2.2.8 slash-form id, recorded during
+     * {@link #expandMultiple} so a nested sub-power can chain its parent's legacy
+     * form. Feeds {@link CompatAttachments#registerLegacySyntheticId} so datapacks
+     * that still reference bars/toggles by the old "parent/subkey" id keep working.
+     */
+    private final Map<Identifier, String> syntheticLegacyIds = new HashMap<>();
+
     private Map<Identifier, JsonObject> inlineExpand(Map<Identifier, JsonElement> data) {
         syntheticParentage.clear();
+        syntheticLegacyIds.clear();
+        CompatAttachments.clearLegacySyntheticIds();
         Map<Identifier, JsonObject> result = new HashMap<>();
         for (var entry : data.entrySet()) {
             if (!entry.getValue().isJsonObject()) continue;
@@ -520,6 +546,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 parentId.getNamespace(), parentId.getPath() + "_" + subEntry.getKey()
             );
             syntheticParentage.put(syntheticId, parentId);
+            // Record the pre-2.2.8 slash-form id (chaining the parent's own legacy
+            // form for nested multiples) so datapacks that still reference this
+            // sub-power by "parent/subkey" resolve to the canonical underscore id.
+            String legacyParent = syntheticLegacyIds.getOrDefault(parentId, parentId.toString());
+            String legacyId = legacyParent + "/" + subEntry.getKey();
+            syntheticLegacyIds.put(syntheticId, legacyId);
+            CompatAttachments.registerLegacySyntheticId(legacyId, syntheticId.toString());
             String subType = OriginsFormatDetector.getType(subJson);
             if (OriginsMultipleExpander.isMultipleType(subType)) {
                 // A hidden parent hides the whole subtree — carry the flag down.
@@ -751,10 +784,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (json.has("key")) {
             var keyEl = json.get("key");
             if (keyEl.isJsonPrimitive()) {
-                key = keyEl.getAsString();
+                key = normalizeKeyToken(keyEl, key);
             } else if (keyEl.isJsonObject()) {
                 var keyObj = keyEl.getAsJsonObject();
-                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                key = keyObj.has("key") ? normalizeKeyToken(keyObj.get("key"), key) : key;
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
         }
@@ -1491,10 +1524,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (json.has("key")) {
             var keyEl = json.get("key");
             if (keyEl.isJsonPrimitive()) {
-                key = keyEl.getAsString();
+                key = normalizeKeyToken(keyEl, key);
             } else if (keyEl.isJsonObject()) {
                 var keyObj = keyEl.getAsJsonObject();
-                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                key = keyObj.has("key") ? normalizeKeyToken(keyObj.get("key"), key) : key;
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
         }
@@ -2191,10 +2224,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (json.has("key")) {
             var keyEl = json.get("key");
             if (keyEl.isJsonPrimitive()) {
-                key = keyEl.getAsString();
+                key = normalizeKeyToken(keyEl, key);
             } else if (keyEl.isJsonObject()) {
                 var keyObj = keyEl.getAsJsonObject();
-                key = keyObj.has("key") ? keyObj.get("key").getAsString() : key;
+                key = keyObj.has("key") ? normalizeKeyToken(keyObj.get("key"), key) : key;
                 continuous = keyObj.has("continuous") && keyObj.get("continuous").getAsBoolean();
             }
         }
@@ -2552,6 +2585,33 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     public static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicate(
             JsonObject condJson) {
         if (condJson == null) return null;
+
+        // Boolean combinators: { "type": "neoorigins:or", "conditions": [...] }
+        // (and/or, with the Apoli 2.9+ all_of/any_of aliases). Recurse so nested
+        // and typed-leaf block conditions are honoured against `pos` instead of
+        // falling through to the match-all base case below.
+        String type = condJson.has("type") ? condJson.get("type").getAsString() : "";
+        String bareType = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+        if ((bareType.equals("and") || bareType.equals("or")
+                || bareType.equals("all_of") || bareType.equals("any_of"))
+                && condJson.has("conditions") && condJson.get("conditions").isJsonArray()) {
+            boolean isAnd = bareType.equals("and") || bareType.equals("all_of");
+            java.util.List<java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>> subs =
+                new java.util.ArrayList<>();
+            for (JsonElement el : condJson.getAsJsonArray("conditions")) {
+                if (!el.isJsonObject()) continue;
+                var sub = compileBlockPredicate(el.getAsJsonObject());
+                if (sub != null) subs.add(sub);
+            }
+            return (player, pos) -> {
+                for (var c : subs) {
+                    boolean r = c.test(player, pos);
+                    if (isAnd && !r) return false;
+                    if (!isAnd && r) return true;
+                }
+                return isAnd;
+            };
+        }
 
         String blockId = condJson.has("block") ? condJson.get("block").getAsString() : null;
         if (blockId == null) blockId = condJson.has("id") ? condJson.get("id").getAsString() : null;

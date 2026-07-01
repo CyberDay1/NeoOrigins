@@ -30,6 +30,7 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.EnumValue<HudAbilityDisplay> HUD_ABILITY_DISPLAY;
     public static final ModConfigSpec.BooleanValue ALWAYS_SHOW_ABILITY_ICONS;
     public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
+    public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> HOTKEY_SLOT_DEFAULTS;
 
     /** What the cooldown/ability HUD cluster shows besides live cooldowns. */
     public enum HudAbilityDisplay {
@@ -139,6 +140,18 @@ public final class NeoOriginsClientConfig {
                      "Default 32. Increase if packs declare more than 32 distinct keys.")
             .defineInRange("pool_size", 32, 1, 256);
 
+        HOTKEY_SLOT_DEFAULTS = BUILDER
+            .comment("Default physical keys for named-hotkey pool slots, so a modpack can",
+                     "ship pre-bound hotkeys instead of leaving every slot unbound. Each",
+                     "entry is \"N=key.keyboard.X\" where N is the 1-indexed slot (matching a",
+                     "power's numeric \"key\": N) and key.keyboard.X is a vanilla input id",
+                     "(e.g. \"1=key.keyboard.r\", \"2=key.keyboard.z\", \"3=key.mouse.4\").",
+                     "This is a CLIENT setting applied at key registration; a datapack cannot",
+                     "set it (keybinds register before datapacks load). Players can still",
+                     "rebind any slot in Controls — this only sets the default.")
+            .defineList("slot_defaults", java.util.List.of(),
+                        o -> o instanceof String && ((String) o).contains("="));
+
         BUILDER.pop();
     }
 
@@ -170,6 +183,9 @@ public final class NeoOriginsClientConfig {
 
     /** Number of named-keybind slots to register at client startup. */
     public static int hotkeyPoolSize() { return HOTKEY_POOL_SIZE.get(); }
+
+    /** Raw "N=key.keyboard.X" default-binding entries for named-hotkey pool slots. */
+    public static java.util.List<? extends String> hotkeySlotDefaults() { return HOTKEY_SLOT_DEFAULTS.get(); }
 
     /** Pushes the current TOML value into {@link com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry}. */
     public static void onConfigLoadOrReload(ModConfigEvent event) {

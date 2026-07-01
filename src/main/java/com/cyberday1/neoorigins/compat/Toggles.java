@@ -30,6 +30,9 @@ public final class Toggles {
     /** Current value, falling back to the registered TogglePower's {@code default} if unset. */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static boolean isOn(Player player, String powerId) {
+        // Resolve pre-2.2.8 slash-form synthetic sub-power ids to their canonical
+        // underscore ids so toggles inside an origins:multiple keep resolving.
+        powerId = CompatAttachments.resolveLegacySyntheticId(powerId);
         // Check native AbstractTogglePower subclasses first (wraith_phase, flight, phantom_form, etc.)
         Identifier id;
         try {
@@ -52,7 +55,7 @@ public final class Toggles {
 
     /** Force the toggle to a specific value. */
     public static void setOn(Player player, String powerId, boolean value) {
-        player.getData(CompatAttachments.toggleState()).set(powerId, value);
+        player.getData(CompatAttachments.toggleState()).set(CompatAttachments.resolveLegacySyntheticId(powerId), value);
     }
 
     /** Flip the current value (resolving the default first if no entry exists) and return the new value. */
