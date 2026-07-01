@@ -1,14 +1,20 @@
 package com.cyberday1.neoorigins.screen.creator;
 
+import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.schemaform.FormModel;
 import com.cyberday1.neoorigins.screen.creator.model.OriginDraft.PowerDraft;
 import com.cyberday1.neoorigins.screen.creator.widget.PowerFormPanel;
 import com.cyberday1.neoorigins.screen.creator.widget.SearchPickerOverlay;
+import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,8 +32,11 @@ public final class PowersTab implements CreatorTab {
 
     private static final int HDR_H = 20, LABEL_DX = 6, FIELD_DX = 140;
 
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private final PowerFormPanel form = new PowerFormPanel();
     private final SearchPickerOverlay typePicker = new SearchPickerOverlay();
+    private final SearchPickerOverlay importPicker = new SearchPickerOverlay();
 
     private OriginCreatorScreen parent;
     private int x, y, w, h;
@@ -54,6 +63,11 @@ public final class PowersTab implements CreatorTab {
             typePicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
             return;
         }
+        if (importPicker.isOpen()) {         // import picker owns input while open
+            int pw = Math.min(w - 20, 320), ph = h - 16;
+            importPicker.build(parent, x + (w - pw) / 2, y + 8, pw, ph);
+            return;
+        }
         if (form.overlayOpen()) {            // REF condition/action picker
             form.init(parent, current(), rawMode, x, y, w, h);
             return;
@@ -69,8 +83,10 @@ public final class PowersTab implements CreatorTab {
             .bounds(bx + 20, by, 18, HDR_H).build());
         parent.register(Button.builder(Component.literal("+ add"), b -> addPower())
             .bounds(bx + 42, by, 44, HDR_H).build());
+        parent.register(Button.builder(Component.literal("import"), b -> importPower())
+            .bounds(bx + 88, by, 50, HDR_H).build());
         parent.register(Button.builder(Component.literal("- del"), b -> removePower())
-            .bounds(bx + 88, by, 44, HDR_H).build());
+            .bounds(bx + 140, by, 44, HDR_H).build());
 
         PowerDraft p = current();
         if (p == null) return; // empty list — render() shows the hint
@@ -114,6 +130,47 @@ public final class PowersTab implements CreatorTab {
         parent.requestRebuild();
     }
 
+    /** "import" browses every loaded built-in power and drops an editable copy. */
+    private void importPower() {
+        pushToDraft();
+        importPicker.open("import a power",
+            () -> {
+                List<String> ids = new ArrayList<>();
+                for (ResourceLocation id : PowerDataManager.INSTANCE.getAllPowers().keySet()) {
+                    ids.add(id.toString());
+                }
+                ids.sort(null);
+                return ids;
+            },
+            this::importPickedPower,
+            parent::requestRebuild);
+        parent.requestRebuild();
+    }
+
+    /** Deep-copy the picked built-in power's body into a fresh editable draft. */
+    private void importPickedPower(String idString) {
+        ResourceLocation pid;
+        try {
+            pid = ResourceLocation.parse(idString);
+        } catch (RuntimeException e) {
+            LOGGER.warn("[neoorigins] cannot import power with invalid id '{}'", idString);
+            return;
+        }
+        JsonObject body = PowerDataManager.INSTANCE.getRawPowerJson(pid);
+        if (body == null) {
+            LOGGER.warn("[neoorigins] cannot import power '{}': no raw body available", idString);
+            return;
+        }
+        String type = body.has("type") ? body.get("type").getAsString() : "";
+        body.remove("type");
+
+        PowerDraft np = new PowerDraft(null, type);
+        np.rawJson = body.toString();
+        powers().add(np);
+        sel = powers().size() - 1;
+        rawMode = false;
+    }
+
     private void removePower() {
         List<PowerDraft> ps = powers();
         if (ps.isEmpty()) return;
@@ -147,11 +204,13 @@ public final class PowersTab implements CreatorTab {
 
     // ── draft sync ──────────────────────────────────────────────────────────
 
-    @Override public void pullFromDraft() { if (!typePicker.isOpen()) form.pull(); }
+    @Override public void pullFromDraft() {
+        if (!typePicker.isOpen() && !importPicker.isOpen()) form.pull();
+    }
 
     @Override
     public void pushToDraft() {
-        if (typePicker.isOpen()) return;
+        if (typePicker.isOpen() || importPicker.isOpen()) return;
         PowerDraft p = current();
         if (p == null) return;
         p.powerId = parent.draft().mintPowerId(p, p.typeId);
@@ -168,6 +227,7 @@ public final class PowersTab implements CreatorTab {
     @Override
     public void renderBackdrop(GuiGraphics g) {
         if (typePicker.isOpen()) typePicker.renderBackdrop(g);
+        else if (importPicker.isOpen()) importPicker.renderBackdrop(g);
         else if (form.overlayOpen()) form.refBackdrop(g);
     }
 
@@ -175,6 +235,7 @@ public final class PowersTab implements CreatorTab {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial,
                        int x, int y, int w, int h) {
         if (typePicker.isOpen()) { typePicker.render(g); return; }
+        if (importPicker.isOpen()) { importPicker.render(g); return; }
         if (form.overlayOpen()) return; // backdrop draws the picker
 
         Font font = parent.font();
@@ -210,6 +271,7 @@ public final class PowersTab implements CreatorTab {
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (typePicker.isOpen()) return typePicker.onScroll(mx, my, sy);
+        if (importPicker.isOpen()) return importPicker.onScroll(mx, my, sy);
         if (form.overlayOpen()) return form.refScroll(mx, my, sy);
         return form.onScroll(mx, my, sy);
     }

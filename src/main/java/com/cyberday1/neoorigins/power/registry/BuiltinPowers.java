@@ -102,6 +102,17 @@ public final class BuiltinPowers {
             .def("").doc("Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.");
 
     /**
+     * Optional named-hotkey pool binding for active (keybind) powers. Read at
+     * load time by {@code OriginsCompatPowerLoader.registerNativeActiveHotkeys}
+     * (raw top-level {@code "key": N} → {@code key.neoorigins.hotkey.N}); the
+     * power Config codec ignores the undeclared field, so surfacing it in the
+     * editor is safe (it round-trips into the body only when the author sets it).
+     */
+    private static final FieldSpec KEY_SPEC =
+        new FieldSpec("key", Kind.INTEGER, false).range(1.0, 64.0)
+            .doc("Optional named-hotkey pool slot (1-64) this active power binds to. A plain number N pins the power to pool 'Hotkey N'; several powers sharing the same N all fire from that one key. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)");
+
+    /**
      * Looser hint for scalar-string lists whose entries are NOT strictly
      * {@code namespace:path}: bare keywords ({@code sprint}, {@code arrow},
      * {@code all}), vanilla camelCase msgIds ({@code inFire}, {@code fall}), an
@@ -1060,7 +1071,8 @@ public final class BuiltinPowers {
         //     default.
         define("toggle", TogglePower.class, List.of(
             new FieldSpec("default", Kind.BOOLEAN, false).boundTo("defaultValue")
-                .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.")));
+                .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook."),
+            KEY_SPEC));
         define("active_ability", ActiveAbilityPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set."),
@@ -1080,7 +1092,8 @@ public final class BuiltinPowers {
                 .doc("Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
-            ALWAYS_SHOW_ICON_SPEC));
+            ALWAYS_SHOW_ICON_SPEC,
+            KEY_SPEC));
         define("edible_item", EdibleItemPower.class, List.of(
             new FieldSpec("items", Kind.ARRAY, false)
                 .itemPattern(RESOURCE_LOCATION_PATTERN)

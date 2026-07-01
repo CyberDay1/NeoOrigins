@@ -62,14 +62,15 @@ public class CompatAttachments {
             return state;
         }));
 
-        public int get(String key, int defaultValue) { return values.getOrDefault(key, defaultValue); }
-        public boolean has(String key)               { return values.containsKey(key); }
-        public void set(String key, int value)       { values.put(key, value); dirty = true; }
-        public void remove(String key)               { values.remove(key); dirty = true; }
+        public int get(String key, int defaultValue) { return values.getOrDefault(resolveLegacySyntheticId(key), defaultValue); }
+        public boolean has(String key)               { return values.containsKey(resolveLegacySyntheticId(key)); }
+        public void set(String key, int value)       { values.put(resolveLegacySyntheticId(key), value); dirty = true; }
+        public void remove(String key)               { values.remove(resolveLegacySyntheticId(key)); dirty = true; }
 
         public void clampedAdd(String key, int delta, int min, int max) {
-            int cur = values.getOrDefault(key, 0);
-            values.put(key, Math.max(min, Math.min(max, cur + delta)));
+            String k = resolveLegacySyntheticId(key);
+            int cur = values.getOrDefault(k, 0);
+            values.put(k, Math.max(min, Math.min(max, cur + delta)));
             dirty = true;
         }
 
@@ -110,7 +111,8 @@ public class CompatAttachments {
          */
         public java.util.List<String> matchingKeys(String selector) {
             if (!isWildcard(selector)) {
-                return values.containsKey(selector) ? java.util.List.of(selector) : java.util.List.of();
+                String k = resolveLegacySyntheticId(selector);
+                return values.containsKey(k) ? java.util.List.of(k) : java.util.List.of();
             }
             java.util.regex.Pattern p = globToPattern(selector);
             java.util.List<String> out = new java.util.ArrayList<>();
@@ -219,6 +221,36 @@ public class CompatAttachments {
     public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(key); }
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
     public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
+
+    // ---- Legacy synthetic sub-power id aliases (backward compat) ----
+    // Pre-2.2.8, origins:multiple expansion joined a sub-power's synthetic id
+    // with a slash ("parent/subkey"). 2.2.8 (commit 4e8f4ea4) switched the join
+    // to an underscore ("parent_subkey") to match the Apoli convention. Datapacks
+    // authored against the old scheme reference their bars / toggles by the slash
+    // id, which no longer resolves to the registered underscore id — so resource
+    // bars and active_ability toggles inside an origins:multiple silently stopped
+    // working after the update. This map records legacy -> canonical for every
+    // synthetic sub-power at expansion time (the one place the slash form is
+    // unambiguously reconstructable) so those references keep resolving. Populated
+    // by OriginsCompatPowerLoader.expandMultiple, cleared at the start of each reload.
+    private static final Map<String, String> LEGACY_SYNTHETIC_IDS = new java.util.concurrent.ConcurrentHashMap<>();
+    public static void registerLegacySyntheticId(String legacy, String canonical) {
+        if (legacy != null && canonical != null && !legacy.equals(canonical)) {
+            LEGACY_SYNTHETIC_IDS.put(legacy, canonical);
+        }
+    }
+    public static void clearLegacySyntheticIds() { LEGACY_SYNTHETIC_IDS.clear(); }
+    /**
+     * Map a legacy slash-form synthetic sub-power id to its canonical underscore id.
+     * Returns the input unchanged when it is not a known legacy id, so genuine
+     * resource keys that happen to contain a '/' (e.g. "ns:folder/power") are never
+     * rewritten — only ids actually emitted by pre-2.2.8 multiple-expansion are.
+     */
+    public static String resolveLegacySyntheticId(String key) {
+        if (key == null) return null;
+        String canonical = LEGACY_SYNTHETIC_IDS.get(key);
+        return canonical != null ? canonical : key;
+    }
 
     // ---- Variable declarations (neoorigins:variable) ----
     // A variable is an always-hidden counter that shares the ResourceState

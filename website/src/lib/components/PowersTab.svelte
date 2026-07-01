@@ -17,8 +17,13 @@
 	import { draft as originDraftStore, powersView, type PowerDraft } from '$lib/stores/originDraft';
 	import { originValidation } from '$lib/stores/originValidation';
 	import { setRefSchemas, type RefSchemas } from '$lib/schema/refSchemaContext';
+	import {
+		builtinPowerToDraft,
+		type BuiltinPowerEntry
+	} from '$lib/datapack/builtinPowers';
 	import PowerEditor from './power/PowerEditor.svelte';
 	import BlockCanvas from './power/block/BlockCanvas.svelte';
+	import BuiltinPowerPicker from './BuiltinPowerPicker.svelte';
 
 	// Which draft store backs the powers list. Defaults to the player Origin
 	// draft so the Origin editor's `<PowersTab />` is unchanged; the Mob Origin
@@ -222,6 +227,20 @@
 		});
 	}
 
+	// ── import an existing built-in power ──────────────────────────────────────
+	// Deep-copies a chosen catalog entry into a new PowerDraft (body minus
+	// `type` → fields, id deduped against existing draft ids) and appends it
+	// exactly like addPower does. Round-trips: export reproduces the body.
+	let importPickerOpen = $state(false);
+
+	function onBuiltinPowerSelect(entry: BuiltinPowerEntry) {
+		powersStore.update((d) => {
+			const next = builtinPowerToDraft(entry, d.powers);
+			return { ...d, powers: [...d.powers, next] };
+		});
+		importPickerOpen = false;
+	}
+
 	function removePower(index: number) {
 		powersStore.update((d) => ({
 			...d,
@@ -289,6 +308,14 @@
 			{#if $powersView === 'form'}
 				<button
 					type="button"
+					class="import"
+					onclick={() => (importPickerOpen = true)}
+					disabled={schemaState.status !== 'ready'}
+				>
+					Import power
+				</button>
+				<button
+					type="button"
 					class="add"
 					onclick={addPower}
 					disabled={schemaState.status !== 'ready'}
@@ -331,6 +358,12 @@
 		</div>
 	{/if}
 </section>
+
+<BuiltinPowerPicker
+	open={importPickerOpen}
+	onselect={onBuiltinPowerSelect}
+	onclose={() => (importPickerOpen = false)}
+/>
 
 <style>
 	.tab {
@@ -402,6 +435,26 @@
 		border-color: var(--color-accent-hover);
 	}
 	.add:disabled {
+		opacity: 0.55;
+		cursor: not-allowed;
+	}
+	.import {
+		background: var(--color-bg-subtle);
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.5rem 0.95rem;
+		cursor: pointer;
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 500;
+		transition: background 120ms ease, border-color 120ms ease;
+	}
+	.import:hover:not(:disabled) {
+		background: var(--color-surface-hover);
+		border-color: var(--color-border-strong);
+	}
+	.import:disabled {
 		opacity: 0.55;
 		cursor: not-allowed;
 	}

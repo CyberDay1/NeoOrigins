@@ -27,7 +27,11 @@
   },
   "neoorigins:active_ability": {
     "resource_cost": "Power id of a neoorigins:resource debited on activation; empty = no resource cost. If the player can't afford it the activation silently aborts (no cooldown consumed). When resource bars are globally disabled (disable_resource_bars), the cost falls back to hunger instead (resource_cost_amount food points).",
-    "resource_cost_amount": "Resource points deducted per successful activation (default 0; only used when resource_cost is set). Checked pre-flight — activation silently aborts if the current value is below this."
+    "resource_cost_amount": "Resource points deducted per successful activation (default 0; only used when resource_cost is set). Checked pre-flight — activation silently aborts if the current value is below this.",
+    "key": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config."
+  },
+  "neoorigins:toggle": {
+    "key": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config."
   },
   "neoorigins:breath_in_fluid": {
     "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",

@@ -108,14 +108,59 @@ public class NeoOriginsKeybindings {
         // files supply human-readable names up to slot 64; beyond that the raw
         // key shows in Controls but the slot still works.
         int poolSize = NeoOriginsClientConfig.hotkeyPoolSize();
+        // Optional modpack-supplied default bindings, "N=key.keyboard.X" (1-indexed).
+        // Applied here at registration time — the only point MC lets us set a
+        // KeyMapping's default. Players can still rebind afterward.
+        int[] slotDefaults = resolveSlotDefaults(poolSize);
         HOTKEY_POOL = new KeyMapping[poolSize];
         for (int i = 0; i < poolSize; i++) {
             HOTKEY_POOL[i] = new KeyMapping(
                 "key.neoorigins.hotkey." + (i + 1),
-                GLFW.GLFW_KEY_UNKNOWN,
+                slotDefaults[i],
                 HOTKEYS_CATEGORY
             );
             event.register(HOTKEY_POOL[i]);
         }
+    }
+
+    /**
+     * Parse the {@code [hotkeys] slot_defaults} config into a GLFW-code array sized
+     * to the pool. Each entry is {@code "N=key.keyboard.X"} (N 1-indexed). Unlisted
+     * or unparseable slots default to {@code GLFW_KEY_UNKNOWN} (unbound). A bad entry
+     * is logged and skipped so one typo can't break the whole pool.
+     */
+    private static int[] resolveSlotDefaults(int poolSize) {
+        int[] out = new int[poolSize];
+        java.util.Arrays.fill(out, GLFW.GLFW_KEY_UNKNOWN);
+        for (String entry : NeoOriginsClientConfig.hotkeySlotDefaults()) {
+            int eq = entry.indexOf('=');
+            if (eq <= 0) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[Hotkeys] Ignoring malformed slot_defaults entry '{}' (expected \"N=key.keyboard.X\")", entry);
+                continue;
+            }
+            String slotStr = entry.substring(0, eq).trim();
+            String keyName = entry.substring(eq + 1).trim();
+            int slot;
+            try {
+                slot = Integer.parseInt(slotStr);
+            } catch (NumberFormatException e) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[Hotkeys] Ignoring slot_defaults entry '{}' — slot '{}' is not a number", entry, slotStr);
+                continue;
+            }
+            if (slot < 1 || slot > poolSize) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[Hotkeys] Ignoring slot_defaults entry '{}' — slot {} outside pool 1..{}", entry, slot, poolSize);
+                continue;
+            }
+            try {
+                out[slot - 1] = com.mojang.blaze3d.platform.InputConstants.getKey(keyName).getValue();
+            } catch (RuntimeException e) {
+                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                    "[Hotkeys] Ignoring slot_defaults entry '{}' — unknown key id '{}'", entry, keyName);
+            }
+        }
+        return out;
     }
 }

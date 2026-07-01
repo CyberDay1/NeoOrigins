@@ -9,6 +9,7 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"gen:templates": "tsx scripts/gen-vanilla-templates.ts",
+		"gen:powers": "tsx scripts/gen-builtin-powers-catalog.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:schema": "tsx src/lib/schema/__tests__/parse.test.ts",

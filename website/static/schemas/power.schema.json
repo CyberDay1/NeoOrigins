@@ -496,6 +496,12 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "key": {
+          "description": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         }
       },
       "required": [
@@ -4100,6 +4106,12 @@
           "description": "Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.",
           "type": "boolean",
           "default": false
+        },
+        "key": {
+          "description": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         }
       },
       "required": [

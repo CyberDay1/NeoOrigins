@@ -372,6 +372,53 @@ power JSON. The compat loader picks the field up and registers the binding:
   it always binds to one of the six built-in `skill_1`..`skill_6` slots.
   Use `origins:active_self` when you need a named hotkey.
 
+### Numbered slots (`key: N`)
+
+Instead of a translation-key string, `key` may be a **number**. `"key": 1`
+targets named-hotkey pool slot 1 directly — it is shorthand for the canonical
+translation key `key.neoorigins.hotkey.1` (1-indexed). The slot already carries
+a built-in label ("Hotkey 01" … up to "Hotkey 64"), so you don't need to ship a
+`lang` entry for it, and the modpack can pre-bind it via the
+[`slot_defaults` client config](CLIENT_CONFIG.md#hotkeys).
+
+```json
+{
+  "type": "origins:active_self",
+  "key": 1,
+  "cooldown": 80,
+  "entity_action": { "type": "neoorigins:add_velocity", "y": 1.5 },
+  "name": "Leap"
+}
+```
+
+The object form accepts a number too, so a numbered slot can still be
+continuous: `"key": { "key": 1, "continuous": true }`.
+
+- **String vs. number.** A string `key` fills the next free pool slot in sorted
+  order — stable across relogs, but which physical "Hotkey N" row it lands on
+  depends on what else the pack declares. A numeric `key: N` is **deterministic**:
+  it always pins to slot N, so the author controls exactly which row (and which
+  `slot_defaults` default) a power gets. Reach for the number when you want a
+  predictable layout; reach for the string when you just want "some free slot"
+  and a custom label.
+- Slot `N` must be within `pool_size` (default 32). A `key: N` above the pool
+  size is logged and left dormant, same as string overflow — raise
+  [`pool_size`](CLIENT_CONFIG.md#hotkeys) to make room.
+
+### One key, several powers
+
+Multiple powers may declare the **same** `key` — whether a shared string or the
+same `key: N`. They are not in conflict: the server keeps a list of bindings per
+key and fans a single press out to **all** of them (each still gated by its own
+`condition` and `cooldown`). This is how one keypress can drive several powers on
+an origin at once — e.g. `"key": 1` on both a movement power and a particle
+power fires both from one button. A player binds that one "Hotkey N" row a single
+time in Controls and it triggers the whole group.
+
+Source of truth: `power/keybind/PowerKeybindRegistry.java` (`BY_KEY` list +
+`dispatch` fan-out) and `client/HotkeyAssignments.java` (the two-pass slot
+assignment that pins numbered keys).
+
 ### Vanilla input keys
 
 Instead of a translation key, a power's `key` field may name one of nine
