@@ -121,7 +121,10 @@ public class PlayerOriginData {
             .forGetter(d -> d.pickerAbandoned)
     ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, global, sets, floats, kills, tier, abandoned) -> {
         PlayerOriginData data = new PlayerOriginData();
-        data.origins.putAll(map);
+        // Canonicalize any renamed origin selections (e.g. jianxian → sword_immortal)
+        // so saved worlds keep their chosen origin after the rename.
+        map.forEach((layer, origin) ->
+            data.origins.put(layer, com.cyberday1.neoorigins.data.LegacyOriginIds.remap(origin)));
         // Pre-v2.1.2 stored the canonical origin layer as "origins:origin".
         // Forward-migrate to the new canonical "neoorigins:origin" so saved
         // selections survive the rename; if both keys exist (re-pick on the

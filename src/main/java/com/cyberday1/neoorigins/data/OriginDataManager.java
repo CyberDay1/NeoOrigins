@@ -182,8 +182,8 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
     }
 
     public Map<Identifier, Origin> getOrigins() { return origins; }
-    public Origin getOrigin(Identifier id) { return origins.get(id); }
-    public boolean hasOrigin(Identifier id) { return origins.containsKey(id); }
+    public Origin getOrigin(Identifier id) { return origins.get(LegacyOriginIds.remap(id)); }
+    public boolean hasOrigin(Identifier id) { return origins.containsKey(LegacyOriginIds.remap(id)); }
 
     /** Raw post-normalize origin JSON for the creator's template loader.
      *  Returns null when the id was loaded from a non-resource path
