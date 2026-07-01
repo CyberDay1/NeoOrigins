@@ -38,3 +38,27 @@ overrides for them.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `pool_size` | int (1–256) | `32` | Number of named-keybind slots registered at client startup. Each pack-declared `"key": "translation.key.id"` on an active power consumes one slot; the Controls screen shows that many unassigned "Hotkey N" entries. Increase if your packs declare more than 32 distinct keys. This is a client setting — keybinds register at startup, so the slot count is chosen locally and cannot be dictated by the server. |
+| `slot_defaults` | list of strings | `[]` | Default physical keys for named-hotkey pool slots, so a modpack can ship pre-bound hotkeys instead of leaving every slot unbound. Each entry is `"N=key.keyboard.X"`, where `N` is the 1-indexed slot (matching a power's numeric `"key": N`) and `key.keyboard.X` is a vanilla input id — e.g. `"1=key.keyboard.r"`, `"2=key.keyboard.z"`, `"3=key.mouse.4"`. A bad entry is logged and skipped, so one typo can't break the whole pool. This is a client setting applied at key registration; a datapack cannot set it, because keybinds register before datapacks load. Players can still rebind any slot in Controls — this only sets the default. |
+
+### Pre-binding pool slots for a modpack
+
+Leaving every "Hotkey N" row unbound is fine for a single pack, but a curated
+modpack often wants its abilities to work out of the box. `slot_defaults` lets
+the pack author assign a default physical key to any pool slot:
+
+```toml
+[hotkeys]
+pool_size = 32
+slot_defaults = ["1=key.keyboard.r", "2=key.keyboard.z", "3=key.mouse.4"]
+```
+
+Slot numbers line up with the numeric `"key": N` shorthand on a power (see
+[API → Named keybinds](API.md#named-keybinds)): a power authored with `"key": 1`
+lands on "Hotkey 01", which `"1=key.keyboard.r"` pre-binds to **R**. The player
+can rebind any of these in *Controls → Key Binds → NeoOrigins (Hotkeys)*; the
+config value only supplies the starting binding.
+
+Why here and not in the datapack: Minecraft fixes a key's default the moment it
+registers the KeyMapping, which happens at client startup — before any datapack
+(or the server) has loaded. So a pre-bound default has to come from the client,
+which is what this option is for.

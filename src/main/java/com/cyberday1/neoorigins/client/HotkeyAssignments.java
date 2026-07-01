@@ -8,6 +8,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLEnvironment;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +78,13 @@ public final class HotkeyAssignments {
         // for keybindjs-registered keys so we don't burn pool slots on duplicates.
         Map<String, KeyMapping> externalCandidates = collectExternalCandidates(pool);
 
-        int slotIdx = 0;
+        // Two-pass assignment. A numeric `key: N` declaration arrives here as the
+        // canonical string "key.neoorigins.hotkey.N"; those PIN to pool slot N-1 so
+        // the pack author controls exactly which "NeoOrigins Hotkey N" row a power
+        // lands on. Remaining (arbitrary-string) keys fill the still-empty slots in
+        // sorted order — the original behavior — so string keys stay backward compatible.
+        List<String> overflow = new ArrayList<>();
+        List<String> unpinned = new ArrayList<>();
         for (String key : declaredKeys) {
             // The two vanilla toolbar (creative save/load hotbar) keys are driven
             // by their real vanilla KeyMapping in the client tick loop, not by a
@@ -88,22 +95,44 @@ public final class HotkeyAssignments {
                 external.put(ext, key);
                 continue;
             }
-            if (slotIdx >= pool.length) {
-                NeoOrigins.LOGGER.warn(
-                    "[Hotkeys] Pool exhausted ({} slots) — key '{}' will be dormant. "
-                        + "Increase config/neoorigins/client.toml [hotkeys] pool_size or assign via keybindjs.",
-                    pool.length, key);
-                continue;
+            int pin = pinnedSlotIndex(key);
+            if (pin < 0) {
+                unpinned.add(key);
+            } else if (pin >= pool.length) {
+                overflow.add(key);
+            } else if (slots[pin] == null) {
+                slots[pin] = key;
+            } else {
+                // Defensive: distinct declared keys can't hash to the same slot
+                // (same N => same string, deduped upstream), but never drop a key.
+                unpinned.add(key);
             }
-            slots[slotIdx++] = key;
+        }
+        // Fill unpinned keys into the lowest-index empty slots.
+        int slotIdx = 0;
+        for (String key : unpinned) {
+            while (slotIdx < pool.length && slots[slotIdx] != null) slotIdx++;
+            if (slotIdx >= pool.length) {
+                overflow.add(key);
+            } else {
+                slots[slotIdx++] = key;
+            }
+        }
+        for (String key : overflow) {
+            NeoOrigins.LOGGER.warn(
+                "[Hotkeys] Pool exhausted ({} slots) — key '{}' will be dormant. "
+                    + "Increase config/neoorigins/client.toml [hotkeys] pool_size or assign via keybindjs.",
+                pool.length, key);
         }
 
         poolAssignments = slots;
         externalAssignments = Map.copyOf(external);
 
+        int assigned = 0;
+        for (String s : slots) if (s != null) assigned++;
         NeoOrigins.LOGGER.info(
             "[Hotkeys] Assigned {} pool slots + {} external keybindjs slots (pool size: {})",
-            slotIdx, external.size(), pool.length);
+            assigned, external.size(), pool.length);
     }
 
     /**
@@ -138,6 +167,24 @@ public final class HotkeyAssignments {
             NeoOrigins.LOGGER.warn("[Hotkeys] Failed scanning keyMappings for external bindings", e);
         }
         return out;
+    }
+
+    /** Canonical prefix of a numeric {@code key: N} declaration ("key.neoorigins.hotkey.N"). */
+    private static final String HOTKEY_SLOT_PREFIX = "key.neoorigins.hotkey.";
+
+    /**
+     * The 0-based pool slot a {@code "key.neoorigins.hotkey.N"} declared key pins to
+     * (numeric {@code key: N} shorthand, 1-indexed), or {@code -1} when {@code key} is
+     * an arbitrary string that fills a slot by sorted order instead.
+     */
+    private static int pinnedSlotIndex(String key) {
+        if (key == null || !key.startsWith(HOTKEY_SLOT_PREFIX)) return -1;
+        try {
+            int n = Integer.parseInt(key.substring(HOTKEY_SLOT_PREFIX.length()));
+            return n >= 1 ? n - 1 : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     /** Translation key bound to pool slot {@code i}, or null if the slot is empty. */
