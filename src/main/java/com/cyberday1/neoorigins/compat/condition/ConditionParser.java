@@ -71,7 +71,7 @@ public final class ConditionParser {
         "neoorigins:nbt", "neoorigins:near_block", "neoorigins:near_entity",
         "neoorigins:night", "neoorigins:no_minions_alive", "neoorigins:not",
         "neoorigins:on_block", "neoorigins:on_fire", "neoorigins:on_ground",
-        "neoorigins:or", "neoorigins:out_of_combat", "neoorigins:passenger",
+        "neoorigins:or", "neoorigins:origin", "neoorigins:out_of_combat", "neoorigins:passenger",
         "neoorigins:power", "neoorigins:power_active", "neoorigins:power_type",
         "neoorigins:predicate", "neoorigins:relative_health", "neoorigins:replacable",
         "neoorigins:resource", "neoorigins:scoreboard", "neoorigins:sneaking",
@@ -1633,6 +1633,28 @@ public final class ConditionParser {
             }
             // Also check dynamic grants
             return data.hasDynamicGrant(id);
+        };
+    }
+
+    /**
+     * origins:origin — true when the entity currently has the given origin. The
+     * {@code origin} field is the origin id (required); the optional {@code layer}
+     * field restricts the match to a single origin layer (absent → any layer).
+     * Mirrors Apoli's {@code origins:origin} entity condition so other-mod packs
+     * that gate powers on "does this player have origin X" translate correctly.
+     */
+    static EntityCondition parseOrigin(JsonObject json, String contextId) {
+        String originStr = json.has("origin") ? json.get("origin").getAsString() : null;
+        if (originStr == null) return failClosed("neoorigins:origin", contextId, "missing 'origin' field");
+        ResourceLocation wantOrigin = ResourceLocation.parse(originStr);
+        ResourceLocation wantLayer = json.has("layer") ? ResourceLocation.parse(json.get("layer").getAsString()) : null;
+        return p -> {
+            var data = p.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            for (var entry : data.getOrigins().entrySet()) {
+                if (wantLayer != null && !entry.getKey().equals(wantLayer)) continue;
+                if (wantOrigin.equals(entry.getValue())) return true;
+            }
+            return false;
         };
     }
 
