@@ -148,8 +148,65 @@ public final class BuiltinConditions {
             List.of(new FieldSpec("value", FormFieldSpec.Kind.BOOLEAN, false)
                 .def(false)
                 .doc("Constant result this condition always returns (default false).")));
-        // block_collision — always true (placeholder; no spatial query implemented).
-        define("block_collision", (json, ctx) -> EntityCondition.alwaysTrue(), List.of());
+        // block_collision — the entity's bounding box, shifted by offset_x/y/z
+        // (Apoli semantics: multipliers of the box's own width/height/width),
+        // intersects at least one matching block. With a `block_condition`, at
+        // least one intersected block must match it; without one, any block
+        // with a real collision shape counts. Previously an always-true
+        // placeholder — Fairy Origin's irons_bane gates its burn on TWO of
+        // these (±0.01 width offsets against #fairy:iron), which made the
+        // whole `or` chain permanently hot.
+        define("block_collision",
+            (json, ctx) -> {
+                final double offX = json.has("offset_x") ? json.get("offset_x").getAsDouble() : 0.0;
+                final double offY = json.has("offset_y") ? json.get("offset_y").getAsDouble() : 0.0;
+                final double offZ = json.has("offset_z") ? json.get("offset_z").getAsDouble() : 0.0;
+                final var blockCond = (json.has("block_condition") && json.get("block_condition").isJsonObject())
+                    ? com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
+                        .compileBlockPredicate(json.getAsJsonObject("block_condition"), ctx)
+                    : null;
+                return p -> {
+                    var box = p.getBoundingBox();
+                    // Apoli scales the offsets by the box's own dimensions
+                    // (X and Z by width, Y by height).
+                    double dx = offX * (box.maxX - box.minX);
+                    double dy = offY * (box.maxY - box.minY);
+                    double dz = offZ * (box.maxZ - box.minZ);
+                    var moved = box.move(dx, dy, dz);
+                    var level = p.level();
+                    int x0 = net.minecraft.util.Mth.floor(moved.minX);
+                    int x1 = net.minecraft.util.Mth.floor(moved.maxX);
+                    int y0 = net.minecraft.util.Mth.floor(moved.minY);
+                    int y1 = net.minecraft.util.Mth.floor(moved.maxY);
+                    int z0 = net.minecraft.util.Mth.floor(moved.minZ);
+                    int z1 = net.minecraft.util.Mth.floor(moved.maxZ);
+                    var cursor = new BlockPos.MutableBlockPos();
+                    for (int x = x0; x <= x1; x++) {
+                        for (int y = y0; y <= y1; y++) {
+                            for (int z = z0; z <= z1; z++) {
+                                cursor.set(x, y, z);
+                                if (blockCond != null) {
+                                    if (blockCond.test(p, cursor.immutable())) return true;
+                                } else if (!level.getBlockState(cursor)
+                                        .getCollisionShape(level, cursor).isEmpty()) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                };
+            },
+            List.of(
+                new FieldSpec("offset_x", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Bounding-box X shift as a multiple of the entity's width (default 0)."),
+                new FieldSpec("offset_y", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Bounding-box Y shift as a multiple of the entity's height (default 0)."),
+                new FieldSpec("offset_z", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                    .doc("Bounding-box Z shift as a multiple of the entity's width (default 0)."),
+                new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("block_condition.schema.json")
+                    .doc("Optional block filter; when present, at least one intersected block must match.")));
         // daytime — vanilla day window (0–13000 of the 24000-tick day).
         define("daytime",
             (json, ctx) -> p -> p.level().getDayTime() % 24000L < 13000L, List.of());
@@ -475,6 +532,22 @@ public final class BuiltinConditions {
                     new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
                         .ref("item_condition.schema.json")
                         .doc("Nested item condition; absent → slot-presence check (any item present).")));
+        // inventory — count inventory contents matching an item_condition and compare.
+        define("inventory",
+            (json, ctx) -> ConditionParser.parseInventory(json, ctx),
+            List.of(new FieldSpec("inventory_types", FormFieldSpec.Kind.ARRAY, false)
+                        .doc("Inventories to scan: `inventory` (main inventory incl. hotbar, armor, offhand) and/or `ender_chest`. Default: inventory only."),
+                    new FieldSpec("process_mode", FormFieldSpec.Kind.ENUM, false)
+                        .options("stacks", "items").def("stacks")
+                        .doc("`stacks` counts matching stacks; `items` sums their stack counts."),
+                    new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("item_condition.schema.json")
+                        .doc("Per-stack predicate; absent → any non-empty stack counts."),
+                    new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                        .options("==", "!=", ">", ">=", "<", "<=").def(">")
+                        .doc("Comparison operator against the count (default >)."),
+                    new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(0)
+                        .doc("Count threshold (default 0 — i.e. \"has at least one match\").")));
         // predicate — Apoli meta-wrapper compiling a vanilla MC predicate.
         define("predicate",
             (json, ctx) -> ConditionParser.parsePredicate(json, ctx),

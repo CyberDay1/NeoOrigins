@@ -33,10 +33,14 @@ import java.util.Map;
  * switch on the canonicalized {@code type}):
  * <ul>
  *   <li>{@code empty} — true when the stack is empty (no fields).</li>
- *   <li>{@code nbt} (alias {@code custom_data}) — SNBT subtree match on the
- *       stack's {@code minecraft:custom_data} component.</li>
+ *   <li>{@code nbt} (alias {@code custom_data}) — legacy-NBT subtree match:
+ *       the stack's data components are projected back into a pre-1.21
+ *       legacy tag view merged over {@code minecraft:custom_data}.</li>
  *   <li>{@code enchantment} — stack-level enchantment level comparison.</li>
  *   <li>{@code ingredient} — vanilla-recipe-style item / tag match.</li>
+ *   <li>{@code amount} — stack-count comparison.</li>
+ *   <li>{@code name} — display-name string equality.</li>
+ *   <li>{@code food} — item has a food component.</li>
  *   <li>{@code not} — single nested {@code item_condition} negated (explicit
  *       cross-doc {@code ref} so the name-heuristic resolver routes to this
  *       doc — not the entity condition doc — when nested).</li>
@@ -73,10 +77,12 @@ public final class BuiltinItemConditions {
     static {
         // empty — true when the stack is empty.
         define("empty", List.of());
-        // nbt / custom_data — SNBT subtree match on the custom_data component.
+        // nbt / custom_data — legacy-NBT subtree match (components projected
+        // back into the pre-1.21 tag view, merged over custom_data).
         define("nbt", List.of("custom_data"), List.of(
             new FieldSpec("nbt", FormFieldSpec.Kind.STRING, true)
-                .doc("SNBT subtree the stack's minecraft:custom_data must contain (e.g. {foo:1}).")));
+                .doc("SNBT subtree the stack's legacy-view NBT must contain (e.g. {foo:1} or {Potion:\"minecraft:swiftness\"}). "
+                    + "Data components are projected back into the pre-1.21 layout (Potion, Enchantments, display.Name, ...) merged over minecraft:custom_data.")));
         // enchantment — stack-level enchantment level comparison.
         define("enchantment", List.of(
             new FieldSpec("enchantment", FormFieldSpec.Kind.STRING, true)
@@ -92,6 +98,19 @@ public final class BuiltinItemConditions {
                 .doc("Exact item id to match (e.g. minecraft:diamond)."),
             new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
                 .doc("Item tag the stack must be in (e.g. minecraft:planks).")));
+        // amount — stack-count comparison.
+        define("amount", List.of(
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against the stack count (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(1)
+                .doc("Stack count threshold (default 1).")));
+        // name — display-name string equality.
+        define("name", List.of(
+            new FieldSpec("name", FormFieldSpec.Kind.STRING, true)
+                .doc("Exact display-name text the stack's hover name must equal (custom name, else default item name).")));
+        // food — item has a food component (no fields).
+        define("food", List.of());
         // not — single nested item condition, negated.
         define("not", List.of(
             new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
