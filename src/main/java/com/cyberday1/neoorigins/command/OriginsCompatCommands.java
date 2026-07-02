@@ -74,19 +74,19 @@ public class OriginsCompatCommands {
                         .suggests(SUGGEST_TARGET_RESOURCES)
                         .executes(OriginsCompatCommands::executeResourceGet))))
             .then(Commands.literal("set")
-                .then(Commands.argument("target", EntityArgument.player())
+                .then(Commands.argument("target", EntityArgument.players())
                     .then(Commands.argument("resource", ResourceLocationArgument.id())
                         .suggests(SUGGEST_TARGET_RESOURCES)
                         .then(Commands.argument("value", IntegerArgumentType.integer())
                             .executes(OriginsCompatCommands::executeResourceSet)))))
             .then(Commands.literal("change")
-                .then(Commands.argument("target", EntityArgument.player())
+                .then(Commands.argument("target", EntityArgument.players())
                     .then(Commands.argument("resource", ResourceLocationArgument.id())
                         .suggests(SUGGEST_TARGET_RESOURCES)
                         .then(Commands.argument("value", IntegerArgumentType.integer())
                             .executes(OriginsCompatCommands::executeResourceChange)))))
             .then(Commands.literal("operation")
-                .then(Commands.argument("target", EntityArgument.player())
+                .then(Commands.argument("target", EntityArgument.players())
                     .then(Commands.argument("resource", ResourceLocationArgument.id())
                         .suggests(SUGGEST_TARGET_RESOURCES)
                         .then(Commands.argument("operation", StringArgumentType.word())
@@ -95,20 +95,51 @@ public class OriginsCompatCommands {
                                 .then(Commands.argument("objective", ObjectiveArgument.objective())
                                     .executes(OriginsCompatCommands::executeResourceOperation))))))));
 
-        // /power grant <target> <power>
-        // /power revoke <target> <power>
+        // /power grant  <targets> <power> [<source>]
+        // /power revoke <targets> <power> [<source>]
+        // /power remove <targets> <power> [<source>]  (alias for revoke — see below)
+        //
+        // Apoli's real /power grant|revoke syntax takes an OPTIONAL trailing
+        // <source> power — the power that granted this one, used by Apoli for
+        // multi-source reference counting (a power stays until every source
+        // revokes it). NeoOrigins tracks grants as a flat set, so we accept the
+        // source token and ignore it. But the node must EXIST: without it,
+        // Brigadier fails to parse a line like
+        //   power grant @e[..] flowerman:wind_hold flowerman:mysterious_wind
+        // and the whole mcfunction silently never loads (same trap as the
+        // /power remove alias and the /scale shim). Seen in flowerman:mysterious_wind.
         dispatcher.register(Commands.literal("power")
             .requires(cs -> cs.hasPermission(2))
             .then(Commands.literal("grant")
                 .then(Commands.argument("targets", EntityArgument.entities())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
                         .suggests(SUGGEST_POWERS)
-                        .executes(OriginsCompatCommands::executePowerGrant))))
+                        .executes(OriginsCompatCommands::executePowerGrant)
+                        .then(Commands.argument("source", ResourceLocationArgument.id())
+                            .suggests(SUGGEST_POWERS)
+                            .executes(OriginsCompatCommands::executePowerGrant)))))
             .then(Commands.literal("revoke")
                 .then(Commands.argument("targets", EntityArgument.entities())
                     .then(Commands.argument("power", ResourceLocationArgument.id())
                         .suggests(SUGGEST_POWERS)
-                        .executes(OriginsCompatCommands::executePowerRevoke)))));
+                        .executes(OriginsCompatCommands::executePowerRevoke)
+                        .then(Commands.argument("source", ResourceLocationArgument.id())
+                            .suggests(SUGGEST_POWERS)
+                            .executes(OriginsCompatCommands::executePowerRevoke)))))
+            // `remove` alias for `revoke`. Some community packs (e.g. "wou") call
+            // `/power remove`, which was never a real Apoli/Origins subcommand —
+            // the real verb is `revoke`. Without this literal Brigadier fails to
+            // parse the whole mcfunction at datapack load, so every OTHER line in
+            // that function silently never runs (same failure mode as the /scale
+            // shim below). Accept `remove` and route it to the revoke handler.
+            .then(Commands.literal("remove")
+                .then(Commands.argument("targets", EntityArgument.entities())
+                    .then(Commands.argument("power", ResourceLocationArgument.id())
+                        .suggests(SUGGEST_POWERS)
+                        .executes(OriginsCompatCommands::executePowerRevoke)
+                        .then(Commands.argument("source", ResourceLocationArgument.id())
+                            .suggests(SUGGEST_POWERS)
+                            .executes(OriginsCompatCommands::executePowerRevoke))))));
 
         // /scale shim (Pehkui parity) — ONLY when Pehkui itself is absent.
         //
@@ -285,67 +316,98 @@ public class OriginsCompatCommands {
         return value;
     }
 
+    // set / change / operation take MULTIPLE targets (Apoli allows e.g.
+    // `resource change @a[team=fm_recruits] flowerman:count -1`). Players that
+    // don't currently have the resource are skipped rather than erroring, so a
+    // multi-target call never aborts the enclosing mcfunction (fail-open, same
+    // spirit as the /power and /scale shims). Return the last affected value,
+    // or 0 if no target had the resource.
     private static int executeResourceSet(CommandContext<CommandSourceStack> ctx)
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        java.util.Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "target");
         ResourceLocation resource = ResourceLocationArgument.getId(ctx, "resource");
         int value = IntegerArgumentType.getInteger(ctx, "value");
-        String key = requireResource(player, resource);
-        int newValue = clampToMeta(key, value);
-        player.getData(CompatAttachments.resourceState()).set(key, newValue);
-        CompatAttachments.syncResourceValuesToClient(player);
-        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
-            "commands.scoreboard.players.set.success.single", key, player.getDisplayName(), newValue), true);
-        return newValue;
+        String key = resource.toString();
+        int last = 0;
+        int affected = 0;
+        for (ServerPlayer player : players) {
+            var state = player.getData(CompatAttachments.resourceState());
+            if (!state.has(key)) continue;
+            int newValue = clampToMeta(key, value);
+            state.set(key, newValue);
+            CompatAttachments.syncResourceValuesToClient(player);
+            last = newValue;
+            affected++;
+            final int fv = newValue;
+            ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+                "commands.scoreboard.players.set.success.single", key, player.getDisplayName(), fv), true);
+        }
+        return affected == 0 ? 0 : last;
     }
 
     private static int executeResourceChange(CommandContext<CommandSourceStack> ctx)
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        java.util.Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "target");
         ResourceLocation resource = ResourceLocationArgument.getId(ctx, "resource");
         int delta = IntegerArgumentType.getInteger(ctx, "value");
-        String key = requireResource(player, resource);
-        var state = player.getData(CompatAttachments.resourceState());
-        var meta = CompatAttachments.getResourceMeta(key);
-        int min = meta != null ? meta.min() : 0;
-        int max = meta != null ? meta.max() : Integer.MAX_VALUE;
-        state.clampedAdd(key, delta, min, max);
-        int newValue = state.get(key, 0);
-        CompatAttachments.syncResourceValuesToClient(player);
-        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
-            "commands.scoreboard.players.add.success.single", delta, key, player.getDisplayName(), newValue), true);
-        return newValue;
+        String key = resource.toString();
+        int last = 0;
+        int affected = 0;
+        for (ServerPlayer player : players) {
+            var state = player.getData(CompatAttachments.resourceState());
+            if (!state.has(key)) continue;
+            var meta = CompatAttachments.getResourceMeta(key);
+            int min = meta != null ? meta.min() : 0;
+            int max = meta != null ? meta.max() : Integer.MAX_VALUE;
+            state.clampedAdd(key, delta, min, max);
+            int newValue = state.get(key, 0);
+            CompatAttachments.syncResourceValuesToClient(player);
+            last = newValue;
+            affected++;
+            final int fv = newValue;
+            ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+                "commands.scoreboard.players.add.success.single", delta, key, player.getDisplayName(), fv), true);
+        }
+        return affected == 0 ? 0 : last;
     }
 
     private static int executeResourceOperation(CommandContext<CommandSourceStack> ctx)
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        ServerPlayer player = EntityArgument.getPlayer(ctx, "target");
+        java.util.Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "target");
         ResourceLocation resource = ResourceLocationArgument.getId(ctx, "resource");
         String op = StringArgumentType.getString(ctx, "operation");
         net.minecraft.world.scores.ScoreHolder sourceHolder = ScoreHolderArgument.getName(ctx, "source");
         net.minecraft.world.scores.Objective objective = ObjectiveArgument.getObjective(ctx, "objective");
-        String key = requireResource(player, resource);
+        String key = resource.toString();
 
-        var state = player.getData(CompatAttachments.resourceState());
         net.minecraft.world.scores.Scoreboard scoreboard = ctx.getSource().getServer().getScoreboard();
         net.minecraft.world.scores.ScoreAccess sourceScore = scoreboard.getOrCreatePlayerScore(sourceHolder, objective);
 
-        int cur = state.get(key, 0);
-        int src = sourceScore.get();
-        int result;
-        if (op.equals("><")) {
-            // swap: resource takes the source score, source score takes the old resource value
-            result = src;
-            sourceScore.set(cur);
-        } else {
-            result = applyOperation(op, cur, src);
+        int last = 0;
+        int affected = 0;
+        for (ServerPlayer player : players) {
+            var state = player.getData(CompatAttachments.resourceState());
+            if (!state.has(key)) continue;
+            int cur = state.get(key, 0);
+            int src = sourceScore.get();
+            int result;
+            if (op.equals("><")) {
+                // swap: resource takes the source score, source score takes the old resource value
+                result = src;
+                sourceScore.set(cur);
+            } else {
+                result = applyOperation(op, cur, src);
+            }
+            int newValue = clampToMeta(key, result);
+            state.set(key, newValue);
+            CompatAttachments.syncResourceValuesToClient(player);
+            last = newValue;
+            affected++;
+            final int fv = newValue;
+            ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+                "commands.scoreboard.players.operation.success.single", key, player.getDisplayName(), fv), true);
         }
-        int newValue = clampToMeta(key, result);
-        state.set(key, newValue);
-        CompatAttachments.syncResourceValuesToClient(player);
-        ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
-            "commands.scoreboard.players.operation.success.single", key, player.getDisplayName(), newValue), true);
-        return newValue;
+        return affected == 0 ? 0 : last;
     }
 
     private static int applyOperation(String op, int cur, int src)
