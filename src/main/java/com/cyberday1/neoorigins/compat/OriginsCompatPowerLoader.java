@@ -402,7 +402,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:nine_lives",           () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -2.0, "operation", "add_value")),
             Map.entry("origins:no_shield",            () -> json("neoorigins:prevent_action", "action", "shield")),
             Map.entry("origins:vegetarian",           () -> json("neoorigins:food_restriction", "mode", "blacklist", "item_tag", "neoorigins:meat_foods")),
-            Map.entry("origins:weak_arms",            () -> json("neoorigins:break_speed_modifier", "modifier", -0.5)),
+            Map.entry("origins:weak_arms",            () -> json("neoorigins:break_speed_modifier", "multiplier", 0.5)),
+            // ── Rock/earthen addon references (e.g. "wou" rock_human) ──
+            // strong_arms: real Origins lets bare hands mine tool-required
+            // blocks as the proper tool would. bare_hand_tool maps exactly —
+            // point it at a netherite pickaxe (stone/ore tier + speed).
+            Map.entry("origins:strong_arms",          () -> json("neoorigins:bare_hand_tool", "tool", "minecraft:netherite_pickaxe")),
+            // strong_arms_break_speed: the companion break-speed boost. The
+            // break_speed_modifier codec field is "multiplier" (values >1 speed
+            // up, <1 slow down — cf. weak_arms above at 0.5).
+            Map.entry("origins:strong_arms_break_speed", () -> json("neoorigins:break_speed_modifier", "multiplier", 5.0)),
+            Map.entry("origins:natural_armor",        () -> naturalArmorJson()),
+            Map.entry("origins:more_exhaustion",      () -> moreExhaustionJson()),
             Map.entry("origins:master_of_webs",       () -> json("neoorigins:wall_climbing")),
             Map.entry("origins:arthropod",            () -> json("neoorigins:entity_group", "group", "arthropod")),
             Map.entry("origins:fragile",              () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -6.0, "operation", "add_value")),
@@ -490,6 +501,41 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         blockCond.addProperty("comparison", "<");
         blockCond.addProperty("compare_to", 86);
         o.add("block_condition", blockCond);
+        return o;
+    }
+
+    /**
+     * origins:natural_armor — an always-on Resistance I (amplifier 0) via
+     * persistent_effect, mirroring NeoOrigins' own *_natural_armor builtins
+     * (e.g. golem_natural_armor). Referenced by ID by rock/earthen addon packs.
+     */
+    private static com.google.gson.JsonObject naturalArmorJson() {
+        com.google.gson.JsonObject o = json("neoorigins:persistent_effect");
+        o.addProperty("toggleable", false);
+        com.google.gson.JsonObject eff = new com.google.gson.JsonObject();
+        eff.addProperty("effect", "minecraft:resistance");
+        eff.addProperty("amplifier", 0);
+        eff.addProperty("ambient", true);
+        eff.addProperty("show_particles", false);
+        eff.addProperty("show_icon", false);
+        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
+        effects.add(eff);
+        o.add("effects", effects);
+        return o;
+    }
+
+    /**
+     * origins:more_exhaustion — the player tires faster. Hooks the
+     * {@code mod_exhaustion} value event and multiplies incoming exhaustion,
+     * matching real Origins' apoli:modify_exhaustion drawback.
+     */
+    private static com.google.gson.JsonObject moreExhaustionJson() {
+        com.google.gson.JsonObject o = json("neoorigins:action_on_event");
+        o.addProperty("event", "mod_exhaustion");
+        com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+        mod.addProperty("operation", "multiply_total");
+        mod.addProperty("value", 2.0);
+        o.add("modifier", mod);
         return o;
     }
 
