@@ -218,7 +218,13 @@ public class CompatAttachments {
 
     public static void registerResourceMeta(String key, ResourceMeta meta) { RESOURCE_META.put(key, meta); }
     public static void unregisterResourceMeta(String key) { RESOURCE_META.remove(key); }
-    public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(key); }
+    // Reads resolve legacy slash-form synthetic ids (see LEGACY_SYNTHETIC_IDS below):
+    // meta is registered under the power's canonical underscore id, but datapack
+    // references (change_resource bounds lookup, resource-command clamps) may still
+    // carry the pre-2.2.8 "parent/subkey" form. Without resolution the lookup
+    // returns null and change_resource writes unbounded — a [0,1] counter climbs
+    // past max and any `resource ==` gate goes permanently false.
+    public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(resolveLegacySyntheticId(key)); }
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
     public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
 
@@ -264,14 +270,15 @@ public class CompatAttachments {
 
     public static void registerVariable(String key, VariableDecl decl) { VARIABLE_DECLS.put(key, decl); }
     public static void unregisterVariable(String key) { VARIABLE_DECLS.remove(key); }
-    public static VariableDecl getVariable(String key) { return VARIABLE_DECLS.get(key); }
-    public static boolean isDeclaredVariable(String key) { return VARIABLE_DECLS.containsKey(key); }
+    // Reads resolve legacy slash-form synthetic ids, same rationale as getResourceMeta.
+    public static VariableDecl getVariable(String key) { return VARIABLE_DECLS.get(resolveLegacySyntheticId(key)); }
+    public static boolean isDeclaredVariable(String key) { return VARIABLE_DECLS.containsKey(resolveLegacySyntheticId(key)); }
     public static Map<String, VariableDecl> allVariables() { return Map.copyOf(VARIABLE_DECLS); }
     public static void clearVariables() { VARIABLE_DECLS.clear(); }
 
     /** Declared start value for a variable key, or 0 when the key isn't a declared variable. */
     public static int variableStart(String key) {
-        VariableDecl d = VARIABLE_DECLS.get(key);
+        VariableDecl d = getVariable(key);
         return d != null ? d.start() : 0;
     }
 
