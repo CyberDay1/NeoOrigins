@@ -401,6 +401,14 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parsePower(json, ctx),
             List.of(new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
                 .doc("Power id the player must have been granted.")));
+        // origin — true when the player currently has the given origin (optionally
+        // scoped to one layer). Mirrors Apoli's origins:origin entity condition.
+        define("origin",
+            (json, ctx) -> ConditionParser.parseOrigin(json, ctx),
+            List.of(new FieldSpec("origin", FormFieldSpec.Kind.STRING, true)
+                        .doc("Origin id the player must currently have."),
+                    new FieldSpec("layer", FormFieldSpec.Kind.STRING, false)
+                        .doc("Restrict the match to a single origin layer (absent → any layer).")));
 
         // ---- Power / resource / cooldown conditions (delegate to ConditionParser) ----
         // resource / resource_level — compares a power's stored resource value.
