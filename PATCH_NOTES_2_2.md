@@ -2,6 +2,27 @@
 
 ---
 
+## v2.2.12
+
+> A compatibility release: a new `origins:origin` condition and four more built-in powers so third-party addon packs load, more forgiving `/power` and `/resource` commands, and a Dragon Survival fix that stops us from blocking its appearance editor.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Compatibility (Apoli / Origins)
+
+- **`origins:origin` condition implemented.** A pack can now gate a power on whether the player currently holds a given origin — optionally scoped to a single layer — instead of the condition being ignored. This mirrors Apoli's own `origins:origin` entity condition, so packs that key powers off "does this player have origin X" translate correctly.
+- **Four more built-in Origins powers now translate.** Addon packs that reference `origins:strong_arms`, `origins:natural_armor`, or `origins:more_exhaustion` by ID — without shipping the power themselves — now resolve to NeoOrigins equivalents (a mining-tool boost, an always-on resistance passive, and a doubled-exhaustion penalty). More of an addon's powers translate, so origins that were auto-hidden for translating too few of theirs — like the `wou` pack's rock human — now show up in the picker.
+- **`/power` accepts an optional source argument.** `/power grant`, `revoke`, and `remove` now take a trailing power-source ID the way Apoli's own command does, so an addon's functions that pass one no longer fail to parse. The shim reference-counts nothing yet — the source is accepted and ignored — but the command runs instead of silently killing the rest of the function.
+- **`/resource` commands accept multiple targets.** `/resource set`, `change`, and `operation` now take an entity selector that resolves to more than one player and apply to each of them, matching the multi-target behavior addon function packs expect.
+
+### Bug Fixes
+
+- **`origins:weak_arms` slows mining again.** The compat mapping was passing its factor under the wrong codec key, so it silently fell back to the 2× default and made weak-armed origins mine *faster* — the opposite of the intent. It now correctly halves mining speed.
+- **The Flower Man addon pack loads clean.** Its abilities relied on 1.20-era `/power` and `/resource` syntax and on particle definitions that the newer NBT parser rejected; with the command shims above and the pack's own particle lists corrected, its functions register and run without load errors.
+- **Dragon Survival's appearance editor opens again.** The compat suppressor was cancelling DS's `DragonEditorScreen` — the skin/appearance editor a player opens deliberately — so it could never be opened, even via `/dragon editor`. It now leaves the editor, skins, abilities, and inventory alone and only intercepts DS's *species*-choice screens. That interception is off by default too: enable `compat.suppress_dragon_species_screens` in the client config if you want the origin picker to be the sole way to choose a dragon species.
+
+---
+
 ## v2.2.9
 
 > A hotfix for 2.2.8: condition-gated invisibility now ends the moment its condition lapses, true invisibility hides held items along with armor, and the cooldown-icon HUD honors the "hide idle icons" setting again.
