@@ -31,6 +31,7 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.BooleanValue ALWAYS_SHOW_ABILITY_ICONS;
     public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> HOTKEY_SLOT_DEFAULTS;
+    public static final ModConfigSpec.BooleanValue SUPPRESS_DRAGON_SPECIES_SCREENS;
 
     /** What the cooldown/ability HUD cluster shows besides live cooldowns. */
     public enum HudAbilityDisplay {
@@ -153,6 +154,19 @@ public final class NeoOriginsClientConfig {
                         o -> o instanceof String && ((String) o).contains("="));
 
         BUILDER.pop();
+
+        BUILDER.comment("Cross-mod compatibility toggles.").push("compat");
+
+        SUPPRESS_DRAGON_SPECIES_SCREENS = BUILDER
+            .comment("Dragon Survival: block DS's own dragon-SPECIES selection screens",
+                     "(the altar / species-choice popup) so the NeoOrigins origin picker",
+                     "is the only way to choose or change a dragon species. Default false",
+                     "= leave DS's species screens usable alongside origins. DS's",
+                     "appearance editor, skins, abilities and inventory are ALWAYS left",
+                     "open regardless of this setting.")
+            .define("suppress_dragon_species_screens", false);
+
+        BUILDER.pop();
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
@@ -186,6 +200,9 @@ public final class NeoOriginsClientConfig {
 
     /** Raw "N=key.keyboard.X" default-binding entries for named-hotkey pool slots. */
     public static java.util.List<? extends String> hotkeySlotDefaults() { return HOTKEY_SLOT_DEFAULTS.get(); }
+
+    /** True if Dragon Survival's own dragon-species selection screens should be blocked. */
+    public static boolean isSuppressDragonSpeciesScreens() { return SUPPRESS_DRAGON_SPECIES_SCREENS.get(); }
 
     /** Pushes the current TOML value into {@link com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry}. */
     public static void onConfigLoadOrReload(ModConfigEvent event) {
