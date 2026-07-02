@@ -530,6 +530,13 @@ public final class ActionParser {
         if (ctx instanceof RaycastBlockContext rbc) {
             return rbc.pos();
         }
+        // block_use / bonemeal dispatches publish a BlockInteractContext, so a
+        // block_action execute_command on action_on_block_use resolves `~ ~ ~`
+        // to the clicked block (the Apoli block-action semantics — Chaotic
+        // Chemist's mechanical-chemistry triggers a function at the mixer).
+        if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.BlockInteractContext bic) {
+            return bic.pos();
+        }
         return null;
     }
 
@@ -590,6 +597,31 @@ public final class ActionParser {
         TargetCondition targetCond = condJson != null
             ? TargetConditionParser.parse(condJson, contextId) : null;
 
+        // Apoli block-action form: `block_action` fans the inner action out over
+        // BLOCK POSITIONS in radius (centered on the context block pos when one
+        // resolves, else the source's feet), publishing each pos as a
+        // RaycastBlockContext so block verbs (grow/bonemeal, transform_block,
+        // offset, execute_command) self-resolve. This is the Fairy Origin
+        // verdant_touch chain — block_action_at > area_of_effect{block_action:
+        // offset{bonemeal}} — which previously no-opped (entity-only fan-out).
+        JsonObject blockInnerJson = null;
+        if (json.has("block_action")) {
+            JsonElement ba = json.get("block_action");
+            if (ba.isJsonObject()) {
+                blockInnerJson = ba.getAsJsonObject();
+            } else if (ba.isJsonArray()) {
+                blockInnerJson = new JsonObject();
+                blockInnerJson.addProperty("type", "neoorigins:and");
+                blockInnerJson.add("actions", ba.getAsJsonArray());
+            }
+        }
+        EntityAction blockAction = blockInnerJson != null ? parse(blockInnerJson, contextId) : null;
+        java.util.function.BiPredicate<net.minecraft.server.level.ServerPlayer, net.minecraft.core.BlockPos> blockCond =
+            (blockAction != null && json.has("block_condition") && json.get("block_condition").isJsonObject())
+                ? com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
+                    .compileBlockPredicate(json.getAsJsonObject("block_condition"), contextId)
+                : null;
+
         final float  finalRadius       = radius;
         final boolean finalIncludeSelf = includeSelf;
         final String  finalShape       = shape;
@@ -597,6 +629,8 @@ public final class ActionParser {
         final TargetAction finalTargetAction = targetAction;
         final EntityCondition finalCond = targetCondition;
         final TargetCondition finalTargetCond = targetCond;
+        final EntityAction finalBlockAction = blockAction;
+        final var finalBlockCond = blockCond;
 
         return source -> {
             var level = source.level();
@@ -666,6 +700,31 @@ public final class ActionParser {
                 } else if (isPlayer) {
                     // Player-only verb — legacy behaviour: players only, skip mobs.
                     finalAction.execute((net.minecraft.server.level.ServerPlayer) entity);
+                }
+            }
+
+            // Block fan-out (Apoli area_of_effect `block_action` form).
+            if (finalBlockAction != null) {
+                net.minecraft.core.BlockPos center = extractCommandBlockPos(ctx);
+                if (center == null) center = net.minecraft.core.BlockPos.containing(srcPos);
+                // Cap the block sweep radius: a pack-default radius of 16 is
+                // sane for the entity path but 33^3 block positions per fire is
+                // where we draw the line anyway; Apoli packs use small radii
+                // (Fairy verdant_touch: 2).
+                int br = (int) Math.ceil(Math.min(finalRadius, 16.0f));
+                double br2 = (double) finalRadius * finalRadius;
+                boolean sphere = "sphere".equalsIgnoreCase(finalShape);
+                for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(
+                        center.offset(-br, -br, -br), center.offset(br, br, br))) {
+                    if (sphere && pos.distSqr(center) > br2) continue;
+                    if (finalBlockCond != null && !finalBlockCond.test(source, pos)) continue;
+                    Object prevCtx = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                        new RaycastBlockContext(pos.immutable()));
+                    try {
+                        finalBlockAction.execute(source);
+                    } finally {
+                        com.cyberday1.neoorigins.service.ActionContextHolder.restore(prevCtx);
+                    }
                 }
             }
         };

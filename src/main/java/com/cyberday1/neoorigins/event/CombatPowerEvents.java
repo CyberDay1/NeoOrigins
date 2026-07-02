@@ -701,8 +701,10 @@ public class CombatPowerEvents {
         var effectKey = BuiltInRegistries.MOB_EFFECT.getKey(effectHolder.value());
         if (effectKey == null) return;
         String effectId = effectKey.toString();
+        // blocks() = list membership XOR inverted, so `inverted: true` with an
+        // empty list (Apoli exception-list form) means immunity to ALL effects.
         if (ActiveOriginService.has(sp, EffectImmunityPower.class,
-                config -> config.effects().contains(effectId))) {
+                config -> config.blocks(effectId))) {
             event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
             return;
         }

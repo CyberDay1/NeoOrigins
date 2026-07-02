@@ -94,10 +94,12 @@ public final class OriginsPowerTranslator {
         "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
         "origins:freeze",                "apace:freeze",
         "origins:modify_harvest",        "apace:modify_harvest",
-        // Display-only, no gameplay effect.
         // NOTE: origins:simple / origins:tooltip are NOT skipped — they are
         // translated to neoorigins:simple in doTranslate() so their name/
         // description still render in the GUI (a SKIP here would discard them).
+        // origins:cooldown — Route B parses it into a countdown compat
+        // resource that trigger_cooldown can arm and resource conditions /
+        // hud_render can read (the Apoli "readable cooldown" pattern).
         "origins:cooldown",              "apace:cooldown"
     );
 
@@ -340,7 +342,9 @@ public final class OriginsPowerTranslator {
             case "origins:modify_player_spawn",    "apace:modify_player_spawn"    -> translateModifyPlayerSpawn(src);
             // Phase 8: Origins++ compat
             case "origins:action_on_block_break",  "apace:action_on_block_break"  -> translateActionOnBlockBreak(src);
+            case "origins:action_on_block_use",    "apace:action_on_block_use"    -> translateActionOnBlockUse(src);
             case "origins:action_on_entity_use",   "apace:action_on_entity_use"   -> translateActionOnEntityUse(src);
+            case "origins:bonemeal",               "apace:bonemeal"               -> translateBonemeal(src);
             case "origins:status_bar_texture",      "apace:status_bar_texture"     -> translateDisplayNoop();
             // Display-only powers with no gameplay effect — map to the native
             // neoorigins:simple marker so the name/description still show in the
@@ -474,6 +478,76 @@ public final class OriginsPowerTranslator {
         if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
         if (src.has("condition"))       out.add("condition", src.get("condition"));
         if (src.has("block_condition")) out.add("block_condition", src.get("block_condition"));
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:action_on_block_use} to
+     * {@code neoorigins:action_on_event} with event {@code block_use}.
+     * Carries over condition, block_condition and the hand filter directly.
+     * {@code block_action} and {@code entity_action} both run as the event's
+     * entity_action (block actions in the compat parser self-resolve the
+     * clicked BlockPos from the dispatch context); an Apoli
+     * {@code action_result} of SUCCESS/CONSUME/CONSUME_PARTIAL/FAIL — all of
+     * which stop vanilla processing — appends a {@code cancel_event} so the
+     * interaction outcome matches.
+     */
+    private static Optional<JsonObject> translateActionOnBlockUse(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "block_use");
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        if (src.has("block_condition")) out.add("block_condition", src.get("block_condition"));
+        if (src.has("hands"))           out.add("hands", src.get("hands"));
+        else if (src.has("hand"))       out.add("hand", src.get("hand"));
+
+        com.google.gson.JsonArray actions = new com.google.gson.JsonArray();
+        if (src.has("block_action"))  actions.add(src.get("block_action"));
+        if (src.has("entity_action")) actions.add(src.get("entity_action"));
+        String result = src.has("action_result")
+            ? src.get("action_result").getAsString().toUpperCase(Locale.ROOT) : "";
+        if (result.equals("SUCCESS") || result.equals("CONSUME")
+                || result.equals("CONSUME_PARTIAL") || result.equals("FAIL")) {
+            JsonObject cancel = new JsonObject();
+            cancel.addProperty("type", "neoorigins:cancel_event");
+            actions.add(cancel);
+        }
+        if (actions.size() == 1) {
+            out.add("entity_action", actions.get(0));
+        } else if (actions.size() > 1) {
+            JsonObject and = new JsonObject();
+            and.addProperty("type", "neoorigins:and");
+            and.add("actions", actions);
+            out.add("entity_action", and);
+        }
+        return Optional.of(out);
+    }
+
+    /**
+     * Translates {@code origins:bonemeal} (Apoli-family addon shape) to
+     * {@code neoorigins:action_on_event} with event {@code bonemeal}.
+     * Carries over entity_action/block_action, condition and block_condition —
+     * the same context plumbing as block_use (BlockInteractContext carries the
+     * bonemealed BlockPos, so block actions self-resolve).
+     */
+    private static Optional<JsonObject> translateBonemeal(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:action_on_event");
+        out.addProperty("event", "bonemeal");
+        if (src.has("condition"))       out.add("condition", src.get("condition"));
+        if (src.has("block_condition")) out.add("block_condition", src.get("block_condition"));
+
+        com.google.gson.JsonArray actions = new com.google.gson.JsonArray();
+        if (src.has("block_action"))  actions.add(src.get("block_action"));
+        if (src.has("entity_action")) actions.add(src.get("entity_action"));
+        if (actions.size() == 1) {
+            out.add("entity_action", actions.get(0));
+        } else if (actions.size() > 1) {
+            JsonObject and = new JsonObject();
+            and.addProperty("type", "neoorigins:and");
+            and.add("actions", actions);
+            out.add("entity_action", and);
+        }
         return Optional.of(out);
     }
 
@@ -955,9 +1029,18 @@ public final class OriginsPowerTranslator {
             effects.add(canonicalizeEffectId(src.get("effect").getAsString()));
         }
 
-        if (effects.isEmpty()) throw new IllegalArgumentException("origins:effect_immunity: no effects specified");
+        // Apoli's `inverted` flips the list into an exception list: immune to
+        // every effect EXCEPT those listed. inverted:true with NO effects is a
+        // legitimate "immune to all effects" power (e.g. Chaotic Chemist's
+        // Immunity Shot, gated by a power condition) — so only reject an empty
+        // list in the non-inverted form, where it would mean "immune to nothing".
+        boolean inverted = src.has("inverted") && src.get("inverted").getAsBoolean();
+        if (effects.isEmpty() && !inverted) {
+            throw new IllegalArgumentException("origins:effect_immunity: no effects specified");
+        }
 
         out.add("effects", effects);
+        if (inverted) out.addProperty("inverted", true);
         return Optional.of(out);
     }
 

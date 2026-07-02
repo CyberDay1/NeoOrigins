@@ -1212,12 +1212,15 @@ public final class BuiltinPowers {
 
         // effect_immunity lives in the compat package (com.cyberday1.neoorigins.compat),
         // not power.builtin, so SchemaFormCheck's power.builtin class-scan never flagged
-        // it — it was registered in PowerTypes but missing here. Flat single-field codec
-        // (Codec.STRING.listOf optionalFieldOf "effects" default []), so it registers
-        // cleanly as one ARRAY field.
+        // it — it was registered in PowerTypes but missing here. Flat codec
+        // (Codec.STRING.listOf optionalFieldOf "effects" default [] + BOOL "inverted"
+        // default false), so it registers cleanly as ARRAY + BOOLEAN fields.
         define("effect_immunity", EffectImmunityPower.class, List.of(
             new FieldSpec("effects", Kind.ARRAY, false)
-                .doc("Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity.")));
+                .doc("Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity (unless inverted)."),
+            new FieldSpec("inverted", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("When true, the list becomes an exception list: immune to every effect EXCEPT those listed. true with an empty list = immune to all effects.")));
 
         // invisibility: native replacement for the old compat status_effect rewrite,
         // carrying Apoli's render_armor field the rewrite used to drop. Single boolean

@@ -46,7 +46,10 @@ public final class BlockTargetActionParser {
             case "neoorigins:strip" -> BuiltinActions::applyStrip;
             case "neoorigins:till"  -> BuiltinActions::applyTill;
             case "neoorigins:path"  -> BuiltinActions::applyPath;
-            case "neoorigins:grow"  -> BuiltinActions::applyGrow;
+            case "neoorigins:grow",
+                 // Apoli block-action name for the same verb (Fairy Origin's
+                 // verdant_touch authors `origins:bonemeal`).
+                 "neoorigins:bonemeal" -> BuiltinActions::applyGrow;
             case "neoorigins:transform_block" -> {
                 final net.minecraft.world.level.block.Block from =
                     BuiltinActions.resolveBlockOrNull(json.has("from") ? json.get("from").getAsString() : null, "transform_block.from");

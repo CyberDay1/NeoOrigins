@@ -259,6 +259,12 @@ public final class BuiltinActions {
         // trigger_cooldown — start a power's cooldown. Lift-and-shift of
         // parseTriggerCooldown. `power` is the only hard requirement (parser
         // no-ops when absent); `cooldown` optional (parser default 20).
+        // Besides the active-power cooldown store, this also arms Apoli
+        // origins:cooldown powers: those are countdown RESOURCES (0 == ready,
+        // >0 == remaining), so any state key matching `power` (wildcards like
+        // "*:*_timer" included) that has a registered cooldown duration is set
+        // to that duration — the Chaotic Chemist immunity-shot pattern
+        // (trigger_cooldown, then gate on `resource *:*_timer > 0`).
         define("trigger_cooldown",
             (json, ctx) -> {
                 int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 20;
@@ -267,6 +273,20 @@ public final class BuiltinActions {
                 return player -> {
                     var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
                     data.setCooldown(powerId, player.tickCount, cooldown);
+                    var state = player.getData(
+                        com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
+                    boolean armed = false;
+                    for (String k : state.matchingKeys(powerId)) {
+                        Integer duration =
+                            com.cyberday1.neoorigins.compat.CompatAttachments.cooldownDuration(k);
+                        if (duration != null) {
+                            state.set(k, duration);
+                            armed = true;
+                        }
+                    }
+                    if (armed) {
+                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
+                    }
                 };
             },
             List.of(
@@ -1758,18 +1778,46 @@ public final class BuiltinActions {
         // our actions already read their position from the dispatch context, so the
         // x/y/z offset is a no-op and the inner `action` is returned as-is. The x/y/z
         // fields are kept on the descriptor for schema/editor fidelity.
+        // offset — Apoli block action: run the inner `action` with the current
+        // context BlockPos shifted by (x, y, z). When the active dispatch
+        // context resolves a block position (block_use / bonemeal / raycast /
+        // block_action_at / area_of_effect block fan-out), the shifted pos is
+        // published as a RaycastBlockContext for the inner action; when no
+        // block context resolves, the inner action runs unshifted (the old
+        // passthrough behaviour) so entity-ish uses keep working.
         define("offset",
-            (json, ctx) -> ActionParser.parseField(json, "action", ctx),
+            (json, ctx) -> {
+                EntityAction inner = ActionParser.parseField(json, "action", ctx);
+                final int x = json.has("x") ? json.get("x").getAsInt() : 0;
+                final int y = json.has("y") ? json.get("y").getAsInt() : 0;
+                final int z = json.has("z") ? json.get("z").getAsInt() : 0;
+                if (x == 0 && y == 0 && z == 0) return inner;
+                return player -> {
+                    net.minecraft.core.BlockPos base = ActionParser.extractCommandBlockPos(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get());
+                    if (base == null) {
+                        inner.execute(player);
+                        return;
+                    }
+                    Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                        new ActionParser.RaycastBlockContext(base.offset(x, y, z)));
+                    try {
+                        inner.execute(player);
+                    } finally {
+                        com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev);
+                    }
+                };
+            },
             List.of(
                 new FieldSpec("action", FormFieldSpec.Kind.REF, false)
                     .ref("#")
-                    .doc("Inner action to run (offset is architectural; position comes from context)."),
+                    .doc("Inner action to run at the offset block position."),
                 new FieldSpec("x", FormFieldSpec.Kind.NUMBER, false).def(0.0)
-                    .doc("X offset (accepted for Apoli parity; no positional effect here)."),
+                    .doc("X offset in blocks (applied to the context block position)."),
                 new FieldSpec("y", FormFieldSpec.Kind.NUMBER, false).def(0.0)
-                    .doc("Y offset (accepted for Apoli parity; no positional effect here)."),
+                    .doc("Y offset in blocks (applied to the context block position)."),
                 new FieldSpec("z", FormFieldSpec.Kind.NUMBER, false).def(0.0)
-                    .doc("Z offset (accepted for Apoli parity; no positional effect here).")));
+                    .doc("Z offset in blocks (applied to the context block position).")));
 
         // block_action_at — run `block_action` at the entity's current block position,
         // publishing that BlockPos to ActionContextHolder so nested verbs (e.g.
@@ -2018,7 +2066,9 @@ public final class BuiltinActions {
 
         // grow — bonemeal-style growth on a BonemealableBlock (crops/saplings/grass).
         // No fields. No-op when the block isn't bonemealable / not growable now.
-        define("grow",
+        // "bonemeal" is the Apoli block-action name for the same verb (Fairy
+        // Origin's verdant_touch authors `origins:bonemeal` inside area_of_effect).
+        define("grow", List.of("bonemeal"),
             (json, ctx) -> blockTargetEntityAction(BuiltinActions::applyGrow),
             List.of());
 
