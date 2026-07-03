@@ -77,6 +77,10 @@ public class OriginsPackFinder implements RepositorySource {
 
         if (supplier == null) return null;
 
+        // Serve 1.20 plural data folders (functions/, recipes/, tags/items/, ...)
+        // under their 1.21 singular names so legacy packs run unmodified.
+        supplier = LegacyFolderPackResources.wrap(supplier);
+
         PackLocationInfo info = new PackLocationInfo(
             "originpacks/" + name,
             Component.literal(name),
