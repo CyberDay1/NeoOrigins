@@ -1694,6 +1694,8 @@
   "power.neoorigins.avian_apex_speed.description": "增强的移动速度。",
   "power.neoorigins.blazeling_evolved_hp.name": "进化活力",
   "power.neoorigins.blazeling_evolved_hp.description": "+2最大生命值。",
+  "power.neoorigins.blazeling_ascended_hp.name": "超凡活力",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4最大生命值。",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "火焰守护",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "永久抗火。",
   "power.neoorigins.blazeling_apex_hp.name": "巅峰活力",

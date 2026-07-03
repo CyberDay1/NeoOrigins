@@ -1694,6 +1694,8 @@
   "power.neoorigins.avian_apex_speed.description": "Velocidad de movimiento mejorada.",
   "power.neoorigins.blazeling_evolved_hp.name": "Vitalidad Evolucionada",
   "power.neoorigins.blazeling_evolved_hp.description": "+2 de salud máxima.",
+  "power.neoorigins.blazeling_ascended_hp.name": "Vitalidad Ascendida",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4 de salud máxima.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "Guarda de Fuego",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "Resistencia al fuego permanente.",
   "power.neoorigins.blazeling_apex_hp.name": "Vitalidad Suprema",

@@ -1694,6 +1694,8 @@
   "power.neoorigins.avian_apex_speed.description": "이동 속도가 빨라집니다.",
   "power.neoorigins.blazeling_evolved_hp.name": "진화한 활력",
   "power.neoorigins.blazeling_evolved_hp.description": "최대 체력 +2.",
+  "power.neoorigins.blazeling_ascended_hp.name": "승화한 활력",
+  "power.neoorigins.blazeling_ascended_hp.description": "최대 체력 +4.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "화염 방벽",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "화염 저항을 영구히 얻습니다.",
   "power.neoorigins.blazeling_apex_hp.name": "정점의 활력",

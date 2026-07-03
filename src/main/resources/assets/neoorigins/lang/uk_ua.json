@@ -1694,6 +1694,8 @@
   "power.neoorigins.avian_apex_speed.description": "Покращена швидкість руху.",
   "power.neoorigins.blazeling_evolved_hp.name": "Розвинена життєвість",
   "power.neoorigins.blazeling_evolved_hp.description": "+2 до макс. здоров'я.",
+  "power.neoorigins.blazeling_ascended_hp.name": "Піднесена життєвість",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4 до макс. здоров'я.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "Вогняний оберіг",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "Постійна вогнестійкість.",
   "power.neoorigins.blazeling_apex_hp.name": "Вершинна життєвість",

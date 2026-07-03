@@ -25,8 +25,7 @@
     {
       "tier": 2,
       "add": [
-        "neoorigins:fire_mage_ascended_hp",
-        "neoorigins:fire_mage_ascended_fire_resistance"
+        "neoorigins:fire_mage_ascended_hp"
       ],
       "remove": [
         "neoorigins:fire_mage_evolved_hp"

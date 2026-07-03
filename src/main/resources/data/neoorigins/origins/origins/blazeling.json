@@ -28,9 +28,11 @@
     {
       "tier": 2,
       "add": [
-        "neoorigins:blazeling_ascended_fire_resistance"
+        "neoorigins:blazeling_ascended_hp"
       ],
-      "remove": []
+      "remove": [
+        "neoorigins:blazeling_evolved_hp"
+      ]
     },
     {
       "tier": 3,
@@ -38,7 +40,7 @@
         "neoorigins:blazeling_apex_hp"
       ],
       "remove": [
-        "neoorigins:blazeling_evolved_hp",
+        "neoorigins:blazeling_ascended_hp",
         "neoorigins:blazeling_water_damage"
       ]
     }
