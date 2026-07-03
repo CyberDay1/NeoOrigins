@@ -1640,6 +1640,8 @@
   "power.neoorigins.avian_apex_speed.description": "Увеличенная скорость передвижения.",
   "power.neoorigins.blazeling_evolved_hp.name": "Развитая живучесть",
   "power.neoorigins.blazeling_evolved_hp.description": "+2 к макс. здоровью.",
+  "power.neoorigins.blazeling_ascended_hp.name": "Возвышенная живучесть",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4 к макс. здоровью.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "Огненный оберег",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "Постоянная огнестойкость.",
   "power.neoorigins.blazeling_apex_hp.name": "Высшая живучесть",

@@ -38,8 +38,7 @@
     {
       "tier": 3,
       "add": [
-        "neoorigins:cinderborn_apex_hp",
-        "neoorigins:cinderborn_apex_fire_resistance"
+        "neoorigins:cinderborn_apex_hp"
       ],
       "remove": [
         "neoorigins:cinderborn_ascended_hp"

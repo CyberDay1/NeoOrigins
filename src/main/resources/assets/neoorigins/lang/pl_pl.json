@@ -1640,6 +1640,8 @@
   "power.neoorigins.avian_apex_speed.description": "Zwiększona prędkość ruchu.",
   "power.neoorigins.blazeling_evolved_hp.name": "Rozwinięta witalność",
   "power.neoorigins.blazeling_evolved_hp.description": "+2 maks. zdrowia.",
+  "power.neoorigins.blazeling_ascended_hp.name": "Wzniesiona witalność",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4 maks. zdrowia.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "Ognista ochrona",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "Stała odporność na ogień.",
   "power.neoorigins.blazeling_apex_hp.name": "Szczytowa witalność",

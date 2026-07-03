@@ -38,8 +38,7 @@
     {
       "tier": 3,
       "add": [
-        "neoorigins:strider_apex_hp",
-        "neoorigins:strider_apex_fire_resistance"
+        "neoorigins:strider_apex_hp"
       ],
       "remove": [
         "neoorigins:strider_ascended_hp"

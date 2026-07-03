@@ -1640,6 +1640,8 @@
   "power.neoorigins.avian_apex_speed.description": "移動速度が上昇する。",
   "power.neoorigins.blazeling_evolved_hp.name": "進化の活力",
   "power.neoorigins.blazeling_evolved_hp.description": "最大体力+2。",
+  "power.neoorigins.blazeling_ascended_hp.name": "昇華の活力",
+  "power.neoorigins.blazeling_ascended_hp.description": "最大体力+4。",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "火除けの加護",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "常時火炎耐性を得る。",
   "power.neoorigins.blazeling_apex_hp.name": "頂点の活力",
