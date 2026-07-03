@@ -45,7 +45,8 @@ import java.util.Map;
  *       cross-doc {@code ref} so the name-heuristic resolver routes to this
  *       doc — not the entity condition doc — when nested).</li>
  *   <li>{@code and} / {@code or} — recursive combinators over
- *       {@code conditions[]}, each element a nested {@code item_condition}.</li>
+ *       {@code conditions[]}, each element a nested {@code item_condition}
+ *       ({@code all_of} / {@code any_of} are the Apoli 2.9+ renames — aliases).</li>
  * </ul>
  */
 public final class BuiltinItemConditions {
@@ -92,12 +93,16 @@ public final class BuiltinItemConditions {
                 .doc("Comparison operator against the enchantment level (default >=)."),
             new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(1)
                 .doc("Enchantment level threshold (default 1).")));
-        // ingredient — vanilla-recipe-style item / tag match (top-level or nested under `ingredient`).
+        // ingredient — vanilla-recipe-style item / tag match (top-level or nested
+        // under `ingredient`; the nested form also accepts vanilla's union/array
+        // shape — [{tag:...},{item:...}] — matching when any entry matches).
         define("ingredient", List.of(
             new FieldSpec("item", FormFieldSpec.Kind.STRING, false)
                 .doc("Exact item id to match (e.g. minecraft:diamond)."),
             new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
-                .doc("Item tag the stack must be in (e.g. minecraft:planks).")));
+                .doc("Item tag the stack must be in (e.g. minecraft:planks). "
+                    + "May also be nested under an `ingredient` key, including vanilla's "
+                    + "array form ([{\"tag\": ...}, {\"item\": ...}]) which matches when any entry matches.")));
         // amount — stack-count comparison.
         define("amount", List.of(
             new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
@@ -116,13 +121,15 @@ public final class BuiltinItemConditions {
             new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
                 .ref(DOC)
                 .doc("Nested item condition that must NOT match.")));
-        // and — every nested item condition must match.
-        define("and", List.of(
+        // and — every nested item condition must match. all_of is the
+        // Apoli 2.9+ rename (same shape) — cf. the entity-side alias.
+        define("and", List.of("all_of"), List.of(
             new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef(DOC)
                 .doc("Nested item conditions; all must match (evaluated against the same stack).")));
-        // or — at least one nested item condition must match.
-        define("or", List.of(
+        // or — at least one nested item condition must match. any_of is the
+        // Apoli 2.9+ rename (same shape).
+        define("or", List.of("any_of"), List.of(
             new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef(DOC)
                 .doc("Nested item conditions; at least one must match.")));

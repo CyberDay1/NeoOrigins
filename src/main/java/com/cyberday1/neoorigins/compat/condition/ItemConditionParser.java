@@ -31,7 +31,8 @@ import java.util.List;
  *
  * <p>Supported types:
  * <ul>
- *   <li>{@code origins:and} / {@code origins:or} / {@code origins:not} — composition</li>
+ *   <li>{@code origins:and} / {@code origins:or} / {@code origins:not} — composition
+ *       ({@code all_of} / {@code any_of} are the Apoli 2.9+ renames, same shapes)</li>
  *   <li>{@code origins:empty} — true when the stack is empty</li>
  *   <li>{@code origins:nbt} — legacy-NBT subtree match. The stack's 1.21 data
  *       components are projected back into a pre-1.21 legacy NBT view
@@ -66,6 +67,7 @@ public final class ItemConditionParser {
      */
     public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
         "neoorigins:and", "neoorigins:or", "neoorigins:not", "neoorigins:empty",
+        "neoorigins:all_of", "neoorigins:any_of",
         "neoorigins:nbt", "neoorigins:custom_data", "neoorigins:enchantment",
         "neoorigins:ingredient", "neoorigins:amount", "neoorigins:name",
         "neoorigins:food");
@@ -89,8 +91,12 @@ public final class ItemConditionParser {
 
         try {
             return switch (type) {
-                case "neoorigins:and"          -> parseAnd(json);
-                case "neoorigins:or"           -> parseOr(json);
+                // all_of/any_of are the Apoli 2.9+ renames of and/or — same shapes
+                // (cf. ConditionParser's entity-side aliases).
+                case "neoorigins:and",
+                     "neoorigins:all_of"       -> parseAnd(json);
+                case "neoorigins:or",
+                     "neoorigins:any_of"       -> parseOr(json);
                 case "neoorigins:not"          -> parseNot(json);
                 case "neoorigins:empty"        -> ItemStack::isEmpty;
                 case "neoorigins:nbt",
@@ -326,11 +332,27 @@ public final class ItemConditionParser {
     private static ItemCondition parseIngredient(JsonObject json) {
         // Origins spec nests the actual item/tag inside an "ingredient" key:
         // { "type": "origins:ingredient", "ingredient": { "tag": "..." } }
-        // Unwrap the nested object if present; otherwise check at top level.
-        JsonObject effective = json;
-        if (json.has("ingredient") && json.get("ingredient").isJsonObject()) {
-            effective = json.getAsJsonObject("ingredient");
+        // Vanilla Ingredient also accepts the union (array) form —
+        // { "ingredient": [ { "tag": "..." }, { "item": "..." } ] } — which
+        // matches when ANY entry matches (e.g. Dietary Delights' exemption
+        // list over the ignore_diet + vegetarian tags). Unwrap whichever
+        // shape is present; otherwise check item/tag at the top level.
+        JsonElement nested = json.get("ingredient");
+        if (nested != null && nested.isJsonArray()) {
+            List<ItemCondition> entries = new ArrayList<>();
+            for (JsonElement el : nested.getAsJsonArray()) {
+                if (el.isJsonObject()) entries.add(parseIngredientEntry(el.getAsJsonObject()));
+            }
+            if (entries.isEmpty()) return ItemCondition.alwaysFalse();
+            return s -> { for (ItemCondition c : entries) if (c.test(s)) return true; return false; };
         }
+        JsonObject effective = nested != null && nested.isJsonObject()
+            ? nested.getAsJsonObject() : json;
+        return parseIngredientEntry(effective);
+    }
+
+    /** One ingredient entry: an object holding an {@code item} id or a {@code tag}. */
+    private static ItemCondition parseIngredientEntry(JsonObject effective) {
         if (effective.has("item")) {
             Identifier target = Identifier.parse(effective.get("item").getAsString());
             Item item = BuiltInRegistries.ITEM.get(target).map(h -> h.value()).orElse(null);
