@@ -1640,6 +1640,8 @@
   "power.neoorigins.avian_apex_speed.description": "Vitesse de déplacement accrue.",
   "power.neoorigins.blazeling_evolved_hp.name": "Vitalité évoluée",
   "power.neoorigins.blazeling_evolved_hp.description": "+2 points de vie max.",
+  "power.neoorigins.blazeling_ascended_hp.name": "Vitalité transcendée",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4 points de vie max.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "Égide de feu",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "Résistance au feu permanente.",
   "power.neoorigins.blazeling_apex_hp.name": "Vitalité d'apogée",

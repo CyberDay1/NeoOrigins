@@ -1643,6 +1643,8 @@
   "power.neoorigins.avian_apex_speed.description": "Enhanced movement speed.",
   "power.neoorigins.blazeling_evolved_hp.name": "Evolved Vitality",
   "power.neoorigins.blazeling_evolved_hp.description": "+2 max health.",
+  "power.neoorigins.blazeling_ascended_hp.name": "Ascended Vitality",
+  "power.neoorigins.blazeling_ascended_hp.description": "+4 max health.",
   "power.neoorigins.blazeling_ascended_fire_resistance.name": "Fire Ward",
   "power.neoorigins.blazeling_ascended_fire_resistance.description": "Permanent fire resistance.",
   "power.neoorigins.blazeling_apex_hp.name": "Apex Vitality",
