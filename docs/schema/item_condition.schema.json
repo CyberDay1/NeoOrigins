@@ -12,19 +12,25 @@
       "type": "string",
       "description": "Item-condition verb (empty / nbt / enchantment / ingredient / not / and / or). `apace:` aliases are accepted.",
       "enum": [
+        "apace:amount",
         "apace:and",
         "apace:custom_data",
         "apace:empty",
         "apace:enchantment",
+        "apace:food",
         "apace:ingredient",
+        "apace:name",
         "apace:nbt",
         "apace:not",
         "apace:or",
+        "neoorigins:amount",
         "neoorigins:and",
         "neoorigins:custom_data",
         "neoorigins:empty",
         "neoorigins:enchantment",
+        "neoorigins:food",
         "neoorigins:ingredient",
+        "neoorigins:name",
         "neoorigins:nbt",
         "neoorigins:not",
         "neoorigins:or"
@@ -32,6 +38,38 @@
     }
   },
   "oneOf": [
+    {
+      "$comment": "neoorigins:amount",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:amount",
+            "apace:amount"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator against the stack count (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Stack count threshold (default 1).",
+          "type": "integer",
+          "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
     {
       "$comment": "neoorigins:and",
       "properties": {
@@ -105,6 +143,20 @@
       ]
     },
     {
+      "$comment": "neoorigins:food",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:food",
+            "apace:food"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:ingredient",
       "properties": {
         "type": {
@@ -127,6 +179,25 @@
       ]
     },
     {
+      "$comment": "neoorigins:name",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:name",
+            "apace:name"
+          ]
+        },
+        "name": {
+          "description": "Exact display-name text the stack's hover name must equal (custom name, else default item name).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ]
+    },
+    {
       "$comment": "neoorigins:nbt",
       "properties": {
         "type": {
@@ -138,7 +209,7 @@
           ]
         },
         "nbt": {
-          "description": "SNBT subtree the stack's minecraft:custom_data must contain (e.g. {foo:1}).",
+          "description": "SNBT subtree the stack's legacy-view NBT must contain (e.g. {foo:1} or {Potion:\"minecraft:swiftness\"}). Data components are projected back into the pre-1.21 layout (Potion, Enchantments, display.Name, ...) merged over minecraft:custom_data.",
           "type": "string"
         }
       },
@@ -192,19 +263,25 @@
         "type": {
           "not": {
             "enum": [
+              "apace:amount",
               "apace:and",
               "apace:custom_data",
               "apace:empty",
               "apace:enchantment",
+              "apace:food",
               "apace:ingredient",
+              "apace:name",
               "apace:nbt",
               "apace:not",
               "apace:or",
+              "neoorigins:amount",
               "neoorigins:and",
               "neoorigins:custom_data",
               "neoorigins:empty",
               "neoorigins:enchantment",
+              "neoorigins:food",
               "neoorigins:ingredient",
+              "neoorigins:name",
               "neoorigins:nbt",
               "neoorigins:not",
               "neoorigins:or"

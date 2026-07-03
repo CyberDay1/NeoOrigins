@@ -955,6 +955,8 @@ public final class BuiltinPowers {
                 .doc("FloatModifier (or array) chained onto the event's value (e.g. exhaustion, regen)."),
             new FieldSpec("block_condition", Kind.REF, false).ref("block_condition.schema.json")
                 .doc("Block-position filter for block events (block_break, block_place, block_use). Ignored on other events."),
+            new FieldSpec("hands", Kind.MIXED, false)
+                .doc("Hand filter for interaction events (block_use, entity_use, villager_interact): only fire for the listed hands. Array or single string of 'main_hand'/'off_hand' (a bare `hand` key is accepted too). Fails closed when the event carries no hand info; ignored elsewhere."),
             new FieldSpec("effect", Kind.STRING, false)
                 .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
             new FieldSpec("effect_tag", Kind.STRING, false)

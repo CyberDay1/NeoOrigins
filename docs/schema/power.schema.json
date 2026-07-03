@@ -305,6 +305,17 @@
           "description": "Block-position filter for block events (block_break, block_place, block_use). Ignored on other events.",
           "$ref": "block_condition.schema.json"
         },
+        "hands": {
+          "description": "Hand filter for interaction events (block_use, entity_use, villager_interact): only fire for the listed hands. Array or single string of 'main_hand'/'off_hand' (a bare `hand` key is accepted too). Fails closed when the event carries no hand info; ignored elsewhere.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
         "effect": {
           "description": "EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events.",
           "type": "string"
@@ -494,6 +505,12 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "key": {
+          "description": "Optional named-hotkey pool slot (1-64) this active power binds to. A plain number N pins the power to pool 'Hotkey N'; several powers sharing the same N all fire from that one key. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         }
       },
       "required": [
@@ -1472,9 +1489,14 @@
           "const": "neoorigins:effect_immunity"
         },
         "effects": {
-          "description": "Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity.",
+          "description": "Mob effect IDs (e.g. minecraft:poison) whose application to the player is cancelled. Empty list = no immunity (unless inverted).",
           "type": "array",
           "items": {}
+        },
+        "inverted": {
+          "description": "When true, the list becomes an exception list: immune to every effect EXCEPT those listed. true with an empty list = immune to all effects.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -3946,6 +3968,12 @@
           "description": "Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.",
           "type": "boolean",
           "default": false
+        },
+        "key": {
+          "description": "Optional named-hotkey pool slot (1-64) this active power binds to. A plain number N pins the power to pool 'Hotkey N'; several powers sharing the same N all fire from that one key. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         }
       },
       "required": [

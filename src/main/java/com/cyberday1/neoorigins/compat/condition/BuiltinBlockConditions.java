@@ -37,6 +37,9 @@ import java.util.Map;
  *       {@code itemsRef} rather than {@code "#"}, so the in-game editor's
  *       name-heuristic ref resolver routes the list to this doc — not the entity
  *       condition doc — when nested).</li>
+ *   <li>{@code offset} — structural wrapper: evaluates the nested
+ *       {@code condition} at the tested position shifted by {@code x}/{@code y}/
+ *       {@code z} (parsed in {@code OriginsCompatPowerLoader.compileBlockPredicate}).</li>
  * </ul>
  */
 public final class BuiltinBlockConditions {
@@ -78,6 +81,17 @@ public final class BuiltinBlockConditions {
             new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef(DOC)
                 .doc("Nested block conditions; at least one must match.")));
+        // offset — evaluate the nested condition at pos + (x, y, z).
+        define("offset", List.of(
+            new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
+                .ref(DOC)
+                .doc("Nested block condition evaluated at the offset position; absent → matches all blocks (warned at load)."),
+            new FieldSpec("x", FormFieldSpec.Kind.INTEGER, false).def(0)
+                .doc("X offset in blocks (default 0)."),
+            new FieldSpec("y", FormFieldSpec.Kind.INTEGER, false).def(0)
+                .doc("Y offset in blocks (default 0)."),
+            new FieldSpec("z", FormFieldSpec.Kind.INTEGER, false).def(0)
+                .doc("Z offset in blocks (default 0).")));
     }
 
     /** Canonical id → descriptor (insertion-ordered). */
