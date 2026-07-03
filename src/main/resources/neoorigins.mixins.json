@@ -30,6 +30,7 @@
     "SmithingMenuTakeMixin",
     "ServerAbilitiesPacketDebugMixin",
     "CraftingMenuCraftAmountMixin",
+    "FolderPackDetectorMixin",
     "recipe.CraftingMenuOriginContextMixin",
     "recipe.RecipeManagerReplaceMixin"
   ],
