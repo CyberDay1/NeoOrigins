@@ -122,7 +122,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // v2.1.4: translateExhaust returned a single set-op modifier (~268x
         // food drain per tick); Route B handles it correctly as a periodic
         // causeFoodExhaustion(amount) call.
-        "origins:exhaust",              "apace:exhaust"
+        "origins:exhaust",              "apace:exhaust",
+        // Apoli cooldown power: a countdown resource armed by trigger_cooldown
+        // and read back via resource conditions / hud_render (previously
+        // silently dropped — the Chaotic Chemist immunity-shot pattern).
+        "origins:cooldown",             "apace:cooldown"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -187,6 +191,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         ModifyFoodRegistry.clearAll();
         NumericModifierRegistry.clearAll();
         CompatAttachments.clearResourceMeta();
+        CompatAttachments.clearCooldownDurations();
         com.cyberday1.neoorigins.service.InlineRecipeRegistry.resetPending();
 
         // Rewrite apoli:/apugli: power types to the canonical origins: namespace
@@ -702,6 +707,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:recipe",                     "apace:recipe"                     -> parseRecipe(id, json);
             case "origins:prevent_game_event",         "apace:prevent_game_event"         -> parsePreventGameEvent(id, json);
             case "origins:exhaust",                    "apace:exhaust"                    -> parseExhaust(id, json);
+            case "origins:cooldown",                   "apace:cooldown"                   -> parseCooldown(id, json);
             default -> null;
         };
     }
@@ -1526,6 +1532,110 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // Render-condition edge: when the hud_render.condition flips, push a
                 // full sync so the bar entry is created/removed client-side (the
                 // value-only payload can neither create nor drop entries).
+                if (fRenderCondition != null) {
+                    boolean show = fRenderCondition.test(player);
+                    String showKey = player.getUUID() + ":rcond:" + key;
+                    Boolean prevShow = PREV_RENDER_CONDITIONS.put(showKey, show);
+                    if (prevShow == null || prevShow.booleanValue() != show) {
+                        CompatAttachments.syncResourcesToClient(player);
+                    }
+                }
+            })
+            .build();
+    }
+
+    /**
+     * Apoli {@code origins:cooldown} — a countdown resource: 0 == ready,
+     * &gt;0 == ticks remaining. {@code trigger_cooldown} (BuiltinActions) arms
+     * it by setting the duration registered here; this power's onTick
+     * decrements it back to 0. Reading it as a resource (conditions,
+     * hud_render, change_resource) sees the remaining ticks — the Apoli
+     * semantics the Chaotic Chemist immunity-shot pattern relies on
+     * ({@code trigger_cooldown "*:*_timer"} then gate on
+     * {@code resource *:*_timer > 0}). Previously in SKIP_TYPES with no Route
+     * B handler, so these powers were silently dropped.
+     */
+    private CompatPower.Config parseCooldown(Identifier id, JsonObject json) {
+        String key   = id.toString();
+        String idStr = key;
+        int cooldown = Math.max(1, json.has("cooldown") ? json.get("cooldown").getAsInt() : 1);
+
+        // HUD display metadata — same parse as parseResource: should_render=false
+        // hides the bar; a hud_render block defaults the Apoli sprite indices to
+        // 0; sprite_location and condition pass through.
+        boolean hidden = json.has("hidden") && json.get("hidden").getAsBoolean();
+        int barIndex = -1;
+        int iconIndex = -1;
+        String spriteLocation = null;
+        EntityCondition renderCondition = null;
+        if (json.has("hud_render") && json.get("hud_render").isJsonObject()) {
+            JsonObject hud = json.getAsJsonObject("hud_render");
+            if (hud.has("sprite_location")) {
+                spriteLocation = hud.get("sprite_location").getAsString();
+            }
+            if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
+                hidden = true;
+            }
+            if (hud.has("condition")) {
+                CompatPolicy.resetFailClosedCount();
+                EntityCondition rc = parseConditionField(hud, "condition", idStr);
+                if (CompatPolicy.failClosedCount() == 0) {
+                    renderCondition = rc;
+                } else {
+                    NeoOrigins.LOGGER.warn("[CompatB] cooldown {} hud_render.condition uses an unsupported type — bar will render unconditionally", idStr);
+                }
+            }
+            barIndex  = hud.has("bar_index")  ? hud.get("bar_index").getAsInt()  : 0;
+            iconIndex = hud.has("icon_index") ? hud.get("icon_index").getAsInt() : 0;
+        }
+        // Derive a human-readable label from the power ID path segment.
+        String path = id.getPath();
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash >= 0) path = path.substring(lastSlash + 1);
+        StringBuilder sb = new StringBuilder();
+        for (String word : path.replace('_', ' ').split(" ")) {
+            if (!word.isEmpty()) {
+                if (sb.length() > 0) sb.append(' ');
+                sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+            }
+        }
+        String label = sb.toString();
+
+        CompatAttachments.registerResourceMeta(key,
+            new CompatAttachments.ResourceMeta(0, cooldown, label, 0xFF55AAFF, hidden, barIndex, iconIndex, spriteLocation));
+        CompatAttachments.registerCooldownDuration(key, cooldown);
+        if (renderCondition != null) {
+            CompatAttachments.registerResourceRenderCondition(key, renderCondition);
+        } else {
+            CompatAttachments.unregisterResourceRenderCondition(key);
+        }
+        final EntityCondition fRenderCondition = renderCondition;
+
+        return CompatPower.Config.builder()
+            .onGranted(player -> {
+                var state = player.getData(CompatAttachments.resourceState());
+                // Start ready (0) — but keep a persisted mid-countdown value so a
+                // relog doesn't reset a running cooldown.
+                if (!state.has(key)) state.set(key, 0);
+                CompatAttachments.syncResourcesToClient(player);
+            })
+            .onRevoked(player -> {
+                player.getData(CompatAttachments.resourceState()).remove(key);
+                CompatAttachments.unregisterResourceMeta(key);
+                CompatAttachments.unregisterCooldownDuration(key);
+                CompatAttachments.unregisterResourceRenderCondition(key);
+                PREV_RENDER_CONDITIONS.remove(player.getUUID() + ":rcond:" + key);
+                CompatAttachments.syncResourcesToClient(player);
+            })
+            .onTick(player -> {
+                var state = player.getData(CompatAttachments.resourceState());
+                int cur = state.get(key, 0);
+                if (cur > 0) state.set(key, cur - 1);
+                // Sync to client every 10 ticks when dirty — value-only payload.
+                if (state.isDirty() && player.tickCount % 10 == 0) {
+                    state.clearDirty();
+                    CompatAttachments.syncResourceValuesToClient(player);
+                }
                 if (fRenderCondition != null) {
                     boolean show = fRenderCondition.test(player);
                     String showKey = player.getUUID() + ":rcond:" + key;
@@ -2581,57 +2691,55 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     // ---- Compile-time predicate builders for event powers ----
 
-    /** Compile an item condition JSON into a Predicate<ItemStack> at load time. */
+    /**
+     * Compile an item condition JSON into a Predicate&lt;ItemStack&gt; at load time.
+     *
+     * <p>Delegates to the shared {@link com.cyberday1.neoorigins.compat.condition.ItemConditionParser}
+     * so event-power filters get the full item-condition vocabulary
+     * (and/or/not combinators, nbt legacy-view subtree, enchantment,
+     * ingredient, amount, name, food, empty, untyped id/item/tag, the
+     * universal {@code inverted} flag) instead of the previous ad-hoc
+     * ingredient/id/tag/empty/food-only compiler — whose match-everything
+     * fallthrough turned e.g. an {@code origins:and} filter on a restriction
+     * power into "restrict ALL items". Unsupported leaf types still resolve
+     * to match-all (fail-closed for restrictions) with a deduped warning
+     * from the parser. The {@code origins:food} arm (the seer's no-eating
+     * restriction vs. block placement) now lives in the parser as
+     * {@code neoorigins:food}.
+     */
     private static java.util.function.Predicate<ItemStack> compileItemPredicate(JsonObject condJson) {
         if (condJson == null) return null;
-        String type = condJson.has("type") ? condJson.get("type").getAsString() : "";
-
-        // Handle "origins:ingredient" type
-        if (type.contains("ingredient") && condJson.has("ingredient")) {
-            var ingEl = condJson.get("ingredient");
-            if (ingEl.isJsonObject()) {
-                JsonObject ing = ingEl.getAsJsonObject();
-                if (ing.has("item")) {
-                    Identifier itemId = Identifier.parse(ing.get("item").getAsString());
-                    return stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(itemId);
-                }
-                if (ing.has("tag")) {
-                    var tagKey = net.minecraft.tags.TagKey.create(
-                        net.minecraft.core.registries.Registries.ITEM,
-                        Identifier.parse(ing.get("tag").getAsString()));
-                    return stack -> stack.is(tagKey);
-                }
-            }
-        }
-
-        // Direct item ID check
-        if (condJson.has("id")) {
-            Identifier itemId = Identifier.parse(condJson.get("id").getAsString());
-            return stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(itemId);
-        }
-
-        // Item tag check
-        if (condJson.has("tag")) {
-            var tagKey = net.minecraft.tags.TagKey.create(
-                net.minecraft.core.registries.Registries.ITEM,
-                Identifier.parse(condJson.get("tag").getAsString()));
-            return stack -> stack.is(tagKey);
-        }
-
-        // "origins:empty" type — match empty stacks
-        if (type.contains("empty")) {
-            return ItemStack::isEmpty;
-        }
-
-        // No recognized filter — match everything (fail-closed for restrictions)
-        return stack -> true;
+        var cond = com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(condJson);
+        return cond::test;
     }
 
     /** Compile a block condition JSON into a BiPredicate at load time. */
     public static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicate(
             JsonObject condJson) {
-        if (condJson == null) return null;
+        return compileBlockPredicate(condJson, "block_condition");
+    }
 
+    /**
+     * Compile an Apoli block condition into a positional predicate.
+     * {@code contextId} identifies the owning power/site for diagnostics.
+     * An unsupported leaf no longer falls through SILENTLY to match-all — it
+     * still matches all (fail-open keeps legacy powers firing) but records a
+     * deduplicated warning so pack debugging isn't a guessing game.
+     */
+    public static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicate(
+            JsonObject condJson, String contextId) {
+        if (condJson == null) return null;
+        var base = compileBlockPredicateInner(condJson, contextId);
+        // Apoli's generic `"inverted": true` flag applies to any condition node.
+        if (condJson.has("inverted") && condJson.get("inverted").getAsBoolean()) {
+            final var fBase = base;
+            return (player, pos) -> !fBase.test(player, pos);
+        }
+        return base;
+    }
+
+    private static java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos> compileBlockPredicateInner(
+            JsonObject condJson, String contextId) {
         // Boolean combinators: { "type": "neoorigins:or", "conditions": [...] }
         // (and/or, with the Apoli 2.9+ all_of/any_of aliases). Recurse so nested
         // and typed-leaf block conditions are honoured against `pos` instead of
@@ -2646,7 +2754,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 new java.util.ArrayList<>();
             for (JsonElement el : condJson.getAsJsonArray("conditions")) {
                 if (!el.isJsonObject()) continue;
-                var sub = compileBlockPredicate(el.getAsJsonObject());
+                var sub = compileBlockPredicate(el.getAsJsonObject(), contextId);
                 if (sub != null) subs.add(sub);
             }
             return (player, pos) -> {
@@ -2657,6 +2765,25 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
                 return isAnd;
             };
+        }
+
+        // offset — evaluate the nested condition at pos + (x, y, z). The Apoli
+        // structural wrapper (Chaotic Chemist checks "basin two blocks below
+        // the mixer": offset{y:-2, condition: block create:basin}).
+        if (bareType.equals("offset")) {
+            final int ox = condJson.has("x") ? condJson.get("x").getAsInt() : 0;
+            final int oy = condJson.has("y") ? condJson.get("y").getAsInt() : 0;
+            final int oz = condJson.has("z") ? condJson.get("z").getAsInt() : 0;
+            var inner = (condJson.has("condition") && condJson.get("condition").isJsonObject())
+                ? compileBlockPredicate(condJson.getAsJsonObject("condition"), contextId)
+                : null;
+            if (inner == null) {
+                CompatWarningCollector.recordUnsupportedCondition(
+                    "offset", contextId, "block_condition offset has no nested `condition` — matches all blocks");
+                return (player, pos) -> true;
+            }
+            final var fInner = inner;
+            return (player, pos) -> fInner.test(player, pos.offset(ox, oy, oz));
         }
 
         String blockId = condJson.has("block") ? condJson.get("block").getAsString() : null;
@@ -2676,6 +2803,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return (player, pos) -> player.level().getBlockState(pos).is(tagKey);
         }
 
+        // Unsupported leaf — fail OPEN (match all) so legacy powers keep firing,
+        // but say so out loud: deduplicated into the reload summary during a
+        // compat session, one-line WARN otherwise. Was a silent match-all.
+        CompatWarningCollector.recordUnsupportedCondition(
+            type.isEmpty() ? "(untyped block_condition)" : type, contextId,
+            "unsupported block_condition leaf — matches ALL blocks");
         return (player, pos) -> true;
     }
 
