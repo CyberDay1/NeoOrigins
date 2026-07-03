@@ -2,6 +2,25 @@
 
 ---
 
+## v2.2.13
+
+> A legacy-datapack compatibility release: pre-2.2.8 sub-power ids keep their resource caps again, 1.20-era packs with plural folder names load without edits, and a batch of missing Apoli powers, actions, and conditions round out the compat layer.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **Legacy slash-form sub-power ids keep their resource caps.** The 2.2.11 shim resolved reads and writes for pre-2.2.8 `parent/sub` ids but not their resource min/max bounds, so `change_resource` could push a resource past its cap and permanently disable the ability (reported as a dead double-jump). Bounds now resolve through the same alias, and affected packs run correctly as downloaded.
+
+### Compatibility (Apoli / Origins)
+
+- **Pre-1.21 plural folder names load without edits.** Legacy datapacks using `functions/`, `predicates/`, `loot_tables/`, and friends are now served under the modern singular paths automatically — in both originpacks and world datapacks — so downloaded packs run as-is.
+- **More legacy power, action, and condition types translate.** Functional `origins:cooldown` powers, `action_on_block_use` and `bonemeal` powers, positional `offset` actions, `area_of_effect` block fan-out, `offset` block conditions, `hands` filters, and inverted `effect_immunity` exception lists.
+- **Item conditions got a fidelity pass.** Legacy NBT checks (potions, custom effects) now match against modern components, `amount`/`name`/`food` item checks work, `block_collision` performs a real collision test, and there is a new `origins:inventory` entity condition.
+- **All of the above is documented,** with regenerated schemas for the in-game and web editors.
+
+---
+
 ## v2.2.12
 
 > A compatibility release: a new `origins:origin` condition and four more built-in powers so third-party addon packs load, more forgiving `/power` and `/resource` commands, and a Dragon Survival fix that stops us from blocking its appearance editor.
