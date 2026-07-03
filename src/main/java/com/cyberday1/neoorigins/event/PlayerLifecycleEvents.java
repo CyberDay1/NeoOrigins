@@ -442,6 +442,17 @@ public class PlayerLifecycleEvents {
             }
         }
 
+        // Recall surviving tamed pets to the respawned tamer (vanilla-pet
+        // semantics). Runs AFTER the spawn-override teleports above so the pets
+        // arrive at the tamer's final respawn position, and rebinds their AI
+        // goals — the follow/defend goals captured the OLD (now-dead)
+        // ServerPlayer instance at tame time and would idle forever otherwise.
+        // Gated on !isEndConquered: exiting the End also fires this event, but
+        // the player didn't die there, so don't yank pets across the world.
+        if (!event.isEndConquered()) {
+            com.cyberday1.neoorigins.power.builtin.TameMobPower.recallTamedOnRespawn(sp);
+        }
+
         // Deferred re-sync: the client may not be ready for packets at respawn time,
         // causing the HUD/info to show stale state until relog.
         pendingResync.put(sp.getUUID(), 2);
@@ -618,10 +629,13 @@ public class PlayerLifecycleEvents {
         }
         if (!keptTrinkets.isEmpty()) KEPT_TRINKETS.put(sp.getUUID(), keptTrinkets);
 
-        // Kill all tracked minions belonging to the dying summoner — they
-        // shouldn't outlive their owner. clearAll() discards them cleanly and
-        // evicts them from MinionTracker + DIM_HINTS.
-        MinionTracker.clearAll(sp.getUUID());
+        // Kill tracked SUMMONED minions belonging to the dying summoner — they
+        // shouldn't outlive their owner. Tamed pets (tame_mob / tame_target) are
+        // exempt: vanilla-pet semantics, so they survive the tamer's death and
+        // are recalled to the tamer on respawn (Discord report — pets used to be
+        // discarded here alongside the summons). See onPlayerRespawn.
+        MinionTracker.clearAllExceptType(sp.getUUID(),
+            com.cyberday1.neoorigins.power.builtin.TameMobPower.tamedMobKey());
     }
 
     @SubscribeEvent

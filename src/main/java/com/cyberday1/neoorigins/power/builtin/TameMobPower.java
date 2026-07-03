@@ -334,10 +334,63 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // behave the same.
         SummonMinionPower.stripDistractionGoals(mob);
 
+        // Drop any previous FollowOwnerGoal before adding a fresh one — rewriteAI
+        // re-runs on the same mob when the owner respawns (goal rebind, see
+        // recallTamedOnRespawn) and would otherwise stack duplicate follow goals,
+        // the stale ones pointing at a dead ServerPlayer instance.
+        mob.goalSelector.getAvailableGoals().removeIf(w -> w.getGoal() instanceof FollowOwnerGoal);
+
         // Follow the owner at medium priority. Leash is intentionally loose
         // (24-block teleport, 8-block follow-start) so the pet has room to
         // engage enemies without snapping back to the owner every few steps.
         mob.goalSelector.addGoal(2, new FollowOwnerGoal(mob, owner, 24.0, 8.0, 1.0));
+    }
+
+    /**
+     * Bring the tamer's surviving pets to them after respawn (vanilla-pet
+     * semantics: pets outlive the tamer's death and teleport to them when they
+     * respawn — Discord report; they used to be discarded with the summons in
+     * the owner-death cleanup). Two jobs per pet:
+     * <ol>
+     *   <li>Teleport it to the respawned tamer, crossing dimensions if needed.</li>
+     *   <li>Re-run {@link #rewriteAI} — the follow/defend/aggro goals captured
+     *       the pre-death ServerPlayer INSTANCE at tame time, and respawn
+     *       creates a new instance, so the old goals see {@code owner.isAlive()
+     *       == false} forever and the pet would stand idle.</li>
+     * </ol>
+     */
+    public static void recallTamedOnRespawn(ServerPlayer owner) {
+        var tamed = MinionTracker.getAlive(owner.getUUID(), TAMED_MOB_KEY);
+        if (tamed.isEmpty()) return;
+        ServerLevel targetLevel = (ServerLevel) owner.level();
+        for (var tracked : tamed) {
+            LivingEntity le = tracked.entity();
+            if (!(le instanceof Mob mob)) continue;
+
+            // Defuse primed creepers before yanking them onto the fresh spawn,
+            // mirroring the FollowOwnerGoal leash-teleport guard.
+            if (mob instanceof net.minecraft.world.entity.monster.Creeper creeper) {
+                creeper.setSwellDir(-1);
+            }
+            mob.setTarget(null);
+
+            double x = owner.getX() + (mob.getRandom().nextDouble() - 0.5) * 2;
+            double z = owner.getZ() + (mob.getRandom().nextDouble() - 0.5) * 2;
+            if (mob.level() != targetLevel) {
+                // Cross-dimension recall. changeDimension() recreates the entity
+                // (same UUID — MinionTracker keeps resolving it) but goal-selector
+                // state does NOT copy over, so rebind AI on the NEW instance.
+                Entity moved = mob.changeDimension(new net.minecraft.world.level.portal.DimensionTransition(
+                    targetLevel, new Vec3(x, owner.getY(), z), Vec3.ZERO,
+                    mob.getYRot(), mob.getXRot(),
+                    net.minecraft.world.level.portal.DimensionTransition.DO_NOTHING));
+                if (!(moved instanceof Mob movedMob)) continue;
+                mob = movedMob;
+            } else {
+                mob.moveTo(x, owner.getY(), z, mob.getYRot(), mob.getXRot());
+            }
+            rewriteAI(mob, owner);
+        }
     }
 
     private static Entity getTargetEntity(ServerPlayer player, double range) {
