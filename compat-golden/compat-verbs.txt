@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 867   typed-objects: 1302   distinct-types: 147
+# files-scanned: 868   typed-objects: 1303   distinct-types: 147
 
 == RECOGNIZED VERBS ==
 [action] (90)
@@ -97,7 +97,7 @@
   neoorigins:toggle
   neoorigins:transform_block
   neoorigins:trigger_cooldown
-[condition] (98)
+[condition] (100)
   neoorigins:actor_condition
   neoorigins:advancement
   neoorigins:air
@@ -151,6 +151,7 @@
   neoorigins:in_set
   neoorigins:in_tag
   neoorigins:in_water
+  neoorigins:inventory
   neoorigins:invisible
   neoorigins:lava
   neoorigins:light_level
@@ -167,6 +168,7 @@
   neoorigins:on_fire
   neoorigins:on_ground
   neoorigins:or
+  neoorigins:origin
   neoorigins:out_of_combat
   neoorigins:passenger
   neoorigins:power
@@ -203,12 +205,17 @@
   neoorigins:if_else
   neoorigins:merge_nbt
   neoorigins:set_count
-[item_condition] (8)
+[item_condition] (13)
+  neoorigins:all_of
+  neoorigins:amount
   neoorigins:and
+  neoorigins:any_of
   neoorigins:custom_data
   neoorigins:empty
   neoorigins:enchantment
+  neoorigins:food
   neoorigins:ingredient
+  neoorigins:name
   neoorigins:nbt
   neoorigins:not
   neoorigins:or
@@ -216,8 +223,8 @@
 == CORPUS COVERAGE ==
 # <raw-type>	x<count>	recognized=<categories>	fields={...}
 apoli:action_over_time	x1	recognized=-	fields={condition,description,entity_action,falling_action,hidden,interval,name,rising_action}
-apoli:all_of	x2	recognized=-	fields={actions,conditions}
-apoli:any_of	x1	recognized=-	fields={conditions}
+apoli:all_of	x2	recognized=item_condition	fields={actions,conditions}
+apoli:any_of	x1	recognized=item_condition	fields={conditions}
 apoli:apply_effect	x1	recognized=action	fields={amplifier,duration,effect}
 apoli:climbing	x1	recognized=condition	fields={description,hidden,name}
 apoli:exhaust	x1	recognized=action	fields={amount}
@@ -235,7 +242,7 @@ neoorigins:and	x56	recognized=action,condition,item_action,item_condition	fields
 neoorigins:apply_effect	x44	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
 neoorigins:area_of_effect	x30	recognized=action	fields={amplifier,duration,effect,entity_action,exclude_self,include_source,radius}
 neoorigins:armor_value	x1	recognized=condition	fields={compare_to,comparison}
-neoorigins:attribute_modifier	x305	recognized=-	fields={amount,attribute,condition,description,equipment_condition,location_condition,name,operation}
+neoorigins:attribute_modifier	x306	recognized=-	fields={amount,attribute,condition,description,equipment_condition,location_condition,name,operation}
 neoorigins:bare_hand_tool	x6	recognized=-	fields={tool}
 neoorigins:become_dragon	x3	recognized=-	fields={description,name,required_mods,species,stage}
 neoorigins:biome	x19	recognized=condition	fields={biome,biome_tag,tag}
@@ -353,8 +360,8 @@ neoorigins:water_breathing	x9	recognized=-	fields={description,name}
 neoorigins:wraith_phase	x3	recognized=-	fields={blocked_blocks,cooldown_icon,exhaustion_per_tick}
 origins:action_over_time	x1	recognized=-	fields={condition,description,entity_action,hidden,interval,name}
 origins:active_self	x1	recognized=-	fields={condition,description,entity_action,key,name}
-origins:all_of	x2	recognized=-	fields={actions,conditions}
-origins:any_of	x1	recognized=-	fields={conditions}
+origins:all_of	x2	recognized=item_condition	fields={actions,conditions}
+origins:any_of	x1	recognized=item_condition	fields={conditions}
 origins:conditioned_attribute	x1	recognized=-	fields={condition,description,hidden,modifier,name}
 origins:exhaust	x1	recognized=action	fields={amount}
 origins:heal	x1	recognized=action	fields={amount}
@@ -455,19 +462,19 @@ neoorigins:become_dragon	fields={species,stage}
 neoorigins:bounce_on_land	fields={max_velocity,min_velocity,restitution}
 neoorigins:breath_in_fluid	fields={drain_interval_ticks,fluid}
 neoorigins:attribute_modifier	fields={amount,attribute,condition,equipment_condition{item,slot,tag},location_condition{allow_ocean_floor,allow_water_surface,biome,biome_tag,biomes,can_see_sky,dimension,max_y,min_y,structure,structure_tag},operation}
-neoorigins:action_on_event	fields={block_condition,condition,cooldown_ticks,effect,effect_tag,entity_action,event,immunity_ticks,modifier,power}
+neoorigins:action_on_event	fields={block_condition,condition,cooldown_ticks,effect,effect_tag,entity_action,event,hands,immunity_ticks,modifier,power}
 neoorigins:mob_behavior	fields={aggression,aggro_range,anger_linger_ticks,call_for_help,hostile_when,retaliate,target_type}
 neoorigins:modify_damage	fields={condition,damage_type,direction,multiplier,target_group}
 neoorigins:entity_set	fields={name}
-neoorigins:toggle	fields={default}
-neoorigins:active_ability	fields={always_show_icon,condition,cooldown_countdown,cooldown_icon,cooldown_resource,cooldown_ticks,entity_action,fail_action,hunger_cost,resource_cost,resource_cost_amount}
+neoorigins:toggle	fields={default,key}
+neoorigins:active_ability	fields={always_show_icon,condition,cooldown_countdown,cooldown_icon,cooldown_resource,cooldown_ticks,entity_action,fail_action,hunger_cost,key,resource_cost,resource_cost_amount}
 neoorigins:edible_item	fields={always_edible,consume_sound,items,nutrition,saturation,tags}
 neoorigins:loot_pool_grant	fields={active,always_show_icon,bonus_rolls,cooldown,cooldown_countdown,cooldown_icon,grant_id,loot_table,rolls}
 neoorigins:restrict_armor	fields={restrictions}
 neoorigins:restrict_items	fields={condition,deny,hands,item_condition,prevent_equip,prevent_use,slots}
 neoorigins:modify_player_spawn	fields={location{allow_ocean_floor,allow_water_surface,biome,biome_tag,biomes,can_see_sky,dimension,max_y,min_y,structure,structure_tag},override_bed}
 neoorigins:persistent_effect	fields={always_show_icon,condition,cooldown_icon,default_off,effects,toggleable}
-neoorigins:effect_immunity	fields={effects}
+neoorigins:effect_immunity	fields={effects,inverted}
 neoorigins:invisibility	fields={render_armor}
 neoorigins:condition_passive	fields={always_show_icon,condition,cooldown_icon,default_off,else_action,entity_action,interval,toggleable}
 neoorigins:effect_over_time	fields={activation,always_show_icon,condition,cooldown_icon,default_off,else_action,entity_action,hunger_cost,interval,resource_cost,resource_cost_amount,toggleable}
