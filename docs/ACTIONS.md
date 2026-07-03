@@ -950,6 +950,8 @@ Manually places a power on cooldown. Used when an ability's fire path is custom 
 { "type": "neoorigins:trigger_cooldown", "power": "examplepack:fireball", "cooldown": 40 }
 ```
 
+> **Arming imported `origins:cooldown` powers.** This action also arms imported Apoli cooldown powers (see [`origins:cooldown`](POWER_TYPES.md#originscooldown)): any resource key matching `power` — wildcard globs like `*:*_timer` included — that belongs to a cooldown power is set to that power's registered duration, starting its countdown. The `cooldown` field is ignored on that path; the duration comes from the cooldown power's own JSON.
+
 ---
 
 # Meta verbs
@@ -1075,18 +1077,18 @@ Server-side only.
 
 ## `neoorigins:offset`
 
-Apoli-compatibility wrapper that runs its inner `action`. The `x`/`y`/`z` offset fields are accepted for parity with Apoli's positional offset verb but have **no positional effect** here: position comes from the dispatch context, so this is effectively a transparent pass-through to the inner action.
+Positional wrapper: runs its inner `action` with the current context block position shifted by `x`/`y`/`z` blocks — Apoli's positional offset verb. When the dispatch context resolves a block position (`block_use` / `bonemeal` events, `raycast` block hits, `block_action_at`, the `area_of_effect` block fan-out), the shifted position is published as the context block for the inner action, so block verbs (`grow`, `transform_block`, `execute_command` with `~ ~ ~`) act on the shifted block. When no block context resolves — or all three offsets are 0 — the inner action runs unchanged (transparent pass-through).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `action` | action | no | noop | Inner action to run |
-| `x` | float | no | `0.0` | Accepted for Apoli parity; no positional effect |
-| `y` | float | no | `0.0` | Accepted for Apoli parity; no positional effect |
-| `z` | float | no | `0.0` | Accepted for Apoli parity; no positional effect |
+| `action` | action | no | noop | Inner action to run at the offset block position |
+| `x` | int | no | `0` | X offset in blocks (applied to the context block position) |
+| `y` | int | no | `0` | Y offset in blocks (applied to the context block position) |
+| `z` | int | no | `0` | Z offset in blocks (applied to the context block position) |
 
-**Example:**
+**Example — bonemeal the block two above the one you hit:**
 ```json
-{ "type": "neoorigins:offset", "action": { "type": "neoorigins:spawn_particles", "particle": "minecraft:flame" } }
+{ "type": "neoorigins:offset", "y": 2, "action": { "type": "neoorigins:grow" } }
 ```
 
 ---
@@ -1119,6 +1121,10 @@ Iterates every living entity within the radius and runs `entity_action` against 
 | `include_source` | bool | no | `true` | Whether the source entity is included |
 | `entity_action` | action | no | noop | Runs per affected entity (mobs + players for entity-general verbs) |
 | `entity_condition` | condition | no | always-true | Target filter; entity-general conditions filter mobs + players (see above) |
+| `block_action` | action | no | — | Block fan-out (see below): runs at every block position in radius, each published as the context block |
+| `block_condition` | block condition | no | matches all | Filter for the block fan-out — only positions matching it run `block_action`. Only used with `block_action` |
+
+**Block fan-out (Apoli `block_action` form).** When `block_action` is set, the action additionally sweeps every **block position** within `radius`, centered on the context block position when one resolves (raycast hit, `block_use`/`bonemeal` event, `block_action_at`) and on the source's feet otherwise. Each position is published as the context block, so nested block verbs (`grow`/`bonemeal`, `transform_block`, `offset`, `execute_command`) self-resolve. `block_condition` gates each position; `shape: "sphere"` culls by distance as for entities. The block sweep radius is capped at 16 — Apoli packs use small radii here (e.g. 2).
 
 **Example — burn nearby mobs but never other players:**
 ```json
@@ -1139,6 +1145,15 @@ Iterates every living entity within the radius and runs `entity_action` against 
   "radius": 8.0,
   "entity_condition": { "type": "neoorigins:entity_type", "entity_type": "minecraft:player" },
   "entity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:regeneration", "duration": 60 } }
+```
+
+**Example — block fan-out: bonemeal every grass block in a 2-block sphere:**
+```json
+{ "type": "neoorigins:area_of_effect",
+  "radius": 2.0,
+  "shape": "sphere",
+  "block_condition": { "type": "neoorigins:block", "block": "minecraft:grass_block" },
+  "block_action": { "type": "neoorigins:grow" } }
 ```
 
 ---
@@ -1703,9 +1718,9 @@ No fields.
 { "type": "neoorigins:path" }
 ```
 
-## `neoorigins:grow`
+## `neoorigins:grow` (alias `neoorigins:bonemeal`)
 
-Applies one bonemeal-style growth tick to the **context block** if it's a bonemealable block ready to grow (crops, saplings, grass, etc.), with the green growth particles. No-op when the block isn't bonemealable or isn't valid for growth right now.
+Applies one bonemeal-style growth tick to the **context block** if it's a bonemealable block ready to grow (crops, saplings, grass, etc.), with the green growth particles. No-op when the block isn't bonemealable or isn't valid for growth right now. `bonemeal` is the Apoli block-action name for the same verb, accepted so imported packs (e.g. an `area_of_effect` block fan-out authoring `origins:bonemeal`) dispatch here directly.
 
 No fields.
 
@@ -1934,7 +1949,7 @@ Conditional item action dispatch.
 
 # Item conditions
 
-Item conditions evaluate to true/false against an `ItemStack`. Used inside `equipped_item` entity conditions and `if_else` item actions. They use the `ItemConditionParser` verb set. All item conditions support the universal `"inverted": true` flag.
+Item conditions evaluate to true/false against an `ItemStack`. Used inside `equipped_item` and `inventory` entity conditions, event-power `item_condition` filters, and `if_else` item actions. They use the `ItemConditionParser` verb set. All item conditions support the universal `"inverted": true` flag.
 
 ## `neoorigins:empty`
 
@@ -1942,11 +1957,18 @@ True when the stack is empty. No fields.
 
 ## `neoorigins:nbt`
 
-True when the stack's persistent data contains the given SNBT compound (subset match).
+True when the stack's NBT contains the given SNBT compound (subset match: every expected key must exist with an equal-or-containing value; list elements match if any actual element contains them).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `nbt` | string (SNBT) | yes | — | SNBT to match against |
+| `nbt` | string (SNBT) | yes | — | SNBT subtree to match against |
+
+> **Legacy component-view bridge.** Apoli packs wrote this condition against the pre-1.21 item NBT layout, which 1.21 replaced with data components. The stack's components are therefore projected back into a legacy-shaped view — `Potion`, `CustomPotionColor`, `CustomPotionEffects`, `Enchantments`/`StoredEnchantments`, `display.Name`/`display.Lore`, `Damage`, `RepairCost`, `Unbreakable`, `CustomModelData` — merged over `minecraft:custom_data`, and the subtree match runs against that view. So `{ "nbt": "{Potion:\"minecraft:swiftness\"}" }` still matches a swiftness potion, and scalar types mirror the 1.20.1 save format exactly (enchantment `lvl` is a short: write `5s`).
+
+**Example:**
+```json
+{ "type": "neoorigins:nbt", "nbt": "{Potion:\"minecraft:swiftness\"}" }
+```
 
 ## `neoorigins:enchantment`
 
@@ -1967,6 +1989,42 @@ True when the stack matches a vanilla ingredient (item ID or tag).
 | `tag` | resource id | no | — | Item tag |
 
 Bare item ID strings (no `type` field) also match via the ingredient fallback path.
+
+## `neoorigins:amount`
+
+Numeric comparison against the stack count.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `1` | Stack count threshold |
+
+**Example:**
+```json
+{ "type": "neoorigins:amount", "comparison": ">=", "compare_to": 16 }
+```
+
+## `neoorigins:name`
+
+True when the stack's display name (hover name: custom name if renamed, else the default item name) exactly equals the given text. False on empty stacks.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `name` | string | yes | — | Exact display-name text; always-false when absent |
+
+**Example:**
+```json
+{ "type": "neoorigins:name", "name": "Excalibur" }
+```
+
+## `neoorigins:food`
+
+True when the item has a food component (anything edible). No fields.
+
+**Example:**
+```json
+{ "type": "neoorigins:food" }
+```
 
 ## `neoorigins:and` / `neoorigins:or` / `neoorigins:not` (item)
 

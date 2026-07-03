@@ -729,7 +729,8 @@ Prevents listed potion effects from being applied to the player. Uses NeoForge's
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effects` | list of string | yes | — | Effect IDs to block, e.g. `["minecraft:poison"]` |
+| `effects` | list of string | yes* | — | Effect IDs to block, e.g. `["minecraft:poison"]` (*optional when `inverted` is true) |
+| `inverted` | bool | no | `false` | Flips the list into an exception list (Apoli semantics): immune to every effect **except** those listed. `true` with an empty list = immune to all effects. |
 
 **Example:**
 ```json
@@ -740,6 +741,17 @@ Prevents listed potion effects from being applied to the player. Uses NeoForge's
   "description": "Immune to poison and wither effects."
 }
 ```
+
+**Example — immune to everything except regeneration:**
+```json
+{
+  "type": "neoorigins:effect_immunity",
+  "effects": ["minecraft:regeneration"],
+  "inverted": true
+}
+```
+
+> Pair `inverted: true` with an empty `effects` list and a `power_condition` for a temporary blanket immunity (e.g. an immunity-shot buff gated on a resource).
 
 ---
 
@@ -1032,6 +1044,29 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
   "condition": { "type": "origins:sneaking" },
   "name": "Soft Landing",
   "description": "Takes half fall damage while sneaking."
+}
+```
+
+---
+
+## `origins:cooldown`
+
+A readable cooldown timer. This is an Apoli compat (Route B) power — there is no native `neoorigins:` cooldown power type (native active powers carry their own `cooldown_ticks`). An Apoli cooldown power is a **countdown resource**: its value is `0` while ready and counts down from the armed duration, one per tick, while running. That makes it readable everywhere resources are — `neoorigins:resource` / `resource_level` conditions, `change_resource` / `set_resource` actions, and the HUD bar.
+
+Arming: the [`neoorigins:trigger_cooldown`](ACTIONS.md#neooriginstrigger_cooldown) action sets the resource to the power's registered `cooldown` duration. Its `power` field may be the full power id, a legacy slash id, or a wildcard glob like `*:*_timer` — the glob is matched against the player's resource keys at runtime and every matching cooldown power is armed. The canonical Apoli pattern (inside an `origins:multiple`, where the `*:*_timer` self-reference in a *condition* resolves to the sibling timer's synthetic id at expansion): fire an ability, `trigger_cooldown` the timer, then gate the ability on the timer resource being `0`. A running countdown persists across relogs.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `cooldown` | int ticks | no | `1` | Countdown duration armed by `trigger_cooldown` (clamped to ≥ 1) |
+| `hidden` | bool | no | `false` | Hide the HUD bar |
+| `hud_render` | object | no | — | Same shape as the `neoorigins:resource` HUD block: `sprite_location`, `bar_index` / `icon_index` (default 0 when the block is present), `should_render` (false → hidden), `condition` (entity condition gating bar visibility) |
+
+**Example — a 10-second ability timer, read back as a resource:**
+```json
+{
+  "type": "origins:cooldown",
+  "cooldown": 200,
+  "hud_render": { "should_render": false }
 }
 ```
 
@@ -2202,12 +2237,15 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `condition` | EntityCondition | no | always-true | DSL gate — the event only fires when this is true |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
 | `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events) |
-| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Ignored on other events. |
+| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Supports `block`/`id`, `in_tag`, `and`/`or`, and the positional `offset` wrapper (see below). Ignored on other events. |
+| `hands` | string or list | no | — | Hand gate for interaction events (`block_use`, `entity_use`, `villager_interact`): only fire for the listed hands — `"main_hand"` and/or `"off_hand"` (a singular `hand` key is accepted too). Use `["main_hand"]` to stop a power double-firing (vanilla dispatches the right-click once per hand). Fails closed when the event carries no hand info; ignored on other events. |
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
 | `power` | id or list | no | — | `power_activated` only: pre-dispatch filter on the activated power's id (single id or array). Omit to fire on any activation. |
 | `cooldown_ticks` | int ≥ 0 | no | 0 | After `entity_action` fires, suppress further firings of this power for this many ticks (20 = 1s). Tracked per player per power instance and persisted across respawn/relog. Only gates the action path: `modifier` chains are unaffected. |
+
+**The `offset` block-condition wrapper.** Inside `block_condition`, `{ "type": "neoorigins:offset", "x": 0, "y": -2, "z": 0, "condition": { ... } }` evaluates its nested block condition at the event's block position shifted by the given block offsets — the Apoli structural wrapper for checks like "a basin two blocks below the block I clicked". Without a nested `condition` it matches all blocks (warned at load). The same wrapper works in `block_collision` and the `area_of_effect` block fan-out.
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
@@ -2275,6 +2313,8 @@ For action-style events set `entity_action`; for modifier-style events set `modi
   "immunity_ticks": 40
 }
 ```
+
+> Imported `origins:action_on_block_use` and `origins:bonemeal` powers translate to this type automatically (events `block_use` and `bonemeal`), the same way `origins:action_on_block_break` and `origins:action_on_entity_use` already do. The translation carries `condition`, `block_condition` and the hand filter over directly; `block_action` and `entity_action` both run as the event's `entity_action` (block actions self-resolve the clicked/bonemealed block from the event context), and an Apoli `action_result` of `SUCCESS`/`CONSUME`/`CONSUME_PARTIAL`/`FAIL` appends a `cancel_event` so the interaction outcome matches.
 
 ---
 

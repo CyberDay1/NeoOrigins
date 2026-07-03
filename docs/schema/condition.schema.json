@@ -72,6 +72,7 @@
         "apace:in_set",
         "apace:in_tag",
         "apace:in_water",
+        "apace:inventory",
         "apace:invisible",
         "apace:light_level",
         "apace:living",
@@ -88,6 +89,7 @@
         "apace:on_fire",
         "apace:on_ground",
         "apace:or",
+        "apace:origin",
         "apace:out_of_combat",
         "apace:passenger",
         "apace:power",
@@ -179,6 +181,7 @@
         "neoorigins:in_set",
         "neoorigins:in_tag",
         "neoorigins:in_water",
+        "neoorigins:inventory",
         "neoorigins:invisible",
         "neoorigins:light_level",
         "neoorigins:living",
@@ -195,6 +198,7 @@
         "neoorigins:on_fire",
         "neoorigins:on_ground",
         "neoorigins:or",
+        "neoorigins:origin",
         "neoorigins:out_of_combat",
         "neoorigins:passenger",
         "neoorigins:power",
@@ -451,6 +455,25 @@
             "neoorigins:block_collision",
             "apace:block_collision"
           ]
+        },
+        "offset_x": {
+          "description": "Bounding-box X shift as a multiple of the entity's width (default 0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "offset_y": {
+          "description": "Bounding-box Y shift as a multiple of the entity's height (default 0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "offset_z": {
+          "description": "Bounding-box Z shift as a multiple of the entity's width (default 0).",
+          "type": "number",
+          "default": 0.0
+        },
+        "block_condition": {
+          "description": "Optional block filter; when present, at least one intersected block must match.",
+          "$ref": "block_condition.schema.json"
         }
       },
       "required": [
@@ -1468,6 +1491,56 @@
       ]
     },
     {
+      "$comment": "neoorigins:inventory",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:inventory",
+            "apace:inventory"
+          ]
+        },
+        "inventory_types": {
+          "description": "Inventories to scan: `inventory` (main inventory incl. hotbar, armor, offhand) and/or `ender_chest`. Default: inventory only.",
+          "type": "array",
+          "items": {}
+        },
+        "process_mode": {
+          "description": "`stacks` counts matching stacks; `items` sums their stack counts.",
+          "type": "string",
+          "enum": [
+            "stacks",
+            "items"
+          ],
+          "default": "stacks"
+        },
+        "item_condition": {
+          "description": "Per-stack predicate; absent → any non-empty stack counts.",
+          "$ref": "item_condition.schema.json"
+        },
+        "comparison": {
+          "description": "Comparison operator against the count (default >).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">"
+        },
+        "compare_to": {
+          "description": "Count threshold (default 0 — i.e. \"has at least one match\").",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:invisible",
       "properties": {
         "type": {
@@ -1799,6 +1872,29 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:origin",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:origin",
+            "apace:origin"
+          ]
+        },
+        "origin": {
+          "description": "Origin id the player must currently have.",
+          "type": "string"
+        },
+        "layer": {
+          "description": "Restrict the match to a single origin layer (absent → any layer).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "origin"
       ]
     },
     {
@@ -2534,6 +2630,7 @@
               "apace:in_set",
               "apace:in_tag",
               "apace:in_water",
+              "apace:inventory",
               "apace:invisible",
               "apace:light_level",
               "apace:living",
@@ -2550,6 +2647,7 @@
               "apace:on_fire",
               "apace:on_ground",
               "apace:or",
+              "apace:origin",
               "apace:out_of_combat",
               "apace:passenger",
               "apace:power",
@@ -2641,6 +2739,7 @@
               "neoorigins:in_set",
               "neoorigins:in_tag",
               "neoorigins:in_water",
+              "neoorigins:inventory",
               "neoorigins:invisible",
               "neoorigins:light_level",
               "neoorigins:living",
@@ -2657,6 +2756,7 @@
               "neoorigins:on_fire",
               "neoorigins:on_ground",
               "neoorigins:or",
+              "neoorigins:origin",
               "neoorigins:out_of_combat",
               "neoorigins:passenger",
               "neoorigins:power",

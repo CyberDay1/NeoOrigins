@@ -23,6 +23,7 @@
         "apace:area_of_effect",
         "apace:block_action_at",
         "apace:block_target_action",
+        "apace:bonemeal",
         "apace:cancel_event",
         "apace:cast_spell",
         "apace:chain_to_nearest",
@@ -117,6 +118,7 @@
         "neoorigins:area_of_effect",
         "neoorigins:block_action_at",
         "neoorigins:block_target_action",
+        "neoorigins:bonemeal",
         "neoorigins:cancel_event",
         "neoorigins:cast_spell",
         "neoorigins:chain_to_nearest",
@@ -446,6 +448,14 @@
           "description": "Include the caster in the AoE (default true).",
           "type": "boolean",
           "default": true
+        },
+        "block_action": {
+          "description": "Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius capped at 16.",
+          "$ref": "#"
+        },
+        "block_condition": {
+          "description": "Optional block filter for the block fan-out — only positions matching it run block_action. Only used with block_action.",
+          "$ref": "block_condition.schema.json"
         }
       },
       "required": [
@@ -1217,7 +1227,9 @@
         "type": {
           "enum": [
             "neoorigins:grow",
-            "apace:grow"
+            "neoorigins:bonemeal",
+            "apace:grow",
+            "apace:bonemeal"
           ]
         }
       },
@@ -1459,21 +1471,21 @@
           ]
         },
         "action": {
-          "description": "Inner action to run (offset is architectural; position comes from context).",
+          "description": "Inner action to run at the offset block position.",
           "$ref": "#"
         },
         "x": {
-          "description": "X offset (accepted for Apoli parity; no positional effect here).",
+          "description": "X offset in blocks (applied to the context block position).",
           "type": "number",
           "default": 0.0
         },
         "y": {
-          "description": "Y offset (accepted for Apoli parity; no positional effect here).",
+          "description": "Y offset in blocks (applied to the context block position).",
           "type": "number",
           "default": 0.0
         },
         "z": {
-          "description": "Z offset (accepted for Apoli parity; no positional effect here).",
+          "description": "Z offset in blocks (applied to the context block position).",
           "type": "number",
           "default": 0.0
         }
@@ -2784,6 +2796,7 @@
               "apace:area_of_effect",
               "apace:block_action_at",
               "apace:block_target_action",
+              "apace:bonemeal",
               "apace:cancel_event",
               "apace:cast_spell",
               "apace:chain_to_nearest",
@@ -2878,6 +2891,7 @@
               "neoorigins:area_of_effect",
               "neoorigins:block_action_at",
               "neoorigins:block_target_action",
+              "neoorigins:bonemeal",
               "neoorigins:cancel_event",
               "neoorigins:cast_spell",
               "neoorigins:chain_to_nearest",
