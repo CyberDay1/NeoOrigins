@@ -8,12 +8,19 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +33,17 @@ import java.util.List;
  * <ul>
  *   <li>{@code origins:and} / {@code origins:or} / {@code origins:not} — composition</li>
  *   <li>{@code origins:empty} — true when the stack is empty</li>
- *   <li>{@code origins:nbt} — true when the stack's custom_data NBT contains the given subtree (substring/equality on the SNBT-parsed tag)</li>
+ *   <li>{@code origins:nbt} — legacy-NBT subtree match. The stack's 1.21 data
+ *       components are projected back into a pre-1.21 legacy NBT view
+ *       ({@code Potion}, {@code Enchantments}, {@code display.Name}, ... — the
+ *       read-side mirror of {@link com.cyberday1.neoorigins.compat.LegacyTagToComponents})
+ *       merged over {@code minecraft:custom_data}, then matched with
+ *       {@link NbtUtils#compareNbt} partial containment</li>
  *   <li>{@code origins:enchantment} — checks enchantment level on the stack itself (not equipment slots)</li>
  *   <li>{@code origins:ingredient} — id / tag matching</li>
+ *   <li>{@code origins:amount} — stack-count comparison ({@code comparison}/{@code compare_to})</li>
+ *   <li>{@code origins:name} — display-name string equality</li>
+ *   <li>{@code origins:food} — item has a food component</li>
  * </ul>
  *
  * <p>Honours the universal {@code inverted: true} flag like
@@ -52,7 +67,8 @@ public final class ItemConditionParser {
     public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
         "neoorigins:and", "neoorigins:or", "neoorigins:not", "neoorigins:empty",
         "neoorigins:nbt", "neoorigins:custom_data", "neoorigins:enchantment",
-        "neoorigins:ingredient");
+        "neoorigins:ingredient", "neoorigins:amount", "neoorigins:name",
+        "neoorigins:food");
 
     public static ItemCondition parse(JsonObject json) {
         if (json == null) return ItemCondition.alwaysTrue();
@@ -81,6 +97,9 @@ public final class ItemConditionParser {
                      "neoorigins:custom_data"  -> parseNbt(json);
                 case "neoorigins:enchantment"  -> parseEnchantment(json);
                 case "neoorigins:ingredient"   -> parseIngredient(json);
+                case "neoorigins:amount"       -> parseAmount(json);
+                case "neoorigins:name"         -> parseName(json);
+                case "neoorigins:food"         -> s -> s.has(DataComponents.FOOD);
                 default -> {
                     // Direct id / tag fields at the top level (Origins also accepts these
                     // without an explicit type).
@@ -133,14 +152,16 @@ public final class ItemConditionParser {
 
     /**
      * NBT containment check. Apoli's {@code origins:nbt} condition tests
-     * "does the stack's NBT contain this subtree". On 1.21+ vanilla items
-     * use data components instead of legacy NBT, so we read the
-     * {@code minecraft:custom_data} component (the official escape
-     * hatch for arbitrary pack-authored NBT) and run a recursive
-     * subtree match.
-     *
-     * <p>The subtree match is structural: every key in the expected NBT
-     * must exist in the actual NBT with an equal-or-containing value.
+     * "does the stack's NBT contain this subtree" — written by 1.20-era
+     * pack authors against the pre-component legacy tag layout. On 1.21+
+     * that state lives in data components, so we project the components
+     * back into a legacy-shaped view (the read-side mirror of
+     * {@link com.cyberday1.neoorigins.compat.LegacyTagToComponents}),
+     * merged over the stack's {@code minecraft:custom_data}, then run
+     * vanilla's partial containment match
+     * ({@link NbtUtils#compareNbt}(expected, actual, true)): every key in
+     * the expected NBT must exist with an equal-or-containing value, and
+     * list elements match if any actual element contains them.
      * {@code {a:1}} matches both {@code {a:1}} and {@code {a:1, b:2}}.
      */
     private static ItemCondition parseNbt(JsonObject json) {
@@ -157,26 +178,117 @@ public final class ItemConditionParser {
         }
         return s -> {
             if (s.isEmpty()) return false;
-            var customData = s.get(DataComponents.CUSTOM_DATA);
-            if (customData == null) return false;
-            return tagContains(customData.copyTag(), expected);
+            return NbtUtils.compareNbt(expected, buildLegacyView(s), true);
         };
     }
 
-    /** Recursive structural-containment match: actual ⊇ expected. */
-    private static boolean tagContains(CompoundTag actual, CompoundTag expected) {
-        // 26.1: getAllKeys() → keySet().
-        for (String key : expected.keySet()) {
-            if (!actual.contains(key)) return false;
-            Tag exp = expected.get(key);
-            Tag act = actual.get(key);
-            if (exp instanceof CompoundTag expCt && act instanceof CompoundTag actCt) {
-                if (!tagContains(actCt, expCt)) return false;
-            } else if (exp != null && !exp.equals(act)) {
-                return false;
+    /**
+     * Projects the stack's 1.21 data components back into the pre-1.21
+     * legacy NBT layout ({@code Potion}, {@code CustomPotionColor},
+     * {@code CustomPotionEffects}, {@code Enchantments}/{@code StoredEnchantments},
+     * {@code display.Name}/{@code display.Lore}, {@code Damage},
+     * {@code RepairCost}, {@code Unbreakable}, {@code CustomModelData}),
+     * merged over {@code minecraft:custom_data} as the base.
+     *
+     * <p>Scalar types mirror the legacy save format exactly, because
+     * {@link NbtUtils#compareNbt} uses strict tag equality on leaves:
+     * enchantment {@code lvl} is a Short ({@code 5s}), custom-effect
+     * {@code amplifier} a Byte — matching what 1.20.1 wrote to disk (and
+     * what pack authors copied into their SNBT).
+     */
+    private static CompoundTag buildLegacyView(ItemStack s) {
+        var customData = s.get(DataComponents.CUSTOM_DATA);
+        CompoundTag view = customData != null ? customData.copyTag() : new CompoundTag();
+
+        PotionContents potion = s.get(DataComponents.POTION_CONTENTS);
+        if (potion != null) {
+            // 26.1: ResourceKey.location() → ResourceKey.identifier().
+            potion.potion().flatMap(h -> h.unwrapKey())
+                .ifPresent(k -> view.putString("Potion", k.identifier().toString()));
+            potion.customColor().ifPresent(c -> view.putInt("CustomPotionColor", c));
+            if (!potion.customEffects().isEmpty()) {
+                ListTag effects = new ListTag();
+                for (var eff : potion.customEffects()) {
+                    CompoundTag e = new CompoundTag();
+                    eff.getEffect().unwrapKey()
+                        .ifPresent(k -> e.putString("id", k.identifier().toString()));
+                    // Both legacy-capitalised (1.20.1 save format) and modern
+                    // lowercase keys; compareNbt ignores the extras.
+                    e.putByte("amplifier", (byte) eff.getAmplifier());
+                    e.putByte("Amplifier", (byte) eff.getAmplifier());
+                    e.putInt("duration", eff.getDuration());
+                    e.putInt("Duration", eff.getDuration());
+                    effects.add(e);
+                }
+                view.put("CustomPotionEffects", effects);
+                view.put("custom_potion_effects", effects.copy());
             }
         }
-        return true;
+
+        appendLegacyEnchantments(view, "Enchantments", s.get(DataComponents.ENCHANTMENTS));
+        appendLegacyEnchantments(view, "StoredEnchantments", s.get(DataComponents.STORED_ENCHANTMENTS));
+
+        CompoundTag display = new CompoundTag();
+        Component customName = s.get(DataComponents.CUSTOM_NAME);
+        if (customName != null) {
+            String json = componentToJson(customName);
+            if (json != null) display.putString("Name", json);
+        }
+        ItemLore lore = s.get(DataComponents.LORE);
+        if (lore != null && !lore.lines().isEmpty()) {
+            ListTag lines = new ListTag();
+            for (Component line : lore.lines()) {
+                String json = componentToJson(line);
+                if (json != null) lines.add(StringTag.valueOf(json));
+            }
+            if (!lines.isEmpty()) display.put("Lore", lines);
+        }
+        if (!display.isEmpty()) view.put("display", display);
+
+        Integer damage = s.get(DataComponents.DAMAGE);
+        if (damage != null) view.putInt("Damage", damage);
+        Integer repairCost = s.get(DataComponents.REPAIR_COST);
+        if (repairCost != null) view.putInt("RepairCost", repairCost);
+        if (s.has(DataComponents.UNBREAKABLE)) view.putBoolean("Unbreakable", true);
+        // 26.1: CustomModelData is a 4-list record; the legacy int rides the
+        // first floats slot (mirror of LegacyTagToComponents.applyCustomModelData).
+        var cmd = s.get(DataComponents.CUSTOM_MODEL_DATA);
+        if (cmd != null) {
+            Float legacy = cmd.getFloat(0);
+            if (legacy != null) view.putInt("CustomModelData", (int) (float) legacy);
+        }
+
+        return view;
+    }
+
+    /**
+     * Serialises a chat component to its vanilla JSON string — the value legacy
+     * {@code display.Name}/{@code display.Lore} carried. 26.1: Component.Serializer
+     * is gone; encode through {@link ComponentSerialization#CODEC} + JsonOps.
+     */
+    private static String componentToJson(Component component) {
+        try {
+            return ComponentSerialization.CODEC
+                .encodeStart(com.mojang.serialization.JsonOps.INSTANCE, component)
+                .result().map(Object::toString).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Legacy enchantment list: {@code [{id: "minecraft:sharpness", lvl: 5s}]} (lvl as Short, matching the 1.20.1 save format). */
+    private static void appendLegacyEnchantments(CompoundTag view, String key, ItemEnchantments enchantments) {
+        if (enchantments == null || enchantments.isEmpty()) return;
+        ListTag list = new ListTag();
+        for (var entry : enchantments.entrySet()) {
+            var keyOpt = entry.getKey().unwrapKey();
+            if (keyOpt.isEmpty()) continue;
+            CompoundTag e = new CompoundTag();
+            e.putString("id", keyOpt.get().identifier().toString());
+            e.putShort("lvl", (short) entry.getIntValue());
+            list.add(e);
+        }
+        if (!list.isEmpty()) view.put(key, list);
     }
 
     /**
@@ -230,5 +342,20 @@ public final class ItemConditionParser {
             return s -> !s.isEmpty() && s.is(tag);
         }
         return ItemCondition.alwaysFalse();
+    }
+
+    /** Stack-count comparison: {@code comparison} (default {@code >=}) against {@code compare_to} (default 1). */
+    private static ItemCondition parseAmount(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 1;
+        ComparisonType cmp = ComparisonType.fromString(comp);
+        return s -> cmp.test(s.getCount(), target);
+    }
+
+    /** Display-name string equality against the stack's hover name (custom name, else default item name). */
+    private static ItemCondition parseName(JsonObject json) {
+        String name = json.has("name") ? json.get("name").getAsString() : null;
+        if (name == null) return ItemCondition.alwaysFalse();
+        return s -> !s.isEmpty() && s.getHoverName().getString().equals(name);
     }
 }

@@ -66,6 +66,7 @@ public final class ConditionParser {
         "neoorigins:hit_dealt_amount", "neoorigins:hit_taken_amount",
         "neoorigins:in_block", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
+        "neoorigins:inventory",
         "neoorigins:invisible", "neoorigins:lava", "neoorigins:light_level",
         "neoorigins:living", "neoorigins:moon_phase", "neoorigins:moving",
         "neoorigins:nbt", "neoorigins:near_block", "neoorigins:near_entity",
@@ -607,6 +608,71 @@ public final class ConditionParser {
         }
 
         return EntityCondition.alwaysTrue();
+    }
+
+    /**
+     * {@code origins:inventory} — counts inventory contents matching the nested
+     * {@code item_condition} and compares. Apoli fields:
+     * <ul>
+     *   <li>{@code inventory_types} — list of {@code inventory} /
+     *       {@code ender_chest} (default: inventory only). The player main
+     *       inventory includes hotbar, storage, armor and offhand slots.</li>
+     *   <li>{@code process_mode} — {@code stacks} counts matching stacks,
+     *       {@code items} sums their stack counts (default: stacks).</li>
+     *   <li>{@code item_condition} — per-stack predicate via the shared
+     *       {@link ItemConditionParser}; absent → any non-empty stack.</li>
+     *   <li>{@code comparison} / {@code compare_to} — default {@code >} 0
+     *       ("has at least one match").</li>
+     * </ul>
+     * Apoli's {@code power} field (counting slots inside an apoli:inventory
+     * POWER's virtual container) is not supported — fails closed with a warn.
+     */
+    static EntityCondition parseInventory(JsonObject json, String contextId) {
+        if (json.has("power")) {
+            return failClosed("neoorigins:inventory", contextId,
+                "'power' (virtual inventory-power containers) not supported");
+        }
+        boolean checkInventory = true, checkEnderChest = false;
+        if (json.has("inventory_types") && json.get("inventory_types").isJsonArray()) {
+            checkInventory = false;
+            for (JsonElement el : json.getAsJsonArray("inventory_types")) {
+                String t = el.getAsString();
+                String leaf = t.indexOf(':') >= 0 ? t.substring(t.indexOf(':') + 1) : t;
+                if (leaf.equalsIgnoreCase("inventory")) checkInventory = true;
+                else if (leaf.equalsIgnoreCase("ender_chest")) checkEnderChest = true;
+            }
+        }
+        com.cyberday1.neoorigins.compat.condition.ItemCondition itemCond =
+            json.has("item_condition") && json.get("item_condition").isJsonObject()
+                ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser
+                    .parse(json.getAsJsonObject("item_condition"))
+                : null;
+        boolean countItems = json.has("process_mode")
+            && "items".equalsIgnoreCase(json.get("process_mode").getAsString());
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType cmp = ComparisonType.fromString(comp);
+        final boolean fInv = checkInventory, fEnder = checkEnderChest;
+        return player -> {
+            int count = 0;
+            if (fInv)   count += countMatching(player.getInventory(), itemCond, countItems);
+            if (fEnder) count += countMatching(player.getEnderChestInventory(), itemCond, countItems);
+            return cmp.test(count, target);
+        };
+    }
+
+    /** Counts stacks (or summed item counts) in a container matching the item condition (null → any non-empty). */
+    private static int countMatching(net.minecraft.world.Container container,
+                                     com.cyberday1.neoorigins.compat.condition.ItemCondition cond,
+                                     boolean countItems) {
+        int count = 0;
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            net.minecraft.world.item.ItemStack stack = container.getItem(i);
+            if (stack.isEmpty()) continue;
+            if (cond != null && !cond.test(stack)) continue;
+            count += countItems ? stack.getCount() : 1;
+        }
+        return count;
     }
 
     private static EquipmentSlot mapEquipmentSlot(String slot) {
