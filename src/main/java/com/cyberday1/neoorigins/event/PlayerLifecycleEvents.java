@@ -284,7 +284,13 @@ public class PlayerLifecycleEvents {
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
-        MinionTracker.clearAll(uuid);
+        // Summoned minions are session-scoped and die with the logout, but tamed
+        // pets get vanilla-pet persistence: they stay in the world (tame state
+        // rides the persistent minion_owner attachment; their AI goals resolve
+        // the owner lazily by UUID) and their tracker entries are kept so
+        // max_tamed caps and death backlash stay correct across the relog.
+        MinionTracker.clearAllExceptType(uuid,
+            com.cyberday1.neoorigins.power.builtin.TameMobPower.tamedMobKey());
         com.cyberday1.neoorigins.power.builtin.ExtraInventoryPower.onPlayerLogout(sp);
         ActiveOriginService.invalidate(uuid);
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
