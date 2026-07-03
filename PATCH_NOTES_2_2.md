@@ -2,6 +2,24 @@
 
 ---
 
+## v2.2.14
+
+> A hotfix for tamed-pet lifecycle and origin evolutions: pets now survive their tamer's death and persist across logout like vanilla pets, evolution tiers stop re-granting effects the base origin already has, and two item-condition gaps that broke Origins: Dietary Delights are closed.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **Tamed pets survive their tamer's death and recall to them on respawn.** The owner-death cleanup discarded every tracked minion, tamed pets included. Vanilla-pet semantics now apply: summoned minions still die with their summoner, but tamed pets are exempt and teleport to the tamer on respawn — cross-dimension if needed — with their loyalty AI rebound to the respawned player instead of idling against the dead one.
+- **Tamed pets persist across logout and server restarts.** Tame state lived only in session memory, so a pet was orphaned the moment its tamer logged out and reverted to hostile vanilla AI when its chunk reloaded. The tame is now stored on the mob itself, vanilla-style: pets rehydrate on load, idle politely while their owner is offline, and rebind automatically on login. Summons remain session-scoped by design.
+- **Evolution tiers no longer re-grant effects the origin already has.** Five built-in origins granted a redundant effect on evolution: fire resistance on blazeling, cinderborn, fire mage, and strider over their base fire immunity, and breeze T2 re-granting its own toggleable slow falling — silently defeating the toggle. The redundant grants are dropped, and blazeling T2 gains a new +4 HP step in their place so the tier isn't empty.
+
+### Compatibility (Apoli / Origins)
+
+- **Item conditions accept `all_of`/`any_of` and vanilla array-form `ingredient`.** Both gaps hit Origins: Dietary Delights' vegetarian power: the unrecognized `all_of` collapsed the condition to match-everything (blocking all item use), and the array-form ingredient never matched (breaking the diet exemption). The power now compiles and runs as the addon ships it, and both forms are documented with regenerated schemas.
+
+---
+
 ## v2.2.13
 
 > A legacy-datapack compatibility release: pre-2.2.8 sub-power ids keep their resource caps again, 1.20-era packs with plural folder names load without edits, and a batch of missing Apoli powers, actions, and conditions round out the compat layer.
