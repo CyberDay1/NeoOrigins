@@ -248,6 +248,22 @@ public class CompatAttachments {
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
     public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
 
+    // ---- Cooldown power durations (origins:cooldown Route B) ----
+    // An Apoli cooldown power is a countdown resource: 0 == ready, >0 == ticks
+    // remaining. trigger_cooldown arms it by setting the registered duration;
+    // the power's onTick decrements it. Registered at power-load time (keyed by
+    // the power's canonical id) so trigger_cooldown — whose `power` field may be
+    // a wildcard glob or a legacy slash id — can resolve "is this a cooldown
+    // power, and how long does it run" without re-parsing JSON.
+    private static final Map<String, Integer> COOLDOWN_DURATIONS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerCooldownDuration(String key, int ticks) { COOLDOWN_DURATIONS.put(key, ticks); }
+    public static void unregisterCooldownDuration(String key) { COOLDOWN_DURATIONS.remove(key); }
+    public static void clearCooldownDurations() { COOLDOWN_DURATIONS.clear(); }
+    /** Registered duration in ticks, or null when the key is not a cooldown power.
+     *  Reads resolve legacy slash-form synthetic ids, same rationale as getResourceMeta. */
+    public static Integer cooldownDuration(String key) { return COOLDOWN_DURATIONS.get(resolveLegacySyntheticId(key)); }
+
     // ---- Legacy synthetic sub-power id aliases (backward compat) ----
     // Pre-2.2.8, origins:multiple expansion joined a sub-power's synthetic id
     // with a slash ("parent/subkey"). 2.2.8 (commit 4e8f4ea4) switched the join

@@ -76,6 +76,15 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         // when the activated power's id is in the set. Empty = fire on ANY
         // power activation. Ignored on all other events.
         java.util.Optional<java.util.Set<net.minecraft.resources.Identifier>> powerFilter,
+        // Optional hand filter for interaction events whose dispatch context
+        // carries the triggering hand (BLOCK_USE / ENTITY_USE / VILLAGER_INTERACT
+        // wrap the cancellable PlayerInteractEvent). Accepts `hands` (array)
+        // or `hand` (single string) of "main_hand"/"off_hand" — the Apoli
+        // action_on_block_use shape, needed so a main-hand-only legacy power
+        // doesn't double-fire (vanilla dispatches RightClickBlock once per
+        // hand). Fails closed when set but the context has no hand info,
+        // mirroring the block_condition gate.
+        java.util.Optional<java.util.Set<net.minecraft.world.InteractionHand>> hands,
         // Post-cleanse grace window in level ticks. When >0 AND the action
         // successfully cancels an EFFECT_APPLIED event (sets DO_NOT_APPLY),
         // grant `immunityTicks` ticks of full immunity to the same effect id
@@ -130,7 +139,8 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                 java.util.Optional<java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>> blockCond =
                     (obj.has("block_condition") && obj.get("block_condition").isJsonObject())
                         ? java.util.Optional.of(com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
-                            .compileBlockPredicate(obj.getAsJsonObject("block_condition")))
+                            .compileBlockPredicate(obj.getAsJsonObject("block_condition"),
+                                obj.has("_power_id") ? obj.get("_power_id").getAsString() : t))
                         : java.util.Optional.empty();
 
                 // Optional EFFECT_APPLIED filter: `effect` is a single id,
@@ -188,9 +198,35 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     if (!ids.isEmpty()) powerFilter = java.util.Optional.of(java.util.Set.copyOf(ids));
                 }
 
+                // Optional hand filter: `hands` (array) or `hand` (single
+                // string). Values are the Apoli names "main_hand"/"off_hand";
+                // unknown strings are skipped with a warn.
+                java.util.Optional<java.util.Set<net.minecraft.world.InteractionHand>> handFilter =
+                    java.util.Optional.empty();
+                JsonElement handsEl = obj.has("hands") ? obj.get("hands")
+                    : (obj.has("hand") ? obj.get("hand") : null);
+                if (handsEl != null) {
+                    java.util.Set<net.minecraft.world.InteractionHand> parsed =
+                        java.util.EnumSet.noneOf(net.minecraft.world.InteractionHand.class);
+                    java.util.List<JsonElement> raw = handsEl.isJsonArray()
+                        ? handsEl.getAsJsonArray().asList()
+                        : java.util.List.of(handsEl);
+                    for (JsonElement el : raw) {
+                        if (!el.isJsonPrimitive()) continue;
+                        switch (el.getAsString().toLowerCase(Locale.ROOT)) {
+                            case "main_hand", "mainhand" -> parsed.add(net.minecraft.world.InteractionHand.MAIN_HAND);
+                            case "off_hand", "offhand"   -> parsed.add(net.minecraft.world.InteractionHand.OFF_HAND);
+                            default -> NeoOrigins.LOGGER.warn(
+                                "action_on_event ({}): unknown hand '{}' in `hands` filter",
+                                t, el.getAsString());
+                        }
+                    }
+                    if (!parsed.isEmpty()) handFilter = java.util.Optional.of(parsed);
+                }
+
                 return DataResult.success(Pair.of(
                     new Config(ev, cond, action, modifier, blockCond,
-                        effectFilter, effectTagFilter, powerFilter, immunity, cooldown, pid, t),
+                        effectFilter, effectTagFilter, powerFilter, handFilter, immunity, cooldown, pid, t),
                     ops.empty()));
             }
 
@@ -258,6 +294,13 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                         if (!config.powerFilter().get().contains(pc.powerId())) return;
                     }
                     if (!config.condition().test(sp)) return;
+                    // hands gate: only fire when the dispatch context carries
+                    // the triggering hand and it is in the configured set.
+                    // Fails closed on hand-less contexts, same as block_condition.
+                    if (config.hands().isPresent()) {
+                        net.minecraft.world.InteractionHand hand = extractHand(ctx);
+                        if (hand == null || !config.hands().get().contains(hand)) return;
+                    }
                     // block_condition gate: extract the BlockPos from a known
                     // block-event context shape and run the predicate. Skips
                     // silently if the context doesn't carry block info — same
@@ -337,6 +380,27 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         }
         if (ctx instanceof EventPowerIndex.BlockInteractContext bic) {
             return bic.pos();
+        }
+        return null;
+    }
+
+    /**
+     * Best-effort InteractionHand extraction from an interaction dispatch
+     * context. BLOCK_USE / ENTITY_USE contexts wrap the cancellable
+     * PlayerInteractEvent, which carries the hand; anything else yields null
+     * and the hands gate fails closed.
+     */
+    private static net.minecraft.world.InteractionHand extractHand(Object ctx) {
+        if (ctx instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
+            return pie.getHand();
+        }
+        if (ctx instanceof EventPowerIndex.BlockInteractContext bic
+                && bic.event() instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
+            return pie.getHand();
+        }
+        if (ctx instanceof EventPowerIndex.EntityInteractContext eic
+                && eic.event() instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
+            return pie.getHand();
         }
         return null;
     }
