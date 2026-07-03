@@ -377,4 +377,28 @@ public final class MinionTracker {
             }
         }
     }
+
+    /**
+     * Clean up all minions for a player EXCEPT those of {@code keepMobType}.
+     * Used on the summoner's death: conjured minions (necromancer summons etc.)
+     * shouldn't outlive their owner, but tamed pets get vanilla-pet semantics —
+     * they survive the tamer's death and are recalled to the tamer on respawn
+     * (see {@code TameMobPower.recallTamedOnRespawn}). Kept entries stay
+     * tracked, so despawn timers, death-damage and per-tick pacification keep
+     * working across the owner's death.
+     */
+    public static void clearAllExceptType(UUID playerUuid, String keepMobType) {
+        List<TrackedMinion> list = MINIONS.get(playerUuid);
+        if (list == null) return;
+        List<TrackedMinion> toRemove = new ArrayList<>();
+        for (TrackedMinion m : list) {
+            if (m.mobType().equals(keepMobType)) continue;
+            LivingEntity entity = m.entity();
+            if (entity != null && entity.isAlive()) entity.discard();
+            DIM_HINTS.remove(m.minionUuid());
+            toRemove.add(m);
+        }
+        if (!toRemove.isEmpty()) list.removeAll(toRemove);
+        if (list.isEmpty()) MINIONS.remove(playerUuid);
+    }
 }
