@@ -1975,6 +1975,18 @@ True when the stack matches a vanilla ingredient (item ID or tag).
 
 Bare item ID strings (no `type` field) also match via the ingredient fallback path.
 
+The Origins wrapper form nests the item/tag under an `ingredient` key, and vanilla's union (array) form is accepted there too — it matches when *any* entry matches:
+
+```json
+{
+  "type": "neoorigins:ingredient",
+  "ingredient": [
+    { "tag": "origins:ignore_diet" },
+    { "tag": "origins:vegetarian" }
+  ]
+}
+```
+
 ## `neoorigins:amount`
 
 Numeric comparison against the stack count.
@@ -2013,4 +2025,4 @@ True when the item has a food component (anything edible). No fields.
 
 ## `neoorigins:and` / `neoorigins:or` / `neoorigins:not` (item)
 
-Standard boolean combinators, same shape as entity conditions but operating on `ItemStack`.
+Standard boolean combinators, same shape as entity conditions but operating on `ItemStack`. `all_of` / `any_of` are accepted as aliases of `and` / `or` (the Apoli 2.9+ renames), matching the entity-side conditions.

@@ -12,8 +12,10 @@
       "type": "string",
       "description": "Item-condition verb (empty / nbt / enchantment / ingredient / not / and / or). `apace:` aliases are accepted.",
       "enum": [
+        "apace:all_of",
         "apace:amount",
         "apace:and",
+        "apace:any_of",
         "apace:custom_data",
         "apace:empty",
         "apace:enchantment",
@@ -23,8 +25,10 @@
         "apace:nbt",
         "apace:not",
         "apace:or",
+        "neoorigins:all_of",
         "neoorigins:amount",
         "neoorigins:and",
+        "neoorigins:any_of",
         "neoorigins:custom_data",
         "neoorigins:empty",
         "neoorigins:enchantment",
@@ -76,7 +80,9 @@
         "type": {
           "enum": [
             "neoorigins:and",
-            "apace:and"
+            "neoorigins:all_of",
+            "apace:and",
+            "apace:all_of"
           ]
         },
         "conditions": {
@@ -170,7 +176,7 @@
           "type": "string"
         },
         "tag": {
-          "description": "Item tag the stack must be in (e.g. minecraft:planks).",
+          "description": "Item tag the stack must be in (e.g. minecraft:planks). May also be nested under an `ingredient` key, including vanilla's array form ([{\"tag\": ...}, {\"item\": ...}]) which matches when any entry matches.",
           "type": "string"
         }
       },
@@ -242,7 +248,9 @@
         "type": {
           "enum": [
             "neoorigins:or",
-            "apace:or"
+            "neoorigins:any_of",
+            "apace:or",
+            "apace:any_of"
           ]
         },
         "conditions": {
@@ -263,8 +271,10 @@
         "type": {
           "not": {
             "enum": [
+              "apace:all_of",
               "apace:amount",
               "apace:and",
+              "apace:any_of",
               "apace:custom_data",
               "apace:empty",
               "apace:enchantment",
@@ -274,8 +284,10 @@
               "apace:nbt",
               "apace:not",
               "apace:or",
+              "neoorigins:all_of",
               "neoorigins:amount",
               "neoorigins:and",
+              "neoorigins:any_of",
               "neoorigins:custom_data",
               "neoorigins:empty",
               "neoorigins:enchantment",
