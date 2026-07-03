@@ -397,7 +397,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         mob.targetSelector.getAvailableGoals().clear();
 
         if (mob instanceof PathfinderMob pathfinder) {
-            mob.targetSelector.addGoal(1, new TameMobPower.OwnerAwareHurtByTargetGoal(pathfinder, summoner));
+            mob.targetSelector.addGoal(1, new TameMobPower.OwnerAwareHurtByTargetGoal(pathfinder, summoner.getUUID()));
         }
 
         mob.targetSelector.addGoal(2, new SummonerCombatTargetGoal(mob, summoner));

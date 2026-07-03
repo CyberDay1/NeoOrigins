@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.*;
@@ -73,16 +74,72 @@ public final class MinionTracker {
         new ConcurrentHashMap<>();
 
     /** Register a newly summoned minion. Also stamps the mob with a persistent
-     * {@code minion_owner} attachment so ownership survives dimension changes
-     * and server restarts (the in-memory {@link #MINIONS} map is session-scoped). */
+     * {@code minion_owner} attachment carrying the full tracker state (owner,
+     * type key, despawn duration, death damage) so ownership survives dimension
+     * changes and server restarts, and — for tamed pets — the whole entry can be
+     * rebuilt from disk by {@link #rehydrateTamed(Mob)}. */
     public static void track(ServerPlayer summoner, LivingEntity minion, String mobType,
                              int currentTick, int despawnTicks, float deathDamage) {
         MINIONS.computeIfAbsent(summoner.getUUID(), k -> new java.util.concurrent.CopyOnWriteArrayList<>())
             .add(new TrackedMinion(minion.getUUID(), mobType, currentTick, currentTick + despawnTicks, deathDamage));
-        minion.setData(EntityAttachments.minionOwner(), MinionOwner.of(summoner.getUUID()));
+        minion.setData(EntityAttachments.minionOwner(),
+            MinionOwner.of(summoner.getUUID(), mobType, despawnTicks, deathDamage));
         if (minion.level() instanceof ServerLevel sl) {
             DIM_HINTS.put(minion.getUUID(), sl.dimension());
         }
+    }
+
+    /**
+     * Vanilla-pet persistence: rebuild tame state for a mob that just loaded
+     * into a server level. Goal selectors are never saved with the entity, so
+     * EVERY load from disk (chunk reload, dimension change, logout+login,
+     * server restart) reverts a pet to its vanilla hostile AI until the owner
+     * goals are reinstalled — and after a restart (or the owner's logout purge
+     * of summons) the in-memory tracker entry is gone too. Driven by the
+     * persistent {@code minion_owner} attachment stamped at tame time:
+     * <ol>
+     *   <li>Re-register the pet under its owner if the tracker lost the entry,
+     *       re-arming the despawn timer from the attachment's full duration
+     *       (the saved deadline was relative to a session tickCount that no
+     *       longer exists).</li>
+     *   <li>Re-run {@code TameMobPower.rewriteAI}. The goals resolve the owner
+     *       lazily by UUID, so this works even while the owner is offline —
+     *       the pet idles peacefully and picks the owner up on their next
+     *       login without any explicit rebind.</li>
+     * </ol>
+     * Only {@code tamer:tamed} entries rehydrate. Summoned minions (necromancer
+     * summons etc.) intentionally stay session-scoped: they are discarded on
+     * their summoner's logout/death, so a loaded mob carrying a summon-type
+     * attachment is stale and is left to vanilla behavior.
+     */
+    public static void rehydrateTamed(Mob mob) {
+        if (!mob.hasData(EntityAttachments.minionOwner())) return;
+        MinionOwner data = mob.getData(EntityAttachments.minionOwner());
+        if (data.ownerUuid().isEmpty()) return;
+        String tamedKey = com.cyberday1.neoorigins.power.builtin.TameMobPower.tamedMobKey();
+        if (!tamedKey.equals(data.mobType().orElse(null))) return;
+
+        UUID ownerUuid = data.ownerUuid().get();
+        List<TrackedMinion> list = MINIONS.computeIfAbsent(
+            ownerUuid, k -> new java.util.concurrent.CopyOnWriteArrayList<>());
+        boolean tracked = false;
+        for (TrackedMinion m : list) {
+            if (m.minionUuid().equals(mob.getUUID())) { tracked = true; break; }
+        }
+        if (!tracked) {
+            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+            ServerPlayer owner = server != null ? server.getPlayerList().getPlayer(ownerUuid) : null;
+            // Despawn deadlines are compared against the OWNER's tickCount in
+            // tick(), which starts from 0 each session/respawn — so an offline
+            // owner (now = 0) can only make the deadline more generous.
+            int now = owner != null ? owner.tickCount : 0;
+            list.add(new TrackedMinion(mob.getUUID(), tamedKey, now,
+                now + data.despawnTicks(), data.deathDamage()));
+        }
+        if (mob.level() instanceof ServerLevel sl) {
+            DIM_HINTS.put(mob.getUUID(), sl.dimension());
+        }
+        com.cyberday1.neoorigins.power.builtin.TameMobPower.rewriteAI(mob, ownerUuid);
     }
 
     /** Count living minions of a given mob type for a player. */
@@ -366,7 +423,13 @@ public final class MinionTracker {
         return alive;
     }
 
-    /** Clean up all minions for a player (e.g., on logout or origin change). */
+    /** Clean up all minions for a player — tamed pets included. Used when the
+     * taming power itself is revoked (origin change), NOT on logout (logout
+     * uses {@link #clearAllExceptType} so pets persist). Discarding removes
+     * the entity from the world outright, attachment and all, so a revoked
+     * pet can't rehydrate later. Limitation: a pet sitting in an UNLOADED
+     * chunk at revoke time can't be reached and will still rehydrate when its
+     * chunk next loads. */
     public static void clearAll(UUID playerUuid) {
         List<TrackedMinion> list = MINIONS.remove(playerUuid);
         if (list != null) {
@@ -380,12 +443,13 @@ public final class MinionTracker {
 
     /**
      * Clean up all minions for a player EXCEPT those of {@code keepMobType}.
-     * Used on the summoner's death: conjured minions (necromancer summons etc.)
-     * shouldn't outlive their owner, but tamed pets get vanilla-pet semantics —
-     * they survive the tamer's death and are recalled to the tamer on respawn
-     * (see {@code TameMobPower.recallTamedOnRespawn}). Kept entries stay
+     * Used on the summoner's death AND logout: conjured minions (necromancer
+     * summons etc.) shouldn't outlive their owner's session, but tamed pets get
+     * vanilla-pet semantics — they survive the tamer's death (recalled on
+     * respawn, see {@code TameMobPower.recallTamedOnRespawn}) and the tamer's
+     * logout (waiting in the world for the next login). Kept entries stay
      * tracked, so despawn timers, death-damage and per-tick pacification keep
-     * working across the owner's death.
+     * working across the owner's death or relog.
      */
     public static void clearAllExceptType(UUID playerUuid, String keepMobType) {
         List<TrackedMinion> list = MINIONS.get(playerUuid);

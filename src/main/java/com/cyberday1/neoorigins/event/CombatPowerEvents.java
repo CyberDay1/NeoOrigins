@@ -395,6 +395,25 @@ public class CombatPowerEvents {
             hitDealt);
     }
 
+    /**
+     * Vanilla-pet persistence for tamed mobs (tame_mob / tame_target). Goal
+     * selectors are never saved to entity NBT, and the MinionTracker is
+     * in-memory only — so every load from disk (chunk reload, logout+login,
+     * server restart) used to hand the pet back to its vanilla hostile AI and
+     * silently orphan it. The persistent {@code minion_owner} attachment
+     * stamped at tame time lets us rebuild both here: re-register the pet with
+     * the tracker and reinstall the owner-follow/defend goals (which resolve
+     * the owner lazily by UUID, so an offline tamer is fine — the pet waits).
+     * Summoned minions are intentionally NOT rehydrated; they stay
+     * session-scoped and die with their summoner's logout/death.
+     */
+    @SubscribeEvent
+    public static void onEntityJoinLevel(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)) return;
+        com.cyberday1.neoorigins.service.MinionTracker.rehydrateTamed(mob);
+    }
+
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         // Check if the dying entity is a tracked minion (notify summoner)

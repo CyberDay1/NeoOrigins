@@ -2875,6 +2875,16 @@ Cost is charged **once per mob tamed**, not once per activation. When `resource_
 
 Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs — the Warden, Ender Dragon and Wither — are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs, and server operators can do the same for all taming and scare powers at once via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)). A blocked tame shows the "That creature cannot be tamed!" actionbar message.
 
+### Persistence
+
+Tamed mobs behave like vanilla pets: the tame is stored on the mob itself (owner, despawn duration and death-damage ride the entity's saved data), so it survives everything short of the mob dying or `despawn_ticks` running out. Concretely:
+
+- **Tamer dies** — pets survive and are recalled to the tamer when they respawn, crossing dimensions if needed.
+- **Tamer logs out** — pets stay in the world, idle and non-hostile, and resume following/defending the moment the tamer logs back in. No re-tame needed.
+- **Server restarts / chunk unloads** — the pet's loyalty AI is rebuilt automatically whenever its chunk loads again.
+
+The `max_tamed` cap and death-damage backlash stay correct across all of the above. Losing the taming power (an origin change) discards the player's loaded pets outright — that is the one way to revoke a tame. Summoned minions (`summon_minion`) deliberately do NOT get this treatment: they remain session-bound and vanish with their summoner's death or logout.
+
 **Example (blacklist):**
 ```json
 {

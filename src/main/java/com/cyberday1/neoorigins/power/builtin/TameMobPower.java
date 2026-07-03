@@ -285,9 +285,16 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
     /**
      * Strips hostile-to-player goals and adds follow-owner + defend-owner behavior.
+     *
+     * <p>Takes the owner's UUID rather than a ServerPlayer: the goals resolve the
+     * owner lazily from the player list each activation check, so they tolerate an
+     * offline owner (pet idles, no crash) and automatically pick up the NEW
+     * ServerPlayer instance after a respawn or relog — no instance rebind needed.
+     * This is what lets {@code MinionTracker.rehydrateTamed} reinstall the goals
+     * at entity-load time even when the tamer isn't online. Idempotent: safe to
+     * re-run on the same mob (chunk reload, dimension change, respawn recall).
      */
-    @SuppressWarnings("unchecked")
-    private static void rewriteAI(Mob mob, ServerPlayer owner) {
+    public static void rewriteAI(Mob mob, java.util.UUID ownerUuid) {
         // Clear all targeting goals (removes NearestAttackableTargetGoal<Player>, etc.)
         mob.targetSelector.getAvailableGoals().clear();
 
@@ -296,8 +303,12 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // until vanilla times it out — so a mob caught mid-swing keeps attacking
         // the owner "until it loses sight" (Discord report). Also forgive a
         // pre-tame hit so HurtByTargetGoal doesn't instantly re-aggro the owner.
-        if (mob.getTarget() == owner) mob.setTarget(null);
-        if (mob.getLastHurtByMob() == owner) mob.setLastHurtByMob(null);
+        if (mob.getTarget() != null && mob.getTarget().getUUID().equals(ownerUuid)) {
+            mob.setTarget(null);
+        }
+        if (mob.getLastHurtByMob() != null && mob.getLastHurtByMob().getUUID().equals(ownerUuid)) {
+            mob.setLastHurtByMob(null);
+        }
 
         // Re-add HurtByTargetGoal so it fights back when hit (requires PathfinderMob).
         // Owner-aware subclass: accidental owner hits (collision, AoE, thorns
@@ -305,7 +316,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // Priority 0 — must beat the defend/aggro goals so a direct hit on the
         // pet always takes precedence over "owner is busy elsewhere."
         if (mob instanceof PathfinderMob pathfinder) {
-            mob.targetSelector.addGoal(0, new OwnerAwareHurtByTargetGoal(pathfinder, owner));
+            mob.targetSelector.addGoal(0, new OwnerAwareHurtByTargetGoal(pathfinder, ownerUuid));
         }
 
         // DEFEND: target whoever last attacked the owner. Modeled on vanilla
@@ -316,7 +327,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // a box around the *mob*, so an attacker hitting the owner from outside
         // the pet's follow-distance is invisible to it. Reading the owner's
         // own last-hurt-by reference avoids the spatial gate entirely.
-        mob.targetSelector.addGoal(1, new OwnerHurtByOwnerTargetGoal(mob, owner));
+        mob.targetSelector.addGoal(1, new OwnerHurtByOwnerTargetGoal(mob, ownerUuid));
 
         // AGGRO: target whatever the owner is currently attacking. Modeled on
         // vanilla OwnerHurtTargetGoal — reads owner.getLastHurtMob(). Priority
@@ -327,7 +338,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // predicate was actually checking getLastHurtByMob (defend logic) — so
         // aggro was missing entirely and defend was duplicated with a buggy
         // spatial gate. See v2.1.6 backlog #6.
-        mob.targetSelector.addGoal(2, new OwnerHurtTargetByOwnerGoal(mob, owner));
+        mob.targetSelector.addGoal(2, new OwnerHurtTargetByOwnerGoal(mob, ownerUuid));
 
         // Remove player-avoidance and (for bees) flower-chasing goals, then add
         // follow-owner. Shared with SummonMinionPower so tamed and summoned bees
@@ -335,15 +346,27 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         SummonMinionPower.stripDistractionGoals(mob);
 
         // Drop any previous FollowOwnerGoal before adding a fresh one — rewriteAI
-        // re-runs on the same mob when the owner respawns (goal rebind, see
-        // recallTamedOnRespawn) and would otherwise stack duplicate follow goals,
-        // the stale ones pointing at a dead ServerPlayer instance.
+        // re-runs on the same mob (respawn recall, chunk reload rehydrate) and
+        // would otherwise stack duplicate follow goals.
         mob.goalSelector.getAvailableGoals().removeIf(w -> w.getGoal() instanceof FollowOwnerGoal);
 
         // Follow the owner at medium priority. Leash is intentionally loose
         // (24-block teleport, 8-block follow-start) so the pet has room to
         // engage enemies without snapping back to the owner every few steps.
-        mob.goalSelector.addGoal(2, new FollowOwnerGoal(mob, owner, 24.0, 8.0, 1.0));
+        mob.goalSelector.addGoal(2, new FollowOwnerGoal(mob, ownerUuid, 24.0, 8.0, 1.0));
+    }
+
+    /**
+     * Resolve a pet's owner for AI purposes: online, alive, and in the same
+     * level as the pet (cross-dimension follow/defend is nonsensical — the
+     * respawn recall handles cross-dimension reunion explicitly). Null when
+     * the owner is offline/dead/elsewhere, which the goals treat as "idle".
+     */
+    static ServerPlayer resolveOwner(Mob mob, java.util.UUID ownerUuid) {
+        if (!(mob.level() instanceof ServerLevel level)) return null;
+        ServerPlayer sp = level.getServer().getPlayerList().getPlayer(ownerUuid);
+        if (sp == null || !sp.isAlive() || sp.level() != mob.level()) return null;
+        return sp;
     }
 
     /**
@@ -353,10 +376,11 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
      * the owner-death cleanup). Two jobs per pet:
      * <ol>
      *   <li>Teleport it to the respawned tamer, crossing dimensions if needed.</li>
-     *   <li>Re-run {@link #rewriteAI} — the follow/defend/aggro goals captured
-     *       the pre-death ServerPlayer INSTANCE at tame time, and respawn
-     *       creates a new instance, so the old goals see {@code owner.isAlive()
-     *       == false} forever and the pet would stand idle.</li>
+     *   <li>Re-run {@link #rewriteAI}. The goals now resolve the owner lazily by
+     *       UUID (so the new post-respawn ServerPlayer instance is picked up
+     *       automatically), but a cross-dimension recall creates a NEW mob
+     *       instance whose goal-selector state did not copy over — the re-run
+     *       reinstalls the owner goals on it.</li>
      * </ol>
      */
     public static void recallTamedOnRespawn(ServerPlayer owner) {
@@ -389,7 +413,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             } else {
                 mob.moveTo(x, owner.getY(), z, mob.getYRot(), mob.getXRot());
             }
-            rewriteAI(mob, owner);
+            rewriteAI(mob, owner.getUUID());
         }
     }
 
@@ -435,7 +459,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
      * caller owns the max-tamed cap check and any cost/validation.
      */
     public static void applyTame(ServerPlayer owner, Mob mob, int despawnTicks, float deathDamage) {
-        rewriteAI(mob, owner);
+        rewriteAI(mob, owner.getUUID());
         mob.setPersistenceRequired();
         MinionTracker.track(owner, mob, TAMED_MOB_KEY, owner.tickCount, despawnTicks, deathDamage);
 
@@ -470,17 +494,24 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
     /**
      * Simple follow-owner goal for tamed hostile mobs.
      * The mob walks toward the owner when farther than startDist and teleports if too far.
+     *
+     * <p>Holds the owner's UUID, not a ServerPlayer: the instance is re-resolved
+     * from the player list on every activation check, so the goal survives the
+     * owner logging out (idles), logging back in (rebinds to the new instance
+     * automatically), dying/respawning, and being in another dimension.
      */
     private static class FollowOwnerGoal extends Goal {
         private final Mob mob;
-        private final ServerPlayer owner;
+        private final java.util.UUID ownerUuid;
         private final double teleportDist;
         private final double startDist;
         private final double speed;
+        /** Resolved by canUse/canContinueToUse; non-null while the goal runs. */
+        private ServerPlayer owner;
 
-        FollowOwnerGoal(Mob mob, ServerPlayer owner, double teleportDist, double startDist, double speed) {
+        FollowOwnerGoal(Mob mob, java.util.UUID ownerUuid, double teleportDist, double startDist, double speed) {
             this.mob = mob;
-            this.owner = owner;
+            this.ownerUuid = ownerUuid;
             this.teleportDist = teleportDist;
             this.startDist = startDist;
             this.speed = speed;
@@ -488,12 +519,14 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
 
         @Override
         public boolean canUse() {
-            return owner.isAlive() && mob.distanceToSqr(owner) > startDist * startDist;
+            this.owner = resolveOwner(mob, ownerUuid);
+            return owner != null && mob.distanceToSqr(owner) > startDist * startDist;
         }
 
         @Override
         public boolean canContinueToUse() {
-            return owner.isAlive() && mob.distanceToSqr(owner) > (startDist - 1) * (startDist - 1);
+            this.owner = resolveOwner(mob, ownerUuid);
+            return owner != null && mob.distanceToSqr(owner) > (startDist - 1) * (startDist - 1);
         }
 
         @Override
@@ -528,17 +561,17 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
      * its summoner.
      */
     public static class OwnerAwareHurtByTargetGoal extends HurtByTargetGoal {
-        private final ServerPlayer owner;
+        private final java.util.UUID ownerUuid;
 
-        public OwnerAwareHurtByTargetGoal(PathfinderMob mob, ServerPlayer owner) {
+        public OwnerAwareHurtByTargetGoal(PathfinderMob mob, java.util.UUID ownerUuid) {
             super(mob);
-            this.owner = owner;
+            this.ownerUuid = ownerUuid;
         }
 
         @Override
         public boolean canUse() {
             LivingEntity lastHurt = this.mob.getLastHurtByMob();
-            if (lastHurt != null && lastHurt.getUUID().equals(owner.getUUID())) {
+            if (lastHurt != null && lastHurt.getUUID().equals(ownerUuid)) {
                 this.mob.setLastHurtByMob(null);
                 return false;
             }
@@ -557,19 +590,22 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
      * same attacker after the pet kills it (vanilla TargetGoal pattern).
      */
     public static class OwnerHurtByOwnerTargetGoal extends TargetGoal {
-        private final ServerPlayer owner;
+        private final java.util.UUID ownerUuid;
+        /** Resolved by canUse; non-null while the goal runs. */
+        private ServerPlayer owner;
         private LivingEntity ownerLastHurtBy;
         private int timestamp;
 
-        public OwnerHurtByOwnerTargetGoal(Mob mob, ServerPlayer owner) {
+        public OwnerHurtByOwnerTargetGoal(Mob mob, java.util.UUID ownerUuid) {
             super(mob, false);
-            this.owner = owner;
+            this.ownerUuid = ownerUuid;
             this.setFlags(EnumSet.of(Goal.Flag.TARGET));
         }
 
         @Override
         public boolean canUse() {
-            if (!owner.isAlive()) return false;
+            this.owner = resolveOwner(this.mob, ownerUuid);
+            if (owner == null) return false;
             this.ownerLastHurtBy = owner.getLastHurtByMob();
             int t = owner.getLastHurtByMobTimestamp();
             if (t == this.timestamp) return false;
@@ -577,14 +613,14 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             // Don't target the owner themselves, other tamed pets of this
             // owner, or the owner's own minions (friendly fire guard).
             if (this.ownerLastHurtBy == owner) return false;
-            if (this.ownerLastHurtBy.getUUID().equals(owner.getUUID())) return false;
+            if (this.ownerLastHurtBy.getUUID().equals(ownerUuid)) return false;
             return this.canAttack(this.ownerLastHurtBy, OWNER_TARGET_CONDITIONS);
         }
 
         @Override
         public void start() {
             assignCombatTarget(this.mob, this.ownerLastHurtBy);
-            this.timestamp = owner.getLastHurtByMobTimestamp();
+            if (owner != null) this.timestamp = owner.getLastHurtByMobTimestamp();
             super.start();
         }
     }
@@ -597,32 +633,35 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
      * the same dead enemy.
      */
     public static class OwnerHurtTargetByOwnerGoal extends TargetGoal {
-        private final ServerPlayer owner;
+        private final java.util.UUID ownerUuid;
+        /** Resolved by canUse; non-null while the goal runs. */
+        private ServerPlayer owner;
         private LivingEntity ownerLastHurt;
         private int timestamp;
 
-        public OwnerHurtTargetByOwnerGoal(Mob mob, ServerPlayer owner) {
+        public OwnerHurtTargetByOwnerGoal(Mob mob, java.util.UUID ownerUuid) {
             super(mob, false);
-            this.owner = owner;
+            this.ownerUuid = ownerUuid;
             this.setFlags(EnumSet.of(Goal.Flag.TARGET));
         }
 
         @Override
         public boolean canUse() {
-            if (!owner.isAlive()) return false;
+            this.owner = resolveOwner(this.mob, ownerUuid);
+            if (owner == null) return false;
             this.ownerLastHurt = owner.getLastHurtMob();
             int t = owner.getLastHurtMobTimestamp();
             if (t == this.timestamp) return false;
             if (this.ownerLastHurt == null) return false;
             if (this.ownerLastHurt == owner) return false;
-            if (this.ownerLastHurt.getUUID().equals(owner.getUUID())) return false;
+            if (this.ownerLastHurt.getUUID().equals(ownerUuid)) return false;
             return this.canAttack(this.ownerLastHurt, OWNER_TARGET_CONDITIONS);
         }
 
         @Override
         public void start() {
             assignCombatTarget(this.mob, this.ownerLastHurt);
-            this.timestamp = owner.getLastHurtMobTimestamp();
+            if (owner != null) this.timestamp = owner.getLastHurtMobTimestamp();
             super.start();
         }
     }

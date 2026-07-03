@@ -1476,6 +1476,8 @@ The target is resolved in two steps:
 
 The Warden, Ender Dragon and Wither (plus the server's `tame_scare_entity_blacklist` config list) are always excluded regardless of `entity_blacklist`. A capped, no-target, or excluded activation is a **silent no-op** — unlike `tame_mob`, this action does not send actionbar feedback, since it fires from events rather than a deliberate keybind.
 
+Tamed mobs are persistent like vanilla pets: they survive the tamer's death (recalled to them on respawn), the tamer logging out, and full server restarts — the tame is stored on the mob itself and its loyalty AI is rebuilt whenever it loads. See [Persistence](POWER_TYPES.md#persistence) under `tame_mob` for details.
+
 **Example — tame the mob you hit, on attack:**
 ```json
 {

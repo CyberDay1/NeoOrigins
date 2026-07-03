@@ -16,12 +16,17 @@ import java.util.UUID;
 /**
  * Entity-level attachments.
  *
- * <p>{@code minion_owner} — UUID of the player who summoned or tamed this mob.
- * Persists through dimension changes and server restarts via entity NBT, so
- * the targeting guard and drop-cancellation stay correct even after the
+ * <p>{@code minion_owner} — UUID of the player who summoned or tamed this mob,
+ * plus the tracker state needed to rebuild a {@code MinionTracker} entry from
+ * disk. Persists through dimension changes and server restarts via entity NBT,
+ * so the targeting guard and drop-cancellation stay correct even after the
  * in-memory {@link com.cyberday1.neoorigins.service.MinionTracker} state is
- * lost. The in-memory tracker still handles caps and despawn timers; this
- * attachment is only for "is this mob anybody's minion?" queries.
+ * lost. For tamed pets ({@code mob_type == "tamer:tamed"}) this is the source
+ * of truth for vanilla-pet persistence: the tracker rehydrates the entry and
+ * reinstalls the owner AI goals whenever the entity loads
+ * ({@code MinionTracker.rehydrateTamed}). Summoned minions carry the
+ * attachment too (for ownership queries) but are intentionally NOT rehydrated
+ * — summons stay session-scoped and die with their summoner's logout/death.
  */
 public class EntityAttachments {
 
@@ -79,17 +84,32 @@ public class EntityAttachments {
         return MOUNT_POSITION.get();
     }
 
-    public record MinionOwner(Optional<UUID> ownerUuid) {
+    /**
+     * @param ownerUuid    the summoner/tamer, or empty for the default "unowned" value
+     * @param mobType      MinionTracker type key ({@code "tamer:tamed"} for pets);
+     *                     empty on pre-persistence saves, which therefore never rehydrate
+     * @param despawnTicks full despawn duration from the taming power's config —
+     *                     re-armed from scratch when the entry is rebuilt on entity load
+     * @param deathDamage  backlash damage the owner takes when the minion dies in combat
+     */
+    public record MinionOwner(Optional<UUID> ownerUuid, Optional<String> mobType,
+                              int despawnTicks, float deathDamage) {
         public static final Codec<MinionOwner> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            UUIDUtil.CODEC.optionalFieldOf("owner").forGetter(MinionOwner::ownerUuid)
+            UUIDUtil.CODEC.optionalFieldOf("owner").forGetter(MinionOwner::ownerUuid),
+            // Optional WITHOUT defaults collapsing into the uuid-only shape: saves
+            // written before pet persistence carry only "owner" and must decode
+            // (mobType empty → not rehydratable, matching the old behavior).
+            Codec.STRING.optionalFieldOf("mob_type").forGetter(MinionOwner::mobType),
+            Codec.INT.optionalFieldOf("despawn_ticks", 0).forGetter(MinionOwner::despawnTicks),
+            Codec.FLOAT.optionalFieldOf("death_damage", 0.0f).forGetter(MinionOwner::deathDamage)
         ).apply(inst, MinionOwner::new));
 
         public static MinionOwner empty() {
-            return new MinionOwner(Optional.empty());
+            return new MinionOwner(Optional.empty(), Optional.empty(), 0, 0.0f);
         }
 
-        public static MinionOwner of(UUID uuid) {
-            return new MinionOwner(Optional.of(uuid));
+        public static MinionOwner of(UUID uuid, String mobType, int despawnTicks, float deathDamage) {
+            return new MinionOwner(Optional.of(uuid), Optional.of(mobType), despawnTicks, deathDamage);
         }
 
         public boolean isOwnedBy(UUID uuid) {
