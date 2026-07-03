@@ -15,10 +15,12 @@
         "apace:and",
         "apace:block",
         "apace:in_tag",
+        "apace:offset",
         "apace:or",
         "neoorigins:and",
         "neoorigins:block",
         "neoorigins:in_tag",
+        "neoorigins:offset",
         "neoorigins:or"
       ]
     }
@@ -87,6 +89,39 @@
       ]
     },
     {
+      "$comment": "neoorigins:offset",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:offset",
+            "apace:offset"
+          ]
+        },
+        "condition": {
+          "description": "Nested block condition evaluated at the offset position; absent → matches all blocks (warned at load).",
+          "$ref": "block_condition.schema.json"
+        },
+        "x": {
+          "description": "X offset in blocks (default 0).",
+          "type": "integer",
+          "default": 0
+        },
+        "y": {
+          "description": "Y offset in blocks (default 0).",
+          "type": "integer",
+          "default": 0
+        },
+        "z": {
+          "description": "Z offset in blocks (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:or",
       "properties": {
         "type": {
@@ -116,10 +151,12 @@
               "apace:and",
               "apace:block",
               "apace:in_tag",
+              "apace:offset",
               "apace:or",
               "neoorigins:and",
               "neoorigins:block",
               "neoorigins:in_tag",
+              "neoorigins:offset",
               "neoorigins:or"
             ]
           }

@@ -171,7 +171,23 @@ True when the player is in creative or spectator gamemode. No fields. Apoli-deri
 
 ## `neoorigins:block_collision`
 
-Always true. Placeholder/stub for parity with Apoli. No fields.
+True when the entity's bounding box — shifted by `offset_x`/`offset_y`/`offset_z` — intersects at least one matching block. Apoli semantics: the offsets are multipliers of the box's **own dimensions** (X and Z scale by the entity's width, Y by its height), so `"offset_x": 0.01` nudges the box 1% of the entity's width. With a `block_condition`, at least one intersected block must match it; without one, any block with a real collision shape counts.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `offset_x` | float | no | `0.0` | Box X shift as a multiple of the entity's width |
+| `offset_y` | float | no | `0.0` | Box Y shift as a multiple of the entity's height |
+| `offset_z` | float | no | `0.0` | Box Z shift as a multiple of the entity's width |
+| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `and`/`or`, and the `offset` wrapper |
+
+**Example — touching an iron-tagged block on either side:**
+```json
+{
+  "type": "neoorigins:block_collision",
+  "offset_x": 0.01,
+  "block_condition": { "type": "neoorigins:in_tag", "tag": "fairy:iron" }
+}
+```
 
 ## `neoorigins:replacable` (alias `neoorigins:replaceable`)
 
@@ -525,6 +541,31 @@ Inspects an item in a given equipment slot.
 Always-true when `item_condition` is absent.
 
 **Accessory slots:** `"accessory"` inspects worn trinkets from Curios and/or Accessories (Wisp Forest), aggregating both. Each is a soft dependency — with neither installed the `accessory` slot matches nothing. When `item_condition` is present it passes if *any* equipped accessory stack matches; absent, it is a presence check (any accessory equipped). This integration is **1.21.1 only** — Accessories has no 26.1 build.
+
+## `neoorigins:inventory`
+
+Counts inventory contents matching an item condition and compares the count against a threshold. The default comparison (`>` `0`) reads as "has at least one match".
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `inventory_types` | list of string | no | `["inventory"]` | Inventories to scan: `inventory` (the player's main inventory, including hotbar, armor and offhand slots) and/or `ender_chest` |
+| `process_mode` | string | no | `"stacks"` | `"stacks"` counts matching stacks; `"items"` sums their stack counts |
+| `item_condition` | item condition | no | any non-empty stack | Per-stack predicate — the full item-condition vocabulary (see [ACTIONS.md](ACTIONS.md#item-conditions)) |
+| `comparison` | string | no | `">"` | Comparison operator against the count |
+| `compare_to` | int | no | `0` | Count threshold |
+
+Apoli's `power` field (counting slots inside an `apoli:inventory` power's virtual container) is **not supported** — a condition using it fails closed with a load warning.
+
+**Example — carrying at least 16 bones in total:**
+```json
+{
+  "type": "neoorigins:inventory",
+  "process_mode": "items",
+  "item_condition": { "type": "neoorigins:ingredient", "item": "minecraft:bone" },
+  "comparison": ">=",
+  "compare_to": 16
+}
+```
 
 ## `neoorigins:enchantment`
 

@@ -2641,7 +2641,11 @@ public final class BuiltinActions {
                     .options("sphere", "cube")
                     .doc("AoE shape (default sphere)."),
                 new FieldSpec("include_source", FormFieldSpec.Kind.BOOLEAN, false).def(true)
-                    .doc("Include the caster in the AoE (default true).")));
+                    .doc("Include the caster in the AoE (default true)."),
+                new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius capped at 16."),
+                new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false).ref("block_condition.schema.json")
+                    .doc("Optional block filter for the block fan-out — only positions matching it run block_action. Only used with block_action.")));
 
         // raycast — cast a ray from the eyes; run block/bientity/miss actions.
         define("raycast",
