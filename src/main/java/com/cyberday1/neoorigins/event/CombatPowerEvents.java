@@ -88,6 +88,14 @@ public class CombatPowerEvents {
                         && !matchesEntityIdOrTag(outTarget, config.targetType().get())) return;
                 if (!ActionOnHitPower.rollChance(config)) return;
                 ActionOnHitPower.execute(outAttacker, config, outTarget);
+                // Documented Apoli-style path: a parsed bientity_action /
+                // entity_action runs against the victim (actor = attacker),
+                // gated by the same filters that just passed above. Backward-
+                // compatible: powers using only the flat `action` schema leave
+                // this at noop().
+                if (config.onHitAction() != com.cyberday1.neoorigins.compat.action.BiEntityAction.noop()) {
+                    config.onHitAction().execute(outAttacker, outTarget);
+                }
             });
 
             // Route B self_action_on_hit / action_on_hit — fires when the holder

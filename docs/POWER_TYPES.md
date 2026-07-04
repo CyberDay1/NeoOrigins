@@ -1329,7 +1329,7 @@ Triggers an action each time the player takes damage.
 
 ## `neoorigins:action_on_hit`
 
-Triggers an action each time the player deals damage to any living entity — mobs, animals, and other players. Optionally restricted by target entity group, target entity type, or damage type. The configured `action` may target the player (self) or the victim.
+Triggers an action each time the player deals damage to any living entity — mobs, animals, and other players. Optionally restricted by target entity group, target entity type, or damage type. There are two ways to express the effect: the simple flat `action` string (self or victim), or a full Apoli-style `bientity_action` (alias `entity_action`) that runs against the (attacker, victim) pair. Both may be present — the flat `action` runs first, then the parsed bientity action.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1343,8 +1343,10 @@ Triggers an action each time the player deals damage to any living entity — mo
 | `target_group` | string | no | _(any)_ | Restrict to targets in group: `undead`, `arthropod`, `illager`, `aquatic` (vanilla `minecraft:<group>` entity-type tag) |
 | `target_type` | Identifier | no | _(any)_ | Restrict to a specific entity type, e.g. `minecraft:zombie` |
 | `damage_type` | string | no | _(all)_ | Restrict to a specific vanilla damage type, e.g. `mob_attack`, `magic` |
+| `bientity_action` | entity action (object or array) | no | noop | Parsed action run against the pair: actor = the attacker (you), target = the entity you hit. A bare verb (e.g. `apply_effect`) runs against the **victim**; wrap in `actor_action` / `target_action` to route explicitly. See [ACTIONS.md — bientity actions](ACTIONS.md#caster--target-bientity-actions). |
+| `entity_action` | entity action (object or array) | no | noop | Alias for `bientity_action` — the field name a pack copying the ACTIONS.md example uses. |
 
-Filters are combined with AND: every configured filter must match for the action to fire. The `chance` roll happens last.
+Filters are combined with AND: every configured filter must match for the action to fire. The `chance` roll happens last. The same filter gates (`min_damage`, `damage_type`, `target_group`, `target_type`, `chance`) govern the `bientity_action` too.
 
 **Example — heal 0.5 hearts on striking any undead:**
 ```json
@@ -1385,6 +1387,18 @@ Filters are combined with AND: every configured filter must match for the action
   "description": "Sometimes empowered when you melee a zombie."
 }
 ```
+
+**Example — poison whatever you hit (bientity form):**
+```json
+{
+  "type": "neoorigins:action_on_hit",
+  "hidden": true,
+  "entity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 60 },
+  "name": "Venom Strike",
+  "description": "Your blows leave a lingering poison."
+}
+```
+The bare `apply_effect` runs against the victim: hitting a mob poisons it. To affect yourself instead, wrap it in `actor_action`; to be explicit about targeting the victim, wrap it in `target_action`.
 
 ---
 
