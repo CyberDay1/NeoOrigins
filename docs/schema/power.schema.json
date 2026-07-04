@@ -410,6 +410,34 @@
         "damage_type": {
           "description": "Optional damage-type id filter; the action only fires for matching sources.",
           "type": "string"
+        },
+        "bientity_action": {
+          "description": "Optional Apoli-style bientity action run against (actor = attacker, target = victim) after the flat action, gated by the same filters. A bare verb (e.g. apply_effect) runs against the victim; wrap in actor_action/target_action to route explicitly. Object or array.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "entity_action": {
+          "description": "Alias for bientity_action on action_on_hit: a parsed action run against the victim (actor = attacker). This is the field a pack copying the ACTIONS.md example uses. Object or array.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         }
       },
       "required": [
