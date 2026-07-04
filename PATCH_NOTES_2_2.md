@@ -2,6 +2,23 @@
 
 ---
 
+## v2.2.15
+
+> A hotfix: powers no longer vanish when rejoining a multiplayer server, `action_on_hit` runs the entity and bi-entity actions it always documented, and FTB Quests can be installed alongside NeoOrigins.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **Powers no longer disappear after rejoining a multiplayer server.** On a dedicated server a player could occasionally reconnect with their origin intact but most of their powers gone until something forced a refresh. The per-player power cache was keyed on the account alone, so a returning session matched the stale entry left by the previous one: if that entry had been built during the login window before the player's data finished loading, it was empty or partial. Each cache entry is now tied to the live player session, so a reconnect always rebuilds powers from freshly loaded data.
+- **`action_on_hit` runs its `entity_action` and `bientity_action`.** The power documented an action against the entity you hit and a bi-entity action over the attacker/target pair, but neither was applied — so packs relying on an on-hit effect against the victim, like poison or knockback, saw nothing happen. Both now fire against the victim as documented.
+
+### Compatibility
+
+- **FTB Quests can be installed alongside NeoOrigins.** The optional FTB Quests dependency was pinned to an impossible version range, so having FTB Quests present failed the game at load. The range is corrected, and the `loot_pool_grant` power's quest-tag integration is reachable again.
+
+---
+
 ## v2.2.14
 
 > A hotfix for tamed-pet lifecycle and origin evolutions: pets now survive their tamer's death and persist across logout like vanilla pets, evolution tiers stop re-granting effects the base origin already has, and two item-condition gaps that broke Origins: Dietary Delights are closed.
