@@ -55,7 +55,7 @@ license = "${mod_license}"
 [[dependencies.${mod_id}]]
     modId = "ftbquests"
     type = "optional"
-    versionRange = "[2000,)"
+    versionRange = "[0,)"
     ordering = "AFTER"
     side = "BOTH"
 
