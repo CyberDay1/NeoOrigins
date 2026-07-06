@@ -2,6 +2,22 @@
 
 ---
 
+## v2.2.16
+
+> A compatibility hotfix: Dragon Survival dragons keep their growth across server rejoins, and `active_recall` sends you home to your bed or respawn anchor from any dimension.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **`active_recall` returns you to your bed or respawn anchor from any dimension.** The power only resolved a respawn point when you were already in the same dimension as it, so casting recall from the Nether or the End dropped you at the overworld world-spawn instead of your bed. It now uses the same respawn resolution the game runs on death: you arrive safely at your bed or charged respawn anchor wherever it sits, cross-dimension included, and because this is a repeatable recall rather than a death, the anchor keeps its charge. With no valid respawn set it still falls back to world spawn.
+
+### Compatibility
+
+- **Dragon Survival growth no longer resets when you rejoin a server.** With NeoOrigins installed, a dragon's accumulated growth snapped back to newborn every time the player reconnected to a dedicated server. An origin that grants the dragon form re-applied that form on every login, and each re-application re-seeded the starting growth stage. The form is now seeded only on a genuine first transformation: if you are already that dragon species when you log in, NeoOrigins leaves your Dragon Survival state untouched, so growth carries across rejoins.
+
+---
+
 ## v2.2.15
 
 > A hotfix: powers no longer vanish when rejoining a multiplayer server, `action_on_hit` runs the entity and bi-entity actions it always documented, and FTB Quests can be installed alongside NeoOrigins.
