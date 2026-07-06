@@ -630,8 +630,13 @@ public class OriginSelectionScreen extends Screen {
         // nitwit choice anyway makes the server reject it with a "non-existent
         // origin" warning. Mirror the presenter's availability filter so we stay
         // silent when there's nothing to assign.
+        // Never auto-assign on an orb-driven close: the server refunds/rolls back
+        // a cancelled orb use (CancelOrbPayload). For the Orb of Class this keeps
+        // ESC a true free cancel that restores the previous class instead of
+        // silently locking in nitwit; the Orb of Origin clears every layer so
+        // hasAnyOrigin is already false here anyway.
         boolean nitwitAssigned = false;
-        if (hasAnyOrigin && !hasClass && isNitwitAssignable()) {
+        if (!isOrb && hasAnyOrigin && !hasClass && isNitwitAssignable()) {
             PacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
             nitwitAssigned = true;
         }

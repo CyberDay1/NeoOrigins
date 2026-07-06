@@ -57,6 +57,15 @@ public class PlayerOriginData {
      *  been committed yet. The first successful ChooseOrigin after this flag is set
      *  performs the actual revoke/XP/stack-shrink; picker-close clears it. */
     private transient boolean pendingOrbCommit = false;
+    /** Session-only — true while an Orb of Class picker is open and its cheaper
+     *  class-only reset hasn't been committed yet. Unlike {@link #pendingOrbCommit}
+     *  the class layer has already been cleared (so the picker shows only the class
+     *  layer); the first successful ChooseOrigin performs the XP deduct + orb shrink,
+     *  and a picker-close restores {@link #pendingClassOrbPrevOrigin}. */
+    private transient boolean pendingClassOrbCommit = false;
+    /** Session-only — the class origin the player held before an Orb of Class picker
+     *  was opened, so a cancelled pick can be rolled back to it. */
+    private transient ResourceLocation pendingClassOrbPrevOrigin = null;
     /** Session-only — true while an OP-initiated re-selection picker is open
      *  ({@code /origin gui <player>}). Authorizes the target (a non-OP player)
      *  to change an already-chosen origin for the duration of that picker
@@ -281,6 +290,12 @@ public class PlayerOriginData {
 
     public boolean isPendingOrbCommit() { return pendingOrbCommit; }
     public void setPendingOrbCommit(boolean pending) { this.pendingOrbCommit = pending; }
+
+    public boolean isPendingClassOrbCommit() { return pendingClassOrbCommit; }
+    public void setPendingClassOrbCommit(boolean pending) { this.pendingClassOrbCommit = pending; }
+
+    public ResourceLocation getPendingClassOrbPrevOrigin() { return pendingClassOrbPrevOrigin; }
+    public void setPendingClassOrbPrevOrigin(ResourceLocation origin) { this.pendingClassOrbPrevOrigin = origin; }
 
     public boolean isPendingAdminReselect() { return pendingAdminReselect; }
     public void setPendingAdminReselect(boolean pending) { this.pendingAdminReselect = pending; }

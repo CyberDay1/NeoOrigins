@@ -316,6 +316,23 @@ public class NeoOriginsNetwork {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
             data.setPendingOrbCommit(false);
+
+            // Orb of Class cancel: the class layer was cleared up front, so an
+            // uncommitted close must roll it back to the previous class (and
+            // re-grant its powers) rather than leave the player classless. The
+            // orb was never consumed and no XP was charged (deferred to commit).
+            if (data.isPendingClassOrbCommit()) {
+                ResourceLocation prev = data.getPendingClassOrbPrevOrigin();
+                ResourceLocation classLayer = com.cyberday1.neoorigins.content.OrbOfClassItem.CLASS_LAYER;
+                if (prev != null && !data.hasOriginForLayer(classLayer)) {
+                    data.setOrigin(classLayer, prev);
+                    ActiveOriginService.applyOriginPowers(sp, classLayer, null, prev);
+                }
+                data.setHadAllOrigins(true);
+                data.setPendingClassOrbCommit(false);
+                data.setPendingClassOrbPrevOrigin(null);
+                syncToPlayer(sp);
+            }
         });
     }
 
@@ -833,6 +850,16 @@ public class NeoOriginsNetwork {
                 preOrbOrigins.forEach((l, o) -> {
                     if (AdminConfig.isUniqueLayer(l)) claimsData.releaseIfOwner(l, o, sp.getUUID());
                 });
+            }
+
+            // First commit after an Orb of Class use: the class layer was already
+            // cleared when the orb was used (beginClassOrbReset), so this fires
+            // only for a genuine re-pick of the class layer. Deduct the cheaper
+            // flat XP cost and consume one class orb. Deferring to first pick means
+            // closing the picker is a free cancel (handleCancelOrb restores the
+            // prior class). Only fire on the class layer to be safe.
+            if (data.isPendingClassOrbCommit() && layerId.equals(com.cyberday1.neoorigins.content.OrbOfClassItem.CLASS_LAYER)) {
+                commitClassOrbUse(sp, data);
             }
 
             // Any pick re-engages the player — a previous picker-abandon no
@@ -1603,6 +1630,65 @@ public class NeoOriginsNetwork {
             var s = inv.getItem(i);
             if (!s.isEmpty()
                 && s.getItem() instanceof com.cyberday1.neoorigins.content.OrbOfOriginItem) {
+                s.shrink(1);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Orb of Class entry point: clears ONLY the class layer (revoking its powers)
+     * and reopens the picker scoped to that one layer. The main origin layer stays
+     * chosen, so the picker's unfilled-layer filter shows just the class layer.
+     * XP + orb consumption are deferred to the first commit (see
+     * {@link #commitClassOrbUse}); a picker-close restores the prior class via
+     * {@link #handleCancelOrb}.
+     */
+    public static void beginClassOrbReset(ServerPlayer sp, PlayerOriginData data, ResourceLocation classLayer) {
+        ResourceLocation prev = data.getOrigin(classLayer);
+        data.setPendingClassOrbPrevOrigin(prev);
+        data.setPendingClassOrbCommit(true);
+
+        // Revoke the current class origin's powers and drop the layer so the
+        // client (after sync) treats it as unfilled and the picker re-shows it.
+        if (prev != null) {
+            ActiveOriginService.applyOriginPowers(sp, classLayer, prev, null);
+        }
+        data.removeOrigin(classLayer);
+        // Selection is no longer complete until the player re-picks a class.
+        data.setHadAllOrigins(false);
+
+        syncToPlayer(sp);
+        // forceReselect=false: the picker skips already-filled layers, so only the
+        // just-cleared class layer is shown (the main origin stays chosen). isOrb=true
+        // lets the player ESC out (refund) and routes onClose through CancelOrbPayload.
+        openSelectionScreen(sp, true, false);
+    }
+
+    /**
+     * Commit a deferred Orb of Class use on the first class pick: deduct the flat
+     * XP cost and consume one Orb of Class. Unlike {@link #commitOrbUse} this does
+     * NOT wipe other layers or bump the origin-orb use counter — only the class
+     * layer was reset.
+     */
+    private static void commitClassOrbUse(ServerPlayer sp, PlayerOriginData data) {
+        int cost = com.cyberday1.neoorigins.content.OrbOfClassItem.computeCost();
+        if (!sp.isCreative() && cost > 0) {
+            sp.giveExperienceLevels(-cost);
+        }
+        if (!sp.isCreative()) {
+            shrinkClassOrbFromInventory(sp);
+        }
+        data.setPendingClassOrbCommit(false);
+        data.setPendingClassOrbPrevOrigin(null);
+    }
+
+    private static void shrinkClassOrbFromInventory(ServerPlayer sp) {
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            var s = inv.getItem(i);
+            if (!s.isEmpty()
+                && s.getItem() instanceof com.cyberday1.neoorigins.content.OrbOfClassItem) {
                 s.shrink(1);
                 return;
             }
