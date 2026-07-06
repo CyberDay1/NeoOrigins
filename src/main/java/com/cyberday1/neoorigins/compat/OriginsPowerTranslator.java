@@ -628,13 +628,31 @@ public final class OriginsPowerTranslator {
 
     /**
      * Translates {@code origins:action_on_item_use} to
-     * {@code neoorigins:action_on_event} with event {@code item_use}.
+     * {@code neoorigins:action_on_event}.
      * Carries over entity_action, condition, and item_condition.
+     *
+     * <p>Apoli's {@code trigger} field (enum {@code TriggerType}) selects when
+     * the action fires during item use:
+     * <ul>
+     *   <li>{@code instant} — at use-START (Apoli default) → native {@code item_use}</li>
+     *   <li>{@code finish} — when the use completes (potion drained, food eaten)
+     *       → native {@code item_use_finish}</li>
+     *   <li>{@code stop} — player releases the item before completion; and
+     *       {@code tick} — every tick during use. Neither has a native
+     *       action_on_event equivalent, so both fall back to {@code item_use}
+     *       (documented gap: they fire at use-start instead of on release/tick;
+     *       no new event plumbing invented here).</li>
+     * </ul>
+     * Unknown / absent trigger keeps the safe {@code item_use} default.
      */
     private static Optional<JsonObject> translateActionOnItemUse(JsonObject src) {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:action_on_event");
-        out.addProperty("event", "item_use");
+        String trigger = src.has("trigger") ? src.get("trigger").getAsString().toLowerCase(Locale.ROOT) : "";
+        // finish → item_use_finish (fires when the use completes); everything
+        // else (instant / start / stop / tick / absent / unknown) → item_use.
+        String event = "finish".equals(trigger) ? "item_use_finish" : "item_use";
+        out.addProperty("event", event);
         if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
         if (src.has("condition"))       out.add("condition", src.get("condition"));
         if (src.has("item_condition"))  out.add("item_condition", src.get("item_condition"));

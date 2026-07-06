@@ -85,6 +85,17 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         // hand). Fails closed when set but the context has no hand info,
         // mirroring the block_condition gate.
         java.util.Optional<java.util.Set<net.minecraft.world.InteractionHand>> hands,
+        // Optional item filter for item-carrying events (ITEM_USE /
+        // ITEM_USE_FINISH, whose dispatch context carries the used ItemStack in
+        // a FoodContext or as a raw stack). Compiled from Apoli's
+        // `item_condition` JSON via ItemConditionParser — the SAME predicate
+        // path equipped_item / modify_inventory use. Tester report 2026-07-06:
+        // an action_on_item_use with item_condition=ingredient(potion) fired on
+        // EVERY item use because the translated item_condition was silently
+        // dropped at codec time. Fails closed when set but the context carries
+        // no item, mirroring the block_condition / hands gates. Ignored on
+        // events that don't carry an item.
+        java.util.Optional<com.cyberday1.neoorigins.compat.condition.ItemCondition> itemCondition,
         // Post-cleanse grace window in level ticks. When >0 AND the action
         // successfully cancels an EFFECT_APPLIED event (sets DO_NOT_APPLY),
         // grant `immunityTicks` ticks of full immunity to the same effect id
@@ -224,9 +235,20 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     if (!parsed.isEmpty()) handFilter = java.util.Optional.of(parsed);
                 }
 
+                // Optional item_condition: compile the Apoli item-condition JSON
+                // into an ItemCondition predicate using the same parser
+                // equipped_item / modify_inventory use. Consulted only for
+                // item-carrying events (ITEM_USE / ITEM_USE_FINISH); on other
+                // events it's simply never read.
+                java.util.Optional<com.cyberday1.neoorigins.compat.condition.ItemCondition> itemCond =
+                    (obj.has("item_condition") && obj.get("item_condition").isJsonObject())
+                        ? java.util.Optional.of(com.cyberday1.neoorigins.compat.condition.ItemConditionParser
+                            .parse(obj.getAsJsonObject("item_condition")))
+                        : java.util.Optional.empty();
+
                 return DataResult.success(Pair.of(
                     new Config(ev, cond, action, modifier, blockCond,
-                        effectFilter, effectTagFilter, powerFilter, handFilter, immunity, cooldown, pid, t),
+                        effectFilter, effectTagFilter, powerFilter, handFilter, itemCond, immunity, cooldown, pid, t),
                     ops.empty()));
             }
 
@@ -300,6 +322,19 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     if (config.hands().isPresent()) {
                         net.minecraft.world.InteractionHand hand = extractHand(ctx);
                         if (hand == null || !config.hands().get().contains(hand)) return;
+                    }
+                    // item_condition gate: extract the used ItemStack from an
+                    // item-carrying context (FoodContext for ITEM_USE /
+                    // ITEM_USE_FINISH, or a raw ItemStack) and run the compiled
+                    // ItemCondition predicate. Fails closed when set but the
+                    // context has no item — an item filter with no item to test
+                    // is no match — mirroring the block_condition / hands gates.
+                    // This is the fix for action_on_item_use firing on EVERY
+                    // item use instead of only the filtered item.
+                    if (config.itemCondition().isPresent()) {
+                        net.minecraft.world.item.ItemStack used = extractItemStack(ctx);
+                        if (used == null) return;
+                        if (!config.itemCondition().get().test(used)) return;
                     }
                     // block_condition gate: extract the BlockPos from a known
                     // block-event context shape and run the predicate. Skips
@@ -410,6 +445,23 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         if (ctx instanceof EventPowerIndex.EntityInteractContext eic
                 && eic.event() instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
             return pie.getHand();
+        }
+        return null;
+    }
+
+    /**
+     * Best-effort ItemStack extraction from an item-carrying dispatch context.
+     * ITEM_USE dispatches a {@link EventPowerIndex.FoodContext} (stack + cancel
+     * event); ITEM_USE_FINISH dispatches either a FoodContext or a raw
+     * ItemStack. Returns null (empty stacks included) if the context carries no
+     * usable item, in which case the item_condition gate fails closed.
+     */
+    private static net.minecraft.world.item.ItemStack extractItemStack(Object ctx) {
+        if (ctx instanceof EventPowerIndex.FoodContext fc) {
+            return (fc.stack() == null || fc.stack().isEmpty()) ? null : fc.stack();
+        }
+        if (ctx instanceof net.minecraft.world.item.ItemStack stack) {
+            return stack.isEmpty() ? null : stack;
         }
         return null;
     }
