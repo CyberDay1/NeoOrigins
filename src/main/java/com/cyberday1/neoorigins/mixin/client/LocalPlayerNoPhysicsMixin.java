@@ -74,6 +74,18 @@ public abstract class LocalPlayerNoPhysicsMixin {
             LocalPlayer lp = (LocalPlayer) self;
             double vy = com.cyberday1.neoorigins.power.builtin.WraithPhasePower.phaseVerticalVelocity(
                 lp.input.keyPresses.jump(), lp.input.keyPresses.shift());
+            // Idle-settle guard (issue #109): the "neither jump nor sneak → slow
+            // settle" nudge (−0.04) is meant only to keep a phasing player from
+            // hovering; it must NOT keep sinking forever with no input. Under
+            // noclip there is no ordinary collision to arrest it (clampAgainstBlocked
+            // only stops blacklisted blocks), so an idle player would drift down
+            // through the whole world into the void. When there is no vertical
+            // input and solid ground sits directly below the feet, hold position
+            // (zero the settle) so the player rests on the block below instead of
+            // accumulating downward. Jump/sneak intent still moves normally.
+            if (!lp.input.keyPresses.jump() && !lp.input.keyPresses.shift() && neoorigins$hasSolidBelow(self)) {
+                vy = 0.0;
+            }
             Vec3 intended = new Vec3(movement.x, vy, movement.z);
             // But block movement into blacklisted blocks
             Vec3 clamped = neoorigins$clampAgainstBlocked(self, intended);
