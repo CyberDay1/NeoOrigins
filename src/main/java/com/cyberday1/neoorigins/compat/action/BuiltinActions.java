@@ -2887,6 +2887,56 @@ public final class BuiltinActions {
                 new FieldSpec("components", FormFieldSpec.Kind.ARRAY, true)
                     .itemPattern("^(compat:)?[a-z0-9_.]+$")
                     .doc("The ordered component list, EFFECT-FIRST: each effect id is followed by the modifier ids that apply to it (a modifier binds to the PRECEDING effect; one before the first effect is silently dropped). Effect/modifier ids come from Build A Spell; `compat:*` ids pass through verbatim. Easiest path: build the spell in-game and use BaS's \"Export to Power\" button, which emits this list in the correct order.")));
+
+        // cast_iron_spell — cast a spell from Iron's Spells 'n Spellbooks
+        // (irons_spellbooks) as the player. Every Iron's-typed reference is isolated
+        // in compat.irons_spellbooks.IronsSpellsBridge and only class-loaded behind
+        // the ModList.isLoaded("irons_spellbooks") gate below, so packs that use this
+        // action on servers without Iron's Spells degrade to a logged no-op rather
+        // than a class-load error. Iron's Spells is a SOFT dep compiled against a
+        // hand-written API stub (src/apistubs/java/io/redspace/ironsspellbooks), never
+        // bundled. Cost is charged on the NeoOrigins power by default (consume_mana=
+        // false), so the Iron's mana pool is untouched; set consume_mana=true to draw
+        // from and gate on it. Gate the power with "required_mods":["irons_spellbooks"]
+        // so it doesn't even load without the mod.
+        define("cast_iron_spell",
+            (json, ctx) -> {
+                String spellId = json.has("spell") ? json.get("spell").getAsString() : "";
+                if (spellId.isBlank()) {
+                    NeoOrigins.LOGGER.warn(
+                        "[Iron's Spells] cast_iron_spell in '{}' needs a non-blank 'spell' id — power does nothing",
+                        ctx);
+                    return EntityAction.noop();
+                }
+                int level = json.has("level") ? json.get("level").getAsInt() : 1;
+                boolean consumeMana = json.has("consume_mana") && json.get("consume_mana").getAsBoolean();
+                boolean triggerCooldown = !json.has("trigger_cooldown") || json.get("trigger_cooldown").getAsBoolean();
+                String mode = json.has("mode") ? json.get("mode").getAsString() : "instant";
+                if (!net.neoforged.fml.ModList.get().isLoaded("irons_spellbooks")) {
+                    NeoOrigins.LOGGER.warn(
+                        "[Iron's Spells] cast_iron_spell in '{}' requires Iron's Spells 'n Spellbooks (irons_spellbooks), which isn't installed — power does nothing. Gate it with \"required_mods\": [\"irons_spellbooks\"].",
+                        ctx);
+                    return EntityAction.noop();
+                }
+                return com.cyberday1.neoorigins.compat.irons_spellbooks.IronsSpellsBridge.castSpell(
+                    spellId, level, consumeMana, triggerCooldown, mode, ctx);
+            },
+            List.of(
+                new FieldSpec("spell", FormFieldSpec.Kind.STRING, true)
+                    .pattern("^[a-z0-9_.-]+:[a-z0-9_./-]+$")
+                    .doc("The Iron's Spells 'n Spellbooks spell id to cast, e.g. `irons_spellbooks:fireball`, `irons_spellbooks:magic_missile`, `irons_spellbooks:heal`, `irons_spellbooks:teleport`, `irons_spellbooks:chain_lightning`. Unknown ids resolve to a no-op with a logged warning."),
+                new FieldSpec("level", FormFieldSpec.Kind.INTEGER, false)
+                    .def(1).range(1.0, null)
+                    .doc("Spell level (power). Clamped to at least 1 and to the spell's own max level. Default 1."),
+                new FieldSpec("consume_mana", FormFieldSpec.Kind.BOOLEAN, false)
+                    .def(false)
+                    .doc("When true the cast draws from the player's Iron's Spells mana pool and is refused (logged no-op) if there isn't enough — creative players bypass the check. When false (default) the mana pool is untouched; charge cost on the NeoOrigins power instead."),
+                new FieldSpec("trigger_cooldown", FormFieldSpec.Kind.BOOLEAN, false)
+                    .def(true)
+                    .doc("Whether to apply the spell's Iron's Spells cooldown after casting. Default true."),
+                new FieldSpec("mode", FormFieldSpec.Kind.ENUM, false)
+                    .options("instant", "channel").def("instant")
+                    .doc("`instant` fires the spell's effect directly in one shot (good for keybind/on-hit triggers). `channel` runs the full animated cast — INSTANT spells complete inline, LONG/CONTINUOUS spells channel over time. Default `instant`.")));
     }
 
     /**

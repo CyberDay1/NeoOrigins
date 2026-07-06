@@ -3,10 +3,10 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 868   typed-objects: 1303   distinct-types: 147
+# files-scanned: 868   typed-objects: 1304   distinct-types: 147
 
 == RECOGNIZED VERBS ==
-[action] (90)
+[action] (91)
   neoorigins:activate_power
   neoorigins:actor_action
   neoorigins:add_to_set
@@ -18,6 +18,7 @@
   neoorigins:block_action_at
   neoorigins:block_target_action
   neoorigins:cancel_event
+  neoorigins:cast_iron_spell
   neoorigins:cast_spell
   neoorigins:chain_to_nearest
   neoorigins:chance
@@ -239,7 +240,7 @@ neoorigins:active_place_block	x3	recognized=-	fields={block_id,cooldown_icon,coo
 neoorigins:active_teleport	x4	recognized=-	fields={cooldown_icon,cooldown_ticks,description,mode,name,range,resource_cost,resource_cost_amount}
 neoorigins:add_velocity	x6	recognized=action	fields={set,space,y}
 neoorigins:and	x56	recognized=action,condition,item_action,item_condition	fields={actions,conditions}
-neoorigins:apply_effect	x44	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
+neoorigins:apply_effect	x45	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
 neoorigins:area_of_effect	x30	recognized=action	fields={amplifier,duration,effect,entity_action,exclude_self,include_source,radius}
 neoorigins:armor_value	x1	recognized=condition	fields={compare_to,comparison}
 neoorigins:attribute_modifier	x306	recognized=-	fields={amount,attribute,condition,description,equipment_condition,location_condition,name,operation}

@@ -25,6 +25,7 @@
         "apace:block_target_action",
         "apace:bonemeal",
         "apace:cancel_event",
+        "apace:cast_iron_spell",
         "apace:cast_spell",
         "apace:chain_to_nearest",
         "apace:chance",
@@ -121,6 +122,7 @@
         "neoorigins:block_target_action",
         "neoorigins:bonemeal",
         "neoorigins:cancel_event",
+        "neoorigins:cast_iron_spell",
         "neoorigins:cast_spell",
         "neoorigins:chain_to_nearest",
         "neoorigins:chance",
@@ -512,6 +514,51 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:cast_iron_spell",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:cast_iron_spell",
+            "apace:cast_iron_spell"
+          ]
+        },
+        "spell": {
+          "description": "The Iron's Spells 'n Spellbooks spell id to cast, e.g. `irons_spellbooks:fireball`, `irons_spellbooks:magic_missile`, `irons_spellbooks:heal`, `irons_spellbooks:teleport`, `irons_spellbooks:chain_lightning`. Unknown ids resolve to a no-op with a logged warning.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+        },
+        "level": {
+          "description": "Spell level (power). Clamped to at least 1 and to the spell's own max level. Default 1.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "consume_mana": {
+          "description": "When true the cast draws from the player's Iron's Spells mana pool and is refused (logged no-op) if there isn't enough — creative players bypass the check. When false (default) the mana pool is untouched; charge cost on the NeoOrigins power instead.",
+          "type": "boolean",
+          "default": false
+        },
+        "trigger_cooldown": {
+          "description": "Whether to apply the spell's Iron's Spells cooldown after casting. Default true.",
+          "type": "boolean",
+          "default": true
+        },
+        "mode": {
+          "description": "`instant` fires the spell's effect directly in one shot (good for keybind/on-hit triggers). `channel` runs the full animated cast — INSTANT spells complete inline, LONG/CONTINUOUS spells channel over time. Default `instant`.",
+          "type": "string",
+          "enum": [
+            "instant",
+            "channel"
+          ],
+          "default": "instant"
+        }
+      },
+      "required": [
+        "type",
+        "spell"
       ]
     },
     {
@@ -2827,6 +2874,7 @@
               "apace:block_target_action",
               "apace:bonemeal",
               "apace:cancel_event",
+              "apace:cast_iron_spell",
               "apace:cast_spell",
               "apace:chain_to_nearest",
               "apace:chance",
@@ -2923,6 +2971,7 @@
               "neoorigins:block_target_action",
               "neoorigins:bonemeal",
               "neoorigins:cancel_event",
+              "neoorigins:cast_iron_spell",
               "neoorigins:cast_spell",
               "neoorigins:chain_to_nearest",
               "neoorigins:chance",

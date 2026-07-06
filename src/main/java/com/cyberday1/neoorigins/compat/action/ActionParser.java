@@ -39,7 +39,7 @@ public final class ActionParser {
         "neoorigins:actor_action", "neoorigins:add_to_set", "neoorigins:add_velocity",
         "neoorigins:add_xp", "neoorigins:and", "neoorigins:apply_effect",
         "neoorigins:area_of_effect", "neoorigins:block_action_at", "neoorigins:block_target_action",
-        "neoorigins:cancel_event", "neoorigins:cast_spell",
+        "neoorigins:cancel_event", "neoorigins:cast_spell", "neoorigins:cast_iron_spell",
         "neoorigins:chain_to_nearest", "neoorigins:chance", "neoorigins:change_resource",
         "neoorigins:choice", "neoorigins:clear_effect", "neoorigins:crafting_table",
         "neoorigins:damage", "neoorigins:damage_attacker", "neoorigins:dash",
