@@ -109,6 +109,13 @@ public class PlayerLifecycleEvents {
         });
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.TICK);
+        // Re-sync active powers if a phasing capability was added/dropped this
+        // tick by a top-level power condition flipping (dimension, in-block,
+        // etc.) — no origin/toggle/dimension trigger catches a runtime condition
+        // change, and a stale client belief that phasing is active while the
+        // server disagrees produces the #109 rubber-band. Cheap: only re-sends
+        // when the wall_phase/no_physics signature actually changes.
+        NeoOriginsNetwork.resyncIfPhaseGateFlipped(sp);
         // CLIMB fires each tick the player is on a climbable (ladder/vine).
         // Action powers gate further with their own conditions / cooldowns.
         if (sp.onClimbable()) {
@@ -284,6 +291,7 @@ public class PlayerLifecycleEvents {
         pendingOriginCheck.remove(uuid);
         pendingPowerReapply.remove(uuid);
         pendingResync.remove(uuid);
+        NeoOriginsNetwork.clearPhaseGate(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
