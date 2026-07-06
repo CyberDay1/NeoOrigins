@@ -88,10 +88,23 @@ public final class DragonSurvivalCompat {
             if (handler == null) return;
             if (!initHandlerMethods(handler)) return;
 
-            mSetSpecies.invoke(handler, player, species);
-            if (stageId != null && !stageId.isBlank() && mSetStage != null) {
-                Holder<?> stage = resolveHolder(player, STAGE_REGISTRY, ResourceLocation.parse(stageId));
-                if (stage != null) mSetStage.invoke(handler, player, stage);
+            // Only a *genuine first transformation* should touch species/stage. This
+            // method also runs on every login/respawn (PowerType.onLogin -> onGranted),
+            // and DS's setSpecies/setStage re-seed the dragon at the configured starting
+            // stage — so re-applying them on a relog would wipe the growth the player
+            // has accumulated. If the player is already this exact species, DS already
+            // owns their up-to-date state: leave species and stage untouched so DS keeps
+            // the growth. We still push a sync so the (unchanged) state reaches the client.
+            ResourceLocation currentSpecies = isDragon(player) ? speciesOf(player) : null;
+            boolean alreadyThisSpecies =
+                currentSpecies != null && currentSpecies.equals(ResourceLocation.parse(speciesId));
+
+            if (!alreadyThisSpecies) {
+                mSetSpecies.invoke(handler, player, species);
+                if (stageId != null && !stageId.isBlank() && mSetStage != null) {
+                    Holder<?> stage = resolveHolder(player, STAGE_REGISTRY, ResourceLocation.parse(stageId));
+                    if (stage != null) mSetStage.invoke(handler, player, stage);
+                }
             }
             if (mSyncComplete != null) mSyncComplete.invoke(null, player);
         } catch (Throwable t) {

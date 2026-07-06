@@ -3,9 +3,10 @@ package com.cyberday1.neoorigins.power.builtin;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.phys.Vec3;
 
 /** Teleports the player to their bed/respawn point (or world spawn if none set). */
 public class ActiveRecallPower extends AbstractActivePower<ActiveRecallPower.Config> {
@@ -25,15 +26,17 @@ public class ActiveRecallPower extends AbstractActivePower<ActiveRecallPower.Con
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
-        if (!(player.level() instanceof ServerLevel sl)) return false;
-        BlockPos respawnPos = player.getRespawnPosition();
-        BlockPos target;
-        if (respawnPos != null && player.getRespawnDimension().equals(sl.dimension())) {
-            target = respawnPos;
-        } else {
-            target = sl.getSharedSpawnPos();
-        }
-        TeleportEffects.teleportWithEffects(player, target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
+        if (!(player.level() instanceof ServerLevel)) return false;
+        // Resolve a SAFE standing spot at the player's respawn (bed / anchor) across
+        // dimensions. Passing consumeSpawnBlock=true preserves respawn-anchor charge —
+        // this is a repeatable recall, not a death respawn. When no valid respawn exists
+        // this falls back to the overworld shared spawn (missingRespawnBlock=true) with a
+        // usable newLevel/pos, so we can always teleport.
+        DimensionTransition transition =
+            player.findRespawnPositionAndUseSpawnBlock(true, DimensionTransition.DO_NOTHING);
+        ServerLevel targetLevel = transition.newLevel();
+        Vec3 pos = transition.pos();
+        TeleportEffects.teleportWithEffects(player, targetLevel, pos.x, pos.y, pos.z);
         return true;
     }
 }
