@@ -8,6 +8,7 @@ import io.redspace.ironsspellbooks.api.registry.SpellRegistry;
 import io.redspace.ironsspellbooks.api.spells.AbstractSpell;
 import io.redspace.ironsspellbooks.api.spells.CastSource;
 
+import net.minecraft.ResourceLocationException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -55,7 +56,17 @@ public final class IronsSpellsBridge {
     public static EntityAction castSpell(String spellId, int level, boolean consumeMana,
                                          boolean triggerCooldown, String mode, String contextId) {
         return player -> {
-            AbstractSpell spell = SpellRegistry.getSpell(ResourceLocation.parse(spellId));
+            ResourceLocation spellRl;
+            try {
+                spellRl = ResourceLocation.parse(spellId);
+            } catch (ResourceLocationException e) {
+                NeoOrigins.LOGGER.warn(
+                    "[Iron's Spells] cast_iron_spell in '{}' has a malformed spell id '{}' — power does nothing",
+                    contextId, spellId);
+                return;
+            }
+
+            AbstractSpell spell = SpellRegistry.getSpell(spellRl);
             if (spell == null || spell == SpellRegistry.none()) {
                 NeoOrigins.LOGGER.warn(
                     "[Iron's Spells] cast_iron_spell in '{}' references unknown spell '{}' — power does nothing",
