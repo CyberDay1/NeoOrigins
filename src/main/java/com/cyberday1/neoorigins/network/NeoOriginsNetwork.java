@@ -1160,6 +1160,12 @@ public class NeoOriginsNetwork {
         Map<ResourceLocation, Boolean> powerMap = new HashMap<>();
         Set<String> capabilities = new HashSet<>();
         collectActivePowers(player, powerMap, capabilities);
+        // Remember the phasing-gate signature we just published so the per-tick
+        // detector (resyncIfPhaseGateFlipped) only re-sends when it actually
+        // changes at runtime — a condition (dimension, in-block, etc.) flipping
+        // mid-session would otherwise leave the client predicting phasing while
+        // the server has dropped the capability, re-introducing the #109 spasm.
+        LAST_PHASE_GATE.put(player.getUUID(), phaseGateSignature(capabilities));
         PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
         // Keep the HUD ability-slot roster in lockstep with the active-powers
         // map — same change triggers, same connection ordering.
@@ -1347,7 +1353,14 @@ public class NeoOriginsNetwork {
                 if (holder == null) continue;
                 boolean toggledOn = !isToggleLike(holder) || !isToggleLikeOff(player, holder);
                 powerMapOut.put(powerId, toggledOn);
-                if (toggledOn) {
+                // Only publish capability tags when the power is BOTH toggled on
+                // AND its top-level condition is satisfied. onTick/tickEffect is
+                // condition-gated (PowerHolder.onTick), so a capability like
+                // wall_phase whose condition is unmet would let the client
+                // predict phasing (disable collision, set its own position) while
+                // the server never sets noPhysics — the server then rejects the
+                // client position and the player rubber-bands (issue #109).
+                if (toggledOn && holder.isConditionSatisfied(player)) {
                     capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
                 }
             }
@@ -1359,10 +1372,57 @@ public class NeoOriginsNetwork {
             if (holder == null) continue;
             boolean toggledOn = !isToggleLike(holder) || !isToggleLikeOff(player, holder);
             powerMapOut.put(powerId, toggledOn);
-            if (toggledOn) {
+            if (toggledOn && holder.isConditionSatisfied(player)) {
                 capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
             }
         }
+    }
+
+    /**
+     * Last phasing-gate signature pushed to each player, keyed by UUID. Used by
+     * {@link #resyncIfPhaseGateFlipped} to detect a runtime condition flip that
+     * added or dropped a phasing capability without any of the usual sync
+     * triggers (origin change / toggle / dimension) firing.
+     */
+    private static final Map<java.util.UUID, Integer> LAST_PHASE_GATE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * A tiny signature of just the phasing-relevant capabilities in a set. Only
+     * client-authoritative movement caps ({@code wall_phase}, {@code no_physics})
+     * can cause the #109 position desync when the server's view flips out from
+     * under the client, so those alone drive the per-tick re-sync — cheap enough
+     * to check every tick for every player.
+     */
+    private static int phaseGateSignature(Set<String> capabilities) {
+        int sig = 0;
+        if (capabilities.contains("wall_phase")) sig |= 1;
+        if (capabilities.contains("no_physics")) sig |= 2;
+        return sig;
+    }
+
+    /**
+     * Per-tick guard: if the player's phasing-gate signature changed since the
+     * last active-powers sync (a top-level power condition flipped mid-session,
+     * which no origin/toggle/dimension trigger would have caught), push a fresh
+     * active-powers sync so the client stops predicting phasing the instant the
+     * server drops the capability (and starts again when it returns). Fixes the
+     * runtime half of issue #109's rubber-banding.
+     */
+    public static void resyncIfPhaseGateFlipped(ServerPlayer player) {
+        Map<ResourceLocation, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(player, powerMap, capabilities);
+        int sig = phaseGateSignature(capabilities);
+        Integer prev = LAST_PHASE_GATE.get(player.getUUID());
+        if (prev != null && prev == sig) return;
+        // Full sync keeps HUD slots / morph / armor-hide in lockstep and also
+        // updates LAST_PHASE_GATE.
+        syncActivePowersToPlayer(player);
+    }
+
+    /** Drop the cached phasing-gate signature when a player leaves. */
+    public static void clearPhaseGate(java.util.UUID uuid) {
+        LAST_PHASE_GATE.remove(uuid);
     }
 
     /** Open the origin selection screen on the client. */

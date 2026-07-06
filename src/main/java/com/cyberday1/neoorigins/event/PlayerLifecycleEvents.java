@@ -150,6 +150,15 @@ public class PlayerLifecycleEvents {
     public static void onPlayerTickPost(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var uuid = sp.getUUID();
+
+        // Re-sync active powers if a phasing capability was added/dropped this
+        // tick by a top-level power condition flipping (dimension, in-block,
+        // etc.) — no origin/toggle/dimension trigger catches a runtime condition
+        // change, and a stale client belief that phasing is active while the
+        // server disagrees produces the #109 rubber-band. Cheap: only re-sends
+        // when the wall_phase/no_physics signature actually changes.
+        NeoOriginsNetwork.resyncIfPhaseGateFlipped(sp);
+
         boolean onGround = sp.onGround();
         Boolean prev = lastOnGround.put(uuid, onGround);
         if (onGround && (prev == null || !prev)) {
@@ -335,6 +344,7 @@ public class PlayerLifecycleEvents {
         pendingPowerReapply.remove(uuid);
         pendingResync.remove(uuid);
         lastOnGround.remove(uuid);
+        NeoOriginsNetwork.clearPhaseGate(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
