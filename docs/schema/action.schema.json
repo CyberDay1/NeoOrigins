@@ -25,6 +25,7 @@
         "apace:block_target_action",
         "apace:bonemeal",
         "apace:cancel_event",
+        "apace:cast_iron_spell",
         "apace:cast_spell",
         "apace:chain_to_nearest",
         "apace:chance",
@@ -67,6 +68,7 @@
         "apace:mount",
         "apace:nothing",
         "apace:offset",
+        "apace:open_layer_picker",
         "apace:passenger_action",
         "apace:path",
         "apace:play_sound",
@@ -120,6 +122,7 @@
         "neoorigins:block_target_action",
         "neoorigins:bonemeal",
         "neoorigins:cancel_event",
+        "neoorigins:cast_iron_spell",
         "neoorigins:cast_spell",
         "neoorigins:chain_to_nearest",
         "neoorigins:chance",
@@ -162,6 +165,7 @@
         "neoorigins:mount",
         "neoorigins:nothing",
         "neoorigins:offset",
+        "neoorigins:open_layer_picker",
         "neoorigins:passenger_action",
         "neoorigins:path",
         "neoorigins:play_sound",
@@ -510,6 +514,51 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:cast_iron_spell",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:cast_iron_spell",
+            "apace:cast_iron_spell"
+          ]
+        },
+        "spell": {
+          "description": "The Iron's Spells 'n Spellbooks spell id to cast, e.g. `irons_spellbooks:fireball`, `irons_spellbooks:magic_missile`, `irons_spellbooks:heal`, `irons_spellbooks:teleport`, `irons_spellbooks:chain_lightning`. Unknown ids resolve to a no-op with a logged warning.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+        },
+        "level": {
+          "description": "Spell level (power). Clamped to at least 1 and to the spell's own max level. Default 1.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "consume_mana": {
+          "description": "When true the cast draws from the player's Iron's Spells mana pool and is refused (logged no-op) if there isn't enough — creative players bypass the check. When false (default) the mana pool is untouched; charge cost on the NeoOrigins power instead.",
+          "type": "boolean",
+          "default": false
+        },
+        "trigger_cooldown": {
+          "description": "Whether to apply the spell's Iron's Spells cooldown after casting. Default true.",
+          "type": "boolean",
+          "default": true
+        },
+        "mode": {
+          "description": "`instant` fires the spell's effect directly in one shot (good for keybind/on-hit triggers). `channel` runs the full animated cast — INSTANT spells complete inline, LONG/CONTINUOUS spells channel over time. Default `instant`.",
+          "type": "string",
+          "enum": [
+            "instant",
+            "channel"
+          ],
+          "default": "instant"
+        }
+      },
+      "required": [
+        "type",
+        "spell"
       ]
     },
     {
@@ -1492,6 +1541,53 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:open_layer_picker",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:open_layer_picker",
+            "apace:open_layer_picker"
+          ]
+        },
+        "layers": {
+          "description": "Layer ids to reopen the picker for, e.g. `[\"neoorigins:origin\", \"neoorigins:class\"]`. Unknown or hidden layers are skipped; if none are valid the action does nothing.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+          }
+        },
+        "commit_mode": {
+          "description": "`deferred` (default): the cost is charged on the first pick and closing the picker is a free cancel that restores the prior origins. `immediate`: the cost is charged up front and closing the picker leaves the layers empty (the auto-default fills them).",
+          "type": "string",
+          "enum": [
+            "deferred",
+            "immediate"
+          ],
+          "default": "deferred"
+        },
+        "cost": {
+          "description": "XP levels charged when the player commits a pick (deferred) or immediately (immediate). 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "message": {
+          "description": "Optional chat line shown to the player when the picker opens. A translation key resolves against the active language; a plain string is shown as-is. Omit for no message.",
+          "type": "string"
+        },
+        "consume_item": {
+          "description": "When true, one of the player's main-hand item (the item that triggered this action, e.g. a datapack orb) is removed when the pick commits. Creative players keep the item. Use with an item-use trigger; on a keybind it would consume whatever is held. Default false.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "layers"
       ]
     },
     {
@@ -2798,6 +2894,7 @@
               "apace:block_target_action",
               "apace:bonemeal",
               "apace:cancel_event",
+              "apace:cast_iron_spell",
               "apace:cast_spell",
               "apace:chain_to_nearest",
               "apace:chance",
@@ -2840,6 +2937,7 @@
               "apace:mount",
               "apace:nothing",
               "apace:offset",
+              "apace:open_layer_picker",
               "apace:passenger_action",
               "apace:path",
               "apace:play_sound",
@@ -2893,6 +2991,7 @@
               "neoorigins:block_target_action",
               "neoorigins:bonemeal",
               "neoorigins:cancel_event",
+              "neoorigins:cast_iron_spell",
               "neoorigins:cast_spell",
               "neoorigins:chain_to_nearest",
               "neoorigins:chance",
@@ -2935,6 +3034,7 @@
               "neoorigins:mount",
               "neoorigins:nothing",
               "neoorigins:offset",
+              "neoorigins:open_layer_picker",
               "neoorigins:passenger_action",
               "neoorigins:path",
               "neoorigins:play_sound",
