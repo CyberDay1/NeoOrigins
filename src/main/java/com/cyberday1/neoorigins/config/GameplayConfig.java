@@ -30,6 +30,7 @@ public final class GameplayConfig {
     // ── Orb of Origins ──────────────────────────────────────────────────
     public static final ModConfigSpec.IntValue ORB_LEVELS_PER_USE;
     public static final ModConfigSpec.BooleanValue ORB_SCALE_COST;
+    public static final ModConfigSpec.IntValue ORB_OF_CLASS_LEVELS_PER_USE;
 
     static {
         BUILDER.comment(
@@ -50,11 +51,19 @@ public final class GameplayConfig {
                      "Set to 0 to disable XP cost entirely.")
             .defineInRange("levels_per_use", 5, 0, 1000);
 
+        ORB_OF_CLASS_LEVELS_PER_USE = BUILDER
+            .comment("Flat XP levels charged per Orb of Class use.",
+                     "The Orb of Class only resets the class layer (keeping the main origin),",
+                     "so it is intentionally cheaper than the full Orb of Origin reset.",
+                     "Set to 0 to disable its XP cost entirely.")
+            .defineInRange("class_levels_per_use", 2, 0, 1000);
+
         BUILDER.pop();
     }
 
     public static int orbLevelsPerUse() { return ORB_LEVELS_PER_USE.get(); }
     public static boolean orbScaleCost() { return ORB_SCALE_COST.get(); }
+    public static int orbOfClassLevelsPerUse() { return ORB_OF_CLASS_LEVELS_PER_USE.get(); }
 
     // ── Auto-Human Mode ─────────────────────────────────────────────────
     public static final ModConfigSpec.BooleanValue AUTO_HUMAN;

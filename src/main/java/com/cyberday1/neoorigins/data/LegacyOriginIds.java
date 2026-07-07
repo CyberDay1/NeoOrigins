@@ -21,7 +21,14 @@ public final class LegacyOriginIds {
         Identifier.fromNamespaceAndPath("neoorigins", "golden_bell"),
         Identifier.fromNamespaceAndPath("neoorigins", "golden_body")
     );
-    public static Identifier remap(Identifier id) { return RENAMES.getOrDefault(id, id); }
+    public static Identifier remap(Identifier id) {
+        // A null id legitimately means "no origin" (e.g. the revoke path in
+        // applyOriginPowers passes a null new-origin). Map.of() is an immutable
+        // map that rejects null keys with an NPE in getOrDefault, so guard here
+        // rather than crash the caller (this is what broke the Orb of Class).
+        if (id == null) return null;
+        return RENAMES.getOrDefault(id, id);
+    }
     public static String remap(String id) {
         if (id == null) return null;
         Identifier parsed = Identifier.tryParse(id);

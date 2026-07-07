@@ -190,6 +190,7 @@ public class NeoOriginsClientEvents {
         ClientMorphState.clear();
         MorphRenderHandler.clearCache();
         com.cyberday1.neoorigins.client.ClientInvisibilityArmorState.clear();
+        com.cyberday1.neoorigins.client.ClientElytraFlightState.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one.
         HotkeyAssignments.clear();
@@ -211,6 +212,34 @@ public class NeoOriginsClientEvents {
             .bounds(8, 8, 80, 20)
             .build();
         event.addListener(btn);
+    }
+
+    /**
+     * Adds the {@code neoorigins:elytra_flight} render layer to the avatar
+     * renderer(s). The layer draws a vanilla elytra on the back of players gliding
+     * via that power (with render_elytra on) who aren't wearing a real equipped
+     * elytra. Fired on the mod event bus (see NeoOrigins client setup).
+     *
+     * <p><b>26.1 port note.</b> The player renderer is now {@code AvatarRenderer}
+     * and {@code AddLayers} exposes skins as {@code PlayerModelType} via
+     * {@code getPlayerRenderer(...)} (was {@code PlayerSkin.Model} +
+     * {@code getSkin(...)} on 1.21.1). We add the layer to the player renderer for
+     * each model type, and to the matching mannequin renderer so posed mannequins
+     * with the power also show the wings.
+     */
+    public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for (net.minecraft.world.entity.player.PlayerModelType skin : event.getSkins()) {
+            var playerRenderer = event.getPlayerRenderer(skin);
+            if (playerRenderer != null) {
+                playerRenderer.addLayer(new com.cyberday1.neoorigins.client.renderer.NeoOriginsElytraLayer<>(
+                    playerRenderer, event.getEntityModels()));
+            }
+            var mannequinRenderer = event.getMannequinRenderer(skin);
+            if (mannequinRenderer != null) {
+                mannequinRenderer.addLayer(new com.cyberday1.neoorigins.client.renderer.NeoOriginsElytraLayer<>(
+                    mannequinRenderer, event.getEntityModels()));
+            }
+        }
     }
 
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -252,6 +281,24 @@ public class NeoOriginsClientEvents {
                         void accept(T avatar, net.minecraft.client.renderer.entity.state.AvatarRenderState state) {
                     if (ClientInvisibilityArmorState.shouldHideArmor(avatar.getId())) {
                         state.setRenderData(ClientInvisibilityArmorState.HIDE_ARMOR_KEY, Boolean.TRUE);
+                    }
+                }
+            });
+
+        // Stamp the neoorigins:elytra_flight cosmetic-wing flag + texture onto each
+        // player's render state so the entity-less NeoOriginsElytraLayer (26.1 renders
+        // from a render state) knows whether — and with what texture — to draw wings.
+        // Mirrors the server-synced ClientElytraFlightState, keyed by entity id; we
+        // only stamp when render is wanted (absence = no power wings).
+        event.registerAvatarEntityModifier(
+            new net.neoforged.neoforge.client.renderstate.AvatarRenderStateModifier() {
+                @Override
+                public <T extends net.minecraft.world.entity.Avatar & net.minecraft.client.entity.ClientAvatarEntity>
+                        void accept(T avatar, net.minecraft.client.renderer.entity.state.AvatarRenderState state) {
+                    if (ClientElytraFlightState.shouldRenderElytra(avatar.getId())) {
+                        state.setRenderData(ClientElytraFlightState.RENDER_ELYTRA_KEY, Boolean.TRUE);
+                        state.setRenderData(ClientElytraFlightState.ELYTRA_TEXTURE_KEY,
+                            ClientElytraFlightState.textureFor(avatar.getId()));
                     }
                 }
             });

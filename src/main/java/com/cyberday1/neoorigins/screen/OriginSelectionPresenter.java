@@ -43,6 +43,7 @@ public class OriginSelectionPresenter {
     private int listScrollOffset             = 0;
     private String searchText                = "";
     private boolean forceReselect            = false;
+    private List<Identifier> scopedLayerIds  = java.util.List.of();
     private SortMode sortMode                = SortMode.MANUAL;
 
     private final List<OriginListEntry> allRows      = new ArrayList<>();
@@ -55,13 +56,32 @@ public class OriginSelectionPresenter {
     }
 
     /**
+     * Restrict the picker to an author-specified allowlist of layer ids before
+     * calling init(). When non-empty the walk shows exactly these (non-hidden)
+     * layers regardless of whether they're already filled — a scoped picker can
+     * re-show a filled layer. Empty (the default) = unscoped.
+     */
+    public void setScopedLayers(List<Identifier> ids) {
+        this.scopedLayerIds = ids == null ? java.util.List.of() : List.copyOf(ids);
+    }
+
+    /**
      * Query pending layers. Call on every screen init (e.g. after resize).
      * Does NOT reset currentLayerIndex so mid-selection state survives resize.
      * Returns false if there are no pending layers (screen should close).
      * When forceReselect is true, includes all layers (not just unfilled ones).
      */
     public boolean init() {
-        if (forceReselect) {
+        if (!scopedLayerIds.isEmpty()) {
+            // Scoped picker: exactly the allowlisted (non-hidden) layers, in sorted
+            // order, ignoring the unfilled filter so an already-chosen layer can be
+            // re-shown. Applies regardless of forceReselect.
+            var allow = new java.util.HashSet<>(scopedLayerIds);
+            pendingLayers = LayerDataManager.INSTANCE.getSortedLayers().stream()
+                .filter(l -> !l.hidden())
+                .filter(l -> allow.contains(l.id()))
+                .toList();
+        } else if (forceReselect) {
             pendingLayers = LayerDataManager.INSTANCE.getSortedLayers().stream()
                 .filter(l -> !l.hidden())
                 .toList();
