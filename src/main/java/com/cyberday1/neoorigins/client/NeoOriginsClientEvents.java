@@ -190,6 +190,7 @@ public class NeoOriginsClientEvents {
         com.cyberday1.neoorigins.client.ClientMorphState.clear();
         com.cyberday1.neoorigins.client.MorphRenderHandler.clearCache();
         com.cyberday1.neoorigins.client.ClientInvisibilityArmorState.clear();
+        com.cyberday1.neoorigins.client.ClientElytraFlightState.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one. (Was previously cleared in
         // handleSyncOrigins, which raced the login keybind-registry sync and
@@ -213,6 +214,22 @@ public class NeoOriginsClientEvents {
             .bounds(8, 8, 80, 20)
             .build();
         event.addListener(btn);
+    }
+
+    /**
+     * Adds the {@code neoorigins:elytra_flight} render layer to both the default
+     * and slim player renderers. The layer draws a vanilla elytra on the back of
+     * players gliding via that power (with render_elytra on) who aren't wearing a
+     * real equipped elytra. Fired on the mod event bus (see NeoOrigins client setup).
+     */
+    @SuppressWarnings("unchecked")
+    public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for (net.minecraft.client.resources.PlayerSkin.Model skin : event.getSkins()) {
+            net.minecraft.client.renderer.entity.player.PlayerRenderer renderer = event.getSkin(skin);
+            if (renderer == null) continue;
+            renderer.addLayer(new com.cyberday1.neoorigins.client.renderer.NeoOriginsElytraLayer<>(
+                renderer, event.getEntityModels()));
+        }
     }
 
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {

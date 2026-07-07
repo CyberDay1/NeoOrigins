@@ -103,6 +103,47 @@ you don't want a resource/language pack — handy for self-contained datapacks.
 - **No classes at all:** if *every* class is disabled, the class selection
   screen is skipped entirely and only the origin layer is shown.
 
+## The Orb of Class
+
+`neoorigins:orb_of_class` is the cheaper, class-only sibling of the Orb of
+Origin. Right-clicking it resets **only** the `neoorigins:class` layer and
+reopens the picker scoped to just that layer — the player's main origin is
+kept, so only the class screen is shown.
+
+- **Cost:** a flat XP-level cost, configured by `class_levels_per_use` in the
+  `[orb_of_origins]` section of `config/neoorigins/gameplay.toml` (default
+  `2`). Unlike the Orb of Origin's `levels_per_use` (default `5`, which can
+  ramp with prior uses), the class cost never scales. Creative players pay
+  nothing.
+- **Deferred commit:** the XP is charged and the orb is consumed only when the
+  player actually picks a new class. Closing the picker without picking is a
+  free cancel — the orb is refunded and the previous class is restored.
+- **No class yet:** using the orb before a class has been chosen does nothing
+  (there is no class to reset).
+
+### Reopening the picker for arbitrary layers
+
+The Orb of Class is one preset of a general mechanism: the picker can be reopened
+for any layer subset — not just the class layer. Two author paths expose it:
+
+- **Datapack action** [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker):
+  give any power (item use, keybind, on-hit, …) a `layers` list to re-pick, with
+  `commit_mode` (`deferred`/`immediate`), an XP `cost`, an optional `message` shown
+  when the picker opens, and `consume_item` to spend the triggering item on commit.
+  This lets a pack build its own re-pick items or powers for whatever layers it defines.
+- **Admin command** `/origin gui <player> <layers>`: opens the picker scoped to one or
+  more comma- or space-separated layers for a single target player (permission level 2).
+
+### Recipe
+
+Same shape as the Orb of Origin, but with ingots instead of blocks:
+
+```
+G D G      G = minecraft:gold_ingot
+D N D      D = minecraft:diamond
+G D G      N = minecraft:netherite_ingot
+```
+
 ## See also
 
 - [PACK_FORMAT.md](PACK_FORMAT.md) — Origin JSON, Power JSON, Layer JSON

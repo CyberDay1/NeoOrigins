@@ -2937,6 +2937,62 @@ public final class BuiltinActions {
                 new FieldSpec("mode", FormFieldSpec.Kind.ENUM, false)
                     .options("instant", "channel").def("instant")
                     .doc("`instant` fires the spell's effect directly in one shot (good for keybind/on-hit triggers). `channel` runs the full animated cast — INSTANT spells complete inline, LONG/CONTINUOUS spells channel over time. Default `instant`.")));
+
+        // open_layer_picker — reopen the origin selection screen scoped to an
+        // author-specified subset of layers, so a pack can offer a "re-pick these
+        // layers" button/item for any layer set (generalizes the Orb of Class). The
+        // scoped layers are cleared (their powers revoked) and the picker re-shows
+        // them; every other layer stays chosen. commit_mode 'deferred' (default)
+        // charges cost + allows a free ESC-cancel that restores the prior origins;
+        // 'immediate' charges up front and leaves the layers empty on cancel (the
+        // auto-default path fills e.g. class → nitwit). Runs server-side.
+        define("open_layer_picker",
+            (json, ctx) -> {
+                java.util.List<ResourceLocation> layers = new java.util.ArrayList<>();
+                if (json.has("layers") && json.get("layers").isJsonArray()) {
+                    for (com.google.gson.JsonElement el : json.getAsJsonArray("layers")) {
+                        if (!el.isJsonPrimitive()) continue;
+                        ResourceLocation id = ResourceLocation.tryParse(el.getAsString());
+                        if (id != null) layers.add(id);
+                        else NeoOrigins.LOGGER.warn("[LayerPicker] open_layer_picker: bad layer id '{}' — skipped", el);
+                    }
+                }
+                String mode = json.has("commit_mode") ? json.get("commit_mode").getAsString() : "deferred";
+                boolean deferred = !"immediate".equalsIgnoreCase(mode);
+                int cost = Math.max(0, json.has("cost") ? json.get("cost").getAsInt() : 0);
+                String message = json.has("message") ? json.get("message").getAsString() : null;
+                boolean consume = json.has("consume_item") && json.get("consume_item").getAsBoolean();
+                if (layers.isEmpty()) return EntityAction.noop();
+                java.util.List<ResourceLocation> finalLayers = java.util.List.copyOf(layers);
+                return player -> {
+                    if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                        // consume_item removes one of the player's held item when the
+                        // pick commits — capture it now (the item that triggered this).
+                        net.minecraft.world.item.Item consumeItem = null;
+                        if (consume) {
+                            var held = sp.getMainHandItem();
+                            if (!held.isEmpty()) consumeItem = held.getItem();
+                        }
+                        com.cyberday1.neoorigins.network.NeoOriginsNetwork.beginLayerPicker(
+                            sp, finalLayers, deferred, cost, consumeItem, message);
+                    }
+                };
+            },
+            List.of(
+                new FieldSpec("layers", FormFieldSpec.Kind.ARRAY, true)
+                    .itemPattern("^[a-z0-9_.-]+:[a-z0-9_./-]+$")
+                    .doc("Layer ids to reopen the picker for, e.g. `[\"neoorigins:origin\", \"neoorigins:class\"]`. Unknown or hidden layers are skipped; if none are valid the action does nothing."),
+                new FieldSpec("commit_mode", FormFieldSpec.Kind.ENUM, false)
+                    .options("deferred", "immediate").def("deferred")
+                    .doc("`deferred` (default): the cost is charged on the first pick and closing the picker is a free cancel that restores the prior origins. `immediate`: the cost is charged up front and closing the picker leaves the layers empty (the auto-default fills them)."),
+                new FieldSpec("cost", FormFieldSpec.Kind.INTEGER, false)
+                    .def(0).range(0.0, null)
+                    .doc("XP levels charged when the player commits a pick (deferred) or immediately (immediate). 0 = free."),
+                new FieldSpec("message", FormFieldSpec.Kind.STRING, false)
+                    .doc("Optional chat line shown to the player when the picker opens. A translation key resolves against the active language; a plain string is shown as-is. Omit for no message."),
+                new FieldSpec("consume_item", FormFieldSpec.Kind.BOOLEAN, false)
+                    .def(false)
+                    .doc("When true, one of the player's main-hand item (the item that triggered this action, e.g. a datapack orb) is removed when the pick commits. Creative players keep the item. Use with an item-use trigger; on a keybind it would consume whatever is held. Default false.")));
     }
 
     /**

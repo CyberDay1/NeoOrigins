@@ -61,10 +61,11 @@ public class OrbOfClassItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
 
-        // Clear ONLY the class layer up front so the picker shows just that layer
-        // (its unfilled-layer filter keeps the still-chosen main origin hidden).
-        // Remember the prior class so a cancelled pick can be rolled back.
-        NeoOriginsNetwork.beginClassOrbReset(sp, data, CLASS_LAYER);
+        // Clear ONLY the class layer up front so the picker shows just that layer.
+        // XP + orb consumption are deferred to the first pick (consumeClassOrb=true),
+        // and a cancelled pick rolls the class back. Routed through the reusable
+        // scoped layer-picker session.
+        NeoOriginsNetwork.beginLayerPicker(sp, java.util.List.of(CLASS_LAYER), true, cost, stack.getItem(), null);
 
         return InteractionResultHolder.consume(stack);
     }

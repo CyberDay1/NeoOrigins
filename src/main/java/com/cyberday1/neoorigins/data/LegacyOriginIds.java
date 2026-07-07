@@ -33,6 +33,11 @@ public final class LegacyOriginIds {
 
     /** Returns the current ID for a possibly-legacy origin ID (identity if not renamed). */
     public static ResourceLocation remap(ResourceLocation id) {
+        // A null id legitimately means "no origin" (e.g. the revoke path in
+        // applyOriginPowers passes a null new-origin). Map.of() is an immutable
+        // map that rejects null keys with an NPE in getOrDefault, so guard here
+        // rather than crash the caller (this is what broke the Orb of Class).
+        if (id == null) return null;
         return RENAMES.getOrDefault(id, id);
     }
 

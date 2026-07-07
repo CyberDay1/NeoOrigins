@@ -196,6 +196,16 @@ public final class BuiltinPowers {
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
         define("natural_glide",            NaturalGlidePower.class,           List.of());
+        // elytra_flight: native mirror of apoli:elytra_flight. Reuses natural_glide
+        // for the flight itself (capabilities() emits "natural_glide"); the two
+        // fields here are cosmetic — whether to draw a vanilla elytra on the back
+        // during flight, and an optional custom texture for it (model stays vanilla).
+        define("elytra_flight",            ElytraFlightPower.class,            List.of(
+            new FieldSpec("render_elytra", Kind.BOOLEAN, false)
+                .def(true).doc("When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way — this is purely cosmetic. When false, the player glides with no visible wings."),
+            new FieldSpec("texture_location", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.")));
         define("no_natural_regen",         NoNaturalRegenPower.class,         List.of());
         define("no_projectile_divergence", NoProjectileDivergencePower.class, List.of());
         define("underwater_mining_speed",  UnderwaterMiningSpeedPower.class,  List.of());

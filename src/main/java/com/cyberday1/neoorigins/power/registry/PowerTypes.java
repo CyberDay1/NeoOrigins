@@ -50,6 +50,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, WallClimbingPower>        WALL_CLIMBING        = reg("wall_climbing",        new WallClimbingPower());
     public static final DeferredHolder<PowerType<?>, ElytraBoostPower>         ELYTRA_BOOST         = reg("elytra_boost",         new ElytraBoostPower());
     public static final DeferredHolder<PowerType<?>, NaturalGlidePower>        NATURAL_GLIDE        = reg("natural_glide",        new NaturalGlidePower());
+    public static final DeferredHolder<PowerType<?>, ElytraFlightPower>        ELYTRA_FLIGHT        = reg("elytra_flight",        new ElytraFlightPower());
     public static final DeferredHolder<PowerType<?>, SizeScalingPower>         SIZE_SCALING         = reg("size_scaling",         new SizeScalingPower());
     public static final DeferredHolder<PowerType<?>, BounceOnLandPower>        BOUNCE_ON_LAND       = reg("bounce_on_land",       new BounceOnLandPower());
     public static final DeferredHolder<PowerType<?>, ItemMagnetismPower>       ITEM_MAGNETISM       = reg("item_magnetism",       new ItemMagnetismPower());

@@ -69,6 +69,7 @@
         "apace:mount",
         "apace:nothing",
         "apace:offset",
+        "apace:open_layer_picker",
         "apace:passenger_action",
         "apace:path",
         "apace:play_sound",
@@ -166,6 +167,7 @@
         "neoorigins:mount",
         "neoorigins:nothing",
         "neoorigins:offset",
+        "neoorigins:open_layer_picker",
         "neoorigins:passenger_action",
         "neoorigins:path",
         "neoorigins:play_sound",
@@ -1571,6 +1573,53 @@
       ]
     },
     {
+      "$comment": "neoorigins:open_layer_picker",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:open_layer_picker",
+            "apace:open_layer_picker"
+          ]
+        },
+        "layers": {
+          "description": "Layer ids to reopen the picker for, e.g. `[\"neoorigins:origin\", \"neoorigins:class\"]`. Unknown or hidden layers are skipped; if none are valid the action does nothing.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$"
+          }
+        },
+        "commit_mode": {
+          "description": "`deferred` (default): the cost is charged on the first pick and closing the picker is a free cancel that restores the prior origins. `immediate`: the cost is charged up front and closing the picker leaves the layers empty (the auto-default fills them).",
+          "type": "string",
+          "enum": [
+            "deferred",
+            "immediate"
+          ],
+          "default": "deferred"
+        },
+        "cost": {
+          "description": "XP levels charged when the player commits a pick (deferred) or immediately (immediate). 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "message": {
+          "description": "Optional chat line shown to the player when the picker opens. A translation key resolves against the active language; a plain string is shown as-is. Omit for no message.",
+          "type": "string"
+        },
+        "consume_item": {
+          "description": "When true, one of the player's main-hand item (the item that triggered this action, e.g. a datapack orb) is removed when the pick commits. Creative players keep the item. Use with an item-use trigger; on a keybind it would consume whatever is held. Default false.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "layers"
+      ]
+    },
+    {
       "$comment": "neoorigins:passenger_action",
       "properties": {
         "type": {
@@ -2918,6 +2967,7 @@
               "apace:mount",
               "apace:nothing",
               "apace:offset",
+              "apace:open_layer_picker",
               "apace:passenger_action",
               "apace:path",
               "apace:play_sound",
@@ -3015,6 +3065,7 @@
               "neoorigins:mount",
               "neoorigins:nothing",
               "neoorigins:offset",
+              "neoorigins:open_layer_picker",
               "neoorigins:passenger_action",
               "neoorigins:path",
               "neoorigins:play_sound",

@@ -57,15 +57,25 @@ public class PlayerOriginData {
      *  been committed yet. The first successful ChooseOrigin after this flag is set
      *  performs the actual revoke/XP/stack-shrink; picker-close clears it. */
     private transient boolean pendingOrbCommit = false;
-    /** Session-only — true while an Orb of Class picker is open and its cheaper
-     *  class-only reset hasn't been committed yet. Unlike {@link #pendingOrbCommit}
-     *  the class layer has already been cleared (so the picker shows only the class
-     *  layer); the first successful ChooseOrigin performs the XP deduct + orb shrink,
-     *  and a picker-close restores {@link #pendingClassOrbPrevOrigin}. */
-    private transient boolean pendingClassOrbCommit = false;
-    /** Session-only — the class origin the player held before an Orb of Class picker
-     *  was opened, so a cancelled pick can be rolled back to it. */
-    private transient ResourceLocation pendingClassOrbPrevOrigin = null;
+    /** Session-only — true while a scoped layer picker is open and its deferred
+     *  commit (XP cost + optional class-orb consume) hasn't fired yet. Unlike
+     *  {@link #pendingOrbCommit} the scoped layers have already been cleared (so the
+     *  picker shows only them); the first successful ChooseOrigin performs the
+     *  deferred work, and a picker-close restores {@link #pendingLayerPickerPrev}.
+     *  Generalizes the former Orb-of-Class flow to any layer subset (the
+     *  {@code neoorigins:open_layer_picker} action, {@code /origin gui <player> <layer>},
+     *  and the Orb of Class all route through it). */
+    private transient boolean pendingLayerPickerCommit = false;
+    /** Session-only — the prior origin of each scoped layer that HAD one before the
+     *  picker opened, so a cancelled pick can be rolled back layer-by-layer. */
+    private transient Map<ResourceLocation, ResourceLocation> pendingLayerPickerPrev = new HashMap<>();
+    /** Session-only — XP levels to charge when the scoped picker's first pick commits. */
+    private transient int pendingLayerPickerCost = 0;
+    /** Session-only — if non-null, one of this item is removed from the player's
+     *  inventory when the scoped picker's pick commits. The Orb of Class stores
+     *  itself here; the {@code open_layer_picker} action stores the held item when
+     *  {@code consume_item} is set. Null = consume nothing. */
+    private transient net.minecraft.world.item.Item pendingLayerPickerConsumeItem = null;
     /** Session-only — true while an OP-initiated re-selection picker is open
      *  ({@code /origin gui <player>}). Authorizes the target (a non-OP player)
      *  to change an already-chosen origin for the duration of that picker
@@ -291,11 +301,19 @@ public class PlayerOriginData {
     public boolean isPendingOrbCommit() { return pendingOrbCommit; }
     public void setPendingOrbCommit(boolean pending) { this.pendingOrbCommit = pending; }
 
-    public boolean isPendingClassOrbCommit() { return pendingClassOrbCommit; }
-    public void setPendingClassOrbCommit(boolean pending) { this.pendingClassOrbCommit = pending; }
+    public boolean isPendingLayerPickerCommit() { return pendingLayerPickerCommit; }
+    public void setPendingLayerPickerCommit(boolean pending) { this.pendingLayerPickerCommit = pending; }
 
-    public ResourceLocation getPendingClassOrbPrevOrigin() { return pendingClassOrbPrevOrigin; }
-    public void setPendingClassOrbPrevOrigin(ResourceLocation origin) { this.pendingClassOrbPrevOrigin = origin; }
+    public Map<ResourceLocation, ResourceLocation> getPendingLayerPickerPrev() { return pendingLayerPickerPrev; }
+    public void setPendingLayerPickerPrev(Map<ResourceLocation, ResourceLocation> prev) {
+        this.pendingLayerPickerPrev = prev == null ? new HashMap<>() : new HashMap<>(prev);
+    }
+
+    public int getPendingLayerPickerCost() { return pendingLayerPickerCost; }
+    public void setPendingLayerPickerCost(int cost) { this.pendingLayerPickerCost = cost; }
+
+    public net.minecraft.world.item.Item getPendingLayerPickerConsumeItem() { return pendingLayerPickerConsumeItem; }
+    public void setPendingLayerPickerConsumeItem(net.minecraft.world.item.Item item) { this.pendingLayerPickerConsumeItem = item; }
 
     public boolean isPendingAdminReselect() { return pendingAdminReselect; }
     public void setPendingAdminReselect(boolean pending) { this.pendingAdminReselect = pending; }

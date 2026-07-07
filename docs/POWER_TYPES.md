@@ -3611,6 +3611,44 @@ Contrast with `neoorigins:flight` — flight is creative-mode-style (hold space 
 
 ---
 
+## `neoorigins:elytra_flight`
+
+The native mirror of `apoli:elytra_flight`: grants elytra-style fall-flight without an equipped elytra, and optionally draws an elytra on the player's back while gliding.
+
+Flight itself reuses natural glide: this power emits the `natural_glide` capability, so it drives the exact same activation path (press jump while falling to spread your wings). Everything `neoorigins:natural_glide` does, `elytra_flight` does too — it just adds the cosmetic wing render on top.
+
+The wings are purely cosmetic: gliding works the same whether or not an elytra is drawn. When drawn, the model is always the vanilla elytra; `texture_location` only swaps the texture on that model. If the player is wearing a real equipped elytra, vanilla renders it and this power stays out of the way (no double wings).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `render_elytra` | boolean | no | `true` | Whether an elytra is drawn on the player's back while fall-flying. Flight works either way; this is cosmetic only. Set `false` to glide with no visible wings. |
+| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra, e.g. `mymod:textures/entity/my_wings.png`. Only applies when `render_elytra` is true; the model stays the vanilla elytra (texture swap only). Omit for the vanilla elytra texture. |
+
+**Example — spectral wings you can see:**
+```json
+{
+  "type": "neoorigins:elytra_flight",
+  "render_elytra": true,
+  "texture_location": "neoorigins:textures/entity/spectral_wings.png",
+  "name": "Spectral Wings",
+  "description": "Glide like an elytra user — no item required — with shimmering wings on your back."
+}
+```
+
+**Example — invisible glide (no wings drawn):**
+```json
+{
+  "type": "neoorigins:elytra_flight",
+  "render_elytra": false,
+  "name": "Phantom Drift",
+  "description": "Glide with no visible wings."
+}
+```
+
+If `render_elytra` is false, this is behaviourally identical to `neoorigins:natural_glide`. Pair either with `neoorigins:elytra_boost` for a full glide + launch-boost kit.
+
+---
+
 ## `neoorigins:bare_hand_tool`
 
 Makes the player's empty hand behave like a specific vanilla tool for block-break purposes — tool-tier drop eligibility **and** break speed both match the configured tool item. Point at any tool item ID and the runtime looks up its tool component to determine which blocks qualify and at what speed.

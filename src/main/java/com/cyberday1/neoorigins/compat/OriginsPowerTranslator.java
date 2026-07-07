@@ -302,7 +302,8 @@ public final class OriginsPowerTranslator {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);
             case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(src);
-            case "origins:elytra_flight",          "apace:elytra_flight"          -> translateSimple("neoorigins:natural_glide");
+            case "origins:elytra_flight",          "apace:elytra_flight",
+                 "apoli:elytra_flight"                                             -> translateElytraFlight(src);
             case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:flight");
             case "origins:night_vision",           "apace:night_vision"           -> translateSimple("neoorigins:night_vision");
             case "origins:water_breathing",        "apace:water_breathing"        -> translateSimple("neoorigins:water_breathing");
@@ -1275,6 +1276,23 @@ public final class OriginsPowerTranslator {
         out.addProperty("type", "neoorigins:entity_group");
         String group = src.has("group") ? src.get("group").getAsString() : "undefined";
         out.addProperty("group", group);
+        return Optional.of(out);
+    }
+
+    private static Optional<JsonObject> translateElytraFlight(JsonObject src) {
+        // Map origins:/apace:/apoli:elytra_flight onto the native neoorigins:elytra_flight
+        // power. Pure MAPPING — the native power owns the glide (via natural_glide) AND the
+        // cosmetic wing render. Apoli's render_elytra field (effectively always set, default
+        // true) is carried through, defaulting to true when the source omits it; the optional
+        // texture_location passes through when present. The top-level `condition` gate is
+        // routed to power_condition generically by passThroughUnhandledKeys.
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:elytra_flight");
+        boolean renderElytra = !src.has("render_elytra") || src.get("render_elytra").getAsBoolean();
+        out.addProperty("render_elytra", renderElytra);
+        if (src.has("texture_location") && src.get("texture_location").isJsonPrimitive()) {
+            out.addProperty("texture_location", src.get("texture_location").getAsString());
+        }
         return Optional.of(out);
     }
 
