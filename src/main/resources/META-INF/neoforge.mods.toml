@@ -70,6 +70,17 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "BOTH"
 
+# Iron's Spells 'n Spellbooks soft-compat: the neoorigins:cast_iron_spell action
+# casts an Iron's spell as the player (bridged reflectively via a compile-only API
+# stub, no build/runtime dep). Optional + ordered AFTER so Iron's spell registry
+# exists before our powers resolve.
+[[dependencies.${mod_id}]]
+    modId = "irons_spellbooks"
+    type = "optional"
+    versionRange = "[3,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
 [[mixins]]
     config = "neoorigins.mixins.json"
 

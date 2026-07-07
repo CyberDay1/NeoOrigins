@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "neoorigins:orb_of_origin",
+    "neoorigins:orb_of_class",
+    "neoorigins:gold_orb",
+    "neoorigins:pink_orb",
+    "neoorigins:purple_orb",
+    "neoorigins:teal_orb"
+  ]
+}

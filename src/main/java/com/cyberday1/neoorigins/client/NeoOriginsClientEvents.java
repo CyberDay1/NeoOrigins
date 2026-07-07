@@ -190,6 +190,7 @@ public class NeoOriginsClientEvents {
         ClientMorphState.clear();
         MorphRenderHandler.clearCache();
         ClientInvisibilityArmorState.clear();
+        com.cyberday1.neoorigins.client.ClientElytraFlightState.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one.
         HotkeyAssignments.clear();
@@ -211,6 +212,34 @@ public class NeoOriginsClientEvents {
             .bounds(8, 8, 80, 20)
             .build();
         event.addListener(btn);
+    }
+
+    /**
+     * Adds the {@code neoorigins:elytra_flight} render layer to the avatar
+     * renderer(s). The layer draws a vanilla elytra on the back of players gliding
+     * via that power (with render_elytra on) who aren't wearing a real equipped
+     * elytra. Fired on the mod event bus (see NeoOrigins client setup).
+     *
+     * <p><b>26.2 port note.</b> The player renderer is {@code AvatarRenderer} and
+     * {@code AddLayers} exposes skins as {@code PlayerModelType} via
+     * {@code getPlayerRenderer(...)} (was {@code PlayerSkin.Model} +
+     * {@code getSkin(...)} on 1.21.1). We add the layer to the player renderer for
+     * each model type, and to the matching mannequin renderer so posed mannequins
+     * with the power also show the wings.
+     */
+    public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for (net.minecraft.world.entity.player.PlayerModelType skin : event.getSkins()) {
+            var playerRenderer = event.getPlayerRenderer(skin);
+            if (playerRenderer != null) {
+                playerRenderer.addLayer(new com.cyberday1.neoorigins.client.renderer.NeoOriginsElytraLayer<>(
+                    playerRenderer, event.getEntityModels()));
+            }
+            var mannequinRenderer = event.getMannequinRenderer(skin);
+            if (mannequinRenderer != null) {
+                mannequinRenderer.addLayer(new com.cyberday1.neoorigins.client.renderer.NeoOriginsElytraLayer<>(
+                    mannequinRenderer, event.getEntityModels()));
+            }
+        }
     }
 
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {

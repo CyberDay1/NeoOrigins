@@ -45,6 +45,17 @@ public class OriginCommand {
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
             LayerDataManager.INSTANCE.getLayers().keySet(), builder);
 
+    /** Suggests layer ids for the last token of a comma/space-separated list. */
+    private static final SuggestionProvider<CommandSourceStack> SUGGEST_LAYERS_CSV =
+        (ctx, builder) -> {
+            String input = builder.getRemaining();
+            int start = input.lastIndexOf(',') + 1;
+            while (start < input.length() && input.charAt(start) == ' ') start++;
+            var offset = builder.createOffset(builder.getStart() + start);
+            return SharedSuggestionProvider.suggestResource(
+                LayerDataManager.INSTANCE.getLayers().keySet(), offset);
+        };
+
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_ORIGINS =
         (ctx, builder) -> SharedSuggestionProvider.suggestResource(
             OriginDataManager.INSTANCE.getOrigins().keySet(), builder);
@@ -143,7 +154,18 @@ public class OriginCommand {
                     .executes(ctx -> executeGui(ctx, null))
                     .then(Commands.argument("player", EntityArgument.player())
                         .requires(REQUIRE_GM)
-                        .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                        .executes(ctx -> executeGui(ctx, EntityArgument.getPlayer(ctx, "player")))
+                        .then(Commands.argument("layers", StringArgumentType.greedyString())
+                            .suggests(SUGGEST_LAYERS_CSV)
+                            .executes(ctx -> {
+                                java.util.List<Identifier> scoped =
+                                    parseLayers(StringArgumentType.getString(ctx, "layers"));
+                                if (scoped.isEmpty()) {
+                                    ctx.getSource().sendFailure(Component.literal("No valid layer ids given."));
+                                    return 0;
+                                }
+                                return executeGui(ctx, EntityArgument.getPlayer(ctx, "player"), scoped);
+                            }))))
                 .then(Commands.literal("editor")
                     .requires(REQUIRE_GM)
                     .executes(ctx -> executeEditor(ctx)))
@@ -406,6 +428,22 @@ public class OriginCommand {
     }
 
     private static int executeGui(CommandContext<CommandSourceStack> ctx, ServerPlayer player) throws CommandSyntaxException {
+        return executeGui(ctx, player, java.util.List.of());
+    }
+
+    /** Parse a comma/space-separated list of layer ids; blank or malformed tokens are skipped. */
+    private static java.util.List<Identifier> parseLayers(String raw) {
+        java.util.List<Identifier> out = new java.util.ArrayList<>();
+        for (String tok : raw.split("[,\\s]+")) {
+            if (tok.isBlank()) continue;
+            Identifier id = Identifier.tryParse(tok.trim());
+            if (id != null) out.add(id);
+        }
+        return out;
+    }
+
+    private static int executeGui(CommandContext<CommandSourceStack> ctx, ServerPlayer player,
+                                  java.util.List<Identifier> scopedLayers) throws CommandSyntaxException {
         ServerPlayer target = player != null ? player : ctx.getSource().getPlayerOrException();
         NeoOriginsNetwork.syncRegistryToPlayer(target);
         if (player != null) {
@@ -415,7 +453,8 @@ public class OriginCommand {
             // normal player cannot reset their own origin for free.
             target.getData(OriginAttachments.originData()).setPendingAdminReselect(true);
         }
-        NeoOriginsNetwork.openSelectionScreen(target, false, true);
+        NeoOriginsNetwork.openSelectionScreen(target, false, true,
+            scopedLayers == null ? java.util.List.of() : scopedLayers);
         if (player != null) {
             ctx.getSource().sendSuccess(() -> Component.literal(
                 "Opened origin selection for " + target.getName().getString()), true);

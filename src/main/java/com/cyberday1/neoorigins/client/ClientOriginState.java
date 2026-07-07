@@ -26,8 +26,13 @@ public class ClientOriginState {
     public static boolean isHadAllOrigins() { return hadAllOrigins; }
 
     public static void openSelectionScreen(boolean isOrb, boolean forceReselect) {
+        openSelectionScreen(isOrb, forceReselect, java.util.List.of());
+    }
+
+    public static void openSelectionScreen(boolean isOrb, boolean forceReselect,
+                                           java.util.List<Identifier> scopedLayers) {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect));
+        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect, scopedLayers));
     }
 
     public static void openInfoScreen() {

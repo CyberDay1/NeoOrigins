@@ -61,6 +61,7 @@ public class OriginSelectionScreen extends Screen {
 
     private final boolean isOrb;
     private final boolean forceReselect;
+    private final java.util.List<net.minecraft.resources.Identifier> scopedLayers;
     private final OriginSelectionPresenter presenter = new OriginSelectionPresenter();
 
     /**
@@ -96,19 +97,26 @@ public class OriginSelectionScreen extends Screen {
     private Button confirmButton;
 
     public OriginSelectionScreen(boolean isOrb) {
-        this(isOrb, false);
+        this(isOrb, false, java.util.List.of());
     }
 
     public OriginSelectionScreen(boolean isOrb, boolean forceReselect) {
+        this(isOrb, forceReselect, java.util.List.of());
+    }
+
+    public OriginSelectionScreen(boolean isOrb, boolean forceReselect,
+                                 java.util.List<net.minecraft.resources.Identifier> scopedLayers) {
         super(Component.translatable("screen.neoorigins.choose_origin"));
         this.isOrb = isOrb;
         this.forceReselect = forceReselect;
+        this.scopedLayers = scopedLayers == null ? java.util.List.of() : java.util.List.copyOf(scopedLayers);
     }
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
     @Override
     protected void init() {
+        presenter.setScopedLayers(scopedLayers);
         presenter.setForceReselect(forceReselect);
         if (lastSortMode == null) {
             lastSortMode = com.cyberday1.neoorigins.client.NeoOriginsClientConfig.defaultSortMode();

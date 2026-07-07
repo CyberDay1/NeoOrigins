@@ -31,6 +31,7 @@ import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncInvisibilityArmorPayload;
+import com.cyberday1.neoorigins.network.payload.SyncElytraFlightPayload;
 import com.cyberday1.neoorigins.network.payload.SyncPlayerMorphPayload;
 import com.cyberday1.neoorigins.power.builtin.EntityModelPower;
 import com.cyberday1.neoorigins.api.origin.Origin;
@@ -206,6 +207,12 @@ public class NeoOriginsNetwork {
         );
 
         registrar.playToClient(
+            SyncElytraFlightPayload.TYPE,
+            SyncElytraFlightPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncElytraFlight
+        );
+
+        registrar.playToClient(
             com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload.TYPE,
             com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncKeybindRegistry
@@ -313,6 +320,27 @@ public class NeoOriginsNetwork {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
             data.setPendingOrbCommit(false);
+
+            // Scoped layer-picker cancel: the scoped layers were cleared up front,
+            // so an uncommitted close must roll each back to its previous origin
+            // (and re-grant its powers) rather than leave the player without them.
+            // No orb was consumed and no XP was charged (deferred to first commit).
+            if (data.isPendingLayerPickerCommit()) {
+                for (var entry : data.getPendingLayerPickerPrev().entrySet()) {
+                    Identifier layer = entry.getKey();
+                    Identifier prev = entry.getValue();
+                    if (prev != null && !data.hasOriginForLayer(layer)) {
+                        data.setOrigin(layer, prev);
+                        ActiveOriginService.applyOriginPowers(sp, layer, null, prev);
+                    }
+                }
+                data.setHadAllOrigins(true);
+                data.setPendingLayerPickerCommit(false);
+                data.setPendingLayerPickerPrev(new java.util.HashMap<>());
+                data.setPendingLayerPickerCost(0);
+                data.setPendingLayerPickerConsumeItem(null);
+                syncToPlayer(sp);
+            }
         });
     }
 
@@ -374,7 +402,7 @@ public class NeoOriginsNetwork {
 
     private static void handleOpenScreen(OpenOriginScreenPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(payload.isOrb(), payload.forceReselect())
+            com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(payload.isOrb(), payload.forceReselect(), payload.scopedLayers())
         );
     }
 
@@ -813,6 +841,18 @@ public class NeoOriginsNetwork {
                 commitOrbUse(sp, data);
             }
 
+            // First commit after a scoped layer-picker was opened (Orb of Class,
+            // open_layer_picker action, /origin gui <player> <layer>): the scoped
+            // layers were cleared up front, so this fires on the first pick of any
+            // of them. Charge the deferred XP cost and (for the Orb of Class)
+            // consume one orb. Deferring to first pick means closing the picker is
+            // a free cancel (handleCancelOrb restores the prior origins). The
+            // reselection anti-cheat gate below tolerates this because the layer
+            // was cleared, so oldOrigin is null.
+            if (data.isPendingLayerPickerCommit()) {
+                commitLayerPicker(sp, data);
+            }
+
             // Any pick re-engages the player — a previous picker-abandon no
             // longer applies.
             data.setPickerAbandoned(false);
@@ -1166,6 +1206,9 @@ public class NeoOriginsNetwork {
         // Same for the invisibility armor-hide flag (neoorigins:invisibility with
         // render_armor:false) — every viewer's armor-layer mixin needs it.
         broadcastInvisibilityArmor(player, hidesArmorFrom(capabilities));
+        // Same for the elytra_flight cosmetic wings (render_elytra + optional
+        // texture) — every viewer's elytra render layer needs it.
+        broadcastElytraFlight(player, capabilities);
     }
 
     /**
@@ -1333,6 +1376,70 @@ public class NeoOriginsNetwork {
     }
 
     /**
+     * True if the capability set carries the {@code neoorigins:elytra_flight}
+     * render-elytra tag (render_elytra:true while active). Same lockstep guarantee
+     * as {@link #hidesArmorFrom} — the caps were collected with the top-level
+     * condition gate applied.
+     */
+    private static boolean rendersElytraFrom(Set<String> capabilities) {
+        return capabilities.contains(
+            com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.CAP_RENDER_ELYTRA);
+    }
+
+    /**
+     * Extract the custom elytra texture id encoded as
+     * {@code elytra_texture:<id>} in the capability set, or {@code ""} for the
+     * vanilla elytra texture. Only meaningful when {@link #rendersElytraFrom} is true.
+     */
+    private static String elytraTextureFrom(Set<String> capabilities) {
+        String prefix = com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.CAP_TEXTURE_PREFIX;
+        for (String cap : capabilities) {
+            if (cap.startsWith(prefix)) {
+                return cap.substring(prefix.length());
+            }
+        }
+        return "";
+    }
+
+    /** Broadcast a player's elytra_flight cosmetic wing state to all tracking clients and the player. */
+    private static void broadcastElytraFlight(ServerPlayer player, Set<String> capabilities) {
+        boolean render = rendersElytraFrom(capabilities);
+        String texture = render ? elytraTextureFrom(capabilities) : "";
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+            new SyncElytraFlightPayload(player.getId(), render, texture));
+    }
+
+    /**
+     * Send {@code tracked}'s current elytra_flight wing state to a single observer
+     * who just started tracking them (so a late-joining viewer sees an already-active
+     * power's wings). Only sent when render is on — absence is the client default.
+     */
+    public static void sendElytraFlightStateTo(ServerPlayer observer, ServerPlayer tracked) {
+        Map<Identifier, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(tracked, powerMap, capabilities);
+        if (!rendersElytraFrom(capabilities)) return;
+        PacketDistributor.sendToPlayer(observer,
+            new SyncElytraFlightPayload(tracked.getId(), true, elytraTextureFrom(capabilities)));
+    }
+
+    private static void handleSyncElytraFlight(SyncElytraFlightPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            Identifier tex = null;
+            if (!payload.texture().isBlank()) {
+                tex = Identifier.tryParse(payload.texture());
+                if (tex == null) {
+                    com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                        "[elytra_flight] malformed texture_location '{}' — falling back to vanilla elytra texture",
+                        payload.texture());
+                }
+            }
+            com.cyberday1.neoorigins.client.ClientElytraFlightState.set(
+                payload.entityId(), payload.render(), tex);
+        });
+    }
+
+    /**
      * Populates {@code powerMapOut} with {@code powerId → toggleOn} for every power
      * currently granted to the player (dimension restrictions applied) and
      * {@code capabilitiesOut} with the union of capability tags from powers that
@@ -1432,7 +1539,17 @@ public class NeoOriginsNetwork {
 
     /** Open the origin selection screen, optionally forcing re-selection of filled layers. */
     public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect) {
-        PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect));
+        openSelectionScreen(player, isOrb, forceReselect, java.util.List.of());
+    }
+
+    /**
+     * Open the origin selection screen scoped to an allowlist of layers. Empty
+     * {@code scopedLayers} = unscoped (the normal picker walk).
+     */
+    public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect,
+                                           java.util.List<Identifier> scopedLayers) {
+        PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect,
+            scopedLayers == null ? java.util.List.of() : scopedLayers));
     }
 
     /** Sync the full origin/layer/power registry to a player so their client can render the GUI. */
@@ -1497,6 +1614,121 @@ public class NeoOriginsNetwork {
             var s = inv.getItem(i);
             if (!s.isEmpty()
                 && s.getItem() instanceof com.cyberday1.neoorigins.content.OrbOfOriginItem) {
+                s.shrink(1);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Reusable scoped layer-picker entry point (generalizes the former Orb-of-Class
+     * flow). Clears the given {@code layers} (revoking their powers), marks selection
+     * incomplete, and reopens the picker scoped to just those layers — so an
+     * already-filled layer can be re-shown while every other layer stays chosen.
+     *
+     * <p>Unknown or hidden layers are skipped with a warning; if none remain valid
+     * the method returns without opening a picker.
+     *
+     * <p>When {@code deferred} is true the destructive commit (XP charge + optional
+     * class-orb consume) is deferred to the first successful pick via
+     * {@link #commitLayerPicker}, and closing the picker is a free cancel that
+     * restores the prior origins ({@link #handleCancelOrb}); {@code isOrb=true} on
+     * the open routes ESC through {@link com.cyberday1.neoorigins.network.payload.CancelOrbPayload}.
+     * When {@code deferred} is false the {@code cost} is charged immediately and no
+     * pending state is set (closing the picker leaves the layers empty — the normal
+     * auto-default path handles e.g. class → nitwit).
+     *
+     * @param consumeItem if non-null, one of this item is removed from the player's
+     *                    inventory when the pick commits (the Orb of Class passes
+     *                    itself; the {@code open_layer_picker} action passes the held
+     *                    item when {@code consume_item} is set). Null = consume nothing.
+     * @param message     optional chat line shown to the player when the picker opens
+     *                    (translation key or literal); null/blank = silent.
+     */
+    public static void beginLayerPicker(ServerPlayer sp, java.util.List<Identifier> layers,
+                                        boolean deferred, int cost,
+                                        net.minecraft.world.item.Item consumeItem, String message) {
+        PlayerOriginData data = sp.getData(OriginAttachments.originData());
+
+        // Resolve/validate: keep only known, non-hidden layers (preserving order).
+        java.util.List<Identifier> valid = new java.util.ArrayList<>();
+        for (Identifier id : layers) {
+            var layer = LayerDataManager.INSTANCE.getLayer(id);
+            if (layer == null) {
+                NeoOrigins.LOGGER.warn("[LayerPicker] unknown layer '{}' — skipped", id);
+                continue;
+            }
+            if (layer.hidden()) {
+                NeoOrigins.LOGGER.warn("[LayerPicker] layer '{}' is hidden — skipped", id);
+                continue;
+            }
+            valid.add(id);
+        }
+        if (valid.isEmpty()) return;
+
+        // Clear each scoped layer (revoking its powers) and remember the prior
+        // origin of layers that HAD one, so a cancelled pick can roll them back.
+        java.util.Map<Identifier, Identifier> prevMap = new java.util.HashMap<>();
+        for (Identifier layer : valid) {
+            Identifier prev = data.getOrigin(layer);
+            if (prev != null) {
+                ActiveOriginService.applyOriginPowers(sp, layer, prev, null);
+                prevMap.put(layer, prev);
+            }
+            data.removeOrigin(layer);
+        }
+        // Selection is no longer complete until the scoped layers are re-picked.
+        data.setHadAllOrigins(false);
+
+        if (deferred) {
+            data.setPendingLayerPickerCommit(true);
+            data.setPendingLayerPickerPrev(prevMap);
+            data.setPendingLayerPickerCost(cost);
+            data.setPendingLayerPickerConsumeItem(consumeItem);
+        } else if (!sp.isCreative() && cost > 0) {
+            // Immediate: charge now; no pending state (close = leave layers empty).
+            sp.giveExperienceLevels(-cost);
+        }
+
+        syncToPlayer(sp);
+        // isOrb=deferred so the deferred variant gets ESC=free-cancel routed through
+        // CancelOrbPayload; the immediate variant is a plain scoped picker.
+        // forceReselect=false — the scoped allowlist drives the walk regardless.
+        openSelectionScreen(sp, deferred, false, valid);
+
+        // Optional author-supplied prompt, shown once the picker is open. Translatable
+        // so a plain string renders as-is while a translation key resolves.
+        if (message != null && !message.isBlank()) {
+            sp.sendSystemMessage(net.minecraft.network.chat.Component.translatable(message));
+        }
+    }
+
+    /**
+     * Commit a deferred scoped layer-picker on the first successful pick: charge the
+     * stored XP cost and, when the Orb of Class opened it, consume one orb. Clears
+     * all pending layer-picker state so this fires exactly once.
+     */
+    private static void commitLayerPicker(ServerPlayer sp, PlayerOriginData data) {
+        int cost = data.getPendingLayerPickerCost();
+        if (!sp.isCreative() && cost > 0) {
+            sp.giveExperienceLevels(-cost);
+        }
+        net.minecraft.world.item.Item consumeItem = data.getPendingLayerPickerConsumeItem();
+        if (consumeItem != null && consumeItem != net.minecraft.world.item.Items.AIR && !sp.isCreative()) {
+            shrinkItemFromInventory(sp, consumeItem);
+        }
+        data.setPendingLayerPickerCommit(false);
+        data.setPendingLayerPickerPrev(new java.util.HashMap<>());
+        data.setPendingLayerPickerCost(0);
+        data.setPendingLayerPickerConsumeItem(null);
+    }
+
+    /** Remove one of {@code item} from the player's inventory (first match). */
+    private static void shrinkItemFromInventory(ServerPlayer sp, net.minecraft.world.item.Item item) {
+        var inv = sp.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            var s = inv.getItem(i);
+            if (!s.isEmpty() && s.getItem() == item) {
                 s.shrink(1);
                 return;
             }

@@ -157,6 +157,7 @@ public class NeoOrigins {
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsKeybindings::onRegisterKeyMappings);
             modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onRegisterRenderers);
+            modEventBus.addListener(com.cyberday1.neoorigins.client.NeoOriginsClientEvents::onAddLayers);
             // UI theme + animated resource-bar FX reload listeners — client
             // resources only (NOT server-side). FX presets live in assets/
             // because the whole bar render is client-side; only the preset id
