@@ -2,6 +2,40 @@
 
 ---
 
+## v2.2.17
+
+> A content release: a family of six hand-modelled Crystal Orbs, a new Orb of Class that re-rolls only your class, a general "reopen the picker for these layers" hook for pack authors, Iron's Spells 'n Spellbooks casting from origin powers, and native elytra flight with visible, re-texturable wings — plus a wraith wall-phase fix and an `action_on_event` correctness pass.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Items & Content
+
+- **Crystal Orbs: six orb items with new 3D models.** The reset orbs are now hand-modelled glass spheres with an animated swirling core, replacing the old flat sprite. `orb_of_origin` keeps its full-reset behaviour and its id — so existing recipes and pack references carry over unchanged, only the look is new — and four more colours (gold, pink, purple, teal) ship alongside it as inert items for datapack authors.
+- **Orb of Class: re-roll only your class.** `neoorigins:orb_of_class` is a cheaper, class-only sibling of the Orb of Origin. Right-clicking it resets just the `neoorigins:class` layer and reopens the picker scoped to that one screen, leaving your main origin untouched. Its XP cost is a flat `class_levels_per_use` (default `2`, versus the origin orb's `5`), and it commits lazily: the levels and the orb itself are spent only when you actually confirm a new class, so closing the picker without picking is a free cancel that refunds the orb and restores your previous class. Crafted like the Orb of Origin, but with ingots instead of blocks.
+
+### New Powers & Systems
+
+- **`elytra_flight` power.** Grants elytra-style gliding without an equipped elytra — the same activation as `natural_glide` — and draws a cosmetic elytra on the player's back while you fly. `render_elytra` toggles the wings (flight works either way; set it false to glide with no visible wings), and `texture_location` swaps in a custom wing texture while keeping the vanilla elytra model. Origins/Apoli packs that use `apoli:elytra_flight` now map onto this natively, so their `render_elytra` and `texture_location` are honoured instead of dropped: imported gliders finally show their wings.
+
+### Pack Author Features
+
+- **Reopen the origin picker for any set of layers.** The Orb of Class is one preset of a general mechanism, now exposed to packs two ways. The `neoorigins:open_layer_picker` entity action takes a `layers` list and reopens the picker scoped to exactly those layers, with an author-chosen `commit_mode` (`deferred` for a free-cancel re-pick, `immediate` to charge and clear up front), an XP `cost`, an optional `message` shown when the picker opens, and a `consume_item` flag that spends the triggering item — an inert orb, say — when the pick commits. So a pack can build its own "change my subclass" item or power for whatever layers it defines. The admin command `/origin gui <player> <layers>` does the same against one target player, taking one or more comma- or space-separated layers.
+- **Inert orbs and the `#neoorigins:orbs` tag for custom bindings.** The four unused orb colours do nothing on their own and are never consumed by the mod, leaving them free to bind through `action_on_item_use` / `action_on_event`. All six orbs share the `#neoorigins:orbs` item tag, so a condition can match "any orb" in a single check.
+
+### Mod Integrations
+
+- **Cast Iron's Spells 'n Spellbooks spells from origin powers.** The new `neoorigins:cast_iron_spell` action fires a named Iron's Spells spell — from a keybind, on hit, or any trigger — with fields for the spell id, level, cooldown, and instant-versus-channel cast mode. Mana is your choice: by default the cast is free from Iron's mana pool and you charge the cost on the NeoOrigins power itself, or set `consume_mana: true` to draw from and gate on the player's Iron's mana instead (an under-funded cast is refused; creative bypasses). Iron's Spells is an optional soft dependency: NeoOrigins builds and runs whether or not it is installed, and the action simply no-ops with a logged warning when the mod is absent or the spell id is malformed.
+
+### Bug Fixes
+
+- **Wraith wall-phase no longer rubber-bands, sinks into the void, or slips through obsidian.** Phasing through walls could spasm the screen, because the client predicted the phase from the ability's toggle state while the server gated it on the power's condition — so the two disagreed and fought over your position. The client now publishes the phase capability on the same condition the server checks, and re-syncs at once if that condition flips mid-phase. Separately, an idle phasing player's slow downward settle had nothing to arrest it under noclip and would sink through the world — and through obsidian floors; the settle is now zeroed when there is no vertical input and solid ground sits directly underfoot, so you rest on the block below instead.
+
+### Compatibility (Apoli / Origins)
+
+- **`action_on_event` honours its `item_condition`.** The event action dropped the `item_condition` filter, so a power meant to react to a specific item fired on every matching event regardless of the item involved. The condition is respected again, and the `action_on_item_use` trigger correctly distinguishes the start and finish of a use.
+
+---
+
 ## v2.2.16
 
 > A compatibility hotfix: Dragon Survival dragons keep their growth across server rejoins, and `active_recall` sends you home to your bed or respawn anchor from any dimension.
