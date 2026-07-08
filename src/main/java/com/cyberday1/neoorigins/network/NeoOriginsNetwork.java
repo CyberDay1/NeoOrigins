@@ -59,6 +59,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NeoOriginsNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
+    /** Class layer id: on non-class layers, only the powers unlocked for the
+     *  current evolution tier are active (mirrors ActiveOriginService.getOrBuild). */
+    private static final Identifier CLASS_LAYER =
+        Identifier.fromNamespaceAndPath("neoorigins", "class");
     /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
     private static final int SLOT_DEBOUNCE_TICKS = 5;
     /** Key: "uuid:slot" → server game-time tick that slot was last activated.
@@ -1451,10 +1455,20 @@ public class NeoOriginsNetwork {
                                             Set<String> capabilitiesOut) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         var dim = player.level().dimension();
+        int evolutionTier = data.getEvolutionTier();
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (Identifier powerId : origin.powers()) {
+            // Tier-overlay powers (e.g. a Windwalker tier-1 natural_glide) must be
+            // included here or their capabilities never reach the client, and
+            // client-predicted mixins (glide/wall-phase/wall-climb) silently fail.
+            // The class layer always uses its full power list; other layers gate
+            // on the current evolution tier (mirrors ActiveOriginService.getOrBuild).
+            boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+            List<Identifier> effectivePowers = isClassLayer
+                ? origin.powers()
+                : origin.powersForTier(evolutionTier);
+            for (Identifier powerId : effectivePowers) {
                 if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;
