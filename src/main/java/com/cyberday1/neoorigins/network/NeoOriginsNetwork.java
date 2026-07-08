@@ -65,6 +65,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NeoOriginsNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
+    /** The class layer never evolves, so its powers are read tier-flat (mirrors ActiveOriginService). */
+    private static final ResourceLocation CLASS_LAYER =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
     /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
     private static final int SLOT_DEBOUNCE_TICKS = 5;
     /** Key: "uuid:slot" → server game-time tick that slot was last activated.
@@ -1451,10 +1454,23 @@ public class NeoOriginsNetwork {
                                             Set<String> capabilitiesOut) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         var dim = player.level().dimension();
+        int evolutionTier = data.getEvolutionTier();
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (ResourceLocation powerId : origin.powers()) {
+            // Apply evolution tier overlays for non-class layers (classes don't
+            // evolve), exactly as ActiveOriginService.getOrBuild does. Without
+            // this, a tier-only power's capabilities never reach the client, so
+            // client-predicted mixins (natural_glide, wall_phase, wall_climb)
+            // silently fail once the power is granted via a tier overlay —
+            // e.g. Windwalker's tier-1 "Sky Dancer" glide never activates
+            // because the client never learns it has the natural_glide capability
+            // and so never sends the START_FALL_FLYING packet.
+            boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+            List<ResourceLocation> effectivePowers = isClassLayer
+                ? origin.powers()
+                : origin.powersForTier(evolutionTier);
+            for (ResourceLocation powerId : effectivePowers) {
                 if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;

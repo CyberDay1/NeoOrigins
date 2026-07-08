@@ -21,6 +21,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
 
         if (wasOff) {
             data.setPowerToggledOff(key, false);
+            onToggledOn(player, config);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
@@ -51,6 +52,15 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
 
     protected abstract void tickEffect(ServerPlayer player, C config);
     protected abstract void removeEffect(ServerPlayer player, C config);
+
+    /**
+     * Called once when the keybind flips the power from off → on (not on the
+     * passive per-tick path and not when the power is first granted). Lets a
+     * toggle deliver an immediate effect on activation — e.g. creative-flight
+     * lifts the player off the ground so the keypress actually starts flight
+     * instead of only arming the mayfly ability. Default: no-op.
+     */
+    protected void onToggledOn(ServerPlayer player, C config) {}
 
     public boolean isToggledOff(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());

@@ -25,7 +25,7 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
      * affected area widens with {@link #WIDTH_MULT} and the column rises with
      * {@link #HEIGHT_MULT}, while {@link #SPIN_MULT} only speeds the render spin.
      */
-    public static final float WIDTH_MULT = 3.0f;
+    public static final float WIDTH_MULT = 7.5f;
     public static final float HEIGHT_MULT = 7.0f;
     public static final float SPIN_MULT = 3.0f;
 
@@ -109,11 +109,15 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
         // A drifting (or gravity-enabled) funnel rides the terrain; a stationary
         // non-gravity funnel hovers at its spawn height as before.
         if (moveSpeed > 0 || applyGravity) {
-            // Surface height under the funnel's new XZ (VFX entities are noPhysics
-            // → no vanilla collision, so clamp to the MOTION_BLOCKING heightmap).
-            double groundY = level.getHeight(
-                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
-                net.minecraft.util.Mth.floor(newX), net.minecraft.util.Mth.floor(newZ));
+            // Ground height under the funnel's new XZ. VFX entities are noPhysics
+            // → no vanilla collision, so we scan for a floor manually. Use the
+            // LOCAL floor beneath the funnel (first solid block scanning down from
+            // its own height), NOT the MOTION_BLOCKING world-surface heightmap:
+            // cast inside a cave, the surface heightmap points at open sky far
+            // above, so the follow-lerp below would climb the funnel straight up
+            // and out of the cave. A local downward scan finds the cave floor (or,
+            // on the surface, the surface itself — same result out in the open).
+            double groundY = localFloorY(level, newX, newY, newZ);
 
             if (applyGravity && newY > groundY + GROUND_CONTACT_EPS) {
                 // Spawned above the ground: fall under gravity until the base lands.
@@ -196,5 +200,30 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
                     2, range * 0.1, range * 0.1, range * 0.1, 0.05);
             }
         }
+    }
+
+    /**
+     * Y of the first solid floor at or below the funnel's current height under
+     * {@code (x, z)}. Scans downward from just above the funnel so a cave-cast
+     * tornado settles on the cave floor instead of the {@code MOTION_BLOCKING}
+     * world surface (open sky) — the latter made it climb out of the cave.
+     * On the open surface the first block down is the surface, so overworld
+     * terrain-following behaviour is unchanged. Returns the world floor if the
+     * column is all air (void), so the funnel simply drops.
+     */
+    private double localFloorY(ServerLevel level, double x, double y, double z) {
+        int xi = net.minecraft.util.Mth.floor(x);
+        int zi = net.minecraft.util.Mth.floor(z);
+        int minY = level.getMinBuildHeight();
+        int startY = net.minecraft.util.Mth.floor(y) + 1;
+        net.minecraft.core.BlockPos.MutableBlockPos pos =
+            new net.minecraft.core.BlockPos.MutableBlockPos(xi, startY, zi);
+        for (int yy = startY; yy >= minY; yy--) {
+            pos.setY(yy);
+            if (level.getBlockState(pos).blocksMotion()) {
+                return yy + 1.0; // top face of the solid block
+            }
+        }
+        return minY;
     }
 }

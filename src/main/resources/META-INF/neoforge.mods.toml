@@ -87,7 +87,7 @@ license = "${mod_license}"
 [[dependencies.${mod_id}]]
     modId = "irons_spellbooks"
     type = "optional"
-    versionRange = "[3,)"
+    versionRange = "[1.21.1-3,)"
     ordering = "AFTER"
     side = "BOTH"
 

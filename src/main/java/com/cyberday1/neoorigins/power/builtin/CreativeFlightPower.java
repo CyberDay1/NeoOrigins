@@ -57,6 +57,26 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
     }
 
     @Override
+    protected void onToggledOn(ServerPlayer player, Config config) {
+        // Keybind flipped the power on: actually take off, don't just arm mayfly.
+        // Without this the player would still have to double-tap jump to lift —
+        // which reads as "the toggle did nothing".
+        if (!config.enabled()) return;
+        var abilities = player.getAbilities();
+        abilities.mayfly = true;
+        abilities.flying = true;
+        player.onUpdateAbilities();
+        // The client cancels `flying` while on the ground (LocalPlayer.aiStep),
+        // so nudge the player up a hair and force-sync the velocity — that puts
+        // them airborne for the tick, letting the flying flag stick.
+        if (player.onGround()) {
+            var m = player.getDeltaMovement();
+            player.setDeltaMovement(m.x, 0.42, m.z);
+            player.hurtMarked = true;
+        }
+    }
+
+    @Override
     protected void removeEffect(ServerPlayer player, Config config) {
         if (player.isCreative() || player.isSpectator()) return;
         var abilities = player.getAbilities();
