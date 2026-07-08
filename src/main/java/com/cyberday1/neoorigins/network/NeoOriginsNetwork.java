@@ -62,6 +62,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NeoOriginsNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
+    /** The class layer never evolves; only origin layers gain tier-overlay powers.
+     *  Mirrors {@code ActiveOriginService.CLASS_LAYER}. */
+    private static final Identifier CLASS_LAYER =
+        Identifier.fromNamespaceAndPath("neoorigins", "class");
     /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
     private static final int SLOT_DEBOUNCE_TICKS = 5;
     /** Key: "uuid:slot" → server game-time tick that slot was last activated.
@@ -1477,10 +1481,21 @@ public class NeoOriginsNetwork {
                                             Set<String> capabilitiesOut) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         var dim = player.level().dimension();
+        // Read the evolution tier so tier-overlay powers reach the client. The
+        // capability tags collected here drive client-predicted mixins (glide,
+        // wall_phase, wall_climb); iterating only origin.powers() would drop a
+        // tiered origin's tier-overlay power, so those predictions would silently
+        // fail on the client even though the server-side builder granted it.
+        // Mirrors ActiveOriginService.getOrBuild: classes don't evolve, origins do.
+        int evolutionTier = data.getEvolutionTier();
         for (var entry : data.getOrigins().entrySet()) {
             Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin == null) continue;
-            for (Identifier powerId : origin.powers()) {
+            boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+            List<Identifier> effectivePowers = isClassLayer
+                ? origin.powers()
+                : origin.powersForTier(evolutionTier);
+            for (Identifier powerId : effectivePowers) {
                 if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder == null) continue;

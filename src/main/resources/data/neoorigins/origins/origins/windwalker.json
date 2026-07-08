@@ -18,6 +18,6 @@
   "tier_powers": [
     { "tier": 1, "add": [ "neoorigins:windwalker_sky_dancer" ], "remove": [] },
     { "tier": 2, "add": [ "neoorigins:windwalker_riding_wind" ], "remove": [] },
-    { "tier": 3, "add": [ "neoorigins:windwalker_eye_of_storm" ], "remove": [] }
+    { "tier": 3, "add": [ "neoorigins:windwalker_eye_of_storm" ], "remove": [ "neoorigins:windwalker_typhoon" ] }
   ]
 }

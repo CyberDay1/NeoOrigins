@@ -32,7 +32,7 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
      * affected area widens with {@link #WIDTH_MULT} and the column rises with
      * {@link #HEIGHT_MULT}, while {@link #SPIN_MULT} only speeds the render spin.
      */
-    public static final float WIDTH_MULT = 3.0f;
+    public static final float WIDTH_MULT = 7.5f;
     public static final float HEIGHT_MULT = 7.0f;
     public static final float SPIN_MULT = 3.0f;
 
@@ -116,11 +116,12 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
         // A drifting (or gravity-enabled) funnel rides the terrain; a stationary
         // non-gravity funnel hovers at its spawn height as before.
         if (moveSpeed > 0 || applyGravity) {
-            // Surface height under the funnel's new XZ (VFX entities are noPhysics
-            // → no vanilla collision, so clamp to the MOTION_BLOCKING heightmap).
-            double groundY = level.getHeight(
-                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,
-                net.minecraft.util.Mth.floor(newX), net.minecraft.util.Mth.floor(newZ));
+            // Use the LOCAL floor beneath the funnel (first solid block scanning
+            // down from the funnel's own height), NOT the MOTION_BLOCKING world
+            // surface — a cave-cast tornado would otherwise target open sky and
+            // climb the funnel out of the cave. In the overworld the first solid
+            // block down IS the surface, so open-terrain behaviour is unchanged.
+            double groundY = localFloorY(level, newX, newY, newZ);
 
             if (applyGravity && newY > groundY + GROUND_CONTACT_EPS) {
                 // Spawned above the ground: fall under gravity until the base lands.
@@ -203,5 +204,29 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
                     2, range * 0.1, range * 0.1, range * 0.1, 0.05);
             }
         }
+    }
+
+    /**
+     * The Y of the first solid (motion-blocking) block scanning DOWN from just
+     * above the funnel's current height — i.e. the local floor beneath the
+     * funnel, not the world surface. Used instead of the MOTION_BLOCKING
+     * heightmap so a tornado cast in a cave rides the cave floor rather than
+     * climbing out to open sky. In the overworld the first solid block down is
+     * the surface, so open-terrain behaviour is unchanged.
+     */
+    private double localFloorY(ServerLevel level, double x, double y, double z) {
+        int xi = net.minecraft.util.Mth.floor(x);
+        int zi = net.minecraft.util.Mth.floor(z);
+        int minY = level.getMinY();
+        int startY = net.minecraft.util.Mth.floor(y) + 1;
+        net.minecraft.core.BlockPos.MutableBlockPos pos =
+            new net.minecraft.core.BlockPos.MutableBlockPos(xi, startY, zi);
+        for (int yy = startY; yy >= minY; yy--) {
+            pos.setY(yy);
+            if (level.getBlockState(pos).blocksMotion()) {
+                return yy + 1.0;
+            }
+        }
+        return minY;
     }
 }
