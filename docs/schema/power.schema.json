@@ -96,6 +96,7 @@
         "neoorigins:low_hp_threshold",
         "neoorigins:mob_behavior",
         "neoorigins:mobs_ignore_player",
+        "neoorigins:mobs_target_player",
         "neoorigins:model_color",
         "neoorigins:modify_damage",
         "neoorigins:modify_flight_speed",
@@ -2296,6 +2297,38 @@
       ]
     },
     {
+      "$comment": "neoorigins:mobs_target_player",
+      "properties": {
+        "type": {
+          "const": "neoorigins:mobs_target_player"
+        },
+        "entity_types": {
+          "description": "Entity ids or #tags of mobs that proactively hunt this player (like wolves hunting a skeleton). Empty/omitted = every mob hunts the player.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "entity_blacklist": {
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they never hunt the player even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "range": {
+          "description": "How far (in blocks) a matching mob can be and still start hunting the player. Default 16.",
+          "type": "number",
+          "default": 16.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:model_color",
       "properties": {
         "type": {
@@ -4263,6 +4296,7 @@
               "neoorigins:low_hp_threshold",
               "neoorigins:mob_behavior",
               "neoorigins:mobs_ignore_player",
+              "neoorigins:mobs_target_player",
               "neoorigins:model_color",
               "neoorigins:modify_damage",
               "neoorigins:modify_flight_speed",

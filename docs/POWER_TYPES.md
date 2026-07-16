@@ -1600,6 +1600,33 @@ Boss-tier mobs — the Warden, Ender Dragon and Wither — never ignore the play
 
 ---
 
+## `neoorigins:mobs_target_player`
+
+The inverse of `mobs_ignore_player`: listed mob types proactively hunt a player who has this power, the way wolves hunt a vanilla skeleton. Nothing fires when a mob is not targeting the player, so this can not be a reactive event: instead each mob is given a targeting goal on spawn that acquires the nearest matching power-holder within `range`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_types` | list of Identifier or `#tag` | no | `[]` | Entity types that hunt the player. Accepts raw ids (`"minecraft:wolf"`) and tag references (`"#minecraft:wolves"`). When empty, every mob hunts the player. |
+| `entity_blacklist` | string[] | no | `[]` | Entity ids and tag refs this power never affects — they never hunt the player even when `entity_types` matches (including the empty match-all case). Checked on top of the built-in exclusions below. |
+| `range` | double | no | `16.0` | How far (in blocks) a matching mob can be and still start hunting the player. |
+
+Boss-tier mobs — the Warden, Ender Dragon and Wither — never hunt the player, regardless of `entity_types`. Server operators can extend that exclusion via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)).
+
+**Example — a skeleton-type origin that wolves hunt:**
+```json
+{
+  "type": "neoorigins:mobs_target_player",
+  "entity_types": ["minecraft:wolf"],
+  "range": 20.0,
+  "name": "Bonewalker's Curse",
+  "description": "Wolves hunt you the way they hunt skeletons."
+}
+```
+
+> Pairs naturally with `mobs_ignore_player`: use `mobs_ignore_player` for the mobs that leave a skeleton alone, and `mobs_target_player` for the wolves that chase it.
+
+---
+
 ## `neoorigins:no_mob_spawns_nearby`
 
 Suppresses mob spawns within a radius of the player. Toggleable — the player can turn the aura on/off via their skill keybind.
