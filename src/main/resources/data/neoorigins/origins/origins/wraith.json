@@ -6,6 +6,7 @@
   "order": 46,
   "powers": [
     "neoorigins:wraith_phase",
+    "neoorigins:wraith_water_breathing",
     "neoorigins:wraith_daylight_damage",
     "neoorigins:wraith_hunger_drain"
   ],

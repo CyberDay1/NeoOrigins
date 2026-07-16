@@ -190,9 +190,11 @@ public final class PowerOverridesConfig {
         p("necromancer_reduced_health");f("amount", -6.0, -100, 100); ep();
         p("necromancer_slow_regen");    f("multiplier", 0.4, 0, 10); ep();
         p("necromancer_daylight_damage");f("damage_per_second", 1.5, 0, 100); ep();
+        p("necromancer_water_breathing");fb("enabled", true); ep();
 
         // ── Phantom ──
         p("phantom_form");              fb("invisibility", true); fb("no_gravity", true); ep();
+        p("phantom_water_breathing");   fb("enabled", true); ep();
 
         // ── Piglin ──
         p("piglin_attack_bonus");       f("amount", 2.0, -100, 100); ep();
@@ -203,6 +205,7 @@ public final class PowerOverridesConfig {
         p("revenant_active_phase");     fi("max_depth", 8, 1, 256); fi("cooldown_ticks", 60, 0, 72000); fi("hunger_cost", 0, 0, 100); ep();
         p("revenant_slow_regen");       f("multiplier", 0.4, 0, 10); ep();
         p("revenant_daylight_damage");  f("damage_per_second", 2.0, 0, 100); ep();
+        p("revenant_water_breathing");  fb("enabled", true); ep();
 
         // ── Sculkborn ──
         p("sculkborn_sonic_bolt");      f("speed", 1.5, 0, 10); fi("cooldown_ticks", 120, 0, 72000); ep();
@@ -234,6 +237,7 @@ public final class PowerOverridesConfig {
         p("skeleton_evolved_hp");       f("amount", 2.0, -100, 100); ep();
         p("skeleton_ascended_speed");   f("amount", 0.3, -1, 10); ep();
         p("skeleton_apex_brittle_frame");f("amount", -2.0, -100, 100); ep();
+        p("skeleton_water_breathing");  fb("enabled", true); ep();
 
         // ── Slime ──
         // (slime_ascended_sticky values are nested in entity_action;
@@ -295,6 +299,7 @@ public final class PowerOverridesConfig {
         p("wraith_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
         p("wraith_hunger_drain");       f("value", 1.75, 0, 100); ep();
         p("wraith_apex_hunger_drain");  f("value", 1.25, 0, 100); ep();
+        p("wraith_water_breathing");    fb("enabled", true); ep();
 
         // ── Vampire ──
         p("vampire_attack_bonus");      f("amount", 2.0, -100, 100); ep();
@@ -302,6 +307,7 @@ public final class PowerOverridesConfig {
         p("vampire_daylight_damage");   f("damage_per_second", 2.0, 0, 100); ep();
         p("vampire_slow_regen");        f("multiplier", 0.4, 0, 10); ep();
         p("vampire_water_weakness");    f("multiplier", 2.0, 0, 100); ep();
+        p("vampire_water_breathing");   fb("enabled", true); ep();
 
         // ── Verdant ──
         p("verdant_harvest_bonus");     fi("extra_drops", 1, 0, 100); ep();
