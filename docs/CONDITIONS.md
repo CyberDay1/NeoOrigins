@@ -866,6 +866,30 @@ True if the item being eaten in the current `FOOD_EATEN` dispatch is an exact it
 
 **`food_item_id` vs `food_item_in_tag`:** `food_item_id` matches a single exact item. `food_item_in_tag` matches by tag (or bare ID), so it can cover many items in one rule. Use `food_item_id` when you need different behavior per individual food item.
 
+## `neoorigins:food_item_in_config_list`
+
+True if the item being eaten in the current `FOOD_EATEN` dispatch matches any entry in a named server config list. Requires an active `FoodContext`; returns `false` outside that context, and `false` for an unknown key. Each list entry is either a bare item ID or a `#`-prefixed tag ref, matched the same way as `food_item_in_tag`.
+
+This lets a server owner extend a diet without editing a datapack: the ocean-origin fish diet reads `ocean_origins.extra_fish_foods` so modded fish (Aquaculture, Hybrid Aquatic, etc.) can be whitelisted from config.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `key` | string | yes | — | Config list key to read (e.g. `"ocean_origins.extra_fish_foods"`). Unknown keys evaluate false. |
+
+**Supported keys:**
+- `"ocean_origins.extra_fish_foods"` — extra items/tags ocean origins may eat, additive to the `neoorigins:fish_foods` tag.
+
+**Example — allow the eat when it is a fish tag OR a config-listed item:**
+```json
+{
+  "type": "neoorigins:any_of",
+  "conditions": [
+    { "type": "neoorigins:food_item_in_tag", "tag": "#neoorigins:fish_foods" },
+    { "type": "neoorigins:food_item_in_config_list", "key": "ocean_origins.extra_fish_foods" }
+  ]
+}
+```
+
 ---
 
 # Bientity conditions

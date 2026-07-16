@@ -1171,7 +1171,7 @@ passive powers in addition to their unique abilities:
 |---|---|
 | `neoorigins:aquatic_underwater_mining` | Mines at full speed while submerged (Aqua Affinity) |
 | `neoorigins:aquatic_depth_strider` | +0.15 water movement efficiency (Natural Swimmer) |
-| `neoorigins:aquatic_fish_diet` | Fish-only diet (gated by `ocean_origins.fish_diet_required` config) |
+| `neoorigins:aquatic_fish_diet` | Fish-only diet (gated by `ocean_origins.fish_diet_required`; extend the allowed items via `ocean_origins.extra_fish_foods`) |
 | `neoorigins:aquatic_fish_diet_bonus` | Raw cod/salmon as nourishing as cooked |
 
 Custom aquatic origins can reference any of these shared powers by ID.

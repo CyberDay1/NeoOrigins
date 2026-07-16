@@ -199,6 +199,7 @@ public final class GameplayConfig {
     public static final ModConfigSpec.IntValue OCEAN_ORIGINS_DRAIN_RATE_TICKS;
     public static final ModConfigSpec.DoubleValue OCEAN_ORIGINS_DROWN_DAMAGE;
     public static final ModConfigSpec.BooleanValue OCEAN_ORIGINS_FISH_DIET_REQUIRED;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> OCEAN_ORIGINS_EXTRA_FISH_FOODS;
 
     private static final Set<String> OCEAN_ORIGIN_PATHS =
         Set.of("abyssal", "kraken", "merling", "siren");
@@ -240,6 +241,16 @@ public final class GameplayConfig {
                      "Default true: matches the long-standing pescivore design.")
             .define("fish_diet_required", true);
 
+        OCEAN_ORIGINS_EXTRA_FISH_FOODS = BUILDER
+            .comment("Extra items ocean origins (Abyssal, Kraken, Merling, Siren) may ALSO eat",
+                     "on top of the neoorigins:fish_foods tag. Additive: an item counts as fish",
+                     "food if it is in that tag OR listed here. Use this to whitelist modded fish",
+                     "(Aquaculture, Hybrid Aquatic, etc.) without editing a datapack.",
+                     "Format: item ids (e.g. \"aquaculture:tuna\") or tags (e.g. \"#aquaculture:fishes\").",
+                     "Referenced from JSON via the food_item_in_config_list condition with",
+                     "key \"ocean_origins.extra_fish_foods\".")
+            .defineListAllowEmpty("extra_fish_foods", List.of(), () -> "", o -> o instanceof String);
+
         BUILDER.pop();
     }
 
@@ -264,6 +275,17 @@ public final class GameplayConfig {
     /** True if ocean origins are restricted to the {@code neoorigins:fish_foods} tag. */
     public static boolean isOceanOriginsFishDietRequired() {
         return OCEAN_ORIGINS_FISH_DIET_REQUIRED.get();
+    }
+
+    /**
+     * Extra item ids and {@code #tag} refs ocean origins may ALSO eat, additive to
+     * the {@code neoorigins:fish_foods} tag. Entries may be a bare item id or a
+     * {@code #}-prefixed tag ref. Consumed by the {@code food_item_in_config_list}
+     * condition via config key {@code ocean_origins.extra_fish_foods}.
+     */
+    @SuppressWarnings("unchecked")
+    public static List<String> oceanOriginsExtraFishFoods() {
+        return (List<String>) (List<?>) OCEAN_ORIGINS_EXTRA_FISH_FOODS.get();
     }
 
     /** Master drain rate in ticks per air point lost while an aquatic player is out of water. */
