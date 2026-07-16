@@ -136,6 +136,9 @@ public class NeoOrigins {
         // Register mod items (Orb of Origin, etc.)
         ModItems.register(modEventBus);
 
+        // Register mod blocks (temporary cobweb, etc.)
+        com.cyberday1.neoorigins.content.ModBlocks.register(modEventBus);
+
         // Register custom entities (cobweb projectile, etc.)
         com.cyberday1.neoorigins.content.ModEntities.register(modEventBus);
 

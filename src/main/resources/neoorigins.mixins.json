@@ -31,6 +31,7 @@
     "ServerAbilitiesPacketDebugMixin",
     "CraftingMenuCraftAmountMixin",
     "FolderPackDetectorMixin",
+    "BlockStateBaseCobwebShapeMixin",
     "recipe.CraftingMenuOriginContextMixin",
     "recipe.RecipeManagerReplaceMixin"
   ],
