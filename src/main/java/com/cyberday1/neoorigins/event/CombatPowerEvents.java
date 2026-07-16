@@ -420,6 +420,12 @@ public class CombatPowerEvents {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getEntity() instanceof net.minecraft.world.entity.Mob mob)) return;
         com.cyberday1.neoorigins.service.MinionTracker.rehydrateTamed(mob);
+        // mobs_target_player: give every joining mob a goal that proactively
+        // hunts any nearby player carrying a matching mobs_target_player power.
+        // Injected here (not reactively) because nothing fires when a mob is NOT
+        // targeting the player. The goal self-gates on power-holder presence, so
+        // the cost is negligible when no one has the power.
+        com.cyberday1.neoorigins.power.builtin.MobsTargetPlayerPower.injectGoal(mob);
     }
 
     @SubscribeEvent

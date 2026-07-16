@@ -66,6 +66,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, BreathInFluidPower>       BREATH_IN_FLUID      = reg("breath_in_fluid",      new BreathInFluidPower());
     public static final DeferredHolder<PowerType<?>, BreathOutOfFluidPower>    BREATH_OUT_OF_FLUID  = reg("breath_out_of_fluid",  new BreathOutOfFluidPower());
     public static final DeferredHolder<PowerType<?>, MobsIgnorePlayerPower>    MOBS_IGNORE_PLAYER   = reg("mobs_ignore_player",   new MobsIgnorePlayerPower());
+    public static final DeferredHolder<PowerType<?>, MobsTargetPlayerPower>    MOBS_TARGET_PLAYER   = reg("mobs_target_player",   new MobsTargetPlayerPower());
     public static final DeferredHolder<PowerType<?>, NoMobSpawnsNearbyPower>   NO_MOB_SPAWNS_NEARBY = reg("no_mob_spawns_nearby", new NoMobSpawnsNearbyPower());
     public static final DeferredHolder<PowerType<?>, BurnPower>                BURN                 = reg("burn",                new BurnPower());
     public static final DeferredHolder<PowerType<?>, IgnoreWaterPower>         IGNORE_WATER         = reg("ignore_water",        new IgnoreWaterPower());
