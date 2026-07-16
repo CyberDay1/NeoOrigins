@@ -6,6 +6,7 @@
   "order": 39,
   "powers": [
     "neoorigins:vampire_entity_group",
+    "neoorigins:vampire_water_breathing",
     "neoorigins:vampire_night_vision",
     "neoorigins:vampire_attack_bonus",
     "neoorigins:vampire_speed_boost",
