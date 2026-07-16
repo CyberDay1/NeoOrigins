@@ -4398,6 +4398,75 @@ This is a soft-compat layer — it is **not** an FTBQ `RewardType` registration 
 
 ---
 
+## `neoorigins:kill_loot_drops`
+
+Passive power that layers extra item drops onto the vanilla loot of any mob the holder kills: the bonus items appear as real drops from the mob's corpse, flowing through the loot pipeline (drop events, other loot-modifying mods) rather than being pushed straight into the inventory. It is implemented as a NeoForge global loot modifier keyed on the killer — the mirror image of the mob-origin drop hook — so it fires only on entity-death loot tables, never on chests, blocks, or fishing.
+
+One power can touch many mob loot tables at once: list an entry per mob type in `drops`, or match a whole category from a single entry with `entity_tag` / `entity_types`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `drops` | array | yes | — | The drop rules. Each entry rolls independently against the killed mob; an entry with no valid target or an unknown `item` is skipped with a warning at load time. |
+
+Each entry in `drops` takes exactly one target form plus an item:
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_type` | resource-loc | one of | — | A single exact mob type, e.g. `minecraft:zombie`. |
+| `entity_tag` | resource-loc | one of | — | An entity-type tag, e.g. `minecraft:skeletons` — matches every type in the tag. |
+| `entity_types` | array | one of | — | An explicit list of exact mob types. |
+| `item` | resource-loc | yes | — | The item to drop. An unknown id skips the entry. |
+| `chance` | float | no | `1.0` | Probability in `[0,1]` that this entry drops on a matching kill. |
+| `count` | int | no | `1` | Stack size dropped (minimum 1). |
+
+Exactly one of `entity_type` / `entity_tag` / `entity_types` must be set per entry. The drop only rolls when the killer is a player who holds the power: mob-on-mob and environmental deaths are ignored. A player may hold several `kill_loot_drops` powers at once (e.g. one per origin tier) — their rule lists are concatenated, and revoking one leaves the others intact.
+
+### Worked example — Head Hunter
+
+`data/neoorigins/origins/powers/head_hunter_drops.json`:
+```json
+{
+  "type": "neoorigins:kill_loot_drops",
+  "name": "Head Hunter",
+  "description": "5% chance to drop the matching head when you kill a zombie, creeper, skeleton or piglin.",
+  "drops": [
+    { "entity_type": "minecraft:zombie",   "item": "minecraft:zombie_head",    "chance": 0.05 },
+    { "entity_type": "minecraft:creeper",  "item": "minecraft:creeper_head",   "chance": 0.05 },
+    { "entity_type": "minecraft:skeleton", "item": "minecraft:skeleton_skull", "chance": 0.05 },
+    { "entity_type": "minecraft:piglin",   "item": "minecraft:piglin_head",    "chance": 0.05 }
+  ]
+}
+```
+
+The same idea, hooking every undead type from a single entry:
+```json
+{ "entity_tag": "minecraft:undead", "item": "minecraft:bone", "chance": 0.25 }
+```
+
+### Activation
+
+The hook is a global loot modifier, so it has to be switched on by a carrier file — unlike `mob_origin_drops`, the mod does not auto-generate one for you. Ship these two files alongside the power (the Head Hunter example includes both):
+
+`data/neoforge/loot_modifiers/global_loot_modifiers.json`:
+```json
+{
+  "replace": false,
+  "entries": [ "neoorigins:kill_loot_drops" ]
+}
+```
+
+`data/neoorigins/loot_modifiers/kill_loot_drops.json`:
+```json
+{
+  "type": "neoorigins:kill_loot_drops",
+  "conditions": []
+}
+```
+
+`replace: false` makes NeoForge merge the entry list additively across packs, so this coexists with the mod's own `mob_origin_drops` carrier and any other pack's modifiers. The per-power `drops` live in the power file, not here — this carrier is a data-free on-switch, so one carrier covers every `kill_loot_drops` power in the pack.
+
+---
+
 # KubeJS bridge powers
 
 These two types delegate power behavior to JavaScript handlers registered from a KubeJS `startup_scripts/` file. They only function when KubeJS is on the mod list: the power JSON references a `js_id`, and the script registers the matching handler via the `NeoOrigins.*` bindings. If no handler is registered for the id, the power is inert.

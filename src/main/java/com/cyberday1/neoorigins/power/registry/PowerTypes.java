@@ -102,6 +102,11 @@ public class PowerTypes {
     // v2.1.6 backlog #3 — loot-table-driven active grant (FTBQ soft-compat
     // available via FtbQuestsCompat when ftbquests is on the mod list).
     public static final DeferredHolder<PowerType<?>, LootPoolGrantPower>       LOOT_POOL_GRANT      = reg("loot_pool_grant",      new LootPoolGrantPower());
+    // Loot-table-native kill drops: while held, killing a matching mob type has
+    // a per-rule chance to also drop an item FROM the mob's loot (real world
+    // drops via a global loot modifier keyed on the killer), not an inventory
+    // insert. Companion GLM: KillLootDropsLootModifier.
+    public static final DeferredHolder<PowerType<?>, KillLootDropsPower>       KILL_LOOT_DROPS      = reg("kill_loot_drops",      new KillLootDropsPower());
 
     // --- Tick-driven & conditional ---
     // 2.0 Phase 4 consolidation target: condition_passive collapses biome_buff,
