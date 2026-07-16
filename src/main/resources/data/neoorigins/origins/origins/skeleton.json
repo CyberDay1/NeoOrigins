@@ -6,6 +6,7 @@
   "order": 47,
   "powers": [
     "neoorigins:skeleton_undead",
+    "neoorigins:skeleton_water_breathing",
     "neoorigins:skeleton_marksmanship",
     "neoorigins:skeleton_speed",
     "neoorigins:skeleton_jump",
