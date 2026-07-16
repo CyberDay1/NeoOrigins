@@ -163,6 +163,42 @@ public final class OriginsOriginTranslator {
     }
 
     /**
+     * Rewrite ONLY the multiple-power references on an origin JSON, in place.
+     * Applies the same {@code powers} and {@code tier_powers} add/remove rewrite
+     * that {@link #doNormalize} performs, but touches no other field — so it is
+     * safe to run on native-format origins that must NOT be otherwise translated.
+     *
+     * Idempotent: {@link #rewritePowerIds} only rewrites IDs that are keys in
+     * {@link OriginsMultipleExpander#MULTIPLE_EXPANSION_MAP} (parent multiple IDs);
+     * synthetic sub-power IDs are not keys, so a second pass is a no-op. This makes
+     * an unconditional call safe even after {@link #normalize} already ran.
+     */
+    public static JsonObject rewriteMultiplePowerRefs(JsonObject json) {
+        // ---- powers: rewrite multiple IDs to synthetic sub-power IDs ----
+        if (json.has("powers") && json.get("powers").isJsonArray()) {
+            json.add("powers", rewritePowerIds(json.getAsJsonArray("powers")));
+        }
+
+        // ---- tier_powers: rewrite each overlay's add/remove lists too ----
+        if (json.has("tier_powers") && json.get("tier_powers").isJsonArray()) {
+            JsonArray translatedTiers = new JsonArray();
+            for (JsonElement tierEl : json.getAsJsonArray("tier_powers")) {
+                if (!tierEl.isJsonObject()) { translatedTiers.add(tierEl); continue; }
+                JsonObject overlay = tierEl.getAsJsonObject().deepCopy();
+                if (overlay.has("add") && overlay.get("add").isJsonArray()) {
+                    overlay.add("add", rewritePowerIds(overlay.getAsJsonArray("add")));
+                }
+                if (overlay.has("remove") && overlay.get("remove").isJsonArray()) {
+                    overlay.add("remove", rewritePowerIds(overlay.getAsJsonArray("remove")));
+                }
+                translatedTiers.add(overlay);
+            }
+            json.add("tier_powers", translatedTiers);
+        }
+        return json;
+    }
+
+    /**
      * Rewrites a list of power-ID strings, replacing any {@code multiple}-type
      * power ID with its expanded synthetic sub-power IDs (from
      * {@link OriginsMultipleExpander#MULTIPLE_EXPANSION_MAP}). Non-multiple IDs

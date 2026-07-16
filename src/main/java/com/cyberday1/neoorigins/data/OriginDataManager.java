@@ -103,6 +103,14 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
                     json = OriginsOriginTranslator.normalize(id, json);
                 }
 
+                // Rewrite multiple-power references for EVERY origin, native or
+                // foreign. Native-format origins skip normalize() above, so without
+                // this their power list would keep referencing the parent multiple
+                // ID that PowerDataManager already removed — leaving the multiple's
+                // sub-powers registered but referenced by nobody. Idempotent after
+                // normalize (synthetic IDs are not expansion-map keys).
+                OriginsOriginTranslator.rewriteMultiplePowerRefs(json);
+
                 // Always add the id field after normalization
                 json.addProperty("id", id.toString());
 
