@@ -12,6 +12,9 @@
     "minecraft:cooked_rabbit",
     "minecraft:rabbit",
     "minecraft:rabbit_stew",
-    "minecraft:rotten_flesh"
+    "minecraft:rotten_flesh",
+    { "id": "#c:foods/raw_meat", "required": false },
+    { "id": "#c:foods/cooked_meat", "required": false },
+    { "id": "aquaculture:turtle_soup", "required": false }
   ]
 }
