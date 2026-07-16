@@ -25,6 +25,17 @@ public final class MobOriginLootModifiers {
             MapCodec<MobOriginDropsLootModifier>> MOB_ORIGIN_DROPS =
         SERIALIZERS.register("mob_origin_drops", () -> MobOriginDropsLootModifier.CODEC);
 
+    /**
+     * {@code neoorigins:kill_loot_drops} — keyed on the KILLER's active
+     * {@link com.cyberday1.neoorigins.power.builtin.KillLootDropsPower} rules,
+     * layering extra drops onto the killed mob's vanilla loot. Activated by the
+     * same {@code global_loot_modifiers.json} carrier mechanism as
+     * {@code mob_origin_drops}.
+     */
+    public static final DeferredHolder<MapCodec<? extends IGlobalLootModifier>,
+            MapCodec<KillLootDropsLootModifier>> KILL_LOOT_DROPS =
+        SERIALIZERS.register("kill_loot_drops", () -> KillLootDropsLootModifier.CODEC);
+
     private MobOriginLootModifiers() {}
 
     public static void register(IEventBus modEventBus) {
