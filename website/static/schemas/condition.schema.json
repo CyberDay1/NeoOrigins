@@ -55,6 +55,7 @@
         "apace:fluid_height",
         "apace:food",
         "apace:food_item_id",
+        "apace:food_item_in_config_list",
         "apace:food_item_in_tag",
         "apace:food_level",
         "apace:from_explosion",
@@ -164,6 +165,7 @@
         "neoorigins:fluid_height",
         "neoorigins:food",
         "neoorigins:food_item_id",
+        "neoorigins:food_item_in_config_list",
         "neoorigins:food_item_in_tag",
         "neoorigins:food_level",
         "neoorigins:from_explosion",
@@ -1136,6 +1138,25 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:food_item_in_config_list",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:food_item_in_config_list",
+            "apace:food_item_in_config_list"
+          ]
+        },
+        "key": {
+          "description": "Config list key whose id/#tag entries the eaten stack must match (e.g. ocean_origins.extra_fish_foods); unknown key → false.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "key"
       ]
     },
     {
@@ -2618,6 +2639,7 @@
               "apace:fluid_height",
               "apace:food",
               "apace:food_item_id",
+              "apace:food_item_in_config_list",
               "apace:food_item_in_tag",
               "apace:food_level",
               "apace:from_explosion",
@@ -2727,6 +2749,7 @@
               "neoorigins:fluid_height",
               "neoorigins:food",
               "neoorigins:food_item_id",
+              "neoorigins:food_item_in_config_list",
               "neoorigins:food_item_in_tag",
               "neoorigins:food_level",
               "neoorigins:from_explosion",

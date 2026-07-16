@@ -58,7 +58,8 @@ public final class ConditionParser {
         "neoorigins:entity_type", "neoorigins:equal", "neoorigins:equipped_item",
         "neoorigins:exists", "neoorigins:exposed_to_sky", "neoorigins:exposed_to_sun",
         "neoorigins:fall_distance", "neoorigins:fall_flying", "neoorigins:fluid_height",
-        "neoorigins:food_item_id", "neoorigins:food_item_in_tag", "neoorigins:food_level",
+        "neoorigins:food_item_id", "neoorigins:food_item_in_config_list",
+        "neoorigins:food_item_in_tag", "neoorigins:food_level",
         "neoorigins:from_explosion", "neoorigins:from_fire", "neoorigins:from_projectile",
         "neoorigins:saturation_level",
         "neoorigins:hardness",
@@ -239,6 +240,20 @@ public final class ConditionParser {
             com.cyberday1.neoorigins.config.GameplayConfig::isOceanOriginsDriesOutEnabled);
         // Add more keys here as new tunables are exposed to JSON.
         CONFIG_FLAG_LOOKUPS = java.util.Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * Map of supported {@code neoorigins:food_item_in_config_list} keys to the
+     * live config list supplier they read. Entries in each list may be a bare
+     * item id or a {@code #}-prefixed tag ref. Unknown keys evaluate to false.
+     */
+    private static final java.util.Map<String, java.util.function.Supplier<List<String>>> CONFIG_LIST_LOOKUPS;
+    static {
+        java.util.Map<String, java.util.function.Supplier<List<String>>> m = new java.util.HashMap<>();
+        m.put("ocean_origins.extra_fish_foods",
+            com.cyberday1.neoorigins.config.GameplayConfig::oceanOriginsExtraFishFoods);
+        // Add more keys here as new item-list tunables are exposed to JSON.
+        CONFIG_LIST_LOOKUPS = java.util.Collections.unmodifiableMap(m);
     }
 
     /**
@@ -1238,6 +1253,48 @@ public final class ConditionParser {
                 return false;
             }
             return fc.stack().getItem() == targetItem;
+        };
+    }
+
+    /**
+     * Context-aware condition that checks whether the current FOOD_EATEN event's
+     * held {@link ItemStack} matches any id or {@code #tag} entry in a server
+     * config list, named by {@code key}. Additive companion to
+     * {@link #parseFoodItemInTag}: lets server owners whitelist modded fish for
+     * the ocean-origin diet via {@code ocean_origins.extra_fish_foods} without a
+     * datapack. Requires an active FoodContext; false outside it, and false for
+     * an unknown key (logged).
+     */
+    static EntityCondition parseFoodItemInConfigList(JsonObject json) {
+        String key = json.has("key") ? json.get("key").getAsString() : null;
+        if (key == null) return CompatPolicy.FALSE_CONDITION;
+        var supplier = CONFIG_LIST_LOOKUPS.get(key);
+        if (supplier == null) {
+            NeoOrigins.LOGGER.warn(
+                "[CompatB] food_item_in_config_list: unknown key '{}'. Supported keys: {}. Evaluating false.",
+                key, CONFIG_LIST_LOOKUPS.keySet());
+            return CompatPolicy.FALSE_CONDITION;
+        }
+        return p -> {
+            Object ctx = com.cyberday1.neoorigins.service.ActionContextHolder.get();
+            if (!(ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext fc)) {
+                return false;
+            }
+            ItemStack stack = fc.stack();
+            ResourceLocation stackId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            for (String entry : supplier.get()) {
+                if (entry == null || entry.isBlank()) continue;
+                if (entry.startsWith("#")) {
+                    // Tag ref: resolve the item tag and test membership.
+                    TagKey<net.minecraft.world.item.Item> itemTag =
+                        TagKey.create(Registries.ITEM, ResourceLocation.parse(entry.substring(1)));
+                    if (stack.is(itemTag)) return true;
+                } else {
+                    // Bare item id: exact match.
+                    if (stackId.equals(ResourceLocation.parse(entry))) return true;
+                }
+            }
+            return false;
         };
     }
 

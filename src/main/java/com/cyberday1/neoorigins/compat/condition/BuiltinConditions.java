@@ -569,6 +569,13 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseFoodItemId(json),
             List.of(new FieldSpec("id", FormFieldSpec.Kind.STRING, false)
                 .doc("Item id the eaten stack must match exactly (absent → false).")));
+        // food_item_in_config_list — current FOOD_EATEN stack matches any id/#tag
+        // in the named server config list (additive whitelist; e.g. modded fish).
+        define("food_item_in_config_list",
+            (json, ctx) -> ConditionParser.parseFoodItemInConfigList(json),
+            List.of(new FieldSpec("key", FormFieldSpec.Kind.STRING, true)
+                .doc("Config list key whose id/#tag entries the eaten stack must match "
+                    + "(e.g. ocean_origins.extra_fish_foods); unknown key → false.")));
         // hit_taken_amount — current HIT_TAKEN damage amount vs a threshold.
         define("hit_taken_amount",
             (json, ctx) -> ConditionParser.parseHitTakenAmount(json),
