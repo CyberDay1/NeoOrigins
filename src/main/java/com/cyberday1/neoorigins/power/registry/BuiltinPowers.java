@@ -399,6 +399,15 @@ public final class BuiltinPowers {
                 .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list."),
             new FieldSpec("passive", Kind.BOOLEAN, false)
                 .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).")));
+        define("mobs_target_player", MobsTargetPlayerPower.class, List.of(
+            new FieldSpec("entity_types", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Entity ids or #tags of mobs that proactively hunt this player (like wolves hunting a skeleton). Empty/omitted = every mob hunts the player."),
+            new FieldSpec("entity_blacklist", Kind.ARRAY, false)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they never hunt the player even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list."),
+            new FieldSpec("range", Kind.NUMBER, false)
+                .def(16.0).doc("How far (in blocks) a matching mob can be and still start hunting the player. Default 16.")));
         define("modify_food_nutrition", ModifyFoodNutritionPower.class, List.of(
             new FieldSpec("nutrition", Kind.INTEGER, false)
                 .def(1).doc("Hunger points matching food gives, saturation scaled with it (default 1)."),
