@@ -608,13 +608,13 @@ public final class BuiltinActions {
 
         // set_block — place a block at the player's position. Lift-and-shift of
         // parseSetBlock. Block id is the hard requirement (parser no-ops without
-        // it). `keep` optional (parser default false). The legacy
-        // origins:temporary_cobweb id is rewritten to minecraft:cobweb.
+        // it). `keep` optional (parser default false). Legacy code-registered
+        // Origins block ids are remapped to their NeoOrigins equivalents.
         define("set_block",
             (json, ctx) -> {
                 String blockId = json.has("block") ? json.get("block").getAsString() : null;
                 if (blockId == null) return EntityAction.noop();
-                if (blockId.equals("origins:temporary_cobweb")) blockId = "minecraft:cobweb";
+                blockId = com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(blockId);
                 ResourceLocation bid = net.minecraft.resources.ResourceLocation.parse(blockId);
                 var blockOpt = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(bid);
                 if (blockOpt.isEmpty()) {
@@ -3293,6 +3293,7 @@ public final class BuiltinActions {
      */
     static net.minecraft.world.level.block.Block resolveBlockOrNull(String id, String where) {
         if (id == null || id.isBlank()) return null;
+        id = com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(id);
         ResourceLocation rl = ResourceLocation.tryParse(id);
         if (rl == null) {
             NeoOrigins.LOGGER.warn("[CompatB] {}: malformed block id '{}' — will no-op", where, id);

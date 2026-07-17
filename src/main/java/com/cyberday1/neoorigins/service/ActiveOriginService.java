@@ -267,7 +267,10 @@ public final class ActiveOriginService {
                             .isToggledOff(player, holder.config())) {
                 continue;
             }
-            if (((PowerHolder) holder).type().capabilities(holder.config()).contains(tag)) {
+            // Player-aware variant: runtime-conditioned capabilities (e.g. Route B
+            // origins:swimming gated on "in lava") evaluate their gate here, exactly
+            // as collectActivePowers does for the client-facing sync.
+            if (((PowerHolder) holder).type().capabilities(player, holder.config()).contains(tag)) {
                 return true;
             }
         }

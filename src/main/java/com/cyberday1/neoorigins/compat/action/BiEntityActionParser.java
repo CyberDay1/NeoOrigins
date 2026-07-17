@@ -46,6 +46,13 @@ public final class BiEntityActionParser {
                 case "origins:chance",         "apoli:chance",         "apace:chance"         -> parseChance(json, contextId);
                 case "origins:invert",         "apoli:invert",         "apace:invert"         -> parseInvert(json, contextId);
                 case "origins:damage",         "apoli:damage",         "apace:damage"         -> parseDamage(json);
+                // Apoli mount: the ACTOR starts riding the TARGET. Distinct from the
+                // entity-action "mount" verb (which mounts the nearest entity) — a
+                // bientity mount must ride the specific pair member (e.g. the player
+                // who right-clicked a Giant mounts that Giant; a raycast-grabbed mob
+                // inverted-mounts the caster).
+                case "origins:mount",          "apoli:mount",          "apace:mount"          ->
+                    (actor, target) -> actor.startRiding(target, true);
                 case "origins:nothing",        "apoli:nothing"                                -> BiEntityAction.noop();
                 default -> {
                     // Loose packs nest plain entity-actions directly in a bientity

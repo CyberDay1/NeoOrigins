@@ -1511,15 +1511,25 @@ public class NeoOriginsNetwork {
 
     /**
      * A tiny signature of just the phasing-relevant capabilities in a set. Only
-     * client-authoritative movement caps ({@code wall_phase}, {@code no_physics})
-     * can cause the #109 position desync when the server's view flips out from
-     * under the client, so those alone drive the per-tick re-sync — cheap enough
-     * to check every tick for every player.
+     * client-authoritative movement caps ({@code wall_phase}, {@code no_physics},
+     * {@code wall_climb}) can cause the #109-style position desync when the
+     * server's view flips out from under the client, so those alone drive the
+     * per-tick re-sync — cheap enough to check every tick for every player.
+     * wall_climb joined for issue #110: conditioned climbing powers flip on
+     * block/toggle conditions with no origin/toggle/dimension sync trigger.
      */
     private static int phaseGateSignature(Set<String> capabilities) {
         int sig = 0;
         if (capabilities.contains("wall_phase")) sig |= 1;
         if (capabilities.contains("no_physics")) sig |= 2;
+        if (capabilities.contains("wall_climb")) sig |= 4;
+        // forced_swimming (Route B origins:swimming) flips on runtime conditions
+        // (entering/leaving lava, resource toggles) and drives client-predicted
+        // water-physics; a stale client view rubber-bands exactly like #109.
+        if (capabilities.contains("forced_swimming")) sig |= 8;
+        // cobweb_selection_passthrough flips on sneak state; it only affects
+        // crosshair targeting, but sneak flips have no other sync trigger.
+        if (capabilities.contains("cobweb_selection_passthrough")) sig |= 16;
         return sig;
     }
 

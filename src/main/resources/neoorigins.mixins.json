@@ -32,6 +32,7 @@
     "SmithingMenuTakeMixin",
     "ServerAbilitiesPacketDebugMixin",
     "FolderPackDetectorMixin",
+    "EntityForcedSwimmingMixin",
     "BlockStateBaseCobwebShapeMixin",
     "recipe.CraftingMenuOriginContextMixin"
   ],

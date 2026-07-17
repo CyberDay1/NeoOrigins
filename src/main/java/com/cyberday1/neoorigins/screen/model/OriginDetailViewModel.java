@@ -85,10 +85,9 @@ public record OriginDetailViewModel(
             if (parentId != null && !isNamed) {
                 if (!seenParents.add(parentId)) continue;
                 JsonObject display = OriginsMultipleExpander.MULTIPLE_DISPLAY_MAP.get(parentId);
-                names.add(display != null && display.has("name")
-                    ? resolveDisplayString(display.get("name")) : formatPowerId(parentId));
-                descs.add(display != null && display.has("description")
-                    ? resolveDisplayString(display.get("description")) : "");
+                names.add(resolveParentDisplay(parentId, display, lang, "name",
+                    formatPowerId(parentId)));
+                descs.add(resolveParentDisplay(parentId, display, lang, "description", ""));
                 // A multiple collapses its un-named sub-powers into one parent row.
                 // Surface the keys of ALL its keybind sub-powers (e.g. a grow/shrink
                 // pair) instead of a blank tag, so multi-keybind multiples still show
@@ -254,6 +253,31 @@ public record OriginDetailViewModel(
         return out.isEmpty() ? path : out.toString();
     }
 
+    /**
+     * Resolves a collapsed multiple-parent's display text ({@code field} =
+     * "name" or "description"). Priority: inline authored value → the Apoli
+     * auto lang key for the parent's ORIGINAL slash-form id ({@code auto_*},
+     * recorded by the expander; only used when the client lang actually has
+     * the key — Origins++ names its unnamed multiples exclusively this way) →
+     * the same key built from the parent id itself (covers displays synced
+     * from servers without the auto_* fields) → {@code fallback}.
+     */
+    private static String resolveParentDisplay(ResourceLocation parentId, JsonObject display,
+                                               Language lang, String field, String fallback) {
+        if (display != null && display.has(field)) {
+            String s = resolveDisplayString(display.get(field));
+            if (!s.isEmpty()) return s;
+        }
+        String autoField = "auto_" + field;
+        if (display != null && display.has(autoField) && display.get(autoField).isJsonPrimitive()) {
+            String key = display.get(autoField).getAsString();
+            if (lang.has(key)) return lang.getOrDefault(key, fallback);
+        }
+        String key = "power." + parentId.getNamespace() + "." + parentId.getPath() + "." + field;
+        if (lang.has(key)) return lang.getOrDefault(key, fallback);
+        return fallback;
+    }
+
     private static String resolveDisplayString(JsonElement el) {
         if (el == null) return "";
         if (el.isJsonPrimitive()) {
@@ -307,10 +331,9 @@ public record OriginDetailViewModel(
             if (parentId != null && !isNamed) {
                 if (!seenParents.add(parentId)) continue;
                 JsonObject display = OriginsMultipleExpander.MULTIPLE_DISPLAY_MAP.get(parentId);
-                String pn = display != null && display.has("name")
-                    ? resolveDisplayString(display.get("name")) : formatPowerId(parentId);
-                String pd = display != null && display.has("description")
-                    ? resolveDisplayString(display.get("description")) : "";
+                String pn = resolveParentDisplay(parentId, display, lang, "name",
+                    formatPowerId(parentId));
+                String pd = resolveParentDisplay(parentId, display, lang, "description", "");
                 out.add(new TierPowerDisplay(pn, pd));
                 continue;
             }
