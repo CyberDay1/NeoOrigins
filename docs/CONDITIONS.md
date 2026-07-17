@@ -88,6 +88,8 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 
 **Common comparison fields:** most numeric conditions accept `"comparison"` (one of `==`, `!=`, `<`, `<=`, `>`, `>=`) and `"compare_to"` (number). Defaults to `">="` and `0` unless stated otherwise.
 
+**Item conditions** — the separate verb set that matches against an `ItemStack` (used inside `equipped_item` / `inventory` entity conditions, event-power `item_condition` filters, and `if_else` item actions) is documented in the [Item conditions section of ACTIONS.md](ACTIONS.md#item-conditions).
+
 ---
 
 # Meta conditions
@@ -251,6 +253,14 @@ True when the entity's bounding box — shifted by `offset_x`/`offset_y`/`offset
   "block_condition": { "type": "neoorigins:in_tag", "tag": "fairy:iron" }
 }
 ```
+
+## `neoorigins:collided_horizontally`
+
+True when the entity ran into a wall this tick — a thin wrapper over vanilla `Entity.horizontalCollision`, mirroring Apoli's condition of the same name. Used by conditioned climbing powers (e.g. Origins++) that should only engage while the player is pressed against a surface.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker condition. |
 
 ## `neoorigins:replacable` (alias `neoorigins:replaceable`)
 
@@ -725,6 +735,20 @@ Whether any power granted to this entity has a matching `type` ID.
 
 Bare type names (no `:`) are auto-prefixed with `neoorigins:`.
 
+## `neoorigins:origin`
+
+True when the player currently has the named origin, optionally scoped to a single layer. Mirrors Apoli's `origins:origin` entity condition — use it to gate a power or condition on which origin the player is.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `origin` | resource location | yes | — | Origin id the player must currently have (e.g. `neoorigins:merling`). |
+| `layer` | resource location | no | any layer | Restrict the match to a single origin layer; omit to match the origin in any layer. |
+
+**Example — only while playing the Merling origin:**
+```json
+{ "type": "neoorigins:origin", "origin": "neoorigins:merling" }
+```
+
 ## `neoorigins:cooldown`
 
 **Inverted polarity:** true when the named power is **not** on cooldown (i.e. ready to use). Use `"inverted": true` to test "is on cooldown" instead. Always-true when `power` is absent.
@@ -847,6 +871,20 @@ True if the item being eaten in the current `FOOD_EATEN` dispatch matches a tag 
 | `tag` | string | no | — | Item tag (prefix with `#`, e.g. `"#minecraft:meat"`) or bare item ID (e.g. `"minecraft:spider_eye"`). Always-false when absent. |
 
 **Tag vs item:** a leading `#` denotes a tag lookup; without `#` the value is matched as an exact item ID.
+
+### Built-in diet tags
+
+NeoOrigins ships these item tags for its diet-restricted origins, under `data/neoorigins/tags/item/`. All are declared `"replace": false`, so a datapack can append to any of them without redefining the list. Cross-mod entries are marked `required: false`, so they no-op when the other mod is absent.
+
+| Tag | Diet / origin | Contents |
+|---|---|---|
+| `#neoorigins:fish_foods` | Pescivore (ocean/aquatic origins) | cod, salmon, tropical fish, pufferfish, cooked cod, cooked salmon; plus optional `#c:foods/raw_fish`, `#c:foods/cooked_fish`, and Aquaculture fish fillet + sushi |
+| `#neoorigins:meat_foods` | Carnivore | beef, porkchop, mutton, chicken, rabbit (raw + cooked each), rabbit stew, rotten flesh; plus optional `#c:foods/raw_meat`, `#c:foods/cooked_meat`, and Aquaculture turtle soup |
+| `#neoorigins:vampire_foods` | Blood diet (Vampire) | beef, porkchop, chicken, mutton, rabbit, rotten flesh, spider eye |
+| `#neoorigins:skeleton_foods` | Boneless diet (Skeleton, base) | bone meal, rotten flesh, spider eye |
+| `#neoorigins:skeleton_evolved_foods` | Boneless diet (Skeleton, evolved) | skeleton base list + all cooked meats and cooked fish (beef, porkchop, chicken, mutton, rabbit, cod, salmon) |
+
+The fish diet additionally reads a server config allowlist: the `neoorigins:aquatic_fish_diet` power accepts either the `#neoorigins:fish_foods` tag **or** any entry in `ocean_origins.extra_fish_foods` (see `food_item_in_config_list` below), and only enforces the restriction when the `ocean_origins.fish_diet_required` flag is on.
 
 ## `neoorigins:food_item_id`
 
@@ -1044,6 +1082,16 @@ True when the player is currently on a climbable block (vanilla ladder, vine, or
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | (no fields) | — | — | — | Marker condition. |
+
+## `neoorigins:climbing_gate`
+
+Internal state machine that drives conditioned `origins:climbing` powers. It is emitted by the compat translator when a climbing power carries a `condition` / `hold_condition`, so it is not normally hand-authored — documented for completeness and for authors debugging converted Apoli packs. It tracks per-player climb state: climbing starts while `condition` holds and, when `allow_holding`, keeps going while the player is airborne until `hold_condition` fails or they touch the ground.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `condition` | entity condition | no | always active | Condition that activates climbing; absent → always active. |
+| `hold_condition` | entity condition | no | hold until touchdown | Condition that keeps an active climb going after `condition` stops (evaluated while airborne); absent → hold until the player lands. |
+| `allow_holding` | boolean | no | `true` | Whether an active climb may persist after `condition` stops. |
 
 ## `neoorigins:out_of_combat`
 

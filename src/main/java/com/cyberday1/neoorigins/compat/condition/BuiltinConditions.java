@@ -135,6 +135,12 @@ public final class BuiltinConditions {
             var dm = p.getDeltaMovement();
             return dm.x != 0 || dm.z != 0;
         }, List.of());
+        // collided_horizontally — entity ran into a wall this tick (Apoli reads
+        // the same Entity.horizontalCollision flag). Origins++'s conditioned
+        // climbing powers gate on this inside their climbing_gate condition
+        // (issue #110): without it the gate failed closed and the powers never
+        // activated.
+        define("collided_horizontally", (json, ctx) -> p -> p.horizontalCollision, List.of());
         // passenger / riding — player is riding a vehicle. `riding` is a synonym.
         define("passenger", List.of("riding"), (json, ctx) -> p -> p.isPassenger(), List.of());
         // on_fire / fire — player is on fire. `fire` is a synonym.
@@ -514,13 +520,36 @@ public final class BuiltinConditions {
                         .doc("Block id the block at the player's position must match (also accepts `id`)."),
                     new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
                         .doc("Block tag the block at the player's position must be in (absent block+tag → always true).")));
-        // in_block / in_block_anywhere — block at the player's position matches an id.
-        // `in_block_anywhere` is a true synonym (absent from KNOWN_TYPES) → alias.
-        define("in_block", List.of("in_block_anywhere"),
+        // in_block — block at the player's position matches the nested condition.
+        define("in_block",
             (json, ctx) -> ConditionParser.parseInBlock(json, ctx),
             List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
                 .ref("block_condition.schema.json")
                 .doc("Nested block condition with `block`/`id`; absent → always true.")));
+        // climbing_gate — internal state machine emitted by the compat translator
+        // for conditioned origins:climbing powers (condition + hold_condition).
+        define("climbing_gate",
+            (json, ctx) -> ConditionParser.parseClimbingGate(json, ctx),
+            List.of(new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
+                        .ref("condition.schema.json")
+                        .doc("Entity condition that activates climbing; absent → always active."),
+                    new FieldSpec("hold_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("condition.schema.json")
+                        .doc("Entity condition that keeps an active climb going after `condition` stops (evaluated while airborne); absent → hold until touchdown."),
+                    new FieldSpec("allow_holding", FormFieldSpec.Kind.BOOLEAN, false).def(true)
+                        .doc("Whether an active climb may persist after `condition` stops (default true).")));
+        // in_block_anywhere — Apoli semantics: count block positions overlapped by
+        // the player's bounding box that match, compared via comparison/compare_to.
+        define("in_block_anywhere",
+            (json, ctx) -> ConditionParser.parseInBlockAnywhere(json, ctx),
+            List.of(new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("block_condition.schema.json")
+                        .doc("Nested block condition tested against every block the player's hitbox overlaps; absent → always true."),
+                    new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                        .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                        .doc("Comparison operator against the overlap count (default >=)."),
+                    new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(1)
+                        .doc("Overlap-count threshold (default 1).")));
         // equipped_item — item in the given slot matches the nested item_condition.
         define("equipped_item",
             (json, ctx) -> ConditionParser.parseEquippedItem(json, ctx),
@@ -601,25 +630,34 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseCovered(json),
             List.of(new FieldSpec("distance", FormFieldSpec.Kind.INTEGER, false).def(8)
                 .doc("How many blocks above the player to scan for a non-air block (default 8, min 1).")));
-        // near_block / block_in_radius — a matching block within radius (cubic scan).
+        // near_block / block_in_radius — count matching blocks within radius and
+        // compare against compare_to (Apoli defaults ">=" 1 = any match).
         // `block_in_radius` is a true synonym (absent from KNOWN_TYPES) → alias.
         define("near_block", List.of("block_in_radius"),
             (json, ctx) -> ConditionParser.parseNearBlock(json, ctx),
-            List.of(new FieldSpec("radius", FormFieldSpec.Kind.INTEGER, false).def(4).range(1.0, 8.0)
-                        .doc("Scan radius in blocks (default 4, clamped 1..8)."),
+            List.of(new FieldSpec("radius", FormFieldSpec.Kind.INTEGER, false).def(4).range(1.0, 16.0)
+                        .doc("Scan radius in blocks (default 4, clamped 1..16)."),
+                    new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false)
+                        .options("cube", "star", "sphere").def("cube")
+                        .doc("Scan volume shape (default cube)."),
                     new FieldSpec("block", FormFieldSpec.Kind.STRING, false)
                         .doc("Single block id to match."),
                     new FieldSpec("blocks", FormFieldSpec.Kind.ARRAY, false)
                         .itemPattern(RESOURCE_LOCATION_PATTERN)
-                        .doc("List of block ids to match (any → true)."),
+                        .doc("List of block ids to match (any → counts)."),
                     new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
                         .doc("Single block tag to match (#-prefix optional)."),
                     new FieldSpec("tags", FormFieldSpec.Kind.ARRAY, false)
                         .itemPattern(TAG_OR_ID_PATTERN)
-                        .doc("List of block tags to match (any → true)."),
+                        .doc("List of block tags to match (any → counts)."),
                     new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
                         .ref("block_condition.schema.json")
-                        .doc("Origins block_in_radius shape: nested in_tag/block condition. Requires at least one of block/blocks/tag/tags/block_condition.")));
+                        .doc("Origins block_in_radius shape: nested block condition (block/in_tag/combinators/inverted). Requires at least one of block/blocks/tag/tags/block_condition."),
+                    new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                        .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                        .doc("Comparison operator against the matching-block count (default >=)."),
+                    new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(1)
+                        .doc("Count threshold (default 1 — i.e. \"any matching block nearby\").")));
         // near_entity — an entity of the given type/tag within distance (AABB scan).
         define("near_entity",
             (json, ctx) -> ConditionParser.parseNearEntity(json, ctx),

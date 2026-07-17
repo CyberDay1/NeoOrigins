@@ -94,6 +94,21 @@ public final class OriginsMultipleExpander {
      * @return Map of synthetic Identifier → translated NeoOrigins power JSON
      */
     public static Map<Identifier, JsonObject> expand(Identifier id, JsonObject src) {
+        // Top-level multiples: the id IS the original pack id (slash path from
+        // the powers/ directory), which is what Apoli auto lang keys use.
+        return expand(id, id.getPath(), src);
+    }
+
+    /**
+     * @param legacyPath the parent's ORIGINAL Apoli-visible path — the pack-file
+     *        slash path for top-level multiples, chained with "/" for nested
+     *        ones (pre-2.2.8 NeoOrigins convention). Used to build the Apoli
+     *        auto translation keys ({@code power.<ns>.<path>.name}) that packs
+     *        like Origins++ rely on for unnamed multiples, and never derived by
+     *        splitting the underscore synthetic id (sub-keys may themselves
+     *        contain underscores).
+     */
+    private static Map<Identifier, JsonObject> expand(Identifier id, String legacyPath, JsonObject src) {
         Map<Identifier, JsonObject> result = new HashMap<>();
         List<Identifier> syntheticIds = new ArrayList<>();
 
@@ -103,13 +118,11 @@ public final class OriginsMultipleExpander {
         // surface one-by-one in the info panel.
         boolean parentHidden = readHiddenFlag(src);
 
-        // Store display metadata from the parent multiple so the screen can collapse sub-powers.
-        if (src.has("name") || src.has("description")) {
-            JsonObject display = new JsonObject();
-            if (src.has("name"))        display.add("name",        src.get("name"));
-            if (src.has("description")) display.add("description", src.get("description"));
-            MULTIPLE_DISPLAY_MAP.put(id, display);
-        }
+        // Store display metadata from the parent multiple so the screen can
+        // collapse sub-powers. Always recorded: even without inline name /
+        // description, the auto_* keys let the screen resolve the Apoli auto
+        // lang-file entries for the ORIGINAL parent id (issue #110 fix 1).
+        MULTIPLE_DISPLAY_MAP.put(id, buildDisplay(id, legacyPath, src));
 
         for (Map.Entry<String, JsonElement> entry : src.entrySet()) {
             String key = entry.getKey();
@@ -148,7 +161,8 @@ public final class OriginsMultipleExpander {
             if (parentHidden && !readHiddenFlag(subPowerJson)) subPowerJson.addProperty("hidden", true);
             if (isMultipleType(subType)) {
                 try {
-                    Map<Identifier, JsonObject> nested = expand(syntheticId, subPowerJson);
+                    Map<Identifier, JsonObject> nested =
+                        expand(syntheticId, legacyPath + "/" + key, subPowerJson);
                     result.putAll(nested);
                     // Add all nested synthetic IDs to this level's list
                     if (MULTIPLE_EXPANSION_MAP.containsKey(syntheticId)) {
@@ -225,12 +239,7 @@ public final class OriginsMultipleExpander {
         Map<Identifier, JsonObject> result = new HashMap<>();
         List<Identifier> syntheticIds = new ArrayList<>();
 
-        if (src.has("name") || src.has("description")) {
-            JsonObject display = new JsonObject();
-            if (src.has("name"))        display.add("name",        src.get("name"));
-            if (src.has("description")) display.add("description", src.get("description"));
-            MULTIPLE_DISPLAY_MAP.put(id, display);
-        }
+        MULTIPLE_DISPLAY_MAP.put(id, buildDisplay(id, id.getPath(), src));
 
         for (int i = 0; i < modifiers.size(); i++) {
             JsonElement el = modifiers.get(i);
@@ -263,6 +272,22 @@ public final class OriginsMultipleExpander {
             MULTIPLE_EXPANSION_MAP.put(id, Collections.unmodifiableList(syntheticIds));
         }
         return result;
+    }
+
+    /**
+     * Display metadata for a collapsed parent row: inline {@code name} /
+     * {@code description} when authored, plus the Apoli auto translation keys
+     * built from the parent's original (slash-form) path so lang-file-only
+     * packs (Origins++) still render a proper title. The screen resolves
+     * {@code auto_*} only when the lang file actually has the key.
+     */
+    private static JsonObject buildDisplay(Identifier id, String legacyPath, JsonObject src) {
+        JsonObject display = new JsonObject();
+        if (src.has("name"))        display.add("name",        src.get("name"));
+        if (src.has("description")) display.add("description", src.get("description"));
+        display.addProperty("auto_name", "power." + id.getNamespace() + "." + legacyPath + ".name");
+        display.addProperty("auto_description", "power." + id.getNamespace() + "." + legacyPath + ".description");
+        return display;
     }
 
     /**
