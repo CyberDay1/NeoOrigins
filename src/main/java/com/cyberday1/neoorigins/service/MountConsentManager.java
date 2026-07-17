@@ -142,6 +142,12 @@ public final class MountConsentManager {
     private static void doMount(ServerPlayer requester, ServerPlayer target, String mountPosition) {
         requester.startRiding(target, true);
         requester.setData(EntityAttachments.mountPosition(), mountPosition);
+        // The server only sends SetPassengers for the target to players TRACKING
+        // the target — but a player never tracks itself, so the vehicle player's
+        // own client never learns it has a passenger. Explicitly resync the
+        // vehicle player's client so it sees the rider (issue #111).
+        target.connection.send(
+            new net.minecraft.network.protocol.game.ClientboundSetPassengersPacket(target));
         requester.sendSystemMessage(Component.translatable(
             "power.neoorigins.mount.success", target.getName())
             .withStyle(ChatFormatting.GREEN), true);
