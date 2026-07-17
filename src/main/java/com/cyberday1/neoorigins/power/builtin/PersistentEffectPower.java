@@ -93,7 +93,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
                 // collapses the power to a no-op — no effects to apply, and not
                 // toggleable so it never claims a keybind slot. Used by the Warden
                 // dark-vision config toggles (issue #101).
-                boolean enabled = !obj.has("enabled") || obj.get("enabled").getAsBoolean();
+                boolean enabled = com.cyberday1.neoorigins.power.util.EnabledGate.isEnabled(obj);
                 if (!enabled) {
                     return DataResult.success(Pair.of(
                         new Config(List.of(), EntityCondition.alwaysTrue(), false, false, t, "", false),
@@ -270,9 +270,15 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         for (EffectSpec spec : config.effects()) {
             if (isGloballyDisabled(spec)) continue;
             var existing = player.getEffect(spec.effect());
+            // Reapply when: nothing present, OR the present effect is weaker
+            // (lower amplifier) than ours, OR the present effect is a finite
+            // buff that we can safely upgrade to our infinite form ONLY when it
+            // is not STRONGER than us. This last clause prevents clobbering a
+            // stronger finite buff (e.g. Frenzy's finite amp1 strength) with a
+            // weaker infinite persistent effect (amp0).
             if (existing == null
                 || existing.getAmplifier() < spec.amplifier()
-                || !existing.isInfiniteDuration()) {
+                || (!existing.isInfiniteDuration() && existing.getAmplifier() <= spec.amplifier())) {
                 player.addEffect(new MobEffectInstance(
                     spec.effect(), MobEffectInstance.INFINITE_DURATION, spec.amplifier(),
                     spec.ambient(), spec.showParticles(), spec.showIcon()));
@@ -308,7 +314,18 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
 
     private void clearEffects(ServerPlayer player, Config config) {
         for (EffectSpec spec : config.effects()) {
-            player.removeEffect(spec.effect());
+            // Only remove the effect if the instance currently on the player is
+            // one THIS persistent system owns at THIS tier — i.e. an infinite
+            // duration effect at our exact amplifier. This prevents an inactive
+            // tier (e.g. Bloodrage II/III) from stripping a lower tier's effect
+            // (different amplifier) or a timed buff from another source (Frenzy,
+            // finite duration) that merely shares the same effect type.
+            var existing = player.getEffect(spec.effect());
+            if (existing != null
+                && existing.isInfiniteDuration()
+                && existing.getAmplifier() == spec.amplifier()) {
+                player.removeEffect(spec.effect());
+            }
         }
     }
 
