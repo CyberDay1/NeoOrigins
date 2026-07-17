@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,5 +39,28 @@ public abstract class EntityMountPositionMixin {
 
         Vec3 pos = passenger.position();
         passenger.setPos(pos.x + offsetX, pos.y, pos.z + offsetZ);
+    }
+
+    /**
+     * Resync the vehicle player's own client after a passenger is removed.
+     *
+     * <p>A player never tracks itself, so the server's ClientboundSetPassengers
+     * broadcast for the vehicle never reaches the vehicle player's own client.
+     * Without this, the vehicle player's client keeps a stale passenger after a
+     * dismount, only self-healing on the next re-track. This RETURN inject runs
+     * AFTER the passenger is actually removed, so the packet reflects the
+     * now-updated passenger list. Sending a player the true passenger list of
+     * its own entity is always safe, so we don't gate on the mount attachment
+     * (issue #111).
+     */
+    @Inject(
+        method = "removePassenger(Lnet/minecraft/world/entity/Entity;)V",
+        at = @At("RETURN")
+    )
+    private void neoorigins$resyncVehicleOnDismount(Entity passenger, CallbackInfo ci) {
+        if ((Object) this instanceof ServerPlayer vehiclePlayer) {
+            vehiclePlayer.connection.send(
+                new net.minecraft.network.protocol.game.ClientboundSetPassengersPacket(vehiclePlayer));
+        }
     }
 }
