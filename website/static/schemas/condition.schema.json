@@ -27,6 +27,8 @@
         "apace:brightness",
         "apace:can_see",
         "apace:climbing",
+        "apace:climbing_gate",
+        "apace:collided_horizontally",
         "apace:command",
         "apace:config_flag",
         "apace:constant",
@@ -137,6 +139,8 @@
         "neoorigins:brightness",
         "neoorigins:can_see",
         "neoorigins:climbing",
+        "neoorigins:climbing_gate",
+        "neoorigins:collided_horizontally",
         "neoorigins:command",
         "neoorigins:config_flag",
         "neoorigins:constant",
@@ -545,6 +549,47 @@
           "enum": [
             "neoorigins:climbing",
             "apace:climbing"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:climbing_gate",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:climbing_gate",
+            "apace:climbing_gate"
+          ]
+        },
+        "condition": {
+          "description": "Entity condition that activates climbing; absent → always active.",
+          "$ref": "condition.schema.json"
+        },
+        "hold_condition": {
+          "description": "Entity condition that keeps an active climb going after `condition` stops (evaluated while airborne); absent → hold until touchdown.",
+          "$ref": "condition.schema.json"
+        },
+        "allow_holding": {
+          "description": "Whether an active climb may persist after `condition` stops (default true).",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:collided_horizontally",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:collided_horizontally",
+            "apace:collided_horizontally"
           ]
         }
       },
@@ -1437,14 +1482,48 @@
         "type": {
           "enum": [
             "neoorigins:in_block",
-            "neoorigins:in_block_anywhere",
-            "apace:in_block",
-            "apace:in_block_anywhere"
+            "apace:in_block"
           ]
         },
         "block_condition": {
           "description": "Nested block condition with `block`/`id`; absent → always true.",
           "$ref": "block_condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:in_block_anywhere",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:in_block_anywhere",
+            "apace:in_block_anywhere"
+          ]
+        },
+        "block_condition": {
+          "description": "Nested block condition tested against every block the player's hitbox overlaps; absent → always true.",
+          "$ref": "block_condition.schema.json"
+        },
+        "comparison": {
+          "description": "Comparison operator against the overlap count (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Overlap-count threshold (default 1).",
+          "type": "integer",
+          "default": 1
         }
       },
       "required": [
@@ -1712,18 +1791,28 @@
           ]
         },
         "radius": {
-          "description": "Scan radius in blocks (default 4, clamped 1..8).",
+          "description": "Scan radius in blocks (default 4, clamped 1..16).",
           "type": "integer",
           "default": 4,
           "minimum": 1,
-          "maximum": 8
+          "maximum": 16
+        },
+        "shape": {
+          "description": "Scan volume shape (default cube).",
+          "type": "string",
+          "enum": [
+            "cube",
+            "star",
+            "sphere"
+          ],
+          "default": "cube"
         },
         "block": {
           "description": "Single block id to match.",
           "type": "string"
         },
         "blocks": {
-          "description": "List of block ids to match (any → true).",
+          "description": "List of block ids to match (any → counts).",
           "type": "array",
           "items": {
             "type": "string",
@@ -1735,7 +1824,7 @@
           "type": "string"
         },
         "tags": {
-          "description": "List of block tags to match (any → true).",
+          "description": "List of block tags to match (any → counts).",
           "type": "array",
           "items": {
             "type": "string",
@@ -1743,8 +1832,26 @@
           }
         },
         "block_condition": {
-          "description": "Origins block_in_radius shape: nested in_tag/block condition. Requires at least one of block/blocks/tag/tags/block_condition.",
+          "description": "Origins block_in_radius shape: nested block condition (block/in_tag/combinators/inverted). Requires at least one of block/blocks/tag/tags/block_condition.",
           "$ref": "block_condition.schema.json"
+        },
+        "comparison": {
+          "description": "Comparison operator against the matching-block count (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Count threshold (default 1 — i.e. \"any matching block nearby\").",
+          "type": "integer",
+          "default": 1
         }
       },
       "required": [
@@ -2611,6 +2718,8 @@
               "apace:brightness",
               "apace:can_see",
               "apace:climbing",
+              "apace:climbing_gate",
+              "apace:collided_horizontally",
               "apace:command",
               "apace:config_flag",
               "apace:constant",
@@ -2721,6 +2830,8 @@
               "neoorigins:brightness",
               "neoorigins:can_see",
               "neoorigins:climbing",
+              "neoorigins:climbing_gate",
+              "neoorigins:collided_horizontally",
               "neoorigins:command",
               "neoorigins:config_flag",
               "neoorigins:constant",
