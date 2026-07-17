@@ -33,6 +33,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 public final class ConditionParser {
 
@@ -49,6 +51,7 @@ public final class ConditionParser {
         "neoorigins:amount", "neoorigins:and", "neoorigins:armor_value",
         "neoorigins:biome", "neoorigins:block", "neoorigins:block_collision",
         "neoorigins:brightness", "neoorigins:can_see", "neoorigins:climbing",
+        "neoorigins:climbing_gate", "neoorigins:collided_horizontally",
         "neoorigins:command", "neoorigins:config_flag", "neoorigins:constant",
         "neoorigins:cooldown", "neoorigins:cover", "neoorigins:creative_flying",
         "neoorigins:creative_mode", "neoorigins:damage_name",
@@ -65,7 +68,7 @@ public final class ConditionParser {
         "neoorigins:hardness",
         "neoorigins:has_effect", "neoorigins:health", "neoorigins:height",
         "neoorigins:hit_dealt_amount", "neoorigins:hit_taken_amount",
-        "neoorigins:in_block", "neoorigins:in_rain",
+        "neoorigins:in_block", "neoorigins:in_block_anywhere", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
         "neoorigins:inventory",
         "neoorigins:invisible", "neoorigins:lava", "neoorigins:light_level",
@@ -114,22 +117,14 @@ public final class ConditionParser {
      * condition shape compat-translated powers already do.
      */
     public static EntityCondition parseField(JsonObject parent, String field, String contextId) {
-        if (parent == null || !parent.has(field)) return EntityCondition.alwaysTrue();
-        JsonElement el = parent.get(field);
-        if (el.isJsonObject()) {
-            return parse(el.getAsJsonObject(), contextId);
-        }
-        if (el.isJsonArray()) {
-            List<EntityCondition> list = new ArrayList<>();
-            for (JsonElement item : el.getAsJsonArray()) {
-                if (item.isJsonObject()) list.add(parse(item.getAsJsonObject(), contextId));
-            }
-            return player -> {
+        return com.cyberday1.neoorigins.compat.util.JsonHelpers.parseArrayOrSingle(
+            parent, field, contextId,
+            EntityCondition.alwaysTrue(),
+            ConditionParser::parse,
+            list -> player -> {
                 for (EntityCondition c : list) if (!c.test(player)) return false;
                 return true;
-            };
-        }
-        return EntityCondition.alwaysTrue();
+            });
     }
 
     private static EntityCondition parseInner(JsonObject json, String contextId) {
@@ -420,8 +415,49 @@ public final class ConditionParser {
         // Toggles facade resolves the registered TogglePower's `default` when the
         // toggleState map has no entry yet — so `"default": true` JSONs read as
         // on-until-flipped-off without needing an action_on_event GAINED hook.
-        return player -> com.cyberday1.neoorigins.compat.Toggles.isOn(player, powerId);
+        // Apoli's power_active is NOT toggle-only: for any other granted power it
+        // returns power.isActive() = granted && condition satisfied, so a
+        // non-toggle power id must fall through to the granted+condition check
+        // (previously always false, which broke e.g. Origins++ hold_conditions
+        // referencing the climbing sub-power itself).
+        return player -> {
+            String resolved = com.cyberday1.neoorigins.compat.CompatAttachments.resolveLegacySyntheticId(powerId);
+            Identifier rid;
+            try {
+                rid = Identifier.parse(resolved);
+            } catch (Exception e) {
+                return false;
+            }
+            var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(rid);
+            boolean toggleLike = holder != null
+                && (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower
+                    || holder.type() instanceof com.cyberday1.neoorigins.power.builtin.TogglePower);
+            if (toggleLike
+                    || player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.toggleState())
+                        .getStates().containsKey(resolved)) {
+                return com.cyberday1.neoorigins.compat.Toggles.isOn(player, resolved);
+            }
+            if (holder == null || !(player instanceof net.minecraft.server.level.ServerPlayer sp)) return false;
+            // Guard against condition cycles (power A's condition referencing
+            // power_active(A)): a re-entered id fails closed for this evaluation.
+            java.util.Set<String> inFlight = POWER_ACTIVE_EVAL.get();
+            if (!inFlight.add(resolved)) return false;
+            try {
+                for (var granted : com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(sp)) {
+                    if (granted.id().equals(rid)) {
+                        return granted.isConditionSatisfied(sp);
+                    }
+                }
+                return false;
+            } finally {
+                inFlight.remove(resolved);
+            }
+        };
     }
+
+    /** Re-entrancy guard for {@link #parsePowerActive}'s granted+condition path. */
+    private static final ThreadLocal<java.util.Set<String>> POWER_ACTIVE_EVAL =
+        ThreadLocal.withInitial(java.util.HashSet::new);
 
     static EntityCondition parseOnBlock(JsonObject json, String contextId) {
         if (!json.has("block_condition") || !json.get("block_condition").isJsonObject()) {
@@ -915,6 +951,99 @@ public final class ConditionParser {
     }
 
     /**
+     * origins:in_block_anywhere — Apoli semantics: count every block position the
+     * entity's bounding box overlaps whose state matches the nested
+     * block_condition, then compare via comparison/compare_to (defaults
+     * {@code >=} / 1). Distinct from in_block, which only samples the single
+     * block at the entity's feet — a crouching spider brushing a cobweb with its
+     * hitbox edge must still count as "in" it.
+     */
+    static EntityCondition parseInBlockAnywhere(JsonObject json, String contextId) {
+        JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
+            ? json.getAsJsonObject("block_condition") : null;
+        if (blockCond == null) return EntityCondition.alwaysTrue();
+        java.util.function.Predicate<BlockState> pred = compileInBlockPredicate(blockCond, contextId);
+        if (pred == null) return EntityCondition.alwaysTrue();
+
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 1;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        long stopAt = switch (comparison) {
+            case GREATER_THAN_OR_EQUAL, LESS_THAN -> Math.max(0, target);
+            case GREATER_THAN, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL -> Math.max(0, (long) target + 1);
+        };
+
+        return player -> {
+            var box = player.getBoundingBox();
+            BlockPos min = BlockPos.containing(box.minX, box.minY, box.minZ);
+            BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+            long count = 0;
+            for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+                if (pred.test(player.level().getBlockState(pos))) {
+                    count++;
+                    if (count >= stopAt) break;
+                }
+            }
+            return comparison.test(count, target);
+        };
+    }
+
+    /**
+     * neoorigins:climbing_gate — internal condition emitted by the compat
+     * translator for conditioned {@code origins:climbing} powers. Carries
+     * Apoli's climb state machine: active while {@code condition} holds; once
+     * active, {@code allow_holding} (default true) keeps it active while
+     * airborne and {@code hold_condition} passes, releasing on touchdown.
+     *
+     * <p>The result is memoized per player per tick, which both keeps every
+     * same-tick evaluation (capability check, client sync, signature) coherent
+     * and breaks the self-reference cycle packs use — a hold_condition of
+     * {@code power_active(<this climbing power>)} re-enters this gate during
+     * its own computation and receives last tick's result ("was I climbing?"),
+     * which is exactly Apoli's hold semantic.
+     */
+    static EntityCondition parseClimbingGate(JsonObject json, String contextId) {
+        EntityCondition active = json.has("condition") && json.get("condition").isJsonObject()
+            ? parse(json.getAsJsonObject("condition"), contextId + "#climbing_gate")
+            : EntityCondition.alwaysTrue();
+        EntityCondition hold = json.has("hold_condition") && json.get("hold_condition").isJsonObject()
+            ? parse(json.getAsJsonObject("hold_condition"), contextId + "#climbing_gate_hold")
+            : null;
+        boolean allowHolding = !json.has("allow_holding") || json.get("allow_holding").getAsBoolean();
+
+        // Per-parsed-gate per-player state; the map dies with the parsed power
+        // on datapack reload, so no explicit cleanup is needed.
+        java.util.Map<java.util.UUID, ClimbGateState> states = new java.util.concurrent.ConcurrentHashMap<>();
+        return player -> {
+            ClimbGateState st = states.computeIfAbsent(player.getUUID(), k -> new ClimbGateState());
+            long now = player.level().getGameTime();
+            if (st.computing) return st.lastResult;       // self-reference via power_active
+            if (st.lastTick == now) return st.lastResult; // memoized within the tick
+            boolean result;
+            st.computing = true;
+            try {
+                if (active.test(player)) {
+                    result = true;
+                } else {
+                    result = allowHolding && st.lastResult && !player.onGround()
+                        && (hold == null || hold.test(player));
+                }
+            } finally {
+                st.computing = false;
+            }
+            st.lastTick = now;
+            st.lastResult = result;
+            return result;
+        };
+    }
+
+    private static final class ClimbGateState {
+        long lastTick = Long.MIN_VALUE;
+        boolean lastResult;
+        boolean computing;
+    }
+
+    /**
      * Recursively compiles an {@code origins:in_block} block_condition node into
      * a {@link BlockState} predicate. Self-contained on purpose — kept separate
      * from the {@code action_on_event} block-predicate compiler. Returns
@@ -935,7 +1064,8 @@ public final class ConditionParser {
         String blockId = bc.has("block") ? bc.get("block").getAsString()
                        : bc.has("id") ? bc.get("id").getAsString() : null;
         if ((bare.equals("block") || blockId != null) && blockId != null && !blockId.isBlank()) {
-            Identifier bid = Identifier.parse(blockId);
+            Identifier bid = Identifier.parse(
+                com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(blockId));
             return state -> BuiltInRegistries.BLOCK.getKey(state.getBlock()).equals(bid);
         }
         if (bare.equals("in_tag") && bc.has("tag")) {
@@ -1633,35 +1763,53 @@ public final class ConditionParser {
     }
 
     /**
-     * near_block: true when any matching block is within {@code radius} blocks
-     * (default 4, capped at 8) of the player. Accepts any combination of:
+     * near_block (alias {@code origins:block_in_radius}): counts matching blocks
+     * within {@code radius} blocks (default 4, capped at 16) of the player and
+     * compares the count via {@code comparison}/{@code compare_to} (Apoli
+     * defaults {@code >=} / 1, i.e. "any match"). Accepts any combination of:
      * <ul>
      *   <li>{@code block} — single block ID</li>
      *   <li>{@code blocks} — list of block IDs</li>
      *   <li>{@code tag} — single block tag (with or without leading {@code #})</li>
      *   <li>{@code tags} — list of block tags</li>
+     *   <li>{@code block_condition} — nested Apoli block condition (full
+     *       block/in_tag/combinator/inverted support)</li>
      * </ul>
-     * A block matches if it's in ANY of the provided blocks/tags (logical OR).
+     * A block matches if it's in ANY of the provided matchers (logical OR).
+     * {@code shape} may be {@code cube} (default), {@code star} or
+     * {@code sphere}. The scan bails out early once the comparison outcome is
+     * decided, so simple ">= 1" checks stay cheap.
      *
      * <pre>{ "type": "neoorigins:near_block", "block": "minecraft:lava", "radius": 3 }</pre>
-     * <pre>{ "type": "neoorigins:near_block", "tags": ["minecraft:campfires", "#c:fire"], "radius": 5 }</pre>
-     *
-     * Scans a cubic AABB; intended for ambient proximity buffs (campfire
-     * warmth, lava-side speed, etc.). Capped at radius 8 to avoid overly
-     * expensive per-tick scans.
+     * <pre>{ "type": "origins:block_in_radius", "block_condition": { "type": "origins:block", "block": "minecraft:soul_sand" }, "radius": 9, "comparison": ">=", "compare_to": 5 }</pre>
      */
     static EntityCondition parseNearBlock(JsonObject json, String contextId) {
-        int radius = Math.min(8, Math.max(1,
+        // Apoli block_in_radius semantics: COUNT matching blocks in the shape and
+        // compare against compare_to (defaults ">=" 1, which is the old any-match
+        // behaviour). Capped at radius 16 to bound the per-tick scan.
+        int radius = Math.min(16, Math.max(1,
             json.has("radius") ? json.get("radius").getAsInt() : 4));
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 1;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        String shape = json.has("shape") ? json.get("shape").getAsString().toLowerCase(Locale.ROOT) : "cube";
+        if (!shape.equals("cube") && !shape.equals("star") && !shape.equals("sphere")) {
+            NeoOrigins.LOGGER.debug("[CompatB] near_block {}: unknown shape '{}' — treating as cube", contextId, shape);
+            shape = "cube";
+        }
+
         List<Identifier> blockIds = new ArrayList<>();
         List<TagKey<Block>> tags = new ArrayList<>();
+        java.util.function.Predicate<BlockState> condPred = null;
 
         if (json.has("block")) {
-            blockIds.add(Identifier.parse(json.get("block").getAsString()));
+            blockIds.add(Identifier.parse(
+                com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(json.get("block").getAsString())));
         }
         if (json.has("blocks") && json.get("blocks").isJsonArray()) {
             for (JsonElement el : json.getAsJsonArray("blocks")) {
-                if (el.isJsonPrimitive()) blockIds.add(Identifier.parse(el.getAsString()));
+                if (el.isJsonPrimitive()) blockIds.add(Identifier.parse(
+                    com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(el.getAsString())));
             }
         }
         if (json.has("tag")) {
@@ -1672,45 +1820,60 @@ public final class ConditionParser {
                 if (el.isJsonPrimitive()) tags.add(parseBlockTag(el.getAsString()));
             }
         }
-
-        // Origins block_in_radius format: nested block_condition object
+        // Origins block_in_radius format: nested block_condition object. The
+        // full recursive compiler handles block/in_tag/combinators/inverted.
         if (json.has("block_condition") && json.get("block_condition").isJsonObject()) {
-            JsonObject bc = json.getAsJsonObject("block_condition");
-            String bcType = bc.has("type") ? bc.get("type").getAsString() : "";
-            if ((bcType.equals("origins:in_tag") || bcType.equals("apace:in_tag")
-                    || bcType.equals("neoorigins:in_tag")) && bc.has("tag")) {
-                tags.add(parseBlockTag(bc.get("tag").getAsString()));
-            } else if ((bcType.equals("origins:block") || bcType.equals("apace:block")
-                    || bcType.equals("neoorigins:block")) && bc.has("block")) {
-                blockIds.add(Identifier.parse(bc.get("block").getAsString()));
-            }
+            condPred = compileInBlockPredicate(json.getAsJsonObject("block_condition"), contextId);
         }
 
-        if (blockIds.isEmpty() && tags.isEmpty()) return failClosed("neoorigins:near_block",
-            contextId, "requires 'block'/'blocks' or 'tag'/'tags' or 'block_condition'");
+        if (blockIds.isEmpty() && tags.isEmpty() && condPred == null) {
+            return failClosed("neoorigins:near_block",
+                contextId, "requires 'block'/'blocks' or 'tag'/'tags' or 'block_condition'");
+        }
+
+        // Resolve block ids once; unknown ids simply never match.
+        final List<Block> blocks = blockIds.stream()
+            .map(BuiltInRegistries.BLOCK::getOptional)
+            .flatMap(Optional::stream)
+            .toList();
+        final List<TagKey<Block>> finalTags = List.copyOf(tags);
+        final java.util.function.Predicate<BlockState> finalCondPred = condPred;
+        java.util.function.Predicate<BlockState> matcher = state -> {
+            for (Block b : blocks) if (state.is(b)) return true;
+            for (TagKey<Block> tag : finalTags) if (state.is(tag)) return true;
+            return finalCondPred != null && finalCondPred.test(state);
+        };
+
+        // Once the count reaches stopAt the comparison outcome can't change, so
+        // the scan can bail out early (matters for high-radius tiered powers).
+        final long stopAt = switch (comparison) {
+            case GREATER_THAN_OR_EQUAL, LESS_THAN -> Math.max(0, target);
+            case GREATER_THAN, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL -> Math.max(0, (long) target + 1);
+        };
 
         final int r = radius;
-        final List<Identifier> finalBlockIds = List.copyOf(blockIds);
-        final List<TagKey<Block>> finalTags = List.copyOf(tags);
+        final String finalShape = shape;
         return p -> {
             BlockPos origin = p.blockPosition();
             Level level = p.level();
+            long count = 0;
+            outer:
             for (int dx = -r; dx <= r; dx++) {
                 for (int dy = -r; dy <= r; dy++) {
                     for (int dz = -r; dz <= r; dz++) {
-                        BlockPos pos = origin.offset(dx, dy, dz);
-                        BlockState state = level.getBlockState(pos);
-                        for (Identifier id : finalBlockIds) {
-                            var block = BuiltInRegistries.BLOCK.getOptional(id);
-                            if (block.isPresent() && state.is(block.get())) return true;
+                        switch (finalShape) {
+                            case "star" -> { if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) > r) continue; }
+                            case "sphere" -> { if ((long) dx * dx + (long) dy * dy + (long) dz * dz > (long) r * r) continue; }
+                            default -> { }
                         }
-                        for (TagKey<Block> tag : finalTags) {
-                            if (state.is(tag)) return true;
+                        if (matcher.test(level.getBlockState(origin.offset(dx, dy, dz)))) {
+                            count++;
+                            if (count >= stopAt) break outer;
                         }
                     }
                 }
             }
-            return false;
+            return comparison.test(count, target);
         };
     }
 

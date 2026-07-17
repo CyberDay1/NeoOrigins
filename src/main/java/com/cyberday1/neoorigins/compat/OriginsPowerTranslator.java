@@ -96,7 +96,11 @@ public final class OriginsPowerTranslator {
         // origins:cooldown — Route B parses it into a countdown compat
         // resource that trigger_cooldown can arm and resource conditions /
         // hud_render can read (the Apoli "readable cooldown" pattern).
-        "origins:cooldown",              "apace:cooldown"
+        "origins:cooldown",              "apace:cooldown",
+        // Issue #110 follow-up (Origins++ 2.4): Route B
+        "origins:swimming",              "apace:swimming",
+        "origins:action_on_being_used",  "apace:action_on_being_used",
+        "origins:prevent_block_selection", "apace:prevent_block_selection"
     );
 
     /**
@@ -336,7 +340,7 @@ public final class OriginsPowerTranslator {
             case "origins:slow_falling"                                           -> translateSimplePrevent("FALL_DAMAGE");
             case "origins:walk_speed",             "apace:walk_speed"             -> translateWalkSpeed(src);
             case "origins:modify_swim_speed",      "apace:modify_swim_speed"      -> translateModifySwimSpeed(src);
-            case "origins:climbing",               "apace:climbing"               -> translateSimple("neoorigins:wall_climbing");
+            case "origins:climbing",               "apace:climbing"               -> translateClimbing(src);
             case "origins:entity_size",            "apace:entity_size"            -> translateEntitySize(src);
             case "origins:modify_break_speed",     "apace:modify_break_speed"     -> translateModifyBreakSpeed(src);
             case "origins:entity_group",           "apace:entity_group"           -> translateEntityGroup(src);
@@ -392,6 +396,32 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> translateSimple(String neoType) {
         JsonObject out = new JsonObject();
         out.addProperty("type", neoType);
+        return Optional.of(out);
+    }
+
+    /**
+     * origins:climbing → neoorigins:wall_climbing. Unconditioned powers stay a
+     * plain translation. Apoli's {@code condition} (climb only while it holds),
+     * {@code hold_condition} (keep climbing after the trigger stops) and
+     * {@code allow_holding} are folded into a {@code neoorigins:climbing_gate}
+     * power_condition, which carries the hold state machine. Emitting the gate
+     * here (instead of letting passThroughUnhandledKeys route the raw condition)
+     * is what preserves hold semantics — the plain routing would drop
+     * hold_condition entirely.
+     */
+    private static Optional<JsonObject> translateClimbing(JsonObject src) {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:wall_climbing");
+        if (!src.has("condition") && !src.has("hold_condition")) {
+            return Optional.of(out);
+        }
+        JsonObject gate = new JsonObject();
+        gate.addProperty("type", "neoorigins:climbing_gate");
+        if (src.has("condition"))      gate.add("condition", src.get("condition").deepCopy());
+        if (src.has("hold_condition")) gate.add("hold_condition", src.get("hold_condition").deepCopy());
+        if (src.has("allow_holding"))  gate.add("allow_holding", src.get("allow_holding").deepCopy());
+        out.add("power_condition", gate);
+        out.addProperty("power_condition_mode", "ALLOW");
         return Optional.of(out);
     }
 

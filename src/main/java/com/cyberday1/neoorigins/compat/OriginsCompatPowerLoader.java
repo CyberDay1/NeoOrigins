@@ -27,7 +27,11 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.hurtingprojectile.SmallFireball;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
@@ -126,7 +130,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Apoli cooldown power: a countdown resource armed by trigger_cooldown
         // and read back via resource conditions / hud_render (previously
         // silently dropped — the Chaotic Chemist immunity-shot pattern).
-        "origins:cooldown",             "apace:cooldown"
+        "origins:cooldown",             "apace:cooldown",
+        // Issue #110 follow-up (Origins++ 2.4)
+        "origins:swimming",              "apace:swimming",
+        "origins:action_on_being_used",  "apace:action_on_being_used",
+        "origins:prevent_block_selection", "apace:prevent_block_selection"
     );
 
     private static final Set<String> MULTIPLE_META_KEYS = OriginsMultipleExpander.META_KEYS;
@@ -708,6 +716,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:prevent_game_event",         "apace:prevent_game_event"         -> parsePreventGameEvent(id, json);
             case "origins:exhaust",                    "apace:exhaust"                    -> parseExhaust(id, json);
             case "origins:cooldown",                   "apace:cooldown"                   -> parseCooldown(id, json);
+            // Issue #110 follow-up (Origins++ 2.4)
+            case "origins:swimming",                   "apace:swimming"                   -> parseSwimming(id, json);
+            case "origins:action_on_being_used",       "apace:action_on_being_used"       -> parseActionOnBeingUsed(id, json);
+            case "origins:prevent_block_selection",    "apace:prevent_block_selection"    -> parsePreventBlockSelection(id, json);
             default -> null;
         };
     }
@@ -1109,7 +1121,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             base.onIncomingDamage(),
             base.onDealDamage(),
             base.cooldownTicks(),
-            base.hotkeyless());
+            base.hotkeyless(),
+            base.capabilities(),
+            base.capabilityCondition());
     }
 
     private CompatPower.Config parseActionOverTime(Identifier id, JsonObject json) {
@@ -1721,112 +1735,396 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }).build();
     }
 
+    /** One resolved attribute-modifier entry of a conditioned_attribute power. */
+    private record CondAttrEntry(
+        net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute,
+        Identifier modifierId, double value, AttributeModifier.Operation operation) {}
+
+    /**
+     * Collect the attribute-modifier specs of an Apoli {@code conditioned_attribute}
+     * power in canonical form: one JsonObject per modifier, each carrying its own
+     * {@code attribute} (inherited from the top level when the entry omits it).
+     * Accepts every shape real packs use:
+     * <ul>
+     *   <li>plural {@code "modifiers"} as an ARRAY of entries (Origins++ dark_boost)</li>
+     *   <li>plural {@code "modifiers"} as a single OBJECT (Origins++ pluck)</li>
+     *   <li>singular {@code "modifier"} object (attribute inside it or at top level)</li>
+     *   <li>flat top-level {@code attribute}/{@code operation}/{@code value}</li>
+     * </ul>
+     * Package-visible for unit tests.
+     */
+    static List<JsonObject> collectAttributeModifierSpecs(JsonObject json) {
+        List<JsonObject> specs = new ArrayList<>();
+        String topAttr = json.has("attribute") && json.get("attribute").isJsonPrimitive()
+            ? json.get("attribute").getAsString() : null;
+        JsonElement plural = json.get("modifiers");
+        if (plural != null && plural.isJsonArray()) {
+            for (JsonElement el : plural.getAsJsonArray()) {
+                if (el.isJsonObject()) specs.add(inheritAttribute(el.getAsJsonObject(), topAttr));
+            }
+        } else if (plural != null && plural.isJsonObject()) {
+            specs.add(inheritAttribute(plural.getAsJsonObject(), topAttr));
+        } else if (json.has("modifier") && json.get("modifier").isJsonObject()) {
+            specs.add(inheritAttribute(json.getAsJsonObject("modifier"), topAttr));
+        } else if (topAttr != null) {
+            // Flat singular form: operation/value live directly on the power object.
+            JsonObject spec = new JsonObject();
+            for (String key : List.of("attribute", "operation", "value", "amount")) {
+                if (json.has(key)) spec.add(key, json.get(key));
+            }
+            specs.add(spec);
+        }
+        return specs;
+    }
+
+    private static JsonObject inheritAttribute(JsonObject spec, String topAttr) {
+        JsonObject copy = spec.deepCopy();
+        if (!copy.has("attribute") && topAttr != null) copy.addProperty("attribute", topAttr);
+        return copy;
+    }
+
+    /**
+     * Resolve an attribute id against the registry, tolerating the 1.21.1 ⇄
+     * 1.21.2+ {@code generic.} prefix divergence in either direction so the
+     * same pack works on both versions.
+     */
+    private static net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute>
+            resolveAttributeHolder(Identifier rawAttrIdent) {
+        var holder = BuiltInRegistries.ATTRIBUTE.get(rawAttrIdent).orElse(null);
+        if (holder == null && rawAttrIdent.getPath().startsWith("generic.")) {
+            holder = BuiltInRegistries.ATTRIBUTE.get(Identifier.fromNamespaceAndPath(
+                rawAttrIdent.getNamespace(), rawAttrIdent.getPath().substring("generic.".length()))).orElse(null);
+        }
+        if (holder == null && !rawAttrIdent.getPath().startsWith("generic.")) {
+            holder = BuiltInRegistries.ATTRIBUTE.get(Identifier.fromNamespaceAndPath(
+                rawAttrIdent.getNamespace(), "generic." + rawAttrIdent.getPath())).orElse(null);
+        }
+        return holder;
+    }
+
     private CompatPower.Config parseConditionedAttribute(Identifier id, JsonObject json) {
         String idStr = id.toString();
-        // Attribute can be at top level or nested inside "modifier" object
-        String attrStr = null;
-        if (json.has("attribute")) {
-            attrStr = json.get("attribute").getAsString();
-        } else if (json.has("modifier") && json.get("modifier").isJsonObject()
-                   && json.getAsJsonObject("modifier").has("attribute")) {
-            attrStr = json.getAsJsonObject("modifier").get("attribute").getAsString();
-        }
-        if (attrStr == null) {
+        List<JsonObject> specs = collectAttributeModifierSpecs(json);
+        if (specs.isEmpty()) {
             CompatTranslationLog.skip(id, "origins:conditioned_attribute",
-                "missing 'attribute' field in JSON");
+                "missing 'attribute'/'modifier'/'modifiers' in JSON");
             return null;
         }
 
-        // Fall-damage isn't a vanilla attribute, so a conditioned_attribute that
-        // targets it (e.g. attribute "apoli:fall_damage" / "fall_damage") would
-        // fail the registry lookup below and get SILENTLY DROPPED. Route it to the
-        // dedicated fall-damage handler instead — it reads the same modifier/
-        // modifiers + condition off this object and scales fall damage via the
-        // native MOD_FALL_DAMAGE seam. (path-only match: namespace varies across
-        // packs, but the leaf is consistently "fall_damage".)
-        String attrLeaf = attrStr.contains(":") ? attrStr.substring(attrStr.indexOf(':') + 1) : attrStr;
-        if (attrLeaf.equals("fall_damage") || attrLeaf.equals("generic.fall_damage")) {
-            // The modifier may be nested inside the "modifier" object alongside the
-            // attribute key — hoist it to the top-level "modifier" the fall-damage
-            // parser expects, without mutating the original (defensive copy).
-            JsonObject fwd = json.deepCopy();
-            if (!fwd.has("modifier") && !fwd.has("modifiers")
-                    && json.has("modifier") && json.get("modifier").isJsonObject()) {
-                fwd.add("modifier", json.getAsJsonObject("modifier"));
+        // Split fall_damage entries from real attribute entries. Fall-damage isn't
+        // a vanilla attribute, so an entry targeting it (attribute leaf
+        // "fall_damage", namespace varies across packs) would fail the registry
+        // lookup and get SILENTLY DROPPED — route those to the native
+        // MOD_FALL_DAMAGE seam instead, under the same shared condition.
+        List<JsonObject> fallSpecs = new ArrayList<>();
+        List<CondAttrEntry> entries = new ArrayList<>();
+        String safeKey = id.getPath().replace('/', '_');
+        for (int i = 0; i < specs.size(); i++) {
+            JsonObject spec = specs.get(i);
+            String attrStr = spec.has("attribute") ? spec.get("attribute").getAsString() : null;
+            if (attrStr == null) {
+                NeoOrigins.LOGGER.warn("[CompatB] {}: modifiers[{}] has no 'attribute' — entry dropped", idStr, i);
+                continue;
             }
+            String attrLeaf = attrStr.contains(":") ? attrStr.substring(attrStr.indexOf(':') + 1) : attrStr;
+            if (attrLeaf.equals("fall_damage") || attrLeaf.equals("generic.fall_damage")) {
+                fallSpecs.add(spec);
+                continue;
+            }
+            Identifier rawAttrIdent = Identifier.parse(attrStr);
+            var attrHolder = resolveAttributeHolder(rawAttrIdent);
+            if (attrHolder == null) {
+                // Surface the bad attribute id in the compat log too — pack
+                // authors usually only check that file when debugging; without
+                // the id they only see an unactionable generic skip.
+                NeoOrigins.LOGGER.warn("[CompatB] {}: unknown attribute '{}' — entry dropped", idStr, rawAttrIdent);
+                CompatTranslationLog.skip(id, "origins:conditioned_attribute",
+                    "unknown attribute '" + rawAttrIdent + "' — pack-side fix: confirm attribute exists in this MC version");
+                continue;
+            }
+            double value = spec.has("value")  ? spec.get("value").getAsDouble()
+                         : spec.has("amount") ? spec.get("amount").getAsDouble() : 0.0;
+            String op = spec.has("operation") ? spec.get("operation").getAsString() : "add_value";
+            // Apoli clamp/set ops (min/max/set) have no vanilla AttributeModifier
+            // equivalent — applying them as add_value corrupts the attribute (a
+            // cap becomes a flat bonus). Drop the entry rather than mis-apply it.
+            if (!OriginsOperationMapper.isRepresentable(op)) {
+                NeoOrigins.LOGGER.warn("[CompatB] {}: attribute operation '{}' (clamp/set) has no vanilla "
+                    + "equivalent — entry dropped", idStr, op);
+                CompatTranslationLog.skip(id, "origins:conditioned_attribute",
+                    "operation '" + op + "' (clamp/set) cannot be represented as a vanilla attribute modifier");
+                continue;
+            }
+            AttributeModifier.Operation operation = switch (OriginsOperationMapper.mapOperation(op)) {
+                case "add_multiplied_base"  -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+                case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+                default                     -> AttributeModifier.Operation.ADD_VALUE;
+            };
+            // Stable per-entry modifier ID; the first entry keeps the historical
+            // un-suffixed id so worlds saved before the plural support don't leak
+            // a stale permanent modifier on upgrade.
+            Identifier modifierId = Identifier.fromNamespaceAndPath("neoorigins",
+                i == 0 ? "condattr_" + safeKey : "condattr_" + safeKey + "_" + i);
+            entries.add(new CondAttrEntry(attrHolder, modifierId, value, operation));
+        }
+
+        if (entries.isEmpty() && fallSpecs.isEmpty()) {
+            return null; // per-entry skip reasons already logged above
+        }
+
+        // Pure fall-damage power (the historical singular case and its array
+        // form): delegate wholly to the fall-damage parser under the same condition.
+        if (entries.isEmpty()) {
+            JsonObject fwd = new JsonObject();
+            com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+            fallSpecs.forEach(arr::add);
+            fwd.add("modifiers", arr);
+            if (json.has("condition")) fwd.add("condition", json.get("condition"));
             CompatTranslationLog.pass(id,
                 "origins:conditioned_attribute (fall_damage) -> modify_fall_damage");
             return parseModifyFallDamage(id, fwd);
         }
 
-        Identifier rawAttrIdent = Identifier.parse(attrStr);
-        // Try the raw attribute name first. If that fails and the name has a
-        // "generic." prefix (used in MC ≤1.21.1), try without it (MC 1.21.2+
-        // dropped the prefix). This lets the same pack work on both versions.
-        var attrHolder = BuiltInRegistries.ATTRIBUTE.get(rawAttrIdent).orElse(null);
-        Identifier attrIdent = rawAttrIdent;
-        if (attrHolder == null && rawAttrIdent.getPath().startsWith("generic.")) {
-            attrIdent = Identifier.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
-                rawAttrIdent.getPath().substring("generic.".length()));
-            attrHolder = BuiltInRegistries.ATTRIBUTE.get(attrIdent).orElse(null);
-        }
-        // Also try adding "generic." prefix if not present (26.1 pack on 1.21.1)
-        if (attrHolder == null && !rawAttrIdent.getPath().startsWith("generic.")) {
-            attrIdent = Identifier.fromNamespaceAndPath(rawAttrIdent.getNamespace(),
-                "generic." + rawAttrIdent.getPath());
-            attrHolder = BuiltInRegistries.ATTRIBUTE.get(attrIdent).orElse(null);
-        }
-        if (attrHolder == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] {}: unknown attribute '{}' (raw: '{}') — power will no-op",
-                idStr, attrIdent, rawAttrIdent);
-            CompatTranslationLog.skip(id, "origins:conditioned_attribute",
-                "unknown attribute '" + rawAttrIdent + "' — pack-side fix: confirm attribute exists in this MC version");
-            return null;
-        }
-        final var resolvedAttrHolder = attrHolder;
-
-        JsonObject modObj = json.has("modifier") ? json.getAsJsonObject("modifier") : json;
-        double value = modObj.has("value")  ? modObj.get("value").getAsDouble()
-                     : modObj.has("amount") ? modObj.get("amount").getAsDouble() : 0.0;
-        String op = modObj.has("operation") ? modObj.get("operation").getAsString() : "add_value";
-        // Apoli clamp/set ops (min/max/set) have no vanilla AttributeModifier
-        // equivalent — applying them as add_value corrupts the attribute (a cap
-        // becomes a flat bonus). Skip the power rather than mis-apply it.
-        if (!OriginsOperationMapper.isRepresentable(op)) {
-            NeoOrigins.LOGGER.warn("[CompatB] {}: attribute operation '{}' (clamp/set) has no vanilla "
-                + "equivalent — power will no-op", idStr, op);
-            CompatTranslationLog.skip(id, "origins:conditioned_attribute",
-                "operation '" + op + "' (clamp/set) cannot be represented as a vanilla attribute modifier");
-            return null;
-        }
-        AttributeModifier.Operation operation = switch (OriginsOperationMapper.mapOperation(op)) {
-            case "add_multiplied_base"  -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
-            case "add_multiplied_total" -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
-            default                     -> AttributeModifier.Operation.ADD_VALUE;
-        };
-
         EntityCondition condition = parseConditionField(json, "condition", idStr);
+        // Apoli semantics: update_health (default TRUE) preserves the health
+        // FRACTION when a max-health modifier flips on/off.
+        boolean updateHealth = !json.has("update_health") || json.get("update_health").getAsBoolean();
+        List<CondAttrEntry> attrEntries = List.copyOf(entries);
 
-        // Stable modifier ID derived from the power ID.
-        String safeKey = id.getPath().replace('/', '_');
-        Identifier modifierId = Identifier.fromNamespaceAndPath("neoorigins", "condattr_" + safeKey);
+        // Rare mixed case: fall_damage entries alongside real attributes —
+        // register the fall-damage handler from the same power id.
+        com.cyberday1.neoorigins.compat.modifier.FloatModifier parsedFallModifier = null;
+        if (!fallSpecs.isEmpty()) {
+            com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+            fallSpecs.forEach(arr::add);
+            parsedFallModifier = com.cyberday1.neoorigins.compat.modifier.ModifierParser.parseList(arr, idStr);
+        }
+        final com.cyberday1.neoorigins.compat.modifier.FloatModifier fallModifier = parsedFallModifier;
 
-        return CompatPower.Config.builder()
+        var builder = CompatPower.Config.builder()
             .onTick(player -> {
-                AttributeInstance inst = player.getAttribute(resolvedAttrHolder);
-                if (inst == null) return;
                 boolean shouldHave = condition.test(player);
-                boolean has = inst.getModifier(modifierId) != null;
-                if (shouldHave && !has) {
-                    inst.addPermanentModifier(new AttributeModifier(modifierId, value, operation));
-                } else if (!shouldHave && has) {
-                    inst.removeModifier(modifierId);
+                float oldMax = player.getMaxHealth();
+                boolean changed = false;
+                for (CondAttrEntry e : attrEntries) {
+                    AttributeInstance inst = player.getAttribute(e.attribute());
+                    if (inst == null) continue;
+                    boolean has = inst.getModifier(e.modifierId()) != null;
+                    if (shouldHave && !has) {
+                        inst.addPermanentModifier(new AttributeModifier(e.modifierId(), e.value(), e.operation()));
+                        changed = true;
+                    } else if (!shouldHave && has) {
+                        inst.removeModifier(e.modifierId());
+                        changed = true;
+                    }
+                }
+                if (changed && updateHealth) {
+                    float newMax = player.getMaxHealth();
+                    if (newMax != oldMax && oldMax > 0.0f) {
+                        player.setHealth(player.getHealth() * newMax / oldMax);
+                    }
                 }
             })
             .onRevoked(player -> {
-                AttributeInstance inst = player.getAttribute(resolvedAttrHolder);
-                if (inst != null) inst.removeModifier(modifierId);
+                float oldMax = player.getMaxHealth();
+                boolean removed = false;
+                for (CondAttrEntry e : attrEntries) {
+                    AttributeInstance inst = player.getAttribute(e.attribute());
+                    if (inst != null && inst.getModifier(e.modifierId()) != null) {
+                        inst.removeModifier(e.modifierId());
+                        removed = true;
+                    }
+                }
+                if (removed && updateHealth) {
+                    float newMax = player.getMaxHealth();
+                    if (newMax != oldMax && oldMax > 0.0f) {
+                        player.setHealth(player.getHealth() * newMax / oldMax);
+                    }
+                }
+                if (fallModifier != null) unregisterFallDamageHandler(player, idStr);
+            });
+        if (fallModifier != null) {
+            builder.onGranted(player -> registerFallDamageHandler(player, idStr, fallModifier, condition));
+        }
+        return builder.build();
+    }
+
+    /**
+     * {@code origins:swimming} — the holder can enter the swimming state in any
+     * medium (Apoli forces the swim pose + touchingWater from sprint state alone,
+     * which routes travel() through water physics — real swim up/down in lava).
+     * Implemented as the condition-gated {@code "forced_swimming"} capability
+     * consumed by EntityForcedSwimmingMixin on both logical sides, so the same
+     * mechanism covers lava-gated (fluid_height/in_block) and resource-gated
+     * (Corrupted Wither skirmish) packs without a per-medium special case.
+     */
+    private CompatPower.Config parseSwimming(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+        // Fail closed on unsupported conditions: an unconditioned forced-swim
+        // would apply water physics everywhere (walking, falling), which is far
+        // worse than the power missing.
+        CompatPolicy.resetFailClosedCount();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        if (CompatPolicy.failClosedCount() > 0) {
+            NeoOrigins.LOGGER.warn("[CompatB] swimming {} has unsupported condition(s) — refusing to compile", idStr);
+            CompatTranslationLog.skip(id, "origins:swimming", "unsupported condition — refusing to force-swim unconditionally");
+            return null;
+        }
+        return CompatPower.Config.builder()
+            .capability("forced_swimming", condition::test)
+            .build();
+    }
+
+    // ── action_on_being_used registry ───────────────────────────────────
+    // Keyed by HOLDER UUID → power id → entry. Consulted by
+    // CompatEventPowers.onEntityInteract when another player right-clicks the
+    // holder: bientity actor = the interacting player, target = the holder.
+
+    /** One registered action_on_being_used power on a holder. */
+    public record BeingUsedEntry(
+        com.cyberday1.neoorigins.compat.action.BiEntityAction action,
+        java.util.function.BiPredicate<ServerPlayer, ServerPlayer> condition) {}
+
+    private static final java.util.concurrent.ConcurrentHashMap<java.util.UUID,
+        java.util.Map<String, BeingUsedEntry>> BEING_USED = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Entries registered on a holder (empty map when none). */
+    public static java.util.Map<String, BeingUsedEntry> getBeingUsedEntries(java.util.UUID holderId) {
+        return BEING_USED.getOrDefault(holderId, Map.of());
+    }
+
+    /**
+     * Narrow bientity_condition support for the (actor=user, target=holder)
+     * player pair: {@code target_condition}/{@code actor_condition} wrap the
+     * full compat entity-condition engine; {@code and}/{@code or} combine;
+     * {@code inverted} flips at any level. Unknown types warn once and pass
+     * (fail-open) so the wrapped action still runs — the Apoli surface here is
+     * small and the only in-corpus user (giant/mount) is covered exactly.
+     */
+    private static java.util.function.BiPredicate<ServerPlayer, ServerPlayer>
+            parseBiEntityConditionNarrow(JsonObject json, String idStr) {
+        if (json == null) return (a, t) -> true;
+        String type = json.has("type") ? json.get("type").getAsString() : "";
+        String leaf = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+        boolean inverted = json.has("inverted") && json.get("inverted").getAsBoolean();
+        java.util.function.BiPredicate<ServerPlayer, ServerPlayer> base = switch (leaf) {
+            case "target_condition" -> {
+                EntityCondition c = parseConditionField(json, "condition", idStr);
+                yield (a, t) -> c.test(t);
+            }
+            case "actor_condition" -> {
+                EntityCondition c = parseConditionField(json, "condition", idStr);
+                yield (a, t) -> c.test(a);
+            }
+            case "and", "or" -> {
+                java.util.List<java.util.function.BiPredicate<ServerPlayer, ServerPlayer>> parts = new ArrayList<>();
+                if (json.has("conditions") && json.get("conditions").isJsonArray()) {
+                    for (JsonElement el : json.getAsJsonArray("conditions")) {
+                        if (el.isJsonObject()) parts.add(parseBiEntityConditionNarrow(el.getAsJsonObject(), idStr));
+                    }
+                }
+                boolean isAnd = leaf.equals("and");
+                yield (a, t) -> {
+                    for (var p : parts) {
+                        if (p.test(a, t) != isAnd) return !isAnd;
+                    }
+                    return isAnd;
+                };
+            }
+            case "constant" -> {
+                boolean v = json.has("value") && json.get("value").getAsBoolean();
+                yield (a, t) -> v;
+            }
+            default -> {
+                NeoOrigins.LOGGER.warn("[CompatB] {}: unsupported bientity_condition type '{}' — treating as always-true",
+                    idStr, type);
+                yield (a, t) -> true;
+            }
+        };
+        return inverted ? base.negate() : base;
+    }
+
+    /**
+     * {@code origins:action_on_being_used} — another player right-clicks the
+     * holder and a bientity action runs (actor = the user, target = the holder).
+     * Registered per holder in {@link #BEING_USED}; dispatched from
+     * CompatEventPowers.onEntityInteract (MAIN_HAND only, event consumed on
+     * success — Apoli returns ActionResult.SUCCESS). The Origins++ giant
+     * "mount" pattern: bientity_action origins:mount + target passenger check.
+     */
+    private CompatPower.Config parseActionOnBeingUsed(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+        if (!json.has("bientity_action")) {
+            CompatTranslationLog.skip(id, "origins:action_on_being_used", "missing 'bientity_action'");
+            return null;
+        }
+        com.cyberday1.neoorigins.compat.action.BiEntityAction action =
+            parseBiEntityActionField(json, "bientity_action", idStr);
+        java.util.function.BiPredicate<ServerPlayer, ServerPlayer> condition =
+            json.has("bientity_condition") && json.get("bientity_condition").isJsonObject()
+                ? parseBiEntityConditionNarrow(json.getAsJsonObject("bientity_condition"), idStr)
+                : (a, t) -> true;
+        if (json.has("item_condition")) {
+            // Apoli also gates on the used item; not wired into the interact hook
+            // yet, so surface the gap instead of silently ignoring it.
+            NeoOrigins.LOGGER.warn("[CompatB] {}: action_on_being_used 'item_condition' is not supported — ignored", idStr);
+        }
+        BeingUsedEntry entry = new BeingUsedEntry(action, condition);
+        return CompatPower.Config.builder()
+            .onGranted(player -> BEING_USED.computeIfAbsent(player.getUUID(),
+                k -> new java.util.concurrent.ConcurrentHashMap<>()).put(idStr, entry))
+            .onRevoked(player -> {
+                var perHolder = BEING_USED.get(player.getUUID());
+                if (perHolder != null) {
+                    perHolder.remove(idStr);
+                    if (perHolder.isEmpty()) BEING_USED.remove(player.getUUID());
+                }
             })
+            .build();
+    }
+
+    /**
+     * {@code origins:prevent_block_selection} — NARROW mapping: only the
+     * "crosshair passes through cobwebs" pattern (block_condition targeting the
+     * {@code origins:cobwebs} tag or the cobweb block itself, e.g. Broodmother
+     * punch_through). Emits the condition-gated
+     * {@code "cobweb_selection_passthrough"} capability consumed by
+     * BlockStateBaseCobwebShapeMixin. Anything broader (arbitrary block
+     * conditions would need per-block power evaluation inside the hot getShape
+     * path) keeps skipping.
+     */
+    private CompatPower.Config parsePreventBlockSelection(Identifier id, JsonObject json) {
+        String idStr = id.toString();
+        JsonObject bc = json.has("block_condition") && json.get("block_condition").isJsonObject()
+            ? json.getAsJsonObject("block_condition") : null;
+        boolean cobwebs = false;
+        if (bc != null) {
+            String t = bc.has("type") ? bc.get("type").getAsString() : "";
+            String leaf = t.contains(":") ? t.substring(t.indexOf(':') + 1) : t;
+            if (leaf.equals("in_tag") && bc.has("tag")
+                    && "origins:cobwebs".equals(bc.get("tag").getAsString())) {
+                cobwebs = true;
+            } else if (leaf.equals("block") && bc.has("block")
+                    && "minecraft:cobweb".equals(LegacyBlockIds.remap(bc.get("block").getAsString()))) {
+                cobwebs = true;
+            }
+        }
+        if (!cobwebs) {
+            CompatTranslationLog.skip(id, "origins:prevent_block_selection",
+                "only the cobweb pattern maps (block_condition must target origins:cobwebs / minecraft:cobweb)");
+            return null;
+        }
+        // Fail closed on unsupported conditions — an always-on passthrough would
+        // make the holder's own webs permanently untargetable.
+        CompatPolicy.resetFailClosedCount();
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        if (CompatPolicy.failClosedCount() > 0) {
+            NeoOrigins.LOGGER.warn("[CompatB] prevent_block_selection {} has unsupported condition(s) — refusing to compile", idStr);
+            CompatTranslationLog.skip(id, "origins:prevent_block_selection", "unsupported condition");
+            return null;
+        }
+        return CompatPower.Config.builder()
+            .capability("cobweb_selection_passthrough", condition::test)
             .build();
     }
 
@@ -1987,44 +2285,54 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         final EntityCondition condition = parseConditionField(json, "condition", idStr);
 
         return CompatPower.Config.builder()
-            .onGranted(player -> {
-                // Idempotent re-grant: drop any prior handler for this power id
-                // before re-registering, so login/respawn/origin-swap can't stack
-                // multiple multipliers (the ActionOnEventPower leak-guard).
-                var perPower = FALL_DAMAGE_TOKENS.get(player.getUUID());
-                if (perPower != null) {
-                    var existing = perPower.remove(idStr);
-                    if (existing != null) {
-                        com.cyberday1.neoorigins.service.EventPowerIndex.unregister(existing);
-                    }
-                }
-                com.cyberday1.neoorigins.service.EventPowerIndex.ModifierHandler handler =
-                    (sp, ctx, base) -> {
-                        try {
-                            if (!condition.test(sp)) return base;
-                            return modifier.apply(base);
-                        } catch (Exception e) {
-                            NeoOrigins.LOGGER.warn("[CompatB] modify_fall_damage handler error ({}): {}",
-                                idStr, e.getMessage());
-                            return base;
-                        }
-                    };
-                var tok = com.cyberday1.neoorigins.service.EventPowerIndex.registerModifier(
-                    player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_FALL_DAMAGE, handler);
-                FALL_DAMAGE_TOKENS.computeIfAbsent(player.getUUID(),
-                    k -> new java.util.concurrent.ConcurrentHashMap<>()).put(idStr, tok);
-            })
-            .onRevoked(player -> {
-                var perPower = FALL_DAMAGE_TOKENS.get(player.getUUID());
-                if (perPower != null) {
-                    var tok = perPower.remove(idStr);
-                    if (tok != null) {
-                        com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
-                    }
-                    if (perPower.isEmpty()) FALL_DAMAGE_TOKENS.remove(player.getUUID());
-                }
-            })
+            .onGranted(player -> registerFallDamageHandler(player, idStr, modifier, condition))
+            .onRevoked(player -> unregisterFallDamageHandler(player, idStr))
             .build();
+    }
+
+    /**
+     * Register a condition-gated fall-damage scaler on the MOD_FALL_DAMAGE seam,
+     * keyed per power id in {@link #FALL_DAMAGE_TOKENS}. Idempotent re-grant:
+     * drops any prior handler for this power id before re-registering, so
+     * login/respawn/origin-swap can't stack multiple multipliers (the
+     * ActionOnEventPower leak-guard). Shared by parseModifyFallDamage and the
+     * fall_damage entries of parseConditionedAttribute.
+     */
+    private static void registerFallDamageHandler(ServerPlayer player, String idStr,
+            com.cyberday1.neoorigins.compat.modifier.FloatModifier modifier, EntityCondition condition) {
+        var perPower = FALL_DAMAGE_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var existing = perPower.remove(idStr);
+            if (existing != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(existing);
+            }
+        }
+        com.cyberday1.neoorigins.service.EventPowerIndex.ModifierHandler handler =
+            (sp, ctx, base) -> {
+                try {
+                    if (!condition.test(sp)) return base;
+                    return modifier.apply(base);
+                } catch (Exception e) {
+                    NeoOrigins.LOGGER.warn("[CompatB] modify_fall_damage handler error ({}): {}",
+                        idStr, e.getMessage());
+                    return base;
+                }
+            };
+        var tok = com.cyberday1.neoorigins.service.EventPowerIndex.registerModifier(
+            player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_FALL_DAMAGE, handler);
+        FALL_DAMAGE_TOKENS.computeIfAbsent(player.getUUID(),
+            k -> new java.util.concurrent.ConcurrentHashMap<>()).put(idStr, tok);
+    }
+
+    private static void unregisterFallDamageHandler(ServerPlayer player, String idStr) {
+        var perPower = FALL_DAMAGE_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var tok = perPower.remove(idStr);
+            if (tok != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
+            }
+            if (perPower.isEmpty()) FALL_DAMAGE_TOKENS.remove(player.getUUID());
+        }
     }
 
     /**
@@ -2297,15 +2605,52 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseFireProjectile(Identifier id, JsonObject json) {
         String idStr = id.toString();
-        String entityTypeStr = json.has("entity_type") ? json.get("entity_type").getAsString() : "minecraft:arrow";
+        String rawEntityTypeStr = json.has("entity_type") ? json.get("entity_type").getAsString() : "minecraft:arrow";
+        // Legacy code-registered Origins entities (origins:enderian_pearl) remap
+        // to their vanilla equivalent; the pearl keeps Origins' no-fall-damage /
+        // no-endermite landing via the flag + CompatEventPowers.onEnderPearlTeleport.
+        String entityTypeStr = LegacyEntityIds.remap(rawEntityTypeStr);
+        boolean enderianPearl = !entityTypeStr.equals(rawEntityTypeStr)
+            && "minecraft:ender_pearl".equals(entityTypeStr);
         float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
         float divergence = json.has("divergence") ? json.get("divergence").getAsFloat() : 1.0f;
         int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
         int count = json.has("count") ? json.get("count").getAsInt() : 1;
 
+        // Apoli's `tag`: SNBT merged into the projectile before spawning. Parse
+        // at load time; legacy code-registered block ids inside get remapped.
+        // 26.1: TagParser.parseTag is gone — use parseCompoundFully.
+        CompoundTag parsedTag = null;
+        if (json.has("tag")) {
+            try {
+                parsedTag = TagParser.parseCompoundFully(json.get("tag").getAsString());
+                LegacyBlockIds.remapNbt(parsedTag);
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.warn("[CompatB] fire_projectile {}: unparseable tag '{}' — ignoring ({})",
+                    idStr, json.get("tag").getAsString(), e.getMessage());
+            }
+        }
+        CompoundTag tag = parsedTag;
+
+        EntityType<?> resolvedType = Identifier.tryParse(entityTypeStr) != null
+            ? BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(entityTypeStr)).orElse(null)
+            : null;
+        if (resolvedType == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] fire_projectile {}: unknown entity type '{}' — refusing to compile",
+                idStr, entityTypeStr);
+            return null;
+        }
+        EntityType<?> entityType = resolvedType;
+
+        // Activation gate — e.g. the Origins++ shifter pearl is only usable in
+        // Enderian form (a resource condition). Previously ignored, which let the
+        // projectile fire regardless of form.
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+
         return CompatPower.Config.builder()
             .cooldownTicks(cooldown)
             .onActivated(player -> {
+                if (!condition.test(player)) return;
                 if (cooldown > 0) {
                     PlayerOriginData data = player.getData(OriginAttachments.originData());
                     if (data.isOnCooldown(player, idStr)) return;
@@ -2314,22 +2659,38 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 if (!(player.level() instanceof ServerLevel sl)) return;
                 Vec3 look = player.getLookAngle();
                 for (int i = 0; i < count; i++) {
+                    net.minecraft.world.entity.Entity entity;
                     if ("minecraft:small_fireball".equals(entityTypeStr)) {
-                        SmallFireball fb = new SmallFireball(sl, player, look.scale(speed));
-                        fb.setPos(player.getX(), player.getEyeY(), player.getZ());
-                        sl.addFreshEntity(fb);
+                        // Constructor already aims the fireball (acceleration power).
+                        entity = new SmallFireball(sl, player, look.scale(speed));
+                        entity.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
                     } else {
-                        // Default: use execute_command to summon the entity type
-                        // This handles snowball, arrow, and any other projectile type
-                        String cmd = String.format(
-                            "summon %s ~ ~1.5 ~ {Motion:[%fd,%fd,%fd]}",
-                            entityTypeStr,
-                            look.x * speed, look.y * speed, look.z * speed
-                        );
-                        sl.getServer().getCommands().performPrefixedCommand(
-                            player.createCommandSourceStack().withSuppressedOutput(), cmd
-                        );
+                        entity = entityType.create(sl, EntitySpawnReason.TRIGGERED);
+                        if (entity == null) continue;
+                        entity.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
+                        if (entity instanceof Projectile projectile) {
+                            projectile.setOwner(player);
+                            projectile.shootFromRotation(player, player.getXRot(), player.getYRot(), 0f, speed, divergence);
+                        } else {
+                            entity.setDeltaMovement(look.scale(speed));
+                        }
                     }
+                    if (tag != null) {
+                        // Apoli merge order: current data <- pack tag, then reload.
+                        // 26.1: entity save/load flows through ValueOutput/ValueInput.
+                        var provider = sl.registryAccess();
+                        var out = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                            net.minecraft.util.ProblemReporter.DISCARDING, provider);
+                        entity.saveWithoutId(out);
+                        CompoundTag merged = out.buildResult();
+                        merged.merge(tag);
+                        entity.load(net.minecraft.world.level.storage.TagValueInput.create(
+                            net.minecraft.util.ProblemReporter.DISCARDING, provider, merged));
+                    }
+                    if (enderianPearl) {
+                        entity.getPersistentData().putBoolean(LegacyEntityIds.ENDERIAN_PEARL_FLAG, true);
+                    }
+                    sl.addFreshEntity(entity);
                 }
             })
             .build();

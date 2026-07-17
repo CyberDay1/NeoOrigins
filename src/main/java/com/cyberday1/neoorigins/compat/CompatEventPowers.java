@@ -235,14 +235,59 @@ public class CompatEventPowers {
         if (event.getEntity() instanceof ServerPlayer sp) CompatPlayerState.recordUseKey(sp);
     }
 
-    // ---- prevent_entity_use ----
+    // ---- prevent_entity_use / action_on_being_used ----
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         if (CompatPlayerState.hasPower(sp, CompatPlayerState.EventType.PREVENT_ENTITY_USE)) {
             event.setCanceled(true);
+            return;
         }
+        // action_on_being_used — the TARGET of the interaction holds the power:
+        // right-clicking that player fires its bientity action with
+        // actor = the interacting player, target = the holder (Apoli order).
+        // MAIN_HAND only, so the off-hand pass of the same click can't
+        // double-fire the action.
+        if (event.getHand() != net.minecraft.world.InteractionHand.MAIN_HAND) return;
+        if (!(event.getTarget() instanceof ServerPlayer holder)) return;
+        var entries = OriginsCompatPowerLoader.getBeingUsedEntries(holder.getUUID());
+        if (entries.isEmpty()) return;
+        boolean any = false;
+        for (var entry : entries.values()) {
+            if (!entry.condition().test(sp, holder)) continue;
+            entry.action().execute(sp, holder);
+            any = true;
+        }
+        if (any) {
+            // Apoli returns ActionResult.SUCCESS — consume the interaction so
+            // vanilla doesn't also process the click.
+            event.setCanceled(true);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+        }
+    }
+
+    // ---- fire_projectile: legacy origins:enderian_pearl ----
+
+    /**
+     * Origins' EnderianPearlEntity lands with NO fall damage and NO endermite
+     * chance (plain teleport). The compat layer spawns a vanilla ender pearl
+     * flagged at spawn (see {@link LegacyEntityIds#ENDERIAN_PEARL_FLAG}), so for
+     * those pearls we cancel vanilla landing and replicate the Origins one:
+     * teleport (dismounting first if riding) + reset fall distance. Cancelling
+     * also skips vanilla's 5.0 fall damage, the hurt flash and the 5% endermite.
+     */
+    @SubscribeEvent
+    public static void onEnderPearlTeleport(net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderPearl event) {
+        if (!event.getPearlEntity().getPersistentData().getBooleanOr(LegacyEntityIds.ENDERIAN_PEARL_FLAG, false)) return;
+        event.setCanceled(true);
+        ServerPlayer player = event.getPlayer();
+        if (player.isPassenger()) {
+            player.dismountTo(event.getTargetX(), event.getTargetY(), event.getTargetZ());
+        } else {
+            player.teleportTo(event.getTargetX(), event.getTargetY(), event.getTargetZ());
+        }
+        player.resetFallDistance();
     }
 
     // ---- modify_food ----

@@ -8,8 +8,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * A single compiled power type used by Route B.
@@ -36,7 +38,12 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         int cooldownTicks,
         // When true the power is activatable (has onActivated) but declines a
         // hotkey/skill slot — reachable only via the activate_power action.
-        boolean hotkeyless
+        boolean hotkeyless,
+        // Capability tags this power publishes to the client-predicted mixin
+        // layer (see PowerType.capabilities), gated per-tick by
+        // capabilityCondition when one is present. Null/empty = none.
+        Set<String> capabilities,
+        Predicate<ServerPlayer> capabilityCondition
     ) implements PowerConfiguration {
 
         public static Builder builder() { return new Builder(); }
@@ -47,6 +54,8 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             private BiConsumer<ServerPlayer, LivingEntity> onDealDamage;
             private int cooldownTicks;
             private boolean hotkeyless;
+            private Set<String> capabilities;
+            private Predicate<ServerPlayer> capabilityCondition;
 
             public Builder onGranted(Consumer<ServerPlayer> c)   { onGranted   = c; return this; }
             public Builder onRevoked(Consumer<ServerPlayer> c)   { onRevoked   = c; return this; }
@@ -65,10 +74,21 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             public Builder cooldownTicks(int ticks) { cooldownTicks = ticks; return this; }
             /** Mark this active power as having no hotkey — fired only via activate_power. */
             public Builder hotkeyless(boolean v) { hotkeyless = v; return this; }
+            /**
+             * Publish a capability tag to the client-predicted mixin layer,
+             * optionally gated per-tick by a condition. A null condition means
+             * the capability is always active while the power is held.
+             */
+            public Builder capability(String tag, Predicate<ServerPlayer> condition) {
+                capabilities = Set.of(tag);
+                capabilityCondition = condition;
+                return this;
+            }
 
             public Config build() {
                 return new Config(onGranted, onRevoked, onTick, onActivated, onRespawn,
-                    onHit, onKill, onIncomingDamage, onDealDamage, cooldownTicks, hotkeyless);
+                    onHit, onKill, onIncomingDamage, onDealDamage, cooldownTicks, hotkeyless,
+                    capabilities, capabilityCondition);
             }
         }
     }
@@ -76,7 +96,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public Codec<Config> codec() {
         // Never called for Route B powers — they are injected directly, not codec-decoded.
-        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, null, 0, false)).codec();
+        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, null, 0, false, null, null)).codec();
     }
 
     /** Active only when this specific config has an onActivated consumer. */
@@ -141,5 +161,23 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public void onKill(ServerPlayer player, Config config, LivingEntity killed) {
         if (config.onKill() != null) config.onKill().accept(player);
+    }
+
+    /** Static capability set this config publishes (before per-tick gating). */
+    @Override
+    public Set<String> capabilities(Config config) {
+        return config.capabilities() == null ? Set.of() : config.capabilities();
+    }
+
+    /**
+     * Per-tick capability set: publishes the static set only when the optional
+     * {@code capabilityCondition} passes for this player.
+     */
+    @Override
+    public Set<String> capabilities(ServerPlayer player, Config config) {
+        Set<String> caps = capabilities(config);
+        if (caps.isEmpty()) return caps;
+        if (config.capabilityCondition() != null && !config.capabilityCondition().test(player)) return Set.of();
+        return caps;
     }
 }
