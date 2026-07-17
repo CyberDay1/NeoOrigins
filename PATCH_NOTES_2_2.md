@@ -2,6 +2,60 @@
 
 ---
 
+## v2.2.19
+
+> A features-and-compatibility release. Two new powers: `kill_loot_drops` adds bonus drops to the mobs you kill, rolled through each mob's own loot table so they land as genuine world drops instead of being handed straight to your inventory, and `mobs_target_player` is the inverse of `mobs_ignore_player`, letting the mobs you choose actively hunt an origin the way wolves hunt a skeleton. On the compatibility side, the ocean and carnivore origins can now eat fish and meat from other mods out of the box, and a new decaying cobweb block lets legacy Apoli packs (such as the Origins++ broodmother) place their webs.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### New Powers & Systems
+
+- **`kill_loot_drops` power.** Grants its holder bonus drops from the mobs they kill: each entry in the power's `drops` list pairs a mob target with an item, a `chance`, and a `count`, and that item is layered into the mob's vanilla loot when you land the kill, so it falls from the corpse through the normal loot pipeline rather than appearing in your inventory. One power can hook many loot tables at once: list an entry per mob type, or match a whole category from a single entry with `entity_tag` (say `minecraft:undead`) or an explicit `entity_types` list. Drops only roll for a player's own kills, so mob-on-mob and environmental deaths are left alone. See [POWER_TYPES.md](docs/POWER_TYPES.md) for the field reference and a worked example.
+- **`mobs_target_player` power.** The inverse of `mobs_ignore_player`: rather than making mobs leave you alone, it makes the mob types you list actively hunt whoever holds the power, the way wolves aggro a vanilla skeleton. Use it for, say, a skeleton-type origin that dogs treat as prey. `entity_types` accepts raw ids (`minecraft:wolf`) and tag references (`#mymod:my_tag`), and an empty or omitted list means every mob hunts the holder; `range` (default `16`) sets how close a mob has to be to pick the player up, and `entity_blacklist` carves out types that should never hunt them. Boss-tier mobs (Warden, Ender Dragon, Wither) are always excluded. See [POWER_TYPES.md](docs/POWER_TYPES.md) for the field reference.
+
+### Changes
+
+- **The undead origins now breathe underwater.** Skeleton, Vampire, Necromancer, Phantom, and Wraith are dead and no longer need air, so they no longer drown: they match Revenant, which already had this. Each origin's underwater breathing is its own toggle in `power_overrides.toml` (set its `enabled` to `false` to remove it for that origin).
+
+### Bug Fixes
+
+- **Native-format origins apply the multiple-power id rewrite.** An origin written in NeoOrigins' own format that pulled in an `apoli:multiple` power (as some datapacks do) skipped the step that gives each bundled sub-power a unique id, so those sub-powers collided or silently dropped. The rewrite now runs for native-format origins as well, matching how converted Origins packs were already handled.
+- **Riding a player shows the passenger on the vehicle player's own screen (#111).** When one player mounted another, the rider appeared for every onlooker but not for the player being ridden, and on dismount the vehicle player's screen kept showing a phantom rider until something re-tracked them. The root cause is that a player never tracks itself, so the server's passenger-list broadcast for the vehicle never reached the vehicle player's own client. The server now resends the true passenger list straight to the vehicle player both when a rider mounts and after one dismounts, so their own view stays in sync.
+- **`persistent_effect` no longer clobbers stronger or foreign effects (#112).** A persistent effect always overwrote whatever instance of the same effect type was already on the player and, when it turned off, always stripped that effect — so an infinite low-level buff could stamp out a stronger timed buff from another source (for example an Asura Bloodrage/Frenzy strength boost), and an inactive tier could remove a lower tier's effect or a foreign buff that merely shared the effect type. The power now only reapplies when nothing stronger is present, and only removes an effect it actually owns at its own amplifier (an infinite-duration instance matching its tier), leaving stronger and foreign effects untouched.
+
+### Compatibility (Mod Integrations)
+
+- **The ocean and carnivore origins eat modded fish and meat.** Fish and meat from other mods (Aquaculture, Hybrid Aquatic, and anything using the common `c:foods/raw_fish`, `cooked_fish`, `raw_meat`, and `cooked_meat` tags) now count toward the ocean origin's pescivore diet and the carnivore meat diet with no setup, so those players can eat modded catches straight away. For mods that don't follow the `c:foods` convention, a new `ocean_origins.extra_fish_foods` config list lets a server add extra edible items by id (`somemod:exotic_fish`) or tag (`#somemod:fish`): the diet allows any food that is either in the `neoorigins:fish_foods` tag or on that list.
+- **Legacy Apoli packs can place their cobwebs.** Added the `origins:temporary_cobweb` / `neoorigins:temporary_cobweb` block that packs like the Origins++ broodmother place through their powers and functions. It's a decaying, no-collision web with no item form, placed only by powers and actions, and it registers under the legacy `origins:` id as well so a pack function's `setblock ... origins:temporary_cobweb` resolves.
+- **Origins++ 2.4 packs translate far more faithfully (#110).** A batch of compat fixes for the shapes the current Origins++ pack actually uses. `conditioned_attribute` now reads multiple modifiers per power, whether they arrive as a `modifiers` array (dark_boost), a single `modifiers` object (pluck), a singular `modifier` object, or a flat top-level `attribute`/`operation`/`value`: previously only the singular form was understood, so multi-modifier powers lost every entry but the first. Collapsed `apoli:multiple` powers that leave their sub-powers unnamed now show a proper title in the origin screen, resolving the Apoli auto translation key (`power.<namespace>.<path>.name`) that Origins++ relies on instead of falling back to a raw id. And the broodmother lines up: the `temporary_cobweb` block reads the SNBT `tag` that `fire_projectile` merges into its spawn, and the Origins-registered `origins:enderian_pearl` projectile remaps to a vanilla ender pearl while keeping its no-fall-damage behaviour.
+- **Block-scanning conditions match Apoli semantics.** `near_block` / `block_in_radius` now counts the matching blocks in range and compares that count via `comparison`/`compare_to` (Apoli's real behaviour) rather than firing on the first hit, and its radius cap is raised from 8 to 16 for the wider tiered scans some packs use; the scan still bails out early once the outcome is settled. Three conditions were added to cover patterns those packs lean on: `in_block_anywhere` counts every block position the player's bounding box overlaps and compares it the same way, `collided_horizontally` reports whether the entity ran into a wall this tick, and an internal `climbing_gate` condition drives conditional climbing powers. Climbing capabilities also join the per-tick position re-sync, so a climbing power that flips on a block or toggle condition no longer leaves the client rubber-banding.
+- **New Origins++ 2.4 power types translate.** Three power types the current Origins++ pack introduces now map onto NeoOrigins: `origins:swimming` (as `forced_swimming`, a condition-gated swimming capability), `origins:prevent_block_selection` (as `cobweb_selection_passthrough`, narrowly for the "crosshair passes through cobwebs" pattern that targets the `origins:cobwebs` tag or the cobweb block), and `origins:action_on_being_used`, which fires a bi-entity action when another player right-clicks the holder. Both new movement capabilities join the per-tick re-sync so their client-predicted physics stay in step with the server.
+
+---
+
+## v2.2.18
+
+> A Windwalker tune-up and an Iron's Spells compatibility fix: the tornado is much wider and the apex evolution replaces the base one instead of stacking, evolved gliding and the flight toggle work on dedicated servers, a tornado stays in the cave you cast it in, and NeoOrigins loads again alongside current Iron's Spells 'n Spellbooks builds.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Balance & Tuning
+
+- **Windwalker's tornado is 2.5× wider.** Both the base Typhoon and the apex Eye of Storm now pull from, and visibly span, a much wider radius, so the funnel is far easier to catch a target in. Its height is unchanged.
+- **The apex evolution's tornado replaces the base one instead of stacking.** Reaching Windwalker's final tier granted the stronger Eye of Storm but left the weaker Typhoon on its own keybind beside it, so you carried two tornadoes. Typhoon is now removed at the apex tier and Eye of Storm takes its slot: earlier tiers keep Typhoon exactly as before.
+
+### Bug Fixes
+
+- **Windwalker's Evolved glide works on dedicated servers.** The Sky Dancer glide unlocked by evolving is granted through a tier overlay, but the power-sync that tells the client which abilities it may predict only ever read the base power list. So on a dedicated server the client never learned it could glide and silently refused to take off, even though the server knew the ability was live. The sync now follows your evolution tier, so a tier-granted glide (and any other client-predicted ability a tier unlocks) reaches the client.
+- **Windwalker's tornado stays in the cave you cast it in.** Cast underground, the funnel climbed to the surface and out: it aimed at the open-sky ground height rather than the floor directly beneath it, then rode that height straight up. It now scans for the real floor under the funnel, so a cave-cast tornado follows the cave floor while a surface cast behaves exactly as before.
+- **Windwalker's flight toggle actually starts flight.** The "ride the wind" creative-flight power announced itself on and off but only armed the ability, leaving you to double-tap jump to lift off, so the toggle read as doing nothing. Toggling it on now lifts you into flight straight away, and toggling it off sets you back down.
+
+### Compatibility (Mod Integrations)
+
+- **NeoOrigins loads alongside current Iron's Spells 'n Spellbooks builds again.** The optional Iron's Spells dependency accepted "version 3 and above", but Iron's reports its version with the Minecraft prefix (for example `1.21.1-3.16.2`), which the check read as a leading "1" and rejected. Installing a current Iron's build therefore crashed the game at load with a false version mismatch. The range now accounts for that prefix, so any Iron's Spells 3.x or newer loads correctly while genuinely older builds are still refused.
+
+---
+
 ## v2.2.17
 
 > A content release: a family of six hand-modelled Crystal Orbs, a new Orb of Class that re-rolls only your class, a general "reopen the picker for these layers" hook for pack authors, Iron's Spells 'n Spellbooks casting from origin powers, and native elytra flight with visible, re-texturable wings — plus a wraith wall-phase fix and an `action_on_event` correctness pass.
