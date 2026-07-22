@@ -52,8 +52,17 @@ repositories {
     maven { url = 'https://maven.blamejared.com' }      // JEI
     maven { url = 'https://maven.shedaniel.me' }         // REI
     maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
-    maven { url = 'https://api.modrinth.com/maven' }     // Jade
-    maven { url = 'https://maven.ftb.dev/releases' }     // FTB Ultimine / FTB Library
+    // Single-purpose mirror repos are content-scoped to the exact group they
+    // host, so a 5xx from one flaky mirror (fatal in Gradle, no fall-through)
+    // can't take down deps that live elsewhere.
+    maven {
+        url = 'https://api.modrinth.com/maven'           // Jade
+        content { includeGroup 'maven.modrinth' }
+    }
+    maven {
+        url = 'https://maven.ftb.dev/releases'           // FTB Ultimine / FTB Library
+        content { includeGroup 'dev.ftb.mods' }
+    }
 }
 
 dependencies {
