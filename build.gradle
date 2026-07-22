@@ -69,10 +69,6 @@ repositories {
     // fall through to the next repo. Scoping keeps one flaky mirror (e.g. a
     // terraformersmc 502) from taking down deps that live elsewhere.
     maven {
-        url = 'https://maven.terraformersmc.com/'        // EMI
-        content { includeGroup 'dev.emi' }
-    }
-    maven {
         url = 'https://cursemaven.com'                   // Jade + The One Probe
         content { includeGroup 'curse.maven' }
     }
@@ -106,9 +102,12 @@ dependencies {
     // classloaded when KubeJS is installed at runtime (KubeJSCompat.isLoaded()).
     compileOnly "dev.latvian.mods:kubejs-neoforge:${property('deps.kubejs')}"
 
-    // EMI – recipe viewer. API compile-only; full jar runtimeOnly for dev testing.
-    compileOnly "dev.emi:emi-neoforge:${property('deps.emi')}:api"
-    runtimeOnly "dev.emi:emi-neoforge:${property('deps.emi')}"
+    // EMI – recipe viewer. Sourced from Modrinth's maven with a loader-pinned
+    // version (…+neoforge) so the build no longer depends on terraformersmc.
+    // Modrinth serves the full mod jar (no :api classifier); the dev.emi.api
+    // classes we compile the compat layer against are present in that jar.
+    compileOnly "maven.modrinth:emi:${property('deps.emi')}+neoforge"
+    runtimeOnly "maven.modrinth:emi:${property('deps.emi')}+neoforge"
 
     // Jade – entity tooltip overlay. Compile-only soft dep (CurseMaven).
     compileOnly "curse.maven:jade-324717:${property('deps.jade')}"
