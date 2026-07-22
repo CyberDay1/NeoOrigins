@@ -13,9 +13,12 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 public class WaterBreathingPower extends PowerType<WaterBreathingPower.Config> {
 
-    public record Config(String type) implements PowerConfiguration {
+    public record Config(String type, boolean enabled) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            // Config kill-switch: a top-level "enabled":false (injected by the
+            // power_overrides system) stops this instance from granting breathing.
+            com.cyberday1.neoorigins.power.util.EnabledGate.field(Config::enabled)
         ).apply(inst, Config::new));
     }
 
@@ -44,7 +47,9 @@ public class WaterBreathingPower extends PowerType<WaterBreathingPower.Config> {
             if (!sp.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
 
             boolean[] has = {false};
-            ActiveOriginService.forEachOfType(sp, WaterBreathingPower.class, cfg -> has[0] = true);
+            // Any enabled instance grants breathing; a disabled one (enabled:false
+            // via power_overrides) must NOT set the flag.
+            ActiveOriginService.forEachOfType(sp, WaterBreathingPower.class, cfg -> { if (cfg.enabled()) has[0] = true; });
             if (!has[0]) return;
 
             sp.setAirSupply(sp.getMaxAirSupply());

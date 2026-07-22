@@ -81,7 +81,7 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
                 // power_overrides system) collapses the power to a no-op — the periodic
                 // action never runs and it never claims a keybind slot. Used by the
                 // Warden dark-vision config toggles (issue #101).
-                boolean enabled = !obj.has("enabled") || obj.get("enabled").getAsBoolean();
+                boolean enabled = com.cyberday1.neoorigins.power.util.EnabledGate.isEnabled(obj);
                 if (!enabled) {
                     return DataResult.success(Pair.of(
                         new Config(interval, EntityCondition.alwaysTrue(),

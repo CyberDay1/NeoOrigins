@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "required_mods": ["irons_spellbooks"],
+  "attribute": "irons_spellbooks:cast_time_reduction",
+  "amount": 0.1,
+  "operation": "add_value"
+}

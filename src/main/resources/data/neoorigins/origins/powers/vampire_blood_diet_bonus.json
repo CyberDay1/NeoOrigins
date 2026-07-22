@@ -1,0 +1,43 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "food_finished",
+  "entity_action": {
+    "type": "neoorigins:if_else_list",
+    "actions": [
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:beef" },
+        "action": { "type": "neoorigins:modify_food", "food": 5, "saturation": 11.0 }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:porkchop" },
+        "action": { "type": "neoorigins:modify_food", "food": 5, "saturation": 11.0 }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:chicken" },
+        "action": { "type": "neoorigins:modify_food", "food": 4, "saturation": 6.0 }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:mutton" },
+        "action": { "type": "neoorigins:modify_food", "food": 4, "saturation": 8.4 }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:rabbit" },
+        "action": { "type": "neoorigins:modify_food", "food": 2, "saturation": 4.2 }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:rotten_flesh" },
+        "action": {
+          "type": "neoorigins:and",
+          "actions": [
+            { "type": "neoorigins:modify_food", "food": 4, "saturation": 12.0 },
+            { "type": "neoorigins:clear_effect", "effect": "minecraft:hunger" }
+          ]
+        }
+      },
+      {
+        "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:spider_eye" },
+        "action": { "type": "neoorigins:modify_food", "food": 4, "saturation": 4.0 }
+      }
+    ]
+  }
+}

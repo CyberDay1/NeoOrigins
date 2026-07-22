@@ -384,6 +384,15 @@ public final class ConditionParser {
                 }
                 return false;
             }
+            // Mana-backed resources read live from the Iron's pool (authoritative)
+            // rather than the internal store — checked at test-time because the
+            // backing registration happens at grant, after parse.
+            if (com.cyberday1.neoorigins.compat.CompatAttachments.isManaBacked(powerId)) {
+                var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(powerId);
+                int manaCur = com.cyberday1.neoorigins.compat.ResourceBackingRouter.read(
+                    player, powerId, meta != null ? meta.min() : 0);
+                return comparison.test(manaCur, target);
+            }
             // Default to the declared variable start (0 for resources / undeclared
             // keys) so a counter declared elsewhere in the power stack reads its
             // start value even before its seed runs.

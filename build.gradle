@@ -117,6 +117,16 @@ neoForge.addModdingDependenciesTo sourceSets.apiStubs
 // source set), so the stub leaves zero runtime footprint.
 sourceSets.main.compileClasspath += sourceSets.apiStubs.output
 
+// Keep the dev-only tooling (CompatTestHarness, PowerAliasSmokeTest, schema
+// generators, etc. — all main-sourceSet classes with a main()) OUT of the
+// published jar. They're only ever invoked via the JavaExec run-tasks below,
+// which build their classpath from sourceSets.main.runtimeClasspath (the
+// compiled .class output), NOT the jar artifact — so excluding them from the
+// jar leaves those tasks fully functional while trimming the release jar.
+tasks.named('jar') {
+    exclude '**/dev/**'
+}
+
 // FML-bootstrapped JUnit harness (MinionOwnerCodecTest).
 tasks.named('test', Test) {
     useJUnitPlatform()

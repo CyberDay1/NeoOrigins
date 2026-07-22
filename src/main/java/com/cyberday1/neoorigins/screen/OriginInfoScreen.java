@@ -384,23 +384,14 @@ public class OriginInfoScreen extends Screen {
 
     /** Wraps a Component with the theme's font Style so a custom font provider can take effect. */
     private static Component themed(Component c) {
-        Identifier fid = UITheme.current().font();
-        return fid != null
-            ? c.copy().withStyle(s -> s.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid)))
-            : c;
+        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themed(c);
     }
 
     /** Like {@link #themed} but also marks the Style as bold — used for the
      *  origin-name header and per-power name lines so the TTF renderer picks
      *  up its synthesized bold weight. */
     private static Component themedBold(Component c) {
-        Identifier fid = UITheme.current().font();
-        return c.copy().withStyle(s -> {
-            var styled = s.withBold(true);
-            return fid != null
-                ? styled.withFont(new net.minecraft.network.chat.FontDescription.Resource(fid))
-                : styled;
-        });
+        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themedBold(c);
     }
 
     private static String tierName(int tier) {

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "required_mods": ["irons_spellbooks"],
+  "hidden": true,
+  "attribute": "irons_spellbooks:mana_regen",
+  "amount": 0.15,
+  "operation": "add_multiplied_base"
+}

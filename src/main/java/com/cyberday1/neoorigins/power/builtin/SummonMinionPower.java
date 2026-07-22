@@ -223,7 +223,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         }
 
         // Check hunger
-        if (player.getFoodData().getFoodLevel() < config.hungerCost()) {
+        if (!com.cyberday1.neoorigins.util.FoodCost.canAfford(player, config.hungerCost())) {
             player.sendSystemMessage(Component.translatable(
                 "power.neoorigins.summon_minion.not_enough_hunger").withStyle(ChatFormatting.RED), true);
             return false;
@@ -297,7 +297,7 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             10, 0.3, 0.3, 0.3, 0.01);
 
         // Consume hunger (once per activation, regardless of count spawned)
-        player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - config.hungerCost());
+        com.cyberday1.neoorigins.util.FoodCost.spend(player, config.hungerCost());
 
         return true;
     }

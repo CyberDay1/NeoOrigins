@@ -11,5 +11,18 @@
   "spawn_location": {
     "dimension": "minecraft:the_end",
     "structure": "minecraft:end_city"
+  },
+  "figura_model": "void_knight",
+  "figura_models": {
+    "tiers": { "1": "void_knight_ascended", "2": "void_knight_apex" },
+    "powers": { "examplepack:void_knight_end_ward": "void_knight_warded" },
+    "capabilities": { "natural_glide": "void_knight_winged" },
+    "vocab": {
+      "void_knight": "Void Knight",
+      "void_knight_ascended": "Ascended Void Knight",
+      "void_knight_apex": "Apex Void Knight",
+      "void_knight_warded": "End Ward Active",
+      "void_knight_winged": "Winged Void Knight"
+    }
   }
 }

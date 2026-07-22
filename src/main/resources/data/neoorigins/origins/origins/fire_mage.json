@@ -11,7 +11,10 @@
     "neoorigins:fire_mage_fire_immunity",
     "neoorigins:fire_mage_water_weakness",
     "neoorigins:fire_mage_hunger",
-    "neoorigins:fire_mage_mana"
+    "neoorigins:fire_mage_mana",
+    "neoorigins:fire_mage_irons_attunement",
+    "neoorigins:fire_mage_irons_cooldown",
+    "neoorigins:fire_mage_irons_max_mana"
   ],
   "upgrades": [],
   "tier_powers": [

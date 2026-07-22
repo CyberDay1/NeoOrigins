@@ -13,6 +13,7 @@
     "neoorigins:vampire_daylight_damage",
     "neoorigins:vampire_slow_regen",
     "neoorigins:vampire_food_restriction",
+    "neoorigins:vampire_blood_diet_bonus",
     "neoorigins:vampire_water_weakness"
   ],
   "upgrades": [],

@@ -13,7 +13,10 @@
     "neoorigins:necromancer_daylight_damage",
     "neoorigins:necromancer_reduced_health",
     "neoorigins:necromancer_slow_regen",
-    "neoorigins:necromancer_essence"
+    "neoorigins:necromancer_essence",
+    "neoorigins:necromancer_irons_attunement",
+    "neoorigins:necromancer_irons_spell_power",
+    "neoorigins:necromancer_irons_max_mana"
   ],
   "upgrades": [],
   "tier_powers": [

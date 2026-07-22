@@ -263,11 +263,11 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
             hasResourceCost = false;
         }
 
-        if (hungerCost > 0 && player.getFoodData().getFoodLevel() < hungerCost) return false;
+        if (hungerCost > 0 && !com.cyberday1.neoorigins.util.FoodCost.canAfford(player, hungerCost)) return false;
         if (hasResourceCost && ResourcePower.getValue(player, resCostKey) < resCostAmt) return false;
 
         if (hungerCost > 0) {
-            player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - hungerCost);
+            com.cyberday1.neoorigins.util.FoodCost.spend(player, hungerCost);
         }
         if (hasResourceCost) {
             ResourcePower.deduct(player, resCostKey, resCostAmt);

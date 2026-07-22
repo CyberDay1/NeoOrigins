@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.config.GameplayConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -236,7 +237,15 @@ public class PlayerLifecycleEvents {
             }
         }
         if (needsOrigin) {
-            if (GameplayConfig.isAutoHuman()) {
+            if (GameplayConfig.isSkipInitialSelection()) {
+                // Skip the picker entirely: leave the player origin-less. Mark
+                // selection "complete" so the first-pick invulnerability guard
+                // releases and this check doesn't re-prompt on every relog. They
+                // stay origin-less until granted one later (e.g. Orb of Origin).
+                data.setHadAllOrigins(true);
+                NeoOrigins.LOGGER.info("Skipped initial origin selection for {} (skip_initial_selection)",
+                    sp.getName().getString());
+            } else if (GameplayConfig.isAutoHuman()) {
                 assignAutoHuman(sp);
             } else if (GameplayConfig.getRandomMode() == RandomMode.FIRST_JOIN) {
                 assignRandomOrigins(sp);
@@ -328,6 +337,24 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.sendMorphStateTo(observer, tracked);
         NeoOriginsNetwork.sendInvisibilityArmorStateTo(observer, tracked);
         NeoOriginsNetwork.sendElytraFlightStateTo(observer, tracked);
+        // Per-player state for the Figura soft-dep API — always sent (not gated on
+        // a specific power being active) so an observer's Figura script can read
+        // the origin/powers of any newly-visible player.
+        NeoOriginsNetwork.sendPlayerPowersStateTo(observer, tracked);
+    }
+
+    /**
+     * When an observer stops tracking a player (they moved out of range / were
+     * removed), evict that player's Figura-facing state from the observer's client
+     * store so it can't go stale or leak. The observer re-receives current state
+     * on the next StartTracking. Only the observer's own client is told — this is
+     * a client-side eviction, so it rides a normal server→that-observer packet.
+     */
+    @SubscribeEvent
+    public static void onStopTracking(PlayerEvent.StopTracking event) {
+        if (!(event.getEntity() instanceof ServerPlayer observer)) return;
+        if (!(event.getTarget() instanceof ServerPlayer tracked)) return;
+        NeoOriginsNetwork.clearPlayerPowersStateFor(observer, tracked.getUUID());
     }
 
     /**
@@ -483,10 +510,16 @@ public class PlayerLifecycleEvents {
             NeoOrigins.LOGGER.info("Auto-assigned human origin to {}", sp.getName().getString());
         }
 
-        // Check if any remaining layers (class) still need selection
+        // Check if any remaining layers (class) still need selection. Only count a
+        // layer that actually has a selectable origin — a layer whose entire option
+        // list is config-disabled (e.g. every Class toggled off) can never be filled,
+        // so treating it as pending would open a screen the client silently skips and
+        // leave the player stuck in the first-pick invulnerability state forever
+        // (issue #113). Mirrors the unfillable-layer handling in assignRandomOrigins.
         boolean needsMore = false;
         for (var layer : LayerDataManager.INSTANCE.getSortedLayers()) {
-            if (!data.hasOriginForLayer(layer.id())) {
+            if (data.hasOriginForLayer(layer.id())) continue;
+            if (layerHasSelectableOrigin(data, layer)) {
                 needsMore = true;
                 break;
             }
@@ -496,6 +529,22 @@ public class PlayerLifecycleEvents {
         } else {
             data.setHadAllOrigins(true);
         }
+    }
+
+    /**
+     * True when {@code layer} offers at least one origin the player could actually
+     * pick: available under the layer's conditions, present in the datapack, and not
+     * disabled via {@link ContentTogglesConfig}. A layer with no selectable origin is
+     * unfillable and must not keep the initial-pick flow (and its invulnerability
+     * grace) open.
+     */
+    private static boolean layerHasSelectableOrigin(PlayerOriginData data, OriginLayer layer) {
+        for (Identifier id : layer.getAvailableOriginIds(data.getOrigins())) {
+            if (!OriginDataManager.INSTANCE.hasOrigin(id)) continue;
+            if (ContentTogglesConfig.isOriginDisabled(id)) continue;
+            return true;
+        }
+        return false;
     }
 
     private static void assignRandomOrigins(ServerPlayer sp) {

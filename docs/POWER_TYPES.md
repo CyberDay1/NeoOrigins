@@ -214,6 +214,32 @@ All fields are optional and combine with AND. So `{ "dimension": "minecraft:the_
 
 > **Note:** 1.21+ uses short-form IDs (`minecraft:movement_speed`). The legacy `minecraft:generic.movement_speed` format still parses via fallback.
 
+**Iron's Spells 'n Spellbooks attributes:**
+
+The `attribute` field resolves any registered attribute id, so it can target the
+custom attributes added by [Iron's Spells 'n Spellbooks](COMPATIBILITY.md#irons-spells-n-spellbooks)
+(`irons_spellbooks`). The eight ids a pack can modify:
+
+| Attribute id | `add_value` does | Scale |
+|---|---|---|
+| `irons_spellbooks:max_mana` | Flat add to mana capacity | Flat points (`100.0` = +100 max mana) |
+| `irons_spellbooks:mana_regen` | Mana regen multiplier | Base 1.0 — `0.5` ≈ +50% regen |
+| `irons_spellbooks:spell_power` | Overall spell power multiplier | Base 1.0 — `0.25` ≈ +25% |
+| `irons_spellbooks:spell_resist` | Incoming magic resistance | Base 1.0 — `0.2` ≈ +20% resist |
+| `irons_spellbooks:cooldown_reduction` | Spell cooldown reduction | Fraction 0–1 (`0.15` = 15%) |
+| `irons_spellbooks:cast_time_reduction` | Cast-time reduction | Fraction 0–1 (`0.15` = 15%) |
+| `irons_spellbooks:casting_movespeed` | Movement speed while casting | Movement-speed units |
+| `irons_spellbooks:summon_damage` | Summoned-mob damage | Damage units |
+
+The operation and scale differ per attribute: `max_mana` is a flat add;
+`spell_power` / `mana_regen` / `spell_resist` sit on a base of `1.0`, so `add_value`
+is a fractional bonus; `cooldown_reduction` / `cast_time_reduction` are 0-based
+fractions in 0–1. Match Iron's own scaling. There are no per-school spell-power
+attributes in 3.14.0 — those eight are the complete list. Referencing one on a
+server without Iron's installed logs one warning per grant and applies nothing (the
+power still loads); gate the origin with `"required_mods": ["irons_spellbooks"]` if
+it should only exist when Iron's is present.
+
 ---
 
 ## `neoorigins:status_effect`
@@ -4126,6 +4152,35 @@ A named, persistent, HUD-visible resource bar. Values are stored per-player and 
 | `max_action` | EntityAction | no | noop | Action triggered each tick while resource is at maximum |
 | `hud_render` | object | no | — | HUD display settings (see below) |
 | `hidden` | bool | no | `false` | Whether to hide the bar from the HUD |
+| `backing` | string | no | `""` | Optional external pool that backs the bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported (see below); when set, `min`/`max` are ignored and the bar auto-scales to Iron's live max mana. Empty = internally stored. |
+
+**`backing` — bind the bar to Iron's Spells mana:**
+
+Set `"backing": "irons_spellbooks:mana"` to make the bar's value **read from and write to the player's [Iron's Spells 'n Spellbooks](https://www.curseforge.com/minecraft/mc-mods/irons-spells-n-spellbooks) mana pool** rather than NeoOrigins' own per-player store. The mana pool stays authoritative:
+
+- **Reads** (the HUD bar, the `resource` condition, `resource_cost` gating) observe the live mana value.
+- **Writes** are **additive-only** — `change_resource` adds its `change` amount (positive to grant, negative to drain), `regen_rate` adds per interval, and `resource_cost` deductions subtract. All of these add a delta to the pool; NeoOrigins never overwrites mana absolutely (that would fight Iron's own regen and casting bookkeeping).
+- **Absolute sets are ignored.** `set_resource` and `change_resource` with `"operation": "set"` are no-ops on a mana-backed bar (logged once). Use additive `change_resource` instead.
+- **`min`/`max` are optional and ignored — the bar auto-scales.** A mana-backed bar uses `min = 0` and `max =` Iron's **live** max mana, which is the `MAX_MANA` attribute (it moves with gear, level, and effects), so you don't declare a static scale. Iron's own mana bar reads the same attribute, so the two bars fill identically. Any author `min`/`max` on a mana-backed power is accepted but has no effect (they still matter for ordinary, non-backed resources). A drain is floor-clamped so mana never goes below 0.
+- **The dynamic max is pushed live.** Because the max can change mid-game (e.g. a gear swap that grants more max mana), the periodic value sync carries the current max, so the HUD re-scales without waiting for a full re-sync.
+- **Iron's Spells is a soft dependency.** If it isn't installed, the bar reads empty and writes do nothing (logged once) — it does **not** fall back to an internal value. Gate the origin/power with `"required_mods": ["irons_spellbooks"]` if the bar should only exist when Iron's is present.
+
+Because Iron's changes mana out from under the game (regen, spellcasting), a mana-backed bar re-syncs its value (and live max) to the client every 10 ticks so the HUD tracks the pool live.
+
+```json
+{
+  "type": "neoorigins:resource",
+  "backing": "irons_spellbooks:mana",
+  "hud_render": {
+    "label": "Mana",
+    "color": "#55AAFF"
+  },
+  "name": "Arcane Reserve",
+  "description": "Your Iron's Spells mana, shown as an origin resource bar."
+}
+```
+
+> `min`/`max` are omitted above on purpose — a mana-backed bar auto-scales to Iron's live max mana.
 
 **`hud_render` object:**
 

@@ -66,6 +66,7 @@
         "neoorigins:effect_over_time",
         "neoorigins:efficient_repairs",
         "neoorigins:elytra_boost",
+        "neoorigins:elytra_flight",
         "neoorigins:ender_gaze_immunity",
         "neoorigins:enhanced_vision",
         "neoorigins:entity_group",
@@ -411,34 +412,6 @@
         "damage_type": {
           "description": "Optional damage-type id filter; the action only fires for matching sources.",
           "type": "string"
-        },
-        "bientity_action": {
-          "description": "Optional Apoli-style bientity action run against (actor = attacker, target = victim) after the flat action, gated by the same filters. A bare verb (e.g. apply_effect) runs against the victim; wrap in actor_action/target_action to route explicitly. Object or array.",
-          "oneOf": [
-            {
-              "$ref": "action.schema.json"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "action.schema.json"
-              }
-            }
-          ]
-        },
-        "entity_action": {
-          "description": "Alias for bientity_action on action_on_hit: a parsed action run against the victim (actor = attacker). This is the field a pack copying the ACTIONS.md example uses. Object or array.",
-          "oneOf": [
-            {
-              "$ref": "action.schema.json"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "action.schema.json"
-              }
-            }
-          ]
         }
       },
       "required": [
@@ -1661,6 +1634,27 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:elytra_flight",
+      "properties": {
+        "type": {
+          "const": "neoorigins:elytra_flight"
+        },
+        "render_elytra": {
+          "description": "When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way — this is purely cosmetic. When false, the player glides with no visible wings.",
+          "type": "boolean",
+          "default": true
+        },
+        "texture_location": {
+          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         }
       },
       "required": [
@@ -3235,6 +3229,11 @@
           "type": "boolean",
           "default": false
         },
+        "backing": {
+          "description": "Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only — absolute set_resource / operation:\"set\" are ignored). `max` is author-declared (the bar's display scale). Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default).",
+          "type": "string",
+          "default": ""
+        },
         "hud_render": {
           "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.",
           "type": "object",
@@ -4272,6 +4271,7 @@
               "neoorigins:effect_immunity",
               "neoorigins:effect_over_time",
               "neoorigins:elytra_boost",
+              "neoorigins:elytra_flight",
               "neoorigins:ender_gaze_immunity",
               "neoorigins:enhanced_vision",
               "neoorigins:entity_group",

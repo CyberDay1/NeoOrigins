@@ -11,7 +11,10 @@
     "neoorigins:darkness_mage_shadow_cloak",
     "neoorigins:darkness_mage_sunburn",
     "neoorigins:darkness_mage_light_sensitivity",
-    "neoorigins:darkness_mage_mana"
+    "neoorigins:darkness_mage_mana",
+    "neoorigins:darkness_mage_irons_attunement",
+    "neoorigins:darkness_mage_irons_casting_movespeed",
+    "neoorigins:darkness_mage_irons_cooldown"
   ],
   "upgrades": [],
   "tier_powers": [
