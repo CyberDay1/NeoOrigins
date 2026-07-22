@@ -130,20 +130,14 @@ public final class ActionParser {
      * Without it, a bare JSON array in an action field silently no-ops.
      */
     public static EntityAction parseField(JsonObject parent, String field, String contextId) {
-        if (parent == null || !parent.has(field)) return EntityAction.noop();
-        JsonElement el = parent.get(field);
-        if (el.isJsonObject()) {
-            return parse(el.getAsJsonObject(), contextId);
-        }
-        if (el.isJsonArray()) {
-            List<EntityAction> list = new ArrayList<>();
-            for (JsonElement item : el.getAsJsonArray()) {
-                if (item.isJsonObject()) list.add(parse(item.getAsJsonObject(), contextId));
-            }
-            if (list.isEmpty()) return EntityAction.noop();
-            return player -> { for (EntityAction a : list) a.execute(player); };
-        }
-        return EntityAction.noop();
+        return com.cyberday1.neoorigins.compat.util.JsonHelpers.parseArrayOrSingle(
+            parent, field, contextId,
+            EntityAction.noop(),
+            ActionParser::parse,
+            list -> {
+                if (list.isEmpty()) return EntityAction.noop();
+                return player -> { for (EntityAction a : list) a.execute(player); };
+            });
     }
 
     /**
@@ -198,11 +192,13 @@ public final class ActionParser {
      * Pack authors use {@code limit: 1} for "consume one bullet" patterns.
      */
     static EntityAction parseModifyInventory(JsonObject json) {
-        var itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
-            ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(json.getAsJsonObject("item_condition"))
+        JsonObject itemCondJson = com.cyberday1.neoorigins.compat.util.JsonHelpers.getOrNull(json, "item_condition");
+        var itemCond = itemCondJson != null
+            ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(itemCondJson)
             : com.cyberday1.neoorigins.compat.condition.ItemCondition.alwaysTrue();
-        ItemAction itemAction = json.has("item_action") && json.get("item_action").isJsonObject()
-            ? ItemActionParser.parse(json.getAsJsonObject("item_action")) : ItemAction.noop();
+        JsonObject itemActionJson = com.cyberday1.neoorigins.compat.util.JsonHelpers.getOrNull(json, "item_action");
+        ItemAction itemAction = itemActionJson != null
+            ? ItemActionParser.parse(itemActionJson) : ItemAction.noop();
         String processMode = json.has("process_mode") ? json.get("process_mode").getAsString() : "items";
         int limit = json.has("limit") ? json.get("limit").getAsInt() : 0;
         boolean countByItems = !"stacks".equalsIgnoreCase(processMode);
@@ -501,8 +497,7 @@ public final class ActionParser {
         // an aura can finally restrict who it affects ("players only", a #tag group,
         // a specific mob). When it doesn't (player-only condition verb), the legacy
         // behaviour stands: players are gated, mobs bypass the condition as before.
-        JsonObject condJson = json.has("entity_condition") && json.get("entity_condition").isJsonObject()
-            ? json.getAsJsonObject("entity_condition") : null;
+        JsonObject condJson = com.cyberday1.neoorigins.compat.util.JsonHelpers.getOrNull(json, "entity_condition");
         EntityCondition targetCondition = condJson != null
             ? ConditionParser.parse(condJson, contextId)
             : EntityCondition.alwaysTrue();

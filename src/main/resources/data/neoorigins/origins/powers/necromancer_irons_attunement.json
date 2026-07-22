@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "required_mods": ["irons_spellbooks"],
+  "attribute": "irons_spellbooks:summon_damage",
+  "amount": 0.2,
+  "operation": "add_multiplied_base"
+}

@@ -12,7 +12,10 @@
     "neoorigins:water_mage_moisture_regen",
     "neoorigins:water_mage_dehydration",
     "neoorigins:water_mage_fragile",
-    "neoorigins:water_mage_mana"
+    "neoorigins:water_mage_mana",
+    "neoorigins:water_mage_irons_attunement",
+    "neoorigins:water_mage_irons_spell_power",
+    "neoorigins:water_mage_irons_cooldown"
   ],
   "upgrades": [],
   "tier_powers": [

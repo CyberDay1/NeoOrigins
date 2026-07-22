@@ -2100,6 +2100,11 @@ public final class BuiltinActions {
                 final boolean wildcard = com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key);
                 if ("set".equals(operation)) {
                     return player -> {
+                        // Mana-backed resources are additive-only; an absolute set
+                        // is ignored (logged once). Not applicable to wildcards.
+                        if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.handleAbsoluteSet(key)) {
+                            return;
+                        }
                         var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
                         if (wildcard) state.setAll(key, fChange);
                         else state.set(key, fChange);
@@ -2107,6 +2112,13 @@ public final class BuiltinActions {
                     };
                 }
                 return player -> {
+                    // Mana-backed resource: route the additive delta into the
+                    // Iron's pool instead of the internal store. Not applicable
+                    // to wildcard selectors.
+                    if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.add(player, key, fChange)) {
+                        com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
+                        return;
+                    }
                     var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
                     if (wildcard) {
                         for (String k : state.matchingKeys(key)) {
@@ -2142,6 +2154,11 @@ public final class BuiltinActions {
                 // nothing matches yet) — see ResourceState.matchingKeys.
                 final boolean wildcard = com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key);
                 return player -> {
+                    // Mana-backed resources are additive-only; an absolute
+                    // set_resource is ignored (logged once). Not for wildcards.
+                    if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.handleAbsoluteSet(key)) {
+                        return;
+                    }
                     var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
                     if (wildcard) state.setAll(key, value);
                     else state.set(key, value);
@@ -3160,10 +3177,15 @@ public final class BuiltinActions {
             case "neoorigins:execute_command", "neoorigins:command" -> {
                 String cmd = json.has("command") ? json.get("command").getAsString() : "";
                 if (!cmd.isBlank() && sl.getServer() != null) {
-                    var src = projectile.createCommandSourceStackForNameResolution(sl).withSuppressedOutput()
-                        .withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
                     try {
-                        sl.getServer().getCommands().performPrefixedCommand(src, cmd);
+                        String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(cmd);
+                        if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
+                            com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
+                        } else {
+                            var src = projectile.createCommandSourceStackForNameResolution(sl).withSuppressedOutput()
+                                .withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
+                            sl.getServer().getCommands().performPrefixedCommand(src, finalCmd);
+                        }
                     } catch (Exception ignored) { }
                 }
             }

@@ -65,6 +65,8 @@ Loaded as: `<namespace>:<id>`
 | `required_mods` | list of mod ids | no | `[]` | Load gate: the origin only loads (and only appears in the picker) when every listed mod is present. Used by the built-in Dragon Survival origins (`"required_mods": ["dragonsurvival"]`). |
 | `spawn_location` | object | no | — | Relocates the player to a matching location on first origin pick and on bedless respawn. See [Spawn Location](#spawn-location). |
 | `tier_powers` | list | no | `[]` | Evolution-tier power overlays (`{tier, add, remove}`). Full reference in [EVOLUTION.md](EVOLUTION.md#datapack-customization) and the [COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin). |
+| `figura_model` | string | no | — | Opaque base model key for the Figura soft-dep integration. Only meaningful with the Figura mod installed. See [Figura Model Key](#figura-model-key) and [FIGURA.md](FIGURA.md). |
+| `figura_models` | object | no | — | Advanced reactive model maps (`tiers` / `powers` / `capabilities` / `vocab`) for Figura. Opaque strings, soft-dep only. See [Figura Model Key](#figura-model-key) and [FIGURA.md](FIGURA.md). |
 
 ### Spawn Location
 
@@ -117,6 +119,38 @@ and compat origins alike — are gated by `[spawn_location] teleports_enabled`
 in `config/neoorigins/gameplay.toml` (default `true`). Set it to `false` and
 every origin spawns at the normal world spawn point instead. The built-in
 ocean origins have an additional gate, `[ocean_origins] spawn_in_ocean`.
+
+### Figura Model Key
+
+An origin can declare model keys for the [Figura](FIGURA.md) soft-dependency: a
+client-side custom-avatar mod whose Lua scripts can read the wearer's origin state
+and swap models to match. These fields do nothing on their own (NeoOrigins never
+interprets them): they are opaque strings handed to a Figura avatar author's Lua
+script, and only matter when both Figura and an avatar that reads them are present.
+
+- `figura_model` (string): the base model key, e.g. `"knight"`. Read from Lua as
+  `neoorigins:getFiguraModel()`.
+- `figura_models` (object): reactive maps for tier / power / capability driven model
+  swaps, plus a vocab map for discovery. Keys and values are all opaque strings.
+
+```json
+{
+  "name": "origins.mypack.knight.name",
+  "description": "origins.mypack.knight.description",
+  "icon": "minecraft:iron_chestplate",
+  "powers": ["mypack:shield_wall"],
+  "figura_model": "knight",
+  "figura_models": {
+    "tiers":        { "1": "knight_ascended", "2": "knight_apex" },
+    "powers":       { "mypack:shield_wall": "knight_guard" },
+    "capabilities": { "natural_glide": "knight_winged" },
+    "vocab":        { "knight": "Knight Base", "knight_guard": "Shield Wall" }
+  }
+}
+```
+
+The full behaviour, resolution rules, and the complete list of `neoorigins:` Lua
+methods an avatar author can call live in [FIGURA.md](FIGURA.md).
 
 ---
 

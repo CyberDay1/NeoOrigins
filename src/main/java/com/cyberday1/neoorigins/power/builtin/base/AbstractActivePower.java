@@ -90,7 +90,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
             hasResourceCost = false;
         }
 
-        if (hungerCost > 0 && player.getFoodData().getFoodLevel() < hungerCost) {
+        if (hungerCost > 0 && !com.cyberday1.neoorigins.util.FoodCost.canAfford(player, hungerCost)) {
             return;  // not enough hunger — silent abort, no cooldown consumed
         }
 
@@ -102,8 +102,7 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
 
         if (execute(player, config)) {
             if (hungerCost > 0) {
-                player.getFoodData().setFoodLevel(
-                    player.getFoodData().getFoodLevel() - hungerCost);
+                com.cyberday1.neoorigins.util.FoodCost.spend(player, hungerCost);
             }
             if (hasResourceCost) {
                 com.cyberday1.neoorigins.power.builtin.ResourcePower.deduct(player, resCostKey, resCostAmt);

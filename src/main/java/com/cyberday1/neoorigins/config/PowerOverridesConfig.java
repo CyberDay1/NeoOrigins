@@ -74,7 +74,7 @@ public final class PowerOverridesConfig {
         p("avian_no_hunger_sprint");    f("multiplier", 0.25, 0, 10); ep();
 
         // ── Blazeling ──
-        p("blazeling_water_damage");    f("multiplier", 2.5, 0, 100); ep();
+        p("blazeling_water_damage");    f("multiplier", 1.0, 0, 100); ep();
 
         // ── Breeze ──
         p("breeze_wind_charge");        f("speed", 2.0, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
@@ -93,14 +93,14 @@ public final class PowerOverridesConfig {
         // (cinderborn_lava_regen heal amount is nested in entity_action;
         // shallow power_overrides can't reach it. Edit JSON directly to retune.)
         p("cinderborn_natural_armor");  fi("amplifier", 0, 0, 4); ep();
-        p("cinderborn_water_weakness"); f("multiplier", 3.0, 0, 100); ep();
+        p("cinderborn_water_weakness"); f("multiplier", 1.0, 0, 100); ep();
 
         // ── Draconic ──
         p("draconic_active_fireball");  f("speed", 1.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("draconic_size");             f("scale", 1.2, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("draconic_attack_bonus");     f("amount", 2.0, -100, 100); ep();
         p("draconic_hunger_drain");     f("multiplier", 1.5, 0, 10); ep();
-        p("draconic_water_weakness");   f("multiplier", 2.0, 0, 100); ep();
+        p("draconic_water_weakness");   f("multiplier", 1.0, 0, 100); ep();
 
         // ── Dwarf ──
         p("dwarf_compact_frame");       f("scale", 0.8, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
@@ -121,14 +121,14 @@ public final class PowerOverridesConfig {
         p("enderite_teleport");         f("range", 32.0, 1, 256); fi("cooldown_ticks", 60, 0, 72000); ep();
         p("enderite_phase");            fi("max_depth", 16, 1, 256); fi("cooldown_ticks", 200, 0, 72000); fi("hunger_cost", 0, 0, 100); ep();
         p("enderite_attack_bonus");     f("amount", 3.0, -100, 100); ep();
-        p("enderite_water_damage");     f("multiplier", 3.0, 0, 100); ep();
+        p("enderite_water_damage");     f("multiplier", 1.0, 0, 100); ep();
         p("enderite_daylight_weakness");f("multiplier", 1.5, 0, 100); ep();
 
         // ── Feline ──
         p("feline_active_launch");      f("power", 2.2, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("feline_speed_boost");        f("amount", 0.1, -1, 10); ep();
         p("feline_hunger_drain");       f("multiplier", 1.3, 0, 10); ep();
-        p("feline_water_weakness");     f("multiplier", 1.5, 0, 100); ep();
+        p("feline_water_weakness");     f("multiplier", 1.0, 0, 100); ep();
 
         // ── Frostborn ──
         p("frostborn_freeze_aura");     fi("amplifier", 3, 0, 255); fi("duration_ticks", 100, 1, 72000); f("radius", 6.0, 0, 64); fi("cooldown_ticks", 200, 0, 72000); ep();
@@ -267,7 +267,7 @@ public final class PowerOverridesConfig {
         // (strider_lava_regen heal amount is nested in entity_action;
         // shallow power_overrides can't reach it. Edit JSON directly to retune.)
         p("strider_natural_armor");     fi("amplifier", 0, 0, 4); ep();
-        p("strider_water_weakness");    f("multiplier", 3.0, 0, 100); ep();
+        p("strider_water_weakness");    f("multiplier", 1.0, 0, 100); ep();
 
         // ── Sylvan ──
         p("sylvan_active_root");        fi("amplifier", 5, 0, 255); fi("duration_ticks", 80, 1, 72000); f("radius", 6.0, 0, 64); fi("cooldown_ticks", 200, 0, 72000); ep();
@@ -306,7 +306,7 @@ public final class PowerOverridesConfig {
         p("vampire_speed_boost");       f("amount", 0.15, -1, 10); ep();
         p("vampire_daylight_damage");   f("damage_per_second", 2.0, 0, 100); ep();
         p("vampire_slow_regen");        f("multiplier", 0.4, 0, 10); ep();
-        p("vampire_water_weakness");    f("multiplier", 2.0, 0, 100); ep();
+        p("vampire_water_weakness");    f("multiplier", 1.0, 0, 100); ep();
         p("vampire_water_breathing");   fb("enabled", true); ep();
 
         // ── Verdant ──
@@ -316,7 +316,7 @@ public final class PowerOverridesConfig {
         // ── Voidwalker ──
         p("voidwalker_active_teleport");f("range", 24.0, 1, 256); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("voidwalker_active_phase");   fi("max_depth", 10, 1, 256); fi("cooldown_ticks", 80, 0, 72000); fi("hunger_cost", 3, 0, 100); ep();
-        p("voidwalker_water_damage");   f("multiplier", 1.75, 0, 100); ep();
+        p("voidwalker_water_damage");   f("multiplier", 1.0, 0, 100); ep();
 
         // ── Warden ──
         p("warden_sonic_boom");         f("speed", 1.0, 0, 10); fi("cooldown_ticks", 400, 0, 72000); ep();

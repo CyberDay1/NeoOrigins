@@ -34,7 +34,8 @@
     "EntityForcedSwimmingMixin",
     "BlockStateBaseCobwebShapeMixin",
     "recipe.CraftingMenuOriginContextMixin",
-    "recipe.RecipeManagerReplaceMixin"
+    "recipe.RecipeManagerReplaceMixin",
+    "recipe.ResultSlotOriginContextMixin"
   ],
   "client": [
     "client.LightTextureMixin",

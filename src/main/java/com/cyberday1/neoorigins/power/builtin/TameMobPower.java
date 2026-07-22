@@ -252,7 +252,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
                 player, config.tameResourceId()) >= config.tameResourceAmount();
         }
         int h = resourceConfigured ? config.tameResourceAmount() : config.hungerCostLegacy();
-        return player.getFoodData().getFoodLevel() >= h;
+        return com.cyberday1.neoorigins.util.FoodCost.canAfford(player, h);
     }
 
     /** Debit the cost of one tame, mirroring {@link #canAffordOne}'s mode. */
@@ -264,7 +264,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             return;
         }
         int h = resourceConfigured ? config.tameResourceAmount() : config.hungerCostLegacy();
-        player.getFoodData().setFoodLevel(player.getFoodData().getFoodLevel() - h);
+        com.cyberday1.neoorigins.util.FoodCost.spend(player, h);
     }
 
     /**

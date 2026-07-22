@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "required_mods": ["irons_spellbooks"],
+  "hidden": true,
+  "attribute": "irons_spellbooks:cooldown_reduction",
+  "amount": 0.08,
+  "operation": "add_value"
+}

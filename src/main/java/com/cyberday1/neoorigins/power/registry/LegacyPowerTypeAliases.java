@@ -270,9 +270,13 @@ public final class LegacyPowerTypeAliases {
 
         // damage_in_water: damage while in water, or while exposed to rain
         // (when include_rain is true). Compose via origins:or + origins:and.
+        // "multiplier" is a scalar applied to damage_per_second (default 1.0);
+        // set multiplier 0 to disable the damage.
         register(Identifier.fromNamespaceAndPath("neoorigins", "damage_in_water"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
-                    float dps = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    float base = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    float mult = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 1.0f;
+                    float dps = base * mult;
                     boolean includeRain = !json.has("include_rain") || json.get("include_rain").getAsBoolean();
 
                     com.google.gson.JsonObject inWater = simpleCondition("neoorigins:in_water");
@@ -282,9 +286,16 @@ public final class LegacyPowerTypeAliases {
                     } else {
                         json.add("condition", inWater);
                     }
-                    json.add("entity_action", damageAction("drown", dps));
+                    if (dps > 0) {
+                        json.add("entity_action", damageAction("drown", dps));
+                    } else {
+                        com.google.gson.JsonObject nothing = new com.google.gson.JsonObject();
+                        nothing.addProperty("type", "neoorigins:nothing");
+                        json.add("entity_action", nothing);
+                    }
                     json.addProperty("interval", 20);
                     json.remove("damage_per_second");
+                    json.remove("multiplier");
                     json.remove("include_rain");
                 });
 
