@@ -63,10 +63,27 @@ repositories {
     maven { url = 'https://maven.shedaniel.me' }         // REI
     maven { url = 'https://maven.architectury.dev' }     // Architectury (REI dep)
     maven { url = 'https://maven.latvian.dev/releases' } // KubeJS
-    maven { url = 'https://maven.terraformersmc.com/' }  // EMI
-    maven { url = 'https://cursemaven.com' }             // Jade + The One Probe
-    maven { url = 'https://maven.ftb.dev/releases' }     // FTB Quests + FTB Library
-    maven { url = 'https://api.modrinth.com/maven' }     // Accessories (Wisp Forest)
+    // Single-purpose mirror repos are content-scoped to the exact group they
+    // host. Without this, Gradle queries every repo for every dep; a repo that
+    // returns a 5xx (not a 404) for a dep it doesn't host is fatal and does NOT
+    // fall through to the next repo. Scoping keeps one flaky mirror (e.g. a
+    // terraformersmc 502) from taking down deps that live elsewhere.
+    maven {
+        url = 'https://maven.terraformersmc.com/'        // EMI
+        content { includeGroup 'dev.emi' }
+    }
+    maven {
+        url = 'https://cursemaven.com'                   // Jade + The One Probe
+        content { includeGroup 'curse.maven' }
+    }
+    maven {
+        url = 'https://maven.ftb.dev/releases'           // FTB Quests + FTB Library
+        content { includeGroup 'dev.ftb.mods' }
+    }
+    maven {
+        url = 'https://api.modrinth.com/maven'           // Accessories (Wisp Forest)
+        content { includeGroup 'maven.modrinth' }
+    }
 }
 
 dependencies {
