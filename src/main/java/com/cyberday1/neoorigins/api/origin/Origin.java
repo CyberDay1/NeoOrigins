@@ -22,7 +22,9 @@ public record Origin(
     Component description,
     List<OriginUpgrade> upgrades,
     Optional<LocationCondition> spawnLocation,
-    List<OriginTierOverlay> tierPowers
+    List<OriginTierOverlay> tierPowers,
+    Optional<String> figuraModel,
+    Optional<FiguraModelMap> figuraModels
 ) {
     public static final Codec<Origin> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         ResourceLocation.CODEC.fieldOf("id").forGetter(Origin::id),
@@ -36,7 +38,14 @@ public record Origin(
         ComponentCodecHelper.CODEC.fieldOf("description").forGetter(Origin::description),
         OriginUpgrade.CODEC.listOf().optionalFieldOf("upgrades", List.of()).forGetter(Origin::upgrades),
         LocationCondition.CODEC.optionalFieldOf("spawn_location").forGetter(Origin::spawnLocation),
-        OriginTierOverlay.CODEC.listOf().optionalFieldOf("tier_powers", List.of()).forGetter(Origin::tierPowers)
+        OriginTierOverlay.CODEC.listOf().optionalFieldOf("tier_powers", List.of()).forGetter(Origin::tierPowers),
+        // Optional opaque key naming the Figura model that represents this origin.
+        // Surfaced to the Figura Lua sandbox (soft-dep) via NeoOriginsFiguraGlobal;
+        // no validation, absent by default so every existing origin loads unchanged.
+        Codec.STRING.optionalFieldOf("figura_model").forGetter(Origin::figuraModel),
+        // Optional advanced reactive Figura-model maps (tiers / powers / capabilities
+        // / vocab). Also opaque and soft-dep only; absent by default. See FiguraModelMap.
+        FiguraModelMap.CODEC.optionalFieldOf("figura_models").forGetter(Origin::figuraModels)
     ).apply(inst, Origin::new));
 
     /**

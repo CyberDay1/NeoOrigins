@@ -85,6 +85,29 @@ public final class GameplayConfig {
 
     public static boolean isAutoHuman() { return AUTO_HUMAN.get(); }
 
+    // ── Skip Initial Selection ──────────────────────────────────────────
+    public static final ModConfigSpec.BooleanValue SKIP_INITIAL_SELECTION;
+
+    static {
+        BUILDER.comment(
+            "Skip the initial origin/class selection entirely.",
+            "When enabled, new players spawn with NO origin and the selection",
+            "screen never opens on first join. They play as an origin-less",
+            "player until granted one later (e.g. via an Orb of Origin).",
+            "Unlike auto-human mode this assigns nothing, and unlike disabling",
+            "every class it does not leave the player stuck invulnerable.",
+            "Takes priority over auto-human and random-assignment modes."
+        ).push("skip_initial_selection");
+
+        SKIP_INITIAL_SELECTION = BUILDER
+            .comment("Spawn new players with no origin and no selection screen.")
+            .define("enabled", false);
+
+        BUILDER.pop();
+    }
+
+    public static boolean isSkipInitialSelection() { return SKIP_INITIAL_SELECTION.get(); }
+
     // ── Random Origin Assignment ────────────────────────────────────────
     public static final ModConfigSpec.EnumValue<RandomMode> RANDOM_MODE;
     public static final ModConfigSpec.IntValue RANDOM_REROLLS;

@@ -34,7 +34,8 @@
     "FolderPackDetectorMixin",
     "EntityForcedSwimmingMixin",
     "BlockStateBaseCobwebShapeMixin",
-    "recipe.CraftingMenuOriginContextMixin"
+    "recipe.CraftingMenuOriginContextMixin",
+    "recipe.ResultSlotOriginContextMixin"
   ],
   "client": [
     "client.LightTextureMixin",

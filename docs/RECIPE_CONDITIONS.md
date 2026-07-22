@@ -77,18 +77,26 @@ only — copy any of them into your own `data/<ns>/recipe/` to activate.
 
 ## Behavior notes
 
-- **Recipe book**: gated recipes are marked `isSpecial()`, which suppresses
-  the autofill "completable" highlight. The recipe is still visible in the
-  book; clicking it just won't populate a result. This avoids teasing
-  players with results they can't actually take.
+- **Recipe book**: gated recipes inherit the inner recipe's `isSpecial()`
+  (false for normal shaped / shapeless), so they can be unlocked and shown
+  in the book like any recipe. The per-player gate is still enforced at
+  craft time by `matches()`: a player who fails the gate sees the recipe in
+  the book but gets an empty result slot. (Marking the wrapper itself
+  `isSpecial()` was tried and reverted, because it silently skipped the
+  `awardRecipes()` unlock so gated recipes could never surface in the book.)
 - **JEI / REI**: gated recipes show up like any other crafting recipe.
   Players that try to craft them without the right origin will see an
   empty result slot.
-- **Servers**: the gate is evaluated on the server side during the
-  `slotChangedCraftingGrid` call. The recipe serializer is registered on
-  both sides via `BuiltInRegistries.RECIPE_SERIALIZER`, so dedicated
-  servers and integrated servers both load gated recipes correctly, and
-  clients deserialize the recipe-book sync payload without warnings.
+- **Servers**: the gate is evaluated on the server side. The crafting
+  player is planted into context both when the grid changes
+  (`slotChangedCraftingGrid`) and when the result is taken
+  (`ResultSlot.onTake`) — the latter is required so the recipe still
+  resolves while vanilla recomputes leftover items, otherwise the consumed
+  ingredients are refunded instead of used up. The recipe serializer is
+  registered on both sides via `BuiltInRegistries.RECIPE_SERIALIZER`, so
+  dedicated servers and integrated servers both load gated recipes
+  correctly, and clients deserialize the recipe-book sync payload without
+  warnings.
 - **Hopper / automation**: hoppers feeding a crafter block do not provide
   a player context. Gated recipes will **not** craft via the Crafter
   block; the gate falls back to "deny" when no player is present. This is

@@ -13,7 +13,10 @@
     "neoorigins:air_mage_slow_fall",
     "neoorigins:air_mage_fragile",
     "neoorigins:air_mage_light",
-    "neoorigins:air_mage_mana"
+    "neoorigins:air_mage_mana",
+    "neoorigins:air_mage_irons_attunement",
+    "neoorigins:air_mage_irons_max_mana",
+    "neoorigins:air_mage_irons_mana_regen"
   ],
   "upgrades": [],
   "tier_powers": [

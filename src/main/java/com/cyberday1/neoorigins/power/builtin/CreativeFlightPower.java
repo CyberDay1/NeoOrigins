@@ -32,7 +32,7 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
             // Config kill-switch: a top-level "enabled":false (injected by the
             // power_overrides system) turns the flight off — the ability is
             // stripped each tick and never re-granted.
-            Codec.BOOL.optionalFieldOf("enabled", true).forGetter(Config::enabled),
+            com.cyberday1.neoorigins.power.util.EnabledGate.field(Config::enabled),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)

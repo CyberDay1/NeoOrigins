@@ -5,7 +5,6 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,21 +33,14 @@ public record SyncActivePowersPayload(
         buf.writeMap(payload.powers(),
             FriendlyByteBuf::writeResourceLocation,
             FriendlyByteBuf::writeBoolean);
-        buf.writeVarInt(payload.capabilities().size());
-        for (String cap : payload.capabilities()) {
-            buf.writeUtf(cap);
-        }
+        NetworkCodecs.writeStringSet(buf, payload.capabilities());
     }
 
     private static SyncActivePowersPayload decode(FriendlyByteBuf buf) {
         Map<ResourceLocation, Boolean> powers = buf.readMap(
             FriendlyByteBuf::readResourceLocation,
             FriendlyByteBuf::readBoolean);
-        int capCount = buf.readVarInt();
-        Set<String> capabilities = new HashSet<>(capCount);
-        for (int i = 0; i < capCount; i++) {
-            capabilities.add(buf.readUtf());
-        }
+        Set<String> capabilities = NetworkCodecs.readStringSet(buf);
         return new SyncActivePowersPayload(powers, capabilities);
     }
 

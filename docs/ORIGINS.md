@@ -1344,6 +1344,7 @@ An undead predator of the night — swift, strong, and eternally hungry. Sunligh
 - *Sunburn* — damage in direct sunlight
 - *Corpse Vitality* — slower natural regeneration
 - *Blood Diet* — only raw flesh sustains you
+- *Bloodfeast* — raw and rotten flesh nourish you as if freshly cooked
 - *Running Water* — damage in water and rain
 
 **Evolution**

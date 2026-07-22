@@ -282,18 +282,14 @@ public final class LegacyPowerTypeAliases {
         //                                config field as "multiplier" for
         //                                consistency with other weakness powers;
         //                                accept it here so config overrides reach
-        //                                the damage value. damage_per_second wins
-        //                                if both are present.
+        //                                the damage value. "multiplier" is a scalar
+        //                                applied to damage_per_second (default 1.0);
+        //                                set multiplier 0 to disable the damage.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "damage_in_water"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
-                    float dps;
-                    if (json.has("damage_per_second")) {
-                        dps = json.get("damage_per_second").getAsFloat();
-                    } else if (json.has("multiplier")) {
-                        dps = json.get("multiplier").getAsFloat();
-                    } else {
-                        dps = 1.0f;
-                    }
+                    float base = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
+                    float mult = json.has("multiplier") ? json.get("multiplier").getAsFloat() : 1.0f;
+                    float dps = base * mult;
                     boolean includeRain = !json.has("include_rain") || json.get("include_rain").getAsBoolean();
 
                     com.google.gson.JsonObject inWater = simpleCondition("neoorigins:in_water");

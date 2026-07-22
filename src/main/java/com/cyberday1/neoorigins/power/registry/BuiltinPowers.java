@@ -1454,6 +1454,8 @@ public final class BuiltinPowers {
             new FieldSpec("min_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches min."),
             new FieldSpec("max_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches max."),
             new FieldSpec("hidden", Kind.BOOLEAN, false).def(false).doc("When true, hides the bar from the HUD (mechanics still apply)."),
+            new FieldSpec("backing", Kind.STRING, false).def("")
+                .doc("Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only — absolute set_resource / operation:\"set\" are ignored). `max` is author-declared (the bar's display scale). Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default)."),
             new FieldSpec("hud_render", Kind.OBJECT, false).virtualObject(
                 new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
                 new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color (hex, e.g. #55AAFF)."),

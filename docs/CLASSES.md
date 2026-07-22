@@ -102,6 +102,26 @@ you don't want a resource/language pack — handy for self-contained datapacks.
   `/neoorigins set`).
 - **No classes at all:** if *every* class is disabled, the class selection
   screen is skipped entirely and only the origin layer is shown.
+- **Skip initial selection:** the `[skip_initial_selection]` section in
+  `config/neoorigins/gameplay.toml` has an `enabled` flag (default `false`).
+  When set to `true`, new players spawn with **no** origin and the selection
+  screen never opens on first join; they play as an origin-less player until
+  granted one later (for example via an Orb of Origin or `/neoorigins set`).
+  Unlike auto-human mode this assigns nothing, and unlike disabling every
+  class it does not leave the player stuck invulnerable. It takes priority
+  over auto-human and random-assignment modes.
+
+## The Orb of Origin
+
+`neoorigins:orb_of_origin` re-picks **only** the `neoorigins:origin` layer.
+Right-clicking it reopens the selection screen scoped to that layer alone, so
+the player's **class (and any other layer) is kept**: changing class is the
+Orb of Class's job. Any sub-layer whose conditions no longer pass under the
+new origin is cleared automatically. Like the Orb of Class the commit is
+deferred, so closing the picker without choosing is a free cancel (the orb is
+refunded and the previous origin restored). Cost is `levels_per_use` in the
+`[orb_of_origins]` section of `config/neoorigins/gameplay.toml` (default `5`),
+which can ramp with prior uses when scaling is enabled.
 
 ## The Orb of Class
 

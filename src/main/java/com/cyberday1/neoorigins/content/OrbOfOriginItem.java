@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -15,6 +16,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public class OrbOfOriginItem extends Item {
+
+    /**
+     * The single layer this orb re-picks. The Orb of Origin resets ONLY the main
+     * origin layer, leaving any Class (or other) layer chosen — changing class is
+     * the Orb of Class's job (issue #113). Sub-layers whose conditions no longer
+     * pass after the new origin are cleared automatically by the cascade in
+     * {@link com.cyberday1.neoorigins.network.NeoOriginsNetwork#handleChooseOrigin}.
+     */
+    public static final ResourceLocation ORIGIN_LAYER =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "origin");
 
     public OrbOfOriginItem(Item.Properties properties) {
         super(properties);
@@ -56,7 +67,10 @@ public class OrbOfOriginItem extends Item {
         // until the player actually commits a new origin. This lets players back
         // out of the picker without losing the orb or their existing origins.
         data.setPendingOrbCommit(true);
-        NeoOriginsNetwork.openSelectionScreen(sp, true, true);
+        // Scope the picker to just the origin layer so the Orb of Origin re-picks
+        // origin only. forceReselect re-shows the (still-filled) layer; the actual
+        // clear/revoke is deferred to commitOrbUse on the first pick.
+        NeoOriginsNetwork.openSelectionScreen(sp, true, true, java.util.List.of(ORIGIN_LAYER));
 
         return InteractionResultHolder.consume(stack);
     }

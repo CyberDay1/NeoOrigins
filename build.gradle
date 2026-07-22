@@ -12,6 +12,16 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Figura soft-dep jar (compileOnly). Prefer a jar checked into libs/ (so CI /
+// a fresh checkout can compile the compat/figura module); otherwise fall back to
+// the local CurseForge instance where the dev already has it installed. The file
+// is only needed to COMPILE the module — it's never bundled or on the runtime
+// classpath, exactly like a compileOnly maven dep.
+def figura_jar = fileTree(dir: 'libs', include: 'figura-*neoforge*.jar').files.find { it.exists() }
+if (figura_jar == null) {
+    figura_jar = file("${System.getProperty('user.home')}/curseforge/minecraft/Instances/1.21.1 NF/mods/figura-0.1.6+1.21.1-neoforge-mc.jar")
+}
+
 neoForge {
     version = property('deps.neoforge')
 
@@ -112,6 +122,21 @@ dependencies {
     // (Modrinth maven; group maven.modrinth). 1.21.1-only — no 26.1 build exists.
     compileOnly "maven.modrinth:accessories:${property('deps.accessories')}"
 
+    // Figura – client-side custom-avatar mod. Compile-only soft dep: the mod's
+    // FiguraAPIPlugin entry point (compat/figura) exposes a `neoorigins` Lua
+    // global to avatar scripts. Those classes are the ONLY ones that touch
+    // Figura types and are classloaded solely by Figura's own annotation scanner
+    // — nothing in NeoOrigins references them — so the mod runs cleanly without
+    // Figura installed and is never listed in mods.toml.
+    //
+    // Resolved from a local file, NOT the Modrinth maven: Figura publishes a
+    // separate Modrinth *version* per loader (neoforge / minecraftforge / fabric)
+    // that all share the same version_number (0.1.6+1.21.1), so
+    // `maven.modrinth:figura:0.1.6+1.21.1` is ambiguous and can pull the Fabric
+    // jar (wrong EntryPointManagerImpl → won't compile). Pin the exact NeoForge
+    // jar instead. If it moves, drop the loader jar into libs/ or update the path.
+    compileOnly files(figura_jar)
+
     // Build A Spell (buildaspell) – the `cast_spell` action casts an inline
     // author-baked spell via BuildASpellAPI. Every BaS-typed reference is
     // isolated in compat/buildaspell/BuildASpellBridge and only classloaded
@@ -142,6 +167,16 @@ neoForge.addModdingDependenciesTo sourceSets.apiStubs
 // runtimeClasspath and not part of the mod jar (the jar is built from the main
 // source set), so the stub leaves zero runtime footprint.
 sourceSets.main.compileClasspath += sourceSets.apiStubs.output
+
+// Keep the dev-only tooling (CompatTestHarness, PowerAliasSmokeTest, schema
+// generators, etc. — all main-sourceSet classes with a main()) OUT of the
+// published jar. They're only ever invoked via the JavaExec run-tasks below,
+// which build their classpath from sourceSets.main.runtimeClasspath (the
+// compiled .class output), NOT the jar artifact — so excluding them from the
+// jar leaves those tasks fully functional while trimming the release jar.
+tasks.named('jar') {
+    exclude '**/dev/**'
+}
 
 tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [

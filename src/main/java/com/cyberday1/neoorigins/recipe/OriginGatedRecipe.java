@@ -95,6 +95,21 @@ public final class OriginGatedRecipe implements CraftingRecipe {
         return inner.getIngredients();
     }
 
+    /**
+     * Delegate leftover/remainder computation to {@code inner}. The default
+     * {@link CraftingRecipe#getRemainingItems} would work for plain shaped/shapeless
+     * inners, but delegating is correct for any inner (custom crafting recipes with
+     * their own remainder logic) and keeps the wrapper fully transparent. This is
+     * the value {@code ResultSlot.onTake} consumes once the recipe resolves — see
+     * {@link com.cyberday1.neoorigins.mixin.recipe.ResultSlotOriginContextMixin} for
+     * why the gate must be planted so this override is reached instead of vanilla's
+     * "copy the whole grid back" fallback.
+     */
+    @Override
+    public NonNullList<ItemStack> getRemainingItems(CraftingInput input) {
+        return inner.getRemainingItems(input);
+    }
+
     @Override
     public CraftingBookCategory category() {
         return inner.category();

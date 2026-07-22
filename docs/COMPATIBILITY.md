@@ -36,8 +36,110 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 | **Dragon Survival** | `dragonsurvival` | The `neoorigins:become_dragon` power drives Dragon Survival's own dragon state, so an origin can make its holder a DS dragon of a configured species and stage — DS supplies the actual traits, growth, abilities, altar economy and hunters. Ships with three built-in origins (Cave / Forest / Sea Dragon) gated behind `"required_mods": ["dragonsurvival"]`, so they only load and appear in the picker when DS is installed. Reflection-based, no hard dependency. See the caveat below. |
 | **Pehkui** | `pehkui` | Origin body-scale powers drive the Pehkui scale system so resizing renders and collides correctly. See the caveat below. |
 | **Epic Fight** | `epicfight` | Origin scaling is applied to Epic Fight's custom entity renderer via a mixin, so scaled origins render correctly with Epic Fight installed. |
-| **Iron's Spells 'n Spellbooks** | `irons_spellbooks` | The `neoorigins:cast_iron_spell` action casts an Iron's spell as the player from an origin power — pick the spell id, level, and `instant`/`channel` mode. By default the cast is free from Iron's mana (cost is charged on the NeoOrigins power); set `consume_mana: true` to draw from and gate on the player's Iron's mana pool instead. Compile-only soft dependency (never bundled). Gate the power with `"required_mods": ["irons_spellbooks"]`; without the mod the action is a logged no-op. See [ACTIONS.md](ACTIONS.md#neooriginscast_iron_spell). |
-| **Modded attributes** | (any) | `attribute_modifier` powers can target attributes added by other mods (e.g. Iron's Spells, Apothic Attributes). Attribute IDs resolve with or without the `generic.`/`player.` prefix. |
+| **Iron's Spells 'n Spellbooks** | `irons_spellbooks` | Three surfaces: the `neoorigins:cast_iron_spell` action casts an Iron's spell from an origin power; a `neoorigins:resource` power can back its bar with the player's Iron's mana pool (`"backing": "irons_spellbooks:mana"`); and `attribute_modifier` powers can modify Iron's custom attributes (max mana, spell power, cooldown reduction, …). Compile-only soft dependency (never bundled). See the full [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section below. |
+| **Modded attributes** | (any) | `attribute_modifier` powers can target attributes added by other mods (e.g. Iron's Spells, Apothic Attributes). Attribute IDs resolve with or without the `generic.`/`player.` prefix. For Iron's specifically, see the [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section. |
+| **Figura** | `figura` | Exposes a read-only `neoorigins` Lua global to Figura avatars, so a custom-avatar script can react to the wearer's origin, active powers, capabilities, and evolution tier (e.g. swap models per origin or per tier). Origins declare opaque model keys via the `figura_model` / `figura_models` datapack fields. Compile-only soft dependency; Figura only ever reads NeoOrigins state. Full reference: [FIGURA.md](FIGURA.md). |
+
+---
+
+## Iron's Spells 'n Spellbooks
+
+`irons_spellbooks` is a compile-only soft dependency — it is never bundled, and
+nothing here is required. A pack that uses these surfaces runs fine without Iron's
+installed: each degrades to a logged no-op rather than crashing. Where a whole
+origin or power only makes sense with Iron's present, gate it with the top-level
+`"required_mods": ["irons_spellbooks"]` array so it neither loads nor shows up in
+the picker when the mod is absent. (`required_mods` is an all-of gate: every id
+listed must be loaded.)
+
+Three integration surfaces are available.
+
+### 1. Cast an Iron's spell — `neoorigins:cast_iron_spell` action
+
+Casts an Iron's spell as the player from an origin power: pick the spell id, level,
+and `instant`/`channel` mode. By default the cast is free from Iron's mana (the
+cost is charged on the NeoOrigins power); set `consume_mana: true` to draw from and
+gate on the player's Iron's mana pool instead. Without Iron's installed the action
+is a logged no-op. See [ACTIONS.md](ACTIONS.md#neooriginscast_iron_spell) for the
+full field list.
+
+### 2. Mana-backed resource bar — `neoorigins:resource` with `backing`
+
+Set `"backing": "irons_spellbooks:mana"` on a `neoorigins:resource` power to make
+its bar read from and write to the player's Iron's mana pool rather than
+NeoOrigins' own per-player store. The mana pool stays authoritative:
+
+- The bar auto-scales — omit `min`/`max`. It uses `min = 0` and `max =` Iron's
+  **live** max mana (the `irons_spellbooks:max_mana` attribute, which moves with
+  gear, level, and effects), so Iron's own bar and this one fill identically.
+- Writes are additive-only: `change_resource`, `regen_rate`, and `resource_cost`
+  each add or subtract a delta; NeoOrigins never overwrites mana absolutely, so it
+  won't fight Iron's regen and casting bookkeeping. Drains floor-clamp at 0.
+- Without Iron's installed the bar reads empty and writes do nothing (logged once)
+  — it does **not** fall back to an internal value.
+
+See the `backing` docs under
+[POWER_TYPES.md → `neoorigins:resource`](POWER_TYPES.md#neooriginsresource) for the
+full behaviour.
+
+### 3. Modify Iron's attributes — `neoorigins:attribute_modifier`
+
+`neoorigins:attribute_modifier` (and the auto-translated Apoli `origins:attribute`
+/ `origins:modify_attribute`) resolve any registered attribute id from the game
+registry, so they can target Iron's custom attributes directly — no NeoOrigins-side
+list to opt into. Point the power's `attribute` field at one of the eight ids below.
+
+| Attribute id | Base | What `add_value` does | Scale |
+|---|---|---|---|
+| `irons_spellbooks:max_mana` | — | Flat add to mana capacity | Flat points (e.g. `100.0` = +100 max mana) |
+| `irons_spellbooks:mana_regen` | 1.0 | Mana regen multiplier | Fractional bonus (`0.5` ≈ +50% regen) |
+| `irons_spellbooks:spell_power` | 1.0 | Overall spell power multiplier | Fractional bonus (`0.25` ≈ +25%) |
+| `irons_spellbooks:spell_resist` | 1.0 | Incoming magic resistance | Fractional bonus (`0.2` ≈ +20% resist) |
+| `irons_spellbooks:cooldown_reduction` | 0 | Spell cooldown reduction | Fraction 0–1 (`0.15` = 15% shorter cooldowns) |
+| `irons_spellbooks:cast_time_reduction` | 0 | Cast-time reduction | Fraction 0–1 (`0.15` = 15% faster casts) |
+| `irons_spellbooks:casting_movespeed` | — | Movement speed while casting | Movement-speed units |
+| `irons_spellbooks:summon_damage` | — | Summoned-mob damage | Damage units |
+
+**The operation and scale differ per attribute — match Iron's own scaling.**
+`max_mana` is a flat add; `spell_power`, `mana_regen`, and `spell_resist` sit on a
+base of `1.0`, so an `add_value` amount is a fractional bonus (`0.5` ≈ +50%);
+`cooldown_reduction` and `cast_time_reduction` are `0`-based fractions in the range
+0–1. There are **no** separate per-school (fire/ice/…) spell-power attributes in
+3.14.0 — schools are handled by school-types layered over the single `spell_power`
+/ `spell_resist` attributes, so those eight are the complete list.
+
+Referencing an `irons_spellbooks:*` attribute on a server without Iron's installed
+logs one warning per grant and applies nothing — the power still loads. Gate the
+origin with `"required_mods": ["irons_spellbooks"]` if it should only exist when
+Iron's is present.
+
+**Example — +100 flat max mana:**
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "irons_spellbooks:max_mana",
+  "amount": 100.0,
+  "operation": "add_value",
+  "name": "Deep Well",
+  "description": "A larger mana pool."
+}
+```
+
+**Example — +25% spell power (fractional, base 1.0):**
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "irons_spellbooks:spell_power",
+  "amount": 0.25,
+  "operation": "add_value",
+  "name": "Arcane Focus",
+  "description": "Spells hit 25% harder."
+}
+```
+
+Both examples belong in an origin gated with
+`"required_mods": ["irons_spellbooks"]` so they only apply where the attributes
+exist.
 
 ---
 

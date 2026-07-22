@@ -116,6 +116,37 @@
         },
         "additionalProperties": false
       }
+    },
+    "figura_model": {
+      "description": "Opaque base model key handed to the Figura soft-dep Lua sandbox (neoorigins:getFiguraModel). NeoOrigins never interprets it. See docs/FIGURA.md.",
+      "type": "string"
+    },
+    "figura_models": {
+      "description": "Advanced reactive Figura-model maps. All keys and values are opaque strings surfaced to the Figura Lua sandbox; NeoOrigins never interprets them. See docs/FIGURA.md.",
+      "type": "object",
+      "properties": {
+        "tiers": {
+          "description": "Evolution-tier index (as a string integer) to model key. The highest index at most the player's tier wins over the base figura_model.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "powers": {
+          "description": "Power id to model key. The key is on while that power is active on the player.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "capabilities": {
+          "description": "Capability tag to model key. The key is on while that capability tag is present on the player.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "vocab": {
+          "description": "Model key to friendly label, purely for avatar-side discovery.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

@@ -40,7 +40,7 @@ public final class ActiveOriginService {
     private ActiveOriginService() {}
 
     private static final ResourceLocation CLASS_LAYER =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
+        com.cyberday1.neoorigins.api.PowerLayers.CLASS_LAYER;
 
     // ── Per-player power cache ──────────────────────────────────────────
     private static final Map<UUID, CacheEntry> CACHE = new ConcurrentHashMap<>();

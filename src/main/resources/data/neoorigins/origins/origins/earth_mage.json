@@ -11,7 +11,10 @@
     "neoorigins:earth_mage_rooted",
     "neoorigins:earth_mage_heavy",
     "neoorigins:earth_mage_earthbound",
-    "neoorigins:earth_mage_mana"
+    "neoorigins:earth_mage_mana",
+    "neoorigins:earth_mage_irons_attunement",
+    "neoorigins:earth_mage_irons_spell_power",
+    "neoorigins:earth_mage_irons_max_mana"
   ],
   "upgrades": [],
   "tier_powers": [

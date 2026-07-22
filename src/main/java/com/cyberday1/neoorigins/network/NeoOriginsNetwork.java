@@ -35,6 +35,8 @@ import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginClaimsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncPlayerMorphPayload;
+import com.cyberday1.neoorigins.network.payload.SyncPlayerPowersPayload;
+import com.cyberday1.neoorigins.network.payload.RemovePlayerPowersPayload;
 import com.cyberday1.neoorigins.network.payload.SyncInvisibilityArmorPayload;
 import com.cyberday1.neoorigins.network.payload.SyncElytraFlightPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
@@ -67,7 +69,7 @@ public class NeoOriginsNetwork {
     private static final String PROTOCOL_VERSION = "1";
     /** The class layer never evolves, so its powers are read tier-flat (mirrors ActiveOriginService). */
     private static final ResourceLocation CLASS_LAYER =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
+        com.cyberday1.neoorigins.api.PowerLayers.CLASS_LAYER;
     /** Minimum ticks between two activations of the same slot from the same player (anti-spam). */
     private static final int SLOT_DEBOUNCE_TICKS = 5;
     /** Key: "uuid:slot" → server game-time tick that slot was last activated.
@@ -198,6 +200,18 @@ public class NeoOriginsNetwork {
             SyncElytraFlightPayload.TYPE,
             SyncElytraFlightPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncElytraFlight
+        );
+
+        registrar.playToClient(
+            SyncPlayerPowersPayload.TYPE,
+            SyncPlayerPowersPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncPlayerPowers
+        );
+
+        registrar.playToClient(
+            RemovePlayerPowersPayload.TYPE,
+            RemovePlayerPowersPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleRemovePlayerPowers
         );
 
         registrar.playToServer(
@@ -448,7 +462,7 @@ public class NeoOriginsNetwork {
 
     private static void handleSyncResourceValues(SyncResourceValuesPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientResourceState.applyValues(payload.values())
+            com.cyberday1.neoorigins.client.ClientResourceState.applyValues(payload.values(), payload.maxes())
         );
     }
 
@@ -854,16 +868,18 @@ public class NeoOriginsNetwork {
             // anything is a free cancel — the player keeps their orb and
             // origins.
             if (data.isPendingOrbCommit()) {
-                // An orb re-pick clears every layer, so it also releases all of
-                // this player's unique-origin claims. Capture them before the
-                // commit wipes the player's origin map.
-                java.util.Map<ResourceLocation, ResourceLocation> preOrbOrigins =
-                    new java.util.HashMap<>(data.getOrigins());
+                // The orb re-picks only the origin layer, so release just that
+                // layer's unique-origin claim (if any). Capture before the commit
+                // clears it; the class/other layers keep their claims since the orb
+                // no longer resets them.
+                ResourceLocation orbLayer =
+                    com.cyberday1.neoorigins.content.OrbOfOriginItem.ORIGIN_LAYER;
+                ResourceLocation preOrbOrigin = data.getOrigin(orbLayer);
                 commitOrbUse(sp, data);
-                OriginClaimsData claimsData = OriginClaimsData.get(sp.getServer());
-                preOrbOrigins.forEach((l, o) -> {
-                    if (AdminConfig.isUniqueLayer(l)) claimsData.releaseIfOwner(l, o, sp.getUUID());
-                });
+                if (preOrbOrigin != null && AdminConfig.isUniqueLayer(orbLayer)) {
+                    OriginClaimsData.get(sp.getServer())
+                        .releaseIfOwner(orbLayer, preOrbOrigin, sp.getUUID());
+                }
             }
 
             // First commit after a scoped layer-picker was opened (Orb of Class,
@@ -1222,6 +1238,67 @@ public class NeoOriginsNetwork {
         // Same for the elytra_flight cosmetic wings (render_elytra + optional
         // texture) — every viewer's elytra render layer needs it.
         broadcastElytraFlight(player, capabilities);
+        // Per-player, all-viewer state for the Figura soft-dep API: broadcast this
+        // player's origins + powers + capabilities to every client that can see
+        // them (and themselves), reusing the same powerMap/capabilities already
+        // computed above so it stays in lockstep with the local-only sync.
+        broadcastPlayerPowers(player, powerMap, capabilities);
+    }
+
+    /**
+     * Broadcast a player's full NeoOrigins state (origins + powers + capabilities)
+     * to every client tracking them AND the player themselves, for the Figura
+     * soft-dep API. Reuses the already-collected {@code powerMap}/{@code capabilities}
+     * from {@link #syncActivePowersToPlayer}. Reads the chosen-origins map straight
+     * from the attachment (not filtered by dimension — origin selection is
+     * dimension-agnostic; only the derived powers/caps are dimension-gated).
+     */
+    private static void broadcastPlayerPowers(ServerPlayer player,
+                                              Map<ResourceLocation, Boolean> powerMap,
+                                              Set<String> capabilities) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+            new SyncPlayerPowersPayload(player.getId(), player.getUUID(),
+                new HashMap<>(data.getOrigins()), new HashMap<>(powerMap),
+                new HashSet<>(capabilities), data.getEvolutionTier()));
+    }
+
+    /**
+     * Send {@code tracked}'s full NeoOrigins state to a single observer who just
+     * started tracking them, so a late-joining / newly-visible viewer's Figura
+     * script sees current state instead of nothing. Recomputes the power set for
+     * {@code tracked} (tier-aware, dimension-gated) via {@link #collectActivePowers}.
+     */
+    public static void sendPlayerPowersStateTo(ServerPlayer observer, ServerPlayer tracked) {
+        Map<ResourceLocation, Boolean> powerMap = new HashMap<>();
+        Set<String> capabilities = new HashSet<>();
+        collectActivePowers(tracked, powerMap, capabilities);
+        PlayerOriginData data = tracked.getData(OriginAttachments.originData());
+        PacketDistributor.sendToPlayer(observer,
+            new SyncPlayerPowersPayload(tracked.getId(), tracked.getUUID(),
+                new HashMap<>(data.getOrigins()), powerMap, capabilities,
+                data.getEvolutionTier()));
+    }
+
+    private static void handleSyncPlayerPowers(SyncPlayerPowersPayload payload, IPayloadContext ctx) {
+        // Dist-safety: registered playToClient, but a stray route shouldn't
+        // classload the client-only store on a dedicated server.
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientPlayerPowers.set(
+                payload.playerId(), payload.origins(), payload.powers(),
+                payload.capabilities(), payload.evolutionTier()));
+    }
+
+    /** Evict a player's Figura-facing state from a single observer's client store. */
+    public static void clearPlayerPowersStateFor(ServerPlayer observer, java.util.UUID playerId) {
+        PacketDistributor.sendToPlayer(observer, new RemovePlayerPowersPayload(playerId));
+    }
+
+    private static void handleRemovePlayerPowers(RemovePlayerPowersPayload payload, IPayloadContext ctx) {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientPlayerPowers.remove(payload.playerId()));
     }
 
     /**
@@ -1710,21 +1787,31 @@ public class NeoOriginsNetwork {
     }
 
     /**
-     * Perform the deferred orb-of-origin commit: revoke all existing origins,
-     * clear the equipment-grant ledger, deduct XP, shrink one orb from the
-     * player's inventory, and bump the orb-use counter. Called from the first
-     * ChooseOrigin after an orb is used — the orb's use() only stages the
-     * intent, so closing the picker without picking is a free cancel.
+     * Perform the deferred orb-of-origin commit: revoke the ORIGIN layer's powers,
+     * clear only that layer, deduct XP, shrink one orb from the player's inventory,
+     * and bump the orb-use counter. Called from the first ChooseOrigin after an orb
+     * is used — the orb's use() only stages the intent, so closing the picker
+     * without picking is a free cancel.
+     *
+     * <p>Scoped to {@link com.cyberday1.neoorigins.content.OrbOfOriginItem#ORIGIN_LAYER}
+     * (issue #113): the Orb of Origin no longer resets the Class (or any other)
+     * layer — that is the Orb of Class's job. Class/global powers stay granted; a
+     * class whose conditions depend on the origin is cleaned up by the cascade
+     * invalidation in {@link #handleChooseOrigin}. The equipment-grant ledger is
+     * intentionally NOT cleared: wiping it would let {@code grantAllPending} re-issue
+     * the untouched class's starting equipment (a dupe), while the new origin's
+     * grant carries a fresh grantId and is issued normally.
      */
     private static void commitOrbUse(ServerPlayer sp, PlayerOriginData data) {
         int cost = com.cyberday1.neoorigins.content.OrbOfOriginItem.computeCost(data.getOrbUseCount());
 
-        ActiveOriginService.revokeAllPowers(sp);
-        for (var layer : LayerDataManager.INSTANCE.getLayers().values()) {
-            data.removeOrigin(layer.id());
+        ResourceLocation originLayer = com.cyberday1.neoorigins.content.OrbOfOriginItem.ORIGIN_LAYER;
+        ResourceLocation prevOrigin = data.getOrigin(originLayer);
+        if (prevOrigin != null) {
+            ActiveOriginService.applyOriginPowers(sp, originLayer, prevOrigin, null);
         }
+        data.removeOrigin(originLayer);
         data.setHadAllOrigins(false);
-        data.clearGrantedEquipment();
 
         if (!sp.isCreative() && cost > 0) {
             sp.giveExperienceLevels(-cost);
@@ -1735,9 +1822,6 @@ public class NeoOriginsNetwork {
         data.incrementOrbUseCount();
         data.resetEvolution();
         data.setPendingOrbCommit(false);
-        // revokeAllPowers cleared the global-power ledger; re-grant matching
-        // global power sets so an orb reset preserves apoli:global powers.
-        com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
     }
 
     private static void shrinkOrbFromInventory(ServerPlayer sp) {

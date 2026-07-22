@@ -11,7 +11,9 @@
     "neoorigins:gravity_mage_no_fall_damage",
     "neoorigins:gravity_mage_unmoored",
     "neoorigins:gravity_mage_frail",
-    "neoorigins:gravity_mage_mana"
+    "neoorigins:gravity_mage_mana",
+    "neoorigins:gravity_mage_irons_attunement",
+    "neoorigins:gravity_mage_irons_cooldown"
   ],
   "upgrades": [],
   "tier_powers": [

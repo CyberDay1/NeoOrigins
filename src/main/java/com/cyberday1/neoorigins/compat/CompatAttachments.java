@@ -226,7 +226,31 @@ public class CompatAttachments {
     // past max and any `resource ==` gate goes permanently false.
     public static ResourceMeta getResourceMeta(String key) { return RESOURCE_META.get(resolveLegacySyntheticId(key)); }
     public static Map<String, ResourceMeta> allResourceMeta() { return Map.copyOf(RESOURCE_META); }
-    public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); }
+    public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); RESOURCE_BACKING.clear(); }
+
+    // ---- External resource backing (neoorigins:resource `backing` field) ----
+    // A native resource power may declare `"backing": "irons_spellbooks:mana"`,
+    // which makes its value AUTHORITATIVE against another mod's pool rather than
+    // the internal ResourceState attachment. Registered here (keyed by the
+    // power's canonical resource id) at grant/login so EVERY read/write path —
+    // getValue, deduct, the `resource` condition, change_resource/set_resource,
+    // and the HUD sync — can branch uniformly without threading the power Config
+    // through the action/condition parsers. The only supported backing today is
+    // "irons_spellbooks:mana"; unknown values are recorded but treated as
+    // unbacked (internal ResourceState) by the routing helpers.
+    public static final String BACKING_IRONS_MANA = "irons_spellbooks:mana";
+    private static final Map<String, String> RESOURCE_BACKING = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void registerResourceBacking(String key, String backing) {
+        if (backing != null && !backing.isBlank()) RESOURCE_BACKING.put(key, backing);
+        else RESOURCE_BACKING.remove(key);
+    }
+    public static void unregisterResourceBacking(String key) { RESOURCE_BACKING.remove(key); }
+    /** The backing id for a resource key, or null when the resource is internally stored.
+     *  Resolves legacy slash-form synthetic ids, same rationale as getResourceMeta. */
+    public static String resourceBacking(String key) { return RESOURCE_BACKING.get(resolveLegacySyntheticId(key)); }
+    /** True when the resource key is backed by the Iron's Spells mana pool. */
+    public static boolean isManaBacked(String key) { return BACKING_IRONS_MANA.equals(resourceBacking(key)); }
 
     // ---- Cooldown power durations (origins:cooldown Route B) ----
     // An Apoli cooldown power is a countdown resource: 0 == ready, >0 == ticks
@@ -358,6 +382,29 @@ public class CompatAttachments {
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
                 meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.alwaysShow()));
         }
+        // Externally-backed bars (e.g. irons_spellbooks:mana) have no entry in
+        // the ResourceState store — their value lives in the backing pool. Emit
+        // them separately, reading the live value through the router.
+        for (var be : RESOURCE_BACKING.entrySet()) {
+            String key = be.getKey();
+            if (entries.containsKey(key)) continue;
+            ResourceMeta meta = getResourceMeta(key);
+            if (meta == null || meta.hidden()) continue;
+            var rcond = getResourceRenderCondition(key);
+            if (rcond != null && !rcond.test(player)) continue;
+            int val = ResourceBackingRouter.read(player, key, meta.min());
+            // A mana-backed bar auto-scales: ignore the author min/max and use
+            // 0..(Iron's live max mana). The router falls back to the author max
+            // when Iron's is absent / max is unreadable, so the denominator is
+            // always sane.
+            int min = ResourceBackingRouter.isBacked(key) ? 0 : meta.min();
+            int max = ResourceBackingRouter.maxValue(player, key, meta.max());
+            entries.put(key, new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
+                val, min, max, meta.label(), meta.color(),
+                meta.barIndex(), meta.iconIndex(),
+                meta.spriteLocation() == null ? "" : meta.spriteLocation(),
+                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.alwaysShow()));
+        }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
             new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));
     }
@@ -373,6 +420,11 @@ public class CompatAttachments {
     public static void syncResourceValuesToClient(net.minecraft.server.level.ServerPlayer player) {
         var state = player.getData(resourceState());
         var values = new HashMap<String, Integer>();
+        // Dynamic-max overrides — populated ONLY for externally-backed bars whose
+        // max is attribute-driven (irons_spellbooks:mana). Left empty otherwise so
+        // internally-stored bars keep their last full-sync max and the payload wire
+        // shape is unchanged for them.
+        var maxes = new HashMap<String, Integer>();
         for (var e : state.getAll().entrySet()) {
             ResourceMeta meta = getResourceMeta(e.getKey());
             if (meta == null || meta.hidden()) continue;
@@ -380,7 +432,22 @@ public class CompatAttachments {
             if (rcond != null && !rcond.test(player)) continue;
             values.put(e.getKey(), e.getValue());
         }
+        // Externally-backed bars: read the live pool value (see syncResourcesToClient).
+        for (var be : RESOURCE_BACKING.entrySet()) {
+            String key = be.getKey();
+            if (values.containsKey(key)) continue;
+            ResourceMeta meta = getResourceMeta(key);
+            if (meta == null || meta.hidden()) continue;
+            var rcond = getResourceRenderCondition(key);
+            if (rcond != null && !rcond.test(player)) continue;
+            values.put(key, ResourceBackingRouter.read(player, key, meta.min()));
+            // Carry the LIVE max so the HUD re-scales when Iron's max mana moves
+            // (gear/level/effects) between full syncs.
+            if (ResourceBackingRouter.isBacked(key)) {
+                maxes.put(key, ResourceBackingRouter.maxValue(player, key, meta.max()));
+            }
+        }
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
-            new com.cyberday1.neoorigins.network.payload.SyncResourceValuesPayload(values));
+            new com.cyberday1.neoorigins.network.payload.SyncResourceValuesPayload(values, maxes));
     }
 }

@@ -3288,6 +3288,11 @@
           "type": "boolean",
           "default": false
         },
+        "backing": {
+          "description": "Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only: absolute set_resource / operation:\"set\" are ignored). When set, `min`/`max` are ignored and the bar auto-scales to Iron's live max-mana attribute (falling back to the author max only when Iron's state is unavailable). Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default).",
+          "type": "string",
+          "default": ""
+        },
         "hud_render": {
           "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.",
           "type": "object",

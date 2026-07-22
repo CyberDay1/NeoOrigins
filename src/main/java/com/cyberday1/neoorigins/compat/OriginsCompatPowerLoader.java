@@ -199,6 +199,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         NumericModifierRegistry.clearAll();
         CompatAttachments.clearResourceMeta();
         CompatAttachments.clearCooldownDurations();
+        ResourceBackingRouter.clearWarnings();
         com.cyberday1.neoorigins.service.InlineRecipeRegistry.resetPending();
         com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.clear();
 
@@ -1669,6 +1670,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int startValue   = json.has("start_value") ? json.get("start_value").getAsInt() : min;
         int interval     = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
         int offset       = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
+        // NeoOrigins extension, also honoured on the compat path: bind the bar's
+        // value to an external pool (today only "irons_spellbooks:mana"). A backed
+        // resource reads/writes the pool instead of the internal ResourceState.
+        final String backing = json.has("backing") ? json.get("backing").getAsString() : "";
 
         EntityAction minAction  = parseActionField(json, "min_action",     idStr);
         EntityAction maxAction  = parseActionField(json, "max_action",     idStr);
@@ -1751,17 +1756,23 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         return CompatPower.Config.builder()
             .onGranted(player -> {
-                player.getData(CompatAttachments.resourceState()).set(key, startValue);
+                CompatAttachments.registerResourceBacking(key, backing);
+                // Backed bars have no internal store to seed; the pool is authoritative.
+                if (!CompatAttachments.isManaBacked(key)) {
+                    player.getData(CompatAttachments.resourceState()).set(key, startValue);
+                }
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onRevoked(player -> {
                 player.getData(CompatAttachments.resourceState()).remove(key);
                 CompatAttachments.unregisterResourceMeta(key);
                 CompatAttachments.unregisterResourceRenderCondition(key);
+                CompatAttachments.unregisterResourceBacking(key);
                 PREV_RENDER_CONDITIONS.remove(player.getUUID() + ":rcond:" + key);
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onTick(player -> {
+                boolean manaBacked = CompatAttachments.isManaBacked(key);
                 var state = player.getData(CompatAttachments.resourceState());
                 if (player.level().getServer() != null && (player.level().getServer().getTickCount() + offset) % interval == 0) {
                     tickAction.execute(player);
@@ -1771,7 +1782,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // PREV_RESOURCE_VALUES map for edge detection. On first tick
                 // (prev == null), assume previous was startValue so boundary
                 // actions fire if the resource was persisted at min/max.
-                int cur = state.get(key, startValue);
+                int cur = manaBacked
+                    ? ResourceBackingRouter.read(player, key, min)
+                    : state.get(key, startValue);
                 String edgeKey = player.getUUID() + ":" + key;
                 Integer prev = PREV_RESOURCE_VALUES.put(edgeKey, cur);
                 int prevVal = prev != null ? prev : startValue;
@@ -1779,9 +1792,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     if (cur <= min && prevVal > min) minAction.execute(player);
                     if (cur >= max && prevVal < max) maxAction.execute(player);
                 }
-                // Sync to client every 10 ticks when dirty — value-only payload;
-                // metadata was already pushed by the full sync at grant/login.
-                if (state.isDirty() && player.tickCount % 10 == 0) {
+                // Sync to client every 10 ticks. A backed bar's pool changes out
+                // from under us (regen/casting), so sync unconditionally on the
+                // cadence; an internal bar syncs only when its dirty flag trips.
+                if (manaBacked) {
+                    if (player.tickCount % 10 == 0) {
+                        CompatAttachments.syncResourceValuesToClient(player);
+                    }
+                } else if (state.isDirty() && player.tickCount % 10 == 0) {
                     state.clearDirty();
                     CompatAttachments.syncResourceValuesToClient(player);
                 }

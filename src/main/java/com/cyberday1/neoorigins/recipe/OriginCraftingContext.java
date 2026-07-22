@@ -27,8 +27,27 @@ public final class OriginCraftingContext {
 
     private OriginCraftingContext() {}
 
-    public static void push(Player player) {
+    /**
+     * Plant {@code player} as the current crafting player and return whatever was
+     * planted before (may be {@code null}). Callers should hand the returned value
+     * back to {@link #restore(Player)} in a {@code finally}-style pair so that a
+     * nested push/pop (e.g. {@code ResultSlot.onTake} re-resolving the recipe while
+     * an outer {@code slotChangedCraftingGrid} push is live) cannot wipe the outer
+     * context. The legacy {@link #pop()} remains for the common non-nested case.
+     */
+    public static Player push(Player player) {
+        Player prev = CURRENT.get();
         CURRENT.set(player);
+        return prev;
+    }
+
+    /** Restore the value returned by {@link #push(Player)}. Null restores the empty slot. */
+    public static void restore(Player prev) {
+        if (prev == null) {
+            CURRENT.remove();
+        } else {
+            CURRENT.set(prev);
+        }
     }
 
     public static void pop() {

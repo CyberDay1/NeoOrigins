@@ -61,7 +61,6 @@ public class ParchmentEditBox extends EditBox {
      * to import UITheme themselves. Mirrors OriginSelectionScreen.themed().
      */
     public static Component themed(Component c) {
-        ResourceLocation fid = UITheme.current().font();
-        return fid != null ? c.copy().withStyle(s -> s.withFont(fid)) : c;
+        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themed(c);
     }
 }

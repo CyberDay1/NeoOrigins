@@ -398,19 +398,14 @@ public class OriginSelectionScreen extends Screen {
      * in the Style selects which font set is used.
      */
     private static Component themed(Component c) {
-        ResourceLocation fid = UITheme.current().font();
-        return fid != null ? c.copy().withStyle(s -> s.withFont(fid)) : c;
+        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themed(c);
     }
 
     /** Like {@link #themed} but also marks the Style as bold — used for the
      *  detail-panel "Powers" section header and per-power name lines so the
      *  TTF renderer picks up its synthesized bold weight. */
     private static Component themedBold(Component c) {
-        ResourceLocation fid = UITheme.current().font();
-        return c.copy().withStyle(s -> {
-            var styled = s.withBold(true);
-            return fid != null ? styled.withFont(fid) : styled;
-        });
+        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themedBold(c);
     }
 
     /** Translation-key label for a sort mode, wrapped in the active theme font. */
