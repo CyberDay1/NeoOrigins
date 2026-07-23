@@ -301,19 +301,25 @@ public final class ConditionParser {
             // holding an umbrella in either hand blocks sun damage entirely
             // (takes priority over helmet protection).
             if (neoorigins$isHoldingUmbrella(p)) return false;
-            // Helmet protection — any helmet blocks sun damage.
+            // Helmet protection — any helmet blocks sun damage, but only
+            // when the helmet_protection flag is enabled. When the flag is
+            // false the whole block is skipped: a worn helmet neither
+            // protects nor takes durability damage, and we fall through to
+            // return true (player burns).
             // Damageable helmets take durability damage over time;
             // invulnerable/unbreakable helmets (e.g. allthemodium)
             // protect indefinitely.
-            ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
-            if (!head.isEmpty()) {
-                if (head.isDamageableItem()) {
-                    float chance = GameplayConfig.sunHelmetDuraDamageChance();
-                    if (chance > 0f && p.getRandom().nextFloat() < chance) {
-                        head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+            if (GameplayConfig.sunHelmetProtection()) {
+                ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
+                if (!head.isEmpty()) {
+                    if (head.isDamageableItem()) {
+                        float chance = GameplayConfig.sunHelmetDuraDamageChance();
+                        if (chance > 0f && p.getRandom().nextFloat() < chance) {
+                            head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
+                        }
                     }
+                    return false;
                 }
-                return false;
             }
             return true;
         };

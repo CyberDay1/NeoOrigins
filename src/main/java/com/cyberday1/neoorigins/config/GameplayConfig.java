@@ -322,6 +322,7 @@ public final class GameplayConfig {
     }
 
     // ── Sun damage helmet protection ────────────────────────────────────
+    public static final ModConfigSpec.BooleanValue SUN_HELMET_PROTECTION;
     public static final ModConfigSpec.DoubleValue SUN_HELMET_DURA_DAMAGE_CHANCE;
 
     static {
@@ -332,18 +333,32 @@ public final class GameplayConfig {
             "helmet absorbs the burn at the cost of its own durability."
         ).push("sun_damage");
 
+        SUN_HELMET_PROTECTION = BUILDER
+            .comment("When true (default), wearing any helmet cancels sun burn for",
+                     "sun-damage origins — the current, vanilla-like behaviour.",
+                     "When false, sun-damage origins burn in daylight even with a",
+                     "helmet equipped, and the helmet takes no durability damage",
+                     "since it is no longer protecting the player.")
+            .define("helmet_protection", true);
+
         SUN_HELMET_DURA_DAMAGE_CHANCE = BUILDER
             .comment("Per-evaluation chance (0.0 – 1.0) that a damageable helmet takes",
                      "1 durability while the player is in direct sun. The condition is",
                      "evaluated once per condition_passive interval (~1 second), so a",
                      "value of 0.07 averages 1 durability per ~14 seconds — about 40",
                      "minutes of continuous sun for a 165-durability iron helmet.",
-                     "Unbreaking still stacks via vanilla hurtAndBreak. Set to 0 to",
-                     "disable helmet protection (player always burns); set to 1 to",
-                     "match vanilla zombie/skeleton wear rate (very fast).")
+                     "Unbreaking still stacks via vanilla hurtAndBreak. Set to 0 so",
+                     "helmets never lose durability from sun protection; set to 1 to",
+                     "match vanilla zombie/skeleton wear rate (very fast).",
+                     "To make players burn even while wearing a helmet, set",
+                     "helmet_protection = false above.")
             .defineInRange("helmet_dura_damage_chance", 0.07, 0.0, 1.0);
 
         BUILDER.pop();
+    }
+
+    public static boolean sunHelmetProtection() {
+        return SUN_HELMET_PROTECTION.get();
     }
 
     public static float sunHelmetDuraDamageChance() {
