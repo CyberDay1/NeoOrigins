@@ -5,6 +5,7 @@
   "impact": "high",
   "order": 35,
   "powers": [
+    "neoorigins:kraken_coldsweat_cold_resist",
     "neoorigins:kraken_tentacle_lash",
     "neoorigins:kraken_ink_shot",
     "neoorigins:kraken_water_breathing",

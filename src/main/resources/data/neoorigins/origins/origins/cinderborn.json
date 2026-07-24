@@ -5,6 +5,8 @@
   "impact": "high",
   "order": 29,
   "powers": [
+    "neoorigins:cinderborn_coldsweat_heat_resist",
+    "neoorigins:cinderborn_coldsweat_cold_weakness",
     "neoorigins:cinderborn_fire_immunity",
     "neoorigins:cinderborn_fireball",
     "neoorigins:cinderborn_natural_armor",

@@ -5,6 +5,8 @@
   "impact": "high",
   "order": 27,
   "powers": [
+    "neoorigins:piglin_coldsweat_heat_resist",
+    "neoorigins:piglin_coldsweat_cold_weakness",
     "neoorigins:piglin_nether_buff",
     "neoorigins:piglin_gold_affinity",
     "neoorigins:piglin_attack_bonus",

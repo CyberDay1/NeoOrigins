@@ -5,6 +5,8 @@
   "impact": "high",
   "order": 42,
   "powers": [
+    "neoorigins:fire_mage_coldsweat_heat_resist",
+    "neoorigins:fire_mage_coldsweat_cold_weakness",
     "neoorigins:fire_mage_fireball",
     "neoorigins:fire_mage_inferno_burst",
     "neoorigins:fire_mage_flame_cloak",

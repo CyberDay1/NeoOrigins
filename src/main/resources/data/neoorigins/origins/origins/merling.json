@@ -5,6 +5,7 @@
   "impact": "medium",
   "order": 2,
   "powers": [
+    "neoorigins:merling_coldsweat_cold_resist",
     "neoorigins:merling_water_breathing",
     "neoorigins:merling_aquatic_speed",
     "neoorigins:aquatic_fish_diet",
