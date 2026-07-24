@@ -65,6 +65,7 @@
         "apace:modify_food",
         "apace:modify_inventory",
         "apace:modify_resource",
+        "apace:modify_temperature",
         "apace:mount",
         "apace:nothing",
         "apace:offset",
@@ -162,6 +163,7 @@
         "neoorigins:modify_food",
         "neoorigins:modify_inventory",
         "neoorigins:modify_resource",
+        "neoorigins:modify_temperature",
         "neoorigins:mount",
         "neoorigins:nothing",
         "neoorigins:offset",
@@ -1470,6 +1472,51 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:modify_temperature",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:modify_temperature",
+            "apace:modify_temperature"
+          ]
+        },
+        "trait": {
+          "description": "Which Cold Sweat temperature trait to modify (default `core`). `core` is the player's body temp on a roughly -100 (freezing death) … +100 (burning death) scale, 0 = neutral. `base`/`world` use the ambient scale. `heat_resistance`/`cold_resistance`/`heat_dampening`/`cold_dampening` are 0..1-ish resistances. `freezing_point`/`burning_point` shift the body-temp thresholds; `rate` scales how fast body temp changes.",
+          "type": "string",
+          "enum": [
+            "core",
+            "base",
+            "world",
+            "heat_resistance",
+            "cold_resistance",
+            "heat_dampening",
+            "cold_dampening",
+            "freezing_point",
+            "burning_point",
+            "rate"
+          ],
+          "default": "core"
+        },
+        "amount": {
+          "description": "How much to change the trait by. Positive warms, negative cools. For `core`, ±1 is a small nudge and ±100 spans the whole survivable band; for resistance/dampening traits keep it in the ~0..1 range.",
+          "type": "number"
+        },
+        "operation": {
+          "description": "`add` (default) treats `amount` as a delta added to the current value; `set` overwrites the trait to `amount` outright.",
+          "type": "string",
+          "enum": [
+            "add",
+            "set"
+          ],
+          "default": "add"
+        }
+      },
+      "required": [
+        "type",
+        "amount"
       ]
     },
     {
@@ -2934,6 +2981,7 @@
               "apace:modify_food",
               "apace:modify_inventory",
               "apace:modify_resource",
+              "apace:modify_temperature",
               "apace:mount",
               "apace:nothing",
               "apace:offset",
@@ -3031,6 +3079,7 @@
               "neoorigins:modify_food",
               "neoorigins:modify_inventory",
               "neoorigins:modify_resource",
+              "neoorigins:modify_temperature",
               "neoorigins:mount",
               "neoorigins:nothing",
               "neoorigins:offset",
