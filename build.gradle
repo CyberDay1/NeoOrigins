@@ -153,6 +153,19 @@ dependencies {
     // jar instead. If it moves, drop the loader jar into libs/ or update the path.
     compileOnly files(figura_jar)
 
+    // Sable (Create Aeronautics sub-level airships) – compile-only soft dep. A
+    // Sable airship is a "sub-level" whose blocks live at plotyard/staging coords,
+    // so a riding player's server-side position() is the staging spot, not the
+    // ship's visible world position. compat/sable/SableTeleportCompat converts that
+    // to real-world space so relative teleports/raycasts land correctly, then
+    // detaches the player from the deck. Every Sable-typed reference is isolated in
+    // that class's nested Impl holder and only classloaded behind a
+    // ModList.isLoaded("sable") gate, so the mod runs cleanly without Sable and it
+    // is never bundled or on the runtime classpath. The companion jar carries the
+    // math (Pose3d) types. 1.21.1 line (2.0.3); no 26.x Sable build exists yet.
+    compileOnly files('libs/sable-neoforge-1.21.1-2.0.3.jar')
+    compileOnly files('libs/sable-companion-common-1.21.1-1.6.0.jar')
+
     // Build A Spell (buildaspell) – the `cast_spell` action casts an inline
     // author-baked spell via BuildASpellAPI. Every BaS-typed reference is
     // isolated in compat/buildaspell/BuildASpellBridge and only classloaded

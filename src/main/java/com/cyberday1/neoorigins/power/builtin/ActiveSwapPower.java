@@ -31,12 +31,19 @@ public class ActiveSwapPower extends AbstractActivePower<ActiveSwapPower.Config>
     protected boolean execute(ServerPlayer player, Config config) {
         Optional<LivingEntity> target = PowerUtils.findEntityInLookDirection(player, config.range());
         if (target.isEmpty()) return false;
+        LivingEntity targetEntity = target.get();
+        // Snapshot each entity's world feet. A Sable rider's position() is already the
+        // visible WORLD position (re-derived from sable$plotPosition each tick), so the
+        // raw positions are correct to swap; detach both from any deck so neither swap
+        // is snapped back onto the deck next tick.
         Vec3 playerPos = player.position();
-        Vec3 targetPos = target.get().position();
+        Vec3 targetPos = targetEntity.position();
+        com.cyberday1.neoorigins.compat.sable.SableTeleportCompat.detachFromDeck(player);
+        com.cyberday1.neoorigins.compat.sable.SableTeleportCompat.detachFromDeck(targetEntity);
         TeleportEffects.playAt(player, playerPos);
         player.teleportTo(targetPos.x, targetPos.y, targetPos.z);
         TeleportEffects.playAt(player, targetPos);
-        target.get().teleportTo(playerPos.x, playerPos.y, playerPos.z);
+        targetEntity.teleportTo(playerPos.x, playerPos.y, playerPos.z);
         return true;
     }
 }

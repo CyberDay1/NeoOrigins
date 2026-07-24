@@ -884,7 +884,14 @@ public final class BuiltinActions {
                     if (absolute) {
                         player.teleportTo(px, py, pz);
                     } else {
-                        player.teleportTo(player.getX() + dx, player.getY() + dy, player.getZ() + dz);
+                        // Relative offset off the player's world feet. A Sable rider's
+                        // position() is already the visible WORLD position (re-derived
+                        // from sable$plotPosition each tick), so the offset is anchored
+                        // correctly; detach from the deck first so the move isn't
+                        // snapped back next tick.
+                        net.minecraft.world.phys.Vec3 base = player.position();
+                        com.cyberday1.neoorigins.compat.sable.SableTeleportCompat.detachFromDeck(player);
+                        player.teleportTo(base.x + dx, base.y + dy, base.z + dz);
                     }
                 };
             },
@@ -918,7 +925,12 @@ public final class BuiltinActions {
                 return player -> {
                     if (!(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
                     var rng = player.getRandom();
-                    double px = player.getX(), py = player.getY(), pz = player.getZ();
+                    // Scatter from the player's world feet. A Sable rider's position()
+                    // is already the visible WORLD position (re-derived from
+                    // sable$plotPosition each tick), so the base is correct; detach
+                    // from the deck below so the move isn't snapped back next tick.
+                    net.minecraft.world.phys.Vec3 base = player.position();
+                    double px = base.x, py = base.y, pz = base.z;
                     for (int i = 0; i < attempts; i++) {
                         double tx = px + (rng.nextDouble() - 0.5) * hRange * 2;
                         double ty = py + (rng.nextDouble() - 0.5) * vRange * 2;
@@ -926,6 +938,7 @@ public final class BuiltinActions {
                         ty = Math.max(level.getMinBuildHeight(), Math.min(level.getMaxBuildHeight() - 2, ty));
                         var target = net.minecraft.core.BlockPos.containing(tx, ty, tz);
                         if (level.getBlockState(target).isAir() && level.getBlockState(target.above()).isAir()) {
+                            com.cyberday1.neoorigins.compat.sable.SableTeleportCompat.detachFromDeck(player);
                             player.teleportTo(tx, ty, tz);
                             return;
                         }
@@ -1895,11 +1908,19 @@ public final class BuiltinActions {
                     ActionParser.extractBientityTarget(
                         com.cyberday1.neoorigins.service.ActionContextHolder.get());
                 if (target == null) return;
-                // Snapshot BOTH transforms before moving either one.
-                double ax = actor.getX(), ay = actor.getY(), az = actor.getZ();
+                // Snapshot BOTH positions before moving either one. A Sable rider's
+                // position() is already the visible WORLD position (re-derived from
+                // sable$plotPosition each tick), so the raw positions are correct to
+                // swap; detach both from any deck so neither swap is snapped back onto
+                // the deck next tick.
+                net.minecraft.world.phys.Vec3 aPos = actor.position();
+                net.minecraft.world.phys.Vec3 tPos = target.position();
+                double ax = aPos.x, ay = aPos.y, az = aPos.z;
                 float ayaw = actor.getYRot(), apitch = actor.getXRot();
-                double tx = target.getX(), ty = target.getY(), tz = target.getZ();
+                double tx = tPos.x, ty = tPos.y, tz = tPos.z;
                 float tyaw = target.getYRot(), tpitch = target.getXRot();
+                com.cyberday1.neoorigins.compat.sable.SableTeleportCompat.detachFromDeck(actor);
+                com.cyberday1.neoorigins.compat.sable.SableTeleportCompat.detachFromDeck(target);
                 actor.teleportTo(tx, ty, tz);
                 actor.setYRot(tyaw);
                 actor.setXRot(tpitch);

@@ -68,8 +68,15 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
 
         if (target == null) return false;
 
+        // The scan above walks blocks in WORLD space (player.position() is already the
+        // visible world position, even for a Sable rider), so `target` is a world-space
+        // block coord and needs no pose conversion. Note: a world-space getBlockState
+        // walk cannot see a Sable ship's walls (those blocks live in staging space), so
+        // phasing through a ship's own wall is out of scope here — that would need a
+        // staging-space scan and is not the #115 aimed-teleport bug.
+        Vec3 dest = new Vec3(target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
         // Hunger cost is handled by AbstractActivePower.onActivated() when we return true.
-        TeleportEffects.teleportWithEffects(player, target.getX() + 0.5, target.getY(), target.getZ() + 0.5);
+        TeleportEffects.teleportWithEffects(player, dest.x, dest.y, dest.z);
         return true;
     }
 }
