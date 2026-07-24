@@ -5,6 +5,8 @@
   "impact": "high",
   "order": 25,
   "powers": [
+    "neoorigins:strider_coldsweat_heat_resist",
+    "neoorigins:strider_coldsweat_cold_weakness",
     "neoorigins:strider_fire_immunity",
     "neoorigins:strider_nether_buff",
     "neoorigins:strider_water_weakness",

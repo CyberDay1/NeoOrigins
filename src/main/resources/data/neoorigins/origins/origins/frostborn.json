@@ -5,6 +5,8 @@
   "impact": "medium",
   "order": 24,
   "powers": [
+    "neoorigins:frostborn_coldsweat_cold_resist",
+    "neoorigins:frostborn_coldsweat_heat_weakness",
     "neoorigins:frostborn_freeze_aura",
     "neoorigins:frostborn_cold_buff",
     "neoorigins:frostborn_fire_weakness",

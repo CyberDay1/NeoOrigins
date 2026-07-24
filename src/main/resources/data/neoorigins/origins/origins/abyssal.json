@@ -5,6 +5,7 @@
   "impact": "high",
   "order": 17,
   "powers": [
+    "neoorigins:abyssal_coldsweat_cold_resist",
     "neoorigins:abyssal_water_breathing",
     "neoorigins:abyssal_aquatic_speed",
     "neoorigins:abyssal_night_vision",

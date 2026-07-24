@@ -5,6 +5,8 @@
   "impact": "high",
   "order": 4,
   "powers": [
+    "neoorigins:blazeling_coldsweat_heat_resist",
+    "neoorigins:blazeling_coldsweat_cold_weakness",
     "neoorigins:blazeling_fire_immunity",
     "neoorigins:blazeling_blaze_scales",
     "neoorigins:blazeling_nether_born",
