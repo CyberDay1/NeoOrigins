@@ -5,6 +5,7 @@
   "impact": "medium",
   "order": 101,
   "powers": [
+    "neoorigins:windwalker_coldsweat_cold_resist",
     "neoorigins:windwalker_featherfall",
     "neoorigins:windwalker_air_jumps",
     "neoorigins:windwalker_lofty_leap",

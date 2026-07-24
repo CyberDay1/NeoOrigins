@@ -5,6 +5,7 @@
   "impact": "low",
   "order": 6,
   "powers": [
+    "neoorigins:enderian_coldsweat_cold_resist",
     "neoorigins:enderian_ender_eyes",
     "neoorigins:enderian_projectile_dodge",
     "neoorigins:enderian_water_damage",
