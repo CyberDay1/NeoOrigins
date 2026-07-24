@@ -5,6 +5,7 @@
   "impact": "high",
   "order": 30,
   "powers": [
+    "neoorigins:sculkborn_coldsweat_cold_resist",
     "neoorigins:sculkborn_sonic_bolt",
     "neoorigins:sculkborn_darkness_aura",
     "neoorigins:sculkborn_night_vision",
