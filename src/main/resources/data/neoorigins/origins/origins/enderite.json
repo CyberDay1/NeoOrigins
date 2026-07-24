@@ -5,6 +5,7 @@
   "impact": "high",
   "order": 31,
   "powers": [
+    "neoorigins:enderite_coldsweat_cold_resist",
     "neoorigins:enderite_teleport",
     "neoorigins:enderite_phase",
     "neoorigins:enderite_slow_fall",

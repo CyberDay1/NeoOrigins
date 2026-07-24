@@ -5,6 +5,7 @@
   "impact": "high",
   "order": 36,
   "powers": [
+    "neoorigins:warden_coldsweat_cold_resist",
     "neoorigins:warden_sonic_boom",
     "neoorigins:warden_echolocation",
     "neoorigins:warden_tremor_sense",
