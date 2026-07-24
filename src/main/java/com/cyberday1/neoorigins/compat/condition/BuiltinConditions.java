@@ -287,6 +287,41 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseTemperature(json),
             List.of(comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.NUMBER, 0.0, "Biome base-temperature threshold (default 0).")));
+        // body_temperature — compares a player's Cold Sweat (cold_sweat) temperature
+        // reading against `compare_to`. SOFT dep: every Cold-Sweat-typed reference is
+        // isolated in compat.coldsweat.ColdSweatBridge and only class-loaded behind the
+        // ModList.isLoaded("cold_sweat") gate below. When Cold Sweat is absent the
+        // condition fails CLOSED (always false) with a logged warning, so packs that
+        // use it on servers without the mod degrade gracefully rather than crashing.
+        // Gate the power with "required_mods":["cold_sweat"] to avoid loading it at all.
+        // (Named body_temperature, not temperature, because neoorigins:temperature is
+        // already the biome base-temperature condition above.)
+        define("body_temperature",
+            (json, ctx) -> {
+                String traitName = json.has("trait") ? json.get("trait").getAsString() : "core";
+                String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+                double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+                ComparisonType comparison = ComparisonType.fromString(comp);
+                return player -> {
+                    if (!net.neoforged.fml.ModList.get().isLoaded("cold_sweat")) {
+                        NeoOrigins.LOGGER.warn(
+                            "[Cold Sweat] body_temperature condition in '{}' requires Cold Sweat (cold_sweat), which isn't installed — condition is false. Gate it with \"required_mods\": [\"cold_sweat\"].",
+                            ctx);
+                        return false;
+                    }
+                    double reading = com.cyberday1.neoorigins.compat.coldsweat.ColdSweatBridge.get(player, traitName);
+                    return comparison.test(reading, target);
+                };
+            },
+            List.of(
+                new FieldSpec("trait", FormFieldSpec.Kind.ENUM, false)
+                    .options("core", "base", "world", "heat_resistance", "cold_resistance",
+                             "heat_dampening", "cold_dampening", "freezing_point", "burning_point", "rate")
+                    .def("core")
+                    .doc("Which Cold Sweat temperature trait to read (default `core`). `core` is the player's body temp on a roughly -100 (freezing death) … +100 (burning death) scale, 0 = neutral. `base`/`world` use the ambient scale. `heat_resistance`/`cold_resistance`/`heat_dampening`/`cold_dampening` are 0..1-ish resistances. `freezing_point`/`burning_point` are the body-temp thresholds; `rate` is the change-rate multiplier."),
+                comparison(">=", "Comparison operator (default >=)."),
+                compareTo(FormFieldSpec.Kind.NUMBER, 0.0,
+                    "The threshold the reading is compared against. For `core`, e.g. `compare_to: 50, comparison: \">=\"` is true once the player is getting dangerously hot; `compare_to: -50, comparison: \"<=\"` catches dangerous cold.")));
         define("armor_value",
             (json, ctx) -> ConditionParser.parseArmorValue(json),
             List.of(comparison(">=", "Comparison operator (default >=)."),
