@@ -24,6 +24,7 @@
         "apace:block",
         "apace:block_collision",
         "apace:block_in_radius",
+        "apace:body_temperature",
         "apace:brightness",
         "apace:can_see",
         "apace:climbing",
@@ -136,6 +137,7 @@
         "neoorigins:block",
         "neoorigins:block_collision",
         "neoorigins:block_in_radius",
+        "neoorigins:body_temperature",
         "neoorigins:brightness",
         "neoorigins:can_see",
         "neoorigins:climbing",
@@ -480,6 +482,55 @@
         "block_condition": {
           "description": "Optional block filter; when present, at least one intersected block must match.",
           "$ref": "block_condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:body_temperature",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:body_temperature",
+            "apace:body_temperature"
+          ]
+        },
+        "trait": {
+          "description": "Which Cold Sweat temperature trait to read (default `core`). `core` is the player's body temp on a roughly -100 (freezing death) … +100 (burning death) scale, 0 = neutral. `base`/`world` use the ambient scale. `heat_resistance`/`cold_resistance`/`heat_dampening`/`cold_dampening` are 0..1-ish resistances. `freezing_point`/`burning_point` are the body-temp thresholds; `rate` is the change-rate multiplier.",
+          "type": "string",
+          "enum": [
+            "core",
+            "base",
+            "world",
+            "heat_resistance",
+            "cold_resistance",
+            "heat_dampening",
+            "cold_dampening",
+            "freezing_point",
+            "burning_point",
+            "rate"
+          ],
+          "default": "core"
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "The threshold the reading is compared against. For `core`, e.g. `compare_to: 50, comparison: \">=\"` is true once the player is getting dangerously hot; `compare_to: -50, comparison: \"<=\"` catches dangerous cold.",
+          "type": "number",
+          "default": 0.0
         }
       },
       "required": [
@@ -2715,6 +2766,7 @@
               "apace:block",
               "apace:block_collision",
               "apace:block_in_radius",
+              "apace:body_temperature",
               "apace:brightness",
               "apace:can_see",
               "apace:climbing",
@@ -2827,6 +2879,7 @@
               "neoorigins:block",
               "neoorigins:block_collision",
               "neoorigins:block_in_radius",
+              "neoorigins:body_temperature",
               "neoorigins:brightness",
               "neoorigins:can_see",
               "neoorigins:climbing",

@@ -2976,6 +2976,46 @@ public final class BuiltinActions {
                     .options("instant", "channel").def("instant")
                     .doc("`instant` fires the spell's effect directly in one shot (good for keybind/on-hit triggers). `channel` runs the full animated cast — INSTANT spells complete inline, LONG/CONTINUOUS spells channel over time. Default `instant`.")));
 
+        // modify_temperature — write a player's body/ambient temperature via Cold
+        // Sweat (cold_sweat). Every Cold-Sweat-typed reference is isolated in
+        // compat.coldsweat.ColdSweatBridge and only class-loaded behind the
+        // ModList.isLoaded("cold_sweat") gate below, so packs that use this action on
+        // servers without Cold Sweat degrade to a logged no-op rather than a class-load
+        // error. Cold Sweat is a SOFT dep compiled against a hand-written API stub
+        // (src/apistubs/java/com/momosoftworks/coldsweat), never bundled. Gate the power
+        // with "required_mods":["cold_sweat"] so it doesn't even load without the mod.
+        define("modify_temperature",
+            (json, ctx) -> {
+                if (!json.has("amount")) {
+                    NeoOrigins.LOGGER.warn(
+                        "[Cold Sweat] modify_temperature in '{}' needs a numeric 'amount' — power does nothing", ctx);
+                    return EntityAction.noop();
+                }
+                String trait = json.has("trait") ? json.get("trait").getAsString() : "core";
+                double amount = json.get("amount").getAsDouble();
+                String operation = json.has("operation") ? json.get("operation").getAsString() : "add";
+                boolean set = "set".equalsIgnoreCase(operation);
+                if (!net.neoforged.fml.ModList.get().isLoaded("cold_sweat")) {
+                    NeoOrigins.LOGGER.warn(
+                        "[Cold Sweat] modify_temperature in '{}' requires Cold Sweat (cold_sweat), which isn't installed — power does nothing. Gate it with \"required_mods\": [\"cold_sweat\"].",
+                        ctx);
+                    return EntityAction.noop();
+                }
+                return player ->
+                    com.cyberday1.neoorigins.compat.coldsweat.ColdSweatBridge.modify(player, trait, amount, set);
+            },
+            List.of(
+                new FieldSpec("trait", FormFieldSpec.Kind.ENUM, false)
+                    .options("core", "base", "world", "heat_resistance", "cold_resistance",
+                             "heat_dampening", "cold_dampening", "freezing_point", "burning_point", "rate")
+                    .def("core")
+                    .doc("Which Cold Sweat temperature trait to modify (default `core`). `core` is the player's body temp on a roughly -100 (freezing death) … +100 (burning death) scale, 0 = neutral. `base`/`world` use the ambient scale. `heat_resistance`/`cold_resistance`/`heat_dampening`/`cold_dampening` are 0..1-ish resistances. `freezing_point`/`burning_point` shift the body-temp thresholds; `rate` scales how fast body temp changes."),
+                new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, true)
+                    .doc("How much to change the trait by. Positive warms, negative cools. For `core`, ±1 is a small nudge and ±100 spans the whole survivable band; for resistance/dampening traits keep it in the ~0..1 range."),
+                new FieldSpec("operation", FormFieldSpec.Kind.ENUM, false)
+                    .options("add", "set").def("add")
+                    .doc("`add` (default) treats `amount` as a delta added to the current value; `set` overwrites the trait to `amount` outright.")));
+
         // open_layer_picker — reopen the origin selection screen scoped to an
         // author-specified subset of layers, so a pack can offer a "re-pick these
         // layers" button/item for any layer set (generalizes the Orb of Class). The

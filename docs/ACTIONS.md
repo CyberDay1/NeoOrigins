@@ -909,6 +909,35 @@ Apoli legacy alias for [`neoorigins:change_resource`](#neooriginschange_resource
 
 ---
 
+## `neoorigins:modify_temperature`
+
+Changes a player's temperature via **[Cold Sweat](https://modrinth.com/mod/cold-sweat)** (`cold_sweat`). This is an integration action: it only does anything when Cold Sweat is installed. Gate any power that uses it with the top-level `"required_mods": ["cold_sweat"]` field so the power doesn't even load without the mod — without that gate the action degrades to a logged no-op when Cold Sweat is absent.
+
+Cold Sweat's `core` (body) temperature runs on a scale of roughly **−100** (freezing death) … **+100** (burning death), with **0** neutral. The `base`/`world` traits use the ambient scale; the resistance/dampening traits sit in a ~0..1 range. Positive `amount` warms, negative cools.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `trait` | enum | no | `core` | Which trait to modify: `core`, `base`, `world`, `heat_resistance`, `cold_resistance`, `heat_dampening`, `cold_dampening`, `freezing_point`, `burning_point`, `rate` |
+| `amount` | number | yes | — | How much to change by (positive warms, negative cools). ±1 is a small `core` nudge; ±100 spans the survivable band. Resistance/dampening traits want ~0..1 |
+| `operation` | enum | no | `add` | `add` treats `amount` as a delta; `set` overwrites the trait to `amount` outright |
+
+**Example — warm the player up when an ability fires:**
+```json
+{
+  "type": "neoorigins:active_ability",
+  "key": "key.neoorigins.warmth",
+  "cooldown_ticks": 100,
+  "entity_action": {
+    "type": "neoorigins:modify_temperature",
+    "trait": "core",
+    "amount": 40,
+    "operation": "add"
+  }
+}
+```
+
+---
+
 ## `neoorigins:set_resource`
 
 Assigns a `resource` power's stored integer to a fixed value (the `set`-only sibling of `change_resource`). Same attachment-backed state and the same full-power-id requirement (no `*` wildcard).

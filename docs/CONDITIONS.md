@@ -421,6 +421,23 @@ Numeric comparison against the biome's base temperature.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Temperature threshold |
 
+## `neoorigins:body_temperature`
+
+Numeric comparison against a player's **[Cold Sweat](https://modrinth.com/mod/cold-sweat)** (`cold_sweat`) temperature reading. Integration condition: gate the power with `"required_mods": ["cold_sweat"]`. When Cold Sweat is absent the condition **fails closed** (always false) and logs a warning.
+
+Distinct from `neoorigins:temperature` above (which reads the biome's base temperature). Cold Sweat's `core` (body) temp runs roughly **−100** (freezing death) … **+100** (burning death), 0 = neutral; `base`/`world` use the ambient scale; resistance/dampening traits sit in a ~0..1 range.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `trait` | enum | no | `core` | Which trait to read: `core`, `base`, `world`, `heat_resistance`, `cold_resistance`, `heat_dampening`, `cold_dampening`, `freezing_point`, `burning_point`, `rate` |
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | number | no | `0` | Threshold the reading is compared against |
+
+**Example — true once the player is dangerously hot:**
+```json
+{ "type": "neoorigins:body_temperature", "trait": "core", "comparison": ">=", "compare_to": 50 }
+```
+
 ## `neoorigins:light_level`
 
 Numeric comparison against ambient light at the entity's block position. Also registered as `neoorigins:brightness` (same fields, same behavior — both are canonical types, not aliases).
