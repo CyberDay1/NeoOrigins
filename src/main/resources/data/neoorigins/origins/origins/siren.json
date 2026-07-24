@@ -5,6 +5,7 @@
   "impact": "medium",
   "order": 26,
   "powers": [
+    "neoorigins:siren_coldsweat_cold_resist",
     "neoorigins:siren_charm",
     "neoorigins:siren_water_breathing",
     "neoorigins:siren_aquatic_speed",

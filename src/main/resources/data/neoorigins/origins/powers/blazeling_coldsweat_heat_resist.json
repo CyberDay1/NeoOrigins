@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "required_mods": [
+    "cold_sweat"
+  ],
+  "hidden": true,
+  "attribute": "cold_sweat:heat_resistance",
+  "amount": 1.0,
+  "operation": "add_value"
+}

@@ -6,6 +6,7 @@
   "order": 18,
   "required_mods": ["dragonsurvival"],
   "powers": [
+    "neoorigins:cave_dragon_coldsweat_heat_resist",
     "neoorigins:cave_dragon_form"
   ],
   "upgrades": [],

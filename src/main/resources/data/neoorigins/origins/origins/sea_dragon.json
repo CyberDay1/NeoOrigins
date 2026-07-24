@@ -6,6 +6,8 @@
   "order": 20,
   "required_mods": ["dragonsurvival"],
   "powers": [
+    "neoorigins:sea_dragon_coldsweat_cold_resist",
+    "neoorigins:sea_dragon_coldsweat_heat_weakness",
     "neoorigins:sea_dragon_form"
   ],
   "upgrades": [],
