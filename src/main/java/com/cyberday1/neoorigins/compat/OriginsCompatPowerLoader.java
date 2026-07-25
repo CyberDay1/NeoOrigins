@@ -379,6 +379,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:carnivore",           () -> json("neoorigins:food_restriction", "mode", "whitelist", "item_tag", "neoorigins:meat_foods")),
             Map.entry("origins:cat_vision",           () -> json("neoorigins:night_vision")),
             Map.entry("origins:fall_immunity",        () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", 1000.0, "operation", "add_value")),
+            // strong_ankles: Feline "you take less fall damage" — real Origins
+            // halves it (apoli:modify_fall_damage multiply_base_additive -0.5).
+            // Route it through the native mod_fall_damage seam (same one
+            // action_on_event/modify_fall_damage consume) so base*(1-0.5)=base*0.5.
+            Map.entry("origins:strong_ankles",        () -> strongAnklesJson()),
             Map.entry("origins:launch_into_air",      () -> json("neoorigins:active_ability")),
             Map.entry("origins:light_armor",          () -> json("neoorigins:restrict_armor", "armor_class", "heavy")),
             Map.entry("origins:nine_lives",           () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -2.0, "operation", "add_value")),
@@ -540,6 +545,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
         mod.addProperty("operation", "multiply_total");
         mod.addProperty("value", 2.0);
+        o.add("modifier", mod);
+        return o;
+    }
+
+    /** origins:strong_ankles (Feline) — halved fall damage, via the native
+     *  mod_fall_damage seam. multiply_base_additive -0.5 => base*(1-0.5). */
+    private static com.google.gson.JsonObject strongAnklesJson() {
+        com.google.gson.JsonObject o = json("neoorigins:action_on_event");
+        o.addProperty("event", "mod_fall_damage");
+        com.google.gson.JsonObject mod = new com.google.gson.JsonObject();
+        mod.addProperty("operation", "multiply_base_additive");
+        mod.addProperty("value", -0.5);
         o.add("modifier", mod);
         return o;
     }
