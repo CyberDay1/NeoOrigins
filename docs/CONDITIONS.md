@@ -137,7 +137,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios/Accessories slot blocks sun damage entirely (checked before helmets).
+True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets — `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios/Accessories slot blocks sun damage entirely (checked before helmets).
 
 ## `neoorigins:on_fire` (alias `neoorigins:fire`)
 
