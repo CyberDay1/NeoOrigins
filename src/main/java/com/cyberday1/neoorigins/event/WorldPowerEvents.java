@@ -96,6 +96,18 @@ public class WorldPowerEvents {
             return;
         }
 
+        // EntityGroupPower ignored_by — a group def may list entity ids / #tags
+        // whose mobs treat this player as if they were the same group (e.g. the
+        // built-in illager group makes raiders ignore you). Simulated here since
+        // a player can't join the real EntityType tag the mob's AI checks. No
+        // retaliation window: group membership is a standing trait, not a
+        // scare/ignore toggle, so it holds even if the player has hit the mob.
+        if (ActiveOriginService.has(sp, EntityGroupPower.class,
+                cfg -> cfg.groupDef().ignoredBy(event.getEntity()))) {
+            event.setCanceled(true);
+            return;
+        }
+
         // SneakyPower — reduce detection range
         if (ActiveOriginService.has(sp, SneakyPower.class, c -> true)) {
             var mob = event.getEntity();

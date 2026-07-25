@@ -28,7 +28,8 @@ public abstract class LivingEntityUndeadPotionMixin {
     private void neoorigins$undeadPotionInversion(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
         if (self instanceof ServerPlayer sp
-                && ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
+                && ActiveOriginService.has(sp, EntityGroupPower.class,
+                    config -> config.groupDef().invertsInstant())) {
             cir.setReturnValue(true);
         }
     }
