@@ -1699,14 +1699,8 @@
           "const": "neoorigins:entity_group"
         },
         "group": {
-          "description": "Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).",
+          "description": "Entity-group id. Built-in: undead, arthropod, water, illager. A bare name resolves to neoorigins:<name>; a datapack may define more via data/<ns>/neoorigins/entity_groups/<name>.json. Changes effect/enchant interactions and which mobs ignore you. undefined = no classification.",
           "type": "string",
-          "enum": [
-            "undead",
-            "arthropod",
-            "water",
-            "undefined"
-          ],
           "default": "undefined"
         }
       },
@@ -3289,7 +3283,7 @@
           "default": false
         },
         "backing": {
-          "description": "Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only: absolute set_resource / operation:\"set\" are ignored). When set, `min`/`max` are ignored and the bar auto-scales to Iron's live max-mana attribute (falling back to the author max only when Iron's state is unavailable). Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default).",
+          "description": "Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only — absolute set_resource / operation:\"set\" are ignored). `max` is author-declared (the bar's display scale). Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default).",
           "type": "string",
           "default": ""
         },

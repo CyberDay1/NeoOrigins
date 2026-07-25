@@ -1699,14 +1699,8 @@
           "const": "neoorigins:entity_group"
         },
         "group": {
-          "description": "Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).",
+          "description": "Entity-group id. Built-in: undead, arthropod, water, illager. A bare name resolves to neoorigins:<name>; a datapack may define more via data/<ns>/neoorigins/entity_groups/<name>.json. Changes effect/enchant interactions and which mobs ignore you. undefined = no classification.",
           "type": "string",
-          "enum": [
-            "undead",
-            "arthropod",
-            "water",
-            "undefined"
-          ],
           "default": "undefined"
         }
       },

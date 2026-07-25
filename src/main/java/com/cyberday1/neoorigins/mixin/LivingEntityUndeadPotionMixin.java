@@ -10,9 +10,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Overrides {@code isInvertedHealAndHarm()} for players with an undead
- * entity group, so Instant Health damages and Instant Damage heals —
- * matching vanilla undead mob behavior.
+ * Overrides {@code isInvertedHealAndHarm()} for players whose entity group def
+ * sets {@code invert_instant_effects}, so Instant Health damages and Instant
+ * Damage heals — matching vanilla undead mob behavior. The built-in
+ * {@code neoorigins:undead} group sets this; custom groups may too.
  *
  * <p>Vanilla applies instant effects via {@code applyInstantenousEffect()}
  * which bypasses {@code addEffect()} (and therefore MobEffectEvent.Applicable).
@@ -24,7 +25,8 @@ public abstract class LivingEntityUndeadPotionMixin {
     @Inject(method = "isInvertedHealAndHarm", at = @At("HEAD"), cancellable = true)
     private void neoorigins$undeadPotionInversion(CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this instanceof ServerPlayer sp) {
-            if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
+            if (ActiveOriginService.has(sp, EntityGroupPower.class,
+                    config -> config.groupDef().invertsInstant())) {
                 cir.setReturnValue(true);
             }
         }

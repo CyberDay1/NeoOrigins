@@ -76,8 +76,12 @@ public final class ArsNouveauCompat {
             if (!(hitResult instanceof EntityHitResult ehr)) return;
             Entity target = ehr.getEntity();
             if (!(target instanceof ServerPlayer sp)) return;
+            // Undead-style groups take EffectHarm as healing (mirrors the vanilla
+            // instant heal/harm inversion). Gate on invert_instant_effects so the
+            // built-in undead group keeps working and any custom inverting group
+            // gets the same Ars Nouveau treatment.
             if (!ActiveOriginService.has(sp, EntityGroupPower.class,
-                    EntityGroupPower.Config::isUndead)) return;
+                    config -> config.groupDef().invertsInstant())) return;
 
             // Check if the spell contains EffectHarm
             Object spell = reflectGet(event, "spell");

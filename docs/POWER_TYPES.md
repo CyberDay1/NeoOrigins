@@ -1681,11 +1681,11 @@ Suppresses mob spawns within a radius of the player. Toggleable — the player c
 
 ## `neoorigins:entity_group`
 
-Changes the player's entity group, making them treated as a different creature class by game mechanics. Undead players become immune to poison and wither but take extra damage from smite.
+Treats the player as a member of a mob group, so game mechanics that key off a creature's type act on the player. A player can't be added to vanilla's real entity-type tags, so membership is simulated by intercepting the relevant hooks: effect immunity, instant heal/harm inversion, enchant vulnerability, and mob targeting.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `group` | string | no | `undead` | Entity group: `undead`, `arthropod`, `illager`, `water`, `default` |
+| `group` | string | no | `undefined` | Group id. A bare name (no namespace) resolves to `neoorigins:<name>`. `undefined` means no classification. |
 
 **Example:**
 ```json
@@ -1693,9 +1693,45 @@ Changes the player's entity group, making them treated as a different creature c
   "type": "neoorigins:entity_group",
   "group": "undead",
   "name": "Undead Nature",
-  "description": "Treated as an undead creature — immune to poison and wither."
+  "description": "Treated as an undead creature — immune to poison, healed by harm."
 }
 ```
+
+### Built-in groups
+
+These four are registered in code and work with zero setup:
+
+| Group | Effect |
+|---|---|
+| `neoorigins:undead` | Immune to Poison and Regeneration; Instant Health harms and Instant Damage heals; takes extra damage from Smite. |
+| `neoorigins:arthropod` | Takes extra damage from Bane of Arthropods (plus the vanilla slowness-on-hit). |
+| `neoorigins:water` | Takes extra damage from Impaling. |
+| `neoorigins:illager` | Raiders (anything in `#minecraft:raiders`) won't target the player. |
+
+Referencing an unknown group id — one with no built-in default and no datapack file — logs a one-time warning and does nothing, rather than silently no-op-ing.
+
+### Custom groups (datapack)
+
+A datapack can mint new groups, or override a built-in, with a JSON file at `data/<namespace>/neoorigins/entity_groups/<name>.json`. A file whose id matches a built-in (e.g. `data/neoorigins/neoorigins/entity_groups/undead.json`) replaces that built-in. Every field is optional:
+
+| Field | Type | Default | Effect |
+|---|---|---|---|
+| `immune_effects` | list of effect ids | `[]` | These status effects can't apply to the player. |
+| `invert_instant_effects` | bool | `false` | Instant Health harms and Instant Damage heals (undead behaviour). |
+| `vulnerable_enchants` | list of enchant ids | `[]` | For each listed enchant, the attacker's weapon level adds bonus damage (`level × 2.5` per enchant, summed). Listing `minecraft:bane_of_arthropods` also applies the vanilla slowness-on-hit. |
+| `ignored_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries never target the player. |
+
+**Example — `data/mypack/neoorigins/entity_groups/cursed.json`:**
+```json
+{
+  "immune_effects": ["minecraft:poison", "minecraft:wither"],
+  "invert_instant_effects": true,
+  "vulnerable_enchants": ["minecraft:smite"],
+  "ignored_by": ["#minecraft:raiders", "minecraft:zombie"]
+}
+```
+
+An origin then opts in with `{"type": "neoorigins:entity_group", "group": "mypack:cursed"}`.
 
 ---
 

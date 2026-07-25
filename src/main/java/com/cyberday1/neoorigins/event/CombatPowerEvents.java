@@ -218,26 +218,36 @@ public class CombatPowerEvents {
 
         // EntityGroupPower damage integration: a player tagged as an entity
         // group should take the corresponding enchantment bonus from the
-        // attacker's weapon (Bane of Arthropods vs. arthropod, Impaling vs.
-        // water, Smite vs. undead). Vanilla only consults EntityType tags so
-        // the player never qualifies without this hook.
+        // attacker's weapon. Vanilla only consults EntityType tags, so the
+        // player never qualifies without this hook. Generalized from the
+        // hardcoded bane/smite/impaling trio: for each of the player's active
+        // group defs, every enchant it declares vulnerable_enchants for is read
+        // off the weapon and summed; the total adds sum*2.5 damage (the exact
+        // per-level number preserved from the original). Bane of Arthropods
+        // additionally applies the vanilla slowness-on-hit.
         if (event.getSource().getEntity() instanceof LivingEntity groupAttacker) {
             var weapon = groupAttacker.getMainHandItem();
             if (!weapon.isEmpty()) {
                 var enchLookup = sp.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
-                int baneLvl = ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isArthropod)
-                    ? enchLookup.get(net.minecraft.world.item.enchantment.Enchantments.BANE_OF_ARTHROPODS)
+                // Collect the distinct enchant ids any active group def marks
+                // the player vulnerable to (de-duplicated across groups so an
+                // enchant shared by two groups isn't counted twice).
+                java.util.Set<String> vulnEnchants = new java.util.LinkedHashSet<>();
+                ActiveOriginService.forEachOfType(sp, EntityGroupPower.class,
+                    cfg -> vulnEnchants.addAll(cfg.groupDef().vulnerableEnchants()));
+                int totalLvl = 0;
+                int baneLvl = 0;
+                for (String enchId : vulnEnchants) {
+                    ResourceLocation rl = ResourceLocation.tryParse(enchId);
+                    if (rl == null) continue;
+                    int lvl = enchLookup.get(net.minecraft.resources.ResourceKey.create(
+                            net.minecraft.core.registries.Registries.ENCHANTMENT, rl))
                         .map(h -> net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(h, weapon))
-                        .orElse(0) : 0;
-                int smiteLvl = ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)
-                    ? enchLookup.get(net.minecraft.world.item.enchantment.Enchantments.SMITE)
-                        .map(h -> net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(h, weapon))
-                        .orElse(0) : 0;
-                int impaleLvl = ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isWater)
-                    ? enchLookup.get(net.minecraft.world.item.enchantment.Enchantments.IMPALING)
-                        .map(h -> net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(h, weapon))
-                        .orElse(0) : 0;
-                int totalLvl = baneLvl + smiteLvl + impaleLvl;
+                        .orElse(0);
+                    if (lvl <= 0) continue;
+                    totalLvl += lvl;
+                    if ("minecraft:bane_of_arthropods".equals(enchId)) baneLvl = lvl;
+                }
                 if (totalLvl > 0) {
                     event.setAmount(event.getAmount() + totalLvl * 2.5f);
                 }
@@ -741,14 +751,16 @@ public class CombatPowerEvents {
             event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
             return;
         }
-        // Undead entity group — poison/regen immunity (vanilla undead behaviour).
-        // Instant Health/Damage inversion is handled by the isInvertedHealAndHarm
-        // mixin (LivingEntityUndeadPotionMixin) since instant effects bypass addEffect().
-        if (ActiveOriginService.has(sp, EntityGroupPower.class, EntityGroupPower.Config::isUndead)) {
-            if (effectId.equals("minecraft:poison") || effectId.equals("minecraft:regeneration")) {
-                event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
-                return;
-            }
+        // Entity-group effect immunity — a group def's immune_effects list blocks
+        // those effects from applying. Built-in undead blocks poison/regeneration
+        // (vanilla undead behaviour); custom groups block whatever they declare.
+        // Instant Health/Damage inversion is handled separately by the
+        // isInvertedHealAndHarm mixin (LivingEntityUndeadPotionMixin) since instant
+        // effects bypass addEffect() and never reach this event.
+        if (ActiveOriginService.has(sp, EntityGroupPower.class,
+                config -> config.groupDef().immuneTo(effectId))) {
+            event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+            return;
         }
         // Post-cleanse grace window: if a prior action_on_event cleanse opened
         // a per-effect immunity window via `immunity_ticks`, short-circuit
