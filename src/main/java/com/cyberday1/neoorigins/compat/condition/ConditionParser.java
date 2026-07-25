@@ -89,6 +89,16 @@ public final class ConditionParser {
 
     private static final EquipmentSlot[] EQUIPMENT_SLOTS = EquipmentSlot.values();
 
+    /**
+     * Helmets in this tag are open/mesh (e.g. chainmail) and do NOT block sun
+     * damage — a worn helmet only shades the player if it is absent from this
+     * tag. Datapack-extensible: add modded see-through helmets by appending to
+     * {@code data/<ns>/tags/item/sun_permeable.json}.
+     */
+    private static final TagKey<net.minecraft.world.item.Item> SUN_PERMEABLE_HELMETS =
+        TagKey.create(Registries.ITEM,
+            Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "sun_permeable"));
+
     public static EntityCondition parse(JsonObject json, String contextId) {
         if (json == null) {
             return failClosed("root", contextId, "missing condition object");
@@ -296,10 +306,12 @@ public final class ConditionParser {
             // return true (player burns).
             // Damageable helmets take durability damage over time;
             // invulnerable/unbreakable helmets (e.g. allthemodium)
-            // protect indefinitely.
+            // protect indefinitely. Helmets in the neoorigins:sun_permeable
+            // tag (open/mesh, e.g. chainmail) are treated as no helmet at
+            // all — they neither shade the player nor take durability damage.
             if (GameplayConfig.sunHelmetProtection()) {
                 ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
-                if (!head.isEmpty()) {
+                if (!head.isEmpty() && !head.is(SUN_PERMEABLE_HELMETS)) {
                     if (head.isDamageableItem()) {
                         float chance = GameplayConfig.sunHelmetDuraDamageChance();
                         if (chance > 0f && p.getRandom().nextFloat() < chance) {
