@@ -228,6 +228,11 @@ public class NeoOrigins {
         // global_powers — Apoli apoli:global port. Grants powers to players/mobs
         // without an origin. Registered AFTER mob_origin_data; only needs powers.
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "global_powers"),    com.cyberday1.neoorigins.data.GlobalPowerSetDataManager.INSTANCE);
+        // entity_groups — data-driven pseudo entity-group defs behind the
+        // entity_group power. Built-in defaults live in code; a datapack file of
+        // the same id overrides. Independent of the power loaders (queried at
+        // event time), so ordering relative to them is immaterial.
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "entity_groups"),    com.cyberday1.neoorigins.data.EntityGroupDataManager.INSTANCE);
         // UI theming — addon packs declare which theme to use via
         // data/<ns>/neoorigins/active_theme.json. Listener resolves the winner;
         // the result is broadcast to clients at login and on datapack sync.

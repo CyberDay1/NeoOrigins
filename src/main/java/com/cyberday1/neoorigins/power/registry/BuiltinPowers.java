@@ -228,9 +228,8 @@ public final class BuiltinPowers {
             new FieldSpec("chance", Kind.NUMBER, false)
                 .def(0.15).doc("Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15).")));
         define("entity_group", EntityGroupPower.class, List.of(
-            new FieldSpec("group", Kind.ENUM, false)
-                .options("undead", "arthropod", "water", "undefined")
-                .def("undefined").doc("Mob classification: undead, arthropod, water, or undefined (changes effect/enchant interactions).")));
+            new FieldSpec("group", Kind.STRING, false)
+                .def("undefined").doc("Entity-group id. Built-in: undead, arthropod, water, illager. A bare name resolves to neoorigins:<name>; a datapack may define more via data/<ns>/neoorigins/entity_groups/<name>.json. Changes effect/enchant interactions and which mobs ignore you. undefined = no classification.")));
         define("hide_hud_bar", HideHudBarPower.class, List.of(
             new FieldSpec("bar", Kind.ENUM, false)
                 .options("hunger", "food", "air", "oxygen", "breath")
