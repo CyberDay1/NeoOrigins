@@ -38,6 +38,7 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 | **Iron's Spells 'n Spellbooks** | `irons_spellbooks` | Three surfaces: the `neoorigins:cast_iron_spell` action casts an Iron's spell from an origin power; a `neoorigins:resource` power can back its bar with the player's Iron's mana pool (`"backing": "irons_spellbooks:mana"`); and `attribute_modifier` powers can modify Iron's custom attributes (max mana, spell power, cooldown reduction, …). Compile-only soft dependency (never bundled). See the full [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section below. |
 | **Modded attributes** | (any) | `attribute_modifier` powers can target attributes added by other mods (e.g. Iron's Spells, Apothic Attributes). Attribute IDs resolve with or without the `generic.`/`player.` prefix. For Iron's specifically, see the [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section. |
 | **Figura** | `figura` | Exposes a read-only `neoorigins` Lua global to Figura avatars, so a custom-avatar script can react to the wearer's origin, active powers, capabilities, and evolution tier (e.g. swap models per origin or per tier). Origins declare opaque model keys via the `figura_model` / `figura_models` datapack fields. Compile-only soft dependency; Figura only ever reads NeoOrigins state. Full reference: [FIGURA.md](FIGURA.md). |
+| **Cold Sweat** | `cold_sweat` | Two author-facing primitives — the `neoorigins:modify_temperature` action writes a temperature trait, the `neoorigins:body_temperature` condition reads and compares one — plus a built-in resistance package: 18 origins ship hidden heat/cold resistances via `cold_sweat:*` attributes, so a Cold Sweat install makes them feel at home (or vulnerable) in the right biomes. Compile-only soft dependency (never bundled). See the full [Cold Sweat](#cold-sweat) section below. |
 
 ---
 
@@ -139,6 +140,81 @@ Iron's is present.
 Both examples belong in an origin gated with
 `"required_mods": ["irons_spellbooks"]` so they only apply where the attributes
 exist.
+
+---
+
+## Cold Sweat
+
+`cold_sweat` is a compile-only soft dependency — it is never bundled, and nothing
+here is required. Every Cold-Sweat-typed reference is isolated in a single bridge
+class that is only loaded once Cold Sweat is confirmed present, so a pack that uses
+these surfaces runs fine without it installed: the action degrades to a logged
+no-op, the condition reads false, and the built-in resistances simply don't load.
+Where a power only makes sense with Cold Sweat present, gate it with
+`"required_mods": ["cold_sweat"]` so it neither loads nor shows up in the picker
+when the mod is absent.
+
+Three integration surfaces are available.
+
+### 1. Write a temperature — `neoorigins:modify_temperature` action
+
+Changes one of the player's Cold Sweat temperature traits from an origin power:
+pick the `trait`, an `amount`, and an `operation` (`add` the delta, default, or
+`set` an absolute value). `core` is the player's body temperature on a roughly
+−100 (freezing death) … +100 (burning death) scale, 0 being neutral; positive
+amounts warm, negative amounts cool. Without Cold Sweat installed the action is a
+logged no-op. See [ACTIONS.md](ACTIONS.md#neooriginsmodify_temperature) for the
+full field list.
+
+### 2. Read a temperature — `neoorigins:body_temperature` condition
+
+Reads a Cold Sweat temperature trait and compares it against `compare_to` with a
+`comparison` operator, so a power can react to the player getting dangerously hot
+or cold (e.g. `trait: core, compare_to: 50, comparison: ">="` fires once the body
+is overheating; `compare_to: -50, comparison: "<="` catches dangerous cold). It is
+named `body_temperature` rather than `temperature` because `neoorigins:temperature`
+is already the biome base-temperature condition. Without Cold Sweat installed the
+condition fails closed — always false — with one logged warning. See
+[CONDITIONS.md](CONDITIONS.md#neooriginsbody_temperature) for the full field list.
+
+Both surfaces share the same trait vocabulary: `core`, `base`, and `world` are
+temperature readings (`core` is the body, `base`/`world` the ambient scale);
+`heat_resistance`, `cold_resistance`, `heat_dampening`, and `cold_dampening` are
+the resistance traits (roughly 0..1); `freezing_point`/`burning_point` are the
+body-temperature thresholds; `rate` scales how fast body temp changes.
+
+### 3. Modify Cold Sweat attributes — `neoorigins:attribute_modifier`
+
+`neoorigins:attribute_modifier` resolves any registered attribute id, so it can
+target Cold Sweat's resistance attributes directly. Point the power's `attribute`
+field at one of the four ids below.
+
+| Attribute id | What `add_value` does | Scale |
+|---|---|---|
+| `cold_sweat:cold_resistance` | Insulates against cold ambient temperature | ~0..1 (`1.0` ≈ immune to cold) |
+| `cold_sweat:heat_resistance` | Insulates against hot ambient temperature | ~0..1 (`1.0` ≈ immune to heat) |
+| `cold_sweat:cold_dampening` | Scales how strongly cold moves body temp | ~−1..1 (negative = more vulnerable to cold) |
+| `cold_sweat:heat_dampening` | Scales how strongly heat moves body temp | ~−1..1 (negative = more vulnerable to heat) |
+
+A positive resistance protects; a negative dampening value makes the origin *more*
+affected by that temperature — the built-in package below uses both to give each
+origin a home climate and a weak one.
+
+**Built-in resistance package.** Eighteen origins ship hidden, Cold-Sweat-gated
+`attribute_modifier` powers so they feel adapted to their element when Cold Sweat
+is installed (and are unaffected when it isn't):
+
+- **Heat-adapted** — Blazeling and Strider (`+1.0` heat resist, `−0.5` cold
+  dampening), Piglin (`+0.75` heat resist, `−0.25` cold dampening), Cinderborn and
+  Fire Mage (`+0.5` heat resist, `−0.25` cold dampening), Cave Dragon (`+0.5` heat
+  resist).
+- **Cold-adapted** — Frostborn (`+1.0` cold resist, `−0.5` heat dampening), Sea
+  Dragon (`+0.5` cold resist, `−0.25` heat dampening), Abyssal, Kraken, and Merling
+  (`+0.5` cold resist), Enderian, Enderite, Avian, Windwalker, Sculkborn, Warden,
+  and Siren (`+0.25` cold resist).
+
+These powers are `hidden` and gated with `"required_mods": ["cold_sweat"]`, so they
+never appear in the power list and never load on a server without Cold Sweat.
 
 ---
 
