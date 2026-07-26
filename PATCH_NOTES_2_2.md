@@ -2,6 +2,40 @@
 
 ---
 
+## v2.2.21
+
+> A pack-author and compatibility release built around a rebuilt entity-group system and the sun. `entity_group` is now fully data-driven: a datapack defines its own mob-affinity groups through declared fields, six groups ship built in (with new illager, piglin, and skeleton groups), and an unknown group id now warns instead of silently doing nothing. On the sun side, a `helmet_protection` toggle lets sun-burning origins burn even while helmeted, a `sun_permeable` tag lets open helmets pass daylight through, and the new skeleton group catches fire in the sun. Plus a Cold Sweat integration that gives twelve built-in origins heat and cold resistances and weaknesses, an `origins:strong_ankles` compatibility alias for halved fall damage, and a fix for aimed teleports dropping you into a Create: Aeronautics ship's sub-level (#115).
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Pack Author Features
+
+- **`entity_group` is now data-driven and datapack-extensible.** The power previously understood only three hardcoded groups (undead, arthropod, water), and any other value — a bare `illager`, say — silently did nothing. Groups are now defined by data: a file at `data/<namespace>/neoorigins/entity_groups/<name>.json` declares what a group does through optional fields (`immune_effects`, `invert_instant_effects`, `vulnerable_enchants`, `ignored_by`, `targeted_by`, `feared_by`, and `burns_in_sunlight`), so `group` is just a label and no value is ever a dead no-op. A bare name resolves to `neoorigins:<name>`, a file whose id matches a built-in overrides it, and an unknown id now logs a one-time warning instead of failing silently. The six built-in groups are themselves data-backed and datapack-overridable. See [POWER_TYPES.md](docs/POWER_TYPES.md) for the field reference and a worked example.
+- **Three new group behaviours: hunt, flee, and burn.** On top of the existing effect, enchant, and `ignored_by` fields, a group can now set `targeted_by` (listed mobs actively hunt the player within ~16 blocks, the way wolves hunt a skeleton), `feared_by` (listed mobs flee the player within ~8 blocks), and `burns_in_sunlight` (the player catches fire in daylight like a vanilla skeleton, honouring the same `[sun_damage]` helmet and umbrella rules as the `exposed_to_sun` condition). Player-built iron golems are exempt from `targeted_by` even when iron golems are listed, so only village-spawned golems turn on you.
+
+### Changes
+
+- **Three new built-in entity groups: illager, piglin, and skeleton.** `illager` makes raiders (everything in `#minecraft:raiders`, outpost pillagers included) leave you alone, sets village-spawned iron golems hunting you while your own built golems stay loyal, and sends villagers and wandering traders fleeing. `piglin` treats you as kin so piglins and brutes never aggro — unconditionally, with no gold armour required, unlike vanilla. `skeleton` is the undead kit (Poison and Regeneration immunity, inverted instant effects, Smite vulnerability) plus wolves that hunt you and daylight that burns you. They join the existing undead, arthropod, and water groups.
+
+### Configuration
+
+- **`helmet_protection`: sun-burning origins can burn through helmets.** A new `[sun_damage]` toggle, default `true` so existing behaviour is unchanged. Sun-damage origins — Vampire, Phantom, Abyssal, Caveborn, Warden, and the like — were always fully shielded by any worn helmet with no way to change it, and the old `helmet_dura_damage_chance = 0` even claimed to disable that protection while actually making the helmet a permanent free shield. Set `helmet_protection` to `false` and a worn helmet no longer blocks sun damage or takes durability wear from it, so those origins burn in daylight whatever they wear.
+- **`sun_permeable` helmet tag: open helmets let daylight through.** A new item tag, `neoorigins:sun_permeable`, seeded with `minecraft:chainmail_helmet`. Any helmet in the tag counts as no helmet for sun damage: it neither shades the wearer nor takes durability from the sun. Add your own open or mesh helmets to the tag to let them pass daylight through while solid helmets keep shading.
+
+### Bug Fixes
+
+- **Aimed teleports no longer drop you into a Create: Aeronautics ship's sub-level (#115).** Using a "teleport to where you're looking" ability while aiming at a Sable-backed airship teleported you into the contraption's hidden sub-level dimension instead of onto its deck, sending you into an endless fall that could crash the game. The cause: the raycast that finds your aim point returns a hit in the ship's internal staging space, and teleporting straight to it landed you in that empty region. The aimed teleport now lifts the hit back out into real world space, so you land on the deck you were looking at, while aiming at ordinary terrain still works exactly as before. (On 1.21.1, where Sable runs.)
+
+### Compatibility (Mod Integrations)
+
+- **Cold Sweat: built-in origins carry heat and cold resistances and weaknesses.** With Cold Sweat installed, the built-in origins now react to its body-temperature system. Heat-adapted origins (Blazeling, Strider, Piglin, Cinderborn, Fire Mage, and Cave Dragon) resist heat and warm faster in the cold; cold-adapted origins (Frostborn, Sea Dragon, Merling, Kraken, Abyssal, and Siren) resist cold and overheat faster — twelve origins in all, each gated so it only applies when Cold Sweat is present and stays invisible otherwise. Two new datapack primitives drive temperature directly: a `neoorigins:modify_temperature` action shifts a chosen temperature trait, and a `neoorigins:body_temperature` condition tests it. Cold Sweat is a compile-only soft dependency: without it, the resistances never load, the action no-ops, and the condition reads false — none of which crash. See [ACTIONS.md](docs/ACTIONS.md) and [CONDITIONS.md](docs/CONDITIONS.md) for the new action and condition.
+
+### Compatibility (Apoli / Origins)
+
+- **`origins:strong_ankles` now halves fall damage.** Legacy Feline-based packs list the `origins:strong_ankles` power by id, expecting the host mod to define it. NeoOrigins synthesizes those reference-only Feline ids, but `strong_ankles` was missing from the map, so it silently did nothing while its siblings — fall immunity, nine lives, weak arms, carnivore, and cat vision — all worked. It now maps to native fall-damage scaling that halves fall damage, matching the real Origins "Strong Ankles".
+
+---
+
 ## v2.2.20
 
 > A combined fix-and-integration release. It closes issue #113: the permanent invulnerability when the selection screen is skipped, a new config toggle for spawning players with no origin, and an Orb of Origin that re-rolls only your origin. It also deepens Iron's Spells 'n Spellbooks support with a mana-backed resource bar and first-class handling of Iron's eight custom attributes, which the built-in mage origins now draw on, and adds a Figura integration so custom avatars can react to a player's origin, powers, and evolution tier on every observer's screen. Plus a Bloodfeast diet for vampires, two repaired vampire config overrides, origin-gated recipes that now appear in the recipe book and stop refunding their ingredients, and ability hunger costs that spend saturation first.
