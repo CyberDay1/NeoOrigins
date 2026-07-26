@@ -73,7 +73,12 @@ export function builtinPowerToDraft(
 	entry: BuiltinPowerEntry,
 	existing: readonly PowerDraft[]
 ): PowerDraft {
-	const body = structuredClone(entry.powerBody) as Record<string, unknown>;
+	// Deep-clone via JSON round-trip rather than structuredClone. The picker
+	// holds the catalog in a Svelte `$state`, which deeply wraps each entry (and
+	// its powerBody) in a reactive Proxy — and structuredClone throws
+	// DataCloneError on a Proxy. Power bodies are pure JSON, so a JSON round-trip
+	// clones losslessly and strips the proxy to a plain object.
+	const body = JSON.parse(JSON.stringify(entry.powerBody)) as Record<string, unknown>;
 	const type = typeof body.type === 'string' ? body.type : entry.type;
 	const fields: Record<string, unknown> = {};
 	for (const [k, v] of Object.entries(body)) {
