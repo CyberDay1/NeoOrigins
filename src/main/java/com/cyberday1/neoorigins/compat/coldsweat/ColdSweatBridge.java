@@ -14,7 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
  * {@link com.cyberday1.neoorigins.compat.action.BuiltinActions} (the
  * {@code neoorigins:modify_temperature} action) and
  * {@link com.cyberday1.neoorigins.compat.condition.BuiltinConditions} (the
- * {@code neoorigins:temperature} condition) — it is never class-loaded when Cold
+ * {@code neoorigins:body_temperature} condition) — it is never class-loaded when Cold
  * Sweat is absent, which keeps {@code NoClassDefFoundError} off the table on
  * servers without the mod.
  *
