@@ -120,7 +120,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`tame_mob`](POWER_TYPES.md#neooriginstame_mob) | Active ability that rewrites a mob's AI to follow and defend the owner. |
 | [`tamed_animal_boost`](POWER_TYPES.md#neooriginstamed_animal_boost) | Buff vanilla tamed animals (HP / speed). |
 | [`tamed_potion_diffusal`](POWER_TYPES.md#neooriginstamed_potion_diffusal) | Potions drunk near tamed animals apply to them too. |
-| [`entity_group`](POWER_TYPES.md#neooriginsentity_group) | Mark the player as part of an entity group (undead, arthropod). Affects effect applicability + enchantment bonuses. |
+| [`entity_group`](POWER_TYPES.md#neooriginsentity_group) | Mark the player as part of a built-in or datapack-defined entity group. Affects effect/enchant interactions and which mobs ignore, hunt, or flee you. |
 | [`entity_set`](POWER_TYPES.md#neooriginsentity_set) | Named UUID set per power id. Pair with `neoorigins:in_set` / `add_to_set` / `remove_from_set`. |
 | [`mobs_ignore_player`](POWER_TYPES.md#neooriginsmobs_ignore_player) | Mobs don't aggro. Retaliation window preserved. |
 | [`scare_entities`](POWER_TYPES.md#neooriginsscare_entities) | Listed entity types flee from the player. |

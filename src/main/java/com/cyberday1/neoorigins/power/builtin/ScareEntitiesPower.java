@@ -54,45 +54,55 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
         List<Mob> mobs = com.cyberday1.neoorigins.service.AreaTargetSelector.mobsInRadius(
             player, RANGE, config.entityTypes(), config.entityBlacklist(), false, 0);
         for (Mob mob : mobs) {
-            // Drop aggro unconditionally — not just when targeting this player.
-            // Mobs like Phantoms use shared targeting goals that pick ANY nearby
-            // player; if we only clear when target == this player, a Phantom
-            // chasing a different player nearby would ignore the scare entirely.
-            // Clearing the target forces re-evaluation, and our flee navigation
-            // takes over before the goal can re-acquire.
-            mob.setTarget(null);
-            mob.setLastHurtByMob(null);
-            if (!mob.getNavigation().isDone()
-                && mob.getNavigation().getTargetPos() != null
-                && mob.getNavigation().getTargetPos().distSqr(player.blockPosition()) > RANGE * RANGE) {
-                continue;
+            fleeMob(player, mob);
+        }
+    }
+
+    /**
+     * Make a single mob flee {@code player} for one tick: drops its aggro and
+     * paths (or impulses) it away. Shared with the {@code entity_group}
+     * {@code feared_by} sweep in {@link EntityGroupPower} so both use the exact
+     * same flee behaviour, range gate and water-mob fallback.
+     */
+    public static void fleeMob(ServerPlayer player, Mob mob) {
+        // Drop aggro unconditionally — not just when targeting this player.
+        // Mobs like Phantoms use shared targeting goals that pick ANY nearby
+        // player; if we only clear when target == this player, a Phantom
+        // chasing a different player nearby would ignore the scare entirely.
+        // Clearing the target forces re-evaluation, and our flee navigation
+        // takes over before the goal can re-acquire.
+        mob.setTarget(null);
+        mob.setLastHurtByMob(null);
+        if (!mob.getNavigation().isDone()
+            && mob.getNavigation().getTargetPos() != null
+            && mob.getNavigation().getTargetPos().distSqr(player.blockPosition()) > RANGE * RANGE) {
+            return;
+        }
+        if (mob instanceof PathfinderMob pmob) {
+            // Ground mobs: use vanilla's flee-pos helper + standard
+            // pathfinding. This is the path that works reliably when the
+            // mob has GroundPathNavigation.
+            Vec3 away = DefaultRandomPos.getPosAway(pmob, 16, 7, player.position());
+            if (away != null) {
+                mob.getNavigation().moveTo(away.x, away.y, away.z, FLEE_SPEED);
             }
-            if (mob instanceof PathfinderMob pmob) {
-                // Ground mobs: use vanilla's flee-pos helper + standard
-                // pathfinding. This is the path that works reliably when the
-                // mob has GroundPathNavigation.
-                Vec3 away = DefaultRandomPos.getPosAway(pmob, 16, 7, player.position());
-                if (away != null) {
-                    mob.getNavigation().moveTo(away.x, away.y, away.z, FLEE_SPEED);
-                }
-            } else {
-                // Water mobs (cod / salmon / dolphin / squid / pufferfish / ...)
-                // use WaterBoundPathNavigation, which silently fails to path
-                // when the computed flee target is on land or otherwise
-                // unreachable — leaving the mob frozen in place. Push them
-                // away directly with a velocity impulse instead. Horizontal
-                // direction only so we don't try to launch fish out of water.
-                Vec3 dir = new Vec3(
-                    mob.getX() - player.getX(),
-                    0,
-                    mob.getZ() - player.getZ()
-                );
-                if (dir.lengthSqr() < 1.0e-4) dir = new Vec3(1, 0, 0); // jitter when overlapping
-                Vec3 push = dir.normalize().scale(0.4);
-                Vec3 v = mob.getDeltaMovement();
-                mob.setDeltaMovement(v.x + push.x, v.y, v.z + push.z);
-                mob.hurtMarked = true;
-            }
+        } else {
+            // Water mobs (cod / salmon / dolphin / squid / pufferfish / ...)
+            // use WaterBoundPathNavigation, which silently fails to path
+            // when the computed flee target is on land or otherwise
+            // unreachable — leaving the mob frozen in place. Push them
+            // away directly with a velocity impulse instead. Horizontal
+            // direction only so we don't try to launch fish out of water.
+            Vec3 dir = new Vec3(
+                mob.getX() - player.getX(),
+                0,
+                mob.getZ() - player.getZ()
+            );
+            if (dir.lengthSqr() < 1.0e-4) dir = new Vec3(1, 0, 0); // jitter when overlapping
+            Vec3 push = dir.normalize().scale(0.4);
+            Vec3 v = mob.getDeltaMovement();
+            mob.setDeltaMovement(v.x + push.x, v.y, v.z + push.z);
+            mob.hurtMarked = true;
         }
     }
 }
