@@ -1697,7 +1697,7 @@
           "const": "neoorigins:entity_group"
         },
         "group": {
-          "description": "Entity-group id. Built-in: undead, arthropod, water, illager. A bare name resolves to neoorigins:<name>; a datapack may define more via data/<ns>/neoorigins/entity_groups/<name>.json. Changes effect/enchant interactions and which mobs ignore you. undefined = no classification.",
+          "description": "Entity-group id. Built-in: undead, arthropod, water, illager, piglin, skeleton. A bare name resolves to neoorigins:<name>; a datapack may define more via data/<ns>/neoorigins/entity_groups/<name>.json. Changes effect/enchant interactions and which mobs ignore, hunt, or flee you. undefined = no classification.",
           "type": "string",
           "default": "undefined"
         }

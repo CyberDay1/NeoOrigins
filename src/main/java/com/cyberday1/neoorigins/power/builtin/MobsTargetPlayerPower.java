@@ -133,7 +133,16 @@ public class MobsTargetPlayerPower extends PowerType<MobsTargetPlayerPower.Confi
         private static boolean matches(Mob self, net.minecraft.world.entity.LivingEntity candidate) {
             if (!(candidate instanceof ServerPlayer sp)) return false;
             double[] range = { DEFAULT_RANGE };
-            if (!shouldHunt(sp, self, range)) return false;
+            boolean hunt = shouldHunt(sp, self, range);
+            if (!hunt) {
+                // entity_group targeted_by: a player in a pseudo entity-group whose
+                // def lists this mob type is hunted too (e.g. the built-in illager
+                // group draws village iron golems). Uses the default range floor.
+                hunt = ActiveOriginService.has(sp,
+                    com.cyberday1.neoorigins.power.builtin.EntityGroupPower.class,
+                    cfg -> cfg.groupDef().targetedBy(self));
+            }
+            if (!hunt) return false;
             // Enforce the per-power range: honor the configured range against the
             // concrete distance so a SMALLER configured range still tightens the
             // acquisition even when the base follow-range sweep is wider.
