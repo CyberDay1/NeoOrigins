@@ -1695,14 +1695,16 @@ Treats the player as a member of a mob group, so game mechanics that key off a c
 
 ### Built-in groups
 
-These four are registered in code and work with zero setup:
+These are registered in code and work with zero setup:
 
 | Group | Effect |
 |---|---|
 | `neoorigins:undead` | Immune to Poison and Regeneration; Instant Health harms and Instant Damage heals; takes extra damage from Smite. |
 | `neoorigins:arthropod` | Takes extra damage from Bane of Arthropods (plus the vanilla slowness-on-hit). |
 | `neoorigins:water` | Takes extra damage from Impaling. |
-| `neoorigins:illager` | Raiders (anything in `#minecraft:raiders`) won't target the player. |
+| `neoorigins:illager` | Raiders (anything in `#minecraft:raiders`) won't target the player; village-spawned iron golems hunt the player (player-built golems stay loyal); villagers and wandering traders flee the player. |
+| `neoorigins:piglin` | Piglins and piglin brutes never target the player. Unlike vanilla this is unconditional — no gold armor required. |
+| `neoorigins:skeleton` | The `undead` kit (Poison/Regeneration immunity, inverted instant effects, Smite vulnerability) plus wolves hunt the player the way they hunt vanilla skeletons, and the player burns in daylight like a vanilla skeleton (honours the same `[sun_damage]` helmet/umbrella rules as `exposed_to_sun`). |
 
 Referencing an unknown group id — one with no built-in default and no datapack file — logs a one-time warning and does nothing, rather than silently no-op-ing.
 
@@ -1716,6 +1718,9 @@ A datapack can mint new groups, or override a built-in, with a JSON file at `dat
 | `invert_instant_effects` | bool | `false` | Instant Health harms and Instant Damage heals (undead behaviour). |
 | `vulnerable_enchants` | list of enchant ids | `[]` | For each listed enchant, the attacker's weapon level adds bonus damage (`level × 2.5` per enchant, summed). Listing `minecraft:bane_of_arthropods` also applies the vanilla slowness-on-hit. |
 | `ignored_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries never target the player. |
+| `targeted_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries proactively hunt the player, within ~16 blocks. Player-built iron golems are exempt even when `minecraft:iron_golem` is listed — only village-spawned golems hunt. |
+| `feared_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries flee the player, within ~8 blocks. |
+| `burns_in_sunlight` | bool | `false` | The player catches fire in daylight like a vanilla skeleton, honouring the same `[sun_damage]` config (helmet protection, `neoorigins:sun_permeable` helmets, umbrella) as the `exposed_to_sun` condition. |
 
 **Example — `data/mypack/neoorigins/entity_groups/cursed.json`:**
 ```json
@@ -1723,7 +1728,9 @@ A datapack can mint new groups, or override a built-in, with a JSON file at `dat
   "immune_effects": ["minecraft:poison", "minecraft:wither"],
   "invert_instant_effects": true,
   "vulnerable_enchants": ["minecraft:smite"],
-  "ignored_by": ["#minecraft:raiders", "minecraft:zombie"]
+  "ignored_by": ["#minecraft:raiders", "minecraft:zombie"],
+  "targeted_by": ["minecraft:iron_golem"],
+  "feared_by": ["minecraft:villager", "minecraft:wandering_trader"]
 }
 ```
 

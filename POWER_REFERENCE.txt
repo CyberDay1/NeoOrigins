@@ -1035,8 +1035,10 @@ Table of Contents:
     Grants immunity to specific status effects. Configurable list of effects.
 
   neoorigins:entity_group
-    Assigns the player to an entity group (e.g., undead, arthropod). Affects
-    interactions with enchantments and potions.
+    Assigns the player to a built-in or datapack-defined entity group
+    (undead, arthropod, water, illager, piglin, skeleton, or a custom one).
+    Affects effect/enchant interactions and which mobs ignore, hunt, or
+    flee the player.
 
   neoorigins:elytra_boost
     Provides a boost while using elytra flight.

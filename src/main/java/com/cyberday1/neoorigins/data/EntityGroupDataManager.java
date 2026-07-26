@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the relevant game hooks (effect immunity, instant-heal inversion, enchant
  * vulnerability, targeting).
  *
- * <p>Hybrid model: the four {@linkplain #BUILTINS built-in} groups are registered
+ * <p>Hybrid model: the six {@linkplain #BUILTINS built-in} groups are registered
  * in code so existing packs keep working with zero config, and a datapack file of
  * the same id OVERRIDES the built-in (datapack wins). Unknown ids resolve to an
  * empty def and log a one-time WARN — the fix for the old "silent no-op".
@@ -59,21 +59,30 @@ public class EntityGroupDataManager
      * @param invertInstantEffects instant_health &lt;-&gt; instant_damage swap (undead behaviour)
      * @param vulnerableEnchants   enchant ids; each level on the attacker's weapon adds bonus damage
      * @param ignoredBy            entity ids and/or {@code #tags} whose mobs won't target the player
+     * @param targetedBy           entity ids and/or {@code #tags} whose mobs proactively hunt the player
+     * @param fearedBy             entity ids and/or {@code #tags} whose mobs flee the player
+     * @param burnsInSunlight      when true, the player catches fire in open daylight (skeleton behaviour)
      */
     public record GroupDef(
             List<String> immuneEffects,
             boolean invertInstantEffects,
             List<String> vulnerableEnchants,
-            List<String> ignoredBy) {
+            List<String> ignoredBy,
+            List<String> targetedBy,
+            List<String> fearedBy,
+            boolean burnsInSunlight) {
 
         public static final GroupDef EMPTY =
-            new GroupDef(List.of(), false, List.of(), List.of());
+            new GroupDef(List.of(), false, List.of(), List.of(), List.of(), List.of(), false);
 
         public static final Codec<GroupDef> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("immune_effects", List.of()).forGetter(GroupDef::immuneEffects),
             Codec.BOOL.optionalFieldOf("invert_instant_effects", false).forGetter(GroupDef::invertInstantEffects),
             Codec.STRING.listOf().optionalFieldOf("vulnerable_enchants", List.of()).forGetter(GroupDef::vulnerableEnchants),
-            Codec.STRING.listOf().optionalFieldOf("ignored_by", List.of()).forGetter(GroupDef::ignoredBy)
+            Codec.STRING.listOf().optionalFieldOf("ignored_by", List.of()).forGetter(GroupDef::ignoredBy),
+            Codec.STRING.listOf().optionalFieldOf("targeted_by", List.of()).forGetter(GroupDef::targetedBy),
+            Codec.STRING.listOf().optionalFieldOf("feared_by", List.of()).forGetter(GroupDef::fearedBy),
+            Codec.BOOL.optionalFieldOf("burns_in_sunlight", false).forGetter(GroupDef::burnsInSunlight)
         ).apply(inst, GroupDef::new));
 
         /** True if {@code effectId} (e.g. {@code minecraft:poison}) can't apply to the player. */
@@ -95,6 +104,41 @@ public class EntityGroupDataManager
             }
             return false;
         }
+
+        /**
+         * True if {@code mob} matches any {@code targeted_by} entry (raw entity id
+         * or {@code #entitytype tag}) and should therefore proactively hunt the
+         * player.
+         *
+         * <p>Carve-out: a <em>player-built</em> iron golem never hunts via this
+         * path even when {@code minecraft:iron_golem} is listed — only
+         * village-spawned golems ({@link net.minecraft.world.entity.animal.golem.IronGolem#isPlayerCreated()}
+         * {@code == false}) do. This keeps a player's own golems loyal while the
+         * built-in {@code illager} group still draws village defenders.
+         */
+        public boolean targetedBy(LivingEntity mob) {
+            for (String idOrTag : targetedBy) {
+                if (CombatPowerEvents.matchesEntityIdOrTag(mob, idOrTag)) {
+                    if (mob instanceof net.minecraft.world.entity.animal.golem.IronGolem golem
+                            && golem.isPlayerCreated()) {
+                        return false;
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * True if {@code mob} matches any {@code feared_by} entry (raw entity id
+         * or {@code #entitytype tag}) and should therefore flee the player.
+         */
+        public boolean fearedBy(LivingEntity mob) {
+            for (String idOrTag : fearedBy) {
+                if (CombatPowerEvents.matchesEntityIdOrTag(mob, idOrTag)) return true;
+            }
+            return false;
+        }
     }
 
     /**
@@ -104,16 +148,34 @@ public class EntityGroupDataManager
     private static final Map<Identifier, GroupDef> BUILTINS = Map.of(
         id("undead"), new GroupDef(
             List.of("minecraft:poison", "minecraft:regeneration"), true,
-            List.of("minecraft:smite"), List.of()),
+            List.of("minecraft:smite"), List.of(), List.of(), List.of(), false),
         id("arthropod"), new GroupDef(
             List.of(), false,
-            List.of("minecraft:bane_of_arthropods"), List.of()),
+            List.of("minecraft:bane_of_arthropods"), List.of(), List.of(), List.of(), false),
         id("water"), new GroupDef(
             List.of(), false,
-            List.of("minecraft:impaling"), List.of()),
+            List.of("minecraft:impaling"), List.of(), List.of(), List.of(), false),
+        // illager: raiders ignore you; village iron golems hunt you (player-built
+        // golems stay loyal, see GroupDef#targetedBy); villagers & wandering
+        // traders flee you.
         id("illager"), new GroupDef(
             List.of(), false,
-            List.of(), List.of("#minecraft:raiders"))
+            List.of(), List.of("#minecraft:raiders"),
+            List.of("minecraft:iron_golem"),
+            List.of("minecraft:villager", "minecraft:wandering_trader"), false),
+        // piglin: piglins and brutes treat you as kin and never aggro. Unlike
+        // vanilla this is unconditional — no gold-armor requirement.
+        id("piglin"), new GroupDef(
+            List.of(), false,
+            List.of(), List.of("minecraft:piglin", "minecraft:piglin_brute"),
+            List.of(), List.of(), false),
+        // skeleton: the undead kit (poison/regen immunity, instant-effect
+        // inversion, Smite vulnerability) plus wolves hunt you the way a pack
+        // hunts a vanilla skeleton, and you burn in daylight.
+        id("skeleton"), new GroupDef(
+            List.of("minecraft:poison", "minecraft:regeneration"), true,
+            List.of("minecraft:smite"), List.of(),
+            List.of("minecraft:wolf"), List.of(), true)
     );
 
     private static Identifier id(String name) {
@@ -198,7 +260,7 @@ public class EntityGroupDataManager
             NeoOrigins.LOGGER.warn(
                 "entity_group references unknown group '{}' — no built-in default and no "
                 + "data/<ns>/neoorigins/entity_groups/ file defines it; the power will do nothing. "
-                + "Built-in groups: undead, arthropod, water, illager.", group);
+                + "Built-in groups: undead, arthropod, water, illager, piglin, skeleton.", group);
         }
     }
 }

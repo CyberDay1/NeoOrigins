@@ -22,6 +22,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
@@ -283,7 +284,20 @@ public final class ConditionParser {
      * switch arm — behaviour is byte-identical.
      */
     static EntityCondition parseExposedToSun(JsonObject json) {
-        return p -> {
+        return ConditionParser::isExposedToSun;
+    }
+
+    /**
+     * True if {@code p} is currently taking sun damage: daytime, sky-exposed,
+     * not raining, not shielded by an umbrella or (when {@code helmet_protection}
+     * is on) a non-{@code sun_permeable} helmet. Shared by the
+     * {@code exposed_to_sun} condition and the {@code entity_group}
+     * {@code burns_in_sunlight} behaviour so both honour the identical rules
+     * (including the helmet-durability wear side effect). NB: evaluating this
+     * may damage a worn helmet, so call it on the same ~1s cadence as the
+     * passive condition, not every tick.
+     */
+    public static boolean isExposedToSun(ServerPlayer p) {
             if (!(p.level() instanceof ServerLevel sl)) return false;
             if (p.isPassenger()) return false;
             // Vanilla daytime is 0–12000 (sunrise to sunset). The prior
@@ -322,7 +336,6 @@ public final class ConditionParser {
                 }
             }
             return true;
-        };
     }
 
     static EntityCondition parseCooldown(JsonObject json) {
