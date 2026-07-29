@@ -1,3 +1,9 @@
 {
-  "type": "neoorigins:quality_equipment"
+  "type": "neoorigins:quality_equipment",
+  "intercept_menus": [
+    "overgeared:smithing_anvil_menu",
+    "overgeared:stone_smithing_anvil_menu",
+    "overgeared:tier_a_smithing_anvil_menu",
+    "overgeared:tier_b_smithing_anvil_menu"
+  ]
 }

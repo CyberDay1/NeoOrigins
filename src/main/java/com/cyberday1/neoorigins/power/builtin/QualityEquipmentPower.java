@@ -51,29 +51,50 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         double bonusAttackDamage,
         double bonusArmorToughness,
         double durabilityMultiplier,
-        String type
+        String type,
+        java.util.List<String> interceptMenus
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("bonus_mining_speed", 0.25).forGetter(Config::bonusMiningSpeed),
             Codec.DOUBLE.optionalFieldOf("bonus_attack_damage", 0.20).forGetter(Config::bonusAttackDamage),
             Codec.DOUBLE.optionalFieldOf("bonus_armor_toughness", 1.0).forGetter(Config::bonusArmorToughness),
             Codec.DOUBLE.optionalFieldOf("durability_multiplier", 0.10).forGetter(Config::durabilityMultiplier),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            // Data-driven soft-dep hook: menu-type ids (e.g. Overgeared's smithing
+            // anvils) whose result slot should also trigger the quality buff when
+            // taken. Unknown ids simply never match, so this is harmless when the
+            // referenced mod is absent. Appended last to keep the CODEC field order
+            // stable for existing packs.
+            Codec.STRING.listOf().optionalFieldOf("intercept_menus", java.util.List.of())
+                .forGetter(Config::interceptMenus)
         ).apply(inst, Config::new));
     }
 
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
+    /**
+     * Shared gear-eligibility test used by both the vanilla craft path
+     * ({@link #onItemCrafted}) and the generic result-slot interceptor
+     * ({@link com.cyberday1.neoorigins.event.CraftingPowerEvents#onGenericResultTake}).
+     * Matches tools, weapons, armor, or any damageable item.
+     */
+    public static boolean isQualityEligible(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        boolean isTool = item instanceof DiggerItem || item instanceof ShearsItem;
+        boolean isWeapon = item instanceof SwordItem || item instanceof AxeItem || item instanceof TridentItem;
+        boolean isArmor = item instanceof ArmorItem;
+        return isTool || isWeapon || isArmor || stack.isDamageableItem();
+    }
+
     public static void onItemCrafted(ServerPlayer player, ItemStack stack, Config config) {
-        if (stack.isEmpty()) return;
+        if (!isQualityEligible(stack)) return;
         Item item = stack.getItem();
 
         boolean isTool = item instanceof DiggerItem || item instanceof ShearsItem;
         boolean isWeapon = item instanceof SwordItem || item instanceof AxeItem || item instanceof TridentItem;
         boolean isArmor = item instanceof ArmorItem;
-
-        if (!isTool && !isWeapon && !isArmor && !stack.isDamageableItem()) return;
 
         // Seed from the EFFECTIVE attribute modifiers, not the raw component.
         // Freshly crafted armor/tools usually have no ATTRIBUTE_MODIFIERS
@@ -244,17 +265,6 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         result.set(DataComponents.ATTRIBUTE_MODIFIERS, fresh);
     }
 
-    /** Rebuild an ItemAttributeModifiers without any entry whose modifier has the given ID. */
-    private static ItemAttributeModifiers stripModifier(ItemAttributeModifiers modifiers, ResourceLocation id) {
-        ItemAttributeModifiers result = ItemAttributeModifiers.EMPTY;
-        for (var entry : modifiers.modifiers()) {
-            if (!entry.modifier().id().equals(id)) {
-                result = result.withModifierAdded(entry.attribute(), entry.modifier(), entry.slot());
-            }
-        }
-        return result;
-    }
-}
     /**
      * True for any modifier id this power applies: the single mining-speed and
      * attack-damage ids, plus all four per-slot armor-toughness ids. Used by the
@@ -269,3 +279,14 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
             || id.equals(QUALITY_ARMOR_TOUGHNESS_FEET);
     }
 
+    /** Rebuild an ItemAttributeModifiers without any entry whose modifier has the given ID. */
+    private static ItemAttributeModifiers stripModifier(ItemAttributeModifiers modifiers, ResourceLocation id) {
+        ItemAttributeModifiers result = ItemAttributeModifiers.EMPTY;
+        for (var entry : modifiers.modifiers()) {
+            if (!entry.modifier().id().equals(id)) {
+                result = result.withModifierAdded(entry.attribute(), entry.modifier(), entry.slot());
+            }
+        }
+        return result;
+    }
+}

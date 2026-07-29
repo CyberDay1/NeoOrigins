@@ -33,6 +33,7 @@
     "AbstractVillagerTradePriceMixin",
     "AnvilMenuCostMixin",
     "SmithingMenuTakeMixin",
+    "SlotOnTakeMixin",
     "ServerAbilitiesPacketDebugMixin",
     "FolderPackDetectorMixin",
     "EntityForcedSwimmingMixin",
