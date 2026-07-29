@@ -34,6 +34,7 @@ Highlights this release:
 - **Animated resource bars** — a resource power can name an animated FX preset (`"animated": "neoorigins:fire"` in its `hud_render` block) and the bar fill renders as a scrolling texture strip instead of a flat colour. Presets are resource-pack JSON under `assets/<ns>/bar_fx/` — see [docs/PACK_FORMAT.md](docs/PACK_FORMAT.md#resource-bar-hud)
 - **Dragon Survival integration** — three built-in dragon origins (Cave / Forest / Sea) turn the player into a Dragon Survival dragon via the `become_dragon` power; content gated behind `required_mods` only loads when the target mod is installed. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 - **Origin info screen** — press O to view your current origin and class details
+- **Night-vision toggle** — press K to switch off origin-granted night vision when you'd rather have the dark back; it starts on, toggles only your own view, and persists across relogs. Rebindable in *Controls → Key Binds → NeoOrigins*, alongside Skill 1-6 (V/G/N/B) and Class Skill (H). See [docs/CLIENT_CONFIG.md#built-in-keybinds](docs/CLIENT_CONFIG.md#built-in-keybinds)
 - **JEI / REI integration** — info panel for Orb of Origin
 - **Hot-reload** — `/reload` rebuilds all origins and powers without restarting the server
 - **Origins pack compatibility** — drop existing Origins mod content packs into `originpacks/` and they load automatically
