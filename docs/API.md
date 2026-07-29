@@ -234,7 +234,8 @@ namespace is also accepted; they're aliases). Jumps go to
 [CONDITIONS.md](CONDITIONS.md).
 
 ### Boolean combinators
-`neoorigins:and` • `neoorigins:or` • `neoorigins:not` • `neoorigins:constant`
+`neoorigins:and` • `neoorigins:or` • `neoorigins:not` • `neoorigins:constant` •
+`neoorigins:always_active`
 
 ### Environment
 `neoorigins:biome` • `neoorigins:dimension` • `neoorigins:in_tag` • `neoorigins:submerged_in` •
@@ -244,7 +245,8 @@ namespace is also accepted; they're aliases). Jumps go to
 `neoorigins:weather` • `neoorigins:brightness` • `neoorigins:light_level` •
 `neoorigins:exposed_to_sky` • `neoorigins:exposed_to_sun` • `neoorigins:daytime` •
 `neoorigins:time_of_day` • `neoorigins:moon_phase` • `neoorigins:height` •
-`neoorigins:fluid_height` • `neoorigins:distance` • `neoorigins:near_entity`
+`neoorigins:fluid_height` • `neoorigins:distance` • `neoorigins:near_entity` •
+`neoorigins:nearby_entities` • `neoorigins:near_villager`
 
 ### Player state
 `neoorigins:health` • `neoorigins:relative_health` • `neoorigins:food_level` •
@@ -265,7 +267,8 @@ namespace is also accepted; they're aliases). Jumps go to
 `neoorigins:power_active` • `neoorigins:power_type` • `neoorigins:in_set`
 
 ### Advanced
-`neoorigins:nbt` • `neoorigins:scoreboard` • `neoorigins:command` • `neoorigins:predicate` •
+`neoorigins:nbt` • `neoorigins:scoreboard` • `neoorigins:statistic` •
+`neoorigins:command` • `neoorigins:predicate` •
 `neoorigins:amount` • `neoorigins:equal`
 
 ---

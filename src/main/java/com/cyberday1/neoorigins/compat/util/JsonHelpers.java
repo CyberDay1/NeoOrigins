@@ -35,6 +35,31 @@ public final class JsonHelpers {
     }
 
     /**
+     * Returns {@code key} as a {@link JsonArray}, coercing a lone object into a
+     * one-element array and any other shape (absent, primitive, null) into an
+     * empty one. Never throws.
+     *
+     * <p>Exists because the {@code and}/{@code or} combinators are written by
+     * hand in legacy packs and a single-child combinator is routinely authored
+     * as {@code "actions": { … }} rather than {@code "actions": [ { … } ]}.
+     * Origins++ does this inside {@code raycast.before_action}; the raw
+     * {@code getAsJsonArray} threw, which failed the whole enclosing action to a
+     * no-op and silently killed the power. Coercing is a strict widening: a
+     * well-formed array parses exactly as before.
+     */
+    public static JsonArray asArray(JsonObject o, String key) {
+        if (o == null || !o.has(key)) return new JsonArray();
+        JsonElement el = o.get(key);
+        if (el.isJsonArray()) return el.getAsJsonArray();
+        if (el.isJsonObject()) {
+            JsonArray one = new JsonArray();
+            one.add(el);
+            return one;
+        }
+        return new JsonArray();
+    }
+
+    /**
      * Parse a field that may be absent, a single object, or an array of objects,
      * into a single combined result {@code R}.
      *

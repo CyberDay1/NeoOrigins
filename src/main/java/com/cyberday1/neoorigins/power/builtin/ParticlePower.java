@@ -12,9 +12,13 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -46,6 +50,12 @@ import net.minecraft.server.level.ServerPlayer;
  * <pre>{@code
  *   "particle": { "type": "minecraft:dust", "color": [1.0, 0.85, 0.2], "scale": 0.6 }
  * }</pre>
+ *
+ * <p>1.20-era packs wrote the parameterized forms as one space-separated string,
+ * the way a {@code /particle} command took them ({@code "minecraft:dust 0.1 0.5 0.1 1"},
+ * {@code "minecraft:block minecraft:stone"}). That is accepted too; if the
+ * arguments can't be read, the head token alone is used rather than failing the
+ * whole power over a cosmetic field.
  */
 public class ParticlePower extends PowerType<ParticlePower.Config> {
 
@@ -105,9 +115,22 @@ public class ParticlePower extends PowerType<ParticlePower.Config> {
 
         private static ParticleOptions parseParticle(JsonElement el) {
             if (el == null || el.isJsonNull()) return null;
-            // String form: just the registry id, e.g. "minecraft:end_rod".
+            // String form: a registry id ("minecraft:end_rod"), or — in 1.20-era
+            // packs — the whole particle with its arguments inline, exactly as it
+            // would have been written in a /particle command:
+            //   "minecraft:dust 0.1 0.5 0.1 1"      (r g b scale)
+            //   "minecraft:block minecraft:stone"   (block id)
+            //   "minecraft:item minecraft:apple"    (item id)
             if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
-                return resolveSimple(el.getAsString());
+                String raw = el.getAsString().trim();
+                int sp = raw.indexOf(' ');
+                if (sp < 0) return resolveSimple(raw);
+                String head = raw.substring(0, sp);
+                String[] args = raw.substring(sp + 1).trim().split("\\s+");
+                ParticleOptions parameterized = parseLegacyArgs(head, args);
+                // A cosmetic field must never sink the whole power: if the args
+                // are unreadable, keep the head token and lose the decoration.
+                return parameterized != null ? parameterized : resolveSimple(head);
             }
             // Object form: { "type": "minecraft:dust", "color": [...], "scale": 0.6 }
             // Required for parameterized particles (dust, dust_color_transition).
@@ -127,6 +150,76 @@ public class ParticlePower extends PowerType<ParticlePower.Config> {
                 return resolveSimple(typeId);
             }
             return null;
+        }
+
+        /**
+         * Build a parameterized particle from the 1.20 positional argument list.
+         * Returns null when the head is not a parameterized type we know, or the
+         * arguments don't fit it — the caller then falls back to the head token.
+         *
+         * <p>26.x-specific: {@code DustParticleOptions} and
+         * {@code DustColorTransitionOptions} carry packed 0xRRGGBB ints rather
+         * than the 1.21.1 {@code Vector3f}, and {@code ItemParticleOption} takes
+         * an {@code Item} directly instead of an {@code ItemStack}.
+         */
+        @SuppressWarnings("unchecked")
+        private static ParticleOptions parseLegacyArgs(String head, String[] args) {
+            ParticleType<?> type;
+            try {
+                type = BuiltInRegistries.PARTICLE_TYPE.get(Identifier.parse(head))
+                    .map(net.minecraft.core.Holder.Reference::value)
+                    .orElse(null);
+            } catch (Exception e) {
+                return null;
+            }
+            if (type == null) return null;
+            try {
+                if (type == ParticleTypes.DUST && args.length >= 4) {
+                    return new DustParticleOptions(
+                        packRgb(Float.parseFloat(args[0]), Float.parseFloat(args[1]), Float.parseFloat(args[2])),
+                        Float.parseFloat(args[3]));
+                }
+                if (type == ParticleTypes.DUST_COLOR_TRANSITION && args.length >= 7) {
+                    return new DustColorTransitionOptions(
+                        packRgb(Float.parseFloat(args[0]), Float.parseFloat(args[1]), Float.parseFloat(args[2])),
+                        packRgb(Float.parseFloat(args[4]), Float.parseFloat(args[5]), Float.parseFloat(args[6])),
+                        Float.parseFloat(args[3]));
+                }
+                if (type instanceof SimpleParticleType simple) {
+                    // e.g. "minecraft:flame 0 1 0" — trailing junk on a type that
+                    // takes no options; the id alone is the honest reading.
+                    return simple;
+                }
+                if (args.length >= 1) {
+                    if (type == ParticleTypes.BLOCK || type == ParticleTypes.BLOCK_MARKER
+                        || type == ParticleTypes.FALLING_DUST || type == ParticleTypes.DUST_PILLAR) {
+                        var block = BuiltInRegistries.BLOCK.get(Identifier.parse(args[0]))
+                            .map(net.minecraft.core.Holder.Reference::value)
+                            .orElse(null);
+                        if (block == null || block == net.minecraft.world.level.block.Blocks.AIR) return null;
+                        return new BlockParticleOption(
+                            (ParticleType<BlockParticleOption>) type, block.defaultBlockState());
+                    }
+                    if (type == ParticleTypes.ITEM) {
+                        var item = BuiltInRegistries.ITEM.get(Identifier.parse(args[0]))
+                            .map(net.minecraft.core.Holder.Reference::value)
+                            .orElse(null);
+                        if (item == null || item == net.minecraft.world.item.Items.AIR) return null;
+                        return new ItemParticleOption((ParticleType<ItemParticleOption>) type, item);
+                    }
+                }
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.warn(
+                    "neoorigins:particle — could not read legacy arguments for '{}': {}", head, e.getMessage());
+            }
+            return null;
+        }
+
+        /** Pack three 0..1 floats into the 0xRRGGBB int 26.x's dust options take. */
+        private static int packRgb(float r, float g, float b) {
+            return (Math.round(clamp01(r) * 255) << 16)
+                 | (Math.round(clamp01(g) * 255) << 8)
+                 |  Math.round(clamp01(b) * 255);
         }
 
         private static ParticleOptions resolveSimple(String id) {

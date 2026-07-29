@@ -467,8 +467,61 @@ public final class ActionParser {
         // set_block), the legacy behaviour is kept: run the EntityAction only on
         // ServerPlayer targets and skip mobs.
         float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16.0f;
-        String shape = json.has("shape") ? json.get("shape").getAsString() : "sphere";
-        boolean includeSelf = !json.has("include_source") || json.get("include_source").getAsBoolean();
+
+        // `shape` is a bare string in Apoli's schema (sphere/cube), but community
+        // packs write the cone form as an object — Fairytale's breath attack is
+        //   "shape": { "type": "origins:cone", "angle": 60 }
+        // and getAsString() threw on it, no-opping the whole area_of_effect.
+        // `angle` is the full apex width in degrees, centred on the caster's look.
+        String shape = "sphere";
+        double coneCos = Double.NaN;
+        if (json.has("shape")) {
+            JsonElement sh = json.get("shape");
+            if (sh.isJsonObject()) {
+                JsonObject so = sh.getAsJsonObject();
+                String st = so.has("type") ? so.get("type").getAsString() : "";
+                shape = st.contains(":") ? st.substring(st.indexOf(':') + 1) : st;
+                if (shape.equals("cone")) {
+                    double angle = so.has("angle") ? so.get("angle").getAsDouble() : 90.0;
+                    coneCos = Math.cos(Math.toRadians(Math.min(360.0, Math.max(0.0, angle)) / 2.0));
+                }
+            } else if (sh.isJsonPrimitive()) {
+                shape = sh.getAsString();
+            }
+        }
+
+        // Apoli's canonical per-target action is `bientity_action`, taking the
+        // (actor, target) pair — every third-party AoE in the wild uses it, and
+        // reading only the older `entity_action` form meant they compiled to a
+        // silent no-op with nothing recorded. Both forms are read; bientity_action
+        // wins when a pack somehow writes both.
+        JsonObject biJson = null;
+        if (json.has("bientity_action")) {
+            JsonElement ba = json.get("bientity_action");
+            if (ba.isJsonObject()) {
+                biJson = ba.getAsJsonObject();
+            } else if (ba.isJsonArray()) {
+                biJson = new JsonObject();
+                biJson.addProperty("type", "neoorigins:and");
+                biJson.add("actions", ba.getAsJsonArray());
+            }
+        }
+        BiEntityAction biAction = biJson != null
+            ? BiEntityActionParser.parse(biJson, contextId) : null;
+
+        // include_source is the legacy spelling, include_target the Apoli one.
+        // The defaults differ and both are kept: the legacy entity_action form
+        // has always included the caster, while Apoli's bientity_action form
+        // defaults to excluding it — which is what a cone breath attack wants,
+        // since including the caster means damaging yourself with your own dash.
+        boolean includeSelf;
+        if (json.has("include_source")) {
+            includeSelf = json.get("include_source").getAsBoolean();
+        } else if (json.has("include_target")) {
+            includeSelf = json.get("include_target").getAsBoolean();
+        } else {
+            includeSelf = biAction == null;
+        }
 
         // entity_action may be a single object OR a JSON array. A bare array is
         // wrapped in a synthetic neoorigins:and so both the EntityAction (player)
@@ -504,6 +557,26 @@ public final class ActionParser {
         TargetCondition targetCond = condJson != null
             ? TargetConditionParser.parse(condJson, contextId) : null;
 
+        // bientity_condition — the Apoli filter, evaluated as (actor, target).
+        // Fairytale's breath cone uses it to spare players. A filter that cannot
+        // be compiled fails CLOSED (the entity fan-out is skipped and recorded):
+        // an uncompiled exclusion silently becomes "hits everyone", and hitting
+        // bystanders is worse than the power not firing.
+        JsonObject biCondJson = com.cyberday1.neoorigins.compat.util.JsonHelpers
+            .getOrNull(json, "bientity_condition");
+        java.util.function.BiPredicate<net.minecraft.server.level.ServerPlayer,
+                net.minecraft.world.entity.Entity> biCond = null;
+        boolean biCondBroken = false;
+        if (biCondJson != null) {
+            biCond = TargetConditionParser.parseBiEntity(biCondJson, contextId);
+            if (biCond == null) {
+                biCondBroken = true;
+                com.cyberday1.neoorigins.compat.CompatWarningCollector.recordUnsupportedAction(
+                    "neoorigins:area_of_effect", contextId,
+                    "bientity_condition cannot be evaluated against a non-player entity — entity fan-out skipped");
+            }
+        }
+
         // Apoli block-action form: `block_action` fans the inner action out over
         // BLOCK POSITIONS in radius (centered on the context block pos when one
         // resolves, else the source's feet), publishing each pos as a
@@ -532,6 +605,10 @@ public final class ActionParser {
         final float  finalRadius       = radius;
         final boolean finalIncludeSelf = includeSelf;
         final String  finalShape       = shape;
+        final double  finalConeCos     = coneCos;
+        final BiEntityAction finalBiAction = biAction;
+        final var finalBiCond          = biCond;
+        final boolean finalBiCondBroken = biCondBroken;
         final EntityAction finalAction = action;
         final TargetAction finalTargetAction = targetAction;
         final EntityCondition finalCond = targetCondition;
@@ -559,11 +636,21 @@ public final class ActionParser {
             double r2 = r * r;
             java.util.UUID casterUuid = source.getUUID();
 
-            var candidates = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb);
+            var candidates = finalBiCondBroken
+                ? java.util.List.<net.minecraft.world.entity.LivingEntity>of()
+                : level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, aabb);
             for (var entity : candidates) {
-                // Shape gate (both players and mobs).
-                if ("sphere".equalsIgnoreCase(finalShape)
+                // Shape gate (both players and mobs). "cube" is already bounded
+                // by the AABB; sphere and cone additionally gate on distance,
+                // and cone on the angle off the caster's look vector.
+                if (!"cube".equalsIgnoreCase(finalShape)
                         && entity.position().distanceToSqr(srcPos) > r2) continue;
+                if (!Double.isNaN(finalConeCos) && entity != source) {
+                    var to = entity.position().subtract(srcPos);
+                    double len = to.length();
+                    if (len > 1.0e-4
+                            && source.getLookAngle().dot(to.scale(1.0 / len)) < finalConeCos) continue;
+                }
                 // include_source gate.
                 if (entity == source && !finalIncludeSelf) continue;
 
@@ -573,6 +660,7 @@ public final class ActionParser {
                 // this is what lets an aura target "players only", a #tag group,
                 // etc. Otherwise it stays player-typed: only player targets are
                 // gated and mobs bypass it, exactly as in the legacy fan-out.
+                if (finalBiCond != null && !finalBiCond.test(source, entity)) continue;
                 if (finalTargetCond != null) {
                     if (!finalTargetCond.test(entity, source)) continue;
                 } else if (isPlayer && !finalCond.test((net.minecraft.server.level.ServerPlayer) entity)) {
@@ -601,7 +689,10 @@ public final class ActionParser {
                             && entity instanceof net.minecraft.world.entity.animal.golem.IronGolem) continue;
                 }
 
-                if (finalTargetAction != null) {
+                if (finalBiAction != null) {
+                    // Apoli bientity_action — the (actor, target) pair form.
+                    finalBiAction.execute(source, entity);
+                } else if (finalTargetAction != null) {
                     // Generalizable verb — runs on players and mobs alike.
                     finalTargetAction.execute(entity, source);
                 } else if (isPlayer) {
