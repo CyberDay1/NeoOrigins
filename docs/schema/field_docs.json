@@ -33,10 +33,6 @@
   "neoorigins:toggle": {
     "key": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config."
   },
-  "neoorigins:breath_in_fluid": {
-    "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
-    "air_loss_per_second": "Air points lost per second while submerged. Higher = faster drain. Overrides drain_interval_ticks / drain_rate when set."
-  },
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },

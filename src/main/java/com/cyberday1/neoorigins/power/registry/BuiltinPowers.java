@@ -324,7 +324,9 @@ public final class BuiltinPowers {
             new FieldSpec("size", Kind.INTEGER, false)
                 .def(9).doc("Slot count, rounded to a multiple of 9 (min 9, max 54; default 9)."),
             new FieldSpec("drop_on_death", Kind.BOOLEAN, false)
-                .def(false).doc("If true the extra inventory drops on death instead of persisting (default false).")));
+                .def(false).doc("If true the extra inventory drops on death instead of persisting (default false)."),
+            new FieldSpec("title", Kind.STRING, false)
+                .def("").doc("Optional literal title shown on the container screen when the inventory is opened. Blank/absent (default) uses the translatable 'container.neoorigins.extra_inventory'. Plain text, not a JSON text component.")));
         define("fortune_when_effect", FortuneWhenEffectPower.class, List.of(
             new FieldSpec("effect", Kind.STRING, false)
                 .def("minecraft:luck").doc("Mob effect that must be active on the player for the Fortune bonus."),
@@ -500,7 +502,10 @@ public final class BuiltinPowers {
             new FieldSpec("bonus_armor_toughness", Kind.NUMBER, false)
                 .def(1.0).doc("Flat armor toughness added to crafted/smithed armor (default 1.0)."),
             new FieldSpec("durability_multiplier", Kind.NUMBER, false)
-                .def(0.10).doc("Fraction of base durability added to crafted items (default 0.10).")));
+                .def(0.10).doc("Fraction of base durability added to crafted items (default 0.10)."),
+            new FieldSpec("intercept_menus", Kind.ARRAY, false)
+                .itemPattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Menu-type ids whose result slot also grants the quality buff when the crafted item is taken (e.g. a modded smithing station). Unknown ids simply never match, so listing a menu from a mod that is absent is harmless. Empty (default) = the vanilla crafting/smithing paths only.")));
         define("rare_wandering_loot", RareWanderingLootPower.class, List.of(
             new FieldSpec("master_slots", Kind.INTEGER, false)
                 .def(3).doc("Random master-tier villager trades added to wandering traders (default 3)."),
@@ -707,7 +712,19 @@ public final class BuiltinPowers {
             new FieldSpec("target_type", Kind.STRING, false)
                 .doc("Optional specific entity-type id filter for the victim."),
             new FieldSpec("damage_type", Kind.STRING, false)
-                .doc("Optional damage-type id filter; the action only fires for matching sources.")));
+                .doc("Optional damage-type id filter; the action only fires for matching sources."),
+            // The parsed bi-entity action the codec reads from `bientity_action`
+            // OR its alias `entity_action` (ActionOnHitPower.parseOnHitAction).
+            // Both are key-aliased onto the single `onHitAction` component. The
+            // power generator widens an action.schema.json REF to
+            // oneOf[ref, array-of-ref], which matches the parser exactly: it
+            // accepts one action object or an array of them.
+            new FieldSpec("bientity_action", Kind.REF, false).boundTo("onHitAction")
+                .ref("action.schema.json")
+                .doc("Action run with the holder as actor and the victim as target when a qualifying hit lands, in addition to the flat `action`. Accepts one action object or an array of them. Apoli wrappers (actor_action / target_action / and / chance / invert / damage / nothing) keep their actor-target routing; a bare verb is treated as a target action against the victim. NOTE: supplying this (or entity_action) with no explicit `action` flips the flat action's default from restore_health to none, so the parsed action stands alone."),
+            new FieldSpec("entity_action", Kind.REF, false).boundTo("onHitAction")
+                .ref("action.schema.json")
+                .doc("Alias for `bientity_action`, read only when that key is absent — same shape and semantics. Prefer bientity_action in new packs; `entity_action` exists so packs written against the Apoli naming keep working.")));
         define("size_scaling", SizeScalingPower.class, List.of(
             new FieldSpec("scale", Kind.NUMBER, false)
                 .def(1.0).doc("Target scale multiplier; 0.5 = half, 2.0 = double (default 1.0)."),
@@ -823,10 +840,12 @@ public final class BuiltinPowers {
         //     condition schema so both editors render a nested condition form.
         //   • breath_in_fluid's codec ALSO accepts two alias input keys
         //     (air_loss_per_second, drain_rate) that are not record components —
-        //     reflection never surfaced them as form fields and they keep their
-        //     field_docs.json entries as documented JSON aliases; the spec only
-        //     declares the two real components (fluid, drain_interval_ticks),
-        //     matching exactly what the form rendered before.
+        //     reflection never surfaced them as form fields, so they were
+        //     originally left in field_docs.json as docs-only aliases. That hid
+        //     air_loss_per_second from every editor even though the power's own
+        //     documented example uses it, so both are now declared as key-aliased
+        //     specs (.boundTo("drainIntervalTicks")) and their field_docs.json
+        //     entries have been dropped.
         define("active_swap", ActiveSwapPower.class, List.of(
             new FieldSpec("range", Kind.NUMBER, false)
                 .def(20.0).doc("Max distance in blocks to find the looked-at entity to swap with; default 20.0."),
@@ -887,9 +906,73 @@ public final class BuiltinPowers {
                 .def(1.0).range(0.0, 1.0).doc("Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Only applies the tint while this DSL condition passes (optional).")));
+        // entity_model: every field is optional because a morph can be described
+        // EITHER inline (entity_type + nbt + …) OR by referencing a named
+        // definition (morph). When both are present the inline fields win, so a
+        // pack can reuse a definition and tweak one detail — which only works if
+        // "unset" is distinguishable from "set to the default".
         define("entity_model", EntityModelPower.class, List.of(
-            new FieldSpec("entity_type", Kind.STRING, true)
-                .doc("Entity id whose model replaces the player's, e.g. minecraft:slime. Cosmetic only — pair with size_scaling to match the hitbox.")));
+            new FieldSpec("morph", Kind.STRING, false)
+                .doc("Named morph definition to use, e.g. neoorigins:sheep. A bare name resolves in the neoorigins namespace. Built-ins: slime, magma_cube, sheep, cat, villager, creeper, zombie, skeleton, enderman, spider — a datapack file at data/<ns>/neoorigins/morphs/<name>.json overrides one or adds your own. Any field set alongside this overrides the definition's value."),
+            new FieldSpec("entity_type", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Entity id whose model replaces the player's, e.g. minecraft:slime. Overrides the referenced morph's entity type. It also supplies the morph's voice and, unless hitbox is false, its collision box."),
+            new FieldSpec("nbt", Kind.OBJECT, false)
+                .doc("Partial NBT applied to the rendered stand-in to pick a variant, e.g. {\"Color\": 14} for a red sheep, {\"Size\": 2} for a bigger slime, {\"VillagerData\": {\"profession\": \"minecraft:librarian\"}}. Applied once when the morph appears, not per frame. The Team key is ignored (a render stand-in has no business joining a scoreboard team)."),
+            new FieldSpec("scale", Kind.NUMBER, false)
+                .def(1.0).doc("Uniform scale of the morph model (default 1.0). It resizes the collision box along with the model unless hitbox is false."),
+            new FieldSpec("hitbox", Kind.BOOLEAN, false)
+                .def(true).doc("Whether the player collides at entity_type's size instead of their own (default true). Set false for a look-only morph. Eye height follows the hitbox, so a small morph sees from lower down, and size_scaling still applies on top. A morph that would grow the player into blocks waits until there's room rather than pushing them through, so it can be applied in a tight space and simply won't take until they step clear."),
+            new FieldSpec("render_held_item", Kind.BOOLEAN, false)
+                .def(true).doc("Whether the player's held items are drawn on the morph, so others can see what they're carrying (default true). A morph with hands holds the item; one without floats it in front of the body instead."),
+            new FieldSpec("render_armor", Kind.BOOLEAN, false)
+                .def(true).doc("Whether the player's worn armour is drawn on the morph (default true). Only takes effect on morphs whose entity renders armour at all — zombies, skeletons and piglins do; sheep, slimes and villagers do not."),
+            new FieldSpec("first_person", Kind.ENUM, false)
+                .options("item", "arm", "hidden").def("item")
+                .doc("What the morphed player sees in their own view. \"item\" draws the held item without the vanilla arm (default); \"arm\" additionally shows the morph's own arm when the hand is empty, the way vanilla shows yours; \"hidden\" draws nothing at all."),
+            new FieldSpec("arm", Kind.STRING, false)
+                .doc("Name of the bone to draw as the morph's arm in \"arm\" mode. Only needed when auto-detection picks the wrong one: humanoid mobs are found automatically, as are bones named right_arm / left_arm and the common variants. A name that doesn't exist on the model logs a warning and falls back to auto-detection."),
+            new FieldSpec("skin", Kind.OBJECT, false)
+                .doc("Reskin the player instead of replacing their model. Independent of entity_type — the player keeps their own body and only the textures on it change, so arms, animations and armour all still work. Each key is layered over the player's real skin, so anything left out is inherited rather than blanked.")
+                .children(
+                    new FieldSpec("texture", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Body texture, as an asset id: neoorigins:morph/fox resolves to the file at assets/neoorigins/textures/morph/fox.png. Must be a 64x64 player skin, not a mob texture."),
+                    new FieldSpec("cape", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Cape texture, addressed the same way. Left alone when unset, so a reskin doesn't silently strip a player's real cape."),
+                    new FieldSpec("elytra", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Elytra texture, addressed the same way. When unset the cape texture is used, exactly as vanilla does."),
+                    new FieldSpec("model", Kind.ENUM, false)
+                        .options("slim", "wide")
+                        .doc("Arm width: \"slim\" for three-pixel arms, \"wide\" for four. Unset keeps the player's own, which is what a texture-only reskin usually wants.")),
+            new FieldSpec("entity_sounds", Kind.BOOLEAN, false)
+                .def(true).doc("Whether the player borrows the voice of entity_type — its hurt, death, fall and swim sounds (default true). Set false to look like the mob but still sound like yourself. Step sounds always come from the block underfoot, so they never change."),
+            new FieldSpec("sounds", Kind.OBJECT, false)
+                .doc("Explicit sound overrides, layered over the voice entity_type already supplies. Use this for a morph with no entity_type (a skin morph), for a custom pack sound, or to silence one sound a mob would otherwise make. Each value is a sound event id, not a file.")
+                .children(
+                    new FieldSpec("hurt", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Played when the player takes damage, e.g. minecraft:entity.fox.hurt."),
+                    new FieldSpec("death", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Played once when the player dies."),
+                    new FieldSpec("fall_small", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Landing from a short fall (four blocks or less)."),
+                    new FieldSpec("fall_big", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Landing from a long fall. Set independently of fall_small — a morph can change only one."),
+                    new FieldSpec("swim", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Looping sound while swimming."),
+                    new FieldSpec("splash", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Entering or leaving water."),
+                    new FieldSpec("splash_high_speed", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("The faster splash used when hitting water hard."))));
         // become_dragon: previously had NO define, so its schema branch (plus its
         // type-enum and fallback not-enum entries) were hand-edited back in after
         // every generatePowerSchema run. SCHEMA = PARSER: the codec reads
@@ -914,7 +997,21 @@ public final class BuiltinPowers {
                 .options("water", "lava")
                 .def("water").doc("Fluid that suffocates the player, \"water\" or \"lava\"; default water."),
             new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
-                .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Aliases: drain_rate, air_loss_per_second.")));
+                .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Read second, after air_loss_per_second; default 20."),
+            // Two documented ALIAS keys the codec reads into the SAME
+            // drainIntervalTicks component (see BreathInFluidPower.Config.CODEC's
+            // priority ladder). They are not record components of their own, so
+            // both bind to drainIntervalTicks via .boundTo — otherwise the drift
+            // audit's clause (a) would reject them. Declaring them here is what
+            // finally puts air_loss_per_second — the key this power's OWN
+            // documented example uses — in front of the editors; their
+            // field_docs.json entries collapse onto these specs.
+            new FieldSpec("air_loss_per_second", Kind.INTEGER, false).boundTo("drainIntervalTicks")
+                .range(1.0, null)
+                .doc("Alias, highest priority: air points lost per SECOND while submerged (higher = faster drain). Converted internally to 20/value ticks between drains, clamped to at least 1 tick. When set it overrides drain_interval_ticks and drain_rate."),
+            new FieldSpec("drain_rate", Kind.INTEGER, false).boundTo("drainIntervalTicks")
+                .range(1.0, null)
+                .doc("Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second — the naming that caused the original confusion). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.")));
 
         // ── Group N — batch 3 (attribute_modifier: schema-branch collapse) ────
         // A hand-rolled JsonOps decoder that, unlike its siblings, agrees with
@@ -1002,7 +1099,14 @@ public final class BuiltinPowers {
             new FieldSpec("block_condition", Kind.REF, false).ref("block_condition.schema.json")
                 .doc("Block-position filter for block events (block_break, block_place, block_use). Ignored on other events."),
             new FieldSpec("hands", Kind.MIXED, false)
-                .doc("Hand filter for interaction events (block_use, entity_use, villager_interact): only fire for the listed hands. Array or single string of 'main_hand'/'off_hand' (a bare `hand` key is accepted too). Fails closed when the event carries no hand info; ignored elsewhere."),
+                .doc("Hand filter for interaction events (block_use, entity_use, villager_interact): only fire for the listed hands. Array or single string of 'main_hand'/'off_hand'. Fails closed when the event carries no hand info; ignored elsewhere."),
+            // `hand` is a documented singular ALIAS the codec reads into the same
+            // `hands` component when `hands` is absent, so it binds there rather
+            // than to a component of its own.
+            new FieldSpec("hand", Kind.MIXED, false).boundTo("hands")
+                .doc("Singular alias for `hands`, read only when `hands` is absent: a single 'main_hand'/'off_hand' string (an array is accepted here too). Matches Apoli's action_on_block_use shape."),
+            new FieldSpec("item_condition", Kind.REF, false).ref("item_condition.schema.json")
+                .doc("Item filter for item-carrying events (item_use, item_use_finish): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). Fails closed when set but the event carries no item; ignored on events that never carry one."),
             new FieldSpec("effect", Kind.STRING, false)
                 .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
             new FieldSpec("effect_tag", Kind.STRING, false)
@@ -1059,7 +1163,19 @@ public final class BuiltinPowers {
             new FieldSpec("target_group", Kind.STRING, false)
                 .doc("Optional entity-group filter limiting which targets/attackers apply."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Only applies the multiplier while this DSL condition passes (optional).")));
+                .doc("Only applies the multiplier while this DSL condition passes (optional)."),
+            // The Apoli set/cap/floor stage trio the codec reads as
+            // Optional<Float> components but the schema never declared. Config
+            // .apply() runs them in this exact order AFTER the multiplier:
+            //   v = amount * multiplier; if set_total → v = set_total;
+            //   if max_total → v = min(v, max_total); if min_total → v = max(v, min_total)
+            // so the clamps still bite a value set_total just wrote.
+            new FieldSpec("set_total", Kind.NUMBER, false)
+                .doc("Optional override applied AFTER the multiplier: replaces the damage with this exact value. max_total/min_total still clamp the result afterwards. Omit to keep the multiplied value."),
+            new FieldSpec("max_total", Kind.NUMBER, false)
+                .doc("Optional damage cap applied after multiplier and set_total (Apoli stage order: set, then cap, then floor). Omit for no cap."),
+            new FieldSpec("min_total", Kind.NUMBER, false)
+                .doc("Optional damage floor applied last, after multiplier, set_total and max_total. Omit for no floor.")));
         define("entity_set", EntitySetPower.class, List.of(
             new FieldSpec("name", Kind.STRING, false)
                 .def("").doc("Named UUID set this power declares the player a member of; namespace it (e.g. 'mypack:kill_streak') to avoid collisions. Read/mutated by the in_set / add_to_set / remove_from_set verbs.")));
@@ -1146,6 +1262,23 @@ public final class BuiltinPowers {
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
+
+        // kill_loot_drops was registered in PowerTypes and documented in
+        // POWER_TYPES.md but never declared here, so its id never reached
+        // PowerSchemaGenerator.buildTypeEnum() (which sources type.enum from
+        // BuiltinPowers.ids()): the web validator rejected valid packs using it
+        // and no editor could offer the type. The descriptor mirrors the
+        // hand-rolled Codec exactly — ONE author-facing key, `drops`, read from
+        // the JSON and compiled into the `rules` component (hence .boundTo).
+        // Not required: the codec yields an empty rule list when `drops` is
+        // absent (the power is simply inert), it never hard-fails. Each entry's
+        // inner shape (entity_type / entity_tag / entity_types + item + chance +
+        // count) is parsed per-element by EntityTargetSpec.CODEC, not by a
+        // Config component, so it stays documented in the doc string like
+        // restrict_armor.restrictions rather than as nested children.
+        define("kill_loot_drops", KillLootDropsPower.class, List.of(
+            new FieldSpec("drops", Kind.ARRAY, false).boundTo("rules")
+                .doc("List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry is {entity_type|entity_tag|entity_types, item, chance?, count?}: exactly one target form (a single type id, an entity-type tag, or an explicit list of type ids), the item id to drop, a 0.0-1.0 `chance` (default 1.0) and a `count` (minimum 1, default 1). Entries with no valid target or an unknown item id are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.")));
 
         // ── Group C — shape-mismatch (nested object/array): schema STRUCTURE drifted ─
         // For these the power.schema.json branch's nested shape (objects/arrays)
