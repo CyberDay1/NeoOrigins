@@ -43,7 +43,8 @@
         "neoorigins:water_mage_apex_conduit_power"
       ],
       "remove": [
-        "neoorigins:water_mage_ascended_hp"
+        "neoorigins:water_mage_ascended_hp",
+        "neoorigins:water_mage_aquatic"
       ]
     }
   ]
