@@ -1329,9 +1329,12 @@ public final class BuiltinActions {
         // The inner actions are parsed once at load via ActionParser.parse with the
         // same dispatch contextId. `all_of` is the Apoli 2.9+ rename of the `and`
         // meta action (there is no any_of action) — alias, same factory.
+        // `actions` is read leniently: Origins++ authors a single-child `and` as a
+        // bare object, which used to throw and no-op the whole enclosing action.
         define("and", List.of("all_of"),
             (json, ctx) -> {
-                com.google.gson.JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new com.google.gson.JsonArray();
+                com.google.gson.JsonArray arr =
+                    com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions");
                 List<EntityAction> actions = new java.util.ArrayList<>();
                 for (com.google.gson.JsonElement el : arr) {
                     if (el.isJsonObject()) actions.add(ActionParser.parse(el.getAsJsonObject(), ctx));
@@ -1374,7 +1377,8 @@ public final class BuiltinActions {
         // is fail-closed; missing actions default to no-op.
         define("if_else_list",
             (json, ctx) -> {
-                com.google.gson.JsonArray arr = json.has("actions") ? json.getAsJsonArray("actions") : new com.google.gson.JsonArray();
+                com.google.gson.JsonArray arr =
+                    com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions");
                 record Branch(EntityCondition cond, EntityAction action) {}
                 List<Branch> branches = new java.util.ArrayList<>();
                 for (com.google.gson.JsonElement el : arr) {
@@ -2421,11 +2425,6 @@ public final class BuiltinActions {
                 return player -> {
                     if (player.level().getServer() == null || command.isBlank()) return;
                     try {
-                        String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
-                        if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
-                            com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
-                            return;
-                        }
                         net.minecraft.core.BlockPos blockPos = ActionParser.extractCommandBlockPos(
                             com.cyberday1.neoorigins.service.ActionContextHolder.get());
                         var pos = blockPos != null
@@ -2437,6 +2436,14 @@ public final class BuiltinActions {
                             .withPosition(pos)
                             .withRotation(player.getRotationVector())
                             .withLevel((net.minecraft.server.level.ServerLevel) player.level());
+                        // The source has to exist before the rewrite decision, because
+                        // the decision is "does this already parse against it" — see
+                        // rewriteIfBroken.
+                        String finalCmd = rewriteIfBroken(serverSource, command);
+                        if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
+                            com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
+                            return;
+                        }
                         player.level().getServer().getCommands().performPrefixedCommand(serverSource, finalCmd);
                     } catch (Exception e) {
                         NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());
@@ -2636,13 +2643,19 @@ public final class BuiltinActions {
                     .doc("AoE radius in blocks (default 16)."),
                 new FieldSpec("entity_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Action run on every caught entity."),
+                new FieldSpec("bientity_action", FormFieldSpec.Kind.REF, false).ref("#")
+                    .doc("Apoli form: bientity action run as (caster, caught entity). Takes precedence over entity_action."),
                 new FieldSpec("entity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
                     .doc("Optional filter — only entities matching are hit."),
+                new FieldSpec("bientity_condition", FormFieldSpec.Kind.REF, false).ref("condition.schema.json")
+                    .doc("Apoli form: filter evaluated as (caster, caught entity). A filter that cannot be evaluated against a non-player entity skips the entity fan-out entirely."),
                 new FieldSpec("shape", FormFieldSpec.Kind.ENUM, false).def("sphere")
                     .options("sphere", "cube")
-                    .doc("AoE shape (default sphere)."),
+                    .doc("AoE shape (default sphere). May also be an object — { \"type\": \"cone\", \"angle\": 60 } restricts the sphere to a cone of that full width around the caster's look direction."),
                 new FieldSpec("include_source", FormFieldSpec.Kind.BOOLEAN, false).def(true)
-                    .doc("Include the caster in the AoE (default true)."),
+                    .doc("Include the caster in the AoE. Defaults true for the entity_action form, false for the bientity_action form (Apoli's default)."),
+                new FieldSpec("include_target", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Apoli spelling of include_source."),
                 new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius capped at 16."),
                 new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false).ref("block_condition.schema.json")
@@ -3179,6 +3192,28 @@ public final class BuiltinActions {
      * {@code LivingEntity}. Unknown verbs are skipped (logged at debug) — never
      * re-routed onto the shooter, which was the bug.
      */
+    /**
+     * Run the legacy command rewriter over {@code command} only when the command
+     * is genuinely broken, and return the original otherwise.
+     *
+     * <p>{@code execute_command} used to call
+     * {@link com.cyberday1.neoorigins.compat.LegacyCommandRewriter#rewrite}
+     * unconditionally on every pack-authored string. That is the semantic tier:
+     * a pile of heuristics that assume the command already failed to parse, so
+     * firing them on a valid command corrupts it. The identical mistake on the
+     * chat/mcfunction path took out vanilla attribute commands pack-wide (GitHub
+     * #92), which is why
+     * {@link com.cyberday1.neoorigins.command.OriginsCompatCommands#onCommand}
+     * carries this same two-step gate: cheap {@code needsRewrite} prefilter,
+     * then "does it already parse".
+     */
+    private static String rewriteIfBroken(net.minecraft.commands.CommandSourceStack source,
+                                          String command) {
+        if (!com.cyberday1.neoorigins.compat.LegacyCommandRewriter.needsRewrite(command)) return command;
+        if (com.cyberday1.neoorigins.command.OriginsCompatCommands.parsesCleanly(source, command)) return command;
+        return com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
+    }
+
     static void applyProjectileAction(net.minecraft.world.entity.Entity projectile,
                                       net.minecraft.server.level.ServerPlayer actor,
                                       com.google.gson.JsonObject json,
@@ -3193,10 +3228,8 @@ public final class BuiltinActions {
         switch (type) {
             case "neoorigins:nothing" -> { }
             case "neoorigins:and" -> {
-                if (json.has("actions") && json.get("actions").isJsonArray()) {
-                    for (var el : json.getAsJsonArray("actions")) {
-                        if (el.isJsonObject()) applyProjectileAction(projectile, actor, el.getAsJsonObject(), sl);
-                    }
+                for (var el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions")) {
+                    if (el.isJsonObject()) applyProjectileAction(projectile, actor, el.getAsJsonObject(), sl);
                 }
             }
             case "neoorigins:set_on_fire" -> {
@@ -3218,12 +3251,12 @@ public final class BuiltinActions {
                 String cmd = json.has("command") ? json.get("command").getAsString() : "";
                 if (!cmd.isBlank() && sl.getServer() != null) {
                     try {
-                        String finalCmd = com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(cmd);
+                        var src = projectile.createCommandSourceStackForNameResolution(sl).withSuppressedOutput()
+                            .withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
+                        String finalCmd = rewriteIfBroken(src, cmd);
                         if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
                             com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
                         } else {
-                            var src = projectile.createCommandSourceStackForNameResolution(sl).withSuppressedOutput()
-                                .withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
                             sl.getServer().getCommands().performPrefixedCommand(src, finalCmd);
                         }
                     } catch (Exception ignored) { }

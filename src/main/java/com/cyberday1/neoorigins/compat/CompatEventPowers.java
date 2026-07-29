@@ -240,7 +240,19 @@ public class CompatEventPowers {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        if (CompatPlayerState.hasPower(sp, CompatPlayerState.EventType.PREVENT_ENTITY_USE)) {
+        // prevent_entity_use — evaluate each power's gates instead of cancelling
+        // on mere presence. A bare presence check ignored entity_condition /
+        // bientity_condition entirely, so a power narrowed to (say)
+        // minecraft:wolf blocked villager trading, saddling, leads and boats
+        // as well (issue #118). All gates are pre-compiled at load time.
+        for (var power : CompatPlayerState.getPowers(sp, CompatPlayerState.EventType.PREVENT_ENTITY_USE)) {
+            // Holder gate (power-level `condition`).
+            if (power.entityCondition() != null && !power.entityCondition().test(sp)) continue;
+            // Held-stack gate (`item_condition`).
+            if (power.itemPredicate() != null && !power.itemPredicate().test(event.getItemStack())) continue;
+            // Target gate (`entity_condition` / `bientity_condition`).
+            if (power.targetEntityPredicate() != null
+                    && !power.targetEntityPredicate().test(sp, event.getTarget())) continue;
             event.setCanceled(true);
             return;
         }

@@ -98,6 +98,7 @@ public class OriginsCompatCommands {
         // /power grant  <targets> <power> [<source>]
         // /power revoke <targets> <power> [<source>]
         // /power remove <targets> <power> [<source>]   (alias for revoke)
+        // /power has    <target>  <power>              -> 1/0 conditional
         //
         // Apoli's real /power grant|revoke syntax takes an OPTIONAL trailing
         // <source> power — the power that granted this one, used by Apoli for
@@ -139,7 +140,17 @@ public class OriginsCompatCommands {
                         .executes(OriginsCompatCommands::executePowerRevoke)
                         .then(Commands.argument("source", IdentifierArgument.id())
                             .suggests(SUGGEST_POWERS)
-                            .executes(OriginsCompatCommands::executePowerRevoke))))));
+                            .executes(OriginsCompatCommands::executePowerRevoke)))))
+            // `has` — Apoli's conditional. Single target and no <source>, which
+            // is Apoli's own shape. Origins++ calls it from
+            // origins-plus-plus:witch-of-ink/brush/{red,green}; those two
+            // functions never loaded at all, because an unregistered command
+            // fails the whole .mcfunction at compile time.
+            .then(Commands.literal("has")
+                .then(Commands.argument("target", EntityArgument.entity())
+                    .then(Commands.argument("power", IdentifierArgument.id())
+                        .suggests(SUGGEST_POWERS)
+                        .executes(OriginsCompatCommands::executePowerHas)))));
 
         // /scale shim (Pehkui parity) — ONLY when Pehkui itself is absent.
         //
@@ -505,6 +516,49 @@ public class OriginsCompatCommands {
     }
 
     /**
+     * {@code /power has <target> <power>} — Apoli's conditional subcommand.
+     *
+     * <p>Returns 1/0 rather than a count, so both {@code execute if} and
+     * {@code execute store result} read it the way Apoli's does — Origins++
+     * uses the {@code store result} form. The check covers every way NeoOrigins
+     * can hold a power (origin-inherent, dynamic grant, global power set) and
+     * expands a {@code multiple} parent through {@link #resolvePowerTargets}
+     * exactly as grant/revoke do, so asking about the parent id answers about
+     * its synthetic sub-powers too.
+     *
+     * <p>A non-player target is answered 0 rather than errored, matching how
+     * grant/revoke silently skip non-players: NeoOrigins has no mob power system.
+     */
+    private static int executePowerHas(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var entity = EntityArgument.getEntity(ctx, "target");
+        Identifier power = IdentifierArgument.getId(ctx, "power");
+
+        boolean has = false;
+        if (entity instanceof ServerPlayer player) {
+            var data = player.getData(com.cyberday1.neoorigins.attachment.OriginAttachments.originData());
+            List<Identifier> candidates = new ArrayList<>();
+            candidates.add(power);                       // the id as written
+            candidates.addAll(resolvePowerTargets(power)); // and its leaves, if `multiple`
+            for (Identifier id : candidates) {
+                if (data.hasDynamicGrant(id) || data.hasGlobalGrant(id) || isFromOrigin(data, id)) {
+                    has = true;
+                    break;
+                }
+            }
+        }
+
+        if (has) {
+            ctx.getSource().sendSuccess(() -> net.minecraft.network.chat.Component.translatable(
+                "commands.execute.conditional.pass"), false);
+            return 1;
+        }
+        ctx.getSource().sendFailure(net.minecraft.network.chat.Component.translatable(
+            "commands.execute.conditional.fail"));
+        return 0;
+    }
+
+    /**
      * Whether {@code id} is granted by one of the player's current origins
      * (as opposed to a purely dynamic grant). Mirrors the origin-source check
      * used by the {@code grant_power}/{@code revoke_power} actions so command
@@ -590,5 +644,30 @@ public class OriginsCompatCommands {
         return pr.getExceptions().isEmpty()
             && pr.getContext().getCommand() != null
             && !pr.getReader().canRead();
+    }
+
+    /**
+     * The GitHub #92 gate, exposed for callers that hold a raw command string
+     * rather than a {@link CommandEvent}: true when {@code command} already
+     * parses to a complete, executable command against {@code source}.
+     *
+     * <p>Rewriting one of those is what broke vanilla attribute commands
+     * pack-wide, so every site that feeds pack-authored text to
+     * {@link LegacyCommandRewriter#rewrite} has to check this first — see
+     * {@code BuiltinActions}' {@code execute_command}.
+     *
+     * <p>Leading {@code /} is stripped because that is what
+     * {@code Commands#performPrefixedCommand} does before dispatch, and the
+     * string tested here must be the one that would actually be run.
+     */
+    public static boolean parsesCleanly(CommandSourceStack source, String command) {
+        if (source.getServer() == null) return false;
+        String stripped = command.startsWith("/") ? command.substring(1) : command;
+        try {
+            return parsesCleanly(source.getServer().getCommands().getDispatcher()
+                .parse(stripped, source));
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

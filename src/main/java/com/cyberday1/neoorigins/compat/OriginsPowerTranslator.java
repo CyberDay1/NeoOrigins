@@ -348,6 +348,15 @@ public final class OriginsPowerTranslator {
             case "origins:modify_exhaustion",      "apace:modify_exhaustion"      -> translateModifyExhaustion(src);
             // Phase 4: New Route A translations
             case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
+            // Upstream's toggle_night_vision is a keybind-able active power. This
+            // mapping used to silently drop the "toggle" half and leave packs with
+            // a permanently-on effect. It no longer does: neoorigins:night_vision
+            // is now switchable via the dedicated "Toggle Night Vision" keybind,
+            // so the pack's intent (player can turn this on and off) is honoured.
+            // The only difference is WHICH key does it — deliberately not the
+            // origin skill slot upstream would have used, because slot-based
+            // night-vision toggles are what caused the accidental-disable bug.
+            // Kept as a shim-layer decision so legacy packs run unedited.
             case "origins:toggle_night_vision",    "apace:toggle_night_vision"    -> translateSimple("neoorigins:night_vision");
             case "origins:food_restriction",       "apace:food_restriction"       -> translateFoodRestriction(src);
             case "origins:edible_item",            "apace:edible_item"            -> translateEdibleItem(src);

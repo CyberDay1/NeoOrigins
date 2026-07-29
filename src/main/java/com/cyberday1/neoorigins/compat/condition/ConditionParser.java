@@ -49,6 +49,7 @@ public final class ConditionParser {
      */
     public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
         "neoorigins:actor_condition", "neoorigins:advancement", "neoorigins:air",
+        "neoorigins:always_active",
         "neoorigins:amount", "neoorigins:and", "neoorigins:armor_value",
         "neoorigins:biome", "neoorigins:block", "neoorigins:block_collision",
         "neoorigins:brightness", "neoorigins:can_see", "neoorigins:climbing",
@@ -75,13 +76,15 @@ public final class ConditionParser {
         "neoorigins:invisible", "neoorigins:lava", "neoorigins:light_level",
         "neoorigins:living", "neoorigins:moon_phase", "neoorigins:moving",
         "neoorigins:nbt", "neoorigins:near_block", "neoorigins:near_entity",
+        "neoorigins:near_villager", "neoorigins:nearby_entities",
         "neoorigins:night", "neoorigins:no_minions_alive", "neoorigins:not",
         "neoorigins:on_block", "neoorigins:on_fire", "neoorigins:on_ground",
         "neoorigins:or", "neoorigins:origin", "neoorigins:out_of_combat", "neoorigins:passenger",
         "neoorigins:power", "neoorigins:power_active", "neoorigins:power_type",
         "neoorigins:predicate", "neoorigins:relative_health", "neoorigins:replacable",
         "neoorigins:resource", "neoorigins:scoreboard", "neoorigins:sneaking",
-        "neoorigins:sprinting", "neoorigins:status_effect", "neoorigins:submerged_in",
+        "neoorigins:sprinting", "neoorigins:statistic",
+        "neoorigins:status_effect", "neoorigins:submerged_in",
         "neoorigins:submerged_in_water", "neoorigins:swimming", "neoorigins:target_group",
         "neoorigins:target_type", "neoorigins:temperature", "neoorigins:thundering",
         "neoorigins:ticking", "neoorigins:time_of_day", "neoorigins:using_item",
@@ -197,7 +200,7 @@ public final class ConditionParser {
     }
 
     static EntityCondition parseAnd(JsonObject json, String ctx) {
-        JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions");
         List<EntityCondition> list = new ArrayList<>();
         for (JsonElement el : arr) {
             if (el.isJsonObject()) list.add(parse(el.getAsJsonObject(), ctx));
@@ -209,7 +212,7 @@ public final class ConditionParser {
     }
 
     static EntityCondition parseOr(JsonObject json, String ctx) {
-        JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions");
         List<EntityCondition> list = new ArrayList<>();
         for (JsonElement el : arr) {
             if (el.isJsonObject()) list.add(parse(el.getAsJsonObject(), ctx));
@@ -539,7 +542,8 @@ public final class ConditionParser {
             // Block conditions don't map cleanly to entity conditions, but we can
             // evaluate them against the block below the player.
             boolean isAnd = bareType.equals("and") || bareType.equals("all_of");
-            JsonArray conditions = blockCond.has("conditions") ? blockCond.getAsJsonArray("conditions") : new JsonArray();
+            JsonArray conditions =
+                com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(blockCond, "conditions");
             List<EntityCondition> subconds = new ArrayList<>();
             for (JsonElement el : conditions) {
                 if (!el.isJsonObject()) continue;
@@ -932,6 +936,121 @@ public final class ConditionParser {
         };
     }
 
+    // ── statistic ────────────────────────────────────────────────────────
+    //
+    // Apoli's statistic condition compares a player's vanilla statistic against
+    // a threshold. Two shapes are in the wild and both are accepted:
+    //
+    //   canonical (Apoli):  "stat": { "type": "minecraft:custom",
+    //                                 "stat": "minecraft:time_since_rest" }
+    //   legacy flat string: "statistic": "minecraft:time_since_rest"
+    //
+    // The flat form implies the `minecraft:custom` category, which is what every
+    // pack using it means (time_since_rest, play_time, walk_one_cm, …). The other
+    // vanilla categories — mined, crafted, used, broken, picked_up, dropped,
+    // killed, killed_by — work through the nested form, as do modded stat types
+    // (the category is resolved against the live stat-type registry).
+
+    /**
+     * The vanilla stat-type categories. Used only to reject a typo in the
+     * {@code minecraft} namespace at parse time (so the pack author gets a
+     * warning rather than a silently dead gate); a {@code modid:} category is
+     * let through and resolved against the live stat-type registry instead.
+     */
+    private static final java.util.Set<String> VANILLA_STAT_CATEGORIES = java.util.Set.of(
+        "minecraft:custom", "minecraft:mined", "minecraft:crafted", "minecraft:used",
+        "minecraft:broken", "minecraft:picked_up", "minecraft:dropped",
+        "minecraft:killed", "minecraft:killed_by");
+
+    /**
+     * A stat reference split into its category (stat-type id) and the id within
+     * that category — the shape-normalised result of reading a {@code statistic}
+     * condition's {@code statistic}/{@code stat} field.
+     */
+    record StatRef(Identifier typeId, Identifier statId) {}
+
+    /**
+     * Read the stat reference out of a {@code statistic} condition, accepting the
+     * nested-object and flat-string shapes alike. Returns {@code null} — so the
+     * caller fails closed — when the field is missing, either id is not a valid
+     * resource location, or the category is a {@code minecraft:} one that does
+     * not exist. Pure: touches no registry, so it is safe before Minecraft
+     * bootstrap; the ids are resolved lazily on first evaluation.
+     */
+    static StatRef readStatRef(JsonObject json) {
+        JsonElement raw = json.has("statistic") ? json.get("statistic")
+                        : json.has("stat") ? json.get("stat")
+                        : null;
+        if (raw == null) return null;
+
+        String typeId = "minecraft:custom";
+        String statId;
+        if (raw.isJsonObject()) {
+            JsonObject inner = raw.getAsJsonObject();
+            if (inner.has("type") && inner.get("type").isJsonPrimitive()) {
+                typeId = inner.get("type").getAsString();
+            }
+            JsonElement id = inner.has("stat") ? inner.get("stat")
+                           : inner.has("statistic") ? inner.get("statistic")
+                           : null;
+            if (id == null || !id.isJsonPrimitive()) return null;
+            statId = id.getAsString();
+        } else if (raw.isJsonPrimitive()) {
+            statId = raw.getAsString();
+        } else {
+            return null;
+        }
+
+        if (typeId.indexOf(':') < 0) typeId = "minecraft:" + typeId;
+        if (statId.indexOf(':') < 0) statId = "minecraft:" + statId;
+        if (typeId.startsWith("minecraft:") && !VANILLA_STAT_CATEGORIES.contains(typeId)) return null;
+        Identifier parsedType = Identifier.tryParse(typeId);
+        Identifier parsedStat = Identifier.tryParse(statId);
+        if (parsedType == null || parsedStat == null) return null;
+        return new StatRef(parsedType, parsedStat);
+    }
+
+    /** Resolve the registry entry behind a stat id, or null when it is unknown. */
+    private static <T> net.minecraft.stats.Stat<T> resolveStat(
+            net.minecraft.stats.StatType<T> type, Identifier id) {
+        T value = type.getRegistry().getOptional(id).orElse(null);
+        return value == null ? null : type.get(value);
+    }
+
+    static EntityCondition parseStatistic(JsonObject json, String contextId) {
+        StatRef ref = readStatRef(json);
+        if (ref == null) return EntityCondition.alwaysFalse();
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType comparison = ComparisonType.fromString(comp);
+        // Resolution is deferred to first evaluation: the stat registries are not
+        // populated at pack-parse time, and modded custom stats register later
+        // still. The resolved Stat is memoised; an id that never resolves fails
+        // closed once, loudly, instead of warning every tick.
+        return new EntityCondition() {
+            private net.minecraft.stats.Stat<?> resolved;
+            private boolean unresolvable;
+
+            @Override
+            public boolean test(ServerPlayer player) {
+                if (unresolvable) return false;
+                if (resolved == null) {
+                    net.minecraft.stats.StatType<?> type =
+                        BuiltInRegistries.STAT_TYPE.getOptional(ref.typeId()).orElse(null);
+                    resolved = type == null ? null : resolveStat(type, ref.statId());
+                    if (resolved == null) {
+                        unresolvable = true;
+                        NeoOrigins.LOGGER.warn(
+                            "[Compat] statistic condition in '{}' references unknown stat {} of type {} — condition is false.",
+                            contextId, ref.statId(), ref.typeId());
+                        return false;
+                    }
+                }
+                return comparison.test(player.getStats().getValue(resolved), target);
+            }
+        };
+    }
+
     static EntityCondition parseCommand(JsonObject json) {
         String command = json.has("command") ? json.get("command").getAsString() : "";
         if (command.isBlank()) return EntityCondition.alwaysFalse();
@@ -985,9 +1104,9 @@ public final class ConditionParser {
         JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
             ? json.getAsJsonObject("block_condition") : null;
         if (blockCond == null) return EntityCondition.alwaysTrue();
-        java.util.function.Predicate<BlockState> pred = compileInBlockPredicate(blockCond, contextId);
+        BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
         if (pred == null) return EntityCondition.alwaysTrue();
-        return player -> pred.test(player.level().getBlockState(player.blockPosition()));
+        return player -> pred.test(player.level(), player.blockPosition());
     }
 
     /**
@@ -1002,7 +1121,7 @@ public final class ConditionParser {
         JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
             ? json.getAsJsonObject("block_condition") : null;
         if (blockCond == null) return EntityCondition.alwaysTrue();
-        java.util.function.Predicate<BlockState> pred = compileInBlockPredicate(blockCond, contextId);
+        BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
         if (pred == null) return EntityCondition.alwaysTrue();
 
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
@@ -1019,7 +1138,7 @@ public final class ConditionParser {
             BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
             long count = 0;
             for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
-                if (pred.test(player.level().getBlockState(pos))) {
+                if (pred.test(player.level(), pos)) {
                     count++;
                     if (count >= stopAt) break;
                 }
@@ -1084,20 +1203,36 @@ public final class ConditionParser {
     }
 
     /**
+     * A block condition evaluated at a position rather than against a bare
+     * {@link BlockState}. Apoli's {@code height}, {@code adjacent} and
+     * {@code offset} leaves read the world <em>around</em> the block, which a
+     * position-blind {@code Predicate<BlockState>} cannot express — every
+     * caller of the compiler below already has the position in hand, so the
+     * whole chain is positional.
+     */
+    @FunctionalInterface
+    public interface BlockPosCondition {
+        boolean test(net.minecraft.world.level.BlockGetter level, BlockPos pos);
+    }
+
+    /** The six face neighbours Apoli's {@code adjacent} scans. */
+    private static final net.minecraft.core.Direction[] FACES = net.minecraft.core.Direction.values();
+
+    /**
      * Recursively compiles an {@code origins:in_block} block_condition node into
-     * a {@link BlockState} predicate. Self-contained on purpose — kept separate
+     * a {@link BlockPosCondition}. Self-contained on purpose — kept separate
      * from the {@code action_on_event} block-predicate compiler. Returns
      * {@code null} for an unrecognised leaf so callers can fall back to
      * always-true. Honours a per-node {@code inverted} flag.
      */
-    private static java.util.function.Predicate<BlockState> compileInBlockPredicate(JsonObject bc, String contextId) {
+    private static BlockPosCondition compileInBlockPredicate(JsonObject bc, String contextId) {
         boolean inverted = bc.has("inverted") && bc.get("inverted").getAsBoolean();
-        java.util.function.Predicate<BlockState> base = compileInBlockLeaf(bc, contextId);
+        BlockPosCondition base = compileInBlockLeaf(bc, contextId);
         if (base == null) return null;
-        return inverted ? base.negate() : base;
+        return inverted ? (level, pos) -> !base.test(level, pos) : base;
     }
 
-    private static java.util.function.Predicate<BlockState> compileInBlockLeaf(JsonObject bc, String contextId) {
+    private static BlockPosCondition compileInBlockLeaf(JsonObject bc, String contextId) {
         String type = bc.has("type") ? bc.get("type").getAsString() : "";
         String bare = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
 
@@ -1106,32 +1241,144 @@ public final class ConditionParser {
         if ((bare.equals("block") || blockId != null) && blockId != null && !blockId.isBlank()) {
             Identifier bid = Identifier.parse(
                 com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(blockId));
-            return state -> BuiltInRegistries.BLOCK.getKey(state.getBlock()).equals(bid);
+            return (level, pos) -> BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).equals(bid);
         }
         if (bare.equals("in_tag") && bc.has("tag")) {
             TagKey<Block> tag = parseBlockTag(bc.get("tag").getAsString());
-            return state -> state.is(tag);
+            return (level, pos) -> level.getBlockState(pos).is(tag);
         }
         if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
             boolean isAnd = bare.equals("and") || bare.equals("all_of");
-            JsonArray conditions = bc.has("conditions") ? bc.getAsJsonArray("conditions") : new JsonArray();
-            List<java.util.function.Predicate<BlockState>> subs = new ArrayList<>();
+            JsonArray conditions = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(bc, "conditions");
+            List<BlockPosCondition> subs = new ArrayList<>();
             for (JsonElement el : conditions) {
                 if (!el.isJsonObject()) continue;
                 var sub = compileInBlockPredicate(el.getAsJsonObject(), contextId);
                 if (sub != null) subs.add(sub);
             }
-            return state -> {
+            return (level, pos) -> {
                 for (var s : subs) {
-                    boolean r = s.test(state);
+                    boolean r = s.test(level, pos);
                     if (isAnd && !r) return false;
                     if (!isAnd && r) return true;
                 }
                 return isAnd;
             };
         }
+        // offset — evaluate the nested condition at pos + (x, y, z). Already
+        // supported by the action_on_event compiler; now that this one is
+        // positional too it can honour the same structural wrapper.
+        if (bare.equals("offset")) {
+            int ox = bc.has("x") ? bc.get("x").getAsInt() : 0;
+            int oy = bc.has("y") ? bc.get("y").getAsInt() : 0;
+            int oz = bc.has("z") ? bc.get("z").getAsInt() : 0;
+            JsonObject nested = bc.has("condition") && bc.get("condition").isJsonObject()
+                ? bc.getAsJsonObject("condition") : null;
+            if (nested == null) return null;
+            BlockPosCondition sub = compileInBlockPredicate(nested, contextId);
+            if (sub == null) return null;
+            return (level, pos) -> sub.test(level, pos.offset(ox, oy, oz));
+        }
+        // block_state — match a single blockstate property. Origins++ gates its
+        // Kelperet swim penalty on `waterlogged: true`, which used to drop out
+        // here silently and leave the whole in_block matching nothing.
+        if (bare.equals("block_state")) {
+            var statePred = compileBlockStateProperty(bc);
+            if (statePred == null) return null;
+            return (level, pos) -> statePred.test(level.getBlockState(pos));
+        }
+        // height — the block's own Y, not the entity's. Fairytale's height
+        // affinity checks "block_in_radius { height <= 63 }" to mean sea level.
+        if (bare.equals("height")) {
+            ComparisonType comparison = ComparisonType.fromString(
+                bc.has("comparison") ? bc.get("comparison").getAsString() : ">=");
+            double target = bc.has("compare_to") ? bc.get("compare_to").getAsDouble() : 0.0;
+            return (level, pos) -> comparison.test(pos.getY(), target);
+        }
+        // adjacent — count the face neighbours matching `adjacent_condition`
+        // and compare (default >= 1). Origins++ Glacier refuses to sleep unless
+        // at most two neighbours are snow or ice.
+        if (bare.equals("adjacent")) {
+            JsonObject inner = bc.has("adjacent_condition") && bc.get("adjacent_condition").isJsonObject()
+                ? bc.getAsJsonObject("adjacent_condition") : null;
+            if (inner == null) return null;
+            BlockPosCondition sub = compileInBlockPredicate(inner, contextId);
+            if (sub == null) return null;
+            ComparisonType comparison = ComparisonType.fromString(
+                bc.has("comparison") ? bc.get("comparison").getAsString() : ">=");
+            double target = bc.has("compare_to") ? bc.get("compare_to").getAsDouble() : 1.0;
+            return (level, pos) -> {
+                int count = 0;
+                for (var face : FACES) {
+                    if (sub.test(level, pos.relative(face))) count++;
+                }
+                return comparison.test(count, target);
+            };
+        }
         NeoOrigins.LOGGER.debug("[CompatB] in_block: unknown block_condition type '{}' in {} — treating as match-none", type, contextId);
         return null;
+    }
+
+    /**
+     * Compiles an Apoli {@code block_state} node into a {@link BlockState}
+     * predicate. Public because
+     * {@link com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader}'s
+     * block-condition compiler needs the same matching without inheriting this
+     * one's fail-closed policy — the two compilers deliberately fail in
+     * opposite directions, so only the property lookup is shared.
+     *
+     * <p>Three authored shapes are honoured: {@code value} (Origins++ writes
+     * {@code "property": "waterlogged", "value": true}), {@code enum} (a name or
+     * an array of accepted names — Origins++ writes {@code "property": "facing",
+     * "enum": "south"}), and {@code comparison}/{@code compare_to} for numeric
+     * properties. A block that does not carry the property never matches, which
+     * is Apoli's own behaviour.
+     *
+     * @return the predicate, or {@code null} if the node names no {@code property}.
+     */
+    public static java.util.function.Predicate<BlockState> compileBlockStateProperty(JsonObject bc) {
+        if (bc == null || !bc.has("property")) return null;
+        final String propName = bc.get("property").getAsString();
+
+        final List<String> accepted = new ArrayList<>();
+        for (String key : new String[] { "value", "enum" }) {
+            if (!bc.has(key)) continue;
+            JsonElement el = bc.get(key);
+            if (el.isJsonArray()) {
+                for (JsonElement e : el.getAsJsonArray()) {
+                    if (e.isJsonPrimitive()) accepted.add(e.getAsString().toLowerCase(Locale.ROOT));
+                }
+            } else if (el.isJsonPrimitive()) {
+                accepted.add(el.getAsString().toLowerCase(Locale.ROOT));
+            }
+        }
+        final ComparisonType comparison = bc.has("comparison")
+            ? ComparisonType.fromString(bc.get("comparison").getAsString()) : null;
+        final double compareTo = bc.has("compare_to") ? bc.get("compare_to").getAsDouble() : 0.0;
+        final List<String> finalAccepted = List.copyOf(accepted);
+
+        return state -> {
+            var prop = state.getBlock().getStateDefinition().getProperty(propName);
+            if (prop == null) return false;
+            String name = blockPropertyValueName(state, prop);
+            if (comparison != null) {
+                try {
+                    return comparison.test(Double.parseDouble(name), compareTo);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+            if (finalAccepted.isEmpty()) return false;
+            return finalAccepted.contains(name.toLowerCase(Locale.ROOT));
+        };
+    }
+
+    /** Stringifies a blockstate property value ("north", "true", "3") without its type. */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static String blockPropertyValueName(
+            BlockState state, net.minecraft.world.level.block.state.properties.Property<?> prop) {
+        net.minecraft.world.level.block.state.properties.Property raw = prop;
+        return raw.getName(state.getValue(raw));
     }
 
     static EntityCondition parseHeight(JsonObject json) {
@@ -1840,7 +2087,7 @@ public final class ConditionParser {
 
         List<Identifier> blockIds = new ArrayList<>();
         List<TagKey<Block>> tags = new ArrayList<>();
-        java.util.function.Predicate<BlockState> condPred = null;
+        BlockPosCondition condPred = null;
 
         if (json.has("block")) {
             blockIds.add(Identifier.parse(
@@ -1877,11 +2124,12 @@ public final class ConditionParser {
             .flatMap(Optional::stream)
             .toList();
         final List<TagKey<Block>> finalTags = List.copyOf(tags);
-        final java.util.function.Predicate<BlockState> finalCondPred = condPred;
-        java.util.function.Predicate<BlockState> matcher = state -> {
+        final BlockPosCondition finalCondPred = condPred;
+        BlockPosCondition matcher = (level, pos) -> {
+            BlockState state = level.getBlockState(pos);
             for (Block b : blocks) if (state.is(b)) return true;
             for (TagKey<Block> tag : finalTags) if (state.is(tag)) return true;
-            return finalCondPred != null && finalCondPred.test(state);
+            return finalCondPred != null && finalCondPred.test(level, pos);
         };
 
         // Once the count reaches stopAt the comparison outcome can't change, so
@@ -1906,7 +2154,7 @@ public final class ConditionParser {
                             case "sphere" -> { if ((long) dx * dx + (long) dy * dy + (long) dz * dz > (long) r * r) continue; }
                             default -> { }
                         }
-                        if (matcher.test(level.getBlockState(origin.offset(dx, dy, dz)))) {
+                        if (matcher.test(level, origin.offset(dx, dy, dz))) {
                             count++;
                             if (count >= stopAt) break outer;
                         }
@@ -2063,6 +2311,142 @@ public final class ConditionParser {
                 return false;
             };
         }
+    }
+
+    /**
+     * nearby_entities: count the entities around the player that match the
+     * selectors, then compare that count (Apoli defaults {@code >=} 1). The
+     * counting form of near_entity — Fairytale's wolf powers ask for "at least
+     * one wolf within 10 blocks", but the same verb expresses "fewer than three
+     * mobs nearby" just as naturally, which near_entity cannot.
+     *
+     * <p>Two authored shapes, both honoured:
+     * <pre>{ "type": "origins:nearby_entities", "entity_type": "minecraft:wolf", "distance": 10, "comparison": ">=", "compare_to": 1 }</pre>
+     * <pre>{ "type": "apoli:nearby_entities", "bientity_condition": { … }, "radius": 8 }</pre>
+     *
+     * <p>{@code entity_type} accepts an id or a {@code #tag}; {@code entity_types}
+     * accepts a list of either. A {@code bientity_condition} is compiled through
+     * {@link TargetConditionParser#parseBiEntity} so it can be evaluated against
+     * a non-player entity; a condition that cannot be (a player-only verb, an
+     * unknown verb) fails the whole condition closed rather than quietly
+     * counting the wrong entities.
+     *
+     * <p>With no selector at all every entity in range counts, which is Apoli's
+     * own behaviour for a bare {@code nearby_entities}.
+     */
+    static EntityCondition parseNearbyEntities(JsonObject json, String contextId) {
+        double distance = Math.min(64.0, Math.max(1.0,
+            json.has("radius") ? json.get("radius").getAsDouble()
+          : json.has("distance") ? json.get("distance").getAsDouble() : 16.0));
+
+        List<net.minecraft.world.entity.EntityType<?>> types = new ArrayList<>();
+        List<TagKey<net.minecraft.world.entity.EntityType<?>>> typeTags = new ArrayList<>();
+        List<String> rawTypes = new ArrayList<>();
+        if (json.has("entity_type") && json.get("entity_type").isJsonPrimitive()) {
+            rawTypes.add(json.get("entity_type").getAsString());
+        }
+        for (JsonElement el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "entity_types")) {
+            if (el.isJsonPrimitive()) rawTypes.add(el.getAsString());
+        }
+        for (String raw : rawTypes) {
+            if (raw == null || raw.isBlank()) continue;
+            if (raw.startsWith("#")) {
+                typeTags.add(TagKey.create(Registries.ENTITY_TYPE, Identifier.parse(raw.substring(1))));
+            } else {
+                var typeOpt = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(raw));
+                if (typeOpt.isEmpty()) {
+                    return failClosed("neoorigins:nearby_entities", contextId,
+                        "unknown entity type '" + raw + "'");
+                }
+                types.add(typeOpt.get());
+            }
+        }
+
+        java.util.function.BiPredicate<ServerPlayer, net.minecraft.world.entity.Entity> biCond = null;
+        if (json.has("bientity_condition") && json.get("bientity_condition").isJsonObject()) {
+            biCond = TargetConditionParser.parseBiEntity(json.getAsJsonObject("bientity_condition"), contextId);
+            if (biCond == null) {
+                return failClosed("neoorigins:nearby_entities", contextId,
+                    "bientity_condition uses a verb that cannot be evaluated against a non-player entity");
+            }
+        }
+
+        ComparisonType comparison = ComparisonType.fromString(
+            json.has("comparison") ? json.get("comparison").getAsString() : ">=");
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 1.0;
+
+        final double dist = distance;
+        final double distSq = distance * distance;
+        final List<net.minecraft.world.entity.EntityType<?>> finalTypes = List.copyOf(types);
+        final List<TagKey<net.minecraft.world.entity.EntityType<?>>> finalTags = List.copyOf(typeTags);
+        final java.util.function.BiPredicate<ServerPlayer, net.minecraft.world.entity.Entity> finalBi = biCond;
+        // Once the count passes this the comparison outcome is settled, so the
+        // scan stops early — matters for a ">= 1" check in a crowded area.
+        final long stopAt = switch (comparison) {
+            case GREATER_THAN_OR_EQUAL, LESS_THAN -> (long) Math.max(0, Math.ceil(target));
+            case GREATER_THAN, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL -> (long) Math.max(0, Math.floor(target) + 1);
+        };
+
+        return p -> {
+            var aabb = p.getBoundingBox().inflate(dist);
+            long count = 0;
+            for (var entity : p.level().getEntities(p, aabb)) {
+                if (entity.distanceToSqr(p) > distSq) continue;
+                if (!finalTypes.isEmpty() || !finalTags.isEmpty()) {
+                    boolean typeMatch = false;
+                    for (var t : finalTypes) if (entity.getType() == t) { typeMatch = true; break; }
+                    if (!typeMatch) {
+                        for (var tag : finalTags) if (entity.getType().getTags().anyMatch(tk -> tk.equals(tag))) { typeMatch = true; break; }
+                    }
+                    if (!typeMatch) continue;
+                }
+                if (finalBi != null && !finalBi.test(p, entity)) continue;
+                count++;
+                if (count >= stopAt) break;
+            }
+            return comparison.test(count, target);
+        };
+    }
+
+    /**
+     * near_villager: true when a villager is within {@code distance} blocks.
+     * Not an Apoli verb — Fairytale Origins invented it for its Village Hero
+     * power, and a pack that uses it would otherwise fail closed and take the
+     * whole power with it.
+     *
+     * <p>Counts {@link net.minecraft.world.entity.npc.villager.Villager} only:
+     * wandering traders and zombie villagers are deliberately excluded, since
+     * the intent every pack expresses with this verb is "near a settlement".
+     * The optional {@code comparison}/{@code compare_to} pair compares the
+     * villager count and defaults to {@code >=} 1.
+     *
+     * <pre>{ "type": "origins:near_villager", "distance": 32 }</pre>
+     */
+    static EntityCondition parseNearVillager(JsonObject json) {
+        double distance = Math.min(64.0, Math.max(1.0,
+            json.has("distance") ? json.get("distance").getAsDouble()
+          : json.has("radius") ? json.get("radius").getAsDouble() : 16.0));
+        ComparisonType comparison = ComparisonType.fromString(
+            json.has("comparison") ? json.get("comparison").getAsString() : ">=");
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 1.0;
+
+        final double dist = distance;
+        final double distSq = distance * distance;
+        final long stopAt = switch (comparison) {
+            case GREATER_THAN_OR_EQUAL, LESS_THAN -> (long) Math.max(0, Math.ceil(target));
+            case GREATER_THAN, LESS_THAN_OR_EQUAL, EQUAL, NOT_EQUAL -> (long) Math.max(0, Math.floor(target) + 1);
+        };
+        return p -> {
+            var aabb = p.getBoundingBox().inflate(dist);
+            long count = 0;
+            for (var entity : p.level().getEntitiesOfClass(
+                    net.minecraft.world.entity.npc.villager.Villager.class, aabb)) {
+                if (entity.distanceToSqr(p) > distSq) continue;
+                count++;
+                if (count >= stopAt) break;
+            }
+            return comparison.test(count, target);
+        };
     }
 
     /**
