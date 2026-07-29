@@ -268,7 +268,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         // condition-false all call clearEffects explicitly, so we don't rely on
         // the effect expiring naturally.
         for (EffectSpec spec : config.effects()) {
-            if (isGloballyDisabled(spec)) continue;
+            if (isNightVisionSuppressed(player, spec)) continue;
             var existing = player.getEffect(spec.effect());
             // Reapply when: nothing present, OR the present effect is weaker
             // (lower amplifier) than ours, OR the present effect is a finite
@@ -289,20 +289,58 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     private static final ResourceLocation NIGHT_VISION_ID =
         ResourceLocation.withDefaultNamespace("night_vision");
 
-    /**
-     * Global content-toggle gate: when {@code disable_night_vision} is set in
-     * content.toml, suppress any {@code minecraft:night_vision} effect spec.
-     * Only night_vision is stripped — other effects on the same power still
-     * apply, so a power that grants water_breathing + night_vision keeps the
-     * water_breathing.
-     */
-    private static boolean isGloballyDisabled(EffectSpec spec) {
-        if (!com.cyberday1.neoorigins.config.ContentTogglesConfig.isNightVisionDisabled()) {
-            return false;
-        }
+    /** True when this spec grants vanilla {@code minecraft:night_vision}. */
+    private static boolean isNightVisionSpec(EffectSpec spec) {
         return spec.effect().unwrapKey()
             .map(k -> k.location().equals(NIGHT_VISION_ID))
             .orElse(false);
+    }
+
+    /**
+     * Two-stage night-vision gate. Only {@code minecraft:night_vision} is ever
+     * stripped — other effects on the same power still apply, so a power that
+     * grants water_breathing + night_vision keeps the water_breathing.
+     *
+     * <ol>
+     *   <li><b>Admin kill-switch</b> — {@code disable_night_vision} in
+     *       content.toml. Checked FIRST and unconditionally: a server admin's
+     *       decision outranks any player preference, so a player toggling their
+     *       key can never re-enable night vision on a server that banned it.</li>
+     *   <li><b>Player master switch</b> — the dedicated "Toggle Night Vision"
+     *       keybind, stored on {@link PlayerOriginData}. Defaults to enabled, so
+     *       untouched players get the historical always-on behaviour.</li>
+     * </ol>
+     *
+     * <p>Gating on the EFFECT rather than on the owning power is what makes one
+     * keypress cover an origin's whole night-vision kit: caveborn's base,
+     * evolved and ascended night-vision powers are three separate
+     * persistent_effect instances with three separate toggle keys, but they all
+     * grant the same effect and so all consult the same single player flag.
+     */
+    private static boolean isNightVisionSuppressed(ServerPlayer player, EffectSpec spec) {
+        if (!isNightVisionSpec(spec)) return false;
+        if (com.cyberday1.neoorigins.config.ContentTogglesConfig.isNightVisionDisabled()) {
+            return true;
+        }
+        return !player.getData(OriginAttachments.originData()).isNightVisionEnabled();
+    }
+
+    /**
+     * Drop any night vision this power system currently owns on the player.
+     * Called when the player switches their master toggle off — without it the
+     * INFINITE_DURATION instance already on them would simply never expire.
+     *
+     * <p>Only infinite-duration instances are removed: a finite night vision the
+     * player drank or was given by an action is not ours to take away. Turning
+     * the toggle back on needs no counterpart — {@link #onTick} reapplies on the
+     * very next tick once the gate opens.
+     */
+    public static void clearOwnedNightVision(ServerPlayer player) {
+        var existing = player.getEffect(
+            net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+        if (existing != null && existing.isInfiniteDuration()) {
+            player.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+        }
     }
 
     @Override

@@ -88,6 +88,17 @@ public class PlayerOriginData {
      *  immortal forever by dismissing the picker. Persisted so the flag
      *  survives relog. Cleared on the next successful ChooseOrigin. */
     private boolean pickerAbandoned = false;
+    /** Player-facing night-vision master switch, flipped by the dedicated
+     *  "Toggle Night Vision" keybind. Defaults to {@code true} so a player who
+     *  never presses the key sees the historical always-on behaviour. Gates every
+     *  {@code minecraft:night_vision} persistent effect at once (so multi-tier
+     *  origins take one keypress, not one per tier) and the client-side
+     *  {@code enhanced_vision} brightness boost. Persisted here — and the
+     *  attachment is {@code copyOnDeath} — so the choice survives relog AND death.
+     *  Deliberately NOT part of {@link #toggledOffPowers}: this is a player
+     *  preference, not a power toggle, and it must never be cleared by an
+     *  origin reset or a stray skill keypress. */
+    private boolean nightVisionEnabled = true;
 
     public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
@@ -136,8 +147,14 @@ public class PlayerOriginData {
             .forGetter(d -> d.evolutionTier),
         Codec.BOOL
             .optionalFieldOf("picker_abandoned", false)
-            .forGetter(d -> d.pickerAbandoned)
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, global, sets, floats, kills, tier, abandoned) -> {
+            .forGetter(d -> d.pickerAbandoned),
+        // Default TRUE: an absent key (every pre-existing save, and every player
+        // who never touches the keybind) must decode as night-vision-on, which is
+        // exactly the pre-toggle behaviour. Never write a "false" default here.
+        Codec.BOOL
+            .optionalFieldOf("night_vision_enabled", true)
+            .forGetter(d -> d.nightVisionEnabled)
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, global, sets, floats, kills, tier, abandoned, nightVision) -> {
         PlayerOriginData data = new PlayerOriginData();
         // Canonicalize any renamed origin selections (e.g. jianxian → sword_immortal)
         // so saved worlds keep their chosen origin after the rename.
@@ -171,6 +188,7 @@ public class PlayerOriginData {
         data.essenceKills = kills;
         data.evolutionTier = tier;
         data.pickerAbandoned = abandoned;
+        data.nightVisionEnabled = nightVision;
         return data;
     }));
 
@@ -321,6 +339,12 @@ public class PlayerOriginData {
     public boolean isPickerAbandoned() { return pickerAbandoned; }
     public void setPickerAbandoned(boolean abandoned) { this.pickerAbandoned = abandoned; }
 
+    /** Player's night-vision master switch; {@code true} (on) unless they've
+     *  pressed the dedicated keybind to turn it off. */
+    public boolean isNightVisionEnabled() { return nightVisionEnabled; }
+
+    public void setNightVisionEnabled(boolean enabled) { this.nightVisionEnabled = enabled; }
+
     public boolean isPowerToggledOff(String toggleKey) {
         return toggledOffPowers.contains(toggleKey);
     }
@@ -448,6 +472,10 @@ public class PlayerOriginData {
         globalGrantedPowers.clear();
         entitySets.clear();
         activeCooldowns.clear();
+        // nightVisionEnabled is deliberately NOT reset: it's a player preference
+        // (like a control binding), not origin state. Wiping it on an origin
+        // reset would silently flip night vision back on for someone who chose
+        // to turn it off — exactly the "it resets itself" failure we're avoiding.
         version++;
     }
 

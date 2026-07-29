@@ -57,6 +57,21 @@ public abstract class LightTextureMixin {
     /** Darkness-compensation factor; 0 = no boost, 1 = full night-vision-equivalent. */
     private static final float EXPOSURE = 1.0F;
 
+    /**
+     * The capability is granted AND the player hasn't switched night vision off
+     * with the dedicated keybind. The status-effect flavour of night vision is
+     * gated server-side (the effect simply stops being applied), but this
+     * brightness boost is computed entirely client-side from a capability tag, so
+     * the toggle has to be consulted here for the key to mean the same thing on
+     * both paths. Defaults to enabled, so nothing changes for players who never
+     * press it.
+     */
+    @org.spongepowered.asm.mixin.Unique
+    private static boolean neoorigins$enhancedVisionActive() {
+        return ClientActivePowers.hasCapability("enhanced_vision")
+            && com.cyberday1.neoorigins.client.ClientNightVisionState.isEnabled();
+    }
+
     @WrapOperation(
         method = "updateLightTexture(F)V",
         at = @At(
@@ -70,7 +85,7 @@ public abstract class LightTextureMixin {
         // Both hasEffect call sites in updateLightTexture route through here;
         // the holder check keeps the CONDUIT_POWER site untouched.
         if (!has && effect == MobEffects.NIGHT_VISION
-                && ClientActivePowers.hasCapability("enhanced_vision")) {
+                && neoorigins$enhancedVisionActive()) {
             return true;
         }
         return has;
@@ -85,7 +100,7 @@ public abstract class LightTextureMixin {
     )
     private float neoorigins$boostNightVisionScale(LivingEntity entity, float partialTick,
                                                    Operation<Float> original) {
-        if (!ClientActivePowers.hasCapability("enhanced_vision")) {
+        if (!neoorigins$enhancedVisionActive()) {
             return original.call(entity, partialTick);
         }
         if (!entity.hasEffect(MobEffects.NIGHT_VISION)) {

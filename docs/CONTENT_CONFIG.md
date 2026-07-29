@@ -35,6 +35,12 @@ The two vision toggles are intentionally separate: `disable_night_vision` target
 the vanilla potion-effect brightening, while `disable_enhanced_vision` targets
 NeoOrigins' own brightness-curve capability. Turn off one, both, or neither.
 
+Both outrank the player-facing **Toggle Night Vision** keybind. That key is a
+personal preference switch and only ever turns night vision *off* on top of what
+the server already permits — on a server with `disable_night_vision = true`,
+pressing it reports that night vision is disabled and changes nothing. See the
+[player toggle](POWER_TYPES.md#player-toggle) section for the player-side half.
+
 ## `[origins]` — per-origin enable toggles
 
 Every built-in origin has a boolean here, defaulting to `true`. Set one to

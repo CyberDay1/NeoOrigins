@@ -67,6 +67,16 @@ public class NeoOriginsClientEvents {
                 new com.cyberday1.neoorigins.network.payload.RequestOpenMobCreatorPayload());
         }
 
+        if (NeoOriginsKeybindings.TOGGLE_NIGHT_VISION.consumeClick()) {
+            // Pure flip request: the server owns the flag and echoes the result
+            // back via SyncNightVisionPayload. We do NOT optimistically update
+            // ClientNightVisionState here — a client that guessed wrong (e.g. the
+            // server refused because an admin disabled night vision globally)
+            // would show a brightness boost the server isn't granting.
+            PacketDistributor.sendToServer(
+                new com.cyberday1.neoorigins.network.payload.ToggleNightVisionPayload());
+        }
+
         // Named-hotkey pool: each pool slot is bound to a pack-declared translation
         // key via HotkeyAssignments. For non-continuous bindings we send on edge
         // (consumeClick); for continuous bindings we send every tick while held.
@@ -193,6 +203,9 @@ public class NeoOriginsClientEvents {
         com.cyberday1.neoorigins.client.ClientElytraFlightState.clear();
         // Drop the per-player Figura-facing state so a prior server's players
         // can't leak into the next session.
+        // Back to default-on so the next world starts bright until its own
+        // sync lands; the persisted per-player value re-arrives at login.
+        com.cyberday1.neoorigins.client.ClientNightVisionState.clear();
         com.cyberday1.neoorigins.client.ClientPlayerPowers.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one. (Was previously cleared in
