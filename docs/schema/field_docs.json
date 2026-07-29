@@ -5,12 +5,6 @@
     "hidden": "If true, this power is not listed on the origin screen.",
     "condition": "Only applies while this condition passes (a DSL condition object — use pick)."
   },
-  "neoorigins:breath_in_fluid": {
-    "drain_rate": "(legacy) Ticks between each 1-point air drain while submerged; higher = slower (20 = 1s, default).",
-    "drain_interval_ticks": "Ticks between each 1-point air drain while submerged; clearer alias of drain_rate. Higher = slower drain (20 = 1s).",
-    "air_loss_per_second": "Air points lost per second while submerged. Higher = faster drain. Overrides drain_interval_ticks / drain_rate when set.",
-    "fluid": "Fluid that suffocates the player, \"water\" or \"lava\"; default water."
-  },
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."
   },

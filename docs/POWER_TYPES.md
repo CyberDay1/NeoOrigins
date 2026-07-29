@@ -404,6 +404,12 @@ Multiplies damage dealt or received, optionally filtered to a specific damage ty
 | `multiplier` | float | no | `1.0` | Damage multiplier (e.g. `2.0` = double, `0.5` = half) |
 | `damage_type` | string | no | _(all types)_ | Optional vanilla damage type to filter, e.g. `drown`, `fire`, `fall` |
 | `target_group` | string | no | _(any)_ | Outgoing only. Restrict to targets in this entity group: `undead`, `arthropod`, `illager`, `aquatic`. Resolved as the vanilla `minecraft:<group>` entity-type tag. |
+| `condition` | condition | no | _(always)_ | Only applies while this DSL condition passes. |
+| `set_total` | float | no | — | Replaces the damage with this exact value after `multiplier` is applied. |
+| `max_total` | float | no | — | Damage cap. |
+| `min_total` | float | no | — | Damage floor. |
+
+The three total fields are the Apoli `set_total` / `max_total` / `min_total` stages and run in that order, after the multiplier: `damage * multiplier` → replace with `set_total` → cap at `max_total` → raise to `min_total`. `max_total` and `min_total` still clamp a value that `set_total` just wrote, so a `set_total` of `100` alongside a `max_total` of `10` yields `10`. Omit a field to skip that stage.
 
 **Example — double incoming water damage:**
 ```json
@@ -542,9 +548,33 @@ Accepts only the standard toggle HUD fields beyond `name` and `description`:
 
 > **Deprecated in 2.0** — this type is now an alias for `neoorigins:persistent_effect`. See [MIGRATION.md](MIGRATION.md).
 
-Grants permanent Night Vision at full strength (no ambient effect, no particles). The effect is refreshed every tick.
+Grants Night Vision at full strength (no ambient effect, no particles). The effect is refreshed every tick.
 
 No additional fields beyond `name` and `description`.
+
+### Player toggle
+
+Night vision is **on by default** and can be switched off by the player with the
+dedicated **Toggle Night Vision** keybind (default `K`), listed under *NeoOrigins*
+in the vanilla Controls menu.
+
+* It is **not** an ability slot. The key is entirely separate from Skill 1–6 and
+  from `active_ability`'s `key` pinning, so night vision costs no slot and cannot
+  be switched off by a stray skill keypress.
+* The switch is **per player, not per power**. One press covers every
+  `minecraft:night_vision` a player is receiving, so an origin with base, evolved
+  and ascended night-vision powers still takes exactly one press. Powers that
+  bundle night vision with other effects (the Conduit Power line: water breathing
+  + night vision + haste) lose only the night vision; the rest keeps working.
+* The state is stored on the player and **survives relog and death**. An origin
+  reset does not clear it.
+* The server owns the flag; the client only sends "flip it" and is told the
+  result. The `disable_night_vision` server config in
+  [CONTENT_CONFIG.md](CONTENT_CONFIG.md) overrides it — where an admin has turned
+  night vision off globally, the key cannot turn it back on.
+* Pack authors need do nothing to opt in: any power applying
+  `minecraft:night_vision` through `persistent_effect` (including via this alias)
+  is covered automatically. There is no per-power opt-out field.
 
 **Example:**
 ```json
@@ -2173,6 +2203,13 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 
 > **Root cascade:** `show_icon`, `show_particles`, and `ambient` placed at the power root (alongside `type`/`effects`) cascade as defaults onto every nested `EffectSpec` that does not declare its own value. This lets you set HUD/particle visibility once for the whole stack instead of repeating it per effect.
 
+> **`minecraft:night_vision` is special-cased.** A spec granting night vision is
+> skipped while either the `disable_night_vision` server config is set or the
+> player has switched night vision off with the dedicated **Toggle Night Vision**
+> keybind (default `K`). The gate is per effect, not per power, so a stack of
+> water breathing + night vision + haste keeps applying the other two. Nothing is
+> needed in the JSON for this — see [`neoorigins:night_vision`](#neooriginsnight_vision).
+
 **Example — permanent always-on Weakness II:**
 ```json
 {
@@ -2347,8 +2384,9 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `condition` | EntityCondition | no | always-true | DSL gate — the event only fires when this is true |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
 | `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events) |
-| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Supports `block`/`id`, `in_tag`, `and`/`or`, and the positional `offset` wrapper (see below). Ignored on other events. |
-| `hands` | string or list | no | — | Hand gate for interaction events (`block_use`, `entity_use`, `villager_interact`): only fire for the listed hands — `"main_hand"` and/or `"off_hand"` (a singular `hand` key is accepted too). Use `["main_hand"]` to stop a power double-firing (vanilla dispatches the right-click once per hand). Fails closed when the event carries no hand info; ignored on other events. |
+| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Supports `block`/`id`, `in_tag`, `and`/`or`, `block_state`, `height`, `adjacent`, and the positional `offset` wrapper (see below). Ignored on other events. |
+| `hands` | string or list | no | — | Hand gate for interaction events (`block_use`, `entity_use`, `villager_interact`): only fire for the listed hands — `"main_hand"` and/or `"off_hand"`. Use `["main_hand"]` to stop a power double-firing (vanilla dispatches the right-click once per hand). Fails closed when the event carries no hand info; ignored on other events. |
+| `hand` | string or list | no | — | Singular alias for `hands`, read only when `hands` is absent (Apoli's `action_on_block_use` spelling). |
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
@@ -2356,6 +2394,31 @@ The 2.0 generic event hook — fires an action and/or applies a float modifier w
 | `cooldown_ticks` | int ≥ 0 | no | 0 | After `entity_action` fires, suppress further firings of this power for this many ticks (20 = 1s). Tracked per player per power instance and persisted across respawn/relog. Only gates the action path: `modifier` chains are unaffected. |
 
 **The `offset` block-condition wrapper.** Inside `block_condition`, `{ "type": "neoorigins:offset", "x": 0, "y": -2, "z": 0, "condition": { ... } }` evaluates its nested block condition at the event's block position shifted by the given block offsets — the Apoli structural wrapper for checks like "a basin two blocks below the block I clicked". Without a nested `condition` it matches all blocks (warned at load). The same wrapper works in `block_collision` and the `area_of_effect` block fan-out.
+
+**Block-condition types.** Every field documented as a *BlockCondition* — `block_condition` here, in `block_collision`, `in_block`, `in_block_anywhere`, `near_block`, `on_block`, `prevent_sleep` and the `area_of_effect` block fan-out — accepts the same set of nested types:
+
+| Type | Fields | Matches when |
+|---|---|---|
+| `block` | `block` (or legacy `id`) | The block is exactly that id. |
+| `in_tag` | `tag` | The block is in that block tag (leading `#` optional). |
+| `and` / `or` | `conditions` | All / at least one nested condition matches. |
+| `offset` | `x`, `y`, `z`, `condition` | The nested condition matches at the shifted position. |
+| `block_state` | `property`, plus `value`/`enum` or `comparison`+`compare_to` | The block carries that blockstate property and its value matches. A block without the property never matches. |
+| `height` | `comparison` (default `>=`), `compare_to` | The *block's* own Y level compares true — `{ "comparison": "<=", "compare_to": 63 }` is "at or below sea level". |
+| `adjacent` | `adjacent_condition`, `comparison` (default `>=`), `compare_to` (default 1) | The number of the six face-neighbours satisfying `adjacent_condition` compares true. |
+
+Any node also honours `"inverted": true`, which negates just that node.
+
+```json
+{ "type": "neoorigins:adjacent",
+  "adjacent_condition": { "type": "neoorigins:in_tag", "tag": "minecraft:ice" },
+  "comparison": "<=",
+  "compare_to": 2 }
+```
+
+```json
+{ "type": "neoorigins:block_state", "property": "waterlogged", "value": true }
+```
 
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
@@ -2536,6 +2599,12 @@ Passive low-light vision: emits an `enhanced_vision` capability tag and scales t
 ```
 
 All exposure work happens on the logical client; the server only publishes the capability tag. If per-origin variance is needed later, the value will be wired through a client-synced power-config payload.
+
+The **Toggle Night Vision** keybind (default `K`) switches this off too, so the
+key means the same thing whichever mechanism an origin uses. Like the status-effect
+path it starts on, so nothing changes for a player who never presses it. No
+ability slot is claimed either way: the dedicated key sits outside the skill-slot
+system entirely. See [`neoorigins:night_vision`](#neooriginsnight_vision).
 
 ---
 
@@ -3291,6 +3360,18 @@ Equipment the player crafts or upgrades at a smithing table receives bonus attri
 | `bonus_attack_damage` | double | no | `0.20` | Attack damage multiplier for weapons (+20%) |
 | `bonus_armor_toughness` | double | no | `1.0` | Flat armor toughness bonus for armor pieces |
 | `durability_multiplier` | double | no | `0.10` | Max durability increase for all damageable items (+10%) |
+| `intercept_menus` | array | no | `[]` | Extra menu-type ids whose result slot also grants the buff when the finished item is taken. |
+
+**Working with modded workstations:** the buff normally rides the vanilla crafting and smithing paths. `intercept_menus` opts additional container screens in by menu-type id, so an item taken out of, say, a mod's own smithing anvil is buffed the same way:
+
+```json
+"intercept_menus": [
+  "overgeared:smithing_anvil_menu",
+  "overgeared:stone_smithing_anvil_menu"
+]
+```
+
+Ids that no loaded mod registers simply never match, so listing a menu from a mod the player does not have is harmless — no `required_mods` guard is needed just for this field.
 
 **What gets buffed:**
 - **Tools** (pickaxe, axe, shovel, hoe, shears): +mining speed via `MINING_EFFICIENCY` attribute
@@ -3921,6 +4002,7 @@ Gives the player an extra inventory opened via the skill keybind. Uses vanilla's
 |---|---|---|---|---|
 | `size` | int | no | `9` | Number of slots (rounded up to nearest row of 9, max 54 = 6 rows) |
 | `drop_on_death` | bool | no | `false` | Whether to drop contents on death |
+| `title` | string | no | `""` | Literal title drawn on the container screen. Blank/absent uses the translatable `container.neoorigins.extra_inventory`. Plain text, not a JSON text component. |
 
 **Example — 27-slot extra inventory:**
 ```json
@@ -4023,26 +4105,181 @@ Origins compat: translates `origins:model_color`.
 
 ## `neoorigins:entity_model`
 
-Overrides the player's rendered model with another entity's model — a cosmetic "morph". The server emits a per-player capability tag and the client renders a cached dummy of the target entity type in place of the player, for both the morphed player (third-person) and everyone who can see them. The morphed player's first-person hands are hidden.
+Overrides the player's rendered model with another entity's model — a "morph". The server resolves the power's config into a single morph description and broadcasts it to every client tracking the player, which renders a cached stand-in entity of that type in place of the player — for both the morphed player (third-person) and everyone who can see them. A morph changes how the player sounds and how big they are as well as how they look.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_type` | string | yes | — | Entity id whose model replaces the player's, e.g. `minecraft:slime`. |
+| `morph` | string | no | — | Named morph definition to use, e.g. `neoorigins:sheep`. A bare name resolves in the `neoorigins` namespace. See [Morph definitions](#morph-definitions) below. |
+| `entity_type` | string | no | — | Entity id whose model replaces the player's, e.g. `minecraft:slime`. It also supplies the morph's voice and collision box. |
+| `nbt` | object | no | — | Partial NBT applied to the stand-in to pick a variant, e.g. `{"Color": 14}` for a red sheep. |
+| `scale` | number | no | `1.0` | Uniform scale of the morph model, and of its collision box along with it. |
+| `hitbox` | boolean | no | `true` | Whether the player collides at `entity_type`'s size instead of their own. See [Morph hitbox](#morph-hitbox) below. |
+| `render_held_item` | boolean | no | `true` | Whether the player's held items are drawn on the morph, so others can see what they're carrying. A morph with hands holds the item; one without floats it in front of the body instead. |
+| `render_armor` | boolean | no | `true` | Whether the player's worn armour is drawn on the morph. Only takes effect on morphs whose entity renders armour at all — zombies, skeletons and piglins do; sheep, slimes and villagers do not. |
+| `first_person` | enum | no | `item` | What the morphed player sees in their own view: `item` draws the held item without the vanilla arm, `arm` also draws the morph's own arm, `hidden` draws nothing. See [First-person view](#first-person-view) below. |
+| `arm` | string | no | — | Name of the bone to draw as the morph's arm in `arm` mode. See [First-person view](#first-person-view) below. |
+| `skin` | object | no | — | Reskin the player instead of replacing their model. See [Skin morphs](#skin-morphs) below. |
+| `entity_sounds` | boolean | no | `true` | Whether the player borrows the voice of `entity_type`. See [Morph sounds](#morph-sounds) below. |
+| `sounds` | object | no | — | Explicit sound overrides, layered over that voice. See [Morph sounds](#morph-sounds) below. |
 
-Notes:
+Every field is optional because a morph can be described two ways: inline, or by referencing a named definition with `morph`. When both are present the inline fields win, so a pack can reuse a definition and tweak one detail. A power with neither leaves the player looking like themselves.
 
-- **Cosmetic only.** This power does *not* change the hitbox or eye height. Pair it with `neoorigins:size_scaling` (which writes the vanilla `minecraft:scale` attribute) when you want the collision box to match the morph silhouette.
-- **Held items** are still rendered on the morph. The target entity often has no hand bone (slime does not), so the item floats just above/in front of the body. This is a best-effort placement; humanoid targets can later attach to a real hand bone.
-- **Nameplate** is preserved — the player's display name still renders above the morph under the same visibility rules vanilla uses.
-- v1 is tuned for **`minecraft:slime`**. Other entity ids will still load and render through their own vanilla renderer, but only slime has bespoke animation/held-item tuning.
+### First-person view
 
-**Example — slime morph:**
+Everyone else sees the morph. The morphed player mostly sees their own hands, and those hands are the one part of the player a morph cannot simply replace — vanilla draws a player arm there, and a slime has no arm to put in its place. `first_person` picks which of the three honest answers you want:
+
+| Value | What the player sees |
+|---|---|
+| `item` | The held item, floating, with no arm behind it. The default: it works for every morph, because it never needs the morph to have an arm. |
+| `arm` | The morph's own arm when the hand is empty, and the held item when it isn't — the same rule vanilla uses for the player's arm. |
+| `hidden` | Nothing. Right for a morph that shouldn't have visible hands at all. |
+
+`arm` is worth setting for humanoid morphs — a zombie, a skeleton, a piglin, a villager — where the arm exists and reads correctly. On a morph with no arm bone it costs nothing: the view falls back to the `item` behaviour rather than showing something wrong.
+
+The bone is found automatically. Humanoid mobs are recognised outright, and other models are searched for a bone named `right_arm` or `left_arm` (and the usual variants — `rightArm`, `arm_right`, `right_hand`, or a plain `arm`). Set `arm` only when that picks the wrong bone or finds nothing, and set it to the bone's name as the model defines it. Nothing stops you naming a bone that isn't an arm; a morph that should raise a wing or a claw into view is a legitimate use. A name the model doesn't have logs a warning once and falls back to auto-detection, so a typo shows up in the log rather than silently emptying the view.
+
+The arm is drawn where a *player's* arm would be, because that is where the hand belongs on screen. A morph whose arm is much longer or shorter than a player's will look it — that's the cost of borrowing another mob's geometry, and it's why the default doesn't do this.
+
+```json
+{
+  "type": "neoorigins:entity_model",
+  "entity_type": "minecraft:zombie",
+  "first_person": "arm"
+}
+```
+
+### Skin morphs
+
+`entity_type` replaces the player's model with a mob's. `skin` does something different and often more useful: it keeps the player's own model and swaps the textures drawn on it. Because the player is still being rendered as a player, arms, animations, armour, held items and first-person view all keep working with nothing extra to configure. Reach for `skin` for anything humanoid, and `entity_type` when you actually want a different shape.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `texture` | string | no | — | Body texture, as an *asset id*. |
+| `cape` | string | no | — | Cape texture. |
+| `elytra` | string | no | — | Elytra texture. Vanilla falls back to the cape texture when unset. |
+| `model` | enum | no | — | Arm width: `slim` (three-pixel arms) or `wide` (four). |
+
+Textures are addressed as **asset ids, not file paths**: `neoorigins:morph/fox` loads `assets/neoorigins/textures/morph/fox.png`. The file must be a 64×64 player skin — a mob texture will not map onto the player model.
+
+Every key is layered over the player's real skin rather than replacing it wholesale, so a `skin` block that only sets `cape` leaves the body alone, and one that only sets `texture` doesn't strip a player's real cape. Leaving `model` unset keeps whatever arm width the player already had, which is what a texture-only reskin normally wants; set it when your texture was drawn for a specific arm width.
+
+```json
+{
+  "type": "neoorigins:entity_model",
+  "skin": {
+    "texture": "neoorigins:morph/frostborn",
+    "model": "slim"
+  },
+  "name": "Frostborn",
+  "description": "Your skin pales to frost-bitten blue."
+}
+```
+
+### Morph sounds
+
+A morph is audible as well as visible. Naming an `entity_type` also hands the player that mob's voice: its hurt sound, its death sound, its landing sounds and its swimming sounds. A morphed creeper hisses when it takes a hit; a morphed slime squelches when it lands. Nothing has to be configured for this — it is what `entity_type` does now.
+
+Set `entity_sounds` to `false` to look like the mob and still sound like yourself.
+
+`sounds` overrides individual sounds on top of that. It is the way to give a voice to a morph that has no `entity_type` at all (a `skin` morph), to use a sound your own pack ships, or to change just one of the sounds a mob would otherwise supply.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `hurt` | string | no | — | Played when the player takes damage. |
+| `death` | string | no | — | Played once when the player dies. |
+| `fall_small` | string | no | — | Landing from a short fall (four blocks or less). |
+| `fall_big` | string | no | — | Landing from a long fall. |
+| `swim` | string | no | — | Looping sound while swimming. |
+| `splash` | string | no | — | Entering or leaving water. |
+| `splash_high_speed` | string | no | — | The faster splash used when hitting water hard. |
+
+Every value is a **sound event id** — `minecraft:entity.fox.hurt`, not a path to an `.ogg`. Custom sounds need an entry in your pack's `sounds.json` the same as anywhere else. An id that isn't registered is reported once in the log and then ignored, so a typo costs you one sound rather than silencing the player.
+
+Like `skin`, each key is layered rather than wholesale: a `sounds` block that only sets `hurt` leaves the rest of the mob's voice alone, and `fall_small` and `fall_big` resolve independently of each other.
+
+```json
+{
+  "type": "neoorigins:entity_model",
+  "morph": "creeper",
+  "sounds": {
+    "death": "mypack:morph.creeper.unmaking"
+  },
+  "name": "Creeping Form",
+  "description": "You hiss when struck, and go out with a sound of your own."
+}
+```
+
+Two sounds deliberately do not change. **Step sounds** come from the block underfoot, not from the entity, so morphing into a chicken does not make you sound like one walking. **Ambient sounds** — a zombie's groan, a cat's meow — have no player equivalent to hook, so a morph never idles aloud.
+
+### Morph hitbox
+
+A morph is tangible, not just a picture. Naming an `entity_type` gives the player that mob's collision box: a small slime fits through a one-block gap, a spider walks under a slab, an iron golem no longer does. Eye height follows the box, so a short morph genuinely sees from lower down and a tall one sees over a fence. `scale` resizes the box along with the model, so the two never disagree.
+
+The size is read from the morph target with its variant NBT already applied, which means `{"Size": 0}` on a slime gives you the small slime's box, not the default one. `neoorigins:size_scaling` still applies on top, so a scaled-up player morphed into a slime collides as a scaled-up slime.
+
+Set `hitbox` to `false` for a look-only morph — the player keeps their own box and eye height, and only the model changes.
+
 ```json
 {
   "type": "neoorigins:entity_model",
   "entity_type": "minecraft:slime",
+  "nbt": { "Size": 0 },
+  "name": "Slimeling",
+  "description": "Small enough to slip through a gap a person cannot."
+}
+```
+
+**Growing into a wall.** A morph that would make the player *bigger* than the space they are standing in is held back rather than forced: the player keeps their own size, and the morph takes hold the moment they step somewhere it fits. Nothing is cancelled and nothing teleports. So crouching into a one-block gap as a small slime works, and a power that would grow you back while you are still in that gap simply waits until you are out of it. The same check runs while a morph is already applied, so a player walled in mid-morph shrinks back to their own size instead of suffocating.
+
+A morph target far larger than a player — an ender dragon, a ravager — is not rejected, but in practice it will rarely find room, so expect it to spend most of its time held back. Very large morphs are better authored with `hitbox` set to `false`.
+
+### Morph definitions
+
+`morph` refers to a reusable definition — the same entity type, variant NBT and scale used across several origins, written once. The built-ins are `slime`, `magma_cube`, `sheep`, `cat`, `villager`, `creeper`, `zombie`, `skeleton`, `enderman` and `spider`.
+
+Define your own (or replace a built-in) at `data/<ns>/neoorigins/morphs/<name>.json`, using the same fields as above minus `morph` itself:
+
+```json
+{
+  "entity_type": "minecraft:cat",
+  "nbt": { "variant": "minecraft:siamese" },
+  "scale": 0.9,
+  "first_person": "hidden"
+}
+```
+
+A datapack file always overrides the built-in of the same id. An unknown `morph` id logs a warning once and is ignored, rather than silently rendering nothing.
+
+Notes:
+
+- **The hitbox does change**, unless you set `hitbox` to `false`. See [Morph hitbox](#morph-hitbox). It composes with `neoorigins:size_scaling` rather than fighting it: that power writes the vanilla `minecraft:scale` attribute, which is applied on top of the morph's own size.
+- **Sounds do change**, unless you set `entity_sounds` to `false`. See [Morph sounds](#morph-sounds).
+- **Variants come from `nbt`**, so any variant the entity itself reads from save data works with no per-mob support needed: sheep colour, cat and villager types, slime size, and so on. The `Team` key is ignored — a render stand-in has no business joining a scoreboard team.
+- **Held items and armour** carry over to the morph unless you turn them off. Where the morph's model draws equipment itself — zombies, skeletons, piglins, anything humanoid — the items go into its real hands and armour slots and animate with it. Where it does not (a slime has no hand bone), the held item floats just above and in front of the body instead. `render_armor` therefore has no visible effect on a morph whose entity never draws armour.
+- **Player state carries across.** Invisibility, the red damage flash, the freezing/powder-snow overlay, the death topple, and the swing and use animations all mirror the player onto the morph, so a morphed player still reads as hurt, frozen or dying at a glance.
+- **Nameplate** is preserved — the player's display name still renders above the morph under the same visibility rules vanilla uses.
+- An entity type that can't be rendered (unknown id, no registered renderer, players) is reported once in the log and the player keeps their normal model, rather than turning invisible.
+
+**Example — slime morph, using the built-in definition:**
+```json
+{
+  "type": "neoorigins:entity_model",
+  "morph": "slime",
   "name": "Slime Form",
   "description": "You appear as a slime to yourself and others."
+}
+```
+
+**Example — a big red sheep, defined entirely inline:**
+```json
+{
+  "type": "neoorigins:entity_model",
+  "entity_type": "minecraft:sheep",
+  "nbt": { "Color": 14 },
+  "scale": 1.4,
+  "first_person": "hidden",
+  "name": "Ram Form",
+  "description": "You take on the shape of a great red ram."
 }
 ```
 
@@ -4477,7 +4714,7 @@ One power can touch many mob loot tables at once: list an entry per mob type in 
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `drops` | array | yes | — | The drop rules. Each entry rolls independently against the killed mob; an entry with no valid target or an unknown `item` is skipped with a warning at load time. |
+| `drops` | array | no | `[]` | The drop rules. Each entry rolls independently against the killed mob; an entry with no valid target or an unknown `item` is skipped with a warning at load time. Absent or empty is not a load error — the power simply drops nothing, so it is worth setting. |
 
 Each entry in `drops` takes exactly one target form plus an item:
 

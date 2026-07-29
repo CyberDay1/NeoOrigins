@@ -16,6 +16,7 @@
         "apace:advancement",
         "apace:air",
         "apace:all_of",
+        "apace:always_active",
         "apace:amount",
         "apace:and",
         "apace:any_of",
@@ -86,6 +87,8 @@
         "apace:nbt",
         "apace:near_block",
         "apace:near_entity",
+        "apace:near_villager",
+        "apace:nearby_entities",
         "apace:night",
         "apace:no_minions_alive",
         "apace:not",
@@ -110,6 +113,7 @@
         "apace:scoreboard",
         "apace:sneaking",
         "apace:sprinting",
+        "apace:statistic",
         "apace:status_effect",
         "apace:submerged_in",
         "apace:submerged_in_water",
@@ -129,6 +133,7 @@
         "neoorigins:advancement",
         "neoorigins:air",
         "neoorigins:all_of",
+        "neoorigins:always_active",
         "neoorigins:amount",
         "neoorigins:and",
         "neoorigins:any_of",
@@ -199,6 +204,8 @@
         "neoorigins:nbt",
         "neoorigins:near_block",
         "neoorigins:near_entity",
+        "neoorigins:near_villager",
+        "neoorigins:nearby_entities",
         "neoorigins:night",
         "neoorigins:no_minions_alive",
         "neoorigins:not",
@@ -223,6 +230,7 @@
         "neoorigins:scoreboard",
         "neoorigins:sneaking",
         "neoorigins:sprinting",
+        "neoorigins:statistic",
         "neoorigins:status_effect",
         "neoorigins:submerged_in",
         "neoorigins:submerged_in_water",
@@ -306,6 +314,20 @@
           "description": "Air-supply threshold 0..300 (default 0).",
           "type": "number",
           "default": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:always_active",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:always_active",
+            "apace:always_active"
+          ]
         }
       },
       "required": [
@@ -1931,6 +1953,106 @@
       ]
     },
     {
+      "$comment": "neoorigins:near_villager",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:near_villager",
+            "apace:near_villager"
+          ]
+        },
+        "distance": {
+          "description": "Search distance in blocks (default 16, clamped 1..64).",
+          "type": "number",
+          "default": 16.0,
+          "minimum": 1.0,
+          "maximum": 64.0
+        },
+        "comparison": {
+          "description": "Comparison operator against the villager count (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Villager-count threshold (default 1).",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:nearby_entities",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:nearby_entities",
+            "apace:nearby_entities"
+          ]
+        },
+        "entity_type": {
+          "description": "Entity-type id, or #tag, to count.",
+          "type": "string"
+        },
+        "entity_types": {
+          "description": "List of entity-type ids or #tags to count (any → counts).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
+        },
+        "bientity_condition": {
+          "description": "Condition evaluated as (player, nearby entity); only matching entities count. A verb that cannot apply to a non-player entity fails the condition closed.",
+          "$ref": "#"
+        },
+        "distance": {
+          "description": "Search distance in blocks (default 16, clamped 1..64).",
+          "type": "number",
+          "default": 16.0,
+          "minimum": 1.0,
+          "maximum": 64.0
+        },
+        "radius": {
+          "description": "Apoli spelling of distance; takes precedence when both are present.",
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 64.0
+        },
+        "comparison": {
+          "description": "Comparison operator against the matching-entity count (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Count threshold (default 1 — i.e. \"any matching entity nearby\").",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:night",
       "properties": {
         "type": {
@@ -2389,6 +2511,60 @@
       ]
     },
     {
+      "$comment": "neoorigins:statistic",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:statistic",
+            "apace:statistic"
+          ]
+        },
+        "statistic": {
+          "description": "Stat to read. Either a plain id — `minecraft:time_since_rest`, which implies the `minecraft:custom` category — or an object `{ \"type\": \"minecraft:killed\", \"stat\": \"minecraft:zombie\" }`. Categories: custom, mined, crafted, used, broken, picked_up, dropped, killed, killed_by. Absent or unresolvable → false.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "stat": {
+          "description": "Alias for statistic (the Apoli field name); same plain-id or object shape.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Statistic threshold (default 0).",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:status_effect",
       "properties": {
         "type": {
@@ -2753,6 +2929,7 @@
               "apace:advancement",
               "apace:air",
               "apace:all_of",
+              "apace:always_active",
               "apace:amount",
               "apace:and",
               "apace:any_of",
@@ -2823,6 +3000,8 @@
               "apace:nbt",
               "apace:near_block",
               "apace:near_entity",
+              "apace:near_villager",
+              "apace:nearby_entities",
               "apace:night",
               "apace:no_minions_alive",
               "apace:not",
@@ -2847,6 +3026,7 @@
               "apace:scoreboard",
               "apace:sneaking",
               "apace:sprinting",
+              "apace:statistic",
               "apace:status_effect",
               "apace:submerged_in",
               "apace:submerged_in_water",
@@ -2866,6 +3046,7 @@
               "neoorigins:advancement",
               "neoorigins:air",
               "neoorigins:all_of",
+              "neoorigins:always_active",
               "neoorigins:amount",
               "neoorigins:and",
               "neoorigins:any_of",
@@ -2936,6 +3117,8 @@
               "neoorigins:nbt",
               "neoorigins:near_block",
               "neoorigins:near_entity",
+              "neoorigins:near_villager",
+              "neoorigins:nearby_entities",
               "neoorigins:night",
               "neoorigins:no_minions_alive",
               "neoorigins:not",
@@ -2960,6 +3143,7 @@
               "neoorigins:scoreboard",
               "neoorigins:sneaking",
               "neoorigins:sprinting",
+              "neoorigins:statistic",
               "neoorigins:status_effect",
               "neoorigins:submerged_in",
               "neoorigins:submerged_in_water",
