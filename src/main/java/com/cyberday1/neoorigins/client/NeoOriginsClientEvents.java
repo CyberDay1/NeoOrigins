@@ -198,14 +198,16 @@ public class NeoOriginsClientEvents {
         // Drop morph state + cached dummy entities so they don't leak across
         // a disconnect/reconnect within the same client JVM.
         ClientMorphState.clear();
+        com.cyberday1.neoorigins.event.MorphHitboxEvents.clearAll();
         MorphRenderHandler.clearCache();
+        MorphSkinResolver.clear();
         ClientInvisibilityArmorState.clear();
         com.cyberday1.neoorigins.client.ClientElytraFlightState.clear();
-        // Drop the per-player Figura-facing state so a prior server's players
-        // can't leak into the next session.
         // Back to default-on so the next world starts bright until its own
         // sync lands; the persisted per-player value re-arrives at login.
         com.cyberday1.neoorigins.client.ClientNightVisionState.clear();
+        // Drop the per-player Figura-facing state so a prior server's players
+        // can't leak into the next session.
         com.cyberday1.neoorigins.client.ClientPlayerPowers.clear();
         // Drop named-hotkey assignments so a stale map can't fire the previous
         // server's powers on the next one.

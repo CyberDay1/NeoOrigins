@@ -25,6 +25,9 @@
     "LivingEntityWalkOnFluidMixin",
     "LiquidBlockWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin",
+    "PlayerSoundMixin",
+    "LivingEntitySoundInvoker",
+    "EntitySwimSoundInvoker",
     "EntityMountPositionMixin",
     "AbstractVillagerTradePriceMixin",
     "SmithingMenuTakeMixin",
@@ -46,7 +49,10 @@
     "client.LocalPlayerNoPhysicsMixin",
     "client.MerchantScreenTreasureGlowMixin",
     "client.HumanoidArmorLayerMixin",
-    "client.ItemInHandLayerMixin"
+    "client.ItemInHandLayerMixin",
+    "client.AbstractClientPlayerSkinMixin",
+    "client.EntityRendererCullingMixin",
+    "client.LivingEntityRendererShadowMixin"
   ],
   "injectors": {
     "defaultRequire": 1

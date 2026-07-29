@@ -298,6 +298,8 @@ public class PlayerLifecycleEvents {
         pendingPowerReapply.remove(uuid);
         pendingResync.remove(uuid);
         NeoOriginsNetwork.clearPhaseGate(uuid);
+        com.cyberday1.neoorigins.power.morph.ServerMorphState.remove(uuid);
+        MorphHitboxEvents.forget(uuid);
         CompatTickScheduler.clearPlayer(uuid);
         CompatPlayerState.removePlayer(uuid);
         NeoOriginsNetwork.clearDebounce(uuid);
