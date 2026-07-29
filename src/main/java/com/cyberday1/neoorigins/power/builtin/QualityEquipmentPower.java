@@ -32,8 +32,19 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_mining_speed");
     private static final ResourceLocation QUALITY_ATTACK_DAMAGE =
         ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_attack_damage");
-    private static final ResourceLocation QUALITY_ARMOR_TOUGHNESS =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_armor_toughness");
+    // Armor toughness uses a UNIQUE id per equipment slot. An AttributeInstance
+    // dedupes modifiers by their ResourceLocation id, so a single shared id would
+    // collapse all four worn pieces of a full set into ONE +toughness instead of
+    // four (GitHub full-set bug). Mining-speed/attack-damage stay single-id because
+    // only one held item is ever in play, so they never collide.
+    private static final ResourceLocation QUALITY_ARMOR_TOUGHNESS_HEAD =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_head");
+    private static final ResourceLocation QUALITY_ARMOR_TOUGHNESS_CHEST =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_chest");
+    private static final ResourceLocation QUALITY_ARMOR_TOUGHNESS_LEGS =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_legs");
+    private static final ResourceLocation QUALITY_ARMOR_TOUGHNESS_FEET =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_feet");
 
     public record Config(
         double bonusMiningSpeed,
@@ -91,16 +102,25 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         }
 
         if (isArmor && config.bonusArmorToughness > 0) {
-            EquipmentSlotGroup slot = switch (((ArmorItem) item).getEquipmentSlot()) {
+            var armorSlot = ((ArmorItem) item).getEquipmentSlot();
+            EquipmentSlotGroup slot = switch (armorSlot) {
                 case HEAD  -> EquipmentSlotGroup.HEAD;
                 case CHEST -> EquipmentSlotGroup.CHEST;
                 case LEGS  -> EquipmentSlotGroup.LEGS;
                 case FEET  -> EquipmentSlotGroup.FEET;
                 default    -> EquipmentSlotGroup.ARMOR;
             };
-            modifiers = stripModifier(modifiers, QUALITY_ARMOR_TOUGHNESS)
+            // Per-slot id so a full worn set stacks to +4 instead of deduping to +1.
+            ResourceLocation toughnessId = switch (armorSlot) {
+                case HEAD  -> QUALITY_ARMOR_TOUGHNESS_HEAD;
+                case CHEST -> QUALITY_ARMOR_TOUGHNESS_CHEST;
+                case LEGS  -> QUALITY_ARMOR_TOUGHNESS_LEGS;
+                case FEET  -> QUALITY_ARMOR_TOUGHNESS_FEET;
+                default    -> QUALITY_ARMOR_TOUGHNESS_CHEST;
+            };
+            modifiers = stripModifier(modifiers, toughnessId)
                 .withModifierAdded(Attributes.ARMOR_TOUGHNESS,
-                    new AttributeModifier(QUALITY_ARMOR_TOUGHNESS,
+                    new AttributeModifier(toughnessId,
                         config.bonusArmorToughness, AttributeModifier.Operation.ADD_VALUE),
                     slot);
         }
@@ -199,9 +219,7 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         if (component == null) return;
         java.util.List<ItemAttributeModifiers.Entry> quality = new java.util.ArrayList<>();
         for (var entry : component.modifiers()) {
-            ResourceLocation id = entry.modifier().id();
-            if (id.equals(QUALITY_MINING_SPEED) || id.equals(QUALITY_ATTACK_DAMAGE)
-                    || id.equals(QUALITY_ARMOR_TOUGHNESS)) {
+            if (isQualityModifierId(entry.modifier().id())) {
                 quality.add(entry);
             }
         }
@@ -237,3 +255,17 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         return result;
     }
 }
+    /**
+     * True for any modifier id this power applies: the single mining-speed and
+     * attack-damage ids, plus all four per-slot armor-toughness ids. Used by the
+     * smithing-upgrade re-derive path to recognize carried-over quality modifiers.
+     */
+    private static boolean isQualityModifierId(ResourceLocation id) {
+        return id.equals(QUALITY_MINING_SPEED)
+            || id.equals(QUALITY_ATTACK_DAMAGE)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_HEAD)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_CHEST)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_LEGS)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_FEET);
+    }
+
