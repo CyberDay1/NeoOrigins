@@ -437,12 +437,20 @@
           "description": "Action run on every caught entity.",
           "$ref": "#"
         },
+        "bientity_action": {
+          "description": "Apoli form: bientity action run as (caster, caught entity). Takes precedence over entity_action.",
+          "$ref": "#"
+        },
         "entity_condition": {
           "description": "Optional filter — only entities matching are hit.",
           "$ref": "condition.schema.json"
         },
+        "bientity_condition": {
+          "description": "Apoli form: filter evaluated as (caster, caught entity). A filter that cannot be evaluated against a non-player entity skips the entity fan-out entirely.",
+          "$ref": "condition.schema.json"
+        },
         "shape": {
-          "description": "AoE shape (default sphere).",
+          "description": "AoE shape (default sphere). May also be an object — { \"type\": \"cone\", \"angle\": 60 } restricts the sphere to a cone of that full width around the caster's look direction.",
           "type": "string",
           "enum": [
             "sphere",
@@ -451,9 +459,14 @@
           "default": "sphere"
         },
         "include_source": {
-          "description": "Include the caster in the AoE (default true).",
+          "description": "Include the caster in the AoE. Defaults true for the entity_action form, false for the bientity_action form (Apoli's default).",
           "type": "boolean",
           "default": true
+        },
+        "include_target": {
+          "description": "Apoli spelling of include_source.",
+          "type": "boolean",
+          "default": false
         },
         "block_action": {
           "description": "Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius capped at 16.",

@@ -12,13 +12,19 @@
       "type": "string",
       "description": "Block-condition verb (block / in_tag / and / or). `apace:` aliases are accepted.",
       "enum": [
+        "apace:adjacent",
         "apace:and",
         "apace:block",
+        "apace:block_state",
+        "apace:height",
         "apace:in_tag",
         "apace:offset",
         "apace:or",
+        "neoorigins:adjacent",
         "neoorigins:and",
         "neoorigins:block",
+        "neoorigins:block_state",
+        "neoorigins:height",
         "neoorigins:in_tag",
         "neoorigins:offset",
         "neoorigins:or"
@@ -26,6 +32,43 @@
     }
   },
   "oneOf": [
+    {
+      "$comment": "neoorigins:adjacent",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:adjacent",
+            "apace:adjacent"
+          ]
+        },
+        "adjacent_condition": {
+          "description": "Block condition tested against each of the six face neighbours.",
+          "$ref": "block_condition.schema.json"
+        },
+        "comparison": {
+          "description": "Comparison operator against the matching-neighbour count (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Neighbour-count threshold, 0..6 (default 1 — i.e. \"any matching neighbour\").",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type",
+        "adjacent_condition"
+      ]
+    },
     {
       "$comment": "neoorigins:and",
       "properties": {
@@ -63,6 +106,82 @@
         "id": {
           "description": "Legacy alias for `block`.",
           "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:block_state",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:block_state",
+            "apace:block_state"
+          ]
+        },
+        "property": {
+          "description": "Blockstate property name (e.g. waterlogged, facing, level). A block without it never matches.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Required property value, or a list of accepted values. Booleans and numbers may be written unquoted.",
+          "type": "string"
+        },
+        "enum": {
+          "description": "Origins spelling of `value` for named properties (e.g. \"south\"); a list is also accepted.",
+          "type": "string"
+        },
+        "comparison": {
+          "description": "For numeric properties: compare the value instead of matching it. Overrides value/enum.",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ]
+        },
+        "compare_to": {
+          "description": "Number the property value is compared against (default 0).",
+          "type": "number",
+          "default": 0.0
+        }
+      },
+      "required": [
+        "type",
+        "property"
+      ]
+    },
+    {
+      "$comment": "neoorigins:height",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:height",
+            "apace:height"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator against the block's Y coordinate (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Y level to compare against (default 0; 63 is sea level).",
+          "type": "number",
+          "default": 0.0
         }
       },
       "required": [
@@ -148,13 +267,19 @@
         "type": {
           "not": {
             "enum": [
+              "apace:adjacent",
               "apace:and",
               "apace:block",
+              "apace:block_state",
+              "apace:height",
               "apace:in_tag",
               "apace:offset",
               "apace:or",
+              "neoorigins:adjacent",
               "neoorigins:and",
               "neoorigins:block",
+              "neoorigins:block_state",
+              "neoorigins:height",
               "neoorigins:in_tag",
               "neoorigins:offset",
               "neoorigins:or"

@@ -88,6 +88,7 @@
         "neoorigins:invulnerability",
         "neoorigins:item_magnetism",
         "neoorigins:keep_inventory",
+        "neoorigins:kill_loot_drops",
         "neoorigins:knockback_modifier",
         "neoorigins:lava_vision",
         "neoorigins:less_item_use_slowdown",
@@ -308,7 +309,18 @@
           "$ref": "block_condition.schema.json"
         },
         "hands": {
-          "description": "Hand filter for interaction events (block_use, entity_use, villager_interact): only fire for the listed hands. Array or single string of 'main_hand'/'off_hand' (a bare `hand` key is accepted too). Fails closed when the event carries no hand info; ignored elsewhere.",
+          "description": "Hand filter for interaction events (block_use, entity_use, villager_interact): only fire for the listed hands. Array or single string of 'main_hand'/'off_hand'. Fails closed when the event carries no hand info; ignored elsewhere.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "hand": {
+          "description": "Singular alias for `hands`, read only when `hands` is absent: a single 'main_hand'/'off_hand' string (an array is accepted here too). Matches Apoli's action_on_block_use shape.",
           "oneOf": [
             {
               "type": "string"
@@ -412,6 +424,34 @@
         "damage_type": {
           "description": "Optional damage-type id filter; the action only fires for matching sources.",
           "type": "string"
+        },
+        "bientity_action": {
+          "description": "Action run with the holder as actor and the victim as target when a qualifying hit lands, in addition to the flat `action`. Accepts one action object or an array of them. Apoli wrappers (actor_action / target_action / and / chance / invert / damage / nothing) keep their actor-target routing; a bare verb is treated as a target action against the victim. NOTE: supplying this (or entity_action) with no explicit `action` flips the flat action's default from restore_health to none, so the parsed action stands alone.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "entity_action": {
+          "description": "Alias for `bientity_action`, read only when that key is absent — same shape and semantics. Prefer bientity_action in new packs; `entity_action` exists so packs written against the Apoli naming keep working.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
         }
       },
       "required": [
@@ -1129,9 +1169,19 @@
           "default": "water"
         },
         "drain_interval_ticks": {
-          "description": "Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Aliases: drain_rate, air_loss_per_second.",
+          "description": "Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Read second, after air_loss_per_second; default 20.",
           "type": "integer",
           "default": 20
+        },
+        "air_loss_per_second": {
+          "description": "Alias, highest priority: air points lost per SECOND while submerged (higher = faster drain). Converted internally to 20/value ticks between drains, clamped to at least 1 tick. When set it overrides drain_interval_ticks and drain_rate.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "drain_rate": {
+          "description": "Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second — the naming that caused the original confusion). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.",
+          "type": "integer",
+          "minimum": 1
         }
       },
       "required": [
@@ -1712,14 +1762,131 @@
         "type": {
           "const": "neoorigins:entity_model"
         },
-        "entity_type": {
-          "description": "Entity id whose model replaces the player's, e.g. minecraft:slime. Cosmetic only — pair with size_scaling to match the hitbox.",
+        "morph": {
+          "description": "Named morph definition to use, e.g. neoorigins:sheep. A bare name resolves in the neoorigins namespace. Built-ins: slime, magma_cube, sheep, cat, villager, creeper, zombie, skeleton, enderman, spider — a datapack file at data/<ns>/neoorigins/morphs/<name>.json overrides one or adds your own. Any field set alongside this overrides the definition's value.",
           "type": "string"
+        },
+        "entity_type": {
+          "description": "Entity id whose model replaces the player's, e.g. minecraft:slime. Overrides the referenced morph's entity type. It also supplies the morph's voice and, unless hitbox is false, its collision box.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "nbt": {
+          "description": "Partial NBT applied to the rendered stand-in to pick a variant, e.g. {\"Color\": 14} for a red sheep, {\"Size\": 2} for a bigger slime, {\"VillagerData\": {\"profession\": \"minecraft:librarian\"}}. Applied once when the morph appears, not per frame. The Team key is ignored (a render stand-in has no business joining a scoreboard team).",
+          "type": "object"
+        },
+        "scale": {
+          "description": "Uniform scale of the morph model (default 1.0). It resizes the collision box along with the model unless hitbox is false.",
+          "type": "number",
+          "default": 1.0
+        },
+        "hitbox": {
+          "description": "Whether the player collides at entity_type's size instead of their own (default true). Set false for a look-only morph. Eye height follows the hitbox, so a small morph sees from lower down, and size_scaling still applies on top. A morph that would grow the player into blocks waits until there's room rather than pushing them through, so it can be applied in a tight space and simply won't take until they step clear.",
+          "type": "boolean",
+          "default": true
+        },
+        "render_held_item": {
+          "description": "Whether the player's held items are drawn on the morph, so others can see what they're carrying (default true). A morph with hands holds the item; one without floats it in front of the body instead.",
+          "type": "boolean",
+          "default": true
+        },
+        "render_armor": {
+          "description": "Whether the player's worn armour is drawn on the morph (default true). Only takes effect on morphs whose entity renders armour at all — zombies, skeletons and piglins do; sheep, slimes and villagers do not.",
+          "type": "boolean",
+          "default": true
+        },
+        "first_person": {
+          "description": "What the morphed player sees in their own view. \"item\" draws the held item without the vanilla arm (default); \"arm\" additionally shows the morph's own arm when the hand is empty, the way vanilla shows yours; \"hidden\" draws nothing at all.",
+          "type": "string",
+          "enum": [
+            "item",
+            "arm",
+            "hidden"
+          ],
+          "default": "item"
+        },
+        "arm": {
+          "description": "Name of the bone to draw as the morph's arm in \"arm\" mode. Only needed when auto-detection picks the wrong one: humanoid mobs are found automatically, as are bones named right_arm / left_arm and the common variants. A name that doesn't exist on the model logs a warning and falls back to auto-detection.",
+          "type": "string"
+        },
+        "skin": {
+          "description": "Reskin the player instead of replacing their model. Independent of entity_type — the player keeps their own body and only the textures on it change, so arms, animations and armour all still work. Each key is layered over the player's real skin, so anything left out is inherited rather than blanked.",
+          "type": "object",
+          "properties": {
+            "texture": {
+              "description": "Body texture, as an asset id: neoorigins:morph/fox resolves to the file at assets/neoorigins/textures/morph/fox.png. Must be a 64x64 player skin, not a mob texture.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "cape": {
+              "description": "Cape texture, addressed the same way. Left alone when unset, so a reskin doesn't silently strip a player's real cape.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "elytra": {
+              "description": "Elytra texture, addressed the same way. When unset the cape texture is used, exactly as vanilla does.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "model": {
+              "description": "Arm width: \"slim\" for three-pixel arms, \"wide\" for four. Unset keeps the player's own, which is what a texture-only reskin usually wants.",
+              "type": "string",
+              "enum": [
+                "slim",
+                "wide"
+              ]
+            }
+          }
+        },
+        "entity_sounds": {
+          "description": "Whether the player borrows the voice of entity_type — its hurt, death, fall and swim sounds (default true). Set false to look like the mob but still sound like yourself. Step sounds always come from the block underfoot, so they never change.",
+          "type": "boolean",
+          "default": true
+        },
+        "sounds": {
+          "description": "Explicit sound overrides, layered over the voice entity_type already supplies. Use this for a morph with no entity_type (a skin morph), for a custom pack sound, or to silence one sound a mob would otherwise make. Each value is a sound event id, not a file.",
+          "type": "object",
+          "properties": {
+            "hurt": {
+              "description": "Played when the player takes damage, e.g. minecraft:entity.fox.hurt.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "death": {
+              "description": "Played once when the player dies.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "fall_small": {
+              "description": "Landing from a short fall (four blocks or less).",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "fall_big": {
+              "description": "Landing from a long fall. Set independently of fall_small — a morph can change only one.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "swim": {
+              "description": "Looping sound while swimming.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "splash": {
+              "description": "Entering or leaving water.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            },
+            "splash_high_speed": {
+              "description": "The faster splash used when hitting water hard.",
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+            }
+          }
         }
       },
       "required": [
-        "type",
-        "entity_type"
+        "type"
       ]
     },
     {
@@ -1772,6 +1939,11 @@
           "description": "If true the extra inventory drops on death instead of persisting (default false).",
           "type": "boolean",
           "default": false
+        },
+        "title": {
+          "description": "Optional literal title shown on the container screen when the inventory is opened. Blank/absent (default) uses the translatable 'container.neoorigins.extra_inventory'. Plain text, not a JSON text component.",
+          "type": "string",
+          "default": ""
         }
       },
       "required": [
@@ -2034,6 +2206,22 @@
             "type": "string",
             "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
           }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:kill_loot_drops",
+      "properties": {
+        "type": {
+          "const": "neoorigins:kill_loot_drops"
+        },
+        "drops": {
+          "description": "List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry is {entity_type|entity_tag|entity_types, item, chance?, count?}: exactly one target form (a single type id, an entity-type tag, or an explicit list of type ids), the item id to drop, a 0.0-1.0 `chance` (default 1.0) and a `count` (minimum 1, default 1). Entries with no valid target or an unknown item id are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.",
+          "type": "array",
+          "items": {}
         }
       },
       "required": [
@@ -2410,6 +2598,18 @@
               }
             }
           ]
+        },
+        "set_total": {
+          "description": "Optional override applied AFTER the multiplier: replaces the damage with this exact value. max_total/min_total still clamp the result afterwards. Omit to keep the multiplied value.",
+          "type": "number"
+        },
+        "max_total": {
+          "description": "Optional damage cap applied after multiplier and set_total (Apoli stage order: set, then cap, then floor). Omit for no cap.",
+          "type": "number"
+        },
+        "min_total": {
+          "description": "Optional damage floor applied last, after multiplier, set_total and max_total. Omit for no floor.",
+          "type": "number"
         }
       },
       "required": [
@@ -3118,6 +3318,14 @@
           "description": "Fraction of base durability added to crafted items (default 0.10).",
           "type": "number",
           "default": 0.1
+        },
+        "intercept_menus": {
+          "description": "Menu-type ids whose result slot also grants the quality buff when the crafted item is taken (e.g. a modded smithing station). Unknown ids simply never match, so listing a menu from a mod that is absent is harmless. Empty (default) = the vanilla crafting/smithing paths only.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         }
       },
       "required": [
@@ -4283,6 +4491,7 @@
               "neoorigins:invulnerability",
               "neoorigins:item_magnetism",
               "neoorigins:keep_inventory",
+              "neoorigins:kill_loot_drops",
               "neoorigins:lava_vision",
               "neoorigins:less_item_use_slowdown",
               "neoorigins:light_level_effect",
