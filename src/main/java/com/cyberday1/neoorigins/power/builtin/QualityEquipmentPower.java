@@ -34,8 +34,19 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         Identifier.fromNamespaceAndPath("neoorigins", "quality_mining_speed");
     private static final Identifier QUALITY_ATTACK_DAMAGE =
         Identifier.fromNamespaceAndPath("neoorigins", "quality_attack_damage");
-    private static final Identifier QUALITY_ARMOR_TOUGHNESS =
-        Identifier.fromNamespaceAndPath("neoorigins", "quality_armor_toughness");
+    // Armor toughness uses a UNIQUE id per equipment slot. An AttributeInstance
+    // dedupes modifiers by their Identifier id, so a single shared id would
+    // collapse all four worn pieces of a full set into ONE +toughness instead of
+    // four (GitHub full-set bug). Mining-speed/attack-damage stay single-id because
+    // only one held item is ever in play, so they never collide.
+    private static final Identifier QUALITY_ARMOR_TOUGHNESS_HEAD =
+        Identifier.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_head");
+    private static final Identifier QUALITY_ARMOR_TOUGHNESS_CHEST =
+        Identifier.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_chest");
+    private static final Identifier QUALITY_ARMOR_TOUGHNESS_LEGS =
+        Identifier.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_legs");
+    private static final Identifier QUALITY_ARMOR_TOUGHNESS_FEET =
+        Identifier.fromNamespaceAndPath("neoorigins", "quality_armor_toughness_feet");
 
     public record Config(
         double bonusMiningSpeed,
@@ -100,9 +111,17 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
                 case FEET  -> EquipmentSlotGroup.FEET;
                 default    -> EquipmentSlotGroup.ARMOR;
             };
-            modifiers = stripModifier(modifiers, QUALITY_ARMOR_TOUGHNESS)
+            // Per-slot id so a full worn set stacks to +4 instead of deduping to +1.
+            Identifier toughnessId = switch (equippable.slot()) {
+                case HEAD  -> QUALITY_ARMOR_TOUGHNESS_HEAD;
+                case CHEST -> QUALITY_ARMOR_TOUGHNESS_CHEST;
+                case LEGS  -> QUALITY_ARMOR_TOUGHNESS_LEGS;
+                case FEET  -> QUALITY_ARMOR_TOUGHNESS_FEET;
+                default    -> QUALITY_ARMOR_TOUGHNESS_CHEST;
+            };
+            modifiers = stripModifier(modifiers, toughnessId)
                 .withModifierAdded(Attributes.ARMOR_TOUGHNESS,
-                    new AttributeModifier(QUALITY_ARMOR_TOUGHNESS,
+                    new AttributeModifier(toughnessId,
                         config.bonusArmorToughness, AttributeModifier.Operation.ADD_VALUE),
                     slot);
         }
@@ -201,9 +220,7 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         if (component == null) return;
         java.util.List<ItemAttributeModifiers.Entry> quality = new java.util.ArrayList<>();
         for (var entry : component.modifiers()) {
-            Identifier id = entry.modifier().id();
-            if (id.equals(QUALITY_MINING_SPEED) || id.equals(QUALITY_ATTACK_DAMAGE)
-                    || id.equals(QUALITY_ARMOR_TOUGHNESS)) {
+            if (isQualityModifierId(entry.modifier().id())) {
                 quality.add(entry);
             }
         }
@@ -241,3 +258,17 @@ public class QualityEquipmentPower extends PowerType<QualityEquipmentPower.Confi
         return result;
     }
 }
+    /**
+     * True for any modifier id this power applies: the single mining-speed and
+     * attack-damage ids, plus all four per-slot armor-toughness ids. Used by the
+     * smithing-upgrade re-derive path to recognize carried-over quality modifiers.
+     */
+    private static boolean isQualityModifierId(Identifier id) {
+        return id.equals(QUALITY_MINING_SPEED)
+            || id.equals(QUALITY_ATTACK_DAMAGE)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_HEAD)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_CHEST)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_LEGS)
+            || id.equals(QUALITY_ARMOR_TOUGHNESS_FEET);
+    }
+
