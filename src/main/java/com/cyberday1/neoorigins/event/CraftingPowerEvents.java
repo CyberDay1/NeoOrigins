@@ -192,6 +192,58 @@ public class CraftingPowerEvents {
     }
 
     /**
+     * Generic result-slot interceptor — called from
+     * {@link com.cyberday1.neoorigins.mixin.SlotOnTakeMixin} at HEAD of every
+     * {@link net.minecraft.world.inventory.Slot#onTake}. Lets the blacksmith
+     * quality power fire on data-driven modded workstations (e.g. Overgeared's
+     * smithing anvils) whose result slots are not covered by
+     * {@code PlayerEvent.ItemCraftedEvent} or {@code SmithingMenuTakeMixin}.
+     *
+     * <p>This runs on EVERY inventory take, so the guards are ordered
+     * cheap&rarr;expensive and bail as early as possible:
+     * <ol>
+     *   <li>the taken stack is gear (shared {@link QualityEquipmentPower#isQualityEligible});</li>
+     *   <li>the slot is a result slot ({@code !mayPlace(EMPTY)} — vanilla/Overgeared
+     *       output slots reject placement);</li>
+     *   <li>the player has at least one active quality power that opts a menu id in;</li>
+     *   <li>the current menu's registry id is in that opt-in union.</li>
+     * </ol>
+     * Dedupe across matching configs is handled by the power's own idempotent
+     * modifier markers, so re-applying per matching config is safe.
+     */
+    public static void onGenericResultTake(ServerPlayer sp,
+                                           net.minecraft.world.inventory.Slot slot,
+                                           ItemStack taken) {
+        // (a) gear check — cheapest, filters out the overwhelming common case.
+        if (!QualityEquipmentPower.isQualityEligible(taken)) return;
+        // (b) result-slot check — output slots reject placement.
+        if (slot.mayPlace(ItemStack.EMPTY)) return;
+        // (c) gather the union of opted-in menu ids across active quality powers.
+        java.util.Set<String> union = new java.util.HashSet<>();
+        java.util.List<QualityEquipmentPower.Config> configs = new java.util.ArrayList<>();
+        ActiveOriginService.forEachOfType(sp, QualityEquipmentPower.class, config -> {
+            configs.add(config);
+            union.addAll(config.interceptMenus());
+        });
+        if (union.isEmpty()) return;
+        // (d) resolve the current menu type id. getType() throws
+        // UnsupportedOperationException for typeless menus (e.g. the player's own
+        // inventory menu), which fire this take path constantly — swallow it.
+        net.minecraft.world.inventory.MenuType<?> type;
+        try {
+            type = sp.containerMenu.getType();
+        } catch (UnsupportedOperationException ignored) {
+            return;
+        }
+        var menuId = BuiltInRegistries.MENU.getKey(type);
+        if (menuId == null || !union.contains(menuId.toString())) return;
+        // Match — apply for each active config (idempotent markers dedupe).
+        for (QualityEquipmentPower.Config config : configs) {
+            QualityEquipmentPower.onItemCrafted(sp, taken, config);
+        }
+    }
+
+    /**
      * Grants bonus copies of the crafted item for CraftAmountBonusPower holders.
      * Only fires on actual crafting events — no false positives from pickups/hoppers.
      */
