@@ -18,10 +18,23 @@ JavaScript without touching Java.
 
 ## Availability
 
-KubeJS support is a **soft dependency** and ships in the NeoOrigins 2.1+ builds
-for Minecraft 1.21.1. The 26.1 build does not yet bundle the integration. When
-KubeJS is absent the whole subsystem short-circuits on a single cached check, so
-there is no overhead and no class-loading risk for packs that don't use it.
+**Everything on this page is Minecraft 1.21.1 only.** KubeJS support is a
+**soft dependency** that ships in the NeoOrigins 2.1+ builds for Minecraft
+1.21.1. The 26.1 and 26.2 builds do **not** bundle the integration: the
+`NeoOrigins` / `NeoOriginsEvents` globals, the `neoorigins:kubejs_callback`
+action and the `neoorigins:js_custom` / `neoorigins:js_active` power types are
+all absent there, and no amount of KubeJS being installed brings them back.
+
+That matters because an unregistered `type` is not a soft failure. A power file
+whose `type` the build doesn't know is dropped **whole** at load: no error in
+game, no partial behaviour, the power simply never appears on the origin. So a
+`js_custom` power copied into a 26.x pack looks like it silently vanished. Gate
+those files behind a pack that only ships on 1.21.1, or keep the behaviour in
+Java for now.
+
+On 1.21.1, when KubeJS is absent the whole subsystem short-circuits on a single
+cached check, so there is no overhead and no class-loading risk for packs that
+don't use it.
 
 All scripts here are **server-side** — origin, power, and mob state only changes
 on the logical server. Put them in `server_scripts/` (or register from a server
@@ -131,11 +144,19 @@ Invoke it from JSON anywhere an entity action is accepted:
 If no callback is registered for the id (KubeJS absent, or the script hasn't run
 yet), the action is silently dropped with a debug log — it never errors.
 
+`neoorigins:kubejs_callback` is likewise 1.21.1 only. On 26.1 / 26.2 the action
+type is unknown, so it is skipped at parse time rather than at call time — the
+surrounding power still loads, but that step of the action never runs.
+
 ### JS-defined powers
 
 Two power types let a JSON power delegate its whole behavior to a JS handler,
 keyed by `js_id`. This means new power behaviors are authorable from JS without
 any Java registry mutation.
+
+**1.21.1 only.** `neoorigins:js_custom` and `neoorigins:js_active` are not
+registered in the 26.1 or 26.2 builds, so a power file using either type is
+dropped whole at load there — see [Availability](#availability).
 
 | Method | Description |
 |--------|-------------|
