@@ -24,6 +24,14 @@
 
 	const items = $derived(asRefList(value));
 
+	// Remembered authoring shape, sampled once from however the value first
+	// arrived: unset (a brand-new field) and bare-object both count as scalar,
+	// an array does not. Re-saving a field the author wrote as an array must not
+	// rewrite it to the scalar form, which is why this is sticky rather than
+	// re-derived from `value` — once we narrow to a bare object, re-deriving
+	// would read back "scalar" and the original shape would be lost.
+	let scalarShaped = !Array.isArray(value);
+
 	const id = $derived(`arr-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
 
 	function elemField(i: number): RefFieldSpec {
@@ -39,7 +47,7 @@
 	}
 
 	function commit(next: unknown[]) {
-		value = fromRefList(field, next);
+		value = fromRefList(field, next, scalarShaped);
 	}
 
 	function addElem() {

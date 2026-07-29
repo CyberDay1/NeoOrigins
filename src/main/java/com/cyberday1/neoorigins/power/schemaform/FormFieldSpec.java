@@ -37,6 +37,14 @@ import java.util.List;
  *                     scalars), the STRING elements' validation regex — non-null marks
  *                     this as a scalar-string list (list-of-text-inputs widget) rather
  *                     than a raw-JSON array. {@code null} for raw/permissive arrays.
+ * @param scalarOrArray true when the schema wrote this as the Apoli "one or many"
+ *                     idiom ({@code oneOf} a {@code $ref} and an array of that same
+ *                     {@code $ref}) rather than a plain array. Both map to
+ *                     {@link Kind#ARRAY} so the recursive sub-form picker renders,
+ *                     but only this shape may be written back as a bare object when
+ *                     it holds a single entry. Without the distinction a new
+ *                     {@code and.actions} would serialise as a scalar and fail to
+ *                     parse.
  */
 public record FormFieldSpec(
     String name,
@@ -50,10 +58,24 @@ public record FormFieldSpec(
     String ref,
     String itemsRef,
     List<FormFieldSpec> children,
-    String itemPattern
+    String itemPattern,
+    boolean scalarOrArray
 ) {
     public FormFieldSpec {
         children = children == null ? List.of() : List.copyOf(children);
+    }
+
+    /**
+     * Back-compat constructor — the shape before {@link #scalarOrArray} existed.
+     * Defaults it to {@code false}, which is right for every genuine array-only
+     * field ({@code and.actions}, {@code if_else_list.actions}): those can only
+     * ever be written as an array, so they must not collapse to a bare object.
+     */
+    public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
+                         List<String> enumValues, Double min, Double max, String description,
+                         String ref, String itemsRef, List<FormFieldSpec> children,
+                         String itemPattern) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef, children, itemPattern, false);
     }
 
     /** Back-compat constructor — call sites that carry children but no scalar itemPattern. */

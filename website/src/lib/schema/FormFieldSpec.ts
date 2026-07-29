@@ -196,9 +196,29 @@ export function asRefList(value: unknown): unknown[] {
  * the wire. Only a {@link ArrayRefFieldSpec.scalarOrArray} field with exactly
  * one PICKED entry collapses to that bare object — a lone unpicked (`null`)
  * slot stays an array so the row keeps rendering while the author picks a type.
+ *
+ * `scalarShaped` is the remembered authoring shape. Pass `false` for a field
+ * the author actually wrote as an array, so that re-saving an untouched pack
+ * does not silently rewrite it into the scalar form. It defaults to `true`
+ * because that is the shape all 259 occurrences of these keys in the built-in
+ * data use, so a freshly authored field matches the house convention.
+ *
+ * This mirrors `loadedAsScalar` in the in-game editor's ArrayRefWidget. The two
+ * editors have to agree here, or the same edit produces different JSON
+ * depending on which editor it was made in.
  */
-export function fromRefList(field: ArrayRefFieldSpec, list: unknown[]): unknown {
-	if (field.scalarOrArray && list.length === 1 && list[0] !== null && typeof list[0] === 'object') {
+export function fromRefList(
+	field: ArrayRefFieldSpec,
+	list: unknown[],
+	scalarShaped: boolean = true
+): unknown {
+	if (
+		field.scalarOrArray &&
+		scalarShaped &&
+		list.length === 1 &&
+		list[0] !== null &&
+		typeof list[0] === 'object'
+	) {
 		return list[0];
 	}
 	return list;

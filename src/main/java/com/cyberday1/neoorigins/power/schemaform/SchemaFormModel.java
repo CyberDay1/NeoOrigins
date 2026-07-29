@@ -167,6 +167,23 @@ public final class SchemaFormModel {
         String ref = p.has("$ref") ? p.get("$ref").getAsString() : null;
         Object def = p.has("default") ? unwrap(p.get("default")) : null;
 
+        // Scalar-or-array $ref: {"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}
+        // — the "one action/condition, or a list of them" idiom the power schema
+        // emits for every native REF field (SchemaNodeBuilder's
+        // widenActionConditionRefs). Without this, `ref` stayed null (it is only
+        // ever read off a TOP-LEVEL $ref), the oneOf branch below degraded the
+        // field to MIXED, and the in-game walker fell through to a raw-JSON
+        // textarea — so the recursive action/condition picker never appeared on
+        // ~20 fields across 10 power types. Resolve it to the ARRAY_REF kind
+        // (ARRAY + itemsRef) rather than the scalar REF: an ArrayRefRow can hold
+        // the multi-element case a scalar RefRow would silently truncate, and it
+        // preserves the authored shape on round-trip (see ArrayRefRow.toJson).
+        String scalarOrArrayRef = scalarOrArrayRef(p);
+        if (ref == null && scalarOrArrayRef != null) {
+            return new FormFieldSpec(name, FormFieldSpec.Kind.ARRAY, required, def,
+                List.of(), null, null, desc, null, scalarOrArrayRef, List.of(), null, true);
+        }
+
         List<String> enumVals = new ArrayList<>();
         if (p.has("enum")) for (JsonElement e : p.getAsJsonArray("enum")) enumVals.add(e.getAsString());
 
@@ -218,6 +235,44 @@ public final class SchemaFormModel {
             children = mapChildren(p);
         }
         return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children);
+    }
+
+    /**
+     * Detect the scalar-or-array {@code $ref} shape and return the shared
+     * {@code $ref} target, or {@code null} if this node is not that shape.
+     *
+     * <p>Matches exactly {@code {"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}}
+     * — two branches, one a bare {@code $ref}, the other an array whose
+     * {@code items.$ref} names the SAME document. Branch order is not assumed.
+     * Anything else (the string|object {@code MIXED} idiom, a {@code oneOf} of
+     * three branches, two refs to different docs) falls through to the existing
+     * handling untouched.
+     */
+    private static String scalarOrArrayRef(JsonObject p) {
+        if (!p.has("oneOf") || !p.get("oneOf").isJsonArray()) return null;
+        JsonArray branches = p.getAsJsonArray("oneOf");
+        if (branches.size() != 2) return null;
+
+        String single = null;
+        String arrayItems = null;
+        for (JsonElement be : branches) {
+            if (!be.isJsonObject()) return null;
+            JsonObject b = be.getAsJsonObject();
+            if (b.has("$ref") && b.get("$ref").isJsonPrimitive()) {
+                if (single != null) return null; // two scalar refs — not our shape
+                single = b.get("$ref").getAsString();
+            } else if (b.has("type") && b.get("type").isJsonPrimitive()
+                    && "array".equals(b.get("type").getAsString())
+                    && b.has("items") && b.get("items").isJsonObject()) {
+                JsonObject items = b.getAsJsonObject("items");
+                if (!items.has("$ref") || !items.get("$ref").isJsonPrimitive()) return null;
+                if (arrayItems != null) return null;
+                arrayItems = items.get("$ref").getAsString();
+            } else {
+                return null;
+            }
+        }
+        return (single != null && single.equals(arrayItems)) ? single : null;
     }
 
     /** Map an object node's {@code properties} into child {@link FormFieldSpec}s. */
