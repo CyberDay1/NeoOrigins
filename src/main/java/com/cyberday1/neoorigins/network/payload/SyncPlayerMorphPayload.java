@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.network.payload;
 
+import com.cyberday1.neoorigins.power.morph.MorphSpec;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -8,10 +9,14 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Optional;
 
 /**
- * Server → client. Tells receiving clients that player {@code entityId} is
- * currently morphed into the entity type {@code entityType} (from the
- * {@code neoorigins:entity_model} power's capability tag), or — when
- * {@code entityType} is empty — that the player is no longer morphed.
+ * Server → client. Tells receiving clients how player {@code entityId} should
+ * currently be rendered — the resolved {@link MorphSpec} from their active
+ * {@code neoorigins:entity_model} power — or, when {@code spec} is empty, that
+ * the player is no longer morphed.
+ *
+ * <p>The server resolves the power's config (including any referenced morph
+ * definition) before sending, so the client never has to know about morph ids
+ * or inline-override precedence; it just renders what it is told.
  *
  * <p>Unlike {@link SyncActivePowersPayload} (which only reaches the owning
  * player), this is broadcast to every client tracking the morphed player AND
@@ -21,7 +26,7 @@ import java.util.Optional;
  */
 public record SyncPlayerMorphPayload(
     int entityId,
-    Optional<ResourceLocation> entityType
+    Optional<MorphSpec> spec
 ) implements CustomPacketPayload {
 
     public static final Type<SyncPlayerMorphPayload> TYPE =
@@ -32,13 +37,13 @@ public record SyncPlayerMorphPayload(
 
     private static void encode(FriendlyByteBuf buf, SyncPlayerMorphPayload payload) {
         buf.writeVarInt(payload.entityId());
-        buf.writeOptional(payload.entityType(), FriendlyByteBuf::writeResourceLocation);
+        buf.writeOptional(payload.spec(), (b, s) -> s.write(b));
     }
 
     private static SyncPlayerMorphPayload decode(FriendlyByteBuf buf) {
         int id = buf.readVarInt();
-        Optional<ResourceLocation> type = buf.readOptional(FriendlyByteBuf::readResourceLocation);
-        return new SyncPlayerMorphPayload(id, type);
+        Optional<MorphSpec> spec = buf.readOptional(MorphSpec::read);
+        return new SyncPlayerMorphPayload(id, spec);
     }
 
     @Override

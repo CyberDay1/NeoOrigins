@@ -41,6 +41,7 @@ import com.cyberday1.neoorigins.network.payload.SyncInvisibilityArmorPayload;
 import com.cyberday1.neoorigins.network.payload.SyncElytraFlightPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
 import com.cyberday1.neoorigins.power.builtin.EntityModelPower;
+import com.cyberday1.neoorigins.power.morph.MorphSpec;
 import com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
@@ -49,6 +50,7 @@ import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -333,8 +335,6 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.RequestMobOriginEggPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleRequestMobOriginEgg
         );
-    }
-
 
         registrar.playToServer(
             com.cyberday1.neoorigins.network.payload.ToggleNightVisionPayload.TYPE,
@@ -403,6 +403,8 @@ public class NeoOriginsNetwork {
             IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientNightVisionState.set(payload.enabled()));
+    }
+
     private static void handleCancelOrb(com.cyberday1.neoorigins.network.payload.CancelOrbPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
@@ -1261,6 +1263,10 @@ public class NeoOriginsNetwork {
     public static void syncToPlayer(ServerPlayer player) {
         syncOriginsOnlyToPlayer(player);
         syncActivePowersToPlayer(player);
+        // Night-vision master switch. Rides the same triggers as everything else
+        // here (login, respawn, dimension change, origin change) so the client's
+        // enhanced_vision gate can never be left holding a stale value.
+        sendNightVisionState(player);
     }
 
     /** Origins-map sync only; does not push active-powers. */
@@ -1286,7 +1292,8 @@ public class NeoOriginsNetwork {
     public static void syncActivePowersToPlayer(ServerPlayer player) {
         Map<ResourceLocation, Boolean> powerMap = new HashMap<>();
         Set<String> capabilities = new HashSet<>();
-        collectActivePowers(player, powerMap, capabilities);
+        List<PowerHolder<?>> activeHolders = new ArrayList<>();
+        collectActivePowers(player, powerMap, capabilities, activeHolders);
         // Remember the phasing-gate signature we just published so the per-tick
         // detector (resyncIfPhaseGateFlipped) only re-sends when it actually
         // changes at runtime — a condition (dimension, in-block, etc.) flipping
@@ -1299,7 +1306,7 @@ public class NeoOriginsNetwork {
         syncAbilitySlotsToPlayer(player);
         // Morph state (entity_model power) must reach every client that can see
         // this player, not just the player themselves — broadcast it separately.
-        broadcastMorphState(player, morphTypeFrom(capabilities));
+        broadcastMorphState(player, morphSpecFrom(activeHolders));
         // Same for the invisibility armor-hide flag (neoorigins:invisibility with
         // render_armor:false) — every viewer's armor-layer mixin needs it.
         broadcastInvisibilityArmor(player, hidesArmorFrom(capabilities));
@@ -1441,17 +1448,23 @@ public class NeoOriginsNetwork {
     }
 
     /**
-     * Extract the {@code entity_model} target type from a capability set, or
-     * empty if the player isn't morphed. Reuses the same caps already computed
-     * for {@link #syncActivePowersToPlayer} so morph detection stays in lockstep
-     * with the power's actual active state (toggles, dimension restrictions).
+     * Resolve the player's current morph from their active powers, or empty if
+     * none of them is an {@code entity_model}. The holder list comes from the
+     * same pass that computed the capability set, so morph detection stays in
+     * lockstep with the power's actual active state (toggles, conditions,
+     * dimension restrictions).
+     *
+     * <p>Resolution happens here, on the server, so the client receives one
+     * concrete {@link MorphSpec} and never has to know about morph definition
+     * ids or inline-override precedence. When several {@code entity_model}
+     * powers are somehow active at once the first one wins — stacking morphs
+     * has no coherent meaning.
      */
-    private static java.util.Optional<ResourceLocation> morphTypeFrom(Set<String> capabilities) {
-        for (String cap : capabilities) {
-            if (cap.startsWith(EntityModelPower.CAP_PREFIX)) {
-                String id = cap.substring(EntityModelPower.CAP_PREFIX.length());
-                ResourceLocation parsed = ResourceLocation.tryParse(id);
-                if (parsed != null) return java.util.Optional.of(parsed);
+    private static java.util.Optional<MorphSpec> morphSpecFrom(List<PowerHolder<?>> activeHolders) {
+        for (PowerHolder<?> holder : activeHolders) {
+            if (holder.type() instanceof EntityModelPower
+                    && holder.config() instanceof EntityModelPower.Config cfg) {
+                return java.util.Optional.of(cfg.resolve());
             }
         }
         return java.util.Optional.empty();
@@ -1459,9 +1472,14 @@ public class NeoOriginsNetwork {
 
     /** Broadcast a player's morph state to all tracking clients and the player. */
     private static void broadcastMorphState(ServerPlayer player,
-                                            java.util.Optional<ResourceLocation> morphType) {
+                                            java.util.Optional<MorphSpec> spec) {
+        // The server keeps its own copy as well as sending one. Sounds are asked
+        // for on both logical sides, and the server side has no packet to read
+        // the answer out of; recording it here means it can never disagree with
+        // what the clients were just told.
+        com.cyberday1.neoorigins.power.morph.ServerMorphState.set(player.getUUID(), spec.orElse(null));
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
-            new SyncPlayerMorphPayload(player.getId(), morphType));
+            new SyncPlayerMorphPayload(player.getId(), spec));
     }
 
     /**
@@ -1471,17 +1489,18 @@ public class NeoOriginsNetwork {
     public static void sendMorphStateTo(ServerPlayer observer, ServerPlayer tracked) {
         Map<ResourceLocation, Boolean> powerMap = new HashMap<>();
         Set<String> capabilities = new HashSet<>();
-        collectActivePowers(tracked, powerMap, capabilities);
-        java.util.Optional<ResourceLocation> morphType = morphTypeFrom(capabilities);
-        if (morphType.isEmpty()) return;
+        List<PowerHolder<?>> activeHolders = new ArrayList<>();
+        collectActivePowers(tracked, powerMap, capabilities, activeHolders);
+        java.util.Optional<MorphSpec> spec = morphSpecFrom(activeHolders);
+        if (spec.isEmpty()) return;
         PacketDistributor.sendToPlayer(observer,
-            new SyncPlayerMorphPayload(tracked.getId(), morphType));
+            new SyncPlayerMorphPayload(tracked.getId(), spec));
     }
 
     private static void handleSyncPlayerMorph(SyncPlayerMorphPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientMorphState.set(
-                payload.entityId(), payload.entityType().orElse(null)));
+                payload.entityId(), payload.spec().orElse(null)));
     }
 
     /**
@@ -1593,10 +1612,26 @@ public class NeoOriginsNetwork {
      * {@code capabilitiesOut} with the union of capability tags from powers that
      * are currently active (granted AND, if toggleable, toggled on).
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private static void collectActivePowers(ServerPlayer player,
                                             Map<ResourceLocation, Boolean> powerMapOut,
                                             Set<String> capabilitiesOut) {
+        collectActivePowers(player, powerMapOut, capabilitiesOut, null);
+    }
+
+    /**
+     * As above, but also collects the {@link PowerHolder}s behind the active
+     * capabilities into {@code activeHoldersOut} when it is non-null.
+     *
+     * <p>Capability tags are strings, which is enough for on/off signals but
+     * loses everything structured — the {@code entity_model} morph needs the
+     * whole config (variant NBT, scale, first-person mode), so its sync reads
+     * the holder rather than re-parsing a tag.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void collectActivePowers(ServerPlayer player,
+                                            Map<ResourceLocation, Boolean> powerMapOut,
+                                            Set<String> capabilitiesOut,
+                                            List<PowerHolder<?>> activeHoldersOut) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         var dim = player.level().dimension();
         int evolutionTier = data.getEvolutionTier();
@@ -1630,6 +1665,7 @@ public class NeoOriginsNetwork {
                 // client position and the player rubber-bands (issue #109).
                 if (toggledOn && holder.isConditionSatisfied(player)) {
                     capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
+                    if (activeHoldersOut != null) activeHoldersOut.add(holder);
                 }
             }
         }
@@ -1642,6 +1678,7 @@ public class NeoOriginsNetwork {
             powerMapOut.put(powerId, toggledOn);
             if (toggledOn && holder.isConditionSatisfied(player)) {
                 capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
+                if (activeHoldersOut != null) activeHoldersOut.add(holder);
             }
         }
     }
