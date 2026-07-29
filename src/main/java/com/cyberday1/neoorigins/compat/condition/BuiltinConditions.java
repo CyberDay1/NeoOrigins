@@ -119,6 +119,10 @@ public final class BuiltinConditions {
         define("ticking", (json, ctx) -> p -> !p.isRemoved(), List.of());
         // exists — player is present and not removed.
         define("exists", (json, ctx) -> p -> p != null && !p.isRemoved(), List.of());
+        // always_active — unconditional true. Apoli packs use it as an explicit
+        // "no gate" marker on action_over_time / conditional wrappers; without a
+        // descriptor those powers fail closed and never tick.
+        define("always_active", (json, ctx) -> EntityCondition.alwaysTrue(), List.of());
         // living — player is alive.
         define("living", (json, ctx) -> p -> p.isAlive(), List.of());
         // creative_flying — player's flying ability is active.
@@ -467,6 +471,14 @@ public final class BuiltinConditions {
                         .doc("Scoreboard objective to read the player's score from (absent → false)."),
                     comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.INTEGER, 0, "Score threshold (default 0).")));
+        define("statistic",
+            (json, ctx) -> ConditionParser.parseStatistic(json, ctx),
+            List.of(new FieldSpec("statistic", FormFieldSpec.Kind.MIXED, false)
+                        .doc("Stat to read. Either a plain id — `minecraft:time_since_rest`, which implies the `minecraft:custom` category — or an object `{ \"type\": \"minecraft:killed\", \"stat\": \"minecraft:zombie\" }`. Categories: custom, mined, crafted, used, broken, picked_up, dropped, killed, killed_by. Absent or unresolvable → false."),
+                    new FieldSpec("stat", FormFieldSpec.Kind.MIXED, false)
+                        .doc("Alias for statistic (the Apoli field name); same plain-id or object shape."),
+                    comparison(">=", "Comparison operator (default >=)."),
+                    compareTo(FormFieldSpec.Kind.INTEGER, 0, "Statistic threshold (default 0).")));
         define("command",
             (json, ctx) -> ConditionParser.parseCommand(json),
             List.of(new FieldSpec("command", FormFieldSpec.Kind.STRING, false)
@@ -702,6 +714,39 @@ public final class BuiltinConditions {
                         .doc("Entity-type id, or #tag, to look for nearby."),
                     new FieldSpec("distance", FormFieldSpec.Kind.NUMBER, false).def(8.0).range(1.0, 64.0)
                         .doc("Search distance in blocks (default 8, clamped 1..64).")));
+        // nearby_entities — count nearby entities and compare the count. The
+        // counting form of near_entity: same AABB scan, but it can express
+        // "fewer than N" as well as "at least one".
+        define("nearby_entities",
+            (json, ctx) -> ConditionParser.parseNearbyEntities(json, ctx),
+            List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
+                        .doc("Entity-type id, or #tag, to count."),
+                    new FieldSpec("entity_types", FormFieldSpec.Kind.ARRAY, false)
+                        .itemPattern(TAG_OR_ID_PATTERN)
+                        .doc("List of entity-type ids or #tags to count (any → counts)."),
+                    new FieldSpec("bientity_condition", FormFieldSpec.Kind.REF, false)
+                        .ref("#")
+                        .doc("Condition evaluated as (player, nearby entity); only matching entities count. A verb that cannot apply to a non-player entity fails the condition closed."),
+                    new FieldSpec("distance", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(1.0, 64.0)
+                        .doc("Search distance in blocks (default 16, clamped 1..64)."),
+                    new FieldSpec("radius", FormFieldSpec.Kind.NUMBER, false).range(1.0, 64.0)
+                        .doc("Apoli spelling of distance; takes precedence when both are present."),
+                    new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                        .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                        .doc("Comparison operator against the matching-entity count (default >=)."),
+                    new FieldSpec("compare_to", FormFieldSpec.Kind.NUMBER, false).def(1.0)
+                        .doc("Count threshold (default 1 — i.e. \"any matching entity nearby\").")));
+        // near_villager — a villager within distance. Fairytale Origins verb,
+        // not an Apoli one; wandering traders and zombie villagers don't count.
+        define("near_villager",
+            (json, ctx) -> ConditionParser.parseNearVillager(json),
+            List.of(new FieldSpec("distance", FormFieldSpec.Kind.NUMBER, false).def(16.0).range(1.0, 64.0)
+                        .doc("Search distance in blocks (default 16, clamped 1..64)."),
+                    new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                        .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                        .doc("Comparison operator against the villager count (default >=)."),
+                    new FieldSpec("compare_to", FormFieldSpec.Kind.NUMBER, false).def(1.0)
+                        .doc("Villager-count threshold (default 1).")));
         // out_of_combat — at least `ticks` elapsed since the player last took damage.
         define("out_of_combat",
             (json, ctx) -> ConditionParser.parseOutOfCombat(json),

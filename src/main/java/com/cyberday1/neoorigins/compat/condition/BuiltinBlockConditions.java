@@ -40,6 +40,11 @@ import java.util.Map;
  *   <li>{@code offset} — structural wrapper: evaluates the nested
  *       {@code condition} at the tested position shifted by {@code x}/{@code y}/
  *       {@code z} (parsed in {@code OriginsCompatPowerLoader.compileBlockPredicate}).</li>
+ *   <li>{@code block_state} — one blockstate property, matched by value/enum or
+ *       compared numerically.</li>
+ *   <li>{@code height} — the tested block's own Y level.</li>
+ *   <li>{@code adjacent} — counts the six face neighbours matching a nested
+ *       {@code adjacent_condition}.</li>
  * </ul>
  */
 public final class BuiltinBlockConditions {
@@ -92,6 +97,36 @@ public final class BuiltinBlockConditions {
                 .doc("Y offset in blocks (default 0)."),
             new FieldSpec("z", FormFieldSpec.Kind.INTEGER, false).def(0)
                 .doc("Z offset in blocks (default 0).")));
+        // block_state — one blockstate property of the tested block.
+        define("block_state", List.of(
+            new FieldSpec("property", FormFieldSpec.Kind.STRING, true)
+                .doc("Blockstate property name (e.g. waterlogged, facing, level). A block without it never matches."),
+            new FieldSpec("value", FormFieldSpec.Kind.STRING, false)
+                .doc("Required property value, or a list of accepted values. Booleans and numbers may be written unquoted."),
+            new FieldSpec("enum", FormFieldSpec.Kind.STRING, false)
+                .doc("Origins spelling of `value` for named properties (e.g. \"south\"); a list is also accepted."),
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=")
+                .doc("For numeric properties: compare the value instead of matching it. Overrides value/enum."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                .doc("Number the property value is compared against (default 0).")));
+        // height — the tested block's own Y level.
+        define("height", List.of(
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against the block's Y coordinate (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.NUMBER, false).def(0.0)
+                .doc("Y level to compare against (default 0; 63 is sea level).")));
+        // adjacent — count the six face neighbours matching a nested condition.
+        define("adjacent", List.of(
+            new FieldSpec("adjacent_condition", FormFieldSpec.Kind.REF, true)
+                .ref(DOC)
+                .doc("Block condition tested against each of the six face neighbours."),
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against the matching-neighbour count (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.NUMBER, false).def(1.0)
+                .doc("Neighbour-count threshold, 0..6 (default 1 — i.e. \"any matching neighbour\").")));
     }
 
     /** Canonical id → descriptor (insertion-ordered). */

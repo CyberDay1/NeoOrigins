@@ -53,6 +53,7 @@ public final class BiEntityActionParser {
                 // inverted-mounts the caster).
                 case "origins:mount",          "apoli:mount",          "apace:mount"          ->
                     (actor, target) -> actor.startRiding(target, true);
+                case "origins:if_else",        "apoli:if_else",        "apace:if_else"        -> parseIfElse(json, contextId);
                 case "origins:nothing",        "apoli:nothing"                                -> BiEntityAction.noop();
                 default -> {
                     // Loose packs nest plain entity-actions directly in a bientity
@@ -78,6 +79,42 @@ public final class BiEntityActionParser {
                 contextId, type, e.getMessage());
             return BiEntityAction.noop();
         }
+    }
+
+    /**
+     * {@code if_else}: branch on a <em>bientity</em> condition, running
+     * {@code if_action} or {@code else_action} on the same (actor, target) pair.
+     *
+     * <p>Without this case the node fell through to the loose entity-action
+     * fallback, which handed the {@code condition} to the player-typed
+     * {@link com.cyberday1.neoorigins.compat.condition.ConditionParser}. A
+     * {@code target_condition} means nothing there, so it failed closed and the
+     * branch always took the else side — Chaotic Chemist's Benefit of Hindsight
+     * never recognised its own replacement potion. The condition is therefore
+     * compiled as a bientity predicate first, and only an
+     * <em>uncompilable</em> one falls back to the old behaviour.
+     */
+    private static BiEntityAction parseIfElse(JsonObject json, String contextId) {
+        JsonObject condJson = json.has("condition") && json.get("condition").isJsonObject()
+            ? json.getAsJsonObject("condition") : null;
+        var cond = condJson == null ? null
+            : com.cyberday1.neoorigins.compat.condition.TargetConditionParser
+                .parseBiEntity(condJson, contextId);
+        if (cond == null) {
+            CompatWarningCollector.recordUnsupportedAction("neoorigins:if_else", contextId,
+                "bientity if_else condition cannot be evaluated against a non-player target"
+                    + " — the else branch always runs");
+            cond = (actor, target) -> false;
+        }
+        BiEntityAction ifAction = json.has("if_action") && json.get("if_action").isJsonObject()
+            ? parse(json.getAsJsonObject("if_action"), contextId) : BiEntityAction.noop();
+        BiEntityAction elseAction = json.has("else_action") && json.get("else_action").isJsonObject()
+            ? parse(json.getAsJsonObject("else_action"), contextId) : BiEntityAction.noop();
+        final var fCond = cond;
+        return (actor, target) -> {
+            if (fCond.test(actor, target)) ifAction.execute(actor, target);
+            else elseAction.execute(actor, target);
+        };
     }
 
     /**
@@ -131,9 +168,8 @@ public final class BiEntityActionParser {
     }
 
     private static BiEntityAction parseAnd(JsonObject json, String contextId) {
-        if (!json.has("actions") || !json.get("actions").isJsonArray()) return BiEntityAction.noop();
         java.util.List<BiEntityAction> parts = new java.util.ArrayList<>();
-        for (var el : json.getAsJsonArray("actions")) {
+        for (var el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions")) {
             if (el.isJsonObject()) parts.add(parse(el.getAsJsonObject(), contextId));
         }
         if (parts.isEmpty()) return BiEntityAction.noop();

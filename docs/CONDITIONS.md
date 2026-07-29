@@ -163,6 +163,10 @@ True when the entity is non-null and not removed. No fields.
 
 True when `isAlive()` returns true. No fields.
 
+## `neoorigins:always_active`
+
+Unconditionally true. No fields. Apoli-format packs use it as an explicit "no gate" marker on `action_over_time` and `conditional` wrappers, where omitting `condition` entirely would be ambiguous. Equivalent to `{ "type": "neoorigins:constant", "value": true }`. The universal `inverted` flag still applies, so `{ "type": "neoorigins:always_active", "inverted": true }` is always false.
+
 ## `neoorigins:creative_flying`
 
 True when creative flight is engaged. No fields.
@@ -180,7 +184,7 @@ True when the entity's bounding box — shifted by `offset_x`/`offset_y`/`offset
 | `offset_x` | float | no | `0.0` | Box X shift as a multiple of the entity's width |
 | `offset_y` | float | no | `0.0` | Box Y shift as a multiple of the entity's height |
 | `offset_z` | float | no | `0.0` | Box Z shift as a multiple of the entity's width |
-| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `and`/`or`, and the `offset` wrapper |
+| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `and`/`or`, `block_state`, `height`, `adjacent`, and the `offset` wrapper |
 
 **Example — touching an iron-tagged block on either side:**
 ```json
@@ -498,7 +502,7 @@ True when the entity is on ground and the block directly below matches the neste
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, or `and`/`or` combinator); absent → on any ground |
+| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, `block_state`, `height`, `adjacent`, `offset`, or an `and`/`or` combinator); absent → on any ground |
 | `block_condition.id` | resource location | no | — | Block ID to match (also accepts `block`) |
 
 ## `neoorigins:block`
@@ -737,6 +741,47 @@ Numeric comparison against the player's score on a named objective.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Score threshold |
 
+## `neoorigins:statistic`
+
+Numeric comparison against one of the player's vanilla statistics — the same numbers the in-game Statistics screen shows.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `statistic` | string or object | yes | — | The stat to read (see below); always-false when absent or unreadable |
+| `stat` | string or object | no | — | Alias for `statistic` — the Apoli field name; same two shapes |
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `0` | Statistic threshold |
+
+**Two accepted shapes.** A plain id is read as a *custom* stat:
+
+```json
+{ "type": "neoorigins:statistic",
+  "statistic": "minecraft:time_since_rest",
+  "comparison": ">=",
+  "compare_to": 24000 }
+```
+
+An object selects the stat category explicitly — this is the form upstream Apoli documents, and the only way to reach the non-custom categories:
+
+```json
+{ "type": "neoorigins:statistic",
+  "stat": { "type": "minecraft:killed", "stat": "minecraft:zombie" },
+  "comparison": ">=",
+  "compare_to": 100 }
+```
+
+**Categories.** `minecraft:custom` (the default), `minecraft:mined`, `minecraft:crafted`, `minecraft:used`, `minecraft:broken`, `minecraft:picked_up`, `minecraft:dropped`, `minecraft:killed`, `minecraft:killed_by`. A modded stat type is accepted too and resolved against the stat-type registry. Ids without a namespace are assumed to be `minecraft:`.
+
+**Fail-closed.** A missing stat field, a malformed id, an unknown `minecraft:` category, or an id that no registry entry backs all evaluate to false and log once — a statistic gate never silently opens. Resolution happens on first evaluation, not at pack load, so stats registered by other mods are still found.
+
+**Example — a debuff that builds up when the player hasn't slept for a full day:**
+```json
+{ "type": "neoorigins:statistic",
+  "statistic": "minecraft:time_since_rest",
+  "comparison": ">=",
+  "compare_to": 24000 }
+```
+
 ## `neoorigins:command`
 
 Runs an arbitrary server command with suppressed output and returns true if no exception was thrown.
@@ -897,6 +942,8 @@ These evaluate against a pair — the entity under test (actor) plus a target pu
 - `EntityInteractContext` — target = the interacted entity
 - `ProjectileHitContext` — target = the entity hit (if any)
 - otherwise — null, condition returns false
+
+**Apoli `bientity_condition` fields.** Where a field is typed *bientity condition* — `area_of_effect.bientity_condition`, `prevent_entity_use.bientity_condition`, the bientity `if_else` gate — the pair is handed in directly rather than pulled from the dispatch context. Those slots accept `target_condition` and `actor_condition` (each wrapping an ordinary condition, evaluated against that side of the pair), `can_see`, `constant`, and the combinators `and`/`all_of`, `or`/`any_of`, `not`; `inverted` is honoured on every node. Anything else cannot be compiled, and each call site documents what it does about that.
 
 ## `neoorigins:distance`
 
@@ -1089,7 +1136,7 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 | `blocks` | list of resource location | no | `[]` | Additional block IDs to match |
 | `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
 | `tags` | list of block tag | no | `[]` | Additional block tags |
-| `block_condition` | object | no | — | Origins-format nested block condition (`in_tag` or `block` type) |
+| `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or`) |
 | `radius` | int (1–8) | no | `4` | Cubic radius to scan around the player |
 
 At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empty.
@@ -1131,4 +1178,58 @@ True when at least one entity of the given type (or entity tag) is within `dista
 { "type": "neoorigins:near_entity",
   "entity_type": "#minecraft:undead",
   "distance": 16 }
+```
+
+## `neoorigins:nearby_entities`
+
+The counting form of [`near_entity`](#neooriginsnear_entity): it compares how many matching entities are in range, so it can express "fewer than three mobs nearby" as well as "at least one wolf nearby". Same AABB broad scan followed by Euclidean distance filtering, and the same 64-block cap.
+
+Selectors combine as a logical AND: an entity counts when its type matches `entity_type`/`entity_types` (if either is given) *and* it satisfies `bientity_condition` (if given). With no selector at all, every entity in range counts — Apoli's behaviour for a bare `nearby_entities`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_type` | resource location or `#tag` | no | — | Entity type id, or entity tag with `#` prefix. |
+| `entity_types` | list of resource location or `#tag` | no | `[]` | Additional types/tags; an entity matching any of them counts. |
+| `bientity_condition` | object | no | — | Condition evaluated as (player, nearby entity). Only matching entities count. |
+| `distance` | double (1–64) | no | `16.0` | Radius in blocks. |
+| `radius` | double (1–64) | no | — | Apoli spelling of `distance`; takes precedence when both are present. |
+| `comparison` | comparison | no | `>=` | Operator applied to the matching-entity count. |
+| `compare_to` | double | no | `1` | Count threshold. |
+
+An unknown `entity_type` id, or a `bientity_condition` whose verb cannot be evaluated against a non-player entity, fails the condition closed (it never matches) and is reported in the compat summary.
+
+**Example — strength in numbers:**
+```json
+{ "type": "neoorigins:nearby_entities",
+  "entity_type": "minecraft:wolf",
+  "distance": 10,
+  "comparison": ">=",
+  "compare_to": 3 }
+```
+
+**Example — claustrophobia, using the Apoli form:**
+```json
+{ "type": "neoorigins:nearby_entities",
+  "bientity_condition": {
+    "type": "neoorigins:target_condition",
+    "condition": { "type": "neoorigins:entity_type", "entity_type": "#minecraft:undead" }
+  },
+  "radius": 8,
+  "comparison": "<",
+  "compare_to": 2 }
+```
+
+## `neoorigins:near_villager`
+
+True when a villager is within `distance` blocks. Not an Apoli verb — it comes from community packs that wanted a plain "am I in a village" gate — and it counts villagers only: wandering traders and zombie villagers are deliberately excluded.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `distance` | double (1–64) | no | `16.0` | Radius in blocks. |
+| `comparison` | comparison | no | `>=` | Operator applied to the villager count. |
+| `compare_to` | double | no | `1` | Count threshold. |
+
+**Example — hero of the village:**
+```json
+{ "type": "neoorigins:near_villager", "distance": 32 }
 ```

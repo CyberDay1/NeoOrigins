@@ -3081,7 +3081,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
         var data = new CompatPlayerState.EventPowerData(
             idStr, CompatPlayerState.EventType.PREVENT_ITEM_USE,
-            condition, itemPred, null, null);
+            condition, itemPred, null, null, null);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
@@ -3137,7 +3137,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
         var data = new CompatPlayerState.EventPowerData(
             idStr, CompatPlayerState.EventType.PREVENT_SLEEP,
-            condition, null, blockCond, null);
+            condition, null, blockCond, null, null);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
@@ -3174,7 +3174,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             ? compileBlockPredicate(json.getAsJsonObject("block_condition")) : null;
         var data = new CompatPlayerState.EventPowerData(
             idStr, CompatPlayerState.EventType.PREVENT_BLOCK_USE,
-            condition, null, blockPred, null);
+            condition, null, blockPred, null, null);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
@@ -3182,10 +3182,78 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             .build();
     }
 
+    /**
+     * {@code origins:prevent_entity_use} — the power-level {@code condition} is
+     * the HOLDER gate, {@code item_condition} gates the held stack, and
+     * {@code entity_condition} / {@code bientity_condition} gate the TARGET (the
+     * entity being interacted with; for bientity, actor = the holder, target =
+     * that entity). All of them are optional; all absent = prevent every entity
+     * interaction, which is the correct reading of a bare Apoli
+     * prevent_entity_use.
+     *
+     * <p>Dropping the target gates made this cancel EVERY entity interaction as
+     * soon as the power was granted — villager trading, saddling, leads, boats,
+     * sitting (issue #118: a Red Riding Hood origin narrowed to minecraft:wolf
+     * blocked everything). The bug scaled with how carefully the author narrowed
+     * the condition, so the conditions are now compiled at load time and
+     * evaluated against {@code event.getTarget()} in
+     * {@link CompatEventPowers#onEntityInteract}.
+     *
+     * <p>Fail direction is CLOSED, mirroring action_over_time and swimming: an
+     * unsupported or unparseable condition means we cannot tell WHICH entities
+     * to block, and for a prevention "unknown" degrading to "block everything"
+     * is exactly the reported bug. The power is refused instead, so the author
+     * gets a warning and an inert power rather than a silently over-blocking one.
+     */
     private CompatPower.Config parsePreventEntityUse(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        var data = CompatPlayerState.EventPowerData.noCondition(
-            idStr, CompatPlayerState.EventType.PREVENT_ENTITY_USE);
+        CompatPolicy.resetFailClosedCount();
+
+        EntityCondition condition = json.has("condition")
+            ? parseConditionField(json, "condition", idStr) : null;
+        // Snapshot the holder gate's fail-closed signal immediately: the bientity
+        // parser resets the counter for its own actor_condition sub-parse.
+        boolean unparseable = CompatPolicy.failClosedCount() > 0;
+
+        var itemPred = json.has("item_condition") && json.get("item_condition").isJsonObject()
+            ? compileItemPredicate(json.getAsJsonObject("item_condition")) : null;
+
+        java.util.function.BiPredicate<ServerPlayer, net.minecraft.world.entity.Entity> targetPred = null;
+
+        // entity_condition — tested against the entity being used.
+        if (json.has("entity_condition") && json.get("entity_condition").isJsonObject()) {
+            var tc = com.cyberday1.neoorigins.compat.condition.TargetConditionParser
+                .parse(json.getAsJsonObject("entity_condition"), idStr);
+            if (tc == null) {
+                unparseable = true;
+            } else {
+                targetPred = com.cyberday1.neoorigins.compat.condition.TargetConditionParser
+                    .asTargetPredicate(tc);
+            }
+        }
+
+        // bientity_condition — actor = the holder, target = the entity being used.
+        if (json.has("bientity_condition") && json.get("bientity_condition").isJsonObject()) {
+            var bp = com.cyberday1.neoorigins.compat.condition.TargetConditionParser
+                .parseBiEntity(json.getAsJsonObject("bientity_condition"), idStr);
+            if (bp == null) {
+                unparseable = true;
+            } else if (targetPred == null) {
+                targetPred = bp;
+            } else {
+                targetPred = targetPred.and(bp);
+            }
+        }
+
+        if (unparseable) {
+            NeoOrigins.LOGGER.warn("[CompatB] prevent_entity_use {} has unsupported condition(s) — refusing to compile to prevent unconditional blocking", idStr);
+            CompatTranslationLog.skip(id, "origins:prevent_entity_use",
+                "unsupported condition — refusing to block every entity interaction");
+            return null;
+        }
+
+        var data = CompatPlayerState.EventPowerData.forPreventEntityUse(
+            idStr, condition, itemPred, targetPred);
 
         return CompatPower.Config.builder()
             .onGranted(player -> CompatPlayerState.register(player, data))
@@ -3464,11 +3532,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String bareType = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
         if ((bareType.equals("and") || bareType.equals("or")
                 || bareType.equals("all_of") || bareType.equals("any_of"))
-                && condJson.has("conditions") && condJson.get("conditions").isJsonArray()) {
+                && condJson.has("conditions")) {
             boolean isAnd = bareType.equals("and") || bareType.equals("all_of");
             java.util.List<java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>> subs =
                 new java.util.ArrayList<>();
-            for (JsonElement el : condJson.getAsJsonArray("conditions")) {
+            for (JsonElement el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(condJson, "conditions")) {
                 if (!el.isJsonObject()) continue;
                 var sub = compileBlockPredicate(el.getAsJsonObject(), contextId);
                 if (sub != null) subs.add(sub);
@@ -3500,6 +3568,54 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             }
             final var fInner = inner;
             return (player, pos) -> fInner.test(player, pos.offset(ox, oy, oz));
+        }
+
+        // block_state — one blockstate property, shared with the in_block
+        // compiler so the matching rules stay identical while the two keep
+        // their opposite fail directions. Origins++ Giant reads the bed's
+        // `facing` to work out which half of it the player is lying on.
+        if (bareType.equals("block_state")) {
+            var statePred = com.cyberday1.neoorigins.compat.condition.ConditionParser
+                .compileBlockStateProperty(condJson);
+            if (statePred == null) {
+                CompatWarningCollector.recordUnsupportedCondition(
+                    type, contextId, "block_state names no `property` — matches ALL blocks");
+                return (player, pos) -> true;
+            }
+            return (player, pos) -> statePred.test(player.level().getBlockState(pos));
+        }
+
+        // height — the checked block's own Y level.
+        if (bareType.equals("height")) {
+            var comparison = com.cyberday1.neoorigins.compat.condition.ComparisonType.fromString(
+                condJson.has("comparison") ? condJson.get("comparison").getAsString() : ">=");
+            double compareTo = condJson.has("compare_to") ? condJson.get("compare_to").getAsDouble() : 0.0;
+            return (player, pos) -> comparison.test(pos.getY(), compareTo);
+        }
+
+        // adjacent — count the face neighbours matching `adjacent_condition`,
+        // then compare (default >= 1). Origins++ Glacier refuses to sleep
+        // unless at most two neighbouring blocks are snow or ice.
+        if (bareType.equals("adjacent")) {
+            var inner = condJson.has("adjacent_condition") && condJson.get("adjacent_condition").isJsonObject()
+                ? compileBlockPredicate(condJson.getAsJsonObject("adjacent_condition"), contextId)
+                : null;
+            if (inner == null) {
+                CompatWarningCollector.recordUnsupportedCondition(
+                    type, contextId, "adjacent has no nested `adjacent_condition` — matches ALL blocks");
+                return (player, pos) -> true;
+            }
+            var comparison = com.cyberday1.neoorigins.compat.condition.ComparisonType.fromString(
+                condJson.has("comparison") ? condJson.get("comparison").getAsString() : ">=");
+            double compareTo = condJson.has("compare_to") ? condJson.get("compare_to").getAsDouble() : 1.0;
+            final var fInner = inner;
+            return (player, pos) -> {
+                int count = 0;
+                for (net.minecraft.core.Direction face : net.minecraft.core.Direction.values()) {
+                    if (fInner.test(player, pos.relative(face))) count++;
+                }
+                return comparison.test(count, compareTo);
+            };
         }
 
         String blockId = condJson.has("block") ? condJson.get("block").getAsString() : null;

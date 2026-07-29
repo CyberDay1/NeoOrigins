@@ -1135,12 +1135,17 @@ Iterates every living entity within the radius and runs `entity_action` against 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `radius` | float | no | `16.0` | Radius |
-| `shape` | string | no | `"sphere"` | `"sphere"` culls by squared distance; any other string skips the distance cull (behaves like a cube/AABB) |
-| `include_source` | bool | no | `true` | Whether the source entity is included |
+| `shape` | string or object | no | `"sphere"` | `"cube"` skips the distance cull (plain AABB); anything else culls by squared distance. May also be an object — `{ "type": "cone", "angle": 60 }` additionally restricts the sphere to a cone of that full width (degrees) around the caster's look direction |
+| `include_source` | bool | no | see below | Whether the source entity is included |
+| `include_target` | bool | no | `false` | Apoli spelling of `include_source` |
 | `entity_action` | action | no | noop | Runs per affected entity (mobs + players for entity-general verbs) |
+| `bientity_action` | bientity action | no | — | Apoli form: runs as (caster, affected entity). Takes precedence over `entity_action` |
 | `entity_condition` | condition | no | always-true | Target filter; entity-general conditions filter mobs + players (see above) |
+| `bientity_condition` | bientity condition | no | always-true | Apoli form: filter evaluated as (caster, affected entity) |
 | `block_action` | action | no | — | Block fan-out (see below): runs at every block position in radius, each published as the context block |
 | `block_condition` | block condition | no | matches all | Filter for the block fan-out — only positions matching it run `block_action`. Only used with `block_action` |
+
+**Apoli `bientity_action` form.** Apoli's own `area_of_effect` names its per-target action `bientity_action` and its filter `bientity_condition`, both taking the (actor, target) pair — usually wrapped in `target_action` / `target_condition`. Both spellings are accepted. Two defaults differ between the forms: the caster is included by default with `entity_action` (long-standing behaviour) but **excluded** by default with `bientity_action`, matching Apoli — otherwise a cone attack damages the player who cast it. A `bientity_condition` that cannot be evaluated against a non-player entity skips the entity fan-out entirely and is reported in the compat summary, since silently dropping an *exclusion* filter would hit bystanders it was written to spare.
 
 **Block fan-out (Apoli `block_action` form).** When `block_action` is set, the action additionally sweeps every **block position** within `radius`, centered on the context block position when one resolves (raycast hit, `block_use`/`bonemeal` event, `block_action_at`) and on the source's feet otherwise. Each position is published as the context block, so nested block verbs (`grow`/`bonemeal`, `transform_block`, `offset`, `execute_command`) self-resolve. `block_condition` gates each position; `shape: "sphere"` culls by distance as for entities. The block sweep radius is capped at 16 — Apoli packs use small radii here (e.g. 2).
 
@@ -1172,6 +1177,21 @@ Iterates every living entity within the radius and runs `entity_action` against 
   "shape": "sphere",
   "block_condition": { "type": "neoorigins:block", "block": "minecraft:grass_block" },
   "block_action": { "type": "neoorigins:grow" } }
+```
+
+**Example — a breath attack: a 60° cone in front of the caster, sparing players:**
+```json
+{ "type": "neoorigins:area_of_effect",
+  "radius": 5.0,
+  "shape": { "type": "cone", "angle": 60 },
+  "bientity_condition": {
+    "type": "neoorigins:target_condition",
+    "condition": { "type": "neoorigins:entity_type", "entity_type": "minecraft:player", "inverted": true }
+  },
+  "bientity_action": {
+    "type": "neoorigins:target_action",
+    "action": { "type": "neoorigins:damage", "amount": 4 }
+  } }
 ```
 
 ---
@@ -1235,6 +1255,27 @@ Swaps actor and target, then runs the inner bientity action against the swapped 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `action` | bientity action | no | noop | Action run with actor/target swapped |
+
+## `if_else` (bientity)
+
+Branches on a **bientity condition** and runs one of two bientity actions against the same pair. This is the pair-level twin of the entity-action [`if_else`](#neooriginsif_else); the difference that matters is the condition, which is read as a bientity condition (`target_condition`, `actor_condition`, `can_see`, `constant`, and the combinators) rather than as a holder-only condition.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `condition` | bientity condition | no | false | Gate evaluated as (actor, target) |
+| `if_action` | bientity action | no | noop | Run when the condition is true |
+| `else_action` | bientity action | no | noop | Run when it is false |
+
+A condition that cannot be compiled as a bientity condition is reported in the compat summary and evaluates false, so the `else_action` branch runs.
+
+**Example — mark the entity you hit, but only once:**
+```json
+{ "type": "apoli:if_else",
+  "condition": { "type": "apoli:target_condition",
+                 "condition": { "type": "apoli:nbt", "nbt": "{Tags:[\"marked\"]}" } },
+  "if_action": { "type": "apoli:target_action", "action": { "type": "neoorigins:damage", "amount": 4.0 } },
+  "else_action": { "type": "apoli:target_action", "action": { "type": "neoorigins:execute_command", "command": "tag @s add marked" } } }
+```
 
 ## `riding_action`
 

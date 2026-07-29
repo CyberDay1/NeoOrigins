@@ -133,14 +133,16 @@ public final class ItemConditionParser {
     }
 
     private static ItemCondition parseAnd(JsonObject json) {
-        JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
+        // asArray, not getAsJsonArray: a single-child combinator is routinely
+        // authored as a bare object in legacy packs and used to throw here.
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions");
         List<ItemCondition> list = new ArrayList<>();
         for (JsonElement el : arr) if (el.isJsonObject()) list.add(parse(el.getAsJsonObject()));
         return s -> { for (ItemCondition c : list) if (!c.test(s)) return false; return true; };
     }
 
     private static ItemCondition parseOr(JsonObject json) {
-        JsonArray arr = json.has("conditions") ? json.getAsJsonArray("conditions") : new JsonArray();
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions");
         List<ItemCondition> list = new ArrayList<>();
         for (JsonElement el : arr) if (el.isJsonObject()) list.add(parse(el.getAsJsonObject()));
         return s -> { for (ItemCondition c : list) if (c.test(s)) return true; return false; };

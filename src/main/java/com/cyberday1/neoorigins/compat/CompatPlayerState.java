@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.compat;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
@@ -40,27 +41,44 @@ public final class CompatPlayerState {
         EntityCondition entityCondition,
         Predicate<ItemStack> itemPredicate,
         BiPredicate<ServerPlayer, BlockPos> blockPredicate,
-        ArmorPredicate armorPredicate
+        ArmorPredicate armorPredicate,
+        BiPredicate<ServerPlayer, Entity> targetEntityPredicate
     ) {
         /** Convenience constructors for common patterns. */
         public static EventPowerData withItemPredicate(String powerId, EventType type, Predicate<ItemStack> pred) {
-            return new EventPowerData(powerId, type, null, pred, null, null);
+            return new EventPowerData(powerId, type, null, pred, null, null, null);
         }
 
         public static EventPowerData withEntityCondition(String powerId, EventType type, EntityCondition cond) {
-            return new EventPowerData(powerId, type, cond, null, null, null);
+            return new EventPowerData(powerId, type, cond, null, null, null, null);
         }
 
         public static EventPowerData withBlockPredicate(String powerId, EventType type, BiPredicate<ServerPlayer, BlockPos> pred) {
-            return new EventPowerData(powerId, type, null, null, pred, null);
+            return new EventPowerData(powerId, type, null, null, pred, null, null);
         }
 
         public static EventPowerData withArmorPredicate(String powerId, ArmorPredicate pred) {
-            return new EventPowerData(powerId, EventType.RESTRICT_ARMOR, null, null, null, pred);
+            return new EventPowerData(powerId, EventType.RESTRICT_ARMOR, null, null, null, pred, null);
         }
 
         public static EventPowerData noCondition(String powerId, EventType type) {
-            return new EventPowerData(powerId, type, null, null, null, null);
+            return new EventPowerData(powerId, type, null, null, null, null, null);
+        }
+
+        /**
+         * {@code prevent_entity_use}: the holder gate ({@code condition}), the
+         * held-item gate ({@code item_condition}) and the TARGET gate — the
+         * entity being interacted with, compiled from {@code entity_condition}
+         * and/or {@code bientity_condition} (actor = the holder, target = that
+         * entity). Any of the three may be null, meaning "unrestricted on that
+         * axis"; all three null = prevents every entity interaction, which is
+         * the correct reading of a bare prevent_entity_use.
+         */
+        public static EventPowerData forPreventEntityUse(String powerId, EntityCondition holderCondition,
+                                                         Predicate<ItemStack> itemPredicate,
+                                                         BiPredicate<ServerPlayer, Entity> targetPredicate) {
+            return new EventPowerData(powerId, EventType.PREVENT_ENTITY_USE,
+                holderCondition, itemPredicate, null, null, targetPredicate);
         }
     }
 

@@ -76,10 +76,8 @@ public final class ItemActionParser {
 
     private static ItemAction parseAnd(JsonObject json) {
         List<ItemAction> list = new ArrayList<>();
-        if (json.has("actions")) {
-            for (JsonElement el : json.getAsJsonArray("actions")) {
-                if (el.isJsonObject()) list.add(parse(el.getAsJsonObject()));
-            }
+        for (JsonElement el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions")) {
+            if (el.isJsonObject()) list.add(parse(el.getAsJsonObject()));
         }
         return s -> { for (ItemAction a : list) a.execute(s); };
     }
