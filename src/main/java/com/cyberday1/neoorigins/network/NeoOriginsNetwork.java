@@ -333,6 +333,74 @@ public class NeoOriginsNetwork {
         );
     }
 
+
+        registrar.playToServer(
+            com.cyberday1.neoorigins.network.payload.ToggleNightVisionPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.ToggleNightVisionPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleToggleNightVision
+        );
+
+        registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.SyncNightVisionPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SyncNightVisionPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncNightVision
+        );
+    }
+
+    /**
+     * Flip the player's night-vision master switch. The client sends a bare
+     * "flip it" request; every decision is made here so the server stays
+     * authoritative.
+     *
+     * <p>The admin kill-switch wins outright: on a server with
+     * {@code disable_night_vision} set, the key reports that night vision is off
+     * and leaves the flag alone rather than pretending to enable something
+     * {@link com.cyberday1.neoorigins.power.builtin.PersistentEffectPower} will
+     * refuse to apply.
+     *
+     * <p>Turning OFF actively strips the effect: persistent effects are applied
+     * with INFINITE_DURATION, so waiting for it to expire would wait forever.
+     * Turning ON needs no counterpart — the power's next tick reapplies it.
+     */
+    private static void handleToggleNightVision(
+            com.cyberday1.neoorigins.network.payload.ToggleNightVisionPayload payload,
+            IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            if (com.cyberday1.neoorigins.config.ContentTogglesConfig.isNightVisionDisabled()) {
+                sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("neoorigins.night_vision.disabled_by_server")
+                    .withStyle(net.minecraft.ChatFormatting.RED));
+                sendNightVisionState(sp);
+                return;
+            }
+            PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            boolean nowEnabled = !data.isNightVisionEnabled();
+            data.setNightVisionEnabled(nowEnabled);
+            if (!nowEnabled) {
+                com.cyberday1.neoorigins.power.builtin.PersistentEffectPower.clearOwnedNightVision(sp);
+            }
+            sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(nowEnabled
+                    ? "neoorigins.night_vision.on"
+                    : "neoorigins.night_vision.off")
+                .withStyle(nowEnabled ? net.minecraft.ChatFormatting.GREEN
+                                      : net.minecraft.ChatFormatting.GRAY));
+            sendNightVisionState(sp);
+        });
+    }
+
+    /** Push the authoritative night-vision flag to its owning client. */
+    public static void sendNightVisionState(ServerPlayer player) {
+        boolean enabled = !com.cyberday1.neoorigins.config.ContentTogglesConfig.isNightVisionDisabled()
+            && player.getData(OriginAttachments.originData()).isNightVisionEnabled();
+        PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncNightVisionPayload(enabled));
+    }
+
+    private static void handleSyncNightVision(
+            com.cyberday1.neoorigins.network.payload.SyncNightVisionPayload payload,
+            IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientNightVisionState.set(payload.enabled()));
     private static void handleCancelOrb(com.cyberday1.neoorigins.network.payload.CancelOrbPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
@@ -1184,6 +1252,10 @@ public class NeoOriginsNetwork {
         syncActivePowersToPlayer(player);
     }
 
+        // Night-vision master switch. Rides the same triggers as everything else
+        // here (login, respawn, dimension change, origin change) so the client's
+        // enhanced_vision gate can never be left holding a stale value.
+        sendNightVisionState(player);
     /** Origins-map sync only; does not push active-powers. */
     public static void syncOriginsOnlyToPlayer(ServerPlayer player) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
