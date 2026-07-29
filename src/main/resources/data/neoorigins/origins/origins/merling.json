@@ -37,7 +37,8 @@
         "neoorigins:merling_ascended_conduit"
       ],
       "remove": [
-        "neoorigins:merling_evolved_hp"
+        "neoorigins:merling_evolved_hp",
+        "neoorigins:merling_water_breathing"
       ]
     },
     {

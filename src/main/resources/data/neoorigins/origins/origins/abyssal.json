@@ -47,7 +47,9 @@
         "neoorigins:abyssal_apex_conduit_power"
       ],
       "remove": [
-        "neoorigins:abyssal_ascended_hp"
+        "neoorigins:abyssal_ascended_hp",
+        "neoorigins:abyssal_night_vision",
+        "neoorigins:abyssal_water_breathing"
       ]
     }
   ],
