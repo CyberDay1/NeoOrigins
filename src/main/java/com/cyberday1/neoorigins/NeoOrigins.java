@@ -237,6 +237,11 @@ public class NeoOrigins {
         // the same id overrides. Independent of the power loaders (queried at
         // event time), so ordering relative to them is immaterial.
         event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "entity_groups"),    com.cyberday1.neoorigins.data.EntityGroupDataManager.INSTANCE);
+        // morphs — named entity_model definitions (entity type + variant NBT +
+        // scale) that a power can reference by id instead of repeating inline.
+        // Same built-in/datapack-override shape as entity_groups, and likewise
+        // resolved on demand, so its position here is immaterial.
+        event.addListener(net.minecraft.resources.Identifier.fromNamespaceAndPath(MOD_ID, "morphs"),           com.cyberday1.neoorigins.data.MorphDataManager.INSTANCE);
         // UI theming — addon packs declare which theme to use via
         // data/<ns>/neoorigins/active_theme.json. Listener resolves the winner;
         // the result is broadcast to clients at login and on datapack sync.
