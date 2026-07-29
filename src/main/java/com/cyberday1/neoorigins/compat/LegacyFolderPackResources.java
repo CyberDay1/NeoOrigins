@@ -10,8 +10,10 @@ import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.resources.IoSupplier;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *       under the requested modern prefix, with locations rewritten to their
  *       modern form and modern-emitted keys suppressing legacy duplicates.</li>
  * </ul>
+ *
+ * <p>It also rewrites the <em>contents</em> of every {@code .mcfunction} it
+ * serves through {@link LegacyCommandRewriter}. This has to happen here, in the
+ * resource layer, because a function whose lines use retired 1.20 syntax fails
+ * to <em>compile</em> during {@code ServerFunctionLibrary} reload — it never
+ * reaches the {@code CommandEvent} hook where the rewriter is otherwise applied.
+ * Note that {@code ServerFunctionLibrary} takes its supplier from
+ * {@link #listResources} (via {@code FileToIdConverter.listMatchingResources}),
+ * not from {@link #getResource}, so both paths wrap.
  *
  * <p>Only {@link PackType#SERVER_DATA} is remapped; client resource layouts
  * did not change. Wrap points: {@link OriginsPackFinder} (originpacks/) and
@@ -66,9 +77,13 @@ public final class LegacyFolderPackResources implements PackResources {
         Map.entry("structure/",        "structures/")
     );
 
+    private static final String MCFUNCTION = ".mcfunction";
+
     private final PackResources delegate;
     /** One INFO line per pack, emitted the first time a legacy remap actually serves content. */
     private final AtomicBoolean announced = new AtomicBoolean(false);
+    /** Ditto for the mcfunction rewrite — packs ship hundreds of files, so never log per line. */
+    private final AtomicBoolean functionsAnnounced = new AtomicBoolean(false);
 
     public LegacyFolderPackResources(PackResources delegate) {
         this.delegate = delegate;
@@ -98,13 +113,73 @@ public final class LegacyFolderPackResources implements PackResources {
         }
     }
 
+    // ── mcfunction content rewriting ────────────────────────────────────────
+
+    /**
+     * Wrap an {@code .mcfunction} supplier so its lines pass through
+     * {@link LegacyCommandRewriter#rewriteForCompile}. Everything else is
+     * returned untouched.
+     *
+     * <p>Deliberately the compile-only tier, not the full rewrite: this runs
+     * unconditionally over lines that may be perfectly valid already, and the
+     * semantic rules assume the opposite. See that method for the packs that
+     * proved it.
+     *
+     * <p>The wrapper re-reads the delegate on every {@code get()} — suppliers
+     * are documented as re-runnable and vanilla does call them more than once
+     * (listing, then metadata, then load), so nothing is consumed and cached.
+     */
+    private IoSupplier<InputStream> rewriteIfFunction(PackType type, ResourceLocation location,
+                                                      @Nullable IoSupplier<InputStream> io) {
+        if (io == null || type != PackType.SERVER_DATA) return io;
+        if (!location.getPath().endsWith(MCFUNCTION)) return io;
+        return () -> rewriteFunction(io);
+    }
+
+    private InputStream rewriteFunction(IoSupplier<InputStream> io) throws IOException {
+        byte[] raw;
+        try (InputStream in = io.get()) {
+            raw = in.readAllBytes();
+        }
+        String text = new String(raw, StandardCharsets.UTF_8);
+
+        // Split on '\n' keeping empties, so CRLF/LF and any trailing newline all
+        // survive byte-for-byte when nothing changes.
+        String[] lines = text.split("\n", -1);
+        boolean changed = false;
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            boolean cr = line.endsWith("\r");
+            String body = cr ? line.substring(0, line.length() - 1) : line;
+            String trimmed = body.trim();
+            // Blank lines and mcfunction comments are not commands.
+            if (trimmed.isEmpty() || trimmed.charAt(0) == '#') continue;
+            String rewritten = LegacyCommandRewriter.rewriteForCompile(body);
+            if (rewritten.equals(body)) continue;
+            lines[i] = cr ? rewritten + "\r" : rewritten;
+            changed = true;
+        }
+        if (!changed) return new ByteArrayInputStream(raw);
+
+        announceFunctionRewrite();
+        return new ByteArrayInputStream(String.join("\n", lines).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void announceFunctionRewrite() {
+        if (functionsAnnounced.compareAndSet(false, true)) {
+            NeoOrigins.LOGGER.info(
+                "OriginsCompat: pack '{}' ships 1.20-era command syntax in its .mcfunction files — rewriting them to 1.21 syntax on read",
+                packId());
+        }
+    }
+
     // ── lookup ──────────────────────────────────────────────────────────────
 
     @Nullable
     @Override
     public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location) {
         IoSupplier<InputStream> modern = delegate.getResource(type, location);
-        if (modern != null || type != PackType.SERVER_DATA) return modern;
+        if (modern != null || type != PackType.SERVER_DATA) return rewriteIfFunction(type, location, modern);
         String path = location.getPath();
         for (var e : DIR_MAP) {
             if (path.startsWith(e.getKey())) {
@@ -112,7 +187,7 @@ public final class LegacyFolderPackResources implements PackResources {
                 IoSupplier<InputStream> hit = delegate.getResource(type, legacy);
                 if (hit != null) {
                     announce();
-                    return hit;
+                    return rewriteIfFunction(type, location, hit);
                 }
                 break; // prefixes are mutually exclusive — only one can match
             }
@@ -133,7 +208,7 @@ public final class LegacyFolderPackResources implements PackResources {
         Set<ResourceLocation> emitted = new HashSet<>();
         delegate.listResources(type, namespace, path, (loc, io) -> {
             emitted.add(loc);
-            output.accept(loc, io);
+            output.accept(loc, rewriteIfFunction(type, loc, io));
         });
 
         for (var e : DIR_MAP) {
@@ -160,7 +235,7 @@ public final class LegacyFolderPackResources implements PackResources {
                 ResourceLocation modernLoc = loc.withPath(modernDir + p.substring(legacyDir.length()));
                 if (emitted.add(modernLoc)) {
                     announce();
-                    output.accept(modernLoc, io);
+                    output.accept(modernLoc, rewriteIfFunction(type, modernLoc, io));
                 }
             });
         }
