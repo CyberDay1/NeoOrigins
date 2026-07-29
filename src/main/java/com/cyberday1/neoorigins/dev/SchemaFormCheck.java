@@ -147,6 +147,11 @@ public final class SchemaFormCheck {
         //     until powers are registered.
         failures += auditPowerFieldSpecs(model);
 
+        // 9c. The scalar-or-array $ref idiom must reach the in-game walker as a
+        //     ref-shaped kind, never as MIXED (which degrades to a raw-JSON
+        //     textarea and hides the recursive sub-form picker).
+        failures += auditScalarOrArrayRefs(model);
+
         // 10. Action / condition schemas must also be packaged + parse, so the
         //     2.1 RefRow widget can render sub-forms when an entity_action /
         //     condition REF is picked.
@@ -165,6 +170,101 @@ public final class SchemaFormCheck {
             types, model.structuredTypes().size(), failures);
         if (failures > 0) System.exit(1);
         System.out.println("[schema-check] OK");
+    }
+
+    /**
+     * Guards the scalar-or-array {@code $ref} resolution in
+     * {@link SchemaFormModel#mapProperty}. The power schema emits every native
+     * action/condition REF field as
+     * {@code {"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}} — "one
+     * action/condition, or a list of them". Historically the walker only read a
+     * TOP-LEVEL {@code $ref}, so these all fell through to the generic
+     * {@code oneOf} arm and came out {@link FormFieldSpec.Kind#MIXED}, i.e. a
+     * raw-JSON textarea with no recursive picker. Every such field must now
+     * resolve to {@link FormFieldSpec.Kind#ARRAY} carrying an {@code itemsRef}
+     * (the ARRAY_REF shape {@code FieldWidgetFactory.ArrayRefRow} renders).
+     *
+     * <p>Derived from the schema itself rather than a hard-coded field list, so
+     * new powers with the same shape are covered automatically.
+     */
+    private static int auditScalarOrArrayRefs(SchemaFormModel model) {
+        com.google.gson.JsonObject root;
+        try (java.io.InputStream in = SchemaFormModel.class
+                .getResourceAsStream(SchemaFormModel.RESOURCE_PATH)) {
+            if (in == null) {
+                System.out.println("[schema-check] FAIL  power schema not on classpath"
+                    + " for the scalar-or-array $ref audit");
+                return 1;
+            }
+            root = com.google.gson.JsonParser.parseString(new String(
+                in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        } catch (java.io.IOException e) {
+            System.out.println("[schema-check] FAIL  cannot read power schema: " + e);
+            return 1;
+        }
+        if (!root.has("oneOf")) return 0;
+
+        int fails = 0, checked = 0;
+        java.util.List<String> bad = new java.util.ArrayList<>();
+        for (com.google.gson.JsonElement be : root.getAsJsonArray("oneOf")) {
+            if (!be.isJsonObject()) continue;
+            com.google.gson.JsonObject branch = be.getAsJsonObject();
+            if (!branch.has("properties")) continue;
+            com.google.gson.JsonObject bprops = branch.getAsJsonObject("properties");
+            if (!bprops.has("type") || !bprops.get("type").isJsonObject()) continue;
+            com.google.gson.JsonObject typeNode = bprops.getAsJsonObject("type");
+            if (!typeNode.has("const")) continue;
+            String typeId = typeNode.get("const").getAsString();
+
+            for (var pe : bprops.entrySet()) {
+                if (pe.getKey().equals("type") || !pe.getValue().isJsonObject()) continue;
+                if (!isScalarOrArrayRefNode(pe.getValue().getAsJsonObject())) continue;
+                checked++;
+                FormFieldSpec resolved = null;
+                for (FormFieldSpec f : model.formFor(typeId)) {
+                    if (f.name().equals(pe.getKey())) { resolved = f; break; }
+                }
+                if (resolved == null
+                        || resolved.kind() != FormFieldSpec.Kind.ARRAY
+                        || resolved.itemsRef() == null) {
+                    bad.add(typeId + "." + pe.getKey() + " -> "
+                        + (resolved == null ? "absent" : resolved.kind()));
+                }
+            }
+        }
+        if (!bad.isEmpty()) {
+            java.util.Collections.sort(bad);
+            System.out.println("[schema-check] FAIL  " + bad.size()
+                + " scalar-or-array $ref fields did not resolve to ARRAY+itemsRef:");
+            for (String b : bad) System.out.println("    " + b);
+            fails++;
+        } else {
+            System.out.printf("[schema-check] scalar-or-array $ref fields: %d resolved to ARRAY_REF%n",
+                checked);
+        }
+        return fails;
+    }
+
+    /** True for {@code {"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}}. */
+    private static boolean isScalarOrArrayRefNode(com.google.gson.JsonObject p) {
+        if (!p.has("oneOf") || !p.get("oneOf").isJsonArray()) return false;
+        com.google.gson.JsonArray branches = p.getAsJsonArray("oneOf");
+        if (branches.size() != 2) return false;
+        String single = null, arrayItems = null;
+        for (com.google.gson.JsonElement be : branches) {
+            if (!be.isJsonObject()) return false;
+            com.google.gson.JsonObject b = be.getAsJsonObject();
+            if (b.has("$ref")) {
+                single = b.get("$ref").getAsString();
+            } else if (b.has("items") && b.get("items").isJsonObject()) {
+                com.google.gson.JsonObject items = b.getAsJsonObject("items");
+                if (!items.has("$ref")) return false;
+                arrayItems = items.get("$ref").getAsString();
+            } else {
+                return false;
+            }
+        }
+        return single != null && single.equals(arrayItems);
     }
 
     private static int auditAuxSchema(String resource, String label, String sampleId) {

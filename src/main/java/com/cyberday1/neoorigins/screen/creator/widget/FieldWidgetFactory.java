@@ -791,6 +791,29 @@ public final class FieldWidgetFactory {
         private Button addButton;
         private final List<RefRow> items = new ArrayList<>();
         private final List<JsonObject> pendingAdds = new ArrayList<>();
+        /**
+         * True when {@link #fromJson} loaded a bare action/condition OBJECT
+         * rather than an array — the scalar half of the schema's
+         * {@code oneOf:[{$ref},{array of $ref}]} idiom, which
+         * {@code SchemaFormModel} now resolves to this ARRAY_REF row so the
+         * recursive picker appears instead of a raw-JSON box.
+         *
+         * <p>Serialisation is SHAPE-PRESERVING: a field authored as a scalar
+         * writes back as a scalar (while it still holds exactly one entry) and a
+         * field authored as an array writes back as an array. That keeps a pack
+         * author's diff empty when they open a power in the creator and save it
+         * untouched — the alternative ("always emit an array") would rewrite
+         * every single-action field in every existing pack into a one-element
+         * array on first save. Adding a second entry to a scalar-shaped field
+         * promotes it to an array, the only shape that can express it.
+         *
+         * <p>A brand-new field seeds from {@link FormFieldSpec#scalarOrArray()}:
+         * scalar for the "one or many" idiom, matching both the web editor and
+         * all 259 occurrences of these keys in the built-in data, and array for
+         * a genuine array-only field (and.actions, if_else_list.actions) which
+         * has no legal scalar form at all.
+         */
+        private boolean loadedAsScalar;
 
         ArrayRefRow(FormFieldSpec spec, TypePicker typePicker, Runnable rebuildCb, RegistryPick registryPick) {
             super(spec);
@@ -799,6 +822,7 @@ public final class FieldWidgetFactory {
             this.registryPick = registryPick;
             this.itemKind = refTypeKind(spec);
             this.itemsRef = spec.itemsRef();
+            this.loadedAsScalar = spec.scalarOrArray();
         }
 
         @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
@@ -888,14 +912,31 @@ public final class FieldWidgetFactory {
             }
             for (JsonObject pending : pendingAdds) arr.add(pending);
             pendingAdds.clear();
-            return arr.size() == 0 ? null : arr;
+            if (arr.size() == 0) return null;
+            // Shape-preserving: a scalar-authored field stays scalar while it
+            // holds exactly one entry (see loadedAsScalar).
+            if (loadedAsScalar && arr.size() == 1) return arr.get(0);
+            return arr;
         }
 
         @Override public void fromJson(JsonElement el) {
             items.clear();
             if (parent == null) return;
-            if (el == null || !el.isJsonArray()) return;
-            JsonArray arr = el.getAsJsonArray();
+            if (el == null) return;
+            // Accept BOTH halves of the scalar-or-array idiom: a bare
+            // action/condition object loads as a single entry (and is remembered
+            // as scalar-shaped), an array loads element-wise.
+            JsonArray arr;
+            if (el.isJsonArray()) {
+                loadedAsScalar = false;
+                arr = el.getAsJsonArray();
+            } else if (el.isJsonObject()) {
+                loadedAsScalar = true;
+                arr = new JsonArray();
+                arr.add(el.getAsJsonObject());
+            } else {
+                return;
+            }
             int subW = Math.max(40, fieldW - INDENT);
             FormFieldSpec is = itemSpec();
             for (JsonElement itemEl : arr) {
