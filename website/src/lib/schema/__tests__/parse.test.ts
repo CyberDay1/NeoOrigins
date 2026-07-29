@@ -198,20 +198,76 @@ check('neoorigins:resource — hud_render is OBJECT with label/color/should_rend
 
 console.log('\nparsePowerSchema — D4 cross-document refs');
 
-check('neoorigins:condition_passive — condition→REF(condition), entity_action/else_action→REF(action)', () => {
+// The power schema spells these as the Apoli "one or many" idiom
+// (`oneOf: [{$ref: X}, {type: array, items: {$ref: X}}]`), NOT a bare `$ref`, so
+// they classify as ARRAY_REF with `scalarOrArray: true` — one add/remove list,
+// serialized back as a bare object when there is exactly one entry.
+check('neoorigins:condition_passive — condition→ARRAY_REF(condition), entity_action/else_action→ARRAY_REF(action)', () => {
 	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:condition_passive');
 	const cond = findField(fields, 'condition');
-	assert(cond.kind === 'REF', `condition should be REF, got ${cond.kind}`);
-	if (cond.kind === 'REF') {
+	assert(cond.kind === 'ARRAY_REF', `condition should be ARRAY_REF, got ${cond.kind}`);
+	if (cond.kind === 'ARRAY_REF') {
 		assert(cond.refDoc === 'condition', `condition.refDoc should be 'condition', got ${cond.refDoc}`);
+		assert(cond.scalarOrArray, 'condition should be flagged scalarOrArray');
 	}
 	for (const actionField of ['entity_action', 'else_action']) {
 		const f = findField(fields, actionField);
-		assert(f.kind === 'REF', `${actionField} should be REF, got ${f.kind}`);
-		if (f.kind === 'REF') {
+		assert(f.kind === 'ARRAY_REF', `${actionField} should be ARRAY_REF, got ${f.kind}`);
+		if (f.kind === 'ARRAY_REF') {
 			assert(f.refDoc === 'action', `${actionField}.refDoc should be 'action', got ${f.refDoc}`);
+			assert(f.scalarOrArray, `${actionField} should be flagged scalarOrArray`);
 		}
 	}
+});
+
+check('scalar-or-array ref fields never degrade to RawJson — whole-schema sweep', () => {
+	// Structural sweep: walk every power branch, find every property whose
+	// `oneOf` is entirely `$ref` / array-of-the-same-`$ref` branches, and assert
+	// the walker classified it as ARRAY_REF. Guards the regression where the
+	// `oneOf`→MIXED early-return shadowed the `$ref` branch and dropped all 20
+	// of these into raw-JSON textareas. Deliberately schema-content-agnostic so
+	// it keeps working as the generator adds fields.
+	const branches = (powerSchema as { oneOf?: unknown[] }).oneOf ?? [];
+	let checked = 0;
+	for (const branch of branches) {
+		if (!branch || typeof branch !== 'object') continue;
+		const b = branch as { properties?: Record<string, unknown>; $comment?: unknown };
+		const typeProp = b.properties?.['type'] as { const?: string; enum?: string[] } | undefined;
+		const typeId = typeProp?.const ?? typeProp?.enum?.[0]
+			?? (typeof b.$comment === 'string' ? b.$comment.split(/[\s\u2014]/)[0] : undefined);
+		if (!typeId) continue;
+		const scalarOrArrayNames: string[] = [];
+		for (const [name, raw] of Object.entries(b.properties ?? {})) {
+			const p = raw as { oneOf?: unknown[] } | null;
+			if (!p || typeof p !== 'object' || !Array.isArray(p.oneOf)) continue;
+			const allRefs = p.oneOf.every((o) => {
+				const e = o as { $ref?: unknown; type?: unknown; items?: { $ref?: unknown } };
+				return typeof e?.$ref === 'string'
+					|| (e?.type === 'array' && typeof e?.items?.$ref === 'string');
+			});
+			if (allRefs) scalarOrArrayNames.push(name);
+		}
+		if (scalarOrArrayNames.length === 0) continue;
+		const fields = parsePowerSchema(powerSchema, fieldDocs, typeId);
+		for (const name of scalarOrArrayNames) {
+			const f = findField(fields, name);
+			assert(f.kind === 'ARRAY_REF',
+				`${typeId}.${name} should be ARRAY_REF (scalar-or-array ref), got ${f.kind}` +
+					(f.kind === 'RawJson' ? `(${f.reason})` : ''));
+			checked++;
+		}
+	}
+	assert(checked >= 20,
+		`expected at least the 20 known scalar-or-array ref fields, swept ${checked}`);
+});
+
+check('string|object oneOf unions still fall to RawJson(MIXED)', () => {
+	// The fix must be narrow: only all-`$ref` unions get promoted. `name` /
+	// `description` (string | object) and e.g. `summon_minion.head` stay MIXED.
+	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:condition_passive');
+	const name = findField(fields, 'name');
+	assert(name.kind === 'RawJson' && name.reason === 'MIXED',
+		`name should stay RawJson(MIXED), got ${name.kind}`);
 });
 
 console.log('\nparseRefSchema');
@@ -456,11 +512,25 @@ check('action neoorigins:modify_inventory — item_action→REF(item_action)', (
 		`item_action should be REF(item_action), got ${ia.kind}/${ia.kind === 'REF' ? ia.refDoc : '—'}`);
 });
 
-check('action neoorigins:equipped_item_action — action→REF(item_action)', () => {
+check('action neoorigins:equipped_item_action — item_action→REF(item_action) + equipment_slot ENUM', () => {
 	const fields = parseRefSchema('action', actionSchema, fieldDocs, 'neoorigins:equipped_item_action');
-	const act = findField(fields, 'action');
+	// The canonical key is `item_action`. The legacy `action` key is a
+	// PARSER-ONLY alias (see the "item_action" / "action" fallback in
+	// src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java
+	// #parseEquippedItemAction) — deliberately undocumented and absent from the
+	// schema, so the editor must never advertise it.
+	const act = findField(fields, 'item_action');
 	assert(act.kind === 'REF' && act.refDoc === 'item_action',
-		`action should be REF(item_action), got ${act.kind}/${act.kind === 'REF' ? act.refDoc : '—'}`);
+		`item_action should be REF(item_action), got ${act.kind}/${act.kind === 'REF' ? act.refDoc : '—'}`);
+	const names = fields.map((f) => f.name);
+	assert(!names.includes('action'),
+		`legacy alias \`action\` must stay out of the schema (have: ${names.join(', ')})`);
+	const slot = findField(fields, 'equipment_slot');
+	assert(slot.kind === 'ENUM', `equipment_slot should be ENUM, got ${slot.kind}`);
+	if (slot.kind === 'ENUM') {
+		assert(slot.options.includes('mainhand'),
+			`equipment_slot options should include mainhand, got ${slot.options.join(', ')}`);
+	}
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

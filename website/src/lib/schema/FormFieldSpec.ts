@@ -88,6 +88,18 @@ export interface ArrayRefFieldSpec extends FieldSpecBase {
 	kind: 'ARRAY_REF';
 	/** Which sibling schema document each element refs into. */
 	refDoc: 'action' | 'condition' | 'block_condition' | 'item_condition' | 'item_action';
+	/**
+	 * True when the schema shape is the Apoli "one or many" idiom —
+	 * `{"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}` — rather than a
+	 * plain `type:array`. Authoring is identical (an add/remove list), but the
+	 * WIRE form differs: a single entry serializes back as a bare scalar object,
+	 * matching what every built-in power JSON under
+	 * `src/main/resources/data/neoorigins/powers/**` writes today (259 scalar
+	 * occurrences, 0 arrays), so opening and re-saving an untouched file produces
+	 * no diff. Two or more entries serialize as an array. See
+	 * {@link asRefList} / {@link fromRefList}.
+	 */
+	scalarOrArray: boolean;
 }
 
 /**
@@ -165,6 +177,31 @@ export function isTierA(field: FormFieldSpec): boolean {
 		field.kind === 'ENUM' ||
 		field.kind === 'STRING'
 	);
+}
+
+/**
+ * Widen an ARRAY_REF field's stored value into the list the editor edits.
+ * Arrays pass through; a bare object (the scalar half of the "one or many"
+ * idiom) becomes a one-element list; anything else (unset, `null`, a stray
+ * scalar) becomes empty. Safe to call on a plain `type:array` field too.
+ */
+export function asRefList(value: unknown): unknown[] {
+	if (Array.isArray(value)) return value;
+	if (value !== null && typeof value === 'object') return [value];
+	return [];
+}
+
+/**
+ * Narrow an edited list back into the value stored on the draft / written to
+ * the wire. Only a {@link ArrayRefFieldSpec.scalarOrArray} field with exactly
+ * one PICKED entry collapses to that bare object — a lone unpicked (`null`)
+ * slot stays an array so the row keeps rendering while the author picks a type.
+ */
+export function fromRefList(field: ArrayRefFieldSpec, list: unknown[]): unknown {
+	if (field.scalarOrArray && list.length === 1 && list[0] !== null && typeof list[0] === 'object') {
+		return list[0];
+	}
+	return list;
 }
 
 /** Default value appropriate for an empty / fresh form. */

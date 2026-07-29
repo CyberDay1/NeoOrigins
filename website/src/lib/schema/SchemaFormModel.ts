@@ -22,6 +22,10 @@
 //     walks the power document — they share one discriminated-oneOf core.
 //     Cross-document refs that target NEITHER sibling schema still fall to
 //     RawJson(REF).
+//   - The Apoli scalar-or-array idiom (`oneOf: [{$ref}, {array of the same
+//     $ref}]`, e.g. `condition_passive.condition`) is ALSO an ARRAY_REF — flagged
+//     `scalarOrArray` so a single entry serializes back as a bare object. Every
+//     other `oneOf` (string | object unions) still falls to RawJson(MIXED).
 //   - An OBJECT field with a FIXED set of inline `properties` (e.g. an item
 //     stack, an effect instance, hud_render) maps to an OBJECT spec whose
 //     `children` are the parsed sub-fields, rendered inline as a labeled
@@ -280,6 +284,46 @@ function refDocOf(ref: string, selfDoc: SelfDoc): RefDoc | null {
 	return null;
 }
 
+/**
+ * Detect the Apoli scalar-or-array idiom — "accept one action/condition, or a
+ * list of them" — spelled in the generated schema as
+ * `{"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}`.
+ *
+ * Structural, not name-driven: EVERY branch must be either a bare `$ref` or an
+ * `array` of `$ref`, at least one of each must be present, and all of them must
+ * resolve (via {@link refDocOf}) to the SAME sibling document. Any other mix —
+ * a `string | object` union, a `$ref` paired with a scalar type, two different
+ * ref targets — returns `null` so the caller keeps the RawJson(MIXED) fallback.
+ *
+ * @returns The shared {@link RefDoc}, or `null` when the shape doesn't match.
+ */
+function scalarOrArrayRefDoc(branches: JsonValue[], selfDoc: SelfDoc): RefDoc | null {
+	if (branches.length < 2) return null;
+	let shared: RefDoc | null = null;
+	let sawScalar = false;
+	let sawArray = false;
+	for (const branch of branches) {
+		if (!isObject(branch)) return null;
+		let ref: string;
+		if (typeof branch['$ref'] === 'string') {
+			ref = branch['$ref'] as string;
+			sawScalar = true;
+		} else if (branch['type'] === 'array') {
+			const items = branch['items'];
+			if (!isObject(items) || typeof items['$ref'] !== 'string') return null;
+			ref = items['$ref'] as string;
+			sawArray = true;
+		} else {
+			return null; // a non-ref branch (string, number, free object) → MIXED
+		}
+		const doc = refDocOf(ref, selfDoc);
+		if (!doc) return null; // unknown cross-document ref → MIXED
+		if (shared !== null && shared !== doc) return null; // heterogeneous union → MIXED
+		shared = doc;
+	}
+	return sawScalar && sawArray ? shared : null;
+}
+
 function mapProperty(
 	root: JsonObject,
 	name: string,
@@ -317,9 +361,29 @@ function mapProperty(
 		return spec;
 	}
 
-	// `oneOf` without a per-branch `$comment` discriminator → RawJson MIXED.
-	// (e.g. the common `name` / `description` fields which are string | object.)
+	// `oneOf` — two shapes reach here.
+	//
+	// 1. The Apoli "one or many" idiom,
+	//    `{"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}` — every
+	//    branch targets the SAME sibling action/condition document, so this is
+	//    an ARRAY_REF flagged `scalarOrArray`: the author gets the recursive
+	//    sub-form picker and can add one entry or many. This MUST be tested
+	//    before the bare-`$ref` branch below, which the shape never reaches
+	//    (there is no top-level `$ref` key here, only nested in `oneOf`).
+	// 2. Anything else — e.g. the common `name` / `description` fields, which are
+	//    string | object — has no per-branch `$comment` discriminator and stays
+	//    a RawJson MIXED textarea.
 	if (Array.isArray(p['oneOf'])) {
+		const oneOfRefDoc = scalarOrArrayRefDoc(p['oneOf'] as JsonValue[], selfDoc);
+		if (oneOfRefDoc) {
+			const spec: ArrayRefFieldSpec = {
+				...base,
+				kind: 'ARRAY_REF',
+				refDoc: oneOfRefDoc,
+				scalarOrArray: true
+			};
+			return spec;
+		}
 		return rawJsonOf(base, 'MIXED', p['default']);
 	}
 
@@ -370,7 +434,12 @@ function mapProperty(
 				if (isObject(items) && typeof items['$ref'] === 'string') {
 					const refDoc = refDocOf(items['$ref'] as string, selfDoc);
 					if (refDoc) {
-						const spec: ArrayRefFieldSpec = { ...base, kind: 'ARRAY_REF', refDoc };
+						const spec: ArrayRefFieldSpec = {
+							...base,
+							kind: 'ARRAY_REF',
+							refDoc,
+							scalarOrArray: false
+						};
 						return spec;
 					}
 				}

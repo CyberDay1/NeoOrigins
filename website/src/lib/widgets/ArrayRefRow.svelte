@@ -6,16 +6,23 @@
 	// editing and the bind↔callback bridge; every edit bubbles up as a NEW array
 	// reference (the adapter only re-fires on reference change). The bound value
 	// is an array of nested action/condition OBJECTs.
+	//
+	// `field.scalarOrArray` fields (the Apoli "one or many" idiom) bind a BARE
+	// object when there is exactly one picked entry, so a round-trip of an
+	// existing power JSON — which writes the scalar form — comes back byte-equal.
+	// `asRefList` widens whatever arrives into the list this row edits;
+	// `fromRefList` narrows it again on every mutation.
 
 	import type { ArrayRefFieldSpec, RefFieldSpec } from '$lib/schema/FormFieldSpec';
+	import { asRefList, fromRefList } from '$lib/schema/FormFieldSpec';
 	import FieldRowAdapter from '$lib/components/power/FieldRowAdapter.svelte';
 
 	let {
 		field,
 		value = $bindable()
-	}: { field: ArrayRefFieldSpec; value: unknown[] | null } = $props();
+	}: { field: ArrayRefFieldSpec; value: unknown } = $props();
 
-	const items = $derived(Array.isArray(value) ? value : []);
+	const items = $derived(asRefList(value));
 
 	const id = $derived(`arr-${field.path.replace(/[^a-zA-Z0-9_-]/g, '-')}`);
 
@@ -31,16 +38,20 @@
 		};
 	}
 
+	function commit(next: unknown[]) {
+		value = fromRefList(field, next);
+	}
+
 	function addElem() {
-		value = [...items, null];
+		commit([...items, null]);
 	}
 
 	function setElem(i: number, v: unknown) {
-		value = items.map((el, j) => (j === i ? v : el));
+		commit(items.map((el, j) => (j === i ? v : el)));
 	}
 
 	function removeElem(i: number) {
-		value = items.filter((_, j) => j !== i);
+		commit(items.filter((_, j) => j !== i));
 	}
 </script>
 

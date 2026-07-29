@@ -6,7 +6,8 @@
 // State node shape (Blockly v12):
 //   { type, id?, x?, y?, fields?: {NAME: value}, inputs?: {NAME: {block}}, next?: {block} }
 
-import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
+import type { ArrayRefFieldSpec, FormFieldSpec } from '$lib/schema/FormFieldSpec';
+import { asRefList, fromRefList } from '$lib/schema/FormFieldSpec';
 import type { PowerDraft } from '$lib/stores/originDraft';
 import {
 	BLOCK_COND_ITEM_TYPE,
@@ -179,8 +180,11 @@ function fillNode(
 			// condition / block_condition / item_condition array → stack of wrapper
 			// blocks. The wrapper type depends on the list's element kind (CondItem
 			// holds a Condition value, BlockCondItem a BlockCondition, ItemCondItem
-			// an ItemCondition).
-			if (Array.isArray(v)) {
+			// an ItemCondition). `asRefList` also admits the bare-object scalar half
+			// of the "one or many" idiom, so e.g. a `condition: {…}` on an existing
+			// power loads into the stack instead of being silently dropped.
+			const condList = asRefList(v);
+			if (condList.length > 0) {
 				const wrapperType =
 					r.kind === 'statement' && r.check === 'BlockCondItem'
 						? BLOCK_COND_ITEM_TYPE
@@ -189,7 +193,7 @@ function fillNode(
 							: COND_ITEM_TYPE;
 				const itemKind = kindForCheck(r.kind === 'statement' ? r.check : 'CondItem');
 				const items: BlockState[] = [];
-				for (const el of v) {
+				for (const el of condList) {
 					if (!el || typeof el !== 'object') continue;
 					const child = buildNode(reg, itemKind, el as Record<string, unknown>);
 					if (!child) continue;
@@ -302,7 +306,7 @@ function readInto(
 					if (node) arr.push(node);
 					cur = cur.next?.block;
 				}
-				out[f.name] = arr;
+				out[f.name] = fromRefList(f, arr);
 			} else if (head) {
 				// single action ref — take the first block only
 				const node = readNode(reg, head);
@@ -330,7 +334,9 @@ function readInto(
 				}
 				cur = cur.next?.block;
 			}
-			out[f.name] = arr;
+			// Only ARRAY_REF fields render as a wrapper stack (a single condition
+			// REF is a `value` input), so collapsing via the spec is safe here.
+			out[f.name] = f.kind === 'ARRAY_REF' ? fromRefList(f as ArrayRefFieldSpec, arr) : arr;
 		}
 	}
 }
