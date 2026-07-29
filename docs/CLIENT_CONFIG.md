@@ -9,6 +9,41 @@ The file is created with defaults on first launch. Edit it while the game is
 closed, or change values in-game via the mod's config screen (Mods → NeoOrigins
 → Config) where exposed.
 
+## Built-in keybinds
+
+These are ordinary keybinds, not config values — rebind any of them in
+*Controls → Key Binds → NeoOrigins*. Defaults are chosen to stay clear of
+vanilla bindings; slots left unbound are for players who want them.
+
+| Binding | Default | What it does |
+|---|---|---|
+| Skill 1 | **V** | Fires the first active ability granted by your origin. |
+| Skill 2 | **G** | Second active ability. |
+| Skill 3 | **N** | Third active ability. |
+| Skill 4 | **B** | Fourth active ability. |
+| Skill 5 | unbound | Fifth active ability. |
+| Skill 6 | unbound | Sixth active ability. |
+| Class Skill | **H** | Fires your class's active ability, separate from the six origin slots. |
+| View Origin Info | **O** | Opens the origin/class info screen. |
+| Toggle Night Vision | **K** | Personal on/off switch for origin-granted night vision. |
+| Edit HUD | unbound | Opens HUD layout editing. |
+| Open Origin Creator | unbound | Pack-authoring tool; server-gated. |
+| Open Mob Origin Creator | unbound | Pack-authoring tool; server-gated. |
+
+**Toggle Night Vision** exists because some origins (Caveborn, Feline, Phantom
+and friends) light the world up permanently, which a few players find worse than
+the dark. Night vision starts **on**, so if you never press K you never notice
+the key. Pressing it toggles only *your* view — it does not touch the power, the
+origin, or anyone else, and it survives relogging.
+
+It cannot turn night vision *on* where the server hasn't granted it. If a server
+sets `disable_night_vision = true` (see
+[CONTENT_CONFIG.md](CONTENT_CONFIG.md#global-toggles)), pressing K just reports
+that night vision is disabled there.
+
+Pack-declared abilities beyond the six origin slots land in a second category,
+*NeoOrigins (Hotkeys)* — see [`[hotkeys]`](#hotkeys) below.
+
 ## `[ui]` — selection / info screens
 
 | Option | Type | Default | Description |
