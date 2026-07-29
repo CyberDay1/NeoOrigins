@@ -51,6 +51,16 @@ public class CraftingMenuCraftAmountMixin {
         if (!(player instanceof net.minecraft.server.level.ServerPlayer sp)) return;
         net.minecraft.world.item.ItemStack result = resultSlots.getItem(0);
         if (result.isEmpty()) return;
+        // Blacksmith "Quality Craftsmanship": apply the quality buff to the
+        // assembled result slot IN PLACE so BOTH take paths carry it. On a normal
+        // click-take the ItemCraftedEvent post-mutation sticks, but on shift-click
+        // vanilla quickMoveStack merges the crafted stack into the inventory before
+        // that event fires, losing the mutation. Buffing the result slot at
+        // assembly makes click-take and shift-click identical. Idempotent
+        // (onItemCrafted strips per-modifier + writes a durability marker), so it
+        // co-exists with the still-registered ItemCraftedEvent path; no setItem to
+        // avoid re-entrant grid recomputes, matching the count-scaling below.
+        com.cyberday1.neoorigins.event.CraftingPowerEvents.applyQualityAttributes(sp, result);
         float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_CRAFT_AMOUNT,
             result, result.getCount());

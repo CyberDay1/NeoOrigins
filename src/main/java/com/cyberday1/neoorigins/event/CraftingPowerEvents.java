@@ -161,8 +161,17 @@ public class CraftingPowerEvents {
      * Applies blacksmith quality attributes to freshly crafted items.
      * Only fires at craft time — items from enchanting tables, anvils, loot, or
      * trades are left untouched.
+     *
+     * <p>Public so {@link com.cyberday1.neoorigins.mixin.CraftingMenuCraftAmountMixin}
+     * can apply the buff to the assembled result slot itself — covering the
+     * shift-click take path, where vanilla {@code quickMoveStack} distributes the
+     * result into the inventory BEFORE {@code ItemCraftedEvent} fires, so the
+     * post-hoc event mutation would land on an already-merged stack and be lost.
+     * The underlying {@link QualityEquipmentPower#onItemCrafted} is idempotent
+     * (per-modifier strip + durability marker), so double-application via both the
+     * event and this seam is safe.
      */
-    private static void applyQualityAttributes(ServerPlayer sp, ItemStack result) {
+    public static void applyQualityAttributes(ServerPlayer sp, ItemStack result) {
         ActiveOriginService.forEachOfType(sp, QualityEquipmentPower.class,
             config -> QualityEquipmentPower.onItemCrafted(sp, result, config));
     }
