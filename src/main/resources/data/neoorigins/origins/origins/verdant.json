@@ -38,7 +38,8 @@
         "neoorigins:verdant_apex_regeneration"
       ],
       "remove": [
-        "neoorigins:verdant_ascended_hp"
+        "neoorigins:verdant_ascended_hp",
+        "neoorigins:verdant_forest_regen"
       ]
     }
   ]

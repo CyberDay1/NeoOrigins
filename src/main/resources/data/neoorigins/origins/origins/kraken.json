@@ -48,7 +48,8 @@
         "neoorigins:kraken_apex_conduit_power"
       ],
       "remove": [
-        "neoorigins:kraken_ascended_hp"
+        "neoorigins:kraken_ascended_hp",
+        "neoorigins:kraken_water_breathing"
       ]
     }
   ],
