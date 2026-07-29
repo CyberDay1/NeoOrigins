@@ -468,9 +468,19 @@ public final class LegacyPowerTypeAliases {
                     json.addProperty("toggleable", false);
                 });
 
-        // night_vision: always-on, no HUD icon, no toggle. The toggle UX lives
-        // on neoorigins:enhanced_vision; basic night_vision is meant to be
-        // permanently on for origins that have it.
+        // night_vision: no HUD icon, and toggleable:false — which here means "no
+        // SKILL-SLOT toggle", not "no toggle at all". Keeping it false is load
+        // bearing: a toggleable persistent_effect counts as an active power, so
+        // it claims one of the six ability slots and answers to the skill keys.
+        // That is precisely how night vision used to get switched off by a stray
+        // keypress and get reported as broken.
+        //
+        // Players turn night vision on and off with the dedicated "Toggle Night
+        // Vision" keybind instead. That flips one per-player flag which
+        // PersistentEffectPower consults for every minecraft:night_vision effect
+        // spec, so an origin with base/evolved/ascended night-vision powers still
+        // takes exactly one keypress. Do not set toggleable:true here to "add a
+        // toggle" — the toggle already exists, off the slot system.
         register(Identifier.fromNamespaceAndPath("neoorigins", "night_vision"),
                  ID_PERSISTENT_EFFECT, (json, powerId) -> {
                     writeSingleEffect(json, "minecraft:night_vision", false);

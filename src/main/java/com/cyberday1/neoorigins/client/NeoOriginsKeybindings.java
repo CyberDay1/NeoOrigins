@@ -93,6 +93,25 @@ public class NeoOriginsKeybindings {
         NEOORIGINS_CATEGORY
     );
 
+
+    /**
+     * Night-vision master switch. Deliberately its OWN binding rather than an
+     * {@code active_ability} slot: routing it through the skill-slot system is
+     * what broke it last time — it ate one of the six slots and the first stray
+     * Skill-1 press after picking an origin silently killed night vision, which
+     * testers reported as "night vision doesn't work".
+     *
+     * <p>Bound to K by default: free in vanilla, free in this mod's own bindings
+     * (V/G/N/B/H/O are taken), and far from the movement cluster so it isn't hit
+     * by accident. Night vision starts ON regardless, so a player who never
+     * touches this key never notices it exists.
+     */
+    public static final KeyMapping TOGGLE_NIGHT_VISION = new KeyMapping(
+        "key.neoorigins.toggle_night_vision",
+        GLFW.GLFW_KEY_K,
+        NEOORIGINS_CATEGORY
+    );
+
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.registerCategory(NEOORIGINS_CATEGORY);
         event.register(SKILL_1);
@@ -106,6 +125,7 @@ public class NeoOriginsKeybindings {
         event.register(EDIT_HUD);
         event.register(OPEN_CREATOR);
         event.register(OPEN_MOB_CREATOR);
+        event.register(TOGGLE_NIGHT_VISION);
 
         // Build the named-hotkey pool from config. Each slot has translation key
         // "key.neoorigins.hotkey.<n>" (1-indexed for player friendliness) — lang

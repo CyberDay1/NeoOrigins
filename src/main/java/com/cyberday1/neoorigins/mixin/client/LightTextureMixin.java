@@ -51,7 +51,14 @@ public abstract class LightTextureMixin {
     )
     private void neoorigins$boostNightVisionFloor(LightmapRenderState renderState, float partialTicks, CallbackInfo ci) {
         if (!renderState.needsUpdate) return;
+        // Capability granted AND the player hasn't switched night vision off with
+        // the dedicated keybind. The status-effect flavour is gated server-side
+        // (the effect stops being applied); this boost is computed entirely on the
+        // client, so the toggle has to be consulted here for the key to mean the
+        // same thing on both paths. Defaults to enabled — nothing changes for a
+        // player who never presses it.
         if (!ClientActivePowers.hasCapability("enhanced_vision")) return;
+        if (!com.cyberday1.neoorigins.client.ClientNightVisionState.isEnabled()) return;
         // Preserve the larger of vanilla's value (e.g. real NIGHT_VISION potion at max)
         // and our exposure floor — origins:enhanced_vision adds, never subtracts.
         renderState.nightVisionEffectIntensity =
