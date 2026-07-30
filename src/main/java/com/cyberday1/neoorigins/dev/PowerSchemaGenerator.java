@@ -46,6 +46,11 @@ import java.util.TreeSet;
  *
  * <p>Invoke via {@code ./gradlew generatePowerSchema} or:
  * <pre>./gradlew generatePowerSchema --args="docs/schema/power.schema.json"</pre>
+ *
+ * <p>A second argument names the file to read the header / preserved branches
+ * FROM, letting the output go somewhere else — that is how {@code schemaDriftVerify}
+ * regenerates into a temp file and byte-compares without touching the committed
+ * one. Omitted, it is the output path itself (regenerate in place).
  */
 public final class PowerSchemaGenerator {
 
@@ -67,16 +72,17 @@ public final class PowerSchemaGenerator {
 
     public static void main(String[] args) throws IOException {
         Path output = Path.of(args.length > 0 ? args[0] : DEFAULT_OUTPUT);
+        Path headerSource = args.length > 1 ? Path.of(args[1]) : output;
 
         // The current committed file is the source for (a) the verbatim header,
         // (b) the verbatim `type` description + the three common-field fragments,
         // and (c) the two preserved branch objects (particle / starting_equipment).
         JsonObject current;
         try {
-            current = JsonParser.parseString(Files.readString(output, StandardCharsets.UTF_8))
+            current = JsonParser.parseString(Files.readString(headerSource, StandardCharsets.UTF_8))
                 .getAsJsonObject();
         } catch (Exception e) {
-            throw new IOException("Cannot read current schema at " + output
+            throw new IOException("Cannot read current schema at " + headerSource
                 + " (needed for header + preserved branches): " + e.getMessage(), e);
         }
         JsonObject currentProps = current.getAsJsonObject("properties");
