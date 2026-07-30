@@ -17,6 +17,7 @@
         "apace:action_on_block_break",
         "apace:action_on_block_use",
         "apace:action_on_callback",
+        "apace:action_on_death",
         "apace:action_on_entity_use",
         "apace:action_on_hit",
         "apace:action_on_item_use",
@@ -67,11 +68,13 @@
         "apace:modify_falling",
         "apace:modify_food",
         "apace:modify_harvest",
+        "apace:modify_healing",
         "apace:modify_jump",
         "apace:modify_lava_speed",
         "apace:modify_player_spawn",
         "apace:modify_projectile_damage",
         "apace:modify_status_effect_amplifier",
+        "apace:modify_status_effect_duration",
         "apace:modify_swim_speed",
         "apace:modify_velocity",
         "apace:modify_xp_gain",
@@ -117,6 +120,7 @@
         "apoli:action_on_block_break",
         "apoli:action_on_block_use",
         "apoli:action_on_callback",
+        "apoli:action_on_death",
         "apoli:action_on_entity_use",
         "apoli:action_on_hit",
         "apoli:action_on_item_use",
@@ -169,11 +173,13 @@
         "apoli:modify_falling",
         "apoli:modify_food",
         "apoli:modify_harvest",
+        "apoli:modify_healing",
         "apoli:modify_jump",
         "apoli:modify_lava_speed",
         "apoli:modify_player_spawn",
         "apoli:modify_projectile_damage",
         "apoli:modify_status_effect_amplifier",
+        "apoli:modify_status_effect_duration",
         "apoli:modify_swim_speed",
         "apoli:modify_velocity",
         "apoli:modify_xp_gain",
@@ -219,6 +225,7 @@
         "apugli:action_on_block_break",
         "apugli:action_on_block_use",
         "apugli:action_on_callback",
+        "apugli:action_on_death",
         "apugli:action_on_entity_use",
         "apugli:action_on_hit",
         "apugli:action_on_item_use",
@@ -271,11 +278,13 @@
         "apugli:modify_falling",
         "apugli:modify_food",
         "apugli:modify_harvest",
+        "apugli:modify_healing",
         "apugli:modify_jump",
         "apugli:modify_lava_speed",
         "apugli:modify_player_spawn",
         "apugli:modify_projectile_damage",
         "apugli:modify_status_effect_amplifier",
+        "apugli:modify_status_effect_duration",
         "apugli:modify_swim_speed",
         "apugli:modify_velocity",
         "apugli:modify_xp_gain",
@@ -471,6 +480,7 @@
         "origins:action_on_block_break",
         "origins:action_on_block_use",
         "origins:action_on_callback",
+        "origins:action_on_death",
         "origins:action_on_entity_use",
         "origins:action_on_hit",
         "origins:action_on_item_use",
@@ -523,11 +533,13 @@
         "origins:modify_falling",
         "origins:modify_food",
         "origins:modify_harvest",
+        "origins:modify_healing",
         "origins:modify_jump",
         "origins:modify_lava_speed",
         "origins:modify_player_spawn",
         "origins:modify_projectile_damage",
         "origins:modify_status_effect_amplifier",
+        "origins:modify_status_effect_duration",
         "origins:modify_swim_speed",
         "origins:modify_velocity",
         "origins:modify_xp_gain",
@@ -607,6 +619,447 @@
     }
   },
   "oneOf": [
+    {
+      "$comment": "apace:action_on_death",
+      "properties": {
+        "type": {
+          "const": "apace:action_on_death"
+        },
+        "entity_action": {
+          "description": "EntityAction run on the dying holder.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "bientity_action": {
+          "description": "Bi-entity action run with actor = the dying holder and target = the killer. Skipped entirely when the death had no living attacker (fall, drowning, /kill).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder, tested at death time (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apace:modify_healing",
+      "properties": {
+        "type": {
+          "const": "apace:modify_healing"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apace:modify_status_effect_duration",
+      "properties": {
+        "type": {
+          "const": "apace:modify_status_effect_duration"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apoli:action_on_death",
+      "properties": {
+        "type": {
+          "const": "apoli:action_on_death"
+        },
+        "entity_action": {
+          "description": "EntityAction run on the dying holder.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "bientity_action": {
+          "description": "Bi-entity action run with actor = the dying holder and target = the killer. Skipped entirely when the death had no living attacker (fall, drowning, /kill).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder, tested at death time (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apoli:modify_healing",
+      "properties": {
+        "type": {
+          "const": "apoli:modify_healing"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apoli:modify_status_effect_duration",
+      "properties": {
+        "type": {
+          "const": "apoli:modify_status_effect_duration"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:action_on_death",
+      "properties": {
+        "type": {
+          "const": "apugli:action_on_death"
+        },
+        "entity_action": {
+          "description": "EntityAction run on the dying holder.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "bientity_action": {
+          "description": "Bi-entity action run with actor = the dying holder and target = the killer. Skipped entirely when the death had no living attacker (fall, drowning, /kill).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder, tested at death time (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:modify_healing",
+      "properties": {
+        "type": {
+          "const": "apugli:modify_healing"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:modify_status_effect_duration",
+      "properties": {
+        "type": {
+          "const": "apugli:modify_status_effect_duration"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
     {
       "$comment": "neoorigins:action_on_event",
       "properties": {
@@ -6194,11 +6647,167 @@
       ]
     },
     {
+      "$comment": "origins:action_on_death",
+      "properties": {
+        "type": {
+          "const": "origins:action_on_death"
+        },
+        "entity_action": {
+          "description": "EntityAction run on the dying holder.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "bientity_action": {
+          "description": "Bi-entity action run with actor = the dying holder and target = the killer. Skipped entirely when the death had no living attacker (fall, drowning, /kill).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder, tested at death time (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:modify_healing",
+      "properties": {
+        "type": {
+          "const": "origins:modify_healing"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:modify_status_effect_duration",
+      "properties": {
+        "type": {
+          "const": "origins:modify_status_effect_duration"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
           "not": {
             "enum": [
+              "apace:action_on_death",
+              "apace:modify_healing",
+              "apace:modify_status_effect_duration",
+              "apoli:action_on_death",
+              "apoli:modify_healing",
+              "apoli:modify_status_effect_duration",
+              "apugli:action_on_death",
+              "apugli:modify_healing",
+              "apugli:modify_status_effect_duration",
               "neoorigins:action_on_event",
               "neoorigins:action_on_hit",
               "neoorigins:action_on_hit_taken",
@@ -6346,7 +6955,10 @@
               "neoorigins:wall_climbing",
               "neoorigins:water_breathing",
               "neoorigins:wraith_phase",
-              "neoorigins:xeno_passive"
+              "neoorigins:xeno_passive",
+              "origins:action_on_death",
+              "origins:modify_healing",
+              "origins:modify_status_effect_duration"
             ]
           }
         }

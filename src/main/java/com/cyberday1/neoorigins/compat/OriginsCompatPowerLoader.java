@@ -126,6 +126,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:shaking",              "apace:shaking",
         "apoli:overlay",
         "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
+        "origins:modify_status_effect_duration", "apace:modify_status_effect_duration",
+        "origins:modify_healing",       "apace:modify_healing",
+        "origins:action_on_death",      "apace:action_on_death",
         "origins:modify_falling",       "apace:modify_falling",
         "origins:modify_fall_damage",   "apace:modify_fall_damage",
         "origins:modify_velocity",      "apace:modify_velocity",
@@ -721,6 +724,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:shaking",                    "apace:shaking"                    -> parseShaking(id, json);
             case "apoli:overlay"                                                          -> parseOverlay(id, json);
             case "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier" -> parseModifyEffectAmplifier(id, json);
+            case "origins:modify_status_effect_duration", "apace:modify_status_effect_duration" -> parseModifyEffectDuration(id, json);
+            case "origins:modify_healing",             "apace:modify_healing"             -> parseModifyHealing(id, json);
+            case "origins:action_on_death",            "apace:action_on_death"            -> parseActionOnDeath(id, json);
             case "origins:modify_falling",             "apace:modify_falling"             -> parseModifyFalling(id, json);
             case "origins:modify_fall_damage",         "apace:modify_fall_damage"         -> parseModifyFallDamage(id, json);
             case "origins:modify_velocity",            "apace:modify_velocity"            -> parseModifyVelocity(id, json);
@@ -2612,6 +2618,213 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
             }
             if (perPower.isEmpty()) FALL_DAMAGE_TOKENS.remove(player.getUUID());
+        }
+    }
+
+    /**
+     * Per-player {@link com.cyberday1.neoorigins.service.EventPowerIndex} tokens
+     * for the legacy modifier-seam compat powers, keyed by
+     * {@code EVENT|powerId} so one power may hold handlers on several seams and
+     * each unregisters only its own. Same bookkeeping as {@link
+     * #FALL_DAMAGE_TOKENS}; see {@link #registerLegacyModifier} for the
+     * idempotent-re-grant rationale.
+     */
+    private static final java.util.Map<java.util.UUID,
+        java.util.Map<String, com.cyberday1.neoorigins.service.EventPowerIndex.Token>>
+        LEGACY_MODIFIER_TOKENS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Register a condition-gated numeric modifier on one of the EventPowerIndex
+     * modifier seams. Idempotent re-grant: any prior handler for the same
+     * (event, power id) is dropped first, so login / respawn / origin-swap
+     * cannot stack duplicates (the ActionOnEventPower leak-guard).
+     *
+     * <p>The op→number math goes through {@link OriginsModifierMath}, NOT
+     * {@link com.cyberday1.neoorigins.compat.modifier.ModifierParser}. That is
+     * deliberate: these two power types are 1.16–1.18-vintage Origins, whose
+     * modifier objects use the attribute-style operation names
+     * {@code multiply_base} / {@code multiply_total} / {@code addition}.
+     * ModifierParser only cases the modern Apoli names
+     * ({@code multiply_base_additive} and friends) and returns identity for
+     * anything else, so routing these through it would make every real-world
+     * use of both types a silent no-op.
+     */
+    private static void registerLegacyModifier(ServerPlayer player, String idStr,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event event,
+            java.util.List<OriginsModifierMath.Modifier> mods, EntityCondition condition) {
+        String key = event.name() + '|' + idStr;
+        var perPower = LEGACY_MODIFIER_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var existing = perPower.remove(key);
+            if (existing != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(existing);
+            }
+        }
+        com.cyberday1.neoorigins.service.EventPowerIndex.ModifierHandler handler =
+            (sp, ctx, base) -> {
+                try {
+                    if (!condition.test(sp)) return base;
+                    double out = OriginsModifierMath.apply(base, mods);
+                    // Defence-in-depth: a pack that writes a non-finite value must
+                    // not be able to poison a heal amount or an effect duration.
+                    if (!Double.isFinite(out)) return base;
+                    return (float) out;
+                } catch (Exception e) {
+                    NeoOrigins.LOGGER.warn("[CompatB] {} handler error ({}): {}",
+                        event, idStr, e.getMessage());
+                    return base;
+                }
+            };
+        var tok = com.cyberday1.neoorigins.service.EventPowerIndex.registerModifier(
+            player, event, handler);
+        LEGACY_MODIFIER_TOKENS.computeIfAbsent(player.getUUID(),
+            k -> new java.util.concurrent.ConcurrentHashMap<>()).put(key, tok);
+    }
+
+    private static void unregisterLegacyModifier(ServerPlayer player, String idStr,
+            com.cyberday1.neoorigins.service.EventPowerIndex.Event event) {
+        var perPower = LEGACY_MODIFIER_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var tok = perPower.remove(event.name() + '|' + idStr);
+            if (tok != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
+            }
+            if (perPower.isEmpty()) LEGACY_MODIFIER_TOKENS.remove(player.getUUID());
+        }
+    }
+
+    /**
+     * {@code origins:modify_healing} — scales health the holder regains.
+     *
+     * <p>Rides the existing MOD_NATURAL_REGEN seam, which
+     * {@link com.cyberday1.neoorigins.event.WorldPowerEvents#onLivingHeal}
+     * dispatches from {@code LivingHealEvent} with the heal amount as the base.
+     * That event covers <em>all</em> healing (natural regeneration, potions,
+     * golden apples, {@code /heal}), which is exactly Apoli's
+     * {@code modify_healing} contract — the seam's enum comment calls it
+     * "natural heal" for its original caller, but the hook itself is not
+     * restricted to natural regen.
+     */
+    private CompatPower.Config parseModifyHealing(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        java.util.List<OriginsModifierMath.Modifier> mods = parseModifierList(json, "modifier");
+        if (mods.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_healing '{}' missing modifier/modifiers — skipped", id);
+            CompatTranslationLog.skip(id, "origins:modify_healing", "missing 'modifier'/'modifiers'");
+            return null;
+        }
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        return CompatPower.Config.builder()
+            .onGranted(player -> registerLegacyModifier(player, idStr,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_NATURAL_REGEN, mods, condition))
+            .onRevoked(player -> unregisterLegacyModifier(player, idStr,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_NATURAL_REGEN))
+            .build();
+    }
+
+    /**
+     * {@code origins:modify_status_effect_duration} — scales the duration of
+     * mob effects applied to the holder.
+     *
+     * <p>Rides the MOD_POTION_DURATION seam that
+     * {@link com.cyberday1.neoorigins.event.CombatPowerEvents} dispatches from
+     * {@code MobEffectEvent.Added}. Note the base there is {@code 1.0f} — the
+     * seam collects a <em>multiplier</em> which the dispatch site then applies
+     * to the instance's duration — so {@code multiply_total 0.5} yields 1.5x
+     * and reads as "effects last 50% longer", matching how packs describe it.
+     * The scale applies to every effect added to the holder; no per-effect
+     * filter is offered because the corpus does not use one and the field name
+     * Apoli would spell it with is unverified here.
+     */
+    private CompatPower.Config parseModifyEffectDuration(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        java.util.List<OriginsModifierMath.Modifier> mods = parseModifierList(json, "modifier");
+        if (mods.isEmpty()) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_status_effect_duration '{}' missing modifier/modifiers — skipped", id);
+            CompatTranslationLog.skip(id, "origins:modify_status_effect_duration", "missing 'modifier'/'modifiers'");
+            return null;
+        }
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        return CompatPower.Config.builder()
+            .onGranted(player -> registerLegacyModifier(player, idStr,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_POTION_DURATION, mods, condition))
+            .onRevoked(player -> unregisterLegacyModifier(player, idStr,
+                com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_POTION_DURATION))
+            .build();
+    }
+
+    /** Per-player DEATH handler tokens for {@code action_on_death}, keyed by power id. */
+    private static final java.util.Map<java.util.UUID,
+        java.util.Map<String, com.cyberday1.neoorigins.service.EventPowerIndex.Token>>
+        DEATH_ACTION_TOKENS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * {@code origins:action_on_death} — fires when the HOLDER dies.
+     * {@code entity_action} runs on the dying holder; {@code bientity_action}
+     * runs with (actor = the holder, target = the killer), Apoli's pairing.
+     *
+     * <p>Rides the existing DEATH seam rather than adding a {@code CompatPower}
+     * hook: {@code CombatPowerEvents.onLivingDeath} already dispatches
+     * {@code Event.DEATH} with the cancellable {@code LivingDeathEvent} itself
+     * as the context, which is what carries the {@code DamageSource} the killer
+     * is read from. Registration follows {@link #registerFallDamageHandler}'s
+     * per-power token bookkeeping so a re-grant cannot stack handlers.
+     *
+     * <p>The bientity half is skipped when the death had no living attacker
+     * (fall, drowning, {@code /kill}) — there is no target to pair with, and
+     * running the action against the holder would invert its meaning.
+     */
+    private CompatPower.Config parseActionOnDeath(ResourceLocation id, JsonObject json) {
+        String idStr = id.toString();
+        EntityAction action = parseActionField(json, "entity_action", idStr);
+        com.cyberday1.neoorigins.compat.action.BiEntityAction biAction =
+            parseBiEntityActionField(json, "bientity_action", idStr);
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        return CompatPower.Config.builder()
+            .onGranted(player -> registerDeathActionHandler(player, idStr, action, biAction, condition))
+            .onRevoked(player -> unregisterDeathActionHandler(player, idStr))
+            .build();
+    }
+
+    private static void registerDeathActionHandler(ServerPlayer player, String idStr,
+            EntityAction action, com.cyberday1.neoorigins.compat.action.BiEntityAction biAction,
+            EntityCondition condition) {
+        var perPower = DEATH_ACTION_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var existing = perPower.remove(idStr);
+            if (existing != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(existing);
+            }
+        }
+        com.cyberday1.neoorigins.service.EventPowerIndex.Handler handler = (sp, ctx) -> {
+            try {
+                if (!condition.test(sp)) return;
+                action.execute(sp);
+                if (biAction == com.cyberday1.neoorigins.compat.action.BiEntityAction.NOOP) return;
+                if (ctx instanceof net.neoforged.neoforge.event.entity.living.LivingDeathEvent de
+                        && de.getSource().getEntity() instanceof net.minecraft.world.entity.LivingEntity killer
+                        && killer != sp) {
+                    biAction.execute(sp, killer);
+                }
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.warn("[CompatB] action_on_death handler error ({}): {}",
+                    idStr, e.getMessage());
+            }
+        };
+        var tok = com.cyberday1.neoorigins.service.EventPowerIndex.register(
+            player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.DEATH, handler);
+        DEATH_ACTION_TOKENS.computeIfAbsent(player.getUUID(),
+            k -> new java.util.concurrent.ConcurrentHashMap<>()).put(idStr, tok);
+    }
+
+    private static void unregisterDeathActionHandler(ServerPlayer player, String idStr) {
+        var perPower = DEATH_ACTION_TOKENS.get(player.getUUID());
+        if (perPower != null) {
+            var tok = perPower.remove(idStr);
+            if (tok != null) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.unregister(tok);
+            }
+            if (perPower.isEmpty()) DEATH_ACTION_TOKENS.remove(player.getUUID());
         }
     }
 

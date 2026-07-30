@@ -1103,6 +1103,78 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
 
 ---
 
+## `origins:modify_healing`
+
+Scales health the holder regains. This is an Apoli compat (Route B) verb — there is no native `neoorigins:` healing-modifier type. It reuses the existing native seam: the loader registers a `mod_natural_regen` modifier handler, which `WorldPowerEvents.onLivingHeal` chains onto `LivingHealEvent`. That event fires for **all** healing, not just natural regeneration — potions, golden apples and `/heal` go through it too — which matches Apoli's contract for this type.
+
+Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` array). This is a 1.16–1.18-vintage Origins type, so its packs use the attribute-style operation names: `addition` adds a flat amount, while `multiply_base` and `multiply_total` sum into `base + base * Σvalue`. A single `multiply_total` of `0.5` is therefore 1.5x healing, and `multiply_base` of `-0.5` is half healing.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s): `operation` + `value` applied to the heal amount |
+| `condition` | object / array | no | always | Entity condition gating when the scale applies |
+
+**Example — healing halved:**
+```json
+{
+  "type": "origins:modify_healing",
+  "modifier": { "operation": "multiply_base", "value": -0.5 },
+  "name": "Slower Regeneration",
+  "description": "As a flower your healing capabilities are limited."
+}
+```
+
+---
+
+## `origins:modify_status_effect_duration`
+
+Scales the duration of mob effects applied to the holder. Apoli compat (Route B), the duration-side sibling of `origins:modify_status_effect_amplifier`. The loader registers a `mod_potion_duration` modifier handler, which `CombatPowerEvents` chains onto `MobEffectEvent.Added`.
+
+The seam collects a **multiplier**: its base is `1.0`, and the dispatch site applies the result to the effect instance's duration. So `multiply_total` with `value: 0.5` yields 1.5x and reads as "effects last 50% longer". Operation names are the same attribute-style set `modify_healing` uses. The scale applies to every effect added to the holder; there is no per-effect filter.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s) applied to the duration multiplier |
+| `condition` | object / array | no | always | Entity condition gating when the scale applies |
+
+**Example — beneficial effects last 50% longer:**
+```json
+{
+  "type": "origins:modify_status_effect_duration",
+  "modifier": { "operation": "multiply_total", "value": 0.5 },
+  "name": "Extended Potion Effects",
+  "description": "Potion effects last longer for you."
+}
+```
+
+---
+
+## `origins:action_on_death`
+
+Fires when the holder dies. Apoli compat (Route B), riding the native `death` event seam that `CombatPowerEvents.onLivingDeath` already dispatches.
+
+`entity_action` runs on the dying holder. `bientity_action` runs with actor = the holder and target = the killer, Apoli's pairing for this type. The bientity half is skipped entirely when the death had no living attacker — fall damage, drowning, `/kill` — because there is no target to pair with, and running the action against the holder would invert its meaning.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_action` | object | no | — | Action run on the dying holder |
+| `bientity_action` | object | no | — | Action run as (actor = holder, target = killer); skipped when there is no living killer |
+| `condition` | object / array | no | always | Entity condition on the holder, tested at death time |
+
+**Example — run a function as whoever killed you:**
+```json
+{
+  "type": "origins:action_on_death",
+  "hidden": true,
+  "bientity_action": {
+    "type": "origins:target_action",
+    "action": { "type": "origins:execute_command", "command": "function mypack:on_death" }
+  }
+}
+```
+
+---
+
 ## `origins:cooldown`
 
 A readable cooldown timer. This is an Apoli compat (Route B) power — there is no native `neoorigins:` cooldown power type (native active powers carry their own `cooldown_ticks`). An Apoli cooldown power is a **countdown resource**: its value is `0` while ready and counts down from the armed duration, one per tick, while running. That makes it readable everywhere resources are — `neoorigins:resource` / `resource_level` conditions, `change_resource` / `set_resource` actions, and the HUD bar.

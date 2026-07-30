@@ -101,11 +101,47 @@ public final class LegacyAliasPowerSpecs {
         return all;
     }
 
+    /**
+     * The namespaces one legacy Origins power id is authorable under.
+     * {@code OriginsFormatDetector.legacyPowerTypeSurface()} expands every
+     * {@code origins:} entry in the compat dispatch tables across the
+     * Apoli family, and {@code canonicalizePowerType} rewrites them all back to
+     * {@code origins:} before dispatch — so all four spellings load, all four
+     * reach the enum, and all four need the same branch.
+     */
+    private static final List<String> LEGACY_COMPAT_NAMESPACES =
+        List.of("origins", "apace", "apoli", "apugli");
+
+    /**
+     * Declare one branch for a legacy <em>compat</em> power type — an
+     * {@code origins:}-family id served by {@code OriginsCompatPowerLoader}
+     * (Route B) rather than by the 2.0 alias table.
+     *
+     * <p>Same contract as {@link #define}: declare exactly the fields the
+     * parser reads. The difference is only in which parser is the arbiter —
+     * here it is the Route B {@code parse*} method for the type, not a remap
+     * lambda. Registering the branch keeps the id out of
+     * {@code PowerEnumCheck}'s unbranched-legacy count, which may only shrink;
+     * a new compat type that skipped this would push that ratchet up by four.
+     */
+    private static void defineLegacyCompat(String path, List<FieldSpec> fields) {
+        List<FieldSpec> copy = List.copyOf(fields);
+        for (String ns : LEGACY_COMPAT_NAMESPACES) {
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(ns, path);
+            if (BuiltinPowers.isRegistered(id)) {
+                throw new IllegalStateException(id + " is a real power type — describe it in "
+                    + "BuiltinPowers, not in the legacy-alias table");
+            }
+            SPECS.put(id, copy);
+        }
+    }
+
     static {
         registerPersistentEffectAliases();
         registerConditionPassiveAliases();
         registerActionOnEventAliases();
         registerActiveAbilityAliases();
+        registerLegacyCompatSpecs();
     }
 
     // ── persistent_effect targets ───────────────────────────────────────────
@@ -425,6 +461,46 @@ public final class LegacyAliasPowerSpecs {
                 .def(true)
                 .doc("When true the caster is healed too; default true.")),
             activeAbilityTail()));
+    }
+
+    // ── legacy compat (Route B) types ───────────────────────────────────────
+
+    /**
+     * Branches for the Route B compat types whose parsers live in
+     * {@code OriginsCompatPowerLoader}. Each field list mirrors exactly what
+     * that type's {@code parse*} method reads off the JSON — no more, so the
+     * editors cannot offer a key the loader ignores, and no less, so they
+     * cannot drop working configuration.
+     */
+    private static void registerLegacyCompatSpecs() {
+        // modify_healing / modify_status_effect_duration share a shape: a
+        // modifier list plus an optional gate. Both are read by
+        // parseModifierList (which accepts the singular OR plural key, and a
+        // single object OR an array) and parseConditionField.
+        List<FieldSpec> modifierSeamFields = List.of(
+            new FieldSpec("modifier", Kind.MIXED, false)
+                .mixedTypes("object", "array")
+                .doc("Apoli modifier, or an array of them, applied in order. Each entry is "
+                   + "{operation, value}; the attribute-style operations are the ones this "
+                   + "legacy type uses — addition, multiply_base, multiply_total — where "
+                   + "multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x)."),
+            new FieldSpec("modifiers", Kind.MIXED, false).boundTo("modifier")
+                .mixedTypes("object", "array")
+                .doc("Plural alias for `modifier`, read only when `modifier` is absent. Same shape."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional gate on the holder; the scale only applies while it passes (default always)."));
+
+        defineLegacyCompat("modify_healing", modifierSeamFields);
+        defineLegacyCompat("modify_status_effect_duration", modifierSeamFields);
+
+        defineLegacyCompat("action_on_death", List.of(
+            new FieldSpec("entity_action", Kind.REF, false).ref("action.schema.json")
+                .doc("EntityAction run on the dying holder."),
+            new FieldSpec("bientity_action", Kind.REF, false).ref("action.schema.json")
+                .doc("Bi-entity action run with actor = the dying holder and target = the killer. "
+                   + "Skipped entirely when the death had no living attacker (fall, drowning, /kill)."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional gate on the holder, tested at death time (default always).")));
     }
 
     /**
