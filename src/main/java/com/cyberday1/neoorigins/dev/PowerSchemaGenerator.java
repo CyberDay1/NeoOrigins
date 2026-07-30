@@ -230,13 +230,24 @@ public final class PowerSchemaGenerator {
      * {@code BuiltinPowers.ids()} ∪ the 2 unregistered-by-design ids ∪
      * {@link com.cyberday1.neoorigins.compat.OriginsMultipleExpander#MULTIPLE_TYPES}
      * ∪ {@link LegacyPowerTypeAliases#aliasedTypeIds()} ∪
-     * {@link OriginsPowerTranslator#SCHEMA_RECOGNIZED_IMPORT_IDS}.
+     * {@link OriginsPowerTranslator#SCHEMA_RECOGNIZED_IMPORT_IDS} ∪
+     * {@link com.cyberday1.neoorigins.compat.OriginsFormatDetector#legacyPowerTypeSurface()}.
      *
      * <p>Every id is enumerated by some in-code table — there are no hard-coded
-     * ids here. The cross-mod {@code apace:*} import ids come from the compat
-     * layer (the translator), which owns that surface; the container ids from the
-     * expander; the retired {@code neoorigins:} spellings from the alias table;
-     * everything else from {@code BuiltinPowers}.
+     * ids here. The legacy {@code origins:}/{@code apace:}/{@code apoli:}/
+     * {@code apugli:} surface comes from the two compat dispatch switches, which own
+     * it; the container ids from the expander; the retired {@code neoorigins:}
+     * spellings from the alias table; everything else from {@code BuiltinPowers}.
+     *
+     * <p>The legacy surface is the bulk of the enum and almost none of it has a
+     * structured branch, because compat power types have no FieldSpec registry to
+     * generate one from (only {@code BuiltinPowers} does). That is a real remaining
+     * gap — the editors give these types a raw-JSON box — but it is strictly better
+     * than the alternative it replaces, which was rejecting the file outright: before
+     * this, 1088 of the 1427 power JSONs in the six-pack legacy corpus failed
+     * validation on {@code /type} alone, so every legacy pack was 100% unauthorable.
+     * {@code PowerEnumCheck} counts the unbranched legacy ids under a ratchet ceiling
+     * so the gap is visible and can only shrink.
      */
     private static List<String> buildTypeEnum() {
         // The alias table is lazy — bootstrap it before reading aliasedTypeIds().
@@ -253,17 +264,22 @@ public final class PowerSchemaGenerator {
             // Apoli-family alias sources are NOT authorable, however the alias table
             // reads. PowerDataManager canonicalizes apoli:/apugli: -> origins: and
             // runs the translator BEFORE LegacyPowerTypeAliases.apply, so the alias
-            // never fires for an apoli-family id: apugli:action_on_jump and
-            // apugli:action_on_target_death have no origins: case at all and are
-            // simply dropped at load, while the two edible_item spellings only ever
-            // arrive as origins:edible_item — which this enum does not advertise
-            // either. Offering any of them is the "schema validates, then the load
-            // logs Unknown power type" failure, so they stay out.
+            // never fires for an apoli-family id. The four cross-mod entries split
+            // cleanly: apoli:/apugli:edible_item load anyway, because
+            // `origins:edible_item` has a Route A case and canonicalisation routes
+            // them onto it — so they come back in via legacyPowerTypeSurface()
+            // below, on their own merits. apugli:action_on_jump and
+            // apugli:action_on_target_death have no origins: case at all, are simply
+            // dropped at load, and are not in that surface either — so skipping them
+            // here is what stops the schema making the "validates, then the load logs
+            // Unknown power type" claim. Making the alias table reachable for them is
+            // a runtime fix, tracked separately.
             if (com.cyberday1.neoorigins.compat.OriginsFormatDetector
                     .isApoliFamily(rl.getNamespace())) continue;
             ids.add(rl.toString());
         }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);
+        ids.addAll(com.cyberday1.neoorigins.compat.OriginsFormatDetector.legacyPowerTypeSurface());
         return new ArrayList<>(ids); // TreeSet → alphabetical
     }
 
