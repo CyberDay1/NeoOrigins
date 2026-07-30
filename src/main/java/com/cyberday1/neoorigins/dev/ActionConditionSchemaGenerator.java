@@ -204,6 +204,73 @@ public final class ActionConditionSchemaGenerator {
     }
 
     /**
+     * The typeless item-condition shorthand as a {@code oneOf} branch.
+     *
+     * <p>{@code ItemConditionParser.parseInner}'s {@code default} arm reads three
+     * top-level fields with no {@code type} at all: {@code id}, {@code item} (an
+     * undocumented alias for {@code id} — first one wins) and {@code tag}. Apoli
+     * accepts the same shorthand, and NeoOrigins ships four {@code jianxian_*}
+     * powers that use it.
+     *
+     * <p>{@code not: {required: [type]}} makes the branch mutually exclusive with
+     * every typed branch and with the fallback, so {@code oneOf}'s exactly-one rule
+     * holds. The {@code anyOf} is what keeps typo detection: a typeless object with
+     * none of the three fields hits the same unsupported-verb no-op an unknown leaf
+     * does — {@code CompatWarningCollector.recordItemConditionUnsupported} plus an
+     * always-true condition — and the schema rejects that for the same reason it
+     * rejects {@code neoorigins:aply_effect}. Extra keys stay permitted, matching
+     * the descriptor branches.
+     */
+    private static JsonObject typelessItemConditionBranch() {
+        JsonObject branch = new JsonObject();
+        branch.addProperty("$comment",
+            "Typeless shorthand \u2014 ItemConditionParser's default arm reads a bare "
+            + "id / item / tag with no `type`.");
+
+        JsonObject noType = new JsonObject();
+        JsonArray noTypeRequired = new JsonArray();
+        noTypeRequired.add("type");
+        noType.add("required", noTypeRequired);
+        branch.add("not", noType);
+
+        JsonObject props = new JsonObject();
+        props.add("id", shorthandField(
+            "Item id the stack must be, e.g. minecraft:diamond_sword. Ignored when `item` is also present."));
+        props.add("item", shorthandField(
+            "Alias for `id`, and preferred over it when both are present."));
+        props.add("tag", shorthandField(
+            "Item tag the stack must be in, e.g. minecraft:swords (no leading #)."));
+        JsonObject inverted = new JsonObject();
+        inverted.addProperty("description",
+            "When true the whole check is negated. Read by ItemConditionParser.parse "
+            + "for every item condition, typed or not.");
+        inverted.addProperty("type", "boolean");
+        inverted.addProperty("default", false);
+        props.add("inverted", inverted);
+        branch.add("properties", props);
+
+        JsonArray anyOf = new JsonArray();
+        for (String field : List.of("id", "item", "tag")) {
+            JsonObject arm = new JsonObject();
+            JsonArray required = new JsonArray();
+            required.add(field);
+            arm.add("required", required);
+            anyOf.add(arm);
+        }
+        branch.add("anyOf", anyOf);
+        return branch;
+    }
+
+    /** One of the three typeless shorthand fields: a documented resource-location string. */
+    private static JsonObject shorthandField(String description) {
+        JsonObject node = new JsonObject();
+        node.addProperty("description", description);
+        node.addProperty("type", "string");
+        node.addProperty("pattern", "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$");
+        return node;
+    }
+
+    /**
      * Build the full schema JSON string for {@code which} ∈ {action, condition, block_condition}.
      * {@code headerSource} supplies the verbatim header + {@code type} description.
      * Public so the parity harness ({@link ActionConditionSchemaCheck}) can parse
@@ -238,9 +305,19 @@ public final class ActionConditionSchemaGenerator {
         root.add("title", current.get("title"));
         root.add("description", current.get("description"));
         root.addProperty("type", "object");
-        JsonArray rootRequired = new JsonArray();
-        rootRequired.add("type");
-        root.add("required", rootRequired);
+        // `type` is required in four of the five documents. ItemConditionParser is
+        // the exception: parseInner reads `json.has("type") ? … : ""` and its default
+        // arm accepts three TYPELESS shorthands — a bare {id}, {item} (an
+        // undocumented alias for id) or {tag} — which is how NeoOrigins' own
+        // jianxian_* powers write `"item_condition": {"tag": "minecraft:swords"}`.
+        // Requiring `type` here made the mod's own shipped content fail its own
+        // schema. The shorthand is instead gated by its own oneOf branch below, so
+        // an object with neither `type` nor a shorthand field still fails.
+        if (!ITEM_CONDITION.equals(which)) {
+            JsonArray rootRequired = new JsonArray();
+            rootRequired.add("type");
+            root.add("required", rootRequired);
+        }
 
         // ── properties.type — full sorted id union (all branch ids) ──────────
         Set<String> typeEnum = new TreeSet<>();
@@ -266,6 +343,13 @@ public final class ActionConditionSchemaGenerator {
             oneOf.add(SchemaNodeBuilder.buildBranch(d.canonicalId(), branchTypeIds(d), d.fields()));
         }
 
+        // Typeless-shorthand branch — item_condition only. Kept ahead of the
+        // fallback so the two read in the order they apply. It carries no
+        // `properties.type`, which is exactly how both form models recognise a
+        // non-authorable branch and skip it, so the editors keep offering only the
+        // explicit `type` forms while a hand-authored shorthand still validates.
+        if (ITEM_CONDITION.equals(which)) oneOf.add(typelessItemConditionBranch());
+
         // Fallback branch — any id not matched by a structured branch above.
         JsonObject fallback = new JsonObject();
         fallback.addProperty("$comment",
@@ -280,6 +364,14 @@ public final class ActionConditionSchemaGenerator {
         JsonObject fbProps = new JsonObject();
         fbProps.add("type", fbType);
         fallback.add("properties", fbProps);
+        // The fallback describes "a `type` we have not branched", so it must SAY it
+        // needs a `type`. Redundant in the four documents whose root requires one,
+        // load-bearing in item_condition: without it `{"tag": …}` would satisfy both
+        // this branch (properties.type never applies to an absent key) and the
+        // typeless-shorthand branch, and `oneOf` demands exactly one match.
+        JsonArray fbRequired = new JsonArray();
+        fbRequired.add("type");
+        fallback.add("required", fbRequired);
         fallback.addProperty("additionalProperties", true);
         oneOf.add(fallback);
 
