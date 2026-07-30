@@ -167,12 +167,43 @@ type JsonObject = { [k: string]: JsonValue };
 /** `field_docs.json` shape: `{ "*": {field: doc}, "<powerId>": {field: doc} }`. */
 type FieldDocs = { [powerOrStar: string]: { [field: string]: string } };
 
+/**
+ * The document's type universe.
+ *
+ * `power.schema.json` gates the root `type` with an `enum`, so that IS the
+ * universe. The verb ref-docs gate it with a `pattern` instead — the parser's
+ * namespace canonicalisation rewrites ANY prefix to `neoorigins:<leaf>`, so no
+ * enum could ever be complete and only the leaf is checkable. Those documents
+ * carry no root enum, so fall back to the union of the structured branches' own
+ * `const`/`enum` ids, which is exactly what the enum used to be derived from.
+ */
 function readTypeEnum(root: JsonObject): string[] {
 	const props = root['properties'] as JsonObject | undefined;
 	const typeProp = props?.['type'] as JsonObject | undefined;
 	const en = typeProp?.['enum'] as JsonValue[] | undefined;
-	if (!Array.isArray(en)) return [];
-	return en.filter((v): v is string => typeof v === 'string');
+	if (Array.isArray(en)) return en.filter((v): v is string => typeof v === 'string');
+	return branchTypeIds(root);
+}
+
+/** Union of every `properties.type` `const`/`enum` id across the `oneOf` branches. */
+function branchTypeIds(root: JsonObject): string[] {
+	const oneOf = root['oneOf'];
+	if (!Array.isArray(oneOf)) return [];
+	const out: string[] = [];
+	for (const candidate of oneOf) {
+		if (!isObject(candidate)) continue;
+		const props = candidate['properties'];
+		if (!isObject(props)) continue;
+		const typeProp = props['type'];
+		if (!isObject(typeProp)) continue;
+		const c = typeProp['const'];
+		if (typeof c === 'string') out.push(c);
+		const en = typeProp['enum'];
+		if (Array.isArray(en)) {
+			for (const v of en) if (typeof v === 'string') out.push(v);
+		}
+	}
+	return out;
 }
 
 function readRequiredSet(o: JsonObject): Set<string> {
