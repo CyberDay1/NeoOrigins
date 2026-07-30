@@ -143,8 +143,8 @@ public final class SchemaFormCheck {
         failures += auditFieldDocs(model);
 
         // 9b. BuiltinPowers field-specs must not drift from the power's Config
-        //     codec (the power analogue of auditParserTypes). Vacuously green
-        //     until powers are registered.
+        //     codec (the power analogue of auditParserTypes). Fails outright if
+        //     nothing is registered — an empty descriptor map used to read as green.
         failures += auditPowerFieldSpecs(model);
 
         // 9c. The scalar-or-array $ref idiom must reach the in-game walker as a
@@ -202,7 +202,14 @@ public final class SchemaFormCheck {
             System.out.println("[schema-check] FAIL  cannot read power schema: " + e);
             return 1;
         }
-        if (!root.has("oneOf")) return 0;
+        // No oneOf at all means the schema lost every structured branch — the
+        // audit below would iterate nothing and "pass". That is the failure
+        // mode this guard exists to catch, so it must be loud.
+        if (!root.has("oneOf")) {
+            System.out.println("[schema-check] FAIL  power schema has no 'oneOf' —"
+                + " the scalar-or-array $ref audit had nothing to inspect");
+            return 1;
+        }
 
         int fails = 0, checked = 0;
         java.util.List<String> bad = new java.util.ArrayList<>();
@@ -231,6 +238,16 @@ public final class SchemaFormCheck {
                         + (resolved == null ? "absent" : resolved.kind()));
                 }
             }
+        }
+        // An empty input set is a failure, not a pass: every native power REF
+        // field is emitted in this shape by SchemaNodeBuilder's
+        // widenActionConditionRefs, so zero means the generator stopped widening
+        // (or the branches vanished) and this audit silently stopped auditing.
+        if (checked == 0) {
+            System.out.println("[schema-check] FAIL  found 0 scalar-or-array $ref fields to audit"
+                + " — the power schema no longer emits the oneOf[$ref, array-of-$ref] idiom,"
+                + " so this gate was passing vacuously");
+            return 1;
         }
         if (!bad.isEmpty()) {
             java.util.Collections.sort(bad);
@@ -505,14 +522,24 @@ public final class SchemaFormCheck {
      *       is consistent with it — every schema field name appears in the spec.</li>
      * </ol>
      *
-     * <p>Vacuously green with nothing registered. For marker-only powers (empty
-     * spec, {@code Config(String type)}) every clause holds trivially. Returns
-     * the failure count.
+     * <p>An empty descriptor map is a hard failure, not a pass: this audit used to
+     * report green while checking nothing. For marker-only powers (empty spec,
+     * {@code Config(String type)}) every clause holds trivially. Returns the
+     * failure count.
      */
     private static int auditPowerFieldSpecs(SchemaFormModel model) {
         int fails = 0;
         var descriptors = com.cyberday1.neoorigins.power.registry.BuiltinPowers.descriptors();
         java.util.List<String> internal = List.of("type", "powerId");
+
+        // Nothing registered = nothing audited. Powers ARE registered on every
+        // branch now, so an empty descriptor map means BuiltinPowers failed to
+        // class-init (or was gutted) and this whole audit degraded to a no-op.
+        if (descriptors.isEmpty()) {
+            System.out.println("[schema-check] FAIL  BuiltinPowers registered 0 descriptors"
+                + " — the power field-spec drift audit had nothing to check");
+            return 1;
+        }
 
         for (var entry : descriptors.entrySet()) {
             Identifier id = entry.getKey();
@@ -850,6 +877,14 @@ public final class SchemaFormCheck {
         java.util.Collections.sort(undoc);
         System.out.printf("[schema-check] field docs: %d/%d documented%n",
             documented, totalFields);
+        // Zero fields means the `reg("id", new XPower(...))` regex above matched
+        // nothing (a PowerTypes.java reformat is enough to break it), so the docs
+        // gate stopped enforcing anything. Fail rather than report 0/0 as green.
+        if (totalFields == 0) {
+            System.out.println("[schema-check] FAIL  collected 0 form fields from PowerTypes.java"
+                + " — the reg(...) scan matched nothing, so the field-doc gate was vacuous");
+            return 1;
+        }
         if (!undoc.isEmpty()) {
             System.out.println("[schema-check] FAIL  " + undoc.size()
                 + " undocumented fields:");
