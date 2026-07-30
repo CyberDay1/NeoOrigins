@@ -59,16 +59,20 @@ public final class PowerSchemaGenerator {
 
     public static void main(String[] args) throws IOException {
         Path output = Path.of(args.length > 0 ? args[0] : DEFAULT_OUTPUT);
+        // Normally the file being rewritten is also the file the verbatim parts are
+        // read from. schemaDriftVerify splits them so it can regenerate into
+        // build/tmp and byte-compare without overwriting what it is checking.
+        Path headerSource = args.length > 1 ? Path.of(args[1]) : output;
 
         // The current committed file is the source for (a) the verbatim header,
         // (b) the verbatim `type` description + the three common-field fragments,
         // and (c) the two preserved branch objects (particle / starting_equipment).
         JsonObject current;
         try {
-            current = JsonParser.parseString(Files.readString(output, StandardCharsets.UTF_8))
+            current = JsonParser.parseString(Files.readString(headerSource, StandardCharsets.UTF_8))
                 .getAsJsonObject();
         } catch (Exception e) {
-            throw new IOException("Cannot read current schema at " + output
+            throw new IOException("Cannot read current schema at " + headerSource
                 + " (needed for header + preserved branches): " + e.getMessage(), e);
         }
         JsonObject currentProps = current.getAsJsonObject("properties");
