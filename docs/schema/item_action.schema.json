@@ -10,21 +10,8 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Item-action verb (and / if_else / merge_nbt / consume / damage / set_count). `apace:` aliases are accepted.",
-      "enum": [
-        "apace:and",
-        "apace:consume",
-        "apace:damage",
-        "apace:if_else",
-        "apace:merge_nbt",
-        "apace:set_count",
-        "neoorigins:and",
-        "neoorigins:consume",
-        "neoorigins:damage",
-        "neoorigins:if_else",
-        "neoorigins:merge_nbt",
-        "neoorigins:set_count"
-      ]
+      "description": "Item-action verb (and / if_else / merge_nbt / consume / damage / set_count). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:and|consume|damage|if_else|merge_nbt|set_count)$"
     }
   },
   "oneOf": [
@@ -34,7 +21,10 @@
         "type": {
           "enum": [
             "neoorigins:and",
-            "apace:and"
+            "apace:and",
+            "origins:and",
+            "apoli:and",
+            "apugli:and"
           ]
         },
         "actions": {
@@ -55,7 +45,10 @@
         "type": {
           "enum": [
             "neoorigins:consume",
-            "apace:consume"
+            "apace:consume",
+            "origins:consume",
+            "apoli:consume",
+            "apugli:consume"
           ]
         },
         "amount": {
@@ -74,7 +67,10 @@
         "type": {
           "enum": [
             "neoorigins:damage",
-            "apace:damage"
+            "apace:damage",
+            "origins:damage",
+            "apoli:damage",
+            "apugli:damage"
           ]
         },
         "amount": {
@@ -98,7 +94,10 @@
         "type": {
           "enum": [
             "neoorigins:if_else",
-            "apace:if_else"
+            "apace:if_else",
+            "origins:if_else",
+            "apoli:if_else",
+            "apugli:if_else"
           ]
         },
         "condition": {
@@ -124,7 +123,10 @@
         "type": {
           "enum": [
             "neoorigins:merge_nbt",
-            "apace:merge_nbt"
+            "apace:merge_nbt",
+            "origins:merge_nbt",
+            "apoli:merge_nbt",
+            "apugli:merge_nbt"
           ]
         },
         "nbt": {
@@ -142,7 +144,10 @@
         "type": {
           "enum": [
             "neoorigins:set_count",
-            "apace:set_count"
+            "apace:set_count",
+            "origins:set_count",
+            "apoli:set_count",
+            "apugli:set_count"
           ]
         },
         "count": {
@@ -167,12 +172,30 @@
               "apace:if_else",
               "apace:merge_nbt",
               "apace:set_count",
+              "apoli:and",
+              "apoli:consume",
+              "apoli:damage",
+              "apoli:if_else",
+              "apoli:merge_nbt",
+              "apoli:set_count",
+              "apugli:and",
+              "apugli:consume",
+              "apugli:damage",
+              "apugli:if_else",
+              "apugli:merge_nbt",
+              "apugli:set_count",
               "neoorigins:and",
               "neoorigins:consume",
               "neoorigins:damage",
               "neoorigins:if_else",
               "neoorigins:merge_nbt",
-              "neoorigins:set_count"
+              "neoorigins:set_count",
+              "origins:and",
+              "origins:consume",
+              "origins:damage",
+              "origins:if_else",
+              "origins:merge_nbt",
+              "origins:set_count"
             ]
           }
         }

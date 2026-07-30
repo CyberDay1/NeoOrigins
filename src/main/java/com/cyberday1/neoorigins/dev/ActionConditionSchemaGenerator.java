@@ -36,16 +36,25 @@ import java.util.TreeSet;
  *
  * <p><b>Branch rule.</b> One descriptor → one {@code oneOf} branch (NOT the
  * hand-written file's incidental merges / duplicates). The branch's {@code type}
- * discriminator lists, in order: the canonical id, the registry aliases, then the
- * {@code apace:} namespace variant of each of those. The {@code apace:} prefix is
- * blanket namespace-canonicalisation in {@code ConditionParser}/{@code ActionParser}
- * (any {@code apace:<verb>} canonicalises to {@code neoorigins:<verb>}), so emitting
- * one {@code apace:} variant per id is complete and deterministic — it supersedes
- * the arbitrary subset the hand-written file happened to list, and regresses no
- * pack (the web palette already filters {@code apace:} out as noise).
+ * discriminator lists, in order: the canonical id, the registry aliases, then each
+ * {@link #ECOSYSTEM_NAMESPACES} variant of every one of those. Namespace
+ * canonicalisation is blanket in all five verb parsers (any {@code <ns>:<verb>}
+ * canonicalises to {@code neoorigins:<verb>}) and — unlike legacy POWER types — the
+ * verb parsers remap no fields, so those ids are field-identical and share the
+ * branch. Listing them is what gives legacy-namespaced verbs real field validation
+ * and editor registration instead of the property-less fallback branch. No pack
+ * regresses (the web palette filters non-{@code neoorigins:} ids out as noise).
  *
- * <p><b>Determinism.</b> Top-level {@code type.enum} and the {@code oneOf} branches
- * are sorted by canonical id; nodes are built by the shared {@link SchemaNodeBuilder};
+ * <p><b>Root gate.</b> {@code properties.type} carries a {@code pattern}, not an
+ * {@code enum}: the accepted namespace set is unbounded (the parsers' generic
+ * namespace fallback dispatches {@code medievalorigins:execute_command} fine), while
+ * the LEAF must be known or the verb falls through to the unsupported no-op. The
+ * pattern is exactly that — optional namespace, then a known leaf — so typos still
+ * fail. The form models derive their type universe from the branch ids when a
+ * document has no root enum.
+ *
+ * <p><b>Determinism.</b> The top-level {@code type.pattern} leaf list and the
+ * {@code oneOf} branches are sorted; nodes are built by the shared {@link SchemaNodeBuilder};
  * serialisation is fixed ({@code setPrettyPrinting().disableHtmlEscaping()} + one
  * trailing LF). Re-running on the generator's own output is byte-identical.
  *
@@ -137,22 +146,73 @@ public final class ActionConditionSchemaGenerator {
         return out;
     }
 
-    /** {@code apace:} namespace variant of a {@code neoorigins:<verb>} id. */
-    private static String apaceVariant(String id) {
+    /**
+     * Ecosystem namespaces emitted as explicit per-branch discriminator variants.
+     *
+     * <p>All five verb parsers canonicalise by <b>leaf</b>: {@code ActionParser} /
+     * {@code ConditionParser} / {@code ItemConditionParser} / {@code ItemActionParser}
+     * rewrite {@code <anything>:<leaf>} to {@code neoorigins:<leaf>} and dispatch on
+     * that, and {@code ConditionParser}'s block-condition path strips the namespace
+     * and matches the bare leaf. Crucially the verb parsers pass the <b>unmodified</b>
+     * JSON object to the descriptor factory — unlike legacy POWER types, which remap
+     * fields — so a legacy-prefixed verb is field-for-field identical to its
+     * {@code neoorigins:} twin and can share the branch.
+     *
+     * <p>The accepted prefix set is unbounded (the generic namespace fallback lets
+     * {@code medievalorigins:execute_command} dispatch), so this list is not a
+     * whitelist — the root {@code type.pattern} is what admits arbitrary namespaces.
+     * These are the prefixes packs in the wild actually use, listed here so those ids
+     * get real branch-level FIELD validation and register in the editors (the form
+     * models bind a branch to every id in its {@code const}/{@code enum}) rather than
+     * falling to the property-less permissive fallback branch.
+     */
+    private static final List<String> ECOSYSTEM_NAMESPACES =
+        List.of("apace", "origins", "apoli", "apugli");
+
+    /** The leaf (namespace-stripped) part of a verb id. */
+    private static String leafOf(String id) {
         int colon = id.indexOf(':');
-        return "apace:" + (colon >= 0 ? id.substring(colon + 1) : id);
+        return colon >= 0 ? id.substring(colon + 1) : id;
+    }
+
+    /**
+     * The root {@code type.pattern}: an optional resource-location namespace
+     * followed by one of the known verb leaves. Leaves are sorted (determinism)
+     * and regex-escaped. The namespace class is the ResourceLocation-legal set
+     * ({@code [a-z0-9_.-]}), and it is optional because a bare leaf canonicalises
+     * to {@code neoorigins:<leaf>} in every parser.
+     */
+    private static String leafPattern(Set<String> leaves) {
+        StringBuilder sb = new StringBuilder("^(?:[a-z0-9_.-]+:)?(?:");
+        boolean first = true;
+        for (String leaf : leaves) {
+            if (!first) sb.append('|');
+            first = false;
+            for (int i = 0; i < leaf.length(); i++) {
+                char c = leaf.charAt(i);
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                    || (c >= '0' && c <= '9') || c == '_') {
+                    sb.append(c);
+                } else {
+                    sb.append('\\').append(c); // escape regex metacharacters (e.g. `.`)
+                }
+            }
+        }
+        return sb.append(")$").toString();
     }
 
     /**
      * Full ordered, de-duplicated id list a branch matches: canonical, registry
-     * aliases, then the {@code apace:} variant of each (canonical + aliases).
+     * aliases, then each {@link #ECOSYSTEM_NAMESPACES} variant of every one of those.
      */
     private static List<String> branchTypeIds(Descriptor d) {
         LinkedHashSet<String> ids = new LinkedHashSet<>();
         ids.add(d.canonicalId());
         ids.addAll(d.aliasIds());
-        ids.add(apaceVariant(d.canonicalId()));
-        for (String a : d.aliasIds()) ids.add(apaceVariant(a));
+        List<String> bases = new ArrayList<>(ids);
+        for (String ns : ECOSYSTEM_NAMESPACES) {
+            for (String base : bases) ids.add(ns + ":" + leafOf(base));
+        }
         return new ArrayList<>(ids);
     }
 
@@ -240,17 +300,26 @@ public final class ActionConditionSchemaGenerator {
         rootRequired.add("type");
         root.add("required", rootRequired);
 
-        // ── properties.type — full sorted id union (all branch ids) ──────────
+        // ── properties.type — leaf-based pattern gate ────────────────────────
+        //
+        // An `enum` here would be WRONG, not merely incomplete. The parsers
+        // canonicalise `<anything>:<leaf>` to `neoorigins:<leaf>` before dispatch
+        // (and a bare `<leaf>` likewise), so the accepted namespace set is
+        // unbounded — `medievalorigins:execute_command` loads today. What the
+        // parser actually checks is the LEAF: an unknown leaf falls through to the
+        // unsupported-verb no-op. So mirror exactly that: strip an optional
+        // namespace, then require a known leaf. Typo detection is preserved —
+        // `neoorigins:aply_effect` has no known leaf and fails.
         Set<String> typeEnum = new TreeSet<>();
         for (Descriptor d : descriptors) typeEnum.addAll(branchTypeIds(d));
+        Set<String> leaves = new TreeSet<>();
+        for (String id : typeEnum) leaves.add(leafOf(id));
 
         JsonObject properties = new JsonObject();
         JsonObject typeNode = new JsonObject();
         typeNode.addProperty("type", "string");
         typeNode.add("description", currentType.get("description")); // verbatim
-        JsonArray enumArr = new JsonArray();
-        for (String id : typeEnum) enumArr.add(id);
-        typeNode.add("enum", enumArr);
+        typeNode.addProperty("pattern", leafPattern(leaves));
         properties.add("type", typeNode);
         root.add("properties", properties);
 
