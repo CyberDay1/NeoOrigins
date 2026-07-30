@@ -1150,6 +1150,134 @@
       ]
     },
     {
+      "$comment": "neoorigins:active_aoe_effect",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_aoe_effect"
+        },
+        "radius": {
+          "description": "Radius in blocks of the effect burst; default 8.",
+          "type": "number",
+          "default": 8.0,
+          "minimum": 0.0
+        },
+        "effect": {
+          "description": "Mob-effect id applied to everyone in range; default minecraft:weakness.",
+          "type": "string",
+          "default": "minecraft:weakness"
+        },
+        "duration": {
+          "description": "Effect duration in ticks (20 = 1s); default 200. `duration_ticks` is accepted as a synonym and wins if both are present.",
+          "type": "integer",
+          "default": 200,
+          "minimum": 0
+        },
+        "duration_ticks": {
+          "description": "Synonym for `duration`, accepted because packs in this repo mix the two spellings. Takes precedence when both are set.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "amplifier": {
+          "description": "Effect level minus one (0 = level I); default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "include_source": {
+          "description": "When true the caster is also affected; default false. Leaving it false is what stops an offensive burst (instant damage, wither) from killing its own caster.",
+          "type": "boolean",
+          "default": false
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set.",
+          "type": "integer",
+          "default": 60,
+          "minimum": 0
+        },
+        "cooldown_resource": {
+          "description": "Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable.",
+          "type": "string",
+          "default": ""
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed per successful activation; default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on activation; empty = no resource cost.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource consumed per activation; default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "fail_action": {
+          "description": "Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        },
+        "key": {
+          "description": "Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:active_bolt",
       "properties": {
         "type": {
@@ -1276,6 +1404,106 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:active_launch",
+      "properties": {
+        "type": {
+          "const": "neoorigins:active_launch"
+        },
+        "power": {
+          "description": "Upward velocity applied on activation, in blocks per tick; default 1.5.",
+          "type": "number",
+          "default": 1.5
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set.",
+          "type": "integer",
+          "default": 60,
+          "minimum": 0
+        },
+        "cooldown_resource": {
+          "description": "Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable.",
+          "type": "string",
+          "default": ""
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed per successful activation; default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on activation; empty = no resource cost.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource consumed per activation; default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "fail_action": {
+          "description": "Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        },
+        "key": {
+          "description": "Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         }
       },
       "required": [
@@ -2899,6 +3127,117 @@
       ]
     },
     {
+      "$comment": "neoorigins:healing_mist",
+      "properties": {
+        "type": {
+          "const": "neoorigins:healing_mist"
+        },
+        "heal_amount": {
+          "description": "Health points restored to each player in range; default 6 (three hearts).",
+          "type": "number",
+          "default": 6.0
+        },
+        "radius": {
+          "description": "Radius in blocks of the heal; default 8. Only players are healed, never mobs.",
+          "type": "number",
+          "default": 8.0,
+          "minimum": 0.0
+        },
+        "heal_self": {
+          "description": "When true the caster is healed too; default true.",
+          "type": "boolean",
+          "default": true
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set.",
+          "type": "integer",
+          "default": 60,
+          "minimum": 0
+        },
+        "cooldown_resource": {
+          "description": "Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable.",
+          "type": "string",
+          "default": ""
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed per successful activation; default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on activation; empty = no resource cost.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource consumed per activation; default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "fail_action": {
+          "description": "Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        },
+        "key": {
+          "description": "Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:hide_hud_bar",
       "properties": {
         "type": {
@@ -4410,6 +4749,112 @@
       ]
     },
     {
+      "$comment": "neoorigins:repulse",
+      "properties": {
+        "type": {
+          "const": "neoorigins:repulse"
+        },
+        "radius": {
+          "description": "Radius in blocks of the outward shove; default 6.",
+          "type": "number",
+          "default": 6.0,
+          "minimum": 0.0
+        },
+        "strength": {
+          "description": "How hard entities inside the radius are pushed away; default 1.0. Players are included.",
+          "type": "number",
+          "default": 1.0
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set.",
+          "type": "integer",
+          "default": 60,
+          "minimum": 0
+        },
+        "cooldown_resource": {
+          "description": "Optional variable/resource power id whose live value (in ticks) is used as the cooldown length on each activation, overriding cooldown_ticks; empty = fixed cooldown. Pair with a neoorigins:variable counter to make cooldowns scriptable.",
+          "type": "string",
+          "default": ""
+        },
+        "hunger_cost": {
+          "description": "Food/exhaustion points consumed per successful activation; default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on activation; empty = no resource cost.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource consumed per activation; default 0.",
+          "type": "integer",
+          "default": 0
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the ability; it only fires while this passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "fail_action": {
+          "description": "Optional EntityAction run when an activation attempt is blocked by `condition` — e.g. an execute_command tellraw telling the player why. Not fired on cooldown or hunger/resource-cost aborts. The blocked attempt never consumes the cooldown.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        },
+        "key": {
+          "description": "Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:resource",
       "properties": {
         "type": {
@@ -5759,9 +6204,11 @@
               "neoorigins:action_on_kill",
               "neoorigins:action_over_time",
               "neoorigins:active_ability",
+              "neoorigins:active_aoe_effect",
               "neoorigins:active_bolt",
               "neoorigins:active_dash",
               "neoorigins:active_fireball",
+              "neoorigins:active_launch",
               "neoorigins:active_phase",
               "neoorigins:active_place_block",
               "neoorigins:active_recall",
@@ -5811,6 +6258,7 @@
               "neoorigins:fortune_when_effect",
               "neoorigins:glow",
               "neoorigins:ground_slam",
+              "neoorigins:healing_mist",
               "neoorigins:hide_hud_bar",
               "neoorigins:horde_regen",
               "neoorigins:hunger_drain_modifier",
@@ -5860,6 +6308,7 @@
               "neoorigins:quality_equipment",
               "neoorigins:rare_wandering_loot",
               "neoorigins:regen_in_fluid",
+              "neoorigins:repulse",
               "neoorigins:resource",
               "neoorigins:restrict_armor",
               "neoorigins:restrict_items",

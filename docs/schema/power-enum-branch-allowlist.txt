@@ -39,10 +39,15 @@
 # apoli:/apugli: to origins: and Route A drops the power before the alias table is
 # consulted, so those two never loaded and the schema should not have offered them.
 #
-# Native types with no descriptor yet. Several are legacy 2.0 types kept for the
-# deprecation window and remapped by LegacyPowerTypeAliases, which is why they
-# still load: authoring one is valid, just unvalidated.
-neoorigins:active_aoe_effect
-neoorigins:active_launch
-neoorigins:healing_mist
-neoorigins:repulse
+# The 29 native types that used to head this list are gone. They were the 2.0
+# power-type ids LegacyPowerTypeAliases remaps at load — authorable and working,
+# but unmodelled, so all three editors gave them a raw-JSON box. They could not
+# take a BuiltinPowers FieldSpec list (they are not power types: no PowerType
+# class, no Config record, no PowerTypes registration, so both gates on that
+# table would reject them), so they got a table of their own —
+# LegacyAliasPowerSpecs — which PowerSchemaGenerator emits branches from
+# alongside the BuiltinPowers ones.
+#
+# This file is now empty, which is the state it was written to reach. Keep it:
+# powerEnumCheck still reads it, so a native id that loses its branch has
+# somewhere to be recorded, and the count it prints stays honest at zero.

@@ -49,6 +49,13 @@ import java.util.Map;
  *       READS and must not offer the target's — writing {@code entity_action} on
  *       a {@code damage_in_water} is a silent no-op, the lambda overwrites it.</li>
  * </ul>
+ *
+ * <p>The rule cuts the other way too, which is why the four {@code active_ability}
+ * aliases carry a tail of target fields: {@code ActiveAbilityPower} reads
+ * {@code cooldown_ticks}, {@code resource_cost}, {@code cooldown_icon} and the
+ * rest straight off the same JSON, the lambda never touches them, and the mod's
+ * own {@code gravity_mage_repulse} authors four of them. Omitting them would
+ * hand the editors a form that silently drops working configuration.
  */
 public final class LegacyAliasPowerSpecs {
 
@@ -98,6 +105,7 @@ public final class LegacyAliasPowerSpecs {
         registerPersistentEffectAliases();
         registerConditionPassiveAliases();
         registerActionOnEventAliases();
+        registerActiveAbilityAliases();
     }
 
     // ── persistent_effect targets ───────────────────────────────────────────
@@ -354,6 +362,69 @@ public final class LegacyAliasPowerSpecs {
             new FieldSpec("amplifier", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
                 .doc("grant_effect only: effect level minus one (0 = level I); default 0. Ignored by the other actions.")));
+    }
+
+    // ── active_ability targets ──────────────────────────────────────────────
+
+    /**
+     * {@code active_ability}'s own fields minus {@code entity_action}, which every
+     * one of these lambdas overwrites. The rest — cooldown, costs, condition,
+     * fail_action, the HUD icon trio, key — are read by {@code ActiveAbilityPower}
+     * off the same JSON and are untouched by the remap, so they are as authorable
+     * on the alias as on the modern type.
+     */
+    private static List<FieldSpec> activeAbilityTail() {
+        return fieldsOf("active_ability", "entity_action");
+    }
+
+    private static void registerActiveAbilityAliases() {
+        define("active_launch", concat(List.of(
+            new FieldSpec("power", Kind.NUMBER, false)
+                .def(1.5)
+                .doc("Upward velocity applied on activation, in blocks per tick; default 1.5.")),
+            activeAbilityTail()));
+
+        define("repulse", concat(List.of(
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(6.0).range(0.0, null)
+                .doc("Radius in blocks of the outward shove; default 6."),
+            new FieldSpec("strength", Kind.NUMBER, false)
+                .def(1.0)
+                .doc("How hard entities inside the radius are pushed away; default 1.0. Players are included.")),
+            activeAbilityTail()));
+
+        define("active_aoe_effect", concat(List.of(
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(8.0).range(0.0, null)
+                .doc("Radius in blocks of the effect burst; default 8."),
+            new FieldSpec("effect", Kind.STRING, false)
+                .def("minecraft:weakness")
+                .doc("Mob-effect id applied to everyone in range; default minecraft:weakness."),
+            new FieldSpec("duration", Kind.INTEGER, false)
+                .def(200).range(0.0, null)
+                .doc("Effect duration in ticks (20 = 1s); default 200. `duration_ticks` is accepted as a synonym and wins if both are present."),
+            new FieldSpec("duration_ticks", Kind.INTEGER, false)
+                .range(0.0, null)
+                .doc("Synonym for `duration`, accepted because packs in this repo mix the two spellings. Takes precedence when both are set."),
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("Effect level minus one (0 = level I); default 0."),
+            new FieldSpec("include_source", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("When true the caster is also affected; default false. Leaving it false is what stops an offensive burst (instant damage, wither) from killing its own caster.")),
+            activeAbilityTail()));
+
+        define("healing_mist", concat(List.of(
+            new FieldSpec("heal_amount", Kind.NUMBER, false)
+                .def(6.0)
+                .doc("Health points restored to each player in range; default 6 (three hearts)."),
+            new FieldSpec("radius", Kind.NUMBER, false)
+                .def(8.0).range(0.0, null)
+                .doc("Radius in blocks of the heal; default 8. Only players are healed, never mobs."),
+            new FieldSpec("heal_self", Kind.BOOLEAN, false)
+                .def(true)
+                .doc("When true the caster is healed too; default true.")),
+            activeAbilityTail()));
     }
 
     /**
