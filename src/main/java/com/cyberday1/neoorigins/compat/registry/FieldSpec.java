@@ -42,6 +42,23 @@ import java.util.List;
  * schema emits {@code {"type":"array","items":{"$ref":…}}} and the editors render
  * a list-of-sub-forms instead of a raw-JSON box. {@code null} → a permissive
  * scalar array ({@code items:{}}).
+ *
+ * <p><b>Mixed type arms.</b> {@link #mixedTypes} lists the JSON types a
+ * {@link FormFieldSpec.Kind#MIXED} field genuinely accepts, emitted as the
+ * {@code oneOf} arms. Empty (the default) keeps the historical
+ * {@code oneOf:[{"type":"string"},{"type":"object"}]} shape, so only fields that
+ * ask for something else — e.g. {@code key}, which the loader reads as a number,
+ * a string, or an object — widen it. SCHEMA = PARSER: the arms must be what the
+ * parser actually accepts.
+ *
+ * <p><b>Externally-read fields.</b> {@link #readBy} records that this field has
+ * NO backing {@code Config} record component because it is read straight off the
+ * raw power JSON by another class, named {@code fully.qualified.Class#method}.
+ * The drift audit ({@code SchemaFormCheck.auditSpec}) treats it as an explicit,
+ * staleness-checked exception: it fails if the named reader's source no longer
+ * exists, no longer contains that method, no longer mentions this field's JSON
+ * key, or if the field HAS gained a real component (the exception is then obsolete
+ * and must be deleted). Never use it to silence an ordinary missing component.
  */
 public record FieldSpec(
     String name,
@@ -58,11 +75,14 @@ public record FieldSpec(
     boolean virtual,
     String pattern,
     String itemsRef,
-    String itemPattern
+    String itemPattern,
+    List<String> mixedTypes,
+    String readBy
 ) {
     public FieldSpec {
         enumValues = enumValues == null ? List.of() : List.copyOf(enumValues);
         children = children == null ? List.of() : List.copyOf(children);
+        mixedTypes = mixedTypes == null ? List.of() : List.copyOf(mixedTypes);
     }
 
     /** Full constructor without children/virtual — back-compat for the key-aliased ctor. */
@@ -70,44 +90,44 @@ public record FieldSpec(
                      List<String> enumValues, Double min, Double max, String description, String ref,
                      String componentName) {
         this(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName,
-             List.of(), false, null, null, null);
+             List.of(), false, null, null, null, List.of(), null);
     }
 
     /** Full constructor without the key-alias — component defaults to camel→snake(name). */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required, Object defaultValue,
                      List<String> enumValues, Double min, Double max, String description, String ref) {
         this(name, kind, required, defaultValue, enumValues, min, max, description, ref, null,
-             List.of(), false, null, null, null);
+             List.of(), false, null, null, null, List.of(), null);
     }
 
     /** Minimal spec — name, widget kind, required-ness. Enrich via the fluent withers. */
     public FieldSpec(String name, FormFieldSpec.Kind kind, boolean required) {
-        this(name, kind, required, null, List.of(), null, null, null, null, null, List.of(), false, null, null, null);
+        this(name, kind, required, null, List.of(), null, null, null, null, null, List.of(), false, null, null, null, List.of(), null);
     }
 
     /** Attach the human-readable help string (D2: doc lives on the spec). */
     public FieldSpec doc(String description) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /** Set the schema {@code default} value. */
     public FieldSpec def(Object defaultValue) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /** Set a numeric range (schema {@code minimum}/{@code maximum}). */
     public FieldSpec range(Double min, Double max) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /** Set the allowed values for an {@link FormFieldSpec.Kind#ENUM} field. */
     public FieldSpec options(String... values) {
-        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, List.of(values), min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /** Set the {@code $ref} target for a {@link FormFieldSpec.Kind#REF} field. */
     public FieldSpec ref(String ref) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /**
@@ -117,7 +137,7 @@ public record FieldSpec(
      * {@code items.$ref} and the editors' list-of-sub-forms rendering.
      */
     public FieldSpec itemsRef(String itemsRef) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /**
@@ -129,7 +149,7 @@ public record FieldSpec(
      * {@code entity_action}. When unset the component is {@code camel→snake(name)}.
      */
     public FieldSpec boundTo(String componentName) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /**
@@ -139,7 +159,7 @@ public record FieldSpec(
      * component map (drift-audit "real OBJECT with children" path).
      */
     public FieldSpec children(FieldSpec... kids) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /**
@@ -151,7 +171,7 @@ public record FieldSpec(
      * itself and resolves each child against the SAME top-level component map.
      */
     public FieldSpec virtualObject(FieldSpec... kids) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), true, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), true, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /**
@@ -163,7 +183,7 @@ public record FieldSpec(
      * hand-written schema validated against {@code ^[a-z0-9_.-]+:[a-z0-9_./-]+$}.
      */
     public FieldSpec pattern(String pattern) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
     }
 
     /**
@@ -176,7 +196,27 @@ public record FieldSpec(
      * {@code ^[a-z0-9_.-]+:[a-z0-9_./-]+$}.)
      */
     public FieldSpec itemPattern(String itemPattern) {
-        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern);
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, readBy);
+    }
+
+    /**
+     * Declare the JSON types a {@link FormFieldSpec.Kind#MIXED} field accepts, in
+     * emission order — e.g. {@code mixedTypes("integer", "string", "object")} for a
+     * field the parser reads as a raw number, a token string, or an options object.
+     * Unset keeps the default {@code string | object} pair.
+     */
+    public FieldSpec mixedTypes(String... types) {
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, List.of(types), readBy);
+    }
+
+    /**
+     * Record that this field is read off the raw power JSON by {@code reader}
+     * (format {@code fully.qualified.Class#method}) and therefore has no backing
+     * {@code Config} record component. This is an explicit exception to the
+     * component-existence audit, and it is staleness-checked — see the class doc.
+     */
+    public FieldSpec readBy(String reader) {
+        return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, children, virtual, pattern, itemsRef, itemPattern, mixedTypes, reader);
     }
 
     /** True when this OBJECT is a virtual wrapper with no backing component of its own. */
