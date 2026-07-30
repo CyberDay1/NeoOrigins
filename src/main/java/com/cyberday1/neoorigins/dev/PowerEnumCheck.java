@@ -1,5 +1,7 @@
 package com.cyberday1.neoorigins.dev;
 
+import com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader;
+import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
 import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
@@ -26,7 +28,7 @@ import java.util.regex.Pattern;
  * "types you may write", so every entry in it has to be (a) structurally
  * modelled and (b) something that actually runs on the branch being built.
  *
- * <p>Two assertions, both born from real defects the four-lane audit found:
+ * <p>Three assertions, all born from real defects the four-lane audit found:
  *
  * <ol>
  *   <li><b>enum &sube; const-branches.</b> An enum id with no {@code oneOf} branch
@@ -39,25 +41,26 @@ import java.util.regex.Pattern;
  *   <li><b>enum &sube; registered-and-functional.</b> Every enum id must resolve, by
  *       one of the documented load-time paths, to a type {@code PowerTypes}
  *       actually registers on this branch: directly, through the legacy-alias
- *       remap, through the compat import translation, or as a container type that
- *       is expanded away before registration. Plus the two reverse directions:
- *       every registered type must be authorable (in the enum), and every
- *       container id the expander accepts must be authorable. This is what catches
- *       a type that is declared and offered to authors but silently does
- *       nothing.</li>
+ *       remap, through the compat import translation, through one of the two
+ *       compat dispatch switches, or as a container type that is expanded away
+ *       before registration. Plus the two reverse directions: every registered
+ *       type must be authorable (in the enum), and every container id the expander
+ *       accepts must be authorable. This is what catches a type that is declared
+ *       and offered to authors but silently does nothing.</li>
+ *   <li><b>declared dispatch sets &equiv; the switch labels.</b> The legacy half of
+ *       the enum comes from {@code OriginsPowerTranslator.ROUTE_A_TYPES} and
+ *       {@code OriginsCompatPowerLoader.ROUTE_B_TYPES} /
+ *       {@code CONDITIONED_ROUTE_B_TYPES}, which are hand-maintained transcriptions
+ *       of the two dispatch switches. This gate parses the {@code case} labels back
+ *       out of both source files and diffs BOTH directions, so the schema cannot
+ *       advertise a type the parser dropped (the pack validates, then logs "Unknown
+ *       power type") and cannot omit one it accepts. It is the hop that makes the
+ *       whole legacy surface non-tautological: the enum is built from the sets, and
+ *       the sets are pinned to the parser.</li>
  * </ol>
  *
- * <p><b>Not asserted on this branch:</b> the lead branch additionally diffs the
- * declared Route A / Route B dispatch sets against the {@code case} labels of the
- * two compat switches, because there the schema {@code type} enum is BUILT from
- * those hand-maintained sets and a drifted set is a schema that lies. On 26.x the
- * enum is assembled from {@code BuiltinPowers.ids()}, the alias table and
- * {@code SCHEMA_RECOGNIZED_IMPORT_IDS} only — the legacy dispatch surface is not
- * advertised to authors at all, {@code OriginsPowerTranslator} has no
- * {@code ROUTE_A_TYPES}, and {@code OriginsCompatPowerLoader.ROUTE_B_TYPES} is
- * private with no second transcription to drift against. There is no subject for
- * that assertion here, so it is omitted rather than faked; if a dispatch-only id
- * ever does reach the enum, assertion 2's resolution sweep fails on it.
+ * <p>The dev harness used to keep a third, silently-stale transcription of the
+ * Route B switch — 13 ids behind — which is why this is gated rather than trusted.
  *
  * <p>Run: {@code ./gradlew powerEnumCheck}. Exits non-zero on any finding.
  */
@@ -71,6 +74,8 @@ public final class PowerEnumCheck {
         Path.of("src/main/java/com/cyberday1/neoorigins/power/registry/PowerTypes.java");
     private static final Path TRANSLATOR_SRC =
         Path.of("src/main/java/com/cyberday1/neoorigins/compat/OriginsPowerTranslator.java");
+    private static final Path COMPAT_LOADER_SRC =
+        Path.of("src/main/java/com/cyberday1/neoorigins/compat/OriginsCompatPowerLoader.java");
 
     /** {@code reg("id", new SomePower())} in PowerTypes — the registration surface. */
     private static final Pattern REG = Pattern.compile("reg\\(\\s*\"([a-z0-9_]+)\"\\s*,");
@@ -81,30 +86,38 @@ public final class PowerEnumCheck {
 
     /**
      * Ratchet ceiling on the LEGACY half of the branch gap — the
-     * {@code origins:}/{@code apace:}/{@code apoli:}/{@code apugli:} ids the alias
-     * table and the compat import translation accept but that have no structured
-     * branch, so the editors fall back to a raw-JSON box for them.
+     * {@code origins:}/{@code apace:}/{@code apoli:}/{@code apugli:} ids the compat
+     * dispatch, the alias table and the compat import translation accept but that
+     * have no structured branch, so the editors fall back to a raw-JSON box for them.
      *
      * <p>These are not allowlist lines, for the same reason the container types are
      * not: the allowlist is an enumerated, per-id record of NATIVE powers missing a
-     * FieldSpec list, and burying the imported spellings in it would drown that
-     * signal and make "the target is zero" meaningless. They are also not a
-     * permanent exemption — folding an import id into its translation target's
-     * branch is real work — so they get a counter with a ceiling instead.
+     * FieldSpec list, and burying 400 legacy ids in it would drown that signal and
+     * make "the target is zero" meaningless. They are also not a permanent exemption
+     * — closing them is real work — so they get a counter with a ceiling instead.
      *
-     * <p>THIS NUMBER MAY ONLY GO DOWN. Lower it as legacy spellings gain branches;
-     * if a change pushes it up, that change added an unmodelled authorable type.
-     * It is measured per branch: the registries differ between 1.21.1 and 26.x, so
-     * this value is NOT comparable to the lead branch's.
+     * <p>The gap exists because structured branches are generated from the
+     * {@code BuiltinPowers} FieldSpec registry and the compat power types have no
+     * such registry: Route B never produces a native power type at all, so there is
+     * nothing to reflect a Config record off. Writing one is a separate, larger
+     * piece of work.
      *
-     * <p>Was 32 while {@link #legacyImportSurface()} miscounted 29 native
-     * {@code neoorigins:} alias-source ids as foreign. They are itemized in the
-     * allowlist now, leaving the three genuinely foreign {@code apace:} import ids.
-     * That drop is a RECLASSIFICATION, not modelling progress — no id gained a
-     * branch — and the ceiling is pinned at the honest number so that later work
-     * cannot spend the difference.
+     * <p>THIS NUMBER MAY ONLY GO DOWN. Lower it as compat types gain branches; if a
+     * change pushes it up, that change added an unmodelled authorable type. It is
+     * measured per branch: the registries differ between 1.21.1 and 26.x, so this
+     * value is NOT comparable to the lead branch's.
+     *
+     * <p>History, so the two past rises are not mistaken for regressions. Was 32
+     * while {@link #legacyImportSurface()} miscounted 29 native {@code neoorigins:}
+     * alias-source ids as foreign; they were itemized in the allowlist, leaving 3
+     * genuinely foreign {@code apace:} import ids. It then rose 3 → 406 when the
+     * {@code type} enum was widened from the two compat dispatch switches, so that
+     * legacy Origins/Apoli packs became authorable at all (they were 1088-of-1427
+     * rejected on {@code /type} before). Both moves are RECLASSIFICATIONS — no id
+     * lost a branch — and the ceiling is pinned at the honest measured number each
+     * time so later work cannot spend the difference.
      */
-    private static final int MAX_UNBRANCHED_LEGACY = 3;
+    private static final int MAX_UNBRANCHED_LEGACY = 406;
 
     public static void main(String[] args) throws IOException {
         int failures = 0;
@@ -145,6 +158,7 @@ public final class PowerEnumCheck {
 
         failures += auditBranchCoverage(enumIds, branchIds);
         failures += auditRegisteredAndFunctional(enumIds, registered);
+        failures += auditDispatchParity();
         report(failures);
     }
 
@@ -243,14 +257,24 @@ public final class PowerEnumCheck {
      * be closed by folding them into a translation target's branch; a native id has
      * a home of its own and must be named in the allowlist until it gets a branch.
      *
-     * <p>The lead branch reaches the same split by intersecting with
-     * {@code OriginsFormatDetector.legacyPowerTypeSurface()}, which is built from the
-     * Route A/Route B dispatch labels and so is foreign-only by construction. That
-     * method does not exist on this branch (neither does
-     * {@code OriginsPowerTranslator.ROUTE_A_TYPES}, which it reads), and porting it
-     * would drag the whole legacy dispatch surface into the {@code type} enum — a
-     * different change, which would RAISE this ceiling by ~400. Filtering the
-     * namespace here is the same classification with none of that reach.
+     * <p>{@link OriginsFormatDetector#legacyPowerTypeSurface()} is unioned in whole:
+     * it is built from the Route A/Route B dispatch labels, and since the {@code type}
+     * enum is now built from it too, every id it carries has to be classified here or
+     * it would land in the allowlist instead. That union is what raised
+     * {@link #MAX_UNBRANCHED_LEGACY} to 406.
+     *
+     * <p>The {@code neoorigins:} filter above is deliberately NOT applied to that
+     * surface, and the distinction is the same one the filter exists to draw. An
+     * alias SOURCE in the {@code neoorigins:} namespace is a first-party type with a
+     * home of its own — a {@code PowerTypes} registration and a {@code BuiltinPowers}
+     * entry to hang a FieldSpec list on — so it must be named in the allowlist until
+     * it gets a branch. The dispatch surface contributes exactly one
+     * {@code neoorigins:} id, {@code neoorigins:self_action_on_hit}, and it has
+     * neither: it is registered nowhere and defined nowhere, existing only as a
+     * spelling the Route B switch accepts. There is no FieldSpec list to write for
+     * it, so an allowlist line would record a gap that cannot be closed the way
+     * allowlist lines are closed. It is counted under the ceiling with the rest of
+     * the dispatch surface, which is also how the lead branch classifies it.
      */
     private static Set<String> legacyImportSurface() {
         LegacyPowerTypeAliases.bootstrap();
@@ -260,6 +284,101 @@ public final class PowerEnumCheck {
             ids.add(rl.toString());
         }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);
+        ids.addAll(OriginsFormatDetector.legacyPowerTypeSurface());
+        return ids;
+    }
+
+    // ── Assertion 3: declared dispatch sets ≡ the switch case labels ─────────
+
+    /**
+     * The declared Route A / Route B type sets are hand-maintained transcriptions of
+     * two {@code switch} statements, and the schema's {@code type} enum is built from
+     * them — so a drifted set is a schema that lies in one direction or the other.
+     * Parse the {@code case} labels straight back out of both source files and diff.
+     *
+     * <p>Deliberately source-text based: the labels are compile-time constants in a
+     * switch, invisible to reflection, and re-deriving them any other way would just
+     * be a second transcription to drift.
+     */
+    private static int auditDispatchParity() throws IOException {
+        int fails = 0;
+        Set<String> declaredB = new TreeSet<>(OriginsCompatPowerLoader.ROUTE_B_TYPES);
+        declaredB.addAll(OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES);
+        fails += diffLabels("Route B", declaredB,
+            switchCaseLabels(COMPAT_LOADER_SRC,
+                "private CompatPower.Config parseRouteB", "default -> null;"),
+            "OriginsCompatPowerLoader.ROUTE_B_TYPES / CONDITIONED_ROUTE_B_TYPES");
+        fails += diffLabels("Route A", new TreeSet<>(OriginsPowerTranslator.ROUTE_A_TYPES),
+            switchCaseLabels(TRANSLATOR_SRC,
+                "private static Optional<JsonObject> doTranslate", "default -> {"),
+            "OriginsPowerTranslator.ROUTE_A_TYPES");
+        if (fails == 0) {
+            System.out.println("[power-enum] dispatch parity: " + declaredB.size()
+                + " Route B + " + OriginsPowerTranslator.ROUTE_A_TYPES.size()
+                + " Route A declared ids match their switch case labels exactly");
+        }
+        return fails;
+    }
+
+    private static int diffLabels(String label, Set<String> declared, Set<String> inSource,
+                                  String setName) {
+        int fails = 0;
+        // Anti-vacuity: a changed switch shape would silently parse to nothing.
+        if (inSource.size() < 50) {
+            System.out.println("[power-enum] FAIL  parsed only " + inSource.size() + " " + label
+                + " case label(s) out of the source (expected 50+) — the switch shape changed"
+                + " and this parity gate stopped seeing the dispatch table");
+            return 1;
+        }
+        Set<String> missing = new TreeSet<>(inSource);
+        missing.removeAll(declared);
+        Set<String> extra = new TreeSet<>(declared);
+        extra.removeAll(inSource);
+        if (!missing.isEmpty()) {
+            System.out.println("[power-enum] FAIL  " + missing.size() + " " + label + " case"
+                + " label(s) are not declared in " + setName + " — the parser accepts them but"
+                + " the schema rejects them, so packs using them fail validation while loading"
+                + " fine:");
+            for (String id : missing) System.out.println("    " + id);
+            fails += missing.size();
+        }
+        if (!extra.isEmpty()) {
+            System.out.println("[power-enum] FAIL  " + extra.size() + " id(s) in " + setName
+                + " have no " + label + " case label — the schema advertises a type the parser"
+                + " drops, so the pack validates and then logs \"Unknown power type\" at load:");
+            for (String id : extra) System.out.println("    " + id);
+            fails += extra.size();
+        }
+        return fails;
+    }
+
+    /**
+     * String literals appearing in {@code case ... ->} labels of the switch that
+     * starts at {@code startMarker} and ends at {@code endMarker}. Line comments are
+     * stripped first so a commented-out id or an example in prose is not counted, and
+     * only the label region of each arm is scanned so ids passed as ARGUMENTS (e.g.
+     * {@code translateSimple("neoorigins:flight")}) are not mistaken for labels.
+     */
+    private static Set<String> switchCaseLabels(Path src, String startMarker, String endMarker)
+            throws IOException {
+        List<String> lines = Files.readAllLines(src, StandardCharsets.UTF_8);
+        StringBuilder body = new StringBuilder();
+        boolean in = false;
+        for (String raw : lines) {
+            String line = raw.replaceAll("//.*$", "");
+            if (!in) {
+                if (line.contains(startMarker)) in = true;
+                continue;
+            }
+            if (line.contains(endMarker)) break;
+            body.append(line).append('\n');
+        }
+        Set<String> ids = new TreeSet<>();
+        Matcher arm = Pattern.compile("\\bcase\\s+([^;]*?)->").matcher(body);
+        while (arm.find()) {
+            Matcher lit = Pattern.compile("\"([^\"]+)\"").matcher(arm.group(1));
+            while (lit.find()) ids.add(lit.group(1));
+        }
         return ids;
     }
 
@@ -350,8 +469,15 @@ public final class PowerEnumCheck {
      * {@code LegacyPowerTypeAliases}; a recognized compat import id is rewritten by
      * {@code OriginsPowerTranslator} (asserted here by requiring the translator source
      * to still mention the id, so a curated import id that loses its translation case
-     * is caught); anything else must be registered outright. Alias/import hops chain,
-     * hence the bounded loop.
+     * is caught); a legacy id is dispatched by one of the two compat switches;
+     * anything else must be registered outright. Alias/import hops chain, hence the
+     * bounded loop.
+     *
+     * <p>The compat-dispatch path does NOT end at a {@code PowerTypes} registration:
+     * Route B builds a {@code CompatPower.Config} directly and never produces a
+     * native type. "Functional" there means "a dispatch arm claims it", which
+     * {@link #auditDispatchParity()} pins to the actual switch source — so this is
+     * not the enum vouching for itself.
      */
     private static boolean resolves(String id, Set<String> registered, Set<String> aliasSources,
                                     String translatorSrc) {
@@ -359,6 +485,11 @@ public final class PowerEnumCheck {
         String cur = canonicalize(id);
         for (int hop = 0; hop < 4; hop++) {
             if (registered.contains(cur)) return true;
+            if (OriginsCompatPowerLoader.ROUTE_B_TYPES.contains(cur)
+                || OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES.contains(cur)
+                || OriginsPowerTranslator.ROUTE_A_TYPES.contains(cur)) {
+                return true;
+            }
             if (aliasSources.contains(cur)) {
                 Identifier rl = Identifier.parse(cur);
                 cur = LegacyPowerTypeAliases.simulateApply(rl, new JsonObject(), rl).toString();
