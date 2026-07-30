@@ -156,6 +156,60 @@ await check('warns and skips a power reference with no power file', () => {
 	);
 });
 
+await check('reads single-key { text } components losslessly, with no warning', () => {
+	// The shape NeoOrigins' own shipped origins use (asura, golden_body,
+	// iron_monk, qi_cultivator, sword_immortal, windwalker). Before `text`
+	// was handled this silently produced an empty name AND description
+	// with an empty `warnings` array — the pack looked like it imported fine.
+	const enc = new TextEncoder();
+	const zip = zipSync({
+		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
+		'data/neoorigins/origins/origins/asura.json': enc.encode(
+			JSON.stringify({
+				name: { text: 'Asura' },
+				description: { text: 'A wrathful demigod of the battlefield.' },
+				icon: 'minecraft:netherite_sword',
+				impact: 'high',
+				powers: []
+			})
+		),
+		'data/neoorigins/origins/origin_layers/origin.json': enc.encode(
+			JSON.stringify({ replace: false, origins: ['neoorigins:asura'] })
+		)
+	});
+	const res = importDatapack(zip);
+	assert(res.draft.name === 'Asura', `expected "Asura", got ${JSON.stringify(res.draft.name)}`);
+	assert(
+		res.draft.description === 'A wrathful demigod of the battlefield.',
+		`expected the description text, got ${JSON.stringify(res.draft.description)}`
+	);
+	assert(res.warnings.length === 0, `unexpected warnings: ${res.warnings.join(' | ')}`);
+});
+
+await check('warns when component-form text actually loses data', () => {
+	const enc = new TextEncoder();
+	const zip = zipSync({
+		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
+		'data/mypack/origins/origins/wizard.json': enc.encode(
+			JSON.stringify({
+				name: { translate: 'origin.mypack.wizard.name', fallback: 'Wizard' },
+				description: { text: 'Styled', color: 'blue' },
+				powers: []
+			})
+		),
+		'data/mypack/origins/origin_layers/origin.json': enc.encode(
+			JSON.stringify({ replace: false, origins: ['mypack:wizard'] })
+		)
+	});
+	const res = importDatapack(zip);
+	assert(res.draft.name === 'Wizard', `expected fallback flatten, got ${res.draft.name}`);
+	assert(res.draft.description === 'Styled', `expected "Styled", got ${res.draft.description}`);
+	assert(
+		res.warnings.some((w) => w.toLowerCase().includes('flattened')),
+		`expected a flatten warning, got: ${res.warnings.join(' | ')}`
+	);
+});
+
 await check('throws ImportError when no origin file is present', () => {
 	const enc = new TextEncoder();
 	const zip = zipSync({

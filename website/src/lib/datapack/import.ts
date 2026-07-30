@@ -73,18 +73,29 @@ function isImpact(v: unknown): v is Impact {
 }
 
 /**
- * Flatten a `name`/`description` value into a plain string. The editor
- * emits raw strings, but a hand-authored pack may use a translatable
- * component (`{translate, fallback}`); we keep the fallback (or the
- * translate key as a last resort) and let the caller warn about it.
+ * Flatten a `name`/`description` value into a plain string. The editor emits raw
+ * strings, but a pack may use a text component: `{ "text": "..." }` (the common
+ * literal form, and what the mod's own origins ship) or a translatable
+ * `{ translate, fallback }`. `text` wins, then `fallback`, then the translate key
+ * as a last resort.
+ *
+ * `flattened` is true only when information was actually dropped — a bare string
+ * or a lone `text` key round-trips losslessly, so re-importing such a pack warns
+ * about nothing. Mirrors `flattenText` in `./mobImport.ts`.
  */
 function flattenText(v: unknown): { value: string; flattened: boolean } {
 	if (typeof v === 'string') return { value: v, flattened: false };
 	if (v && typeof v === 'object') {
 		const o = v as Record<string, unknown>;
+		const text = typeof o.text === 'string' ? o.text : undefined;
 		const fallback = typeof o.fallback === 'string' ? o.fallback : undefined;
 		const translate = typeof o.translate === 'string' ? o.translate : undefined;
-		return { value: fallback ?? translate ?? '', flattened: true };
+		const value = text ?? fallback ?? translate ?? '';
+		const keys = Object.keys(o);
+		// Lossless iff the only key is a plain `text` — anything else
+		// (translate, fallback, siblings like `color`/`extra`) loses data.
+		const lossless = text !== undefined && keys.length === 1 && keys[0] === 'text';
+		return { value, flattened: !lossless };
 	}
 	return { value: '', flattened: false };
 }
@@ -178,7 +189,8 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 	draft.description = description.value;
 	if (name.flattened || description.flattened) {
 		warnings.push(
-			'Component-form text (translate/fallback) was flattened to a plain string.'
+			'Component-form text was flattened to a plain string; any translate key, ' +
+				'fallback or styling siblings were dropped.'
 		);
 	}
 

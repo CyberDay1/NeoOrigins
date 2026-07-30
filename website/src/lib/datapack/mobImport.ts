@@ -183,7 +183,10 @@ export function importMobDatapack(bytes: Uint8Array): MobImportResult {
 	draft.name = name.value;
 	draft.description = description.value;
 	if (name.flattened || description.flattened) {
-		warnings.push('Component-form text (translate/fallback) was flattened to a plain string.');
+		warnings.push(
+			'Component-form text was flattened to a plain string; any translate key, ' +
+				'fallback or styling siblings were dropped.'
+		);
 	}
 
 	if (typeof json.icon === 'string') draft.icon = json.icon;
