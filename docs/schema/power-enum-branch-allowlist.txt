@@ -13,20 +13,32 @@
 # import-only id, fold it into its translation target's branch as an extra
 # `type.enum` entry), run `./gradlew generatePowerSchema`, then delete the line.
 #
-# NOT listed here, because they are permanent by design rather than a gap: the
-# container types (OriginsMultipleExpander.MULTIPLE_TYPES), whose properties are
-# arbitrary author-chosen sub-power keys. PowerEnumCheck exempts those directly.
+# NOT listed here, for two reasons that are not "gap":
 #
-# Import-only ids (rewritten to a neoorigins: type at load by
-# OriginsPowerTranslator) — the branch to share is their translation target's.
-apace:night_vision
-apace:status_effect
-apace:water_breathing
-apoli:edible_item
-apugli:action_on_jump
-apugli:action_on_target_death
-apugli:edible_item
-
+#   * the container types (OriginsMultipleExpander.MULTIPLE_TYPES), whose
+#     properties are arbitrary author-chosen sub-power keys, so there is no branch
+#     to write. PowerEnumCheck exempts those directly, permanently.
+#
+#   * the legacy compat surface — the ~400 origins:/apace:/apoli:/apugli: ids the
+#     two compat dispatch switches accept. Those ARE a gap, but a different one:
+#     branches are generated from BuiltinPowers FieldSpec lists and compat power
+#     types have no such registry (Route B never produces a native power type at
+#     all), so none of them can be generated today. Enumerating 400 ids here would
+#     drown this file's signal and make "the target is zero" meaningless, so
+#     PowerEnumCheck counts them against MAX_UNBRANCHED_LEGACY — a ceiling that may
+#     only shrink — and prints the count on every run.
+#
+# This file therefore covers exactly one thing: NATIVE neoorigins: powers, plus
+# curated import ids, that are authorable but unmodelled.
+#
+# The seven import-only ids that used to head this list are gone. Five
+# (apace:night_vision, apace:status_effect, apace:water_breathing,
+# apoli:edible_item, apugli:edible_item) moved to the legacy-surface count, since
+# they are ordinary Route A dispatch labels. Two (apugli:action_on_jump,
+# apugli:action_on_target_death) left the enum entirely: canonicalization rewrites
+# apoli:/apugli: to origins: and Route A drops the power before the alias table is
+# consulted, so those two never loaded and the schema should not have offered them.
+#
 # Native types with no descriptor yet. Several are legacy 2.0 types kept for the
 # deprecation window and remapped by LegacyPowerTypeAliases, which is why they
 # still load: authoring one is valid, just unvalidated.

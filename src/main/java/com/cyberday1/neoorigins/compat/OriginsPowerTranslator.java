@@ -302,6 +302,77 @@ public final class OriginsPowerTranslator {
         }
     }
 
+    /**
+     * Every {@code type} id {@link #doTranslate} has a translation case for, verbatim.
+     *
+     * <p>Distinct from {@link #SCHEMA_RECOGNIZED_IMPORT_IDS}, which is the curated
+     * subset whose native target the schema models field-for-field. This set is the
+     * full Route A acceptance surface: an id in here loads (the pack is rewritten to
+     * a native power), an id outside it and outside
+     * {@link OriginsCompatPowerLoader#ROUTE_B_TYPES} logs "no Route A translation"
+     * and is dropped — so this is exactly what the schema may advertise.
+     *
+     * <p>MUST mirror the switch below exactly: {@code PowerEnumCheck} parses the
+     * case labels out of this file and fails in BOTH directions. Apoli-family
+     * variants are derived, not listed — see
+     * {@link OriginsFormatDetector#legacyPowerTypeSurface()}.
+     */
+    public static final java.util.Set<String> ROUTE_A_TYPES = java.util.Set.of(
+        "origins:attribute", "apace:attribute",
+        "origins:modify_attribute", "apace:modify_attribute",
+        "origins:elytra_flight", "apace:elytra_flight", "apoli:elytra_flight",
+        "origins:creative_flight", "apace:creative_flight",
+        "origins:night_vision", "apace:night_vision",
+        "origins:water_breathing", "apace:water_breathing",
+        "origins:stacking_status_effect", "apace:stacking_status_effect",
+        "origins:status_effect", "apace:status_effect",
+        "origins:effect_immunity", "apace:effect_immunity",
+        "origins:modify_damage_taken",
+        "origins:modify_damage_dealt",
+        "origins:invulnerability",
+        "origins:prevent_death", "apace:prevent_death",
+        "origins:disable_regen",
+        "origins:slow_falling",
+        "origins:walk_speed", "apace:walk_speed",
+        "origins:modify_swim_speed", "apace:modify_swim_speed",
+        "origins:climbing", "apace:climbing",
+        "origins:entity_size", "apace:entity_size",
+        "origins:modify_break_speed", "apace:modify_break_speed",
+        "origins:entity_group", "apace:entity_group",
+        "origins:invisibility", "apace:invisibility",
+        "origins:modify_exhaustion", "apace:modify_exhaustion",
+        "origins:fire_immunity", "apace:fire_immunity",
+        "origins:toggle_night_vision", "apace:toggle_night_vision",
+        "origins:food_restriction", "apace:food_restriction",
+        "origins:edible_item", "apace:edible_item",
+        "origins:keep_inventory", "apace:keep_inventory",
+        "origins:ignore_water", "apace:ignore_water",
+        "origins:phasing", "apace:phasing",
+        "origins:burn", "apace:burn",
+        "origins:swim_speed", "apace:swim_speed",
+        "origins:overlay", "apace:overlay",
+        "origins:model_color", "apace:model_color",
+        "origins:lava_vision", "apace:lava_vision",
+        "origins:shader", "apace:shader",
+        "origins:particle", "apace:particle", "apoli:particle", "apugli:particle",
+        "origins:modify_player_spawn", "apace:modify_player_spawn",
+        "origins:action_on_block_break", "apace:action_on_block_break",
+        "origins:action_on_block_use", "apace:action_on_block_use",
+        "origins:action_on_entity_use", "apace:action_on_entity_use",
+        "origins:bonemeal", "apace:bonemeal",
+        "origins:status_bar_texture", "apace:status_bar_texture",
+        "origins:simple", "apace:simple",
+        "origins:tooltip", "apace:tooltip",
+        "origins:prevent_elytra_flight", "apace:prevent_elytra_flight",
+        "origins:modify_projectile_damage", "apace:modify_projectile_damage",
+        "origins:modify_air_speed", "apace:modify_air_speed",
+        "origins:action_on_item_use", "apace:action_on_item_use",
+        "origins:action_on_wake_up", "apace:action_on_wake_up",
+        "origins:exhaust", "apace:exhaust",
+        "origins:starting_equipment", "apace:starting_equipment",
+        "origins:walk_on_fluid", "apace:walk_on_fluid",
+        "origins:inventory", "apace:inventory");
+
     private static Optional<JsonObject> doTranslate(ResourceLocation id, String type, JsonObject src) {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);

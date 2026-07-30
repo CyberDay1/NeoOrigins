@@ -71,8 +71,20 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     private static final java.util.Map<String, net.minecraft.world.level.GameType> GAMEMODE_REVERT =
         new java.util.concurrent.ConcurrentHashMap<>();
 
-    /** Power types that Route B handles (Route A SKIPs these). */
-    private static final Set<String> ROUTE_B_TYPES = Set.of(
+    /**
+     * Power types that Route B handles unconditionally (Route A SKIPs these).
+     *
+     * <p>Public because it is the Route B half of the authorable legacy power-type
+     * surface: Route B builds a {@link CompatPower.Config} directly, so these ids
+     * never become a native power type and there is no {@code PowerTypes}
+     * registration to discover them through.
+     * {@link OriginsFormatDetector#legacyPowerTypeSurface()} unions this with
+     * {@link #CONDITIONED_ROUTE_B_TYPES} and the Route A set to build the schema's
+     * {@code type} enum, and {@code PowerEnumCheck} asserts both directions against
+     * the {@link #parseRouteB} case labels — so a new case that is not listed here,
+     * or a line here with no case, is a build failure.
+     */
+    public static final Set<String> ROUTE_B_TYPES = Set.of(
         "origins:active_self",           "apace:active_self",
         "origins:action_over_time",      "apace:action_over_time",
         "origins:action_on_callback",    "apace:action_on_callback",
@@ -728,9 +740,28 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         };
     }
 
+    /**
+     * The Route B types that are CONDITIONALLY dispatched: {@code parseRouteB} has a
+     * case for each, but {@link #apply} only routes them here when the power carries a
+     * {@code condition} (native {@code ModifyDamagePower} has no condition support).
+     * Without one they are Route A types instead — {@code origins:modify_damage_taken}
+     * / {@code origins:modify_damage_dealt} have Route A cases, so those load either
+     * way; the {@code apace:} spellings do not, so an UNconditioned
+     * {@code apace:modify_damage_taken} is still dropped.
+     *
+     * <p>They are part of the schema's authorable surface regardless, since a JSON
+     * Schema {@code type} enum cannot express "valid only when a sibling key is
+     * present". The narrow over-advertisement is the unconditioned {@code apace:}
+     * pair; the alternative is rejecting every conditioned file, of which the legacy
+     * corpus has plenty.
+     */
+    public static final Set<String> CONDITIONED_ROUTE_B_TYPES = Set.of(
+        "origins:modify_damage_taken", "apace:modify_damage_taken",
+        "origins:modify_damage_dealt", "apace:modify_damage_dealt"
+    );
+
     private static boolean isModifyDamageTakenType(String type) {
-        return "origins:modify_damage_taken".equals(type) || "apace:modify_damage_taken".equals(type)
-            || "origins:modify_damage_dealt".equals(type) || "apace:modify_damage_dealt".equals(type);
+        return CONDITIONED_ROUTE_B_TYPES.contains(type);
     }
 
     private CompatPower.Config parseConditionedModifyDamageTaken(ResourceLocation id, JsonObject json) {

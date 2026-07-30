@@ -227,13 +227,23 @@ public final class PowerSchemaGenerator {
      * Assemble the sorted, de-duplicated full id list for {@code type.enum}:
      * {@code BuiltinPowers.ids()} ∪ the 2 unregistered-by-design ids ∪
      * {@link LegacyPowerTypeAliases#aliasedTypeIds()} ∪
-     * {@link OriginsPowerTranslator#SCHEMA_RECOGNIZED_IMPORT_IDS}.
+     * {@link OriginsPowerTranslator#SCHEMA_RECOGNIZED_IMPORT_IDS} ∪
+     * {@link com.cyberday1.neoorigins.compat.OriginsFormatDetector#legacyPowerTypeSurface()}.
      *
      * <p>Every id is enumerated by some in-code table — there are no hard-coded
-     * ids here. The cross-mod {@code apace:*} import ids come from the compat
-     * layer (the translator), which owns that surface; {@code apoli:*}/
-     * {@code apugli:*} come from the alias table; everything else from
-     * {@code BuiltinPowers}.
+     * ids here. The legacy {@code origins:}/{@code apace:}/{@code apoli:}/
+     * {@code apugli:} surface comes from the two compat dispatch switches, which own
+     * it; everything else from {@code BuiltinPowers} and the alias table.
+     *
+     * <p>The legacy surface is the bulk of the enum and almost none of it has a
+     * structured branch, because compat power types have no FieldSpec registry to
+     * generate one from (only {@code BuiltinPowers} does). That is a real remaining
+     * gap — the editors give these types a raw-JSON box — but it is strictly better
+     * than the alternative it replaces, which was rejecting the file outright: before
+     * this, 1088 of the 1427 power JSONs in the six-pack legacy corpus failed
+     * validation on {@code /type} alone, so every legacy pack was 100% unauthorable.
+     * {@code PowerEnumCheck} counts the unbranched legacy ids under a ratchet ceiling
+     * so the gap is visible and can only shrink.
      */
     private static List<String> buildTypeEnum() {
         // The alias table is lazy — bootstrap it before reading aliasedTypeIds().
@@ -244,9 +254,25 @@ public final class PowerSchemaGenerator {
         ids.add(ID_STARTING_EQUIPMENT);
         ids.addAll(com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_TYPES);
         for (ResourceLocation rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
+            // Apoli-family alias sources are NOT authorable, however the alias table
+            // reads. PowerDataManager.apply canonicalizes apoli:/apugli: -> origins:
+            // and then runs Route A, which drops the power when no case matches —
+            // both BEFORE LegacyPowerTypeAliases.apply. So the alias never fires for
+            // an apoli-family id, and advertising one is the "schema lies, then the
+            // load logs Unknown power type" failure. The four cross-mod entries split
+            // cleanly: apoli:/apugli:edible_item load anyway because
+            // `origins:edible_item` has a Route A case (and so arrive via
+            // legacyPowerTypeSurface() below), while apugli:action_on_jump and
+            // apugli:action_on_target_death have no origins: case and genuinely do not
+            // load — they are dropped from the enum here rather than advertised.
+            // Making the alias table reachable for them is a runtime fix, tracked
+            // separately; this only stops the schema claiming it already is.
+            if (com.cyberday1.neoorigins.compat.OriginsFormatDetector
+                    .isApoliFamily(rl.getNamespace())) continue;
             ids.add(rl.toString());
         }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);
+        ids.addAll(com.cyberday1.neoorigins.compat.OriginsFormatDetector.legacyPowerTypeSurface());
         return new ArrayList<>(ids); // TreeSet → alphabetical
     }
 
