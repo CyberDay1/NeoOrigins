@@ -8,34 +8,7 @@
     "type": {
       "type": "string",
       "description": "Item-condition verb (empty / nbt / enchantment / ingredient / not / and / or). `apace:` aliases are accepted.",
-      "enum": [
-        "apace:all_of",
-        "apace:amount",
-        "apace:and",
-        "apace:any_of",
-        "apace:custom_data",
-        "apace:empty",
-        "apace:enchantment",
-        "apace:food",
-        "apace:ingredient",
-        "apace:name",
-        "apace:nbt",
-        "apace:not",
-        "apace:or",
-        "neoorigins:all_of",
-        "neoorigins:amount",
-        "neoorigins:and",
-        "neoorigins:any_of",
-        "neoorigins:custom_data",
-        "neoorigins:empty",
-        "neoorigins:enchantment",
-        "neoorigins:food",
-        "neoorigins:ingredient",
-        "neoorigins:name",
-        "neoorigins:nbt",
-        "neoorigins:not",
-        "neoorigins:or"
-      ]
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:all_of|amount|and|any_of|custom_data|empty|enchantment|food|ingredient|name|nbt|not|or)$"
     }
   },
   "oneOf": [
@@ -45,7 +18,10 @@
         "type": {
           "enum": [
             "neoorigins:amount",
-            "apace:amount"
+            "apace:amount",
+            "origins:amount",
+            "apoli:amount",
+            "apugli:amount"
           ]
         },
         "comparison": {
@@ -79,7 +55,13 @@
             "neoorigins:and",
             "neoorigins:all_of",
             "apace:and",
-            "apace:all_of"
+            "apace:all_of",
+            "origins:and",
+            "origins:all_of",
+            "apoli:and",
+            "apoli:all_of",
+            "apugli:and",
+            "apugli:all_of"
           ]
         },
         "conditions": {
@@ -100,7 +82,10 @@
         "type": {
           "enum": [
             "neoorigins:empty",
-            "apace:empty"
+            "apace:empty",
+            "origins:empty",
+            "apoli:empty",
+            "apugli:empty"
           ]
         }
       },
@@ -114,7 +99,10 @@
         "type": {
           "enum": [
             "neoorigins:enchantment",
-            "apace:enchantment"
+            "apace:enchantment",
+            "origins:enchantment",
+            "apoli:enchantment",
+            "apugli:enchantment"
           ]
         },
         "enchantment": {
@@ -151,7 +139,10 @@
         "type": {
           "enum": [
             "neoorigins:food",
-            "apace:food"
+            "apace:food",
+            "origins:food",
+            "apoli:food",
+            "apugli:food"
           ]
         }
       },
@@ -165,7 +156,10 @@
         "type": {
           "enum": [
             "neoorigins:ingredient",
-            "apace:ingredient"
+            "apace:ingredient",
+            "origins:ingredient",
+            "apoli:ingredient",
+            "apugli:ingredient"
           ]
         },
         "item": {
@@ -187,7 +181,10 @@
         "type": {
           "enum": [
             "neoorigins:name",
-            "apace:name"
+            "apace:name",
+            "origins:name",
+            "apoli:name",
+            "apugli:name"
           ]
         },
         "name": {
@@ -208,7 +205,13 @@
             "neoorigins:nbt",
             "neoorigins:custom_data",
             "apace:nbt",
-            "apace:custom_data"
+            "apace:custom_data",
+            "origins:nbt",
+            "origins:custom_data",
+            "apoli:nbt",
+            "apoli:custom_data",
+            "apugli:nbt",
+            "apugli:custom_data"
           ]
         },
         "nbt": {
@@ -227,7 +230,10 @@
         "type": {
           "enum": [
             "neoorigins:not",
-            "apace:not"
+            "apace:not",
+            "origins:not",
+            "apoli:not",
+            "apugli:not"
           ]
         },
         "condition": {
@@ -247,7 +253,13 @@
             "neoorigins:or",
             "neoorigins:any_of",
             "apace:or",
-            "apace:any_of"
+            "apace:any_of",
+            "origins:or",
+            "origins:any_of",
+            "apoli:or",
+            "apoli:any_of",
+            "apugli:or",
+            "apugli:any_of"
           ]
         },
         "conditions": {
@@ -328,6 +340,32 @@
               "apace:nbt",
               "apace:not",
               "apace:or",
+              "apoli:all_of",
+              "apoli:amount",
+              "apoli:and",
+              "apoli:any_of",
+              "apoli:custom_data",
+              "apoli:empty",
+              "apoli:enchantment",
+              "apoli:food",
+              "apoli:ingredient",
+              "apoli:name",
+              "apoli:nbt",
+              "apoli:not",
+              "apoli:or",
+              "apugli:all_of",
+              "apugli:amount",
+              "apugli:and",
+              "apugli:any_of",
+              "apugli:custom_data",
+              "apugli:empty",
+              "apugli:enchantment",
+              "apugli:food",
+              "apugli:ingredient",
+              "apugli:name",
+              "apugli:nbt",
+              "apugli:not",
+              "apugli:or",
               "neoorigins:all_of",
               "neoorigins:amount",
               "neoorigins:and",
@@ -340,7 +378,20 @@
               "neoorigins:name",
               "neoorigins:nbt",
               "neoorigins:not",
-              "neoorigins:or"
+              "neoorigins:or",
+              "origins:all_of",
+              "origins:amount",
+              "origins:and",
+              "origins:any_of",
+              "origins:custom_data",
+              "origins:empty",
+              "origins:enchantment",
+              "origins:food",
+              "origins:ingredient",
+              "origins:name",
+              "origins:nbt",
+              "origins:not",
+              "origins:or"
             ]
           }
         }

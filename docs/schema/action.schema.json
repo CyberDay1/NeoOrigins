@@ -11,204 +11,7 @@
     "type": {
       "type": "string",
       "description": "Fully-qualified action verb. `apace:` aliases are accepted.",
-      "enum": [
-        "apace:activate_power",
-        "apace:actor_action",
-        "apace:add_to_set",
-        "apace:add_velocity",
-        "apace:add_xp",
-        "apace:all_of",
-        "apace:and",
-        "apace:apply_effect",
-        "apace:area_of_effect",
-        "apace:block_action_at",
-        "apace:block_target_action",
-        "apace:bonemeal",
-        "apace:cancel_event",
-        "apace:cast_iron_spell",
-        "apace:cast_spell",
-        "apace:chain_to_nearest",
-        "apace:chance",
-        "apace:change_resource",
-        "apace:choice",
-        "apace:clear_effect",
-        "apace:command",
-        "apace:crafting_table",
-        "apace:damage",
-        "apace:damage_attacker",
-        "apace:dash",
-        "apace:delay",
-        "apace:dismount",
-        "apace:drop_inventory",
-        "apace:drop_items",
-        "apace:dye",
-        "apace:effect_on_attacker",
-        "apace:emit_game_event",
-        "apace:equipped_item_action",
-        "apace:execute_command",
-        "apace:exhaust",
-        "apace:explode",
-        "apace:extinguish",
-        "apace:feed",
-        "apace:fire_projectile",
-        "apace:force_drop",
-        "apace:gain_air",
-        "apace:give",
-        "apace:grant_power",
-        "apace:grow",
-        "apace:heal",
-        "apace:if_else",
-        "apace:if_else_list",
-        "apace:ignite_attacker",
-        "apace:invert",
-        "apace:launch",
-        "apace:modify_food",
-        "apace:modify_inventory",
-        "apace:modify_resource",
-        "apace:modify_temperature",
-        "apace:mount",
-        "apace:nothing",
-        "apace:offset",
-        "apace:open_layer_picker",
-        "apace:passenger_action",
-        "apace:path",
-        "apace:play_sound",
-        "apace:pull_entities",
-        "apace:random_teleport",
-        "apace:raycast",
-        "apace:remove_from_set",
-        "apace:revoke_power",
-        "apace:riding_action",
-        "apace:selector_action",
-        "apace:set_block",
-        "apace:set_fall_distance",
-        "apace:set_on_fire",
-        "apace:set_resource",
-        "apace:shear",
-        "apace:spawn_black_hole",
-        "apace:spawn_effect_cloud",
-        "apace:spawn_entity",
-        "apace:spawn_lingering_area",
-        "apace:spawn_particles",
-        "apace:spawn_projectile",
-        "apace:spawn_projectile_rain",
-        "apace:spawn_sword_rain",
-        "apace:spawn_telegraph",
-        "apace:spawn_tornado",
-        "apace:steal_item",
-        "apace:strip",
-        "apace:swap_positions",
-        "apace:swap_with_entity",
-        "apace:swing_hand",
-        "apace:tame_target",
-        "apace:target_action",
-        "apace:teleport_target_to_self",
-        "apace:teleport_to_marker",
-        "apace:teleport_to_target",
-        "apace:throw_target",
-        "apace:till",
-        "apace:toggle",
-        "apace:transform_block",
-        "apace:trigger_cooldown",
-        "neoorigins:activate_power",
-        "neoorigins:actor_action",
-        "neoorigins:add_to_set",
-        "neoorigins:add_velocity",
-        "neoorigins:add_xp",
-        "neoorigins:all_of",
-        "neoorigins:and",
-        "neoorigins:apply_effect",
-        "neoorigins:area_of_effect",
-        "neoorigins:block_action_at",
-        "neoorigins:block_target_action",
-        "neoorigins:bonemeal",
-        "neoorigins:cancel_event",
-        "neoorigins:cast_iron_spell",
-        "neoorigins:cast_spell",
-        "neoorigins:chain_to_nearest",
-        "neoorigins:chance",
-        "neoorigins:change_resource",
-        "neoorigins:choice",
-        "neoorigins:clear_effect",
-        "neoorigins:command",
-        "neoorigins:crafting_table",
-        "neoorigins:damage",
-        "neoorigins:damage_attacker",
-        "neoorigins:dash",
-        "neoorigins:delay",
-        "neoorigins:dismount",
-        "neoorigins:drop_inventory",
-        "neoorigins:drop_items",
-        "neoorigins:dye",
-        "neoorigins:effect_on_attacker",
-        "neoorigins:emit_game_event",
-        "neoorigins:equipped_item_action",
-        "neoorigins:execute_command",
-        "neoorigins:exhaust",
-        "neoorigins:explode",
-        "neoorigins:extinguish",
-        "neoorigins:feed",
-        "neoorigins:fire_projectile",
-        "neoorigins:force_drop",
-        "neoorigins:gain_air",
-        "neoorigins:give",
-        "neoorigins:grant_power",
-        "neoorigins:grow",
-        "neoorigins:heal",
-        "neoorigins:if_else",
-        "neoorigins:if_else_list",
-        "neoorigins:ignite_attacker",
-        "neoorigins:invert",
-        "neoorigins:launch",
-        "neoorigins:modify_food",
-        "neoorigins:modify_inventory",
-        "neoorigins:modify_resource",
-        "neoorigins:modify_temperature",
-        "neoorigins:mount",
-        "neoorigins:nothing",
-        "neoorigins:offset",
-        "neoorigins:open_layer_picker",
-        "neoorigins:passenger_action",
-        "neoorigins:path",
-        "neoorigins:play_sound",
-        "neoorigins:pull_entities",
-        "neoorigins:random_teleport",
-        "neoorigins:raycast",
-        "neoorigins:remove_from_set",
-        "neoorigins:revoke_power",
-        "neoorigins:riding_action",
-        "neoorigins:selector_action",
-        "neoorigins:set_block",
-        "neoorigins:set_fall_distance",
-        "neoorigins:set_on_fire",
-        "neoorigins:set_resource",
-        "neoorigins:shear",
-        "neoorigins:spawn_black_hole",
-        "neoorigins:spawn_effect_cloud",
-        "neoorigins:spawn_entity",
-        "neoorigins:spawn_lingering_area",
-        "neoorigins:spawn_particles",
-        "neoorigins:spawn_projectile",
-        "neoorigins:spawn_projectile_rain",
-        "neoorigins:spawn_sword_rain",
-        "neoorigins:spawn_telegraph",
-        "neoorigins:spawn_tornado",
-        "neoorigins:steal_item",
-        "neoorigins:strip",
-        "neoorigins:swap_positions",
-        "neoorigins:swap_with_entity",
-        "neoorigins:swing_hand",
-        "neoorigins:tame_target",
-        "neoorigins:target_action",
-        "neoorigins:teleport_target_to_self",
-        "neoorigins:teleport_to_marker",
-        "neoorigins:teleport_to_target",
-        "neoorigins:throw_target",
-        "neoorigins:till",
-        "neoorigins:toggle",
-        "neoorigins:transform_block",
-        "neoorigins:trigger_cooldown"
-      ]
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:activate_power|actor_action|add_to_set|add_velocity|add_xp|all_of|and|apply_effect|area_of_effect|block_action_at|block_target_action|bonemeal|cancel_event|cast_iron_spell|cast_spell|chain_to_nearest|chance|change_resource|choice|clear_effect|command|crafting_table|damage|damage_attacker|dash|delay|dismount|drop_inventory|drop_items|dye|effect_on_attacker|emit_game_event|equipped_item_action|execute_command|exhaust|explode|extinguish|feed|fire_projectile|force_drop|gain_air|give|grant_power|grow|heal|if_else|if_else_list|ignite_attacker|invert|launch|modify_food|modify_inventory|modify_resource|modify_temperature|mount|nothing|offset|open_layer_picker|passenger_action|path|play_sound|pull_entities|random_teleport|raycast|remove_from_set|revoke_power|riding_action|selector_action|set_block|set_fall_distance|set_on_fire|set_resource|shear|spawn_black_hole|spawn_effect_cloud|spawn_entity|spawn_lingering_area|spawn_particles|spawn_projectile|spawn_projectile_rain|spawn_sword_rain|spawn_telegraph|spawn_tornado|steal_item|strip|swap_positions|swap_with_entity|swing_hand|tame_target|target_action|teleport_target_to_self|teleport_to_marker|teleport_to_target|throw_target|till|toggle|transform_block|trigger_cooldown)$"
     }
   },
   "oneOf": [
@@ -218,7 +21,10 @@
         "type": {
           "enum": [
             "neoorigins:activate_power",
-            "apace:activate_power"
+            "apace:activate_power",
+            "origins:activate_power",
+            "apoli:activate_power",
+            "apugli:activate_power"
           ]
         },
         "power": {
@@ -237,7 +43,10 @@
         "type": {
           "enum": [
             "neoorigins:actor_action",
-            "apace:actor_action"
+            "apace:actor_action",
+            "origins:actor_action",
+            "apoli:actor_action",
+            "apugli:actor_action"
           ]
         },
         "action": {
@@ -255,7 +64,10 @@
         "type": {
           "enum": [
             "neoorigins:add_to_set",
-            "apace:add_to_set"
+            "apace:add_to_set",
+            "origins:add_to_set",
+            "apoli:add_to_set",
+            "apugli:add_to_set"
           ]
         },
         "set": {
@@ -274,7 +86,10 @@
         "type": {
           "enum": [
             "neoorigins:add_velocity",
-            "apace:add_velocity"
+            "apace:add_velocity",
+            "origins:add_velocity",
+            "apoli:add_velocity",
+            "apugli:add_velocity"
           ]
         },
         "x": {
@@ -323,7 +138,10 @@
         "type": {
           "enum": [
             "neoorigins:add_xp",
-            "apace:add_xp"
+            "apace:add_xp",
+            "origins:add_xp",
+            "apoli:add_xp",
+            "apugli:add_xp"
           ]
         },
         "points": {
@@ -349,7 +167,13 @@
             "neoorigins:and",
             "neoorigins:all_of",
             "apace:and",
-            "apace:all_of"
+            "apace:all_of",
+            "origins:and",
+            "origins:all_of",
+            "apoli:and",
+            "apoli:all_of",
+            "apugli:and",
+            "apugli:all_of"
           ]
         },
         "actions": {
@@ -370,7 +194,10 @@
         "type": {
           "enum": [
             "neoorigins:apply_effect",
-            "apace:apply_effect"
+            "apace:apply_effect",
+            "origins:apply_effect",
+            "apoli:apply_effect",
+            "apugli:apply_effect"
           ]
         },
         "effect": {
@@ -424,7 +251,10 @@
         "type": {
           "enum": [
             "neoorigins:area_of_effect",
-            "apace:area_of_effect"
+            "apace:area_of_effect",
+            "origins:area_of_effect",
+            "apoli:area_of_effect",
+            "apugli:area_of_effect"
           ]
         },
         "radius": {
@@ -487,7 +317,10 @@
         "type": {
           "enum": [
             "neoorigins:block_action_at",
-            "apace:block_action_at"
+            "apace:block_action_at",
+            "origins:block_action_at",
+            "apoli:block_action_at",
+            "apugli:block_action_at"
           ]
         },
         "block_action": {
@@ -505,7 +338,10 @@
         "type": {
           "enum": [
             "neoorigins:block_target_action",
-            "apace:block_target_action"
+            "apace:block_target_action",
+            "origins:block_target_action",
+            "apoli:block_target_action",
+            "apugli:block_target_action"
           ]
         },
         "action": {
@@ -523,7 +359,10 @@
         "type": {
           "enum": [
             "neoorigins:cancel_event",
-            "apace:cancel_event"
+            "apace:cancel_event",
+            "origins:cancel_event",
+            "apoli:cancel_event",
+            "apugli:cancel_event"
           ]
         }
       },
@@ -537,7 +376,10 @@
         "type": {
           "enum": [
             "neoorigins:cast_iron_spell",
-            "apace:cast_iron_spell"
+            "apace:cast_iron_spell",
+            "origins:cast_iron_spell",
+            "apoli:cast_iron_spell",
+            "apugli:cast_iron_spell"
           ]
         },
         "spell": {
@@ -582,7 +424,10 @@
         "type": {
           "enum": [
             "neoorigins:cast_spell",
-            "apace:cast_spell"
+            "apace:cast_spell",
+            "origins:cast_spell",
+            "apoli:cast_spell",
+            "apugli:cast_spell"
           ]
         },
         "delivery": {
@@ -617,7 +462,10 @@
         "type": {
           "enum": [
             "neoorigins:chain_to_nearest",
-            "apace:chain_to_nearest"
+            "apace:chain_to_nearest",
+            "origins:chain_to_nearest",
+            "apoli:chain_to_nearest",
+            "apugli:chain_to_nearest"
           ]
         },
         "radius": {
@@ -645,7 +493,10 @@
         "type": {
           "enum": [
             "neoorigins:chance",
-            "apace:chance"
+            "apace:chance",
+            "origins:chance",
+            "apoli:chance",
+            "apugli:chance"
           ]
         },
         "chance": {
@@ -672,7 +523,13 @@
             "neoorigins:change_resource",
             "neoorigins:modify_resource",
             "apace:change_resource",
-            "apace:modify_resource"
+            "apace:modify_resource",
+            "origins:change_resource",
+            "origins:modify_resource",
+            "apoli:change_resource",
+            "apoli:modify_resource",
+            "apugli:change_resource",
+            "apugli:modify_resource"
           ]
         },
         "resource": {
@@ -704,7 +561,10 @@
         "type": {
           "enum": [
             "neoorigins:choice",
-            "apace:choice"
+            "apace:choice",
+            "origins:choice",
+            "apoli:choice",
+            "apugli:choice"
           ]
         },
         "actions": {
@@ -723,7 +583,10 @@
         "type": {
           "enum": [
             "neoorigins:clear_effect",
-            "apace:clear_effect"
+            "apace:clear_effect",
+            "origins:clear_effect",
+            "apoli:clear_effect",
+            "apugli:clear_effect"
           ]
         },
         "effect": {
@@ -741,7 +604,10 @@
         "type": {
           "enum": [
             "neoorigins:crafting_table",
-            "apace:crafting_table"
+            "apace:crafting_table",
+            "origins:crafting_table",
+            "apoli:crafting_table",
+            "apugli:crafting_table"
           ]
         }
       },
@@ -755,7 +621,10 @@
         "type": {
           "enum": [
             "neoorigins:damage",
-            "apace:damage"
+            "apace:damage",
+            "origins:damage",
+            "apoli:damage",
+            "apugli:damage"
           ]
         },
         "amount": {
@@ -786,7 +655,10 @@
         "type": {
           "enum": [
             "neoorigins:damage_attacker",
-            "apace:damage_attacker"
+            "apace:damage_attacker",
+            "origins:damage_attacker",
+            "apoli:damage_attacker",
+            "apugli:damage_attacker"
           ]
         },
         "amount": {
@@ -820,7 +692,10 @@
         "type": {
           "enum": [
             "neoorigins:dash",
-            "apace:dash"
+            "apace:dash",
+            "origins:dash",
+            "apoli:dash",
+            "apugli:dash"
           ]
         },
         "strength": {
@@ -849,7 +724,10 @@
         "type": {
           "enum": [
             "neoorigins:delay",
-            "apace:delay"
+            "apace:delay",
+            "origins:delay",
+            "apoli:delay",
+            "apugli:delay"
           ]
         },
         "ticks": {
@@ -873,7 +751,10 @@
         "type": {
           "enum": [
             "neoorigins:dismount",
-            "apace:dismount"
+            "apace:dismount",
+            "origins:dismount",
+            "apoli:dismount",
+            "apugli:dismount"
           ]
         }
       },
@@ -887,7 +768,10 @@
         "type": {
           "enum": [
             "neoorigins:drop_inventory",
-            "apace:drop_inventory"
+            "apace:drop_inventory",
+            "origins:drop_inventory",
+            "apoli:drop_inventory",
+            "apugli:drop_inventory"
           ]
         },
         "inventory_type": {
@@ -928,7 +812,10 @@
         "type": {
           "enum": [
             "neoorigins:drop_items",
-            "apace:drop_items"
+            "apace:drop_items",
+            "origins:drop_items",
+            "apoli:drop_items",
+            "apugli:drop_items"
           ]
         },
         "mode": {
@@ -964,7 +851,10 @@
         "type": {
           "enum": [
             "neoorigins:dye",
-            "apace:dye"
+            "apace:dye",
+            "origins:dye",
+            "apoli:dye",
+            "apugli:dye"
           ]
         },
         "color": {
@@ -982,7 +872,10 @@
         "type": {
           "enum": [
             "neoorigins:effect_on_attacker",
-            "apace:effect_on_attacker"
+            "apace:effect_on_attacker",
+            "origins:effect_on_attacker",
+            "apoli:effect_on_attacker",
+            "apugli:effect_on_attacker"
           ]
         },
         "effect": {
@@ -1013,7 +906,10 @@
         "type": {
           "enum": [
             "neoorigins:emit_game_event",
-            "apace:emit_game_event"
+            "apace:emit_game_event",
+            "origins:emit_game_event",
+            "apoli:emit_game_event",
+            "apugli:emit_game_event"
           ]
         },
         "event": {
@@ -1035,7 +931,10 @@
         "type": {
           "enum": [
             "neoorigins:equipped_item_action",
-            "apace:equipped_item_action"
+            "apace:equipped_item_action",
+            "origins:equipped_item_action",
+            "apoli:equipped_item_action",
+            "apugli:equipped_item_action"
           ]
         },
         "equipment_slot": {
@@ -1068,7 +967,13 @@
             "neoorigins:execute_command",
             "neoorigins:command",
             "apace:execute_command",
-            "apace:command"
+            "apace:command",
+            "origins:execute_command",
+            "origins:command",
+            "apoli:execute_command",
+            "apoli:command",
+            "apugli:execute_command",
+            "apugli:command"
           ]
         },
         "command": {
@@ -1087,7 +992,10 @@
         "type": {
           "enum": [
             "neoorigins:exhaust",
-            "apace:exhaust"
+            "apace:exhaust",
+            "origins:exhaust",
+            "apoli:exhaust",
+            "apugli:exhaust"
           ]
         },
         "amount": {
@@ -1107,7 +1015,10 @@
         "type": {
           "enum": [
             "neoorigins:explode",
-            "apace:explode"
+            "apace:explode",
+            "origins:explode",
+            "apoli:explode",
+            "apugli:explode"
           ]
         },
         "power": {
@@ -1142,7 +1053,10 @@
         "type": {
           "enum": [
             "neoorigins:extinguish",
-            "apace:extinguish"
+            "apace:extinguish",
+            "origins:extinguish",
+            "apoli:extinguish",
+            "apugli:extinguish"
           ]
         }
       },
@@ -1156,7 +1070,10 @@
         "type": {
           "enum": [
             "neoorigins:feed",
-            "apace:feed"
+            "apace:feed",
+            "origins:feed",
+            "apoli:feed",
+            "apugli:feed"
           ]
         },
         "food": {
@@ -1182,7 +1099,10 @@
         "type": {
           "enum": [
             "neoorigins:force_drop",
-            "apace:force_drop"
+            "apace:force_drop",
+            "origins:force_drop",
+            "apoli:force_drop",
+            "apugli:force_drop"
           ]
         },
         "slot": {
@@ -1201,7 +1121,10 @@
         "type": {
           "enum": [
             "neoorigins:gain_air",
-            "apace:gain_air"
+            "apace:gain_air",
+            "origins:gain_air",
+            "apoli:gain_air",
+            "apugli:gain_air"
           ]
         },
         "amount": {
@@ -1220,7 +1143,10 @@
         "type": {
           "enum": [
             "neoorigins:give",
-            "apace:give"
+            "apace:give",
+            "origins:give",
+            "apoli:give",
+            "apugli:give"
           ]
         },
         "item": {
@@ -1265,7 +1191,10 @@
         "type": {
           "enum": [
             "neoorigins:grant_power",
-            "apace:grant_power"
+            "apace:grant_power",
+            "origins:grant_power",
+            "apoli:grant_power",
+            "apugli:grant_power"
           ]
         },
         "power": {
@@ -1293,7 +1222,13 @@
             "neoorigins:grow",
             "neoorigins:bonemeal",
             "apace:grow",
-            "apace:bonemeal"
+            "apace:bonemeal",
+            "origins:grow",
+            "origins:bonemeal",
+            "apoli:grow",
+            "apoli:bonemeal",
+            "apugli:grow",
+            "apugli:bonemeal"
           ]
         }
       },
@@ -1307,7 +1242,10 @@
         "type": {
           "enum": [
             "neoorigins:heal",
-            "apace:heal"
+            "apace:heal",
+            "origins:heal",
+            "apoli:heal",
+            "apugli:heal"
           ]
         },
         "amount": {
@@ -1326,7 +1264,10 @@
         "type": {
           "enum": [
             "neoorigins:if_else",
-            "apace:if_else"
+            "apace:if_else",
+            "origins:if_else",
+            "apoli:if_else",
+            "apugli:if_else"
           ]
         },
         "condition": {
@@ -1352,7 +1293,10 @@
         "type": {
           "enum": [
             "neoorigins:if_else_list",
-            "apace:if_else_list"
+            "apace:if_else_list",
+            "origins:if_else_list",
+            "apoli:if_else_list",
+            "apugli:if_else_list"
           ]
         },
         "actions": {
@@ -1371,7 +1315,10 @@
         "type": {
           "enum": [
             "neoorigins:ignite_attacker",
-            "apace:ignite_attacker"
+            "apace:ignite_attacker",
+            "origins:ignite_attacker",
+            "apoli:ignite_attacker",
+            "apugli:ignite_attacker"
           ]
         },
         "ticks": {
@@ -1391,7 +1338,10 @@
         "type": {
           "enum": [
             "neoorigins:invert",
-            "apace:invert"
+            "apace:invert",
+            "origins:invert",
+            "apoli:invert",
+            "apugli:invert"
           ]
         }
       },
@@ -1405,7 +1355,10 @@
         "type": {
           "enum": [
             "neoorigins:launch",
-            "apace:launch"
+            "apace:launch",
+            "origins:launch",
+            "apoli:launch",
+            "apugli:launch"
           ]
         },
         "speed": {
@@ -1424,7 +1377,10 @@
         "type": {
           "enum": [
             "neoorigins:modify_food",
-            "apace:modify_food"
+            "apace:modify_food",
+            "origins:modify_food",
+            "apoli:modify_food",
+            "apugli:modify_food"
           ]
         },
         "food": {
@@ -1456,7 +1412,10 @@
         "type": {
           "enum": [
             "neoorigins:modify_inventory",
-            "apace:modify_inventory"
+            "apace:modify_inventory",
+            "origins:modify_inventory",
+            "apoli:modify_inventory",
+            "apugli:modify_inventory"
           ]
         },
         "item_condition": {
@@ -1493,7 +1452,10 @@
         "type": {
           "enum": [
             "neoorigins:modify_temperature",
-            "apace:modify_temperature"
+            "apace:modify_temperature",
+            "origins:modify_temperature",
+            "apoli:modify_temperature",
+            "apugli:modify_temperature"
           ]
         },
         "trait": {
@@ -1538,7 +1500,10 @@
         "type": {
           "enum": [
             "neoorigins:mount",
-            "apace:mount"
+            "apace:mount",
+            "origins:mount",
+            "apoli:mount",
+            "apugli:mount"
           ]
         },
         "entity_type": {
@@ -1562,7 +1527,10 @@
         "type": {
           "enum": [
             "neoorigins:nothing",
-            "apace:nothing"
+            "apace:nothing",
+            "origins:nothing",
+            "apoli:nothing",
+            "apugli:nothing"
           ]
         }
       },
@@ -1576,7 +1544,10 @@
         "type": {
           "enum": [
             "neoorigins:offset",
-            "apace:offset"
+            "apace:offset",
+            "origins:offset",
+            "apoli:offset",
+            "apugli:offset"
           ]
         },
         "action": {
@@ -1609,7 +1580,10 @@
         "type": {
           "enum": [
             "neoorigins:open_layer_picker",
-            "apace:open_layer_picker"
+            "apace:open_layer_picker",
+            "origins:open_layer_picker",
+            "apoli:open_layer_picker",
+            "apugli:open_layer_picker"
           ]
         },
         "layers": {
@@ -1656,7 +1630,10 @@
         "type": {
           "enum": [
             "neoorigins:passenger_action",
-            "apace:passenger_action"
+            "apace:passenger_action",
+            "origins:passenger_action",
+            "apoli:passenger_action",
+            "apugli:passenger_action"
           ]
         },
         "action": {
@@ -1678,7 +1655,10 @@
         "type": {
           "enum": [
             "neoorigins:path",
-            "apace:path"
+            "apace:path",
+            "origins:path",
+            "apoli:path",
+            "apugli:path"
           ]
         }
       },
@@ -1692,7 +1672,10 @@
         "type": {
           "enum": [
             "neoorigins:play_sound",
-            "apace:play_sound"
+            "apace:play_sound",
+            "origins:play_sound",
+            "apoli:play_sound",
+            "apugli:play_sound"
           ]
         },
         "sound": {
@@ -1723,7 +1706,10 @@
         "type": {
           "enum": [
             "neoorigins:pull_entities",
-            "apace:pull_entities"
+            "apace:pull_entities",
+            "origins:pull_entities",
+            "apoli:pull_entities",
+            "apugli:pull_entities"
           ]
         },
         "radius": {
@@ -1756,7 +1742,10 @@
         "type": {
           "enum": [
             "neoorigins:random_teleport",
-            "apace:random_teleport"
+            "apace:random_teleport",
+            "origins:random_teleport",
+            "apoli:random_teleport",
+            "apugli:random_teleport"
           ]
         },
         "horizontal_range": {
@@ -1792,7 +1781,10 @@
         "type": {
           "enum": [
             "neoorigins:raycast",
-            "apace:raycast"
+            "apace:raycast",
+            "origins:raycast",
+            "apoli:raycast",
+            "apugli:raycast"
           ]
         },
         "distance": {
@@ -1871,7 +1863,10 @@
         "type": {
           "enum": [
             "neoorigins:remove_from_set",
-            "apace:remove_from_set"
+            "apace:remove_from_set",
+            "origins:remove_from_set",
+            "apoli:remove_from_set",
+            "apugli:remove_from_set"
           ]
         },
         "set": {
@@ -1890,7 +1885,10 @@
         "type": {
           "enum": [
             "neoorigins:revoke_power",
-            "apace:revoke_power"
+            "apace:revoke_power",
+            "origins:revoke_power",
+            "apoli:revoke_power",
+            "apugli:revoke_power"
           ]
         },
         "power": {
@@ -1916,7 +1914,10 @@
         "type": {
           "enum": [
             "neoorigins:riding_action",
-            "apace:riding_action"
+            "apace:riding_action",
+            "origins:riding_action",
+            "apoli:riding_action",
+            "apugli:riding_action"
           ]
         },
         "action": {
@@ -1938,7 +1939,10 @@
         "type": {
           "enum": [
             "neoorigins:selector_action",
-            "apace:selector_action"
+            "apace:selector_action",
+            "origins:selector_action",
+            "apoli:selector_action",
+            "apugli:selector_action"
           ]
         },
         "selector": {
@@ -1964,7 +1968,10 @@
         "type": {
           "enum": [
             "neoorigins:set_block",
-            "apace:set_block"
+            "apace:set_block",
+            "origins:set_block",
+            "apoli:set_block",
+            "apugli:set_block"
           ]
         },
         "block": {
@@ -1988,7 +1995,10 @@
         "type": {
           "enum": [
             "neoorigins:set_fall_distance",
-            "apace:set_fall_distance"
+            "apace:set_fall_distance",
+            "origins:set_fall_distance",
+            "apoli:set_fall_distance",
+            "apugli:set_fall_distance"
           ]
         },
         "fall_distance": {
@@ -2007,7 +2017,10 @@
         "type": {
           "enum": [
             "neoorigins:set_on_fire",
-            "apace:set_on_fire"
+            "apace:set_on_fire",
+            "origins:set_on_fire",
+            "apoli:set_on_fire",
+            "apugli:set_on_fire"
           ]
         },
         "ticks": {
@@ -2032,7 +2045,10 @@
         "type": {
           "enum": [
             "neoorigins:set_resource",
-            "apace:set_resource"
+            "apace:set_resource",
+            "origins:set_resource",
+            "apoli:set_resource",
+            "apugli:set_resource"
           ]
         },
         "resource": {
@@ -2059,7 +2075,10 @@
         "type": {
           "enum": [
             "neoorigins:shear",
-            "apace:shear"
+            "apace:shear",
+            "origins:shear",
+            "apoli:shear",
+            "apugli:shear"
           ]
         }
       },
@@ -2073,7 +2092,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_black_hole",
-            "apace:spawn_black_hole"
+            "apace:spawn_black_hole",
+            "origins:spawn_black_hole",
+            "apoli:spawn_black_hole",
+            "apugli:spawn_black_hole"
           ]
         },
         "radius": {
@@ -2112,7 +2134,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_effect_cloud",
-            "apace:spawn_effect_cloud"
+            "apace:spawn_effect_cloud",
+            "origins:spawn_effect_cloud",
+            "apoli:spawn_effect_cloud",
+            "apugli:spawn_effect_cloud"
           ]
         },
         "effect": {
@@ -2154,7 +2179,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_entity",
-            "apace:spawn_entity"
+            "apace:spawn_entity",
+            "origins:spawn_entity",
+            "apoli:spawn_entity",
+            "apugli:spawn_entity"
           ]
         },
         "entity_type": {
@@ -2179,7 +2207,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_lingering_area",
-            "apace:spawn_lingering_area"
+            "apace:spawn_lingering_area",
+            "origins:spawn_lingering_area",
+            "apoli:spawn_lingering_area",
+            "apugli:spawn_lingering_area"
           ]
         },
         "radius": {
@@ -2223,7 +2254,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_particles",
-            "apace:spawn_particles"
+            "apace:spawn_particles",
+            "origins:spawn_particles",
+            "apoli:spawn_particles",
+            "apugli:spawn_particles"
           ]
         },
         "particle": {
@@ -2270,7 +2304,13 @@
             "neoorigins:spawn_projectile",
             "neoorigins:fire_projectile",
             "apace:spawn_projectile",
-            "apace:fire_projectile"
+            "apace:fire_projectile",
+            "origins:spawn_projectile",
+            "origins:fire_projectile",
+            "apoli:spawn_projectile",
+            "apoli:fire_projectile",
+            "apugli:spawn_projectile",
+            "apugli:fire_projectile"
           ]
         },
         "entity_type": {
@@ -2392,7 +2432,13 @@
             "neoorigins:spawn_projectile_rain",
             "neoorigins:spawn_sword_rain",
             "apace:spawn_projectile_rain",
-            "apace:spawn_sword_rain"
+            "apace:spawn_sword_rain",
+            "origins:spawn_projectile_rain",
+            "origins:spawn_sword_rain",
+            "apoli:spawn_projectile_rain",
+            "apoli:spawn_sword_rain",
+            "apugli:spawn_projectile_rain",
+            "apugli:spawn_sword_rain"
           ]
         },
         "radius": {
@@ -2486,7 +2532,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_telegraph",
-            "apace:spawn_telegraph"
+            "apace:spawn_telegraph",
+            "origins:spawn_telegraph",
+            "apoli:spawn_telegraph",
+            "apugli:spawn_telegraph"
           ]
         },
         "radius": {
@@ -2524,7 +2573,10 @@
         "type": {
           "enum": [
             "neoorigins:spawn_tornado",
-            "apace:spawn_tornado"
+            "apace:spawn_tornado",
+            "origins:spawn_tornado",
+            "apoli:spawn_tornado",
+            "apugli:spawn_tornado"
           ]
         },
         "radius": {
@@ -2594,7 +2646,10 @@
         "type": {
           "enum": [
             "neoorigins:steal_item",
-            "apace:steal_item"
+            "apace:steal_item",
+            "origins:steal_item",
+            "apoli:steal_item",
+            "apugli:steal_item"
           ]
         },
         "slot": {
@@ -2613,7 +2668,10 @@
         "type": {
           "enum": [
             "neoorigins:strip",
-            "apace:strip"
+            "apace:strip",
+            "origins:strip",
+            "apoli:strip",
+            "apugli:strip"
           ]
         }
       },
@@ -2627,7 +2685,10 @@
         "type": {
           "enum": [
             "neoorigins:swap_positions",
-            "apace:swap_positions"
+            "apace:swap_positions",
+            "origins:swap_positions",
+            "apoli:swap_positions",
+            "apugli:swap_positions"
           ]
         }
       },
@@ -2641,7 +2702,10 @@
         "type": {
           "enum": [
             "neoorigins:swap_with_entity",
-            "apace:swap_with_entity"
+            "apace:swap_with_entity",
+            "origins:swap_with_entity",
+            "apoli:swap_with_entity",
+            "apugli:swap_with_entity"
           ]
         },
         "radius": {
@@ -2665,7 +2729,10 @@
         "type": {
           "enum": [
             "neoorigins:swing_hand",
-            "apace:swing_hand"
+            "apace:swing_hand",
+            "origins:swing_hand",
+            "apoli:swing_hand",
+            "apugli:swing_hand"
           ]
         }
       },
@@ -2679,7 +2746,10 @@
         "type": {
           "enum": [
             "neoorigins:tame_target",
-            "apace:tame_target"
+            "apace:tame_target",
+            "origins:tame_target",
+            "apoli:tame_target",
+            "apugli:tame_target"
           ]
         },
         "max_tamed": {
@@ -2728,7 +2798,10 @@
         "type": {
           "enum": [
             "neoorigins:target_action",
-            "apace:target_action"
+            "apace:target_action",
+            "origins:target_action",
+            "apoli:target_action",
+            "apugli:target_action"
           ]
         },
         "action": {
@@ -2746,7 +2819,10 @@
         "type": {
           "enum": [
             "neoorigins:teleport_target_to_self",
-            "apace:teleport_target_to_self"
+            "apace:teleport_target_to_self",
+            "origins:teleport_target_to_self",
+            "apoli:teleport_target_to_self",
+            "apugli:teleport_target_to_self"
           ]
         }
       },
@@ -2760,7 +2836,10 @@
         "type": {
           "enum": [
             "neoorigins:teleport_to_marker",
-            "apace:teleport_to_marker"
+            "apace:teleport_to_marker",
+            "origins:teleport_to_marker",
+            "apoli:teleport_to_marker",
+            "apugli:teleport_to_marker"
           ]
         },
         "position": {
@@ -2812,7 +2891,10 @@
         "type": {
           "enum": [
             "neoorigins:teleport_to_target",
-            "apace:teleport_to_target"
+            "apace:teleport_to_target",
+            "origins:teleport_to_target",
+            "apoli:teleport_to_target",
+            "apugli:teleport_to_target"
           ]
         }
       },
@@ -2826,7 +2908,10 @@
         "type": {
           "enum": [
             "neoorigins:throw_target",
-            "apace:throw_target"
+            "apace:throw_target",
+            "origins:throw_target",
+            "apoli:throw_target",
+            "apugli:throw_target"
           ]
         },
         "force": {
@@ -2856,7 +2941,10 @@
         "type": {
           "enum": [
             "neoorigins:till",
-            "apace:till"
+            "apace:till",
+            "origins:till",
+            "apoli:till",
+            "apugli:till"
           ]
         }
       },
@@ -2870,7 +2958,10 @@
         "type": {
           "enum": [
             "neoorigins:toggle",
-            "apace:toggle"
+            "apace:toggle",
+            "origins:toggle",
+            "apoli:toggle",
+            "apugli:toggle"
           ]
         },
         "power": {
@@ -2893,7 +2984,10 @@
         "type": {
           "enum": [
             "neoorigins:transform_block",
-            "apace:transform_block"
+            "apace:transform_block",
+            "origins:transform_block",
+            "apoli:transform_block",
+            "apugli:transform_block"
           ]
         },
         "from": {
@@ -2916,7 +3010,10 @@
         "type": {
           "enum": [
             "neoorigins:trigger_cooldown",
-            "apace:trigger_cooldown"
+            "apace:trigger_cooldown",
+            "origins:trigger_cooldown",
+            "apoli:trigger_cooldown",
+            "apugli:trigger_cooldown"
           ]
         },
         "power": {
@@ -3039,6 +3136,202 @@
               "apace:toggle",
               "apace:transform_block",
               "apace:trigger_cooldown",
+              "apoli:activate_power",
+              "apoli:actor_action",
+              "apoli:add_to_set",
+              "apoli:add_velocity",
+              "apoli:add_xp",
+              "apoli:all_of",
+              "apoli:and",
+              "apoli:apply_effect",
+              "apoli:area_of_effect",
+              "apoli:block_action_at",
+              "apoli:block_target_action",
+              "apoli:bonemeal",
+              "apoli:cancel_event",
+              "apoli:cast_iron_spell",
+              "apoli:cast_spell",
+              "apoli:chain_to_nearest",
+              "apoli:chance",
+              "apoli:change_resource",
+              "apoli:choice",
+              "apoli:clear_effect",
+              "apoli:command",
+              "apoli:crafting_table",
+              "apoli:damage",
+              "apoli:damage_attacker",
+              "apoli:dash",
+              "apoli:delay",
+              "apoli:dismount",
+              "apoli:drop_inventory",
+              "apoli:drop_items",
+              "apoli:dye",
+              "apoli:effect_on_attacker",
+              "apoli:emit_game_event",
+              "apoli:equipped_item_action",
+              "apoli:execute_command",
+              "apoli:exhaust",
+              "apoli:explode",
+              "apoli:extinguish",
+              "apoli:feed",
+              "apoli:fire_projectile",
+              "apoli:force_drop",
+              "apoli:gain_air",
+              "apoli:give",
+              "apoli:grant_power",
+              "apoli:grow",
+              "apoli:heal",
+              "apoli:if_else",
+              "apoli:if_else_list",
+              "apoli:ignite_attacker",
+              "apoli:invert",
+              "apoli:launch",
+              "apoli:modify_food",
+              "apoli:modify_inventory",
+              "apoli:modify_resource",
+              "apoli:modify_temperature",
+              "apoli:mount",
+              "apoli:nothing",
+              "apoli:offset",
+              "apoli:open_layer_picker",
+              "apoli:passenger_action",
+              "apoli:path",
+              "apoli:play_sound",
+              "apoli:pull_entities",
+              "apoli:random_teleport",
+              "apoli:raycast",
+              "apoli:remove_from_set",
+              "apoli:revoke_power",
+              "apoli:riding_action",
+              "apoli:selector_action",
+              "apoli:set_block",
+              "apoli:set_fall_distance",
+              "apoli:set_on_fire",
+              "apoli:set_resource",
+              "apoli:shear",
+              "apoli:spawn_black_hole",
+              "apoli:spawn_effect_cloud",
+              "apoli:spawn_entity",
+              "apoli:spawn_lingering_area",
+              "apoli:spawn_particles",
+              "apoli:spawn_projectile",
+              "apoli:spawn_projectile_rain",
+              "apoli:spawn_sword_rain",
+              "apoli:spawn_telegraph",
+              "apoli:spawn_tornado",
+              "apoli:steal_item",
+              "apoli:strip",
+              "apoli:swap_positions",
+              "apoli:swap_with_entity",
+              "apoli:swing_hand",
+              "apoli:tame_target",
+              "apoli:target_action",
+              "apoli:teleport_target_to_self",
+              "apoli:teleport_to_marker",
+              "apoli:teleport_to_target",
+              "apoli:throw_target",
+              "apoli:till",
+              "apoli:toggle",
+              "apoli:transform_block",
+              "apoli:trigger_cooldown",
+              "apugli:activate_power",
+              "apugli:actor_action",
+              "apugli:add_to_set",
+              "apugli:add_velocity",
+              "apugli:add_xp",
+              "apugli:all_of",
+              "apugli:and",
+              "apugli:apply_effect",
+              "apugli:area_of_effect",
+              "apugli:block_action_at",
+              "apugli:block_target_action",
+              "apugli:bonemeal",
+              "apugli:cancel_event",
+              "apugli:cast_iron_spell",
+              "apugli:cast_spell",
+              "apugli:chain_to_nearest",
+              "apugli:chance",
+              "apugli:change_resource",
+              "apugli:choice",
+              "apugli:clear_effect",
+              "apugli:command",
+              "apugli:crafting_table",
+              "apugli:damage",
+              "apugli:damage_attacker",
+              "apugli:dash",
+              "apugli:delay",
+              "apugli:dismount",
+              "apugli:drop_inventory",
+              "apugli:drop_items",
+              "apugli:dye",
+              "apugli:effect_on_attacker",
+              "apugli:emit_game_event",
+              "apugli:equipped_item_action",
+              "apugli:execute_command",
+              "apugli:exhaust",
+              "apugli:explode",
+              "apugli:extinguish",
+              "apugli:feed",
+              "apugli:fire_projectile",
+              "apugli:force_drop",
+              "apugli:gain_air",
+              "apugli:give",
+              "apugli:grant_power",
+              "apugli:grow",
+              "apugli:heal",
+              "apugli:if_else",
+              "apugli:if_else_list",
+              "apugli:ignite_attacker",
+              "apugli:invert",
+              "apugli:launch",
+              "apugli:modify_food",
+              "apugli:modify_inventory",
+              "apugli:modify_resource",
+              "apugli:modify_temperature",
+              "apugli:mount",
+              "apugli:nothing",
+              "apugli:offset",
+              "apugli:open_layer_picker",
+              "apugli:passenger_action",
+              "apugli:path",
+              "apugli:play_sound",
+              "apugli:pull_entities",
+              "apugli:random_teleport",
+              "apugli:raycast",
+              "apugli:remove_from_set",
+              "apugli:revoke_power",
+              "apugli:riding_action",
+              "apugli:selector_action",
+              "apugli:set_block",
+              "apugli:set_fall_distance",
+              "apugli:set_on_fire",
+              "apugli:set_resource",
+              "apugli:shear",
+              "apugli:spawn_black_hole",
+              "apugli:spawn_effect_cloud",
+              "apugli:spawn_entity",
+              "apugli:spawn_lingering_area",
+              "apugli:spawn_particles",
+              "apugli:spawn_projectile",
+              "apugli:spawn_projectile_rain",
+              "apugli:spawn_sword_rain",
+              "apugli:spawn_telegraph",
+              "apugli:spawn_tornado",
+              "apugli:steal_item",
+              "apugli:strip",
+              "apugli:swap_positions",
+              "apugli:swap_with_entity",
+              "apugli:swing_hand",
+              "apugli:tame_target",
+              "apugli:target_action",
+              "apugli:teleport_target_to_self",
+              "apugli:teleport_to_marker",
+              "apugli:teleport_to_target",
+              "apugli:throw_target",
+              "apugli:till",
+              "apugli:toggle",
+              "apugli:transform_block",
+              "apugli:trigger_cooldown",
               "neoorigins:activate_power",
               "neoorigins:actor_action",
               "neoorigins:add_to_set",
@@ -3136,7 +3429,105 @@
               "neoorigins:till",
               "neoorigins:toggle",
               "neoorigins:transform_block",
-              "neoorigins:trigger_cooldown"
+              "neoorigins:trigger_cooldown",
+              "origins:activate_power",
+              "origins:actor_action",
+              "origins:add_to_set",
+              "origins:add_velocity",
+              "origins:add_xp",
+              "origins:all_of",
+              "origins:and",
+              "origins:apply_effect",
+              "origins:area_of_effect",
+              "origins:block_action_at",
+              "origins:block_target_action",
+              "origins:bonemeal",
+              "origins:cancel_event",
+              "origins:cast_iron_spell",
+              "origins:cast_spell",
+              "origins:chain_to_nearest",
+              "origins:chance",
+              "origins:change_resource",
+              "origins:choice",
+              "origins:clear_effect",
+              "origins:command",
+              "origins:crafting_table",
+              "origins:damage",
+              "origins:damage_attacker",
+              "origins:dash",
+              "origins:delay",
+              "origins:dismount",
+              "origins:drop_inventory",
+              "origins:drop_items",
+              "origins:dye",
+              "origins:effect_on_attacker",
+              "origins:emit_game_event",
+              "origins:equipped_item_action",
+              "origins:execute_command",
+              "origins:exhaust",
+              "origins:explode",
+              "origins:extinguish",
+              "origins:feed",
+              "origins:fire_projectile",
+              "origins:force_drop",
+              "origins:gain_air",
+              "origins:give",
+              "origins:grant_power",
+              "origins:grow",
+              "origins:heal",
+              "origins:if_else",
+              "origins:if_else_list",
+              "origins:ignite_attacker",
+              "origins:invert",
+              "origins:launch",
+              "origins:modify_food",
+              "origins:modify_inventory",
+              "origins:modify_resource",
+              "origins:modify_temperature",
+              "origins:mount",
+              "origins:nothing",
+              "origins:offset",
+              "origins:open_layer_picker",
+              "origins:passenger_action",
+              "origins:path",
+              "origins:play_sound",
+              "origins:pull_entities",
+              "origins:random_teleport",
+              "origins:raycast",
+              "origins:remove_from_set",
+              "origins:revoke_power",
+              "origins:riding_action",
+              "origins:selector_action",
+              "origins:set_block",
+              "origins:set_fall_distance",
+              "origins:set_on_fire",
+              "origins:set_resource",
+              "origins:shear",
+              "origins:spawn_black_hole",
+              "origins:spawn_effect_cloud",
+              "origins:spawn_entity",
+              "origins:spawn_lingering_area",
+              "origins:spawn_particles",
+              "origins:spawn_projectile",
+              "origins:spawn_projectile_rain",
+              "origins:spawn_sword_rain",
+              "origins:spawn_telegraph",
+              "origins:spawn_tornado",
+              "origins:steal_item",
+              "origins:strip",
+              "origins:swap_positions",
+              "origins:swap_with_entity",
+              "origins:swing_hand",
+              "origins:tame_target",
+              "origins:target_action",
+              "origins:teleport_target_to_self",
+              "origins:teleport_to_marker",
+              "origins:teleport_to_target",
+              "origins:throw_target",
+              "origins:till",
+              "origins:toggle",
+              "origins:transform_block",
+              "origins:trigger_cooldown"
             ]
           }
         }

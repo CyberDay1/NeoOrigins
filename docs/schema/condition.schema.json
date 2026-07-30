@@ -11,242 +11,7 @@
     "type": {
       "type": "string",
       "description": "Fully-qualified condition verb. `apace:` aliases are accepted.",
-      "enum": [
-        "apace:actor_condition",
-        "apace:advancement",
-        "apace:air",
-        "apace:all_of",
-        "apace:always_active",
-        "apace:amount",
-        "apace:and",
-        "apace:any_of",
-        "apace:armor_value",
-        "apace:biome",
-        "apace:block",
-        "apace:block_collision",
-        "apace:block_in_radius",
-        "apace:body_temperature",
-        "apace:brightness",
-        "apace:can_see",
-        "apace:climbing",
-        "apace:climbing_gate",
-        "apace:collided_horizontally",
-        "apace:command",
-        "apace:config_flag",
-        "apace:constant",
-        "apace:cooldown",
-        "apace:cover",
-        "apace:covered_by_block",
-        "apace:creative_flying",
-        "apace:creative_mode",
-        "apace:damage_name",
-        "apace:damage_tag",
-        "apace:damage_type",
-        "apace:daytime",
-        "apace:dimension",
-        "apace:distance",
-        "apace:distance_from_coordinates",
-        "apace:enchantment",
-        "apace:entity_type",
-        "apace:equal",
-        "apace:equipped_item",
-        "apace:exists",
-        "apace:exposed_to_sky",
-        "apace:exposed_to_sun",
-        "apace:fall_distance",
-        "apace:fall_flying",
-        "apace:fire",
-        "apace:fluid_height",
-        "apace:food",
-        "apace:food_item_id",
-        "apace:food_item_in_config_list",
-        "apace:food_item_in_tag",
-        "apace:food_level",
-        "apace:from_explosion",
-        "apace:from_fire",
-        "apace:from_projectile",
-        "apace:hardness",
-        "apace:has_effect",
-        "apace:health",
-        "apace:height",
-        "apace:hit_dealt_amount",
-        "apace:hit_taken_amount",
-        "apace:in_block",
-        "apace:in_block_anywhere",
-        "apace:in_rain",
-        "apace:in_set",
-        "apace:in_tag",
-        "apace:in_water",
-        "apace:inventory",
-        "apace:invisible",
-        "apace:light_level",
-        "apace:living",
-        "apace:moon_phase",
-        "apace:moving",
-        "apace:name",
-        "apace:nbt",
-        "apace:near_block",
-        "apace:near_entity",
-        "apace:near_villager",
-        "apace:nearby_entities",
-        "apace:night",
-        "apace:no_minions_alive",
-        "apace:not",
-        "apace:on_block",
-        "apace:on_fire",
-        "apace:on_ground",
-        "apace:or",
-        "apace:origin",
-        "apace:out_of_combat",
-        "apace:passenger",
-        "apace:power",
-        "apace:power_active",
-        "apace:power_type",
-        "apace:predicate",
-        "apace:relative_health",
-        "apace:replacable",
-        "apace:replaceable",
-        "apace:resource",
-        "apace:resource_level",
-        "apace:riding",
-        "apace:saturation_level",
-        "apace:scoreboard",
-        "apace:sneaking",
-        "apace:sprinting",
-        "apace:statistic",
-        "apace:status_effect",
-        "apace:submerged_in",
-        "apace:submerged_in_water",
-        "apace:swimming",
-        "apace:target_group",
-        "apace:target_type",
-        "apace:temperature",
-        "apace:thundering",
-        "apace:ticking",
-        "apace:time_of_day",
-        "apace:using_item",
-        "apace:weather",
-        "apace:xp_level",
-        "apace:xp_levels",
-        "apace:xp_points",
-        "neoorigins:actor_condition",
-        "neoorigins:advancement",
-        "neoorigins:air",
-        "neoorigins:all_of",
-        "neoorigins:always_active",
-        "neoorigins:amount",
-        "neoorigins:and",
-        "neoorigins:any_of",
-        "neoorigins:armor_value",
-        "neoorigins:biome",
-        "neoorigins:block",
-        "neoorigins:block_collision",
-        "neoorigins:block_in_radius",
-        "neoorigins:body_temperature",
-        "neoorigins:brightness",
-        "neoorigins:can_see",
-        "neoorigins:climbing",
-        "neoorigins:climbing_gate",
-        "neoorigins:collided_horizontally",
-        "neoorigins:command",
-        "neoorigins:config_flag",
-        "neoorigins:constant",
-        "neoorigins:cooldown",
-        "neoorigins:cover",
-        "neoorigins:covered_by_block",
-        "neoorigins:creative_flying",
-        "neoorigins:creative_mode",
-        "neoorigins:damage_name",
-        "neoorigins:damage_tag",
-        "neoorigins:damage_type",
-        "neoorigins:daytime",
-        "neoorigins:dimension",
-        "neoorigins:distance",
-        "neoorigins:distance_from_coordinates",
-        "neoorigins:enchantment",
-        "neoorigins:entity_type",
-        "neoorigins:equal",
-        "neoorigins:equipped_item",
-        "neoorigins:exists",
-        "neoorigins:exposed_to_sky",
-        "neoorigins:exposed_to_sun",
-        "neoorigins:fall_distance",
-        "neoorigins:fall_flying",
-        "neoorigins:fire",
-        "neoorigins:fluid_height",
-        "neoorigins:food",
-        "neoorigins:food_item_id",
-        "neoorigins:food_item_in_config_list",
-        "neoorigins:food_item_in_tag",
-        "neoorigins:food_level",
-        "neoorigins:from_explosion",
-        "neoorigins:from_fire",
-        "neoorigins:from_projectile",
-        "neoorigins:hardness",
-        "neoorigins:has_effect",
-        "neoorigins:health",
-        "neoorigins:height",
-        "neoorigins:hit_dealt_amount",
-        "neoorigins:hit_taken_amount",
-        "neoorigins:in_block",
-        "neoorigins:in_block_anywhere",
-        "neoorigins:in_rain",
-        "neoorigins:in_set",
-        "neoorigins:in_tag",
-        "neoorigins:in_water",
-        "neoorigins:inventory",
-        "neoorigins:invisible",
-        "neoorigins:light_level",
-        "neoorigins:living",
-        "neoorigins:moon_phase",
-        "neoorigins:moving",
-        "neoorigins:name",
-        "neoorigins:nbt",
-        "neoorigins:near_block",
-        "neoorigins:near_entity",
-        "neoorigins:near_villager",
-        "neoorigins:nearby_entities",
-        "neoorigins:night",
-        "neoorigins:no_minions_alive",
-        "neoorigins:not",
-        "neoorigins:on_block",
-        "neoorigins:on_fire",
-        "neoorigins:on_ground",
-        "neoorigins:or",
-        "neoorigins:origin",
-        "neoorigins:out_of_combat",
-        "neoorigins:passenger",
-        "neoorigins:power",
-        "neoorigins:power_active",
-        "neoorigins:power_type",
-        "neoorigins:predicate",
-        "neoorigins:relative_health",
-        "neoorigins:replacable",
-        "neoorigins:replaceable",
-        "neoorigins:resource",
-        "neoorigins:resource_level",
-        "neoorigins:riding",
-        "neoorigins:saturation_level",
-        "neoorigins:scoreboard",
-        "neoorigins:sneaking",
-        "neoorigins:sprinting",
-        "neoorigins:statistic",
-        "neoorigins:status_effect",
-        "neoorigins:submerged_in",
-        "neoorigins:submerged_in_water",
-        "neoorigins:swimming",
-        "neoorigins:target_group",
-        "neoorigins:target_type",
-        "neoorigins:temperature",
-        "neoorigins:thundering",
-        "neoorigins:ticking",
-        "neoorigins:time_of_day",
-        "neoorigins:using_item",
-        "neoorigins:weather",
-        "neoorigins:xp_level",
-        "neoorigins:xp_levels",
-        "neoorigins:xp_points"
-      ]
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_item|weather|xp_level|xp_levels|xp_points)$"
     }
   },
   "oneOf": [
@@ -256,7 +21,10 @@
         "type": {
           "enum": [
             "neoorigins:actor_condition",
-            "apace:actor_condition"
+            "apace:actor_condition",
+            "origins:actor_condition",
+            "apoli:actor_condition",
+            "apugli:actor_condition"
           ]
         },
         "condition": {
@@ -275,7 +43,10 @@
         "type": {
           "enum": [
             "neoorigins:advancement",
-            "apace:advancement"
+            "apace:advancement",
+            "origins:advancement",
+            "apoli:advancement",
+            "apugli:advancement"
           ]
         },
         "advancement": {
@@ -294,7 +65,10 @@
         "type": {
           "enum": [
             "neoorigins:air",
-            "apace:air"
+            "apace:air",
+            "origins:air",
+            "apoli:air",
+            "apugli:air"
           ]
         },
         "comparison": {
@@ -326,7 +100,10 @@
         "type": {
           "enum": [
             "neoorigins:always_active",
-            "apace:always_active"
+            "apace:always_active",
+            "origins:always_active",
+            "apoli:always_active",
+            "apugli:always_active"
           ]
         }
       },
@@ -340,7 +117,10 @@
         "type": {
           "enum": [
             "neoorigins:amount",
-            "apace:amount"
+            "apace:amount",
+            "origins:amount",
+            "apoli:amount",
+            "apugli:amount"
           ]
         },
         "comparison": {
@@ -374,7 +154,13 @@
             "neoorigins:and",
             "neoorigins:all_of",
             "apace:and",
-            "apace:all_of"
+            "apace:all_of",
+            "origins:and",
+            "origins:all_of",
+            "apoli:and",
+            "apoli:all_of",
+            "apugli:and",
+            "apugli:all_of"
           ]
         },
         "conditions": {
@@ -395,7 +181,10 @@
         "type": {
           "enum": [
             "neoorigins:armor_value",
-            "apace:armor_value"
+            "apace:armor_value",
+            "origins:armor_value",
+            "apoli:armor_value",
+            "apugli:armor_value"
           ]
         },
         "comparison": {
@@ -427,7 +216,10 @@
         "type": {
           "enum": [
             "neoorigins:biome",
-            "apace:biome"
+            "apace:biome",
+            "origins:biome",
+            "apoli:biome",
+            "apugli:biome"
           ]
         },
         "biome": {
@@ -457,7 +249,10 @@
         "type": {
           "enum": [
             "neoorigins:block",
-            "apace:block"
+            "apace:block",
+            "origins:block",
+            "apoli:block",
+            "apugli:block"
           ]
         },
         "block_condition": {
@@ -483,7 +278,10 @@
         "type": {
           "enum": [
             "neoorigins:block_collision",
-            "apace:block_collision"
+            "apace:block_collision",
+            "origins:block_collision",
+            "apoli:block_collision",
+            "apugli:block_collision"
           ]
         },
         "offset_x": {
@@ -516,7 +314,10 @@
         "type": {
           "enum": [
             "neoorigins:body_temperature",
-            "apace:body_temperature"
+            "apace:body_temperature",
+            "origins:body_temperature",
+            "apoli:body_temperature",
+            "apugli:body_temperature"
           ]
         },
         "trait": {
@@ -565,7 +366,10 @@
         "type": {
           "enum": [
             "neoorigins:brightness",
-            "apace:brightness"
+            "apace:brightness",
+            "origins:brightness",
+            "apoli:brightness",
+            "apugli:brightness"
           ]
         },
         "comparison": {
@@ -607,7 +411,10 @@
         "type": {
           "enum": [
             "neoorigins:can_see",
-            "apace:can_see"
+            "apace:can_see",
+            "origins:can_see",
+            "apoli:can_see",
+            "apugli:can_see"
           ]
         }
       },
@@ -621,7 +428,10 @@
         "type": {
           "enum": [
             "neoorigins:climbing",
-            "apace:climbing"
+            "apace:climbing",
+            "origins:climbing",
+            "apoli:climbing",
+            "apugli:climbing"
           ]
         }
       },
@@ -635,7 +445,10 @@
         "type": {
           "enum": [
             "neoorigins:climbing_gate",
-            "apace:climbing_gate"
+            "apace:climbing_gate",
+            "origins:climbing_gate",
+            "apoli:climbing_gate",
+            "apugli:climbing_gate"
           ]
         },
         "condition": {
@@ -662,7 +475,10 @@
         "type": {
           "enum": [
             "neoorigins:collided_horizontally",
-            "apace:collided_horizontally"
+            "apace:collided_horizontally",
+            "origins:collided_horizontally",
+            "apoli:collided_horizontally",
+            "apugli:collided_horizontally"
           ]
         }
       },
@@ -676,7 +492,10 @@
         "type": {
           "enum": [
             "neoorigins:command",
-            "apace:command"
+            "apace:command",
+            "origins:command",
+            "apoli:command",
+            "apugli:command"
           ]
         },
         "command": {
@@ -712,7 +531,10 @@
         "type": {
           "enum": [
             "neoorigins:config_flag",
-            "apace:config_flag"
+            "apace:config_flag",
+            "origins:config_flag",
+            "apoli:config_flag",
+            "apugli:config_flag"
           ]
         },
         "key": {
@@ -730,7 +552,10 @@
         "type": {
           "enum": [
             "neoorigins:constant",
-            "apace:constant"
+            "apace:constant",
+            "origins:constant",
+            "apoli:constant",
+            "apugli:constant"
           ]
         },
         "value": {
@@ -749,7 +574,10 @@
         "type": {
           "enum": [
             "neoorigins:cooldown",
-            "apace:cooldown"
+            "apace:cooldown",
+            "origins:cooldown",
+            "apoli:cooldown",
+            "apugli:cooldown"
           ]
         },
         "power": {
@@ -769,7 +597,13 @@
             "neoorigins:cover",
             "neoorigins:covered_by_block",
             "apace:cover",
-            "apace:covered_by_block"
+            "apace:covered_by_block",
+            "origins:cover",
+            "origins:covered_by_block",
+            "apoli:cover",
+            "apoli:covered_by_block",
+            "apugli:cover",
+            "apugli:covered_by_block"
           ]
         },
         "distance": {
@@ -788,7 +622,10 @@
         "type": {
           "enum": [
             "neoorigins:creative_flying",
-            "apace:creative_flying"
+            "apace:creative_flying",
+            "origins:creative_flying",
+            "apoli:creative_flying",
+            "apugli:creative_flying"
           ]
         }
       },
@@ -802,7 +639,10 @@
         "type": {
           "enum": [
             "neoorigins:creative_mode",
-            "apace:creative_mode"
+            "apace:creative_mode",
+            "origins:creative_mode",
+            "apoli:creative_mode",
+            "apugli:creative_mode"
           ]
         }
       },
@@ -818,7 +658,13 @@
             "neoorigins:damage_name",
             "neoorigins:name",
             "apace:damage_name",
-            "apace:name"
+            "apace:name",
+            "origins:damage_name",
+            "origins:name",
+            "apoli:damage_name",
+            "apoli:name",
+            "apugli:damage_name",
+            "apugli:name"
           ]
         },
         "name": {
@@ -836,7 +682,10 @@
         "type": {
           "enum": [
             "neoorigins:damage_tag",
-            "apace:damage_tag"
+            "apace:damage_tag",
+            "origins:damage_tag",
+            "apoli:damage_tag",
+            "apugli:damage_tag"
           ]
         },
         "tag": {
@@ -854,7 +703,10 @@
         "type": {
           "enum": [
             "neoorigins:damage_type",
-            "apace:damage_type"
+            "apace:damage_type",
+            "origins:damage_type",
+            "apoli:damage_type",
+            "apugli:damage_type"
           ]
         },
         "damage_type": {
@@ -872,7 +724,10 @@
         "type": {
           "enum": [
             "neoorigins:daytime",
-            "apace:daytime"
+            "apace:daytime",
+            "origins:daytime",
+            "apoli:daytime",
+            "apugli:daytime"
           ]
         }
       },
@@ -886,7 +741,10 @@
         "type": {
           "enum": [
             "neoorigins:dimension",
-            "apace:dimension"
+            "apace:dimension",
+            "origins:dimension",
+            "apoli:dimension",
+            "apugli:dimension"
           ]
         },
         "dimension": {
@@ -904,7 +762,10 @@
         "type": {
           "enum": [
             "neoorigins:distance",
-            "apace:distance"
+            "apace:distance",
+            "origins:distance",
+            "apoli:distance",
+            "apugli:distance"
           ]
         },
         "comparison": {
@@ -936,7 +797,10 @@
         "type": {
           "enum": [
             "neoorigins:distance_from_coordinates",
-            "apace:distance_from_coordinates"
+            "apace:distance_from_coordinates",
+            "origins:distance_from_coordinates",
+            "apoli:distance_from_coordinates",
+            "apugli:distance_from_coordinates"
           ]
         },
         "comparison": {
@@ -1010,7 +874,10 @@
         "type": {
           "enum": [
             "neoorigins:enchantment",
-            "apace:enchantment"
+            "apace:enchantment",
+            "origins:enchantment",
+            "apoli:enchantment",
+            "apugli:enchantment"
           ]
         },
         "enchantment": {
@@ -1046,7 +913,10 @@
         "type": {
           "enum": [
             "neoorigins:entity_type",
-            "apace:entity_type"
+            "apace:entity_type",
+            "origins:entity_type",
+            "apoli:entity_type",
+            "apugli:entity_type"
           ]
         },
         "entity_type": {
@@ -1068,7 +938,10 @@
         "type": {
           "enum": [
             "neoorigins:equal",
-            "apace:equal"
+            "apace:equal",
+            "origins:equal",
+            "apoli:equal",
+            "apugli:equal"
           ]
         }
       },
@@ -1082,7 +955,10 @@
         "type": {
           "enum": [
             "neoorigins:equipped_item",
-            "apace:equipped_item"
+            "apace:equipped_item",
+            "origins:equipped_item",
+            "apoli:equipped_item",
+            "apugli:equipped_item"
           ]
         },
         "equipment_slot": {
@@ -1113,7 +989,10 @@
         "type": {
           "enum": [
             "neoorigins:exists",
-            "apace:exists"
+            "apace:exists",
+            "origins:exists",
+            "apoli:exists",
+            "apugli:exists"
           ]
         }
       },
@@ -1127,7 +1006,10 @@
         "type": {
           "enum": [
             "neoorigins:exposed_to_sky",
-            "apace:exposed_to_sky"
+            "apace:exposed_to_sky",
+            "origins:exposed_to_sky",
+            "apoli:exposed_to_sky",
+            "apugli:exposed_to_sky"
           ]
         }
       },
@@ -1141,7 +1023,10 @@
         "type": {
           "enum": [
             "neoorigins:exposed_to_sun",
-            "apace:exposed_to_sun"
+            "apace:exposed_to_sun",
+            "origins:exposed_to_sun",
+            "apoli:exposed_to_sun",
+            "apugli:exposed_to_sun"
           ]
         }
       },
@@ -1155,7 +1040,10 @@
         "type": {
           "enum": [
             "neoorigins:fall_distance",
-            "apace:fall_distance"
+            "apace:fall_distance",
+            "origins:fall_distance",
+            "apoli:fall_distance",
+            "apugli:fall_distance"
           ]
         },
         "comparison": {
@@ -1187,7 +1075,10 @@
         "type": {
           "enum": [
             "neoorigins:fall_flying",
-            "apace:fall_flying"
+            "apace:fall_flying",
+            "origins:fall_flying",
+            "apoli:fall_flying",
+            "apugli:fall_flying"
           ]
         }
       },
@@ -1201,7 +1092,10 @@
         "type": {
           "enum": [
             "neoorigins:fluid_height",
-            "apace:fluid_height"
+            "apace:fluid_height",
+            "origins:fluid_height",
+            "apoli:fluid_height",
+            "apugli:fluid_height"
           ]
         },
         "comparison": {
@@ -1241,7 +1135,10 @@
         "type": {
           "enum": [
             "neoorigins:food_item_id",
-            "apace:food_item_id"
+            "apace:food_item_id",
+            "origins:food_item_id",
+            "apoli:food_item_id",
+            "apugli:food_item_id"
           ]
         },
         "id": {
@@ -1259,7 +1156,10 @@
         "type": {
           "enum": [
             "neoorigins:food_item_in_config_list",
-            "apace:food_item_in_config_list"
+            "apace:food_item_in_config_list",
+            "origins:food_item_in_config_list",
+            "apoli:food_item_in_config_list",
+            "apugli:food_item_in_config_list"
           ]
         },
         "key": {
@@ -1278,7 +1178,10 @@
         "type": {
           "enum": [
             "neoorigins:food_item_in_tag",
-            "apace:food_item_in_tag"
+            "apace:food_item_in_tag",
+            "origins:food_item_in_tag",
+            "apoli:food_item_in_tag",
+            "apugli:food_item_in_tag"
           ]
         },
         "tag": {
@@ -1298,7 +1201,13 @@
             "neoorigins:food_level",
             "neoorigins:food",
             "apace:food_level",
-            "apace:food"
+            "apace:food",
+            "origins:food_level",
+            "origins:food",
+            "apoli:food_level",
+            "apoli:food",
+            "apugli:food_level",
+            "apugli:food"
           ]
         },
         "comparison": {
@@ -1330,7 +1239,10 @@
         "type": {
           "enum": [
             "neoorigins:from_explosion",
-            "apace:from_explosion"
+            "apace:from_explosion",
+            "origins:from_explosion",
+            "apoli:from_explosion",
+            "apugli:from_explosion"
           ]
         }
       },
@@ -1344,7 +1256,10 @@
         "type": {
           "enum": [
             "neoorigins:from_fire",
-            "apace:from_fire"
+            "apace:from_fire",
+            "origins:from_fire",
+            "apoli:from_fire",
+            "apugli:from_fire"
           ]
         }
       },
@@ -1358,7 +1273,10 @@
         "type": {
           "enum": [
             "neoorigins:from_projectile",
-            "apace:from_projectile"
+            "apace:from_projectile",
+            "origins:from_projectile",
+            "apoli:from_projectile",
+            "apugli:from_projectile"
           ]
         }
       },
@@ -1372,7 +1290,10 @@
         "type": {
           "enum": [
             "neoorigins:hardness",
-            "apace:hardness"
+            "apace:hardness",
+            "origins:hardness",
+            "apoli:hardness",
+            "apugli:hardness"
           ]
         },
         "comparison": {
@@ -1404,7 +1325,10 @@
         "type": {
           "enum": [
             "neoorigins:has_effect",
-            "apace:has_effect"
+            "apace:has_effect",
+            "origins:has_effect",
+            "apoli:has_effect",
+            "apugli:has_effect"
           ]
         },
         "effect": {
@@ -1422,7 +1346,10 @@
         "type": {
           "enum": [
             "neoorigins:health",
-            "apace:health"
+            "apace:health",
+            "origins:health",
+            "apoli:health",
+            "apugli:health"
           ]
         },
         "comparison": {
@@ -1454,7 +1381,10 @@
         "type": {
           "enum": [
             "neoorigins:height",
-            "apace:height"
+            "apace:height",
+            "origins:height",
+            "apoli:height",
+            "apugli:height"
           ]
         },
         "comparison": {
@@ -1486,7 +1416,10 @@
         "type": {
           "enum": [
             "neoorigins:hit_dealt_amount",
-            "apace:hit_dealt_amount"
+            "apace:hit_dealt_amount",
+            "origins:hit_dealt_amount",
+            "apoli:hit_dealt_amount",
+            "apugli:hit_dealt_amount"
           ]
         },
         "comparison": {
@@ -1518,7 +1451,10 @@
         "type": {
           "enum": [
             "neoorigins:hit_taken_amount",
-            "apace:hit_taken_amount"
+            "apace:hit_taken_amount",
+            "origins:hit_taken_amount",
+            "apoli:hit_taken_amount",
+            "apugli:hit_taken_amount"
           ]
         },
         "comparison": {
@@ -1550,7 +1486,10 @@
         "type": {
           "enum": [
             "neoorigins:in_block",
-            "apace:in_block"
+            "apace:in_block",
+            "origins:in_block",
+            "apoli:in_block",
+            "apugli:in_block"
           ]
         },
         "block_condition": {
@@ -1568,7 +1507,10 @@
         "type": {
           "enum": [
             "neoorigins:in_block_anywhere",
-            "apace:in_block_anywhere"
+            "apace:in_block_anywhere",
+            "origins:in_block_anywhere",
+            "apoli:in_block_anywhere",
+            "apugli:in_block_anywhere"
           ]
         },
         "block_condition": {
@@ -1604,7 +1546,10 @@
         "type": {
           "enum": [
             "neoorigins:in_rain",
-            "apace:in_rain"
+            "apace:in_rain",
+            "origins:in_rain",
+            "apoli:in_rain",
+            "apugli:in_rain"
           ]
         }
       },
@@ -1618,7 +1563,10 @@
         "type": {
           "enum": [
             "neoorigins:in_set",
-            "apace:in_set"
+            "apace:in_set",
+            "origins:in_set",
+            "apoli:in_set",
+            "apugli:in_set"
           ]
         },
         "set": {
@@ -1637,7 +1585,10 @@
         "type": {
           "enum": [
             "neoorigins:in_tag",
-            "apace:in_tag"
+            "apace:in_tag",
+            "origins:in_tag",
+            "apoli:in_tag",
+            "apugli:in_tag"
           ]
         },
         "tag": {
@@ -1655,7 +1606,10 @@
         "type": {
           "enum": [
             "neoorigins:in_water",
-            "apace:in_water"
+            "apace:in_water",
+            "origins:in_water",
+            "apoli:in_water",
+            "apugli:in_water"
           ]
         }
       },
@@ -1669,7 +1623,10 @@
         "type": {
           "enum": [
             "neoorigins:inventory",
-            "apace:inventory"
+            "apace:inventory",
+            "origins:inventory",
+            "apoli:inventory",
+            "apugli:inventory"
           ]
         },
         "inventory_types": {
@@ -1719,7 +1676,10 @@
         "type": {
           "enum": [
             "neoorigins:invisible",
-            "apace:invisible"
+            "apace:invisible",
+            "origins:invisible",
+            "apoli:invisible",
+            "apugli:invisible"
           ]
         }
       },
@@ -1733,7 +1693,10 @@
         "type": {
           "enum": [
             "neoorigins:light_level",
-            "apace:light_level"
+            "apace:light_level",
+            "origins:light_level",
+            "apoli:light_level",
+            "apugli:light_level"
           ]
         },
         "comparison": {
@@ -1775,7 +1738,10 @@
         "type": {
           "enum": [
             "neoorigins:living",
-            "apace:living"
+            "apace:living",
+            "origins:living",
+            "apoli:living",
+            "apugli:living"
           ]
         }
       },
@@ -1789,7 +1755,10 @@
         "type": {
           "enum": [
             "neoorigins:moon_phase",
-            "apace:moon_phase"
+            "apace:moon_phase",
+            "origins:moon_phase",
+            "apoli:moon_phase",
+            "apugli:moon_phase"
           ]
         },
         "comparison": {
@@ -1821,7 +1790,10 @@
         "type": {
           "enum": [
             "neoorigins:moving",
-            "apace:moving"
+            "apace:moving",
+            "origins:moving",
+            "apoli:moving",
+            "apugli:moving"
           ]
         }
       },
@@ -1835,7 +1807,10 @@
         "type": {
           "enum": [
             "neoorigins:nbt",
-            "apace:nbt"
+            "apace:nbt",
+            "origins:nbt",
+            "apoli:nbt",
+            "apugli:nbt"
           ]
         },
         "nbt": {
@@ -1855,7 +1830,13 @@
             "neoorigins:near_block",
             "neoorigins:block_in_radius",
             "apace:near_block",
-            "apace:block_in_radius"
+            "apace:block_in_radius",
+            "origins:near_block",
+            "origins:block_in_radius",
+            "apoli:near_block",
+            "apoli:block_in_radius",
+            "apugli:near_block",
+            "apugli:block_in_radius"
           ]
         },
         "radius": {
@@ -1932,7 +1913,10 @@
         "type": {
           "enum": [
             "neoorigins:near_entity",
-            "apace:near_entity"
+            "apace:near_entity",
+            "origins:near_entity",
+            "apoli:near_entity",
+            "apugli:near_entity"
           ]
         },
         "entity_type": {
@@ -1958,7 +1942,10 @@
         "type": {
           "enum": [
             "neoorigins:near_villager",
-            "apace:near_villager"
+            "apace:near_villager",
+            "origins:near_villager",
+            "apoli:near_villager",
+            "apugli:near_villager"
           ]
         },
         "distance": {
@@ -1997,7 +1984,10 @@
         "type": {
           "enum": [
             "neoorigins:nearby_entities",
-            "apace:nearby_entities"
+            "apace:nearby_entities",
+            "origins:nearby_entities",
+            "apoli:nearby_entities",
+            "apugli:nearby_entities"
           ]
         },
         "entity_type": {
@@ -2058,7 +2048,10 @@
         "type": {
           "enum": [
             "neoorigins:night",
-            "apace:night"
+            "apace:night",
+            "origins:night",
+            "apoli:night",
+            "apugli:night"
           ]
         }
       },
@@ -2072,7 +2065,10 @@
         "type": {
           "enum": [
             "neoorigins:no_minions_alive",
-            "apace:no_minions_alive"
+            "apace:no_minions_alive",
+            "origins:no_minions_alive",
+            "apoli:no_minions_alive",
+            "apugli:no_minions_alive"
           ]
         },
         "key": {
@@ -2091,7 +2087,10 @@
         "type": {
           "enum": [
             "neoorigins:not",
-            "apace:not"
+            "apace:not",
+            "origins:not",
+            "apoli:not",
+            "apugli:not"
           ]
         },
         "condition": {
@@ -2110,7 +2109,10 @@
         "type": {
           "enum": [
             "neoorigins:on_block",
-            "apace:on_block"
+            "apace:on_block",
+            "origins:on_block",
+            "apoli:on_block",
+            "apugli:on_block"
           ]
         },
         "block_condition": {
@@ -2130,7 +2132,13 @@
             "neoorigins:on_fire",
             "neoorigins:fire",
             "apace:on_fire",
-            "apace:fire"
+            "apace:fire",
+            "origins:on_fire",
+            "origins:fire",
+            "apoli:on_fire",
+            "apoli:fire",
+            "apugli:on_fire",
+            "apugli:fire"
           ]
         }
       },
@@ -2144,7 +2152,10 @@
         "type": {
           "enum": [
             "neoorigins:on_ground",
-            "apace:on_ground"
+            "apace:on_ground",
+            "origins:on_ground",
+            "apoli:on_ground",
+            "apugli:on_ground"
           ]
         }
       },
@@ -2160,7 +2171,13 @@
             "neoorigins:or",
             "neoorigins:any_of",
             "apace:or",
-            "apace:any_of"
+            "apace:any_of",
+            "origins:or",
+            "origins:any_of",
+            "apoli:or",
+            "apoli:any_of",
+            "apugli:or",
+            "apugli:any_of"
           ]
         },
         "conditions": {
@@ -2181,7 +2198,10 @@
         "type": {
           "enum": [
             "neoorigins:origin",
-            "apace:origin"
+            "apace:origin",
+            "origins:origin",
+            "apoli:origin",
+            "apugli:origin"
           ]
         },
         "origin": {
@@ -2204,7 +2224,10 @@
         "type": {
           "enum": [
             "neoorigins:out_of_combat",
-            "apace:out_of_combat"
+            "apace:out_of_combat",
+            "origins:out_of_combat",
+            "apoli:out_of_combat",
+            "apugli:out_of_combat"
           ]
         },
         "ticks": {
@@ -2226,7 +2249,13 @@
             "neoorigins:passenger",
             "neoorigins:riding",
             "apace:passenger",
-            "apace:riding"
+            "apace:riding",
+            "origins:passenger",
+            "origins:riding",
+            "apoli:passenger",
+            "apoli:riding",
+            "apugli:passenger",
+            "apugli:riding"
           ]
         }
       },
@@ -2240,7 +2269,10 @@
         "type": {
           "enum": [
             "neoorigins:power",
-            "apace:power"
+            "apace:power",
+            "origins:power",
+            "apoli:power",
+            "apugli:power"
           ]
         },
         "power": {
@@ -2259,7 +2291,10 @@
         "type": {
           "enum": [
             "neoorigins:power_active",
-            "apace:power_active"
+            "apace:power_active",
+            "origins:power_active",
+            "apoli:power_active",
+            "apugli:power_active"
           ]
         },
         "power": {
@@ -2278,7 +2313,10 @@
         "type": {
           "enum": [
             "neoorigins:power_type",
-            "apace:power_type"
+            "apace:power_type",
+            "origins:power_type",
+            "apoli:power_type",
+            "apugli:power_type"
           ]
         },
         "power_type": {
@@ -2300,7 +2338,10 @@
         "type": {
           "enum": [
             "neoorigins:predicate",
-            "apace:predicate"
+            "apace:predicate",
+            "origins:predicate",
+            "apoli:predicate",
+            "apugli:predicate"
           ]
         },
         "predicate_type": {
@@ -2333,7 +2374,10 @@
         "type": {
           "enum": [
             "neoorigins:relative_health",
-            "apace:relative_health"
+            "apace:relative_health",
+            "origins:relative_health",
+            "apoli:relative_health",
+            "apugli:relative_health"
           ]
         },
         "comparison": {
@@ -2367,7 +2411,13 @@
             "neoorigins:replacable",
             "neoorigins:replaceable",
             "apace:replacable",
-            "apace:replaceable"
+            "apace:replaceable",
+            "origins:replacable",
+            "origins:replaceable",
+            "apoli:replacable",
+            "apoli:replaceable",
+            "apugli:replacable",
+            "apugli:replaceable"
           ]
         }
       },
@@ -2383,7 +2433,13 @@
             "neoorigins:resource",
             "neoorigins:resource_level",
             "apace:resource",
-            "apace:resource_level"
+            "apace:resource_level",
+            "origins:resource",
+            "origins:resource_level",
+            "apoli:resource",
+            "apoli:resource_level",
+            "apugli:resource",
+            "apugli:resource_level"
           ]
         },
         "resource": {
@@ -2420,7 +2476,10 @@
         "type": {
           "enum": [
             "neoorigins:saturation_level",
-            "apace:saturation_level"
+            "apace:saturation_level",
+            "origins:saturation_level",
+            "apoli:saturation_level",
+            "apugli:saturation_level"
           ]
         },
         "comparison": {
@@ -2452,7 +2511,10 @@
         "type": {
           "enum": [
             "neoorigins:scoreboard",
-            "apace:scoreboard"
+            "apace:scoreboard",
+            "origins:scoreboard",
+            "apoli:scoreboard",
+            "apugli:scoreboard"
           ]
         },
         "objective": {
@@ -2488,7 +2550,10 @@
         "type": {
           "enum": [
             "neoorigins:sneaking",
-            "apace:sneaking"
+            "apace:sneaking",
+            "origins:sneaking",
+            "apoli:sneaking",
+            "apugli:sneaking"
           ]
         }
       },
@@ -2502,7 +2567,10 @@
         "type": {
           "enum": [
             "neoorigins:sprinting",
-            "apace:sprinting"
+            "apace:sprinting",
+            "origins:sprinting",
+            "apoli:sprinting",
+            "apugli:sprinting"
           ]
         }
       },
@@ -2516,7 +2584,10 @@
         "type": {
           "enum": [
             "neoorigins:statistic",
-            "apace:statistic"
+            "apace:statistic",
+            "origins:statistic",
+            "apoli:statistic",
+            "apugli:statistic"
           ]
         },
         "statistic": {
@@ -2570,7 +2641,10 @@
         "type": {
           "enum": [
             "neoorigins:status_effect",
-            "apace:status_effect"
+            "apace:status_effect",
+            "origins:status_effect",
+            "apoli:status_effect",
+            "apugli:status_effect"
           ]
         },
         "effect": {
@@ -2600,7 +2674,10 @@
         "type": {
           "enum": [
             "neoorigins:submerged_in",
-            "apace:submerged_in"
+            "apace:submerged_in",
+            "origins:submerged_in",
+            "apoli:submerged_in",
+            "apugli:submerged_in"
           ]
         },
         "fluid": {
@@ -2618,7 +2695,10 @@
         "type": {
           "enum": [
             "neoorigins:submerged_in_water",
-            "apace:submerged_in_water"
+            "apace:submerged_in_water",
+            "origins:submerged_in_water",
+            "apoli:submerged_in_water",
+            "apugli:submerged_in_water"
           ]
         }
       },
@@ -2632,7 +2712,10 @@
         "type": {
           "enum": [
             "neoorigins:swimming",
-            "apace:swimming"
+            "apace:swimming",
+            "origins:swimming",
+            "apoli:swimming",
+            "apugli:swimming"
           ]
         }
       },
@@ -2646,7 +2729,10 @@
         "type": {
           "enum": [
             "neoorigins:target_group",
-            "apace:target_group"
+            "apace:target_group",
+            "origins:target_group",
+            "apoli:target_group",
+            "apugli:target_group"
           ]
         },
         "group": {
@@ -2664,7 +2750,10 @@
         "type": {
           "enum": [
             "neoorigins:target_type",
-            "apace:target_type"
+            "apace:target_type",
+            "origins:target_type",
+            "apoli:target_type",
+            "apugli:target_type"
           ]
         },
         "entity_type": {
@@ -2686,7 +2775,10 @@
         "type": {
           "enum": [
             "neoorigins:temperature",
-            "apace:temperature"
+            "apace:temperature",
+            "origins:temperature",
+            "apoli:temperature",
+            "apugli:temperature"
           ]
         },
         "comparison": {
@@ -2718,7 +2810,10 @@
         "type": {
           "enum": [
             "neoorigins:thundering",
-            "apace:thundering"
+            "apace:thundering",
+            "origins:thundering",
+            "apoli:thundering",
+            "apugli:thundering"
           ]
         }
       },
@@ -2732,7 +2827,10 @@
         "type": {
           "enum": [
             "neoorigins:ticking",
-            "apace:ticking"
+            "apace:ticking",
+            "origins:ticking",
+            "apoli:ticking",
+            "apugli:ticking"
           ]
         }
       },
@@ -2746,7 +2844,10 @@
         "type": {
           "enum": [
             "neoorigins:time_of_day",
-            "apace:time_of_day"
+            "apace:time_of_day",
+            "origins:time_of_day",
+            "apoli:time_of_day",
+            "apugli:time_of_day"
           ]
         },
         "comparison": {
@@ -2778,7 +2879,10 @@
         "type": {
           "enum": [
             "neoorigins:using_item",
-            "apace:using_item"
+            "apace:using_item",
+            "origins:using_item",
+            "apoli:using_item",
+            "apugli:using_item"
           ]
         }
       },
@@ -2792,7 +2896,10 @@
         "type": {
           "enum": [
             "neoorigins:weather",
-            "apace:weather"
+            "apace:weather",
+            "origins:weather",
+            "apoli:weather",
+            "apugli:weather"
           ]
         },
         "state": {
@@ -2829,7 +2936,10 @@
         "type": {
           "enum": [
             "neoorigins:xp_level",
-            "apace:xp_level"
+            "apace:xp_level",
+            "origins:xp_level",
+            "apoli:xp_level",
+            "apugli:xp_level"
           ]
         },
         "comparison": {
@@ -2861,7 +2971,10 @@
         "type": {
           "enum": [
             "neoorigins:xp_levels",
-            "apace:xp_levels"
+            "apace:xp_levels",
+            "origins:xp_levels",
+            "apoli:xp_levels",
+            "apugli:xp_levels"
           ]
         },
         "comparison": {
@@ -2893,7 +3006,10 @@
         "type": {
           "enum": [
             "neoorigins:xp_points",
-            "apace:xp_points"
+            "apace:xp_points",
+            "origins:xp_points",
+            "apoli:xp_points",
+            "apugli:xp_points"
           ]
         },
         "comparison": {
@@ -3042,6 +3158,240 @@
               "apace:xp_level",
               "apace:xp_levels",
               "apace:xp_points",
+              "apoli:actor_condition",
+              "apoli:advancement",
+              "apoli:air",
+              "apoli:all_of",
+              "apoli:always_active",
+              "apoli:amount",
+              "apoli:and",
+              "apoli:any_of",
+              "apoli:armor_value",
+              "apoli:biome",
+              "apoli:block",
+              "apoli:block_collision",
+              "apoli:block_in_radius",
+              "apoli:body_temperature",
+              "apoli:brightness",
+              "apoli:can_see",
+              "apoli:climbing",
+              "apoli:climbing_gate",
+              "apoli:collided_horizontally",
+              "apoli:command",
+              "apoli:config_flag",
+              "apoli:constant",
+              "apoli:cooldown",
+              "apoli:cover",
+              "apoli:covered_by_block",
+              "apoli:creative_flying",
+              "apoli:creative_mode",
+              "apoli:damage_name",
+              "apoli:damage_tag",
+              "apoli:damage_type",
+              "apoli:daytime",
+              "apoli:dimension",
+              "apoli:distance",
+              "apoli:distance_from_coordinates",
+              "apoli:enchantment",
+              "apoli:entity_type",
+              "apoli:equal",
+              "apoli:equipped_item",
+              "apoli:exists",
+              "apoli:exposed_to_sky",
+              "apoli:exposed_to_sun",
+              "apoli:fall_distance",
+              "apoli:fall_flying",
+              "apoli:fire",
+              "apoli:fluid_height",
+              "apoli:food",
+              "apoli:food_item_id",
+              "apoli:food_item_in_config_list",
+              "apoli:food_item_in_tag",
+              "apoli:food_level",
+              "apoli:from_explosion",
+              "apoli:from_fire",
+              "apoli:from_projectile",
+              "apoli:hardness",
+              "apoli:has_effect",
+              "apoli:health",
+              "apoli:height",
+              "apoli:hit_dealt_amount",
+              "apoli:hit_taken_amount",
+              "apoli:in_block",
+              "apoli:in_block_anywhere",
+              "apoli:in_rain",
+              "apoli:in_set",
+              "apoli:in_tag",
+              "apoli:in_water",
+              "apoli:inventory",
+              "apoli:invisible",
+              "apoli:light_level",
+              "apoli:living",
+              "apoli:moon_phase",
+              "apoli:moving",
+              "apoli:name",
+              "apoli:nbt",
+              "apoli:near_block",
+              "apoli:near_entity",
+              "apoli:near_villager",
+              "apoli:nearby_entities",
+              "apoli:night",
+              "apoli:no_minions_alive",
+              "apoli:not",
+              "apoli:on_block",
+              "apoli:on_fire",
+              "apoli:on_ground",
+              "apoli:or",
+              "apoli:origin",
+              "apoli:out_of_combat",
+              "apoli:passenger",
+              "apoli:power",
+              "apoli:power_active",
+              "apoli:power_type",
+              "apoli:predicate",
+              "apoli:relative_health",
+              "apoli:replacable",
+              "apoli:replaceable",
+              "apoli:resource",
+              "apoli:resource_level",
+              "apoli:riding",
+              "apoli:saturation_level",
+              "apoli:scoreboard",
+              "apoli:sneaking",
+              "apoli:sprinting",
+              "apoli:statistic",
+              "apoli:status_effect",
+              "apoli:submerged_in",
+              "apoli:submerged_in_water",
+              "apoli:swimming",
+              "apoli:target_group",
+              "apoli:target_type",
+              "apoli:temperature",
+              "apoli:thundering",
+              "apoli:ticking",
+              "apoli:time_of_day",
+              "apoli:using_item",
+              "apoli:weather",
+              "apoli:xp_level",
+              "apoli:xp_levels",
+              "apoli:xp_points",
+              "apugli:actor_condition",
+              "apugli:advancement",
+              "apugli:air",
+              "apugli:all_of",
+              "apugli:always_active",
+              "apugli:amount",
+              "apugli:and",
+              "apugli:any_of",
+              "apugli:armor_value",
+              "apugli:biome",
+              "apugli:block",
+              "apugli:block_collision",
+              "apugli:block_in_radius",
+              "apugli:body_temperature",
+              "apugli:brightness",
+              "apugli:can_see",
+              "apugli:climbing",
+              "apugli:climbing_gate",
+              "apugli:collided_horizontally",
+              "apugli:command",
+              "apugli:config_flag",
+              "apugli:constant",
+              "apugli:cooldown",
+              "apugli:cover",
+              "apugli:covered_by_block",
+              "apugli:creative_flying",
+              "apugli:creative_mode",
+              "apugli:damage_name",
+              "apugli:damage_tag",
+              "apugli:damage_type",
+              "apugli:daytime",
+              "apugli:dimension",
+              "apugli:distance",
+              "apugli:distance_from_coordinates",
+              "apugli:enchantment",
+              "apugli:entity_type",
+              "apugli:equal",
+              "apugli:equipped_item",
+              "apugli:exists",
+              "apugli:exposed_to_sky",
+              "apugli:exposed_to_sun",
+              "apugli:fall_distance",
+              "apugli:fall_flying",
+              "apugli:fire",
+              "apugli:fluid_height",
+              "apugli:food",
+              "apugli:food_item_id",
+              "apugli:food_item_in_config_list",
+              "apugli:food_item_in_tag",
+              "apugli:food_level",
+              "apugli:from_explosion",
+              "apugli:from_fire",
+              "apugli:from_projectile",
+              "apugli:hardness",
+              "apugli:has_effect",
+              "apugli:health",
+              "apugli:height",
+              "apugli:hit_dealt_amount",
+              "apugli:hit_taken_amount",
+              "apugli:in_block",
+              "apugli:in_block_anywhere",
+              "apugli:in_rain",
+              "apugli:in_set",
+              "apugli:in_tag",
+              "apugli:in_water",
+              "apugli:inventory",
+              "apugli:invisible",
+              "apugli:light_level",
+              "apugli:living",
+              "apugli:moon_phase",
+              "apugli:moving",
+              "apugli:name",
+              "apugli:nbt",
+              "apugli:near_block",
+              "apugli:near_entity",
+              "apugli:near_villager",
+              "apugli:nearby_entities",
+              "apugli:night",
+              "apugli:no_minions_alive",
+              "apugli:not",
+              "apugli:on_block",
+              "apugli:on_fire",
+              "apugli:on_ground",
+              "apugli:or",
+              "apugli:origin",
+              "apugli:out_of_combat",
+              "apugli:passenger",
+              "apugli:power",
+              "apugli:power_active",
+              "apugli:power_type",
+              "apugli:predicate",
+              "apugli:relative_health",
+              "apugli:replacable",
+              "apugli:replaceable",
+              "apugli:resource",
+              "apugli:resource_level",
+              "apugli:riding",
+              "apugli:saturation_level",
+              "apugli:scoreboard",
+              "apugli:sneaking",
+              "apugli:sprinting",
+              "apugli:statistic",
+              "apugli:status_effect",
+              "apugli:submerged_in",
+              "apugli:submerged_in_water",
+              "apugli:swimming",
+              "apugli:target_group",
+              "apugli:target_type",
+              "apugli:temperature",
+              "apugli:thundering",
+              "apugli:ticking",
+              "apugli:time_of_day",
+              "apugli:using_item",
+              "apugli:weather",
+              "apugli:xp_level",
+              "apugli:xp_levels",
+              "apugli:xp_points",
               "neoorigins:actor_condition",
               "neoorigins:advancement",
               "neoorigins:air",
@@ -3158,7 +3508,124 @@
               "neoorigins:weather",
               "neoorigins:xp_level",
               "neoorigins:xp_levels",
-              "neoorigins:xp_points"
+              "neoorigins:xp_points",
+              "origins:actor_condition",
+              "origins:advancement",
+              "origins:air",
+              "origins:all_of",
+              "origins:always_active",
+              "origins:amount",
+              "origins:and",
+              "origins:any_of",
+              "origins:armor_value",
+              "origins:biome",
+              "origins:block",
+              "origins:block_collision",
+              "origins:block_in_radius",
+              "origins:body_temperature",
+              "origins:brightness",
+              "origins:can_see",
+              "origins:climbing",
+              "origins:climbing_gate",
+              "origins:collided_horizontally",
+              "origins:command",
+              "origins:config_flag",
+              "origins:constant",
+              "origins:cooldown",
+              "origins:cover",
+              "origins:covered_by_block",
+              "origins:creative_flying",
+              "origins:creative_mode",
+              "origins:damage_name",
+              "origins:damage_tag",
+              "origins:damage_type",
+              "origins:daytime",
+              "origins:dimension",
+              "origins:distance",
+              "origins:distance_from_coordinates",
+              "origins:enchantment",
+              "origins:entity_type",
+              "origins:equal",
+              "origins:equipped_item",
+              "origins:exists",
+              "origins:exposed_to_sky",
+              "origins:exposed_to_sun",
+              "origins:fall_distance",
+              "origins:fall_flying",
+              "origins:fire",
+              "origins:fluid_height",
+              "origins:food",
+              "origins:food_item_id",
+              "origins:food_item_in_config_list",
+              "origins:food_item_in_tag",
+              "origins:food_level",
+              "origins:from_explosion",
+              "origins:from_fire",
+              "origins:from_projectile",
+              "origins:hardness",
+              "origins:has_effect",
+              "origins:health",
+              "origins:height",
+              "origins:hit_dealt_amount",
+              "origins:hit_taken_amount",
+              "origins:in_block",
+              "origins:in_block_anywhere",
+              "origins:in_rain",
+              "origins:in_set",
+              "origins:in_tag",
+              "origins:in_water",
+              "origins:inventory",
+              "origins:invisible",
+              "origins:light_level",
+              "origins:living",
+              "origins:moon_phase",
+              "origins:moving",
+              "origins:name",
+              "origins:nbt",
+              "origins:near_block",
+              "origins:near_entity",
+              "origins:near_villager",
+              "origins:nearby_entities",
+              "origins:night",
+              "origins:no_minions_alive",
+              "origins:not",
+              "origins:on_block",
+              "origins:on_fire",
+              "origins:on_ground",
+              "origins:or",
+              "origins:origin",
+              "origins:out_of_combat",
+              "origins:passenger",
+              "origins:power",
+              "origins:power_active",
+              "origins:power_type",
+              "origins:predicate",
+              "origins:relative_health",
+              "origins:replacable",
+              "origins:replaceable",
+              "origins:resource",
+              "origins:resource_level",
+              "origins:riding",
+              "origins:saturation_level",
+              "origins:scoreboard",
+              "origins:sneaking",
+              "origins:sprinting",
+              "origins:statistic",
+              "origins:status_effect",
+              "origins:submerged_in",
+              "origins:submerged_in_water",
+              "origins:swimming",
+              "origins:target_group",
+              "origins:target_type",
+              "origins:temperature",
+              "origins:thundering",
+              "origins:ticking",
+              "origins:time_of_day",
+              "origins:using_item",
+              "origins:weather",
+              "origins:xp_level",
+              "origins:xp_levels",
+              "origins:xp_points"
             ]
           }
         }

@@ -11,24 +11,7 @@
     "type": {
       "type": "string",
       "description": "Block-condition verb (block / in_tag / and / or). `apace:` aliases are accepted.",
-      "enum": [
-        "apace:adjacent",
-        "apace:and",
-        "apace:block",
-        "apace:block_state",
-        "apace:height",
-        "apace:in_tag",
-        "apace:offset",
-        "apace:or",
-        "neoorigins:adjacent",
-        "neoorigins:and",
-        "neoorigins:block",
-        "neoorigins:block_state",
-        "neoorigins:height",
-        "neoorigins:in_tag",
-        "neoorigins:offset",
-        "neoorigins:or"
-      ]
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|and|block|block_state|height|in_tag|offset|or)$"
     }
   },
   "oneOf": [
@@ -38,7 +21,10 @@
         "type": {
           "enum": [
             "neoorigins:adjacent",
-            "apace:adjacent"
+            "apace:adjacent",
+            "origins:adjacent",
+            "apoli:adjacent",
+            "apugli:adjacent"
           ]
         },
         "adjacent_condition": {
@@ -75,7 +61,10 @@
         "type": {
           "enum": [
             "neoorigins:and",
-            "apace:and"
+            "apace:and",
+            "origins:and",
+            "apoli:and",
+            "apugli:and"
           ]
         },
         "conditions": {
@@ -96,7 +85,10 @@
         "type": {
           "enum": [
             "neoorigins:block",
-            "apace:block"
+            "apace:block",
+            "origins:block",
+            "apoli:block",
+            "apugli:block"
           ]
         },
         "block": {
@@ -118,7 +110,10 @@
         "type": {
           "enum": [
             "neoorigins:block_state",
-            "apace:block_state"
+            "apace:block_state",
+            "origins:block_state",
+            "apoli:block_state",
+            "apugli:block_state"
           ]
         },
         "property": {
@@ -162,7 +157,10 @@
         "type": {
           "enum": [
             "neoorigins:height",
-            "apace:height"
+            "apace:height",
+            "origins:height",
+            "apoli:height",
+            "apugli:height"
           ]
         },
         "comparison": {
@@ -194,7 +192,10 @@
         "type": {
           "enum": [
             "neoorigins:in_tag",
-            "apace:in_tag"
+            "apace:in_tag",
+            "origins:in_tag",
+            "apoli:in_tag",
+            "apugli:in_tag"
           ]
         },
         "tag": {
@@ -213,7 +214,10 @@
         "type": {
           "enum": [
             "neoorigins:offset",
-            "apace:offset"
+            "apace:offset",
+            "origins:offset",
+            "apoli:offset",
+            "apugli:offset"
           ]
         },
         "condition": {
@@ -246,7 +250,10 @@
         "type": {
           "enum": [
             "neoorigins:or",
-            "apace:or"
+            "apace:or",
+            "origins:or",
+            "apoli:or",
+            "apugli:or"
           ]
         },
         "conditions": {
@@ -275,6 +282,22 @@
               "apace:in_tag",
               "apace:offset",
               "apace:or",
+              "apoli:adjacent",
+              "apoli:and",
+              "apoli:block",
+              "apoli:block_state",
+              "apoli:height",
+              "apoli:in_tag",
+              "apoli:offset",
+              "apoli:or",
+              "apugli:adjacent",
+              "apugli:and",
+              "apugli:block",
+              "apugli:block_state",
+              "apugli:height",
+              "apugli:in_tag",
+              "apugli:offset",
+              "apugli:or",
               "neoorigins:adjacent",
               "neoorigins:and",
               "neoorigins:block",
@@ -282,7 +305,15 @@
               "neoorigins:height",
               "neoorigins:in_tag",
               "neoorigins:offset",
-              "neoorigins:or"
+              "neoorigins:or",
+              "origins:adjacent",
+              "origins:and",
+              "origins:block",
+              "origins:block_state",
+              "origins:height",
+              "origins:in_tag",
+              "origins:offset",
+              "origins:or"
             ]
           }
         }
