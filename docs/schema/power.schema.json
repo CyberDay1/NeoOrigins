@@ -617,6 +617,7 @@
           "enum": [
             "attack",
             "hit_taken",
+            "hit_dealt",
             "kill",
             "death",
             "block_break",
