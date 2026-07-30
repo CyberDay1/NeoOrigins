@@ -7,27 +7,39 @@
   "required": ["origins"],
   "properties": {
     "origins": {
-      "description": "Ordered list of origin entries. First entry is the default selection. Each entry is either a plain origin ID string, or an object pairing an origin ID with a layer condition that gates its visibility based on choices made in other layers.",
+      "description": "Ordered list of origin entries. First entry is the default selection. Each entry is either a plain origin ID string, an object pairing an origin ID with a layer condition that gates its visibility based on choices made in other layers, or a conditioned batch sharing one condition across several origin IDs.",
       "type": "array",
       "items": {
         "oneOf": [
-          { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
-          {
-            "type": "object",
-            "required": ["origin"],
-            "properties": {
-              "origin": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
-              "condition": { "$ref": "#/$defs/layer_condition" }
-            },
-            "additionalProperties": false
-          }
+          { "$ref": "#/$defs/origin_entry_string" },
+          { "$ref": "#/$defs/origin_entry_object" },
+          { "$ref": "#/$defs/origin_batch" }
         ]
       },
       "minItems": 1
     },
     "name": {
-      "description": "Optional display name for this layer (translation key or literal). Defaults to the layer's path.",
-      "type": "string"
+      "description": "Optional display name for this layer. Either a literal/translation-key string, or a text component object — LayerDataManager.normalizeLayerJson reads `translate`, else `text`, else falls back to the layer's path.",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "translate": {
+              "description": "Translation key, preferred over `text` when both are present.",
+              "type": "string"
+            },
+            "text": {
+              "description": "Literal display text, used when there is no `translate`.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "standalone": {
+      "description": "If true, this layer opts out of the same-path auto-merge — a foreign-namespace layer whose path is `origin` or `class` normally folds into neoorigins:origin / neoorigins:class so the picker shows one tab. Set true to keep it as its own tab. Default false.",
+      "type": "boolean"
     },
     "order": {
       "description": "Lower values render earlier in the picker. Default 0.",
@@ -61,6 +73,41 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "origin_entry_string": {
+      "description": "A bare origin ID, always visible.",
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+    },
+    "origin_entry_object": {
+      "description": "One origin ID with an optional layer condition gating its visibility.",
+      "type": "object",
+      "required": ["origin"],
+      "properties": {
+        "origin": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" },
+        "condition": { "$ref": "#/$defs/layer_condition" }
+      },
+      "additionalProperties": false
+    },
+    "origin_batch": {
+      "description": "Conditioned batch: one condition shared by several origin IDs. LayerDataManager.normalizeLayerJson expands it into one entry per ID, copying the condition onto each, so it is pure shorthand for a run of origin_entry_object entries.",
+      "type": "object",
+      "required": ["origins"],
+      "properties": {
+        "condition": { "$ref": "#/$defs/layer_condition" },
+        "origins": {
+          "description": "Origin IDs the shared condition applies to. Nested entry objects are passed through untouched and keep their own condition instead.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/origin_entry_string" },
+              { "$ref": "#/$defs/origin_entry_object" }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
     "layer_condition": {
       "description": "Condition over the player's previous layer choices. Type namespaces origins:, apace: and neoorigins: are interchangeable.",
       "type": "object",
