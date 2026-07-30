@@ -9,14 +9,23 @@
 # branch, or left the enum). Shrinking it is the work; growing it is a
 # regression.
 #
-# To remove a line: give the power a FieldSpec list in BuiltinPowers, run
-# `./gradlew generatePowerSchema`, then delete the line. That works for a REAL
-# power type -- one with a PowerType class, a Config record and a PowerTypes
-# registration. It does NOT work for the 2.0-era alias ids below (see the next
-# paragraph but one): they have none of those things, so BuiltinPowers' own two
-# gates (PowerEnumCheck "descriptor with no registration" and
-# SchemaFormCheck.auditPowerFieldSpecs "no Config record resolved") reject them,
-# and both are right to. Those need a descriptor table of their own.
+# To remove a line: give the power a FieldSpec list, run
+# `./gradlew generatePowerSchema`, then delete the line. WHERE that list goes
+# depends on what the id is:
+#
+#   * a REAL power type -- one with a PowerType class, a Config record and a
+#     PowerTypes registration -- is described in BuiltinPowers.
+#
+#   * a 2.0-era ALIAS id, which LegacyPowerTypeAliases remaps to a modern type at
+#     load, has none of those things, so BuiltinPowers own two gates (PowerEnumCheck
+#     "descriptor with no registration" and SchemaFormCheck.auditPowerFieldSpecs "no
+#     Config record resolved") reject it, and both are right to. Those are described
+#     in LegacyAliasPowerSpecs instead -- 29 of them used to be listed in this file
+#     and now have branches.
+#
+#   * a type whose shape the FieldSpec vocabulary cannot express is hand-written
+#     into power.schema.json and PRESERVED verbatim across regeneration (see the
+#     preserved-branch splice in PowerSchemaGenerator).
 #
 # NOT listed here, for two reasons that are not "gap":
 #
@@ -29,47 +38,9 @@
 #     spellings the alias table and the compat import translation accept. Those
 #     ARE a gap, but a different one: branches are generated from FieldSpec
 #     lists and an imported spelling has no descriptor of its own, so closing it
-#     means folding the id into its translation target's branch. PowerEnumCheck
+#     means folding the id into its translation target branch. PowerEnumCheck
 #     counts them under the MAX_UNBRANCHED_LEGACY ratchet instead.
-#
-# The 29 `neoorigins:` entries below are NOT that. They are native, first-party,
-# authorable 2.0 power-type ids that LegacyPowerTypeAliases remaps to a modern
-# type at load. They were being counted under MAX_UNBRANCHED_LEGACY, because
-# PowerEnumCheck.legacyImportSurface() read the alias table's SOURCE ids without
-# filtering the mod's own namespace back out. That made the ceiling read 32 and
-# this file read 1, i.e. "one native id left, target is zero", while thirty
-# native types actually had no branch. They are itemized here now. Their arrival
-# is a RECLASSIFICATION of an existing gap, not a new one -- no id lost a branch.
 #
 # This list is measured per branch. Do not copy it between 1.21.1 and 26.x --
 # the registries differ, so the real gap differs.
-neoorigins:action_on_hit_taken
-neoorigins:action_on_kill
-neoorigins:action_over_time
-neoorigins:active_aoe_effect
-neoorigins:active_launch
-neoorigins:better_bone_meal
-neoorigins:better_crafted_food
-neoorigins:better_enchanting
-neoorigins:biome_buff
-neoorigins:burn_at_health_threshold
-neoorigins:damage_in_biome
-neoorigins:damage_in_daylight
-neoorigins:damage_in_water
-neoorigins:efficient_repairs
-neoorigins:food_restriction
-neoorigins:glow
-neoorigins:healing_mist
-neoorigins:hunger_drain_modifier
-neoorigins:knockback_modifier
-neoorigins:longer_potions
-neoorigins:more_animal_loot
-neoorigins:natural_regen_modifier
-neoorigins:night_vision
-neoorigins:regen_in_fluid
-neoorigins:repulse
-neoorigins:stacking_status_effects
 neoorigins:starting_equipment
-neoorigins:status_effect
-neoorigins:teleport_range_modifier
-neoorigins:thorns_aura

@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.dev;
 import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
+import com.cyberday1.neoorigins.power.registry.LegacyAliasPowerSpecs;
 import com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -136,6 +137,17 @@ public final class PowerSchemaGenerator {
         for (var entry : BuiltinPowers.descriptors().entrySet()) {
             String id = entry.getKey().toString();
             branches.add(new Branch(id, buildPowerBranch(id, entry.getValue().fields())));
+        }
+
+        // Generated branches for the 2.0 legacy alias ids. These are authorable
+        // (LegacyPowerTypeAliases remaps them at load, so they run) but are not
+        // power types: no PowerType class, no Config record, no PowerTypes
+        // registration, hence a field-spec table of their own rather than an entry
+        // in BuiltinPowers - see LegacyAliasPowerSpecs for why both gates that
+        // guard that table would rightly reject them.
+        for (var entry : LegacyAliasPowerSpecs.specs().entrySet()) {
+            String id = entry.getKey().toString();
+            branches.add(new Branch(id, buildPowerBranch(id, entry.getValue())));
         }
 
         // Preserved branches parsed out of the current committed file. These are
