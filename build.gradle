@@ -78,6 +78,16 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
 
+    // REI – client-only soft dep; compat/rei adds the Orb of Origin to REI's entry
+    // list. Compile-only, never bundled. The api artifact transitively brings
+    // cloth-config-neoforge 26.2.155 and architectury-neoforge 21.0.2 (per REI's own
+    // pom), so no explicit architectury coordinate is needed here.
+    // Expect ~11 "unknown enum constant EnvType.CLIENT" javac warnings from this:
+    // REI's API carries Fabric @Environment annotations and net.fabricmc.api.EnvType
+    // isn't on a NeoForge classpath. Harmless (annotation values only) — do NOT
+    // "fix" it by dragging fabric-loader into a NeoForge build.
+    compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${property('deps.rei')}"
+
     // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
     compileOnly "maven.modrinth:jade:${property('deps.jade')}"
 
