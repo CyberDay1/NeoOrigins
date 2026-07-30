@@ -54,6 +54,7 @@ public final class ConditionParser {
         "neoorigins:always_active",
         "neoorigins:amount", "neoorigins:and", "neoorigins:armor_value",
         "neoorigins:biome", "neoorigins:block", "neoorigins:block_collision",
+        "neoorigins:body_temperature",
         "neoorigins:brightness", "neoorigins:can_see", "neoorigins:climbing",
         "neoorigins:climbing_gate", "neoorigins:collided_horizontally",
         "neoorigins:command", "neoorigins:config_flag", "neoorigins:constant",
