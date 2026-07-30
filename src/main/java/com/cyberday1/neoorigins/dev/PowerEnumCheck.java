@@ -96,8 +96,15 @@ public final class PowerEnumCheck {
      * if a change pushes it up, that change added an unmodelled authorable type.
      * It is measured per branch: the registries differ between 1.21.1 and 26.x, so
      * this value is NOT comparable to the lead branch's.
+     *
+     * <p>Was 32 while {@link #legacyImportSurface()} miscounted 29 native
+     * {@code neoorigins:} alias-source ids as foreign. They are itemized in the
+     * allowlist now, leaving the three genuinely foreign {@code apace:} import ids.
+     * That drop is a RECLASSIFICATION, not modelling progress — no id gained a
+     * branch — and the ceiling is pinned at the honest number so that later work
+     * cannot spend the difference.
      */
-    private static final int MAX_UNBRANCHED_LEGACY = 32;
+    private static final int MAX_UNBRANCHED_LEGACY = 3;
 
     public static void main(String[] args) throws IOException {
         int failures = 0;
@@ -168,8 +175,10 @@ public final class PowerEnumCheck {
         // Keeping them out of the allowlist keeps that list honestly zero-bound.
         unbranched.removeAll(OriginsMultipleExpander.MULTIPLE_TYPES);
 
-        // The legacy import surface is counted under a shrinking ceiling rather than
-        // enumerated in the allowlist — see MAX_UNBRANCHED_LEGACY for why.
+        // The legacy import surface — FOREIGN spellings only — is counted under a
+        // shrinking ceiling rather than enumerated in the allowlist; see
+        // MAX_UNBRANCHED_LEGACY for why. Native neoorigins: ids never belong here
+        // however they got into the enum: see legacyImportSurface().
         Set<String> unbranchedLegacy = new TreeSet<>(unbranched);
         unbranchedLegacy.retainAll(legacyImportSurface());
         unbranched.removeAll(unbranchedLegacy);
@@ -216,15 +225,40 @@ public final class PowerEnumCheck {
 
     /**
      * The non-native spellings the enum can legitimately carry on this branch:
-     * the {@code apoli:}/{@code apugli:}/{@code origins:} ids the alias table
-     * remaps and the cross-mod import ids the translator rewrites. Read from the
-     * live tables, not transcribed — these are the same two sources
+     * the {@code apoli:}/{@code apugli:}/{@code origins:}/{@code apace:} ids the
+     * alias table remaps and the cross-mod import ids the translator rewrites.
+     * Read from the live tables, not transcribed — these are the same two sources
      * {@code PowerSchemaGenerator.buildTypeEnum()} unions in.
+     *
+     * <p><b>Native ids are filtered out, and that filter is the whole point.</b>
+     * {@link LegacyPowerTypeAliases#aliasedTypeIds()} returns the alias SOURCE ids,
+     * and most of this branch's aliases are 2.0-era {@code neoorigins:} type ids
+     * remapped to their modern replacements — {@code neoorigins:night_vision},
+     * {@code neoorigins:damage_in_water} and 27 more. Those are native, authorable,
+     * first-party types. Letting them through here swept them into the aggregate
+     * {@link #MAX_UNBRANCHED_LEGACY} counter instead of the itemized allowlist,
+     * which made this gate report "1 native id allowlisted, TARGET IS 0" while 29
+     * native types were in fact unmodelled and rendering as raw-JSON boxes. The
+     * ceiling is for spellings that belong to OTHER mods' vocabularies and can only
+     * be closed by folding them into a translation target's branch; a native id has
+     * a home of its own and must be named in the allowlist until it gets a branch.
+     *
+     * <p>The lead branch reaches the same split by intersecting with
+     * {@code OriginsFormatDetector.legacyPowerTypeSurface()}, which is built from the
+     * Route A/Route B dispatch labels and so is foreign-only by construction. That
+     * method does not exist on this branch (neither does
+     * {@code OriginsPowerTranslator.ROUTE_A_TYPES}, which it reads), and porting it
+     * would drag the whole legacy dispatch surface into the {@code type} enum — a
+     * different change, which would RAISE this ceiling by ~400. Filtering the
+     * namespace here is the same classification with none of that reach.
      */
     private static Set<String> legacyImportSurface() {
         LegacyPowerTypeAliases.bootstrap();
         Set<String> ids = new TreeSet<>();
-        for (Identifier rl : LegacyPowerTypeAliases.aliasedTypeIds()) ids.add(rl.toString());
+        for (Identifier rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
+            if ("neoorigins".equals(rl.getNamespace())) continue;
+            ids.add(rl.toString());
+        }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);
         return ids;
     }
