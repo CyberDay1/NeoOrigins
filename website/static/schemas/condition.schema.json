@@ -3635,6 +3635,9 @@
           }
         }
       },
+      "required": [
+        "type"
+      ],
       "additionalProperties": true
     }
   ]
