@@ -99,6 +99,23 @@ public final class PowerAliasSmokeTest {
                          + failures.size() + " failures");
         for (String f : failures) System.out.println("[alias-smoke] FAIL  " + f);
         if (!failures.isEmpty()) System.exit(1);
+
+        // Vacuity guards. Zero scanned files means the root moved; zero aliased
+        // files means either the alias table failed to bootstrap or no internal
+        // JSON uses a legacy type any more. Either way the remap layer was never
+        // exercised, so reporting success would be a lie.
+        if (scanned == 0) {
+            System.out.println("[alias-smoke] FAIL  scanned 0 power JSONs under " + root
+                + " — nothing was validated");
+            System.exit(1);
+        }
+        if (aliased == 0) {
+            System.out.println("[alias-smoke] FAIL  0 of " + scanned + " files matched a"
+                + " registered alias — the remap layer was never exercised. If the internal"
+                + " packs genuinely no longer use legacy types, retire this task rather than"
+                + " leaving it green on an empty set.");
+            System.exit(1);
+        }
     }
 
     /**

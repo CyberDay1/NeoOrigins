@@ -77,6 +77,17 @@ public final class ActionConditionSchemaCheck {
         int failures = 0;
         List<String> extras = new ArrayList<>();
 
+        // The diff below iterates the COMMITTED schema's structured ids, so an
+        // empty committed model reports "0 findings" and this parity gate passes
+        // having compared nothing. Treat that as a failure of the gate itself.
+        if (committed.structuredTypes().isEmpty()) {
+            System.out.println("  MISSING  " + committedPath + " parsed 0 structured"
+                + " branches — nothing to diff, so this parity gate was vacuous.");
+            System.out.println("  → " + which + ": 1 MISSING/CHANGED finding(s).");
+            System.out.println();
+            return 1;
+        }
+
         // Every id the committed schema models must be modelled in the generated one.
         for (String id : new TreeSet<>(committed.structuredTypes())) {
             if (!generated.hasStructuredForm(id)) {

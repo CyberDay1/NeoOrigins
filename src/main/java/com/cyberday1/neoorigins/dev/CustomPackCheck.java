@@ -76,6 +76,13 @@ public final class CustomPackCheck {
         }
 
         // 5. CustomPackSerializer → OriginDraftReader round-trip (re-open path).
+        // The per-power comparison below is a bounded loop over the fixture's own
+        // power list, so an empty fixture would leave rtOk true and "pass" without
+        // comparing a single power. Assert the fixture is populated first.
+        if (d.powers.isEmpty()) {
+            fail("fixture built 0 power drafts — the round-trip checks below would pass vacuously");
+            failures++;
+        }
         JsonObject originJson = CustomPackSerializer.originJson(d);
         java.util.Map<String, JsonObject> bodies = new java.util.HashMap<>();
         for (OriginDraft.PowerDraft pp : d.powers) {

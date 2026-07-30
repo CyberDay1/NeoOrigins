@@ -176,6 +176,23 @@ public final class CompatTestHarness {
             findings.stream().filter(f -> f.result == Result.FAIL).forEach(System.out::println);
         }
 
+        // A corpus that produced nothing is not a pass. Every invocation is
+        // pointed at real pack roots, so zero scanned files (a moved/renamed data
+        // dir, a bad --args path) or zero verdicts means the harness validated
+        // nothing and would still have exited 0 — the exact vacuous green that
+        // let the 2026-07 audit findings ride along unnoticed.
+        if (totalScanned == 0) {
+            System.out.println("HARNESS FAIL: scanned 0 power JSONs across " + args.length
+                + " root(s) — nothing was validated. Check the pack roots.");
+            System.exit(1);
+        }
+        if (pass + skip + fail + warn == 0) {
+            System.out.println("HARNESS FAIL: scanned " + totalScanned
+                + " files but produced 0 verdicts — every file was skipped before"
+                + " classification, so this run proved nothing.");
+            System.exit(1);
+        }
+
         System.out.println();
         System.exit(fail > 0 ? 1 : 0);
     }
@@ -376,6 +393,16 @@ public final class CompatTestHarness {
                     typedObjects += collectTypedObjects(el, observed);
                 }
             }
+        }
+
+        // Refuse to write a baseline nothing was measured against: an empty corpus
+        // would emit a file with only the RECOGNIZED VERBS sections, and that file
+        // would then byte-compare clean forever while covering nothing.
+        if (files == 0 || observed.isEmpty()) {
+            System.err.println("GOLDEN-MASTER FAIL: scanned " + files + " files / "
+                + observed.size() + " distinct types — refusing to write an empty baseline."
+                + " Check the corpus roots.");
+            System.exit(1);
         }
 
         StringBuilder sb = new StringBuilder();
