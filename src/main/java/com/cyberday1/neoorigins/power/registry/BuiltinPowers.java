@@ -1143,9 +1143,16 @@ public final class BuiltinPowers {
         // spec now matches the codec. The power.schema.json branch and the
         // field_docs.json entry collapse onto this spec (behavior-neutral: the
         // power still deserializes through its own Codec<Config>, untouched).
+        // A later repair added `hit_dealt`, the last remaining omission: the
+        // attacker-side mirror of hit_taken is a real dispatched event
+        // (CombatPowerEvents.onPlayerDealDamage → Event.HIT_DEALT) and is
+        // documented in docs/EVENTS.md, but had never been listed here — so the
+        // schema rejected valid content (asura_blood_tithe) that the codec
+        // accepted. The options list is now a byte-for-byte lowercasing of
+        // EventPowerIndex.Event; keep it that way.
         define("action_on_event", ActionOnEventPower.class, List.of(
             new FieldSpec("event", Kind.ENUM, true)
-                .options("attack", "hit_taken", "kill", "death", "block_break", "block_place",
+                .options("attack", "hit_taken", "hit_dealt", "kill", "death", "block_break", "block_place",
                     "item_use", "respawn", "tick", "dimension_change", "climb", "jump",
                     "projectile_hit", "craft_item", "smelt_item", "enchant_item", "anvil_repair",
                     "bonemeal", "breed", "tame", "food_eaten", "food_finished", "advancement_earned",
