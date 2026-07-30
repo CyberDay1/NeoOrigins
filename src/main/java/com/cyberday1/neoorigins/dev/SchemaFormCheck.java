@@ -660,6 +660,14 @@ public final class SchemaFormCheck {
         // the key-alias (effectiveComponentName) when set, else by camel→snake-ing
         // the JSON name itself.
         java.lang.reflect.RecordComponent rc = byJson.get(componentKey);
+
+        // Recorded exception: a `.readBy(...)` field has NO component by design
+        // because another class reads it off the raw power JSON. Verify the
+        // exception still holds instead of trusting it — see auditReadBy.
+        if (fs.readBy() != null) {
+            return fails + auditReadBy(fs, typeId, rc);
+        }
+
         if (rc == null) {
             System.out.println("[schema-check] FAIL  power-spec " + typeId
                 + ": field '" + fs.name() + "' has no matching Config component"
@@ -690,6 +698,74 @@ public final class SchemaFormCheck {
                     fails += auditSpec(child, typeId, subByJson, subDeclared);
                 }
             }
+        }
+        return fails;
+    }
+
+    /**
+     * Validate a {@code FieldSpec.readBy(...)} exception — a field the descriptor
+     * surfaces to the editors even though the power's {@code Config} record has no
+     * component for it, because the value is read off the raw power JSON elsewhere.
+     *
+     * <p>The exception is only worth having if it cannot rot, so all four of these
+     * must hold or the audit fails:
+     * <ol>
+     *   <li>the field really has NO component ({@code rc == null}) — once a codec
+     *       gains one, the exception is obsolete and must be deleted so the field
+     *       goes back through the normal component/Optional clauses;</li>
+     *   <li>the {@code Class#method} reference parses;</li>
+     *   <li>the reader's source file exists at the path its package implies and
+     *       still declares that method;</li>
+     *   <li>that source still mentions the field's JSON key, i.e. it is plausibly
+     *       still reading it.</li>
+     * </ol>
+     * Source text rather than reflection: the point is to catch the reader being
+     * renamed, moved, or quietly stopping reading the key, none of which a
+     * {@code Class.forName} would notice.
+     */
+    private static int auditReadBy(com.cyberday1.neoorigins.compat.registry.FieldSpec fs,
+                                   String typeId,
+                                   java.lang.reflect.RecordComponent rc) {
+        String where = "power-spec " + typeId + ": field '" + fs.name() + "' readBy '" + fs.readBy() + "'";
+        if (rc != null) {
+            System.out.println("[schema-check] FAIL  " + where
+                + " but the Config record now HAS a component for it — the readBy"
+                + " exception is stale and must be removed");
+            return 1;
+        }
+        int hash = fs.readBy().indexOf('#');
+        if (hash <= 0 || hash == fs.readBy().length() - 1) {
+            System.out.println("[schema-check] FAIL  " + where
+                + " is not in 'fully.qualified.Class#method' form");
+            return 1;
+        }
+        String className = fs.readBy().substring(0, hash);
+        String methodName = fs.readBy().substring(hash + 1);
+        java.nio.file.Path src = java.nio.file.Path.of("src/main/java",
+            (className.replace('.', '/') + ".java").split("/"));
+        if (!java.nio.file.Files.isRegularFile(src)) {
+            System.out.println("[schema-check] FAIL  " + where
+                + " names a reader with no source file at " + src);
+            return 1;
+        }
+        String body;
+        try {
+            body = java.nio.file.Files.readString(src);
+        } catch (java.io.IOException e) {
+            System.out.println("[schema-check] FAIL  " + where + " — cannot read " + src + ": " + e);
+            return 1;
+        }
+        int fails = 0;
+        if (!body.contains(methodName + "(")) {
+            System.out.println("[schema-check] FAIL  " + where
+                + " — " + src.getFileName() + " no longer declares " + methodName + "()");
+            fails++;
+        }
+        if (!body.contains("\"" + fs.name() + "\"")) {
+            System.out.println("[schema-check] FAIL  " + where
+                + " — " + src.getFileName() + " no longer mentions the JSON key \""
+                + fs.name() + "\", so nothing reads this field");
+            fails++;
         }
         return fails;
     }

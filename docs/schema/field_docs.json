@@ -28,10 +28,10 @@
   "neoorigins:active_ability": {
     "resource_cost": "Power id of a neoorigins:resource debited on activation; empty = no resource cost. If the player can't afford it the activation silently aborts (no cooldown consumed). When resource bars are globally disabled (disable_resource_bars), the cost falls back to hunger instead (resource_cost_amount food points).",
     "resource_cost_amount": "Resource points deducted per successful activation (default 0; only used when resource_cost is set). Checked pre-flight — activation silently aborts if the current value is below this.",
-    "key": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config."
+    "key": "Optional hotkey this active power binds to. A number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing N all fire from one key. A string is a keybind translation key used as-is (e.g. 'key.jump'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire while held. Pool size / pre-bound defaults live in the [hotkeys] client config."
   },
   "neoorigins:toggle": {
-    "key": "Optional named-hotkey pool slot (1-64) this active power binds to. A number N pins the power to 'Hotkey N'; several powers sharing N all fire from one key. Pool size / pre-bound defaults live in the [hotkeys] client config."
+    "key": "Optional hotkey this active power binds to. A number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing N all fire from one key. A string is a keybind translation key used as-is (e.g. 'key.jump'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire while held. Pool size / pre-bound defaults live in the [hotkeys] client config."
   },
   "neoorigins:effect_immunity": {
     "effects": "List of mob-effect ids whose application to the player is cancelled."

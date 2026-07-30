@@ -157,13 +157,19 @@ public final class SchemaNodeBuilder {
                 }
             }
             case MIXED -> {
+                // The arms are the JSON types the parser actually accepts. Most
+                // MIXED fields are the "id string or options object" idiom, which
+                // stays the default; FieldSpec.mixedTypes widens the few that read
+                // something else (e.g. key: number | string | object).
+                List<String> arms = fs.mixedTypes().isEmpty()
+                    ? List.of("string", "object")
+                    : fs.mixedTypes();
                 JsonArray oneOf = new JsonArray();
-                JsonObject asString = new JsonObject();
-                asString.addProperty("type", "string");
-                JsonObject asObject = new JsonObject();
-                asObject.addProperty("type", "object");
-                oneOf.add(asString);
-                oneOf.add(asObject);
+                for (String arm : arms) {
+                    JsonObject asType = new JsonObject();
+                    asType.addProperty("type", arm);
+                    oneOf.add(asType);
+                }
                 node.add("oneOf", oneOf);
             }
             case UNKNOWN -> {

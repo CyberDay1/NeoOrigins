@@ -102,15 +102,21 @@ public final class BuiltinPowers {
             .def("").doc("Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.");
 
     /**
-     * Optional named-hotkey pool binding for active (keybind) powers. Read at
-     * load time by {@code OriginsCompatPowerLoader.registerNativeActiveHotkeys}
-     * (raw top-level {@code "key": N} → {@code key.neoorigins.hotkey.N}); the
-     * power Config codec ignores the undeclared field, so surfacing it in the
-     * editor is safe (it round-trips into the body only when the author sets it).
+     * Optional hotkey binding for active (keybind) powers. Read at load time by
+     * {@code OriginsCompatPowerLoader.registerNativeActiveHotkeys}, which passes
+     * the raw top-level {@code "key"} through {@code classifyKey}: a number N
+     * becomes named-hotkey pool slot {@code key.neoorigins.hotkey.N}, a string is
+     * taken as a translation key verbatim (skill slot, vanilla input key, or
+     * pack-declared hotkey), and an object supplies {@code key} plus
+     * {@code continuous}. The power Config codec never declares the field — hence
+     * {@code readBy}, and hence {@code MIXED} over all three accepted shapes
+     * rather than the integer-only subset the schema used to claim.
      */
     private static final FieldSpec KEY_SPEC =
-        new FieldSpec("key", Kind.INTEGER, false).range(1.0, 64.0)
-            .doc("Optional named-hotkey pool slot (1-64) this active power binds to. A plain number N pins the power to pool 'Hotkey N'; several powers sharing the same N all fire from that one key. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)");
+        new FieldSpec("key", Kind.MIXED, false)
+            .mixedTypes("integer", "string", "object")
+            .readBy("com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader#registerNativeActiveHotkeys")
+            .doc("Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)");
 
     /**
      * Looser hint for scalar-string lists whose entries are NOT strictly
