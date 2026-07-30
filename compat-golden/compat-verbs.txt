@@ -336,7 +336,7 @@ neoorigins:quality_equipment	x1	recognized=-	fields={intercept_menus}
 neoorigins:random_teleport	x1	recognized=action	fields={range}
 neoorigins:rare_wandering_loot	x1	recognized=-	fields={}
 neoorigins:relative_health	x6	recognized=condition	fields={compare_to,comparison}
-neoorigins:repulse	x1	recognized=-	fields={cooldown_icon,cooldown_ticks,knockback_strength,radius,resource_cost,resource_cost_amount}
+neoorigins:repulse	x1	recognized=-	fields={cooldown_icon,cooldown_ticks,radius,resource_cost,resource_cost_amount,strength}
 neoorigins:resource	x38	recognized=condition	fields={compare_to,comparison,description,hidden,hud_render,max,min,name,regen_condition,regen_interval,regen_rate,resource,start_value}
 neoorigins:restrict_armor	x1	recognized=-	fields={restrictions}
 neoorigins:scare_entities	x6	recognized=-	fields={description,entity_types,name}

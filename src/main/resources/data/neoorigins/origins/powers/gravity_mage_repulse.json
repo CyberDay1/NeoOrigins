@@ -1,7 +1,7 @@
 {
   "type": "neoorigins:repulse",
   "cooldown_icon": "minecraft:wind_charge",
-  "knockback_strength": 2.5,
+  "strength": 2.5,
   "radius": 8.0,
   "cooldown_ticks": 80,
   "resource_cost": "neoorigins:gravity_mage_mana",
