@@ -39,8 +39,13 @@ license = "${mod_license}"
 
 # Jade soft-compat: shows the looked-at mob's origin in the Jade tooltip
 # overlay. Client-only, reflective via the @WailaPlugin entrypoint — the mod
-# runs unchanged when Jade is absent. (EMI + The One Probe are skipped on 26.1
-# until they ship 26.1 NeoForge builds.)
+# runs unchanged when Jade is absent.
+#
+# No EMI or The One Probe equivalent is declared, and the reason is not "not yet"
+# in any near sense. Checked 2026-07-29: EMI's newest NeoForge release is
+# 1.1.24+1.21.1 and The One Probe's is 1.21_neo-12.0.8, so neither has shipped a
+# build for ANY 26.x Minecraft, let alone 26.1.2. Re-check the upstream release
+# lists before assuming that changed.
 [[dependencies.${mod_id}]]
     modId = "jade"
     type = "optional"

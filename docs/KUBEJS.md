@@ -25,6 +25,14 @@ JavaScript without touching Java.
 action and the `neoorigins:js_custom` / `neoorigins:js_active` power types are
 all absent there, and no amount of KubeJS being installed brings them back.
 
+Two different reasons sit behind that, and they are worth keeping straight.
+Checked 2026-07-29: KubeJS's newest NeoForge release is `26.1.2-8.0.4+neoforge`,
+published against Minecraft 26.1.2. On the 26.2 build the integration is therefore
+blocked upstream, as there is no artifact to compile against. On the 26.1.2 build
+there is one, and the integration is absent by our own choice: the port was
+deferred, not prevented. Re-check KubeJS's release list before repeating either
+claim.
+
 That matters because an unregistered `type` is not a soft failure. A power file
 whose `type` the build doesn't know is dropped **whole** at load: no error in
 game, no partial behaviour, the power simply never appears on the origin. So a

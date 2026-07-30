@@ -87,7 +87,10 @@ dependencies {
     compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${property('deps.rei')}"
 
     // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
-    // EMI + The One Probe are skipped on 26.1 — no 26.1 NeoForge build yet.
+    // EMI and The One Probe have no integration here, and it is not a near-term
+    // "not yet": checked 2026-07-29, EMI's newest NeoForge release is
+    // 1.1.24+1.21.1 and The One Probe's is 1.21_neo-12.0.8 — neither ships a build
+    // for any 26.x Minecraft. Re-read the upstream release lists before assuming.
     compileOnly "maven.modrinth:jade:${property('deps.jade')}"
 
     // FTB Ultimine – the `ultimine` vein-mining power grants ultimine to active
