@@ -866,6 +866,90 @@
       ]
     },
     {
+      "$comment": "neoorigins:action_over_time",
+      "properties": {
+        "type": {
+          "const": "neoorigins:action_over_time"
+        },
+        "interval": {
+          "description": "Ticks between condition checks (min 1; default 20 = 1s).",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the action: entity_action runs each interval only while it passes; else_action runs while it does not (default always-true).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "entity_action": {
+          "description": "EntityAction run on the player each interval while the condition passes (defaults to noop).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "else_action": {
+          "description": "EntityAction run on the player each interval while the condition does NOT pass (defaults to noop).",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "toggleable": {
+          "description": "When true the power binds a keybind that flips its periodic action on/off; while off the interval action never runs (default false — condition_passive powers are passive unless opted in).",
+          "type": "boolean",
+          "default": false
+        },
+        "default_off": {
+          "description": "Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:active_ability",
       "properties": {
         "type": {
@@ -1521,6 +1605,33 @@
       ]
     },
     {
+      "$comment": "neoorigins:biome_buff",
+      "properties": {
+        "type": {
+          "const": "neoorigins:biome_buff"
+        },
+        "biome_tag": {
+          "description": "Biome tag the player must be standing in for the effect to apply (e.g. '#minecraft:is_forest').",
+          "type": "string",
+          "default": ""
+        },
+        "effect": {
+          "description": "Mob-effect id applied while in the biome; default minecraft:regeneration. Reapplied every second for 15s, so it persists while the condition holds and fades shortly after leaving.",
+          "type": "string",
+          "default": "minecraft:regeneration"
+        },
+        "amplifier": {
+          "description": "Effect level minus one (0 = level I, 1 = level II); default 0.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:bounce_on_land",
       "properties": {
         "type": {
@@ -1643,6 +1754,30 @@
           "description": "Ticks of fire set on the player each application (20 = 1s; default 100).",
           "type": "integer",
           "default": 100
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:burn_at_health_threshold",
+      "properties": {
+        "type": {
+          "const": "neoorigins:burn_at_health_threshold"
+        },
+        "threshold_percent": {
+          "description": "Fraction of max health at or below which the player catches fire, as 0..1; default 0.25 (a quarter heart bar).",
+          "type": "number",
+          "default": 0.25,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "fire_ticks": {
+          "description": "Burn duration in ticks reapplied each second while below the threshold (20 = 1s); default 60.",
+          "type": "integer",
+          "default": 60,
+          "minimum": 0
         }
       },
       "required": [
@@ -1890,6 +2025,91 @@
           "description": "Extra copies of the block's own loot when breaking crops/logs (default 1).",
           "type": "integer",
           "default": 1
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage_in_biome",
+      "properties": {
+        "type": {
+          "const": "neoorigins:damage_in_biome"
+        },
+        "biome_tag": {
+          "description": "Biome tag the damage applies in (e.g. '#minecraft:is_badlands'). Ignored when `biomes` is present.",
+          "type": "string",
+          "default": ""
+        },
+        "biomes": {
+          "description": "Explicit biome ids the damage applies in, OR-matched. Use instead of `biome_tag` for a set of biomes that share no vanilla tag (e.g. the desert + badlands variants). Takes precedence over `biome_tag`.",
+          "type": "array",
+          "items": {}
+        },
+        "damage_per_second": {
+          "description": "Damage dealt once per second while in a matching biome; default 1.0.",
+          "type": "number",
+          "default": 1.0
+        },
+        "damage_type": {
+          "description": "Damage-source name used for the hurt (e.g. 'generic', 'on_fire', 'dry_out'); default generic.",
+          "type": "string",
+          "default": "generic"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage_in_daylight",
+      "properties": {
+        "type": {
+          "const": "neoorigins:damage_in_daylight"
+        },
+        "damage_per_second": {
+          "description": "Damage dealt once per second while exposed to sunlight and not in water; default 1.0. Set to 0 to burn without direct damage.",
+          "type": "number",
+          "default": 1.0
+        },
+        "ignite": {
+          "description": "When true the player is also set on fire each second in the sun; default false. Combines with damage_per_second — the vanilla fire ticks deal their own damage on top.",
+          "type": "boolean",
+          "default": false
+        },
+        "fire_ticks": {
+          "description": "Burn duration in ticks applied per second when ignite is true (20 = 1s); default 40.",
+          "type": "integer",
+          "default": 40,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:damage_in_water",
+      "properties": {
+        "type": {
+          "const": "neoorigins:damage_in_water"
+        },
+        "damage_per_second": {
+          "description": "Base damage dealt once per second while in water (or rain); default 1.0.",
+          "type": "number",
+          "default": 1.0
+        },
+        "multiplier": {
+          "description": "Scalar applied to damage_per_second, so the damage per second is the product of the two; default 1.0. Exists so an origin can expose one power_overrides knob that retunes the weakness; 0 disables the damage entirely (the power still loads, but never calls hurt, so there is no hurt sound or animation).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        },
+        "include_rain": {
+          "description": "When true the damage also applies while exposed to rain, not just while in water; default true.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -3881,6 +4101,31 @@
       ]
     },
     {
+      "$comment": "neoorigins:regen_in_fluid",
+      "properties": {
+        "type": {
+          "const": "neoorigins:regen_in_fluid"
+        },
+        "fluid": {
+          "description": "Fluid the player must be in to heal: water (default) or lava.",
+          "type": "string",
+          "enum": [
+            "water",
+            "lava"
+          ],
+          "default": "water"
+        },
+        "amount_per_second": {
+          "description": "Health points restored once per second while submerged; default 1.0 (half a heart).",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:resource",
       "properties": {
         "type": {
@@ -5192,6 +5437,7 @@
             "enum": [
               "neoorigins:action_on_event",
               "neoorigins:action_on_hit",
+              "neoorigins:action_over_time",
               "neoorigins:active_ability",
               "neoorigins:active_bolt",
               "neoorigins:active_dash",
@@ -5205,11 +5451,13 @@
               "neoorigins:attribute_modifier",
               "neoorigins:bare_hand_tool",
               "neoorigins:become_dragon",
+              "neoorigins:biome_buff",
               "neoorigins:bounce_on_land",
               "neoorigins:break_speed_modifier",
               "neoorigins:breath_in_fluid",
               "neoorigins:breath_out_of_fluid",
               "neoorigins:burn",
+              "neoorigins:burn_at_health_threshold",
               "neoorigins:cobweb_affinity",
               "neoorigins:command_pack",
               "neoorigins:condition_passive",
@@ -5218,6 +5466,9 @@
               "neoorigins:creative_flight",
               "neoorigins:crop_growth_accelerator",
               "neoorigins:crop_harvest_bonus",
+              "neoorigins:damage_in_biome",
+              "neoorigins:damage_in_daylight",
+              "neoorigins:damage_in_water",
               "neoorigins:dodge_chance",
               "neoorigins:edible_item",
               "neoorigins:effect_immunity",
@@ -5278,6 +5529,7 @@
               "neoorigins:projectile_immunity",
               "neoorigins:quality_equipment",
               "neoorigins:rare_wandering_loot",
+              "neoorigins:regen_in_fluid",
               "neoorigins:resource",
               "neoorigins:restrict_armor",
               "neoorigins:restrict_items",

@@ -44,17 +44,11 @@
 # still load: authoring one is valid, just unvalidated.
 neoorigins:action_on_hit_taken
 neoorigins:action_on_kill
-neoorigins:action_over_time
 neoorigins:active_aoe_effect
 neoorigins:active_launch
 neoorigins:better_bone_meal
 neoorigins:better_crafted_food
 neoorigins:better_enchanting
-neoorigins:biome_buff
-neoorigins:burn_at_health_threshold
-neoorigins:damage_in_biome
-neoorigins:damage_in_daylight
-neoorigins:damage_in_water
 neoorigins:efficient_repairs
 neoorigins:food_restriction
 neoorigins:healing_mist
@@ -63,7 +57,6 @@ neoorigins:knockback_modifier
 neoorigins:longer_potions
 neoorigins:more_animal_loot
 neoorigins:natural_regen_modifier
-neoorigins:regen_in_fluid
 neoorigins:repulse
 neoorigins:teleport_range_modifier
 neoorigins:thorns_aura

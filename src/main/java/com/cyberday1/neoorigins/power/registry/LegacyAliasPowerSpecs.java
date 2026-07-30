@@ -96,6 +96,7 @@ public final class LegacyAliasPowerSpecs {
 
     static {
         registerPersistentEffectAliases();
+        registerConditionPassiveAliases();
     }
 
     // ── persistent_effect targets ───────────────────────────────────────────
@@ -157,6 +158,85 @@ public final class LegacyAliasPowerSpecs {
         // toggleable alone, so the power keeps persistent_effect's toggle
         // default (true) — but there is nothing on the alias itself to author.
         define("glow", List.of());
+    }
+
+    // ── condition_passive targets ───────────────────────────────────────────
+    //
+    // Every translator here writes condition + entity_action + interval, so none
+    // of the three may be declared: they are overwritten before the codec runs.
+
+    private static void registerConditionPassiveAliases() {
+        // action_over_time — PASSTHROUGH. A structural twin of condition_passive
+        // (same interval / condition / entity_action fields) that was documented
+        // in POWER_TYPES.md but never registered as a real type.
+        define("action_over_time", fieldsOf("condition_passive"));
+
+        define("biome_buff", List.of(
+            new FieldSpec("biome_tag", Kind.STRING, false)
+                .def("")
+                .doc("Biome tag the player must be standing in for the effect to apply (e.g. '#minecraft:is_forest')."),
+            new FieldSpec("effect", Kind.STRING, false)
+                .def("minecraft:regeneration")
+                .doc("Mob-effect id applied while in the biome; default minecraft:regeneration. Reapplied every second for 15s, so it persists while the condition holds and fades shortly after leaving."),
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("Effect level minus one (0 = level I, 1 = level II); default 0.")));
+
+        define("damage_in_biome", List.of(
+            new FieldSpec("biome_tag", Kind.STRING, false)
+                .def("")
+                .doc("Biome tag the damage applies in (e.g. '#minecraft:is_badlands'). Ignored when `biomes` is present."),
+            new FieldSpec("biomes", Kind.ARRAY, false)
+                .doc("Explicit biome ids the damage applies in, OR-matched. Use instead of `biome_tag` for a set of biomes that share no vanilla tag (e.g. the desert + badlands variants). Takes precedence over `biome_tag`."),
+            new FieldSpec("damage_per_second", Kind.NUMBER, false)
+                .def(1.0)
+                .doc("Damage dealt once per second while in a matching biome; default 1.0."),
+            new FieldSpec("damage_type", Kind.STRING, false)
+                .def("generic")
+                .doc("Damage-source name used for the hurt (e.g. 'generic', 'on_fire', 'dry_out'); default generic.")));
+
+        define("damage_in_daylight", List.of(
+            new FieldSpec("damage_per_second", Kind.NUMBER, false)
+                .def(1.0)
+                .doc("Damage dealt once per second while exposed to sunlight and not in water; default 1.0. Set to 0 to burn without direct damage."),
+            new FieldSpec("ignite", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("When true the player is also set on fire each second in the sun; default false. Combines with damage_per_second — the vanilla fire ticks deal their own damage on top."),
+            new FieldSpec("fire_ticks", Kind.INTEGER, false)
+                .def(40).range(0.0, null)
+                .doc("Burn duration in ticks applied per second when ignite is true (20 = 1s); default 40.")));
+
+        // The `multiplier` scalar is real, not a spelling of damage_per_second: the
+        // remap computes damage_per_second * multiplier. Several origins register
+        // only `multiplier` as their power_overrides config key, which is how a
+        // server admin retunes (or, at 0, disables) the weakness without editing
+        // the power.
+        define("damage_in_water", List.of(
+            new FieldSpec("damage_per_second", Kind.NUMBER, false)
+                .def(1.0)
+                .doc("Base damage dealt once per second while in water (or rain); default 1.0."),
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar applied to damage_per_second, so the damage per second is the product of the two; default 1.0. Exists so an origin can expose one power_overrides knob that retunes the weakness; 0 disables the damage entirely (the power still loads, but never calls hurt, so there is no hurt sound or animation)."),
+            new FieldSpec("include_rain", Kind.BOOLEAN, false)
+                .def(true)
+                .doc("When true the damage also applies while exposed to rain, not just while in water; default true.")));
+
+        define("burn_at_health_threshold", List.of(
+            new FieldSpec("threshold_percent", Kind.NUMBER, false)
+                .def(0.25).range(0.0, 1.0)
+                .doc("Fraction of max health at or below which the player catches fire, as 0..1; default 0.25 (a quarter heart bar)."),
+            new FieldSpec("fire_ticks", Kind.INTEGER, false)
+                .def(60).range(0.0, null)
+                .doc("Burn duration in ticks reapplied each second while below the threshold (20 = 1s); default 60.")));
+
+        define("regen_in_fluid", List.of(
+            new FieldSpec("fluid", Kind.ENUM, false)
+                .options("water", "lava").def("water")
+                .doc("Fluid the player must be in to heal: water (default) or lava."),
+            new FieldSpec("amount_per_second", Kind.NUMBER, false)
+                .def(1.0)
+                .doc("Health points restored once per second while submerged; default 1.0 (half a heart).")));
     }
 
     /**
