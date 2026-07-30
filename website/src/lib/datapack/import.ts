@@ -19,10 +19,17 @@
 // faithfully reconstruct is reported via `warnings` rather than thrown,
 // so the user gets the draft plus a heads-up about what was approximated.
 //
+// Top-level origin keys with no editor UI (`tier_powers`, `spawn_location`,
+// `required_mods`, `special`, `figura_model`, `figura_models`) are NOT
+// dropped — they are stashed on `draft.extras` and written straight back
+// out by `serializeOrigin`, so a round trip through the editor leaves them
+// byte-identical rather than silently deleting them.
+//
 // Fatal problems (not a zip, or no origin file at all) throw `ImportError`.
 
 import { unzipSync, strFromU8 } from 'fflate';
 
+import { MAPPED_ORIGIN_KEYS } from '$lib/schema/originSerializer';
 import type { OriginDraft, PowerDraft, TargetMcVersion } from '$lib/stores/originDraft';
 
 /** Thrown when the zip can't be parsed into a draft at all. */
@@ -235,6 +242,29 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 		if (upgrades.length > 0) draft.upgrades = upgrades;
 	}
 
+	// ── keys the editor has no UI for ────────────────────────────────────
+	//
+	// `origin.schema.json` declares fifteen top-level properties and the
+	// Identity tab covers nine. The rest — `tier_powers`, `spawn_location`,
+	// `required_mods`, `special`, `figura_model`, `figura_models` — used to be
+	// read past and dropped, so importing a pack and exporting it again wrote
+	// a *different* origin with an empty warning list. Carry them verbatim
+	// instead; the serializer writes them back out untouched.
+	const extras: Record<string, unknown> = {};
+	for (const [k, v] of Object.entries(originJson)) {
+		if (MAPPED_ORIGIN_KEYS.includes(k)) continue;
+		extras[k] = v;
+	}
+	const extraKeys = Object.keys(extras);
+	if (extraKeys.length > 0) {
+		draft.extras = extras;
+		warnings.push(
+			`Carried ${extraKeys.length} field${extraKeys.length === 1 ? '' : 's'} the editor ` +
+				`has no UI for (${extraKeys.join(', ')}). They are preserved exactly on ` +
+				`export, but you can only change them by hand.`
+		);
+	}
+
 	// ── powers ───────────────────────────────────────────────────────────
 	const powerRefs = Array.isArray(originJson.powers) ? originJson.powers : [];
 	const powers: PowerDraft[] = [];
@@ -274,6 +304,34 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 		powers.push({ id: powerLocalId, type, fields });
 	}
 	draft.powers = powers;
+
+	// `tier_powers` rides through in `extras`, but the powers it names are not
+	// in the origin's own `powers` list, so nothing above loaded their files
+	// and the exporter has nowhere to write them from. Adding them to
+	// `draft.powers` would be worse than losing them: the serializer puts every
+	// draft power into `powers`, which would grant the whole evolution chain at
+	// tier zero. Name them instead so the author knows to copy those files
+	// across by hand.
+	if (Array.isArray(extras.tier_powers)) {
+		const tierRefs = new Set<string>();
+		for (const tier of extras.tier_powers) {
+			if (!tier || typeof tier !== 'object') continue;
+			for (const key of ['add', 'remove'] as const) {
+				const list = (tier as Record<string, unknown>)[key];
+				if (!Array.isArray(list)) continue;
+				for (const ref of list) if (typeof ref === 'string') tierRefs.add(ref);
+			}
+		}
+		for (const p of powers) tierRefs.delete(`${namespace}:${p.id}`);
+		if (tierRefs.size > 0) {
+			warnings.push(
+				`tier_powers references ${tierRefs.size} power` +
+					`${tierRefs.size === 1 ? '' : 's'} the editor does not load ` +
+					`(${[...tierRefs].join(', ')}). The tier_powers entries are kept, but ` +
+					`those power files are not, so copy them into the exported pack yourself.`
+			);
+		}
+	}
 
 	// ── layer id (from the layer-extension that lists this origin) ───────
 	const fullOriginId = `${namespace}:${localId}`;

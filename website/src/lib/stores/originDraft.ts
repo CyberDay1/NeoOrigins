@@ -69,6 +69,24 @@ export interface OriginDraft {
 	 * entry, so the serializer can cleanly omit the field.
 	 */
 	upgrades?: Array<{ advancement: string; origin: string; announcement?: string }>;
+	/**
+	 * Top-level origin-JSON keys the editor has no UI for, carried verbatim
+	 * from an imported datapack so export → hand-edit → import → export is
+	 * lossless. `origin.schema.json` declares fifteen top-level properties;
+	 * the Identity tab covers nine, leaving `tier_powers`, `spawn_location`,
+	 * `required_mods`, `special`, `figura_model` and `figura_models`. Those
+	 * used to be read and thrown away, so re-exporting a NeoOrigins origin
+	 * quietly stripped its evolution tiers and spawn placement.
+	 *
+	 * Only ever populated by the importer (see `$lib/datapack/import.ts`);
+	 * the serializer writes the entries back out with the mapped fields
+	 * taking precedence. Keys the editor DOES own are never stored here, so
+	 * an extras entry can never shadow an Identity-tab value.
+	 *
+	 * Left `undefined` when there is nothing to carry, so a draft authored
+	 * from scratch serializes exactly as it did before.
+	 */
+	extras?: Record<string, unknown>;
 }
 
 export interface PowerDraft {

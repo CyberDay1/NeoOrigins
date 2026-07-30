@@ -156,6 +156,84 @@ await check('warns and skips a power reference with no power file', () => {
 	);
 });
 
+await check('carries editor-less origin fields through a round trip', async () => {
+	// The six top-level keys origin.schema.json declares but the Identity tab
+	// has no widget for. These used to be read past and dropped with an empty
+	// warning list, so re-exporting a shipped NeoOrigins origin stripped its
+	// evolution tiers and its spawn placement.
+	const enc = new TextEncoder();
+	const zip = zipSync({
+		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
+		'data/mypack/origins/origins/wizard.json': enc.encode(
+			JSON.stringify({
+				name: 'Wizard',
+				powers: ['mypack:present'],
+				special: true,
+				required_mods: ['irons_spellbooks'],
+				spawn_location: { dimension: 'minecraft:the_end' },
+				figura_model: 'wizard_base',
+				figura_models: { tiers: { '1': 'wizard_tier1' } },
+				tier_powers: [{ tier: 1, add: ['mypack:present'], remove: [] }]
+			})
+		),
+		'data/mypack/origins/powers/present.json': enc.encode(
+			JSON.stringify({ type: 'neoorigins:flight' })
+		),
+		'data/mypack/origins/origin_layers/origin.json': enc.encode(
+			JSON.stringify({ replace: false, origins: ['mypack:wizard'] })
+		)
+	});
+	const res = importDatapack(zip);
+	const keys = Object.keys(res.draft.extras ?? {}).sort();
+	assert(
+		deepEqual(keys, [
+			'figura_model',
+			'figura_models',
+			'required_mods',
+			'spawn_location',
+			'special',
+			'tier_powers'
+		]),
+		`unexpected extras keys: ${keys.join(', ')}`
+	);
+	assert(
+		res.warnings.some((w) => w.includes('spawn_location')),
+		`expected a carried-fields warning, got: ${res.warnings.join(' | ')}`
+	);
+	// Export again and confirm the six keys survive byte-for-byte.
+	const round = importDatapack(await exportBytes(res.draft));
+	assert(
+		deepEqual(round.draft.extras, res.draft.extras),
+		`extras did not survive re-export: ${JSON.stringify(round.draft.extras)}`
+	);
+});
+
+await check('warns about tier_powers referencing powers it cannot load', () => {
+	const enc = new TextEncoder();
+	const zip = zipSync({
+		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
+		'data/mypack/origins/origins/wizard.json': enc.encode(
+			JSON.stringify({
+				name: 'Wizard',
+				powers: [],
+				tier_powers: [{ tier: 1, add: ['mypack:archmagery'], remove: [] }]
+			})
+		),
+		'data/mypack/origins/powers/archmagery.json': enc.encode(
+			JSON.stringify({ type: 'neoorigins:flight' })
+		),
+		'data/mypack/origins/origin_layers/origin.json': enc.encode(
+			JSON.stringify({ replace: false, origins: ['mypack:wizard'] })
+		)
+	});
+	const res = importDatapack(zip);
+	assert(res.draft.powers.length === 0, `expected no base powers, got ${res.draft.powers.length}`);
+	assert(
+		res.warnings.some((w) => w.includes('mypack:archmagery')),
+		`expected a tier_powers warning, got: ${res.warnings.join(' | ')}`
+	);
+});
+
 await check('reads single-key { text } components losslessly, with no warning', () => {
 	// The shape NeoOrigins' own shipped origins use (asura, golden_body,
 	// iron_monk, qi_cultivator, sword_immortal, windwalker). Before `text`

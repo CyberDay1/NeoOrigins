@@ -46,7 +46,37 @@ export interface SerializedOrigin {
 	 * non-empty `upgrades` array. Shape matches `origin.schema.json`.
 	 */
 	upgrades?: Array<{ advancement: string; origin: string; announcement?: string }>;
+	/**
+	 * Passthrough for `OriginDraft.extras` — origin-JSON keys the editor has
+	 * no UI for (`tier_powers`, `spawn_location`, `required_mods`, ...). The
+	 * index signature is what lets them be written back out; nothing in the
+	 * editor reads them.
+	 */
+	[k: string]: unknown;
 }
+
+/**
+ * Top-level origin-JSON keys this serializer produces from mapped draft
+ * fields. Anything outside this set is unknown to the editor UI and rides
+ * along in `OriginDraft.extras` instead of being dropped — see
+ * `$lib/datapack/import.ts`, which imports this set to decide what to carry.
+ *
+ * Keep in step with `serializeOrigin` below: a key that moves from extras to
+ * a real editor field must be added here, or the importer will keep stuffing
+ * it into extras and the serializer will then refuse to emit it (mapped
+ * fields win) and the value is lost.
+ */
+export const MAPPED_ORIGIN_KEYS: readonly string[] = [
+	'name',
+	'description',
+	'icon',
+	'impact',
+	'order',
+	'unchoosable',
+	'hidden',
+	'powers',
+	'upgrades'
+] as const;
 
 export interface SerializedPower {
 	type: string;
@@ -197,6 +227,18 @@ export function serializeOrigin(draft: OriginDraft): SerializedDatapackBundle {
 			}
 			return entry;
 		});
+	}
+
+	// Keys the editor has no UI for, carried over from an import. Written
+	// last so the Identity fields still read at the top of the JSON Preview,
+	// and skipped whenever the key is one the editor owns — a mapped field
+	// always wins over a stale extras entry.
+	if (draft.extras) {
+		for (const [k, v] of Object.entries(draft.extras)) {
+			if (MAPPED_ORIGIN_KEYS.includes(k)) continue;
+			if (v === undefined) continue;
+			origin[k] = v;
+		}
 	}
 
 	// Layer-extension file path uses the path-portion of the layer id
