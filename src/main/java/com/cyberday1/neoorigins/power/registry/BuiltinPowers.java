@@ -131,6 +131,35 @@ public final class BuiltinPowers {
     }
 
     /**
+     * The {@code options} list for an enum field whose Codec decodes
+     * case-insensitively — {@code Enum.valueOf(s.toUpperCase(Locale.ROOT))} with a
+     * fallback on {@link IllegalArgumentException}. Emits the canonical lowercase
+     * tokens first, then their SCREAMING_CASE twins.
+     *
+     * <p>Declaring only the lowercase half made the schema narrower than the parser
+     * and flagged real, working content as invalid: NeoOrigins itself ships
+     * {@code "action": "FALL_DAMAGE"} in ten {@code prevent_action} powers, and the
+     * schema branch listed UPPERCASE tokens for years before it was canonicalised to
+     * lowercase, so packs written against the old docs use uppercase too.
+     *
+     * <p>An {@code enum} rather than a case-insensitive {@code pattern} because all
+     * three editors turn an {@code enum} into a dropdown and a {@code pattern} into a
+     * free-text box: a closed thirteen-value vocabulary is worth far more as a picker
+     * with author-time typo detection than as a regex. Lowercase comes first so the
+     * dropdown leads with the canonical form, which is also what the Codec writes
+     * back out ({@code a.name().toLowerCase(Locale.ROOT)}). This is still narrower
+     * than the parser for mixed case ({@code Fall_Damage}), which no content uses.
+     */
+    private static String[] caseTolerantOptions(String... lowercase) {
+        String[] out = new String[lowercase.length * 2];
+        for (int i = 0; i < lowercase.length; i++) {
+            out[i] = lowercase[i];
+            out[lowercase.length + i] = lowercase[i].toUpperCase(java.util.Locale.ROOT);
+        }
+        return out;
+    }
+
+    /**
      * The 11 nested fields of {@link com.cyberday1.neoorigins.api.condition.LocationCondition},
      * shared by {@code attribute_modifier.location_condition} (Optional) and
      * {@code modify_player_spawn.location} (required). Names mirror the codec's JSON keys 1:1
@@ -1514,23 +1543,27 @@ public final class BuiltinPowers {
         //     absence), active_when (ActiveWhen enum, default always), and the four
         //     ARMOR_EQUIP per-slot booleans head/chest/legs/feet (each default
         //     false). type is the internal discriminator (omitted). Both enums
-        //     serialize LOWERCASE (their xmaps .toLowerCase on write / .toUpperCase
-        //     on read), so the spec declares the lowercase vocabulary directly —
-        //     the old schema branch listed UPPERCASE tokens AND only 8 of the 13
-        //     Action constants (it dropped eye_damage, water_damage, sleep, elytra,
-        //     none); the full set is declared here. Unknown action/active_when
-        //     tokens fall back to none/always respectively at decode. field_docs
-        //     entry collapses onto the spec.
+        //     serialize LOWERCASE (their xmaps .toLowerCase on write) but DECODE
+        //     case-insensitively (.toUpperCase on read), so both cases are declared
+        //     via caseTolerantOptions — lowercase first because that is what the
+        //     codec writes back and what the editors should offer, uppercase after
+        //     because the schema branch listed UPPERCASE tokens for years and both
+        //     this mod's own powers and packs written against those docs still use
+        //     them. The old branch also listed only 8 of the 13 Action constants (it
+        //     dropped eye_damage, water_damage, sleep, elytra, none); the full set is
+        //     declared here. Unknown action/active_when tokens fall back to
+        //     none/always respectively at decode. field_docs entry collapses onto the
+        //     spec.
         define("prevent_action", PreventActionPower.class, List.of(
             new FieldSpec("action", Kind.ENUM, true)
-                .options("fall_damage", "fire", "drown", "freeze", "sprint_food",
+                .options(caseTolerantOptions("fall_damage", "fire", "drown", "freeze", "sprint_food",
                          "armor_equip", "chestplate_equip", "eye_damage", "water_damage",
-                         "swim", "sleep", "elytra", "none")
-                .doc("Required. The action this power blocks: fall_damage, fire, drown, freeze, sprint_food, armor_equip (per-slot via head/chest/legs/feet), chestplate_equip (legacy alias = armor_equip chest), eye_damage, water_damage, swim, sleep, elytra, or none. Unknown values fall back to none."),
+                         "swim", "sleep", "elytra", "none"))
+                .doc("Required. The action this power blocks: fall_damage, fire, drown, freeze, sprint_food, armor_equip (per-slot via head/chest/legs/feet), chestplate_equip (legacy alias = armor_equip chest), eye_damage, water_damage, swim, sleep, elytra, or none. Case-insensitive, so the SCREAMING_CASE spelling is equally valid; lowercase is canonical and is what the mod writes back out. A value outside this list silently falls back to none, which disables the power, so the editors reject it rather than let it through."),
             new FieldSpec("active_when", Kind.ENUM, false)
-                .options("always", "not_sneaking", "sneaking", "not_on_ground", "on_ground")
+                .options(caseTolerantOptions("always", "not_sneaking", "sneaking", "not_on_ground", "on_ground"))
                 .def("always")
-                .doc("Player-state gate the prevention applies under: always, not_sneaking, sneaking, not_on_ground, or on_ground (default always). E.g. not_sneaking lets a crouching Avian still take fall damage. Unknown values fall back to always."),
+                .doc("Player-state gate the prevention applies under: always, not_sneaking, sneaking, not_on_ground, or on_ground (default always). E.g. not_sneaking lets a crouching Avian still take fall damage. Case-insensitive, with lowercase canonical. A value outside this list silently falls back to always, so the editors reject it rather than let it through."),
             new FieldSpec("head", Kind.BOOLEAN, false)
                 .def(false)
                 .doc("ARMOR_EQUIP only: when true, block equipping items in the helmet slot. Ignored for other actions (default false)."),
