@@ -42,21 +42,7 @@
 # Native types with no descriptor yet. Several are legacy 2.0 types kept for the
 # deprecation window and remapped by LegacyPowerTypeAliases, which is why they
 # still load: authoring one is valid, just unvalidated.
-neoorigins:action_on_hit_taken
-neoorigins:action_on_kill
 neoorigins:active_aoe_effect
 neoorigins:active_launch
-neoorigins:better_bone_meal
-neoorigins:better_crafted_food
-neoorigins:better_enchanting
-neoorigins:efficient_repairs
-neoorigins:food_restriction
 neoorigins:healing_mist
-neoorigins:hunger_drain_modifier
-neoorigins:knockback_modifier
-neoorigins:longer_potions
-neoorigins:more_animal_loot
-neoorigins:natural_regen_modifier
 neoorigins:repulse
-neoorigins:teleport_range_modifier
-neoorigins:thorns_aura

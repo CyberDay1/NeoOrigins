@@ -97,6 +97,7 @@ public final class LegacyAliasPowerSpecs {
     static {
         registerPersistentEffectAliases();
         registerConditionPassiveAliases();
+        registerActionOnEventAliases();
     }
 
     // ── persistent_effect targets ───────────────────────────────────────────
@@ -237,6 +238,122 @@ public final class LegacyAliasPowerSpecs {
             new FieldSpec("amount_per_second", Kind.NUMBER, false)
                 .def(1.0)
                 .doc("Health points restored once per second while submerged; default 1.0 (half a heart).")));
+    }
+
+    // ── action_on_event targets ─────────────────────────────────────────────
+    //
+    // Every translator here writes `event`, and either `modifier` (the ten
+    // Origins-Classes modifier hooks) or `entity_action` (the four action hooks),
+    // so none of those may be declared. Neither may action_on_event's per-event
+    // filters — block_condition, hands/hand, item_condition, effect_tag, power,
+    // immunity_ticks — because the alias pins the event to one the filter does
+    // not apply to, which makes writing one exactly the invisible no-op these
+    // branches exist to prevent.
+
+    private static void registerActionOnEventAliases() {
+        define("hunger_drain_modifier", List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar on exhaustion gain, so hunger drains at this rate: below 1 drains slower, above 1 faster; default 1.0 (vanilla).")));
+
+        define("natural_regen_modifier", List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar on natural health regeneration: below 1 heals slower, above 1 faster, 0 disables it; default 1.0 (vanilla).")));
+
+        define("knockback_modifier", List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar on knockback taken: below 1 for a heavier build, above 1 to be thrown further, 0 for immunity; default 1.0 (vanilla).")));
+
+        define("longer_potions", List.of(
+            new FieldSpec("duration_multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar on the duration of potion effects the player drinks; default 1.0 (vanilla).")));
+
+        define("more_animal_loot", List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar on harvest drop counts from killed mobs; default 1.0 (vanilla).")));
+
+        define("efficient_repairs", List.of(
+            new FieldSpec("cost_multiplier", Kind.NUMBER, false)
+                .def(1.0).range(0.0, null)
+                .doc("Scalar on the XP level cost of anvil operations: below 1 makes repairs cheaper; default 1.0 (vanilla).")));
+
+        define("better_enchanting", List.of(
+            new FieldSpec("bonus_levels", Kind.INTEGER, false)
+                .def(5)
+                .doc("Enchanting power added to the enchanting table's level calculation, as if this many extra bookshelves were present; default 5. Additive, not a multiplier.")));
+
+        define("better_crafted_food", List.of(
+            new FieldSpec("saturation_bonus", Kind.NUMBER, false)
+                .def(0.5)
+                .doc("Saturation added to food this player crafts; default 0.5. Additive, not a multiplier.")));
+
+        define("better_bone_meal", List.of(
+            new FieldSpec("extra_applications", Kind.INTEGER, false)
+                .def(1).range(0.0, null)
+                .doc("Additional bone-meal growth applications per use; default 1 (so one use grows the crop twice).")));
+
+        define("teleport_range_modifier", List.of(
+            new FieldSpec("multiplier", Kind.NUMBER, false)
+                .def(2.0).range(0.0, null)
+                .doc("Scalar on ender-pearl / teleport range; default 2.0 (double vanilla).")));
+
+        // `duration`, `effect` and `amplifier` are read only by the branch of the
+        // switch their `action` names, but the lambda strips all three regardless,
+        // so declaring them is honest for the whole type.
+        define("action_on_hit_taken", List.of(
+            new FieldSpec("action", Kind.ENUM, false)
+                .options("teleport", "ignite_attacker", "effect_on_attacker").def("teleport")
+                .doc("What happens when the player is hurt: teleport (random blink, 16 blocks horizontally / 8 vertically), ignite_attacker, or effect_on_attacker. Default teleport, which is also the fallback for an unrecognised value."),
+            new FieldSpec("chance", Kind.NUMBER, false)
+                .def(1.0).range(0.0, 1.0)
+                .doc("Probability the reaction fires, as 0..1; default 1.0 (always)."),
+            new FieldSpec("min_damage", Kind.NUMBER, false)
+                .def(0.0).range(0.0, null)
+                .doc("Minimum incoming damage before the reaction fires; default 0 (any hit). Rolled after `chance`."),
+            new FieldSpec("duration", Kind.INTEGER, false)
+                .range(0.0, null)
+                .doc("ignite_attacker: burn duration in ticks (default 60). effect_on_attacker: effect duration in ticks (default 100). Ignored by teleport."),
+            new FieldSpec("effect", Kind.STRING, false)
+                .doc("effect_on_attacker only: the mob-effect id inflicted on whoever hit the player (e.g. 'minecraft:poison'). Ignored by the other actions."),
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("effect_on_attacker only: effect level minus one (0 = level I); default 0. Ignored by the other actions.")));
+
+        define("thorns_aura", List.of(
+            new FieldSpec("return_ratio", Kind.NUMBER, false)
+                .def(0.25).range(0.0, null)
+                .doc("Fraction of the incoming damage reflected back at the attacker as magic damage; default 0.25.")));
+
+        define("food_restriction", List.of(
+            new FieldSpec("item_tag", Kind.MIXED, false)
+                .mixedTypes("string", "array")
+                .doc("The tag (or item id) the rule matches against, or an array of them, OR-matched. A bare value is read as a tag, so 'neoorigins:vampire_foods' and '#neoorigins:vampire_foods' are the same thing."),
+            new FieldSpec("allowed_tags", Kind.MIXED, false)
+                .mixedTypes("string", "array")
+                .doc("Alias for `item_tag`, read only when `item_tag` is absent. Same single-or-array shape."),
+            new FieldSpec("mode", Kind.ENUM, false)
+                .options("blacklist", "whitelist").def("blacklist")
+                .doc("blacklist (default) forbids eating anything the tags match; whitelist forbids eating anything they do not.")));
+
+        define("action_on_kill", List.of(
+            new FieldSpec("action", Kind.ENUM, false)
+                .options("restore_health", "restore_hunger", "grant_effect").def("restore_health")
+                .doc("Reward for killing an entity: restore_health, restore_hunger, or grant_effect. Default restore_health, which is also the fallback for an unrecognised value."),
+            new FieldSpec("amount", Kind.NUMBER, false)
+                .def(4.0)
+                .doc("restore_health: health points healed (default 4 = two hearts). restore_hunger: food points restored, truncated to a whole number. Ignored by grant_effect."),
+            new FieldSpec("effect", Kind.STRING, false)
+                .doc("grant_effect only: the mob-effect id granted to the killer (e.g. 'minecraft:strength'). Ignored by the other actions."),
+            new FieldSpec("duration", Kind.INTEGER, false)
+                .def(200).range(0.0, null)
+                .doc("grant_effect only: effect duration in ticks (20 = 1s); default 200. Ignored by the other actions."),
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .def(0).range(0.0, null)
+                .doc("grant_effect only: effect level minus one (0 = level I); default 0. Ignored by the other actions.")));
     }
 
     /**

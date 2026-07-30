@@ -866,6 +866,97 @@
       ]
     },
     {
+      "$comment": "neoorigins:action_on_hit_taken",
+      "properties": {
+        "type": {
+          "const": "neoorigins:action_on_hit_taken"
+        },
+        "action": {
+          "description": "What happens when the player is hurt: teleport (random blink, 16 blocks horizontally / 8 vertically), ignite_attacker, or effect_on_attacker. Default teleport, which is also the fallback for an unrecognised value.",
+          "type": "string",
+          "enum": [
+            "teleport",
+            "ignite_attacker",
+            "effect_on_attacker"
+          ],
+          "default": "teleport"
+        },
+        "chance": {
+          "description": "Probability the reaction fires, as 0..1; default 1.0 (always).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "min_damage": {
+          "description": "Minimum incoming damage before the reaction fires; default 0 (any hit). Rolled after `chance`.",
+          "type": "number",
+          "default": 0.0,
+          "minimum": 0.0
+        },
+        "duration": {
+          "description": "ignite_attacker: burn duration in ticks (default 60). effect_on_attacker: effect duration in ticks (default 100). Ignored by teleport.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "effect": {
+          "description": "effect_on_attacker only: the mob-effect id inflicted on whoever hit the player (e.g. 'minecraft:poison'). Ignored by the other actions.",
+          "type": "string"
+        },
+        "amplifier": {
+          "description": "effect_on_attacker only: effect level minus one (0 = level I); default 0. Ignored by the other actions.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:action_on_kill",
+      "properties": {
+        "type": {
+          "const": "neoorigins:action_on_kill"
+        },
+        "action": {
+          "description": "Reward for killing an entity: restore_health, restore_hunger, or grant_effect. Default restore_health, which is also the fallback for an unrecognised value.",
+          "type": "string",
+          "enum": [
+            "restore_health",
+            "restore_hunger",
+            "grant_effect"
+          ],
+          "default": "restore_health"
+        },
+        "amount": {
+          "description": "restore_health: health points healed (default 4 = two hearts). restore_hunger: food points restored, truncated to a whole number. Ignored by grant_effect.",
+          "type": "number",
+          "default": 4.0
+        },
+        "effect": {
+          "description": "grant_effect only: the mob-effect id granted to the killer (e.g. 'minecraft:strength'). Ignored by the other actions.",
+          "type": "string"
+        },
+        "duration": {
+          "description": "grant_effect only: effect duration in ticks (20 = 1s); default 200. Ignored by the other actions.",
+          "type": "integer",
+          "default": 200,
+          "minimum": 0
+        },
+        "amplifier": {
+          "description": "grant_effect only: effect level minus one (0 = level I); default 0. Ignored by the other actions.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:action_over_time",
       "properties": {
         "type": {
@@ -1605,6 +1696,55 @@
       ]
     },
     {
+      "$comment": "neoorigins:better_bone_meal",
+      "properties": {
+        "type": {
+          "const": "neoorigins:better_bone_meal"
+        },
+        "extra_applications": {
+          "description": "Additional bone-meal growth applications per use; default 1 (so one use grows the crop twice).",
+          "type": "integer",
+          "default": 1,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:better_crafted_food",
+      "properties": {
+        "type": {
+          "const": "neoorigins:better_crafted_food"
+        },
+        "saturation_bonus": {
+          "description": "Saturation added to food this player crafts; default 0.5. Additive, not a multiplier.",
+          "type": "number",
+          "default": 0.5
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:better_enchanting",
+      "properties": {
+        "type": {
+          "const": "neoorigins:better_enchanting"
+        },
+        "bonus_levels": {
+          "description": "Enchanting power added to the enchanting table's level calculation, as if this many extra bookshelves were present; default 5. Additive, not a multiplier.",
+          "type": "integer",
+          "default": 5
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:biome_buff",
       "properties": {
         "type": {
@@ -2300,6 +2440,23 @@
       ]
     },
     {
+      "$comment": "neoorigins:efficient_repairs",
+      "properties": {
+        "type": {
+          "const": "neoorigins:efficient_repairs"
+        },
+        "cost_multiplier": {
+          "description": "Scalar on the XP level cost of anvil operations: below 1 makes repairs cheaper; default 1.0 (vanilla).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:elytra_boost",
       "properties": {
         "type": {
@@ -2617,6 +2774,48 @@
       ]
     },
     {
+      "$comment": "neoorigins:food_restriction",
+      "properties": {
+        "type": {
+          "const": "neoorigins:food_restriction"
+        },
+        "item_tag": {
+          "description": "The tag (or item id) the rule matches against, or an array of them, OR-matched. A bare value is read as a tag, so 'neoorigins:vampire_foods' and '#neoorigins:vampire_foods' are the same thing.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "allowed_tags": {
+          "description": "Alias for `item_tag`, read only when `item_tag` is absent. Same single-or-array shape.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "mode": {
+          "description": "blacklist (default) forbids eating anything the tags match; whitelist forbids eating anything they do not.",
+          "type": "string",
+          "enum": [
+            "blacklist",
+            "whitelist"
+          ],
+          "default": "blacklist"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:fortune_when_effect",
       "properties": {
         "type": {
@@ -2742,6 +2941,23 @@
           "description": "Ticks a tamed mob must avoid damage before it can heal (default 100).",
           "type": "integer",
           "default": 100
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:hunger_drain_modifier",
+      "properties": {
+        "type": {
+          "const": "neoorigins:hunger_drain_modifier"
+        },
+        "multiplier": {
+          "description": "Scalar on exhaustion gain, so hunger drains at this rate: below 1 drains slower, above 1 faster; default 1.0 (vanilla).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
         }
       },
       "required": [
@@ -2942,6 +3158,23 @@
       ]
     },
     {
+      "$comment": "neoorigins:knockback_modifier",
+      "properties": {
+        "type": {
+          "const": "neoorigins:knockback_modifier"
+        },
+        "multiplier": {
+          "description": "Scalar on knockback taken: below 1 for a heavier build, above 1 to be thrown further, 0 for immunity; default 1.0 (vanilla).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:lava_vision",
       "properties": {
         "type": {
@@ -3017,6 +3250,23 @@
       "required": [
         "type",
         "effect"
+      ]
+    },
+    {
+      "$comment": "neoorigins:longer_potions",
+      "properties": {
+        "type": {
+          "const": "neoorigins:longer_potions"
+        },
+        "duration_multiplier": {
+          "description": "Scalar on the duration of potion effects the player drinks; default 1.0 (vanilla).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -3484,6 +3734,23 @@
       ]
     },
     {
+      "$comment": "neoorigins:more_animal_loot",
+      "properties": {
+        "type": {
+          "const": "neoorigins:more_animal_loot"
+        },
+        "multiplier": {
+          "description": "Scalar on harvest drop counts from killed mobs; default 1.0 (vanilla).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:more_smoker_xp",
       "properties": {
         "type": {
@@ -3581,6 +3848,23 @@
       "properties": {
         "type": {
           "const": "neoorigins:natural_glide"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:natural_regen_modifier",
+      "properties": {
+        "type": {
+          "const": "neoorigins:natural_regen_modifier"
+        },
+        "multiplier": {
+          "description": "Scalar on natural health regeneration: below 1 heals slower, above 1 faster, 0 disables it; default 1.0 (vanilla).",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.0
         }
       },
       "required": [
@@ -5100,6 +5384,40 @@
       ]
     },
     {
+      "$comment": "neoorigins:teleport_range_modifier",
+      "properties": {
+        "type": {
+          "const": "neoorigins:teleport_range_modifier"
+        },
+        "multiplier": {
+          "description": "Scalar on ender-pearl / teleport range; default 2.0 (double vanilla).",
+          "type": "number",
+          "default": 2.0,
+          "minimum": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:thorns_aura",
+      "properties": {
+        "type": {
+          "const": "neoorigins:thorns_aura"
+        },
+        "return_ratio": {
+          "description": "Fraction of the incoming damage reflected back at the attacker as magic damage; default 0.25.",
+          "type": "number",
+          "default": 0.25,
+          "minimum": 0.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:thorns_on_hit",
       "properties": {
         "type": {
@@ -5437,6 +5755,8 @@
             "enum": [
               "neoorigins:action_on_event",
               "neoorigins:action_on_hit",
+              "neoorigins:action_on_hit_taken",
+              "neoorigins:action_on_kill",
               "neoorigins:action_over_time",
               "neoorigins:active_ability",
               "neoorigins:active_bolt",
@@ -5451,6 +5771,9 @@
               "neoorigins:attribute_modifier",
               "neoorigins:bare_hand_tool",
               "neoorigins:become_dragon",
+              "neoorigins:better_bone_meal",
+              "neoorigins:better_crafted_food",
+              "neoorigins:better_enchanting",
               "neoorigins:biome_buff",
               "neoorigins:bounce_on_land",
               "neoorigins:break_speed_modifier",
@@ -5473,6 +5796,7 @@
               "neoorigins:edible_item",
               "neoorigins:effect_immunity",
               "neoorigins:effect_over_time",
+              "neoorigins:efficient_repairs",
               "neoorigins:elytra_boost",
               "neoorigins:elytra_flight",
               "neoorigins:ender_gaze_immunity",
@@ -5483,11 +5807,13 @@
               "neoorigins:exhaustion_filter",
               "neoorigins:extra_inventory",
               "neoorigins:flight",
+              "neoorigins:food_restriction",
               "neoorigins:fortune_when_effect",
               "neoorigins:glow",
               "neoorigins:ground_slam",
               "neoorigins:hide_hud_bar",
               "neoorigins:horde_regen",
+              "neoorigins:hunger_drain_modifier",
               "neoorigins:ignore_water",
               "neoorigins:invisibility",
               "neoorigins:invulnerability",
@@ -5496,9 +5822,11 @@
               "neoorigins:js_custom",
               "neoorigins:keep_inventory",
               "neoorigins:kill_loot_drops",
+              "neoorigins:knockback_modifier",
               "neoorigins:lava_vision",
               "neoorigins:less_item_use_slowdown",
               "neoorigins:light_level_effect",
+              "neoorigins:longer_potions",
               "neoorigins:loot_pool_grant",
               "neoorigins:low_hp_threshold",
               "neoorigins:mob_behavior",
@@ -5510,10 +5838,12 @@
               "neoorigins:modify_food_nutrition",
               "neoorigins:modify_lava_speed",
               "neoorigins:modify_player_spawn",
+              "neoorigins:more_animal_loot",
               "neoorigins:more_smoker_xp",
               "neoorigins:mount",
               "neoorigins:muffle_sound",
               "neoorigins:natural_glide",
+              "neoorigins:natural_regen_modifier",
               "neoorigins:night_vision",
               "neoorigins:no_mob_spawns_nearby",
               "neoorigins:no_natural_regen",
@@ -5550,6 +5880,8 @@
               "neoorigins:tame_mob",
               "neoorigins:tamed_animal_boost",
               "neoorigins:tamed_potion_diffusal",
+              "neoorigins:teleport_range_modifier",
+              "neoorigins:thorns_aura",
               "neoorigins:thorns_on_hit",
               "neoorigins:tick_action",
               "neoorigins:tidal_wave",
