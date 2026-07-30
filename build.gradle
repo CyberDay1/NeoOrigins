@@ -76,10 +76,15 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
 
-    // REI – no MC 26.1 build yet; uncomment when available
-    // compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:VERSION"
-    // compileOnly "me.shedaniel:RoughlyEnoughItems-neoforge:VERSION"
-    // compileOnly "dev.architectury:architectury-neoforge:VERSION"
+    // REI – client-only soft dep; compat/rei adds the Orb of Origin to REI's entry
+    // list. Compile-only, never bundled. The api artifact transitively brings
+    // cloth-config-neoforge 26.1.154 and architectury-neoforge 20.0.6 (per REI's own
+    // pom), so no explicit architectury coordinate is needed here.
+    // Expect ~11 "unknown enum constant EnvType.CLIENT" javac warnings from this:
+    // REI's API carries Fabric @Environment annotations and net.fabricmc.api.EnvType
+    // isn't on a NeoForge classpath. Harmless (annotation values only) — do NOT
+    // "fix" it by dragging fabric-loader into a NeoForge build.
+    compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${property('deps.rei')}"
 
     // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
     // EMI + The One Probe are skipped on 26.1 — no 26.1 NeoForge build yet.
