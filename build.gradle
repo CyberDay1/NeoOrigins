@@ -72,14 +72,22 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.mockito:mockito-core:5.20.0'
 
-    // NOTE (26.2): JEI, Jade and FTB Ultimine/Library are dropped on this branch
-    // because none of them publish an MC 26.2 artifact yet. Their compat classes
-    // (compat/jei, compat/jade, compat/ftbultimine) are removed here and the
-    // neoorigins:ultimine power is left as an inert marker. Restore each dep +
-    // its compat class (port from the 26.1 branch) once upstream publishes 26.2.
-    //   compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
-    //   runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
-    //   compileOnly "maven.modrinth:jade:${property('deps.jade')}"
+    // JEI – compile-only so the mod works without JEI installed. MC 26.2 line is
+    // JEI 30.x (see deps.jei); the api artifact pulls jei-26.2-common-api, which is
+    // where mezz.jei.api.IModPlugin actually lives.
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
+
+    // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
+    compileOnly "maven.modrinth:jade:${property('deps.jade')}"
+
+    // FTB Ultimine – would back the `ultimine` vein-mining power via a registered
+    // RestrictionHandler (see compat/ftbultimine on the 26.1 branch).
+    // BLOCKED ON 26.2, checked 2026-07-29: maven.ftb.dev/releases publishes no 26.2
+    // line at all — ftb-ultimine-neoforge stops at 26.1.2.5 and ftb-library-neoforge
+    // at 26.1.2.6. Not an "unchecked assumption": the maven-metadata.xml was read.
+    // The neoorigins:ultimine power stays registered as an inert marker until then;
+    // re-check the metadata and port compat/ftbultimine from 26.1 when 26.2 lands.
     //   compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
     //   compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
 
