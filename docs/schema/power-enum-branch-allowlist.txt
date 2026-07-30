@@ -57,17 +57,13 @@ neoorigins:damage_in_daylight
 neoorigins:damage_in_water
 neoorigins:efficient_repairs
 neoorigins:food_restriction
-neoorigins:glow
 neoorigins:healing_mist
 neoorigins:hunger_drain_modifier
 neoorigins:knockback_modifier
 neoorigins:longer_potions
 neoorigins:more_animal_loot
 neoorigins:natural_regen_modifier
-neoorigins:night_vision
 neoorigins:regen_in_fluid
 neoorigins:repulse
-neoorigins:stacking_status_effects
-neoorigins:status_effect
 neoorigins:teleport_range_modifier
 neoorigins:thorns_aura

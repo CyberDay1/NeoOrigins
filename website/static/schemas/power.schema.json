@@ -2423,6 +2423,17 @@
       ]
     },
     {
+      "$comment": "neoorigins:glow",
+      "properties": {
+        "type": {
+          "const": "neoorigins:glow"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:ground_slam",
       "properties": {
         "type": {
@@ -3350,6 +3361,17 @@
       "properties": {
         "type": {
           "const": "neoorigins:natural_glide"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:night_vision",
+      "properties": {
+        "type": {
+          "const": "neoorigins:night_vision"
         }
       },
       "required": [
@@ -4319,6 +4341,41 @@
       ]
     },
     {
+      "$comment": "neoorigins:stacking_status_effects",
+      "properties": {
+        "type": {
+          "const": "neoorigins:stacking_status_effects"
+        },
+        "effects": {
+          "description": "List of effect entries, each {effect|id, amplifier?, ambient?, show_particles?, show_icon?}, applied at INFINITE_DURATION while active. A single effect may instead be authored as the root-level shorthand (effect/amplifier/... at the power root); root-level ambient/show_particles/show_icon/amplifier also cascade as defaults onto every entry that omits them. Empty list = no effect.",
+          "type": "array",
+          "items": {}
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the effects: they apply only while it passes and are cleared the moment it stops (default always-true).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:starting_equipment — grants one or more items the first time the power is applied after origin commit. Accepts BOTH a legacy singular shape (top-level item/count/enchantments/legacy_tag/components) and a plural shape (stacks: [ { item, count, enchantments, legacy_tag, components } ]). When `stacks` is non-empty it takes precedence over the singular root fields; otherwise the root `item` is wrapped as a one-entry list. `grant_id` dedups the whole bundle (not individual stacks) so retries via /origin reset re-grant everything.",
       "properties": {
         "type": {
@@ -4411,6 +4468,86 @@
       "required": [
         "type",
         "grant_id"
+      ]
+    },
+    {
+      "$comment": "neoorigins:status_effect",
+      "properties": {
+        "type": {
+          "const": "neoorigins:status_effect"
+        },
+        "effect": {
+          "description": "Mob-effect id applied while the power is active (e.g. 'minecraft:speed'). The legacy single-effect shorthand: authoring it here is equivalent to a one-entry `effects` list. Applied at infinite duration, so no duration field.",
+          "type": "string"
+        },
+        "amplifier": {
+          "description": "Effect level minus one for the root-level `effect` (0 = level I, 1 = level II); default 0. Also cascades as the default amplifier onto every `effects` entry that omits its own.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "ambient": {
+          "description": "When true the effect renders as ambient (faint beacon-style particles); default false. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": false
+        },
+        "show_particles": {
+          "description": "When false the effect's swirling particles are suppressed; default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
+        },
+        "show_icon": {
+          "description": "When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
+        },
+        "effects": {
+          "description": "List of effect entries, each {effect|id, amplifier?, ambient?, show_particles?, show_icon?}, applied at INFINITE_DURATION while active. A single effect may instead be authored as the root-level shorthand (effect/amplifier/... at the power root); root-level ambient/show_particles/show_icon/amplifier also cascade as defaults onto every entry that omits them. Empty list = no effect.",
+          "type": "array",
+          "items": {}
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the effects: they apply only while it passes and are cleared the moment it stops (default always-true).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggleable": {
+          "description": "When true the power binds a keybind that flips the effects on/off; off clears them (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "default_off": {
+          "description": "Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -5096,6 +5233,7 @@
               "neoorigins:extra_inventory",
               "neoorigins:flight",
               "neoorigins:fortune_when_effect",
+              "neoorigins:glow",
               "neoorigins:ground_slam",
               "neoorigins:hide_hud_bar",
               "neoorigins:horde_regen",
@@ -5125,6 +5263,7 @@
               "neoorigins:mount",
               "neoorigins:muffle_sound",
               "neoorigins:natural_glide",
+              "neoorigins:night_vision",
               "neoorigins:no_mob_spawns_nearby",
               "neoorigins:no_natural_regen",
               "neoorigins:no_projectile_divergence",
@@ -5151,7 +5290,9 @@
               "neoorigins:slime_level_hp",
               "neoorigins:slime_moisture",
               "neoorigins:sneaky",
+              "neoorigins:stacking_status_effects",
               "neoorigins:starting_equipment",
+              "neoorigins:status_effect",
               "neoorigins:stealth",
               "neoorigins:summon_minion",
               "neoorigins:tame_mob",
