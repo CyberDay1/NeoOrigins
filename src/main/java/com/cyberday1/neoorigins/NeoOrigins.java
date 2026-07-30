@@ -199,10 +199,14 @@ public class NeoOrigins {
         if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
             com.cyberday1.neoorigins.compat.FtbQuestsCompat.register();
         }
-        // FTB Ultimine soft-compat is omitted on the 26.2 build: FTB Ultimine has
-        // no MC 26.2 artifact yet. The neoorigins:ultimine power stays registered
-        // as an inert marker; vein-mining isn't gated until the integration is
-        // restored (see compat.ftbultimine on the 26.1 branch).
+        // FTB Ultimine soft-compat is omitted on the 26.2 build. Verified against
+        // maven.ftb.dev/releases on 2026-07-29: ftb-ultimine-neoforge stops at
+        // 26.1.2.5 and ftb-library-neoforge at 26.1.2.6, so there is no 26.2 line
+        // to compile the restriction-handler bridge against. The
+        // neoorigins:ultimine power stays registered as an inert marker;
+        // vein-mining isn't gated until the integration is restored (port
+        // compat.ftbultimine from the 26.1 branch). Re-read that maven-metadata
+        // before repeating the claim — don't take this comment's word for it.
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {
