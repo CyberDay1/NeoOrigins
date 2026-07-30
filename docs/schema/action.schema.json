@@ -3141,6 +3141,9 @@
           }
         }
       },
+      "required": [
+        "type"
+      ],
       "additionalProperties": true
     }
   ]

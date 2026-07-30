@@ -4,9 +4,6 @@
   "title": "NeoOrigins Item Condition",
   "description": "A nested item condition used by equipped_item / modify_inventory. The `type` field discriminates.",
   "type": "object",
-  "required": [
-    "type"
-  ],
   "properties": {
     "type": {
       "type": "string",
@@ -266,6 +263,53 @@
       ]
     },
     {
+      "$comment": "Typeless shorthand — ItemConditionParser's default arm reads a bare id / item / tag with no `type`.",
+      "not": {
+        "required": [
+          "type"
+        ]
+      },
+      "properties": {
+        "id": {
+          "description": "Item id the stack must be, e.g. minecraft:diamond_sword. Ignored when `item` is also present.",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        },
+        "item": {
+          "description": "Alias for `id`, and preferred over it when both are present.",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        },
+        "tag": {
+          "description": "Item tag the stack must be in, e.g. minecraft:swords (no leading #).",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        },
+        "inverted": {
+          "description": "When true the whole check is negated. Read by ItemConditionParser.parse for every item condition, typed or not.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "item"
+          ]
+        },
+        {
+          "required": [
+            "tag"
+          ]
+        }
+      ]
+    },
+    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
@@ -301,6 +345,9 @@
           }
         }
       },
+      "required": [
+        "type"
+      ],
       "additionalProperties": true
     }
   ]

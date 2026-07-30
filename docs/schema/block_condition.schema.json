@@ -287,6 +287,9 @@
           }
         }
       },
+      "required": [
+        "type"
+      ],
       "additionalProperties": true
     }
   ]
