@@ -30,6 +30,15 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  *
  * <p>When FTB Ultimine is absent, this power is an inert marker (no handler is
  * registered, nothing classloads the FTB-Ultimine-typed bridge).
+ *
+ * <p><b>Not functional on this build.</b> The bridge described above lives on the
+ * 26.1 branch. FTB Ultimine publishes no 26.2 artifact (ftb-ultimine-neoforge
+ * stops at 26.1.2.5 on maven.ftb.dev/releases, checked 2026-07-29), so 26.2 has
+ * nothing to compile it against and this power is always inert here. The type
+ * stays registered so origins ported from 26.1 keep loading, but the creator's
+ * type picker hides it ({@code FormModel.UNAVAILABLE_ON_THIS_VERSION}) and
+ * {@code PowerDataManager} warns when a loaded pack defines one. Port
+ * {@code compat.ftbultimine} and undo both when a 26.2 line ships.
  */
 public class UltiminePower extends PowerType<UltiminePower.Config> {
 

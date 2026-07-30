@@ -54,10 +54,12 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     /** Cached: does any loaded power (native or Route-B injected) have type
      *  {@code neoorigins:ultimine}? Recomputed whenever the power set changes
      *  (datapack reload in {@link #apply} or Route-B injection in
-     *  {@link #injectExternalPowers}). Lets the FTB Ultimine bridge stay
-     *  completely dormant unless a loaded pack actually defines an ultimine
-     *  power — without this flag the deny-only restriction API would disable
-     *  vein-mining for non-holders even when no pack uses the power. */
+     *  {@link #injectExternalPowers}). On the 26.1 branch this lets the FTB
+     *  Ultimine bridge stay completely dormant unless a loaded pack actually
+     *  defines an ultimine power — without the flag the deny-only restriction API
+     *  would disable vein-mining for non-holders even when no pack uses it. This
+     *  build ships no bridge, so the flag only drives
+     *  {@link #warnUltimineUnavailable()}. */
     private boolean ultiminePowerInUse = false;
 
     /** True if at least one loaded power has type {@code neoorigins:ultimine}. */
@@ -81,6 +83,27 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
             }
         }
         this.ultiminePowerInUse = found;
+    }
+
+    /**
+     * Tell the log that a loaded {@code neoorigins:ultimine} power cannot work on
+     * this build. The power is a marker for the FTB Ultimine restriction-handler
+     * bridge, and that bridge is not compiled into 26.2 because FTB Ultimine has
+     * no 26.2 release (ftb-ultimine-neoforge stops at 26.1.2.5 on
+     * maven.ftb.dev/releases, checked 2026-07-29). Without this line the power
+     * loads, appears on the origin, and silently grants nothing.
+     *
+     * <p>Warn rather than refuse: an origin ported from the 26.1 branch should
+     * keep loading, and the rest of its powers should keep working. The creator's
+     * type picker no longer offers ultimine, so the only way to reach this is a
+     * hand-written or ported pack.
+     */
+    private static void warnUltimineUnavailable() {
+        NeoOrigins.LOGGER.warn(
+            "[FTB Ultimine] A loaded power has type neoorigins:ultimine, but this build has no"
+                + " FTB Ultimine integration — FTB Ultimine publishes no 26.2 release, so the"
+                + " power grants nothing. Remove it, or gate the origin with"
+                + " \"required_mods\": [\"ftbultimine\"] so it only loads where the bridge exists.");
     }
 
     @Override
@@ -215,6 +238,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         this.version++;
         registerVariableDeclarations(loaded);
         recomputeUltiminePowerInUse();
+        if (ultiminePowerInUse) warnUltimineUnavailable();
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
 
         // Per-namespace breakdown — toggled via config/neoorigins/admin.toml
@@ -379,7 +403,11 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     public void injectExternalPowers(Map<Identifier, PowerHolder<?>> external) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
         this.version++;
+        // Only warn if Route B is what introduced the ultimine power; apply()
+        // already warned for the native side, and both run on every reload.
+        boolean wasInUse = ultiminePowerInUse;
         recomputeUltiminePowerInUse();
+        if (ultiminePowerInUse && !wasInUse) warnUltimineUnavailable();
     }
 
     /** Returns all powers including Route B injected ones (used for registry sync). */

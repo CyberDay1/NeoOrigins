@@ -87,8 +87,30 @@ public final class FormModel {
     }
 
     /**
+     * Native {@code neoorigins:} power types whose backing integration is not
+     * built on this Minecraft version, so the creator must not offer them: the
+     * form would save a power that can never do anything.
+     *
+     * <p>{@code ultimine} is a marker the FTB Ultimine restriction-handler bridge
+     * looks for, and that bridge is not compiled into the 26.2 build. Verified
+     * against maven.ftb.dev/releases on 2026-07-29: ftb-ultimine-neoforge stops
+     * at 26.1.2.5, so there is no 26.2 artifact to build the bridge against and
+     * no version of FTB Ultimine a player could install to make the marker live.
+     * Re-read that maven metadata before trusting this comment; when a 26.2 line
+     * ships, port {@code compat.ftbultimine} from the 26.1 branch and drop the id
+     * from this set.
+     *
+     * <p>Hiding it from the picker only affects authoring. The type stays
+     * registered so origins ported from 26.1 keep loading instead of failing on
+     * an unknown power type; {@code PowerDataManager} logs a warning naming the
+     * gap when a loaded pack actually defines one.
+     */
+    private static final java.util.Set<String> UNAVAILABLE_ON_THIS_VERSION =
+        java.util.Set.of("neoorigins:ultimine");
+
+    /**
      * Native {@code neoorigins:} power types only, for the creator's type
-     * picker. Two categories are hidden:
+     * picker. Three categories are hidden:
      * <ul>
      *   <li>Foreign-namespace entries in the schema enum ({@code apugli:},
      *       {@code apoli:}, {@code apace:}, …) — compat-translation aliases
@@ -100,15 +122,17 @@ public final class FormModel {
      *       Their Java class is gone, so the form has nothing to render
      *       (empty-form footgun) and saving lands a power whose type the
      *       loader rewrites on every reload (lossy round-trip).</li>
+     *   <li>Types in {@link #UNAVAILABLE_ON_THIS_VERSION}, whose backing
+     *       integration this build does not ship.</li>
      * </ul>
-     * Existing on-disk JSON using retired ids keeps loading transparently
-     * via the alias remap.
+     * Existing on-disk JSON using retired or unavailable ids keeps loading.
      */
     public static List<String> creatorTypes() {
         java.util.Set<net.minecraft.resources.Identifier> retired =
             com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.aliasedTypeIds();
         return schema().allTypes().stream()
             .filter(t -> t.startsWith("neoorigins:"))
+            .filter(t -> !UNAVAILABLE_ON_THIS_VERSION.contains(t))
             .filter(t -> {
                 net.minecraft.resources.Identifier rl =
                     net.minecraft.resources.Identifier.tryParse(t);
