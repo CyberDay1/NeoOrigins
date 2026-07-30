@@ -11,11 +11,19 @@ import java.util.List;
  * Resolves, per power type, the {@link FormFieldSpec} list by:
  *
  * <ol>
+ *   <li><b>Registry</b> — if the type is registered in {@code BuiltinPowers} it
+ *       declares its fields directly, and that declaration is authoritative;
+ *       else</li>
  *   <li><b>Schema</b> — if {@code power.schema.json} has a structured branch for
  *       the type, use it ({@link SchemaFormModel#formFor}); else</li>
  *   <li><b>Codec reflection</b> — reflect the power's {@code Config} record via
  *       {@link PowerConfigClassResolver} + {@link CodecFieldSpecExtractor}.</li>
  * </ol>
+ *
+ * <p>All three paths yield the common root fields (name / description / hidden /
+ * required_mods) ahead of the type-specific ones: the schema path because
+ * {@link SchemaFormModel} seeds each branch from its common fields, the other
+ * two because they prepend them explicitly.
  *
  * <p>The result is then enriched: {@link EnumHints} turns String-backed
  * vocabularies into dropdowns, and {@link com.cyberday1.neoorigins.config.PowerOverridesConfig} supplies numeric
@@ -144,34 +152,53 @@ public final class FormModel {
         if (declared != null) {
             // Registered builtin powers declare ONLY their type-specific fields,
             // but the common root keys (name/description/hidden/required_mods)
-            // are still authorable on every power. Prepend the schema's common
-            // fields, deduped by name so a declared field that re-declares a
-            // common key (e.g. entity_set's own `name`) wins. This mirrors the
-            // schema/codec-reflection fallback paths (which already include the
-            // common fields) and the web editor's commonRootFields().
-            List<FormFieldSpec> declaredSpecs = new ArrayList<>(declared.size());
-            java.util.Set<String> declaredNames = new java.util.HashSet<>();
-            for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : declared) {
-                FormFieldSpec fSpec = fs.toFormSpec();
-                declaredSpecs.add(fSpec);
-                declaredNames.add(fSpec.name());
-            }
-            base = new ArrayList<>(declaredSpecs.size() + schema().commonFields().size());
-            for (FormFieldSpec common : schema().commonFields()) {
-                if (!declaredNames.contains(common.name())) base.add(common);
-            }
-            base.addAll(declaredSpecs);
+            // are still authorable on every power, so prepend them here. The
+            // schema fallback below gets them for free — SchemaFormModel seeds
+            // every branch's field list from commonFields — but the codec
+            // reflection fallback does NOT, which is why it prepends them too.
+            base = withCommonFields(declaredSpecs(declared));
         } else if (schema().hasStructuredForm(key)) {
             base = schema().formFor(key);
         } else {
+            // Reflection sees only the Config record's own components, and the
+            // common root keys are not part of any Config — they are read off
+            // the power JSON by the loader. Without this prepend the native
+            // types that have no schema branch rendered in the creator with no
+            // way to set a display name, description, hidden flag or
+            // required_mods.
             Class<?> cfg = PowerConfigClassResolver.resolve(typeId);
-            base = (cfg != null && cfg.isRecord())
-                ? CodecFieldSpecExtractor.extract(cfg)
-                : List.of();
+            base = withCommonFields(
+                (cfg != null && cfg.isRecord()) ? CodecFieldSpecExtractor.extract(cfg) : List.of());
         }
 
         List<FormFieldSpec> out = new ArrayList<>(base.size());
         for (FormFieldSpec s : base) out.add(enrich(key, s));
+        return out;
+    }
+
+    /** Project a registry {@link com.cyberday1.neoorigins.compat.registry.FieldSpec}
+     *  list onto the renderer-facing form specs. */
+    private static List<FormFieldSpec> declaredSpecs(
+            java.util.List<com.cyberday1.neoorigins.compat.registry.FieldSpec> declared) {
+        List<FormFieldSpec> out = new ArrayList<>(declared.size());
+        for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : declared) out.add(fs.toFormSpec());
+        return out;
+    }
+
+    /**
+     * Prepend the schema's common root fields (name / description / hidden /
+     * required_mods) to a type-specific field list, skipping any the list
+     * already declares by that name so a type's own field wins (e.g.
+     * {@code entity_set}'s {@code name} means something different). Mirrors the
+     * web editor's {@code commonRootFields()}.
+     */
+    private static List<FormFieldSpec> withCommonFields(List<FormFieldSpec> specific) {
+        List<FormFieldSpec> common = schema().commonFields();
+        java.util.Set<String> taken = new java.util.HashSet<>();
+        for (FormFieldSpec s : specific) taken.add(s.name());
+        List<FormFieldSpec> out = new ArrayList<>(common.size() + specific.size());
+        for (FormFieldSpec c : common) if (!taken.contains(c.name())) out.add(c);
+        out.addAll(specific);
         return out;
     }
 
