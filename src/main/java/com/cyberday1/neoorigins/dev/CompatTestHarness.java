@@ -29,54 +29,17 @@ import java.util.stream.Stream;
  */
 public final class CompatTestHarness {
 
-    // Route B types — validated structurally (can't run the lambdas headlessly)
-    private static final Set<String> ROUTE_B_TYPES = Set.of(
-        "origins:active_self",           "apace:active_self",
-        "origins:action_over_time",      "apace:action_over_time",
-        "origins:action_on_callback",    "apace:action_on_callback",
-        "origins:resource",              "apace:resource",
-        "origins:toggle",                "apace:toggle",
-        "origins:conditioned_attribute", "apace:conditioned_attribute",
-        "origins:conditioned_status_effect", "apace:conditioned_status_effect",
-        "origins:action_on_being_hit",   "apace:action_on_being_hit",
-        "origins:self_action_when_hit",  "apace:self_action_when_hit",
-        "origins:self_action_on_hit",    "apace:self_action_on_hit",
-        "origins:action_on_hit",         "apace:action_on_hit",
-        "origins:damage_over_time",      "apace:damage_over_time",
-        "origins:action_on_kill",        "apace:action_on_kill",
-        "origins:fire_projectile",       "apace:fire_projectile",
-        "origins:target_action_on_hit",  "apace:target_action_on_hit",
-        "origins:self_action_on_kill",   "apace:self_action_on_kill",
-        "origins:launch",               "apace:launch",
-        "origins:entity_glow",          "apace:entity_glow",
-        "origins:self_glow",            "apace:self_glow",
-        "origins:prevent_death",        "apace:prevent_death",
-        "origins:action_when_hit",      "apace:action_when_hit",
-        "origins:action_when_damage_taken", "apace:action_when_damage_taken",
-        "origins:attacker_action_when_hit", "apace:attacker_action_when_hit",
-        "origins:action_on_land",       "apace:action_on_land",
-        "origins:prevent_item_use",     "apace:prevent_item_use",
-        "origins:restrict_armor",       "apace:restrict_armor",
-        "origins:prevent_sleep",        "apace:prevent_sleep",
-        "origins:prevent_block_use",    "apace:prevent_block_use",
-        "origins:prevent_entity_use",   "apace:prevent_entity_use",
-        "origins:modify_food",          "apace:modify_food",
-        "origins:modify_jump",          "apace:modify_jump",
-        "origins:prevent_sprinting",    "apace:prevent_sprinting",
-        "origins:modify_crafting",      "apace:modify_crafting",
-        "origins:modify_lava_speed",    "apace:modify_lava_speed",
-        "origins:modify_xp_gain",       "apace:modify_xp_gain",
-        "origins:shaking",              "apace:shaking",
-        "apoli:overlay",
-        "origins:modify_status_effect_amplifier", "apace:modify_status_effect_amplifier",
-        "origins:modify_falling",       "apace:modify_falling",
-        "origins:modify_fall_damage",   "apace:modify_fall_damage",
-        "origins:conditioned_restrict_armor", "apace:conditioned_restrict_armor",
-        "origins:freeze",               "apace:freeze",
-        "origins:modify_harvest",       "apace:modify_harvest",
-        "origins:recipe",               "apace:recipe",
-        "origins:prevent_game_event",   "apace:prevent_game_event"
-    );
+    /**
+     * Route B types — validated structurally (the Config lambdas cannot run
+     * headlessly). Read straight off the parser rather than transcribed: this
+     * harness used to keep its own {@code Set.of(...)} copy of the
+     * {@code parseRouteB} switch, and it had silently gone stale by 13 ids
+     * (exhaust, swimming, action_on_being_used, prevent_block_selection,
+     * modify_velocity, cooldown, neoorigins:self_action_on_hit), so those types
+     * were being sent down the Route A path and reported as skips.
+     */
+    private static final Set<String> ROUTE_B_TYPES =
+        com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.ROUTE_B_TYPES;
 
     // Display-only types that produce no gameplay effect
     private static final Set<String> DISPLAY_ONLY = Set.of(
