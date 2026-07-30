@@ -3128,7 +3128,7 @@
           "const": "neoorigins:prevent_action"
         },
         "action": {
-          "description": "Required. The action this power blocks: fall_damage, fire, drown, freeze, sprint_food, armor_equip (per-slot via head/chest/legs/feet), chestplate_equip (legacy alias = armor_equip chest), eye_damage, water_damage, swim, sleep, elytra, or none. Unknown values fall back to none.",
+          "description": "Required. The action this power blocks: fall_damage, fire, drown, freeze, sprint_food, armor_equip (per-slot via head/chest/legs/feet), chestplate_equip (legacy alias = armor_equip chest), eye_damage, water_damage, swim, sleep, elytra, or none. Case-insensitive, so the SCREAMING_CASE spelling is equally valid; lowercase is canonical and is what the mod writes back out. A value outside this list silently falls back to none, which disables the power, so the editors reject it rather than let it through.",
           "type": "string",
           "enum": [
             "fall_damage",
@@ -3143,18 +3143,36 @@
             "swim",
             "sleep",
             "elytra",
-            "none"
+            "none",
+            "FALL_DAMAGE",
+            "FIRE",
+            "DROWN",
+            "FREEZE",
+            "SPRINT_FOOD",
+            "ARMOR_EQUIP",
+            "CHESTPLATE_EQUIP",
+            "EYE_DAMAGE",
+            "WATER_DAMAGE",
+            "SWIM",
+            "SLEEP",
+            "ELYTRA",
+            "NONE"
           ]
         },
         "active_when": {
-          "description": "Player-state gate the prevention applies under: always, not_sneaking, sneaking, not_on_ground, or on_ground (default always). E.g. not_sneaking lets a crouching Avian still take fall damage. Unknown values fall back to always.",
+          "description": "Player-state gate the prevention applies under: always, not_sneaking, sneaking, not_on_ground, or on_ground (default always). E.g. not_sneaking lets a crouching Avian still take fall damage. Case-insensitive, with lowercase canonical. A value outside this list silently falls back to always, so the editors reject it rather than let it through.",
           "type": "string",
           "enum": [
             "always",
             "not_sneaking",
             "sneaking",
             "not_on_ground",
-            "on_ground"
+            "on_ground",
+            "ALWAYS",
+            "NOT_SNEAKING",
+            "SNEAKING",
+            "NOT_ON_GROUND",
+            "ON_GROUND"
           ],
           "default": "always"
         },
