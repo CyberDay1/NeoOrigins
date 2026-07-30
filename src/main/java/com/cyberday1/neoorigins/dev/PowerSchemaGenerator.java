@@ -56,14 +56,6 @@ public final class PowerSchemaGenerator {
     /** The ids that exist in the enum by design but have no in-code descriptor. */
     private static final String ID_PARTICLE = "neoorigins:particle";
     private static final String ID_STARTING_EQUIPMENT = "neoorigins:starting_equipment";
-    /**
-     * The native sub-power container. It is expanded away at datapack load
-     * (see {@link com.cyberday1.neoorigins.compat.OriginsMultipleExpander}) and
-     * never registers a runtime descriptor, so it has no structured branch — it
-     * lives in the enum and matches the permissive fallback, which is the correct
-     * shape since its sub-power keys are arbitrary.
-     */
-    private static final String ID_MULTIPLE = "neoorigins:multiple";
 
     public static void main(String[] args) throws IOException {
         Path output = Path.of(args.length > 0 ? args[0] : DEFAULT_OUTPUT);
@@ -220,14 +212,15 @@ public final class PowerSchemaGenerator {
     /**
      * Assemble the sorted, de-duplicated full id list for {@code type.enum}:
      * {@code BuiltinPowers.ids()} ∪ the 2 unregistered-by-design ids ∪
-     * {@link LegacyPowerTypeAliases#aliasedTypeIds()} ∪
+     * {@link com.cyberday1.neoorigins.compat.OriginsMultipleExpander#MULTIPLE_TYPES}
+     * ∪ {@link LegacyPowerTypeAliases#aliasedTypeIds()} ∪
      * {@link OriginsPowerTranslator#SCHEMA_RECOGNIZED_IMPORT_IDS}.
      *
      * <p>Every id is enumerated by some in-code table — there are no hard-coded
      * ids here. The cross-mod {@code apace:*} import ids come from the compat
-     * layer (the translator), which owns that surface; {@code apoli:*}/
-     * {@code apugli:*} come from the alias table; everything else from
-     * {@code BuiltinPowers}.
+     * layer (the translator), which owns that surface; the container ids from the
+     * expander; the retired {@code neoorigins:} spellings from the alias table;
+     * everything else from {@code BuiltinPowers}.
      */
     private static List<String> buildTypeEnum() {
         // The alias table is lazy — bootstrap it before reading aliasedTypeIds().
@@ -236,8 +229,22 @@ public final class PowerSchemaGenerator {
         Set<String> ids = new TreeSet<>(BuiltinPowers.ids());
         ids.add(ID_PARTICLE);
         ids.add(ID_STARTING_EQUIPMENT);
-        ids.add(ID_MULTIPLE);
+        // All three container spellings are honoured at load (the expander flattens
+        // them away), so all three must be authorable. They have no structured
+        // branch because their properties are arbitrary sub-power keys.
+        ids.addAll(com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_TYPES);
         for (Identifier rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
+            // Apoli-family alias sources are NOT authorable, however the alias table
+            // reads. PowerDataManager canonicalizes apoli:/apugli: -> origins: and
+            // runs the translator BEFORE LegacyPowerTypeAliases.apply, so the alias
+            // never fires for an apoli-family id: apugli:action_on_jump and
+            // apugli:action_on_target_death have no origins: case at all and are
+            // simply dropped at load, while the two edible_item spellings only ever
+            // arrive as origins:edible_item — which this enum does not advertise
+            // either. Offering any of them is the "schema validates, then the load
+            // logs Unknown power type" failure, so they stay out.
+            if (com.cyberday1.neoorigins.compat.OriginsFormatDetector
+                    .isApoliFamily(rl.getNamespace())) continue;
             ids.add(rl.toString());
         }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);

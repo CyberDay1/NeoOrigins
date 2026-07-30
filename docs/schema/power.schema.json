@@ -12,13 +12,10 @@
       "type": "string",
       "description": "Fully-qualified power type ID. See docs/API.md for the full catalogue.",
       "enum": [
+        "apace:multiple",
         "apace:night_vision",
         "apace:status_effect",
         "apace:water_breathing",
-        "apoli:edible_item",
-        "apugli:action_on_jump",
-        "apugli:action_on_target_death",
-        "apugli:edible_item",
         "neoorigins:action_on_event",
         "neoorigins:action_on_hit",
         "neoorigins:action_on_hit_taken",
@@ -165,7 +162,8 @@
         "neoorigins:wall_climbing",
         "neoorigins:water_breathing",
         "neoorigins:wraith_phase",
-        "neoorigins:xeno_passive"
+        "neoorigins:xeno_passive",
+        "origins:multiple"
       ]
     },
     "name": {

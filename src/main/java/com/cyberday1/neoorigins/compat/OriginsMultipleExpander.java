@@ -56,6 +56,15 @@ public final class OriginsMultipleExpander {
     private OriginsMultipleExpander() {}
 
     /**
+     * The container ("multiple") type ids, in every namespace the loader honours.
+     * Exposed as a set so the schema generator can advertise all three and
+     * {@code PowerEnumCheck} can exempt them from the structured-branch rule
+     * without transcribing the list a second time.
+     */
+    public static final java.util.Set<String> MULTIPLE_TYPES = java.util.Set.of(
+        "neoorigins:multiple", "origins:multiple", "apace:multiple");
+
+    /**
      * True if {@code type} is a "multiple" container power in any recognized
      * namespace: the native {@code neoorigins:multiple}, the Apoli/Origins
      * {@code origins:multiple} (which {@code apoli:}/{@code apugli:} canonicalize
@@ -65,9 +74,7 @@ public final class OriginsMultipleExpander {
      * {@code origins:}/{@code apace:} forms remain for imported packs.
      */
     public static boolean isMultipleType(String type) {
-        return "neoorigins:multiple".equals(type)
-            || "origins:multiple".equals(type)
-            || "apace:multiple".equals(type);
+        return MULTIPLE_TYPES.contains(type);
     }
 
     /** True if {@code json} carries a boolean {@code "hidden": true}. */
