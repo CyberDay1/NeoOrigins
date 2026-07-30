@@ -201,42 +201,49 @@
           ]
         },
         "effect": {
-          "description": "Single effect id (use this OR effects[]; `id` accepted as a synonym).",
-          "type": "string"
+          "description": "The effect to apply, as either a bare effect id string or the nested object {effect/id, duration, amplifier, is_ambient, show_particles, show_icon}. Use this OR effects[].",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
         },
         "id": {
           "description": "Alias for effect (flat shape).",
           "type": "string"
         },
         "duration": {
-          "description": "Effect duration in ticks (default 200; honoured when using the 'effect' scalar).",
+          "description": "Effect duration in ticks (default 200). Read off the root only in the flat shape; the nested object and effects[] entries carry their own.",
           "type": "integer",
           "default": 200,
           "minimum": 1
         },
         "amplifier": {
-          "description": "Effect amplifier (default 0 = level I).",
+          "description": "Effect amplifier (default 0 = level I). Read off the root only in the flat shape.",
           "type": "integer",
           "default": 0,
           "minimum": 0
         },
         "is_ambient": {
-          "description": "Reduced particle visibility (default false).",
+          "description": "Reduced particle visibility (default false). Flat shape only.",
           "type": "boolean",
           "default": false
         },
         "show_particles": {
-          "description": "Show effect particles (default true).",
+          "description": "Show effect particles (default true). Flat shape only.",
           "type": "boolean",
           "default": true
         },
         "show_icon": {
-          "description": "Show HUD icon (default true).",
+          "description": "Show HUD icon (default true). Flat shape only.",
           "type": "boolean",
           "default": true
         },
         "effects": {
-          "description": "Array of {effect, duration, amplifier, is_ambient, show_particles, show_icon} objects. First entry wins if both 'effect' and 'effects' are present.",
+          "description": "Array of {effect, duration, amplifier, is_ambient, show_particles, show_icon} objects; every entry is applied. Takes precedence over 'effect' when both are present.",
           "type": "array",
           "items": {}
         }
