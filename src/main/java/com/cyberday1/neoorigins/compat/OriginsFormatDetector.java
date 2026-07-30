@@ -74,6 +74,11 @@ public final class OriginsFormatDetector {
      */
     private static final java.util.Set<String> APOLI_FAMILY_NS = java.util.Set.of("apoli", "apugli");
 
+    /** True for a namespace {@link #canonicalizePowerType} rewrites to {@code origins:}. */
+    public static boolean isApoliFamily(String namespace) {
+        return APOLI_FAMILY_NS.contains(namespace);
+    }
+
     /**
      * Rewrites an Apoli-family power {@code type} to the canonical {@code origins:}
      * namespace, in place, and returns the resulting type string. This lets the

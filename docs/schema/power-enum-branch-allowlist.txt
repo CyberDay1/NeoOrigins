@@ -1,0 +1,32 @@
+# Power-type ids that are authorable (listed in the power.schema.json `type`
+# enum) but have NO structured `oneOf` branch, so an author writing one gets the
+# permissive `type.not.enum` fallback: no field validation, no form, a raw-JSON
+# box in all three editors.
+#
+# THE TARGET IS ZERO. This file exists only to hold the line while the gap is
+# closed one power at a time; it is checked by `./gradlew powerEnumCheck`, which
+# fails if an id is ADDED here and equally if a line goes stale (the id gained a
+# branch, or left the enum). Shrinking it is the work; growing it is a
+# regression.
+#
+# To remove a line: give the power a FieldSpec list in BuiltinPowers (or, for an
+# import-only id, fold it into its translation target's branch as an extra
+# `type.enum` entry), run `./gradlew generatePowerSchema`, then delete the line.
+#
+# NOT listed here, for two reasons that are not "gap":
+#
+#   * the container types (the ids OriginsMultipleExpander.isMultipleType
+#     accepts), whose properties are arbitrary author-chosen sub-power keys, so
+#     there is no branch to write. PowerEnumCheck exempts those directly,
+#     permanently.
+#
+#   * the legacy import surface -- the origins:/apace:/apoli:/apugli: spellings
+#     the alias table and the compat import translation accept. Those ARE a gap,
+#     but a different one: branches are generated from BuiltinPowers FieldSpec
+#     lists and an imported spelling has no descriptor of its own, so closing it
+#     means folding the id into its translation target's branch. PowerEnumCheck
+#     counts them under the MAX_UNBRANCHED_LEGACY ratchet instead.
+#
+# This list is measured per branch. Do not copy it between 1.21.1 and 26.x --
+# the registries differ, so the real gap differs.
+neoorigins:starting_equipment
