@@ -449,10 +449,11 @@ public final class BuiltinPowers {
         // tame_mob each kept a power.schema.json branch that only restated
         // their plain config + the universal name/description/hidden wrapper
         // fields; the spec fully represents the real config, so those branches
-        // collapse here too (see batch B). split_max_h_p / levels_per_h_p /
-        // max_bonus_h_p use the camel→snake form the reflection fallback and
-        // field_docs already used (HP → h_p), so the editor field name is
-        // byte-identical to today. mob equipment slots (head/chest/...) are
+        // collapse here too (see batch B). split_max_hp / levels_per_hp /
+        // max_bonus_hp match the keys their codecs actually parse; the Config
+        // record components are named *Hp (not *HP) so the camel→snake
+        // reflection fallback derives the same key instead of the bogus
+        // HP → h_p form. mob equipment slots (head/chest/...) are
         // Optional<String> in the codec → required=false, no default.
         define("modify_lava_speed", ModifyLavaSpeedPower.class, List.of(
             new FieldSpec("operation", Kind.ENUM, false)
@@ -535,14 +536,14 @@ public final class BuiltinPowers {
                 .def(50).doc("Blocks teleported in a random direction on split (default 50)."),
             new FieldSpec("teleport_y_range", Kind.INTEGER, false)
                 .def(10).doc("Max +/- Y offset applied to the split teleport (default 10)."),
-            new FieldSpec("split_max_h_p", Kind.NUMBER, false)
+            new FieldSpec("split_max_hp", Kind.NUMBER, false)
                 .def(4.0).doc("Max HP set right after splitting, in half-hearts (default 4.0)."),
             new FieldSpec("recovery_ticks", Kind.INTEGER, false)
                 .def(2400).doc("Ticks for reduced max HP to ease back to normal (20 = 1s; default 2400).")));
         define("slime_level_hp", SlimeLevelHPPower.class, List.of(
-            new FieldSpec("levels_per_h_p", Kind.INTEGER, false)
+            new FieldSpec("levels_per_hp", Kind.INTEGER, false)
                 .def(10).doc("Experience levels needed per +1 max HP half-heart (default 10)."),
-            new FieldSpec("max_bonus_h_p", Kind.INTEGER, false)
+            new FieldSpec("max_bonus_hp", Kind.INTEGER, false)
                 .def(20).doc("Cap on total bonus max HP granted, in half-hearts (default 20).")));
         define("slime_moisture", SlimeMoisturePower.class, List.of(
             new FieldSpec("drain_per_tick", Kind.NUMBER, false)
