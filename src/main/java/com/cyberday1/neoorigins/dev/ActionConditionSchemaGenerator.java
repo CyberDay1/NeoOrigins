@@ -70,22 +70,38 @@ public final class ActionConditionSchemaGenerator {
         return "docs/schema/" + which + ".schema.json";
     }
 
+    /** Every schema this generator emits, in write order. */
+    private static final List<String> ALL =
+        List.of(ACTION, CONDITION, BLOCK_CONDITION, ITEM_CONDITION, ITEM_ACTION);
+
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            writeSchema(ACTION, Path.of(defaultOutput(ACTION)));
-            writeSchema(CONDITION, Path.of(defaultOutput(CONDITION)));
-            writeSchema(BLOCK_CONDITION, Path.of(defaultOutput(BLOCK_CONDITION)));
-            writeSchema(ITEM_CONDITION, Path.of(defaultOutput(ITEM_CONDITION)));
-            writeSchema(ITEM_ACTION, Path.of(defaultOutput(ITEM_ACTION)));
+            for (String which : ALL) writeSchema(which, Path.of(defaultOutput(which)), null);
+        } else if (args[0].equals("--out-dir")) {
+            // Regenerate all five into another directory, each still reading its
+            // verbatim header from the committed file. This is how schemaDriftVerify
+            // compares regenerated output against what is committed without
+            // overwriting it.
+            if (args.length < 2) throw new IOException("--out-dir needs a directory argument");
+            Path dir = Path.of(args[1]);
+            for (String which : ALL) {
+                writeSchema(which, dir.resolve(which + ".schema.json"),
+                    Path.of(defaultOutput(which)));
+            }
         } else {
             String which = args[0];
             Path out = Path.of(args.length > 1 ? args[1] : defaultOutput(which));
-            writeSchema(which, out);
+            writeSchema(which, out, null);
         }
     }
 
-    private static void writeSchema(String which, Path output) throws IOException {
-        String json = buildSchemaJson(which, output);
+    /**
+     * @param headerSource file to read the verbatim header from, or {@code null} to
+     *                     read it from {@code output} (the in-place rewrite case).
+     */
+    private static void writeSchema(String which, Path output, Path headerSource)
+            throws IOException {
+        String json = buildSchemaJson(which, headerSource != null ? headerSource : output);
         if (output.getParent() != null) Files.createDirectories(output.getParent());
         Files.writeString(output, json, StandardCharsets.UTF_8);
         System.out.println(which + " schema written to " + output.toAbsolutePath().normalize());

@@ -409,3 +409,112 @@ tasks.register('customPackCheck', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.cyberday1.neoorigins.dev.CustomPackCheck'
 }
+
+// ── Non-mutating twins of the three generators ──────────────────────────────
+//
+// generatePowerSchema / generateActionConditionSchema / goldenMaster all WRITE
+// tracked files, so none of them can be a gate: a stale artifact would be
+// silently rewritten instead of reported. Each has a verify counterpart here
+// that regenerates into build/tmp and byte-compares, which is the gateable form.
+//
+// Unlike 1.21.1 there is no website/static/schemas/ mirror on this branch — the
+// web editor is not carried here — so this only checks docs/schema/.
+def driftTmp = layout.buildDirectory.dir('tmp/schemaDrift')
+
+tasks.register('regenerateSchemasToTemp', JavaExec) {
+    group = 'neoorigins'
+    description = 'Internal: regenerate the 5 action/condition schemas into build/tmp.'
+    dependsOn 'classes'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.ActionConditionSchemaGenerator'
+    args '--out-dir', driftTmp.get().asFile.path
+}
+
+tasks.register('regeneratePowerSchemaToTemp', JavaExec) {
+    group = 'neoorigins'
+    description = 'Internal: regenerate power.schema.json into build/tmp.'
+    dependsOn 'classes'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.PowerSchemaGenerator'
+    args new File(driftTmp.get().asFile, 'power.schema.json').path,
+         'docs/schema/power.schema.json'
+}
+
+// Fails when a committed schema is not what the registries would emit today.
+tasks.register('schemaDriftVerify') {
+    group = 'neoorigins'
+    description = 'Verify the committed schemas match what the registries emit.'
+    dependsOn 'regenerateSchemasToTemp', 'regeneratePowerSchemaToTemp'
+    doLast {
+        def names = ['power', 'action', 'condition', 'block_condition',
+                     'item_condition', 'item_action'].collect { it + '.schema.json' }
+        def stale = []
+        names.each { name ->
+            def committed = file("docs/schema/${name}")
+            def regenerated = new File(driftTmp.get().asFile, name)
+            if (!regenerated.isFile()) {
+                throw new GradleException("schemaDriftVerify regenerated nothing for ${name} —" +
+                    " the generator did not run, so this gate proved nothing.")
+            }
+            if (committed.bytes != regenerated.bytes) stale << name
+        }
+        if (stale) {
+            throw new GradleException('schema drift detected.\n' +
+                "  Committed but not what the registries emit: ${stale.join(', ')}\n" +
+                '  Fix: ./gradlew generatePowerSchema generateActionConditionSchema')
+        }
+        println "[schema-drift] ${names.size()} schemas match the registries."
+    }
+}
+
+def goldenTmp = layout.buildDirectory.file('tmp/goldenMaster/compat-verbs.txt')
+
+tasks.register('regenerateGoldenMasterToTemp', JavaExec) {
+    group = 'neoorigins'
+    description = 'Internal: regenerate the compat-verb golden master into build/tmp.'
+    dependsOn 'compileJava'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.cyberday1.neoorigins.dev.CompatTestHarness'
+    args '--golden-master', goldenTmp.get().asFile.path,
+         'src/main/resources/data', 'example-pack/data'
+}
+
+// The gateable form of goldenMaster: the recognized-verb surface the parsers
+// expose over the built-in corpus must still be exactly what is committed.
+tasks.register('goldenMasterVerify') {
+    group = 'neoorigins'
+    description = 'Verify the committed compat-verb golden master is current.'
+    dependsOn 'regenerateGoldenMasterToTemp'
+    doLast {
+        def committed = file('compat-golden/compat-verbs.txt')
+        def regenerated = goldenTmp.get().asFile
+        if (!regenerated.isFile()) {
+            throw new GradleException('goldenMasterVerify regenerated nothing — the harness' +
+                ' did not write a baseline, so this gate proved nothing.')
+        }
+        if (committed.bytes != regenerated.bytes) {
+            throw new GradleException('compat-verb golden master is stale: the parsers no longer' +
+                ' produce the committed verb surface.\n  Review the change, then run' +
+                ' ./gradlew goldenMaster and commit the diff if it is intended.')
+        }
+        println "[golden-master] committed baseline matches a fresh run."
+    }
+}
+
+// ── Gating ──────────────────────────────────────────────────────────────────
+//
+// Everything above ran in seconds and asserted something real, yet nothing
+// depended on any of it: `build` never invoked them, so a red check could not
+// stop a release. They hang off `check` (which `build` depends on) so a broken
+// invariant fails the ordinary build. The three mutating generators stay out,
+// represented by their verify twins.
+tasks.named('check') {
+    dependsOn 'schemaFormCheck',
+              'powerEnumCheck',
+              'actionConditionSchemaCheck',
+              'customPackCheck',
+              'smokeTestAliases',
+              'compatTest',
+              'schemaDriftVerify',
+              'goldenMasterVerify'
+}
