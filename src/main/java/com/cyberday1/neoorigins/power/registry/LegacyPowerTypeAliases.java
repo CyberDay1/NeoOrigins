@@ -275,16 +275,20 @@ public final class LegacyPowerTypeAliases {
         //                                             Set to 0 to disable entirely
         //                                             (substitutes a no-op action so
         //                                             player.hurt is never called).
-        //   multiplier         (float) — alias for damage_per_second. Several
-        //                                origins (vampire, draconic, strider,
-        //                                blazeling, voidwalker, enderite,
-        //                                cinderborn, fire_mage) register the
-        //                                config field as "multiplier" for
-        //                                consistency with other weakness powers;
-        //                                accept it here so config overrides reach
-        //                                the damage value. "multiplier" is a scalar
-        //                                applied to damage_per_second (default 1.0);
-        //                                set multiplier 0 to disable the damage.
+        //   multiplier         (float, default 1.0) — scalar applied to
+        //                                damage_per_second, so the damage each
+        //                                interval is the product of the two. Set
+        //                                multiplier 0 to disable the damage.
+        //                                Several origins (vampire, draconic,
+        //                                strider, blazeling, voidwalker, enderite,
+        //                                cinderborn, fire_mage) expose only
+        //                                "multiplier" as their power_overrides
+        //                                config key, for consistency with other
+        //                                weakness powers, so an admin can retune
+        //                                the weakness without editing the power.
+        //                                It is NOT a second spelling of
+        //                                damage_per_second: writing both applies
+        //                                both.
         register(ResourceLocation.fromNamespaceAndPath("neoorigins", "damage_in_water"),
                  ID_CONDITION_PASSIVE, (json, powerId) -> {
                     float base = json.has("damage_per_second") ? json.get("damage_per_second").getAsFloat() : 1.0f;
