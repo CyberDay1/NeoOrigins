@@ -575,7 +575,7 @@
           ]
         },
         "actions": {
-          "description": "List of {action, weight} entries; one is picked weighted-randomly.",
+          "description": "List of {element, weight} wrapper entries — `element` holds the action (`action` is accepted as a synonym), `weight` its relative chance (default 1). One entry is picked weighted-randomly. These are wrapper records, not actions, despite the property name.",
           "type": "array",
           "items": {}
         }
@@ -1311,7 +1311,7 @@
           ]
         },
         "actions": {
-          "description": "List of {condition, action} branches; the first passing branch runs.",
+          "description": "List of {condition, action} branches; the first passing branch runs. These are wrapper records, not actions, despite the property name.",
           "type": "array",
           "items": {}
         }

@@ -1428,7 +1428,8 @@ public final class BuiltinActions {
                 };
             },
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
-                .doc("List of {condition, action} branches; the first passing branch runs.")));
+                .doc("List of {condition, action} branches; the first passing branch runs. "
+                    + "These are wrapper records, not actions, despite the property name.")));
 
         // chance — run `action` with probability `chance`. Lift-and-shift of
         // parseChance. `chance` optional (parser default 0.5); missing action no-ops.
@@ -1471,6 +1472,13 @@ public final class BuiltinActions {
         // choice — randomly run one action from `actions`, weighted by each entry's
         // `weight`. Lift-and-shift of parseChoice. Missing/empty list no-ops; each
         // entry's `weight` optional (default 1).
+        //
+        // Each `actions` entry is a WRAPPER RECORD, not an action of its own. Apoli
+        // keys the wrapped action `element`, which is what every pack in the corpus
+        // writes; the original lift read `action` only, so every branch resolved to
+        // a no-op and the verb did nothing while still loading cleanly. Both keys
+        // are accepted now, `element` first, and an entry with neither warns rather
+        // than silently contributing an inert branch.
         define("choice",
             (json, ctx) -> {
                 if (!json.has("actions") || !json.get("actions").isJsonArray()) return EntityAction.noop();
@@ -1481,7 +1489,13 @@ public final class BuiltinActions {
                 for (com.google.gson.JsonElement el : arr) {
                     if (!el.isJsonObject()) continue;
                     com.google.gson.JsonObject entry = el.getAsJsonObject();
-                    EntityAction action = ActionParser.parseField(entry, "action", ctx);
+                    String actionKey = entry.has("element") ? "element" : "action";
+                    if (!entry.has(actionKey)) {
+                        NeoOrigins.LOGGER.warn(
+                            "[CompatB] choice: an entry in '{}' has neither 'element' nor 'action' "
+                            + "— that branch will no-op", ctx);
+                    }
+                    EntityAction action = ActionParser.parseField(entry, actionKey, ctx);
                     int weight = entry.has("weight") ? entry.get("weight").getAsInt() : 1;
                     actions.add(action);
                     weights.add(weight);
@@ -1502,7 +1516,10 @@ public final class BuiltinActions {
                 };
             },
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
-                .doc("List of {action, weight} entries; one is picked weighted-randomly.")));
+                .doc("List of {element, weight} wrapper entries — `element` holds the action "
+                    + "(`action` is accepted as a synonym), `weight` its relative chance "
+                    + "(default 1). One entry is picked weighted-randomly. These are wrapper "
+                    + "records, not actions, despite the property name.")));
 
         // target_action — dual-actor retarget. Resolves the "entity on the other side
         // of the interaction" from the active dispatch context via
