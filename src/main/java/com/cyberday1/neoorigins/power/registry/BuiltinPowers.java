@@ -114,6 +114,33 @@ public final class BuiltinPowers {
             .doc("Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)");
 
     /**
+     * The top-level {@code "enabled"} kill-switch, honoured by every power whose
+     * config routes through {@link com.cyberday1.neoorigins.power.util.EnabledGate}
+     * ({@code condition_passive}, {@code creative_flight}, {@code persistent_effect},
+     * {@code water_breathing}). Absent means enabled; {@code false} collapses the
+     * power to a no-op without removing it from the origin.
+     *
+     * <p>It is a genuinely authored field, not runtime toggle state: the
+     * power_overrides system ({@code PowerOverridesConfig}, which exposes
+     * {@code fb("enabled", true)} for dozens of powers) injects it into the power
+     * JSON before the codec runs, and a datapack may write it by hand. Declaring
+     * it here is what makes the per-power kill switch visible in the schema, the
+     * editors' forms and the doc reference tables.
+     *
+     * <p>{@code persistent_effect} needs the {@link #ENABLED_SPEC_JSON_READ}
+     * variant instead: its hand-rolled codec reads the flag straight off the raw
+     * {@code JsonObject} and never lifts it into a {@code Config} component, so
+     * the component-existence audit needs the {@code readBy} declaration.
+     */
+    private static final FieldSpec ENABLED_SPEC =
+        new FieldSpec("enabled", Kind.BOOLEAN, false)
+            .def(true).doc("Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.");
+
+    /** {@link #ENABLED_SPEC} for codecs that read the flag off the raw JSON. */
+    private static final FieldSpec ENABLED_SPEC_JSON_READ =
+        ENABLED_SPEC.readBy("com.cyberday1.neoorigins.power.util.EnabledGate#isEnabled");
+
+    /**
      * Looser hint for scalar-string lists whose entries are NOT strictly
      * {@code namespace:path}: bare keywords ({@code sprint}, {@code arrow},
      * {@code all}), vanilla camelCase msgIds ({@code inFire}, {@code fall}), an
@@ -223,7 +250,7 @@ public final class BuiltinPowers {
         define("flight",                   FlightPower.class,                 List.of(
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("creative_flight",          CreativeFlightPower.class,         List.of(
-            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+            ENABLED_SPEC, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
         define("natural_glide",            NaturalGlidePower.class,           List.of());
         // elytra_flight: native mirror of apoli:elytra_flight. Reuses natural_glide
@@ -240,7 +267,12 @@ public final class BuiltinPowers {
         define("no_projectile_divergence", NoProjectileDivergencePower.class, List.of());
         define("underwater_mining_speed",  UnderwaterMiningSpeedPower.class,  List.of());
         define("wall_climbing",            WallClimbingPower.class,           List.of());
-        define("water_breathing",          WaterBreathingPower.class,         List.of());
+        // Not a marker despite sitting in this group: `record Config(String type,
+        // boolean enabled)` carries the kill switch, and the empty field list used
+        // to hide it from the schema AND silence the parity guard (which only warns
+        // about un-specced components when the spec list is non-empty).
+        define("water_breathing",          WaterBreathingPower.class,         List.of(
+            ENABLED_SPEC));
 
         // ── Group R — record-reflectable single-knob powers ─────────────────
         // Plain-Config powers whose one user-facing field reflection already
@@ -1355,7 +1387,9 @@ public final class BuiltinPowers {
         //     `duration` field the codec never reads (phantom — effects apply at
         //     INFINITE_DURATION). Those non-components can't be FieldSpecs (the
         //     drift audit resolves each spec name to a record component), so the
-        //     spec is the four real components and the branch collapses. (This
+        //     spec is the four real components plus the `enabled` kill switch,
+        //     which the codec reads straight off the raw JsonObject and never
+        //     lifts into a component — hence readBy. The branch collapses. (This
         //     also moves SchemaFormCheck's hardcoded structured sample off
         //     persistent_effect onto the still-branched `particle`.)
         define("persistent_effect", PersistentEffectPower.class, List.of(
@@ -1367,7 +1401,7 @@ public final class BuiltinPowers {
                 .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false)."),
-            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+            ENABLED_SPEC_JSON_READ, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // effect_immunity lives in the compat package (com.cyberday1.neoorigins.compat),
         // not power.builtin, so SchemaFormCheck's power.builtin class-scan never flagged
@@ -1408,9 +1442,11 @@ public final class BuiltinPowers {
         //     Codec<Config>, untouched). The opt-in toggle pair (toggleable /
         //     default_off, both default false in the codec) is specced here so
         //     generatePowerSchema emits it — it used to be a hand edit dropped
-        //     on every regen. The codec's `enabled` component is runtime toggle
-        //     state, not an authored field, so it stays unspecced (the audit
-        //     WARNs but doesn't fail on codec-reflection fallback components).
+        //     on every regen. The `enabled` component is specced too: it is the
+        //     authored kill switch power_overrides injects, not runtime toggle
+        //     state as an earlier note here claimed, so leaving it unspecced hid
+        //     the switch from the schema and the editors (and left a standing
+        //     un-specced-component WARN).
         define("condition_passive", ConditionPassivePower.class, List.of(
             new FieldSpec("interval", Kind.INTEGER, false)
                 .def(20).range(1.0, null)
@@ -1427,7 +1463,7 @@ public final class BuiltinPowers {
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false)
                 .doc("Toggleable powers only: when true the power STARTS disabled so the player must opt in via the keybind (default false)."),
-            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+            ENABLED_SPEC, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         //   • effect_over_time: sustained aura type, one entity_action tree pulsed
         //     on an interval behind an `activation` selector. passive (default) =
