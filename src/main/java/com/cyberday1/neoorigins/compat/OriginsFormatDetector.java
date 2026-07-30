@@ -103,4 +103,42 @@ public final class OriginsFormatDetector {
         }
         return type;
     }
+
+    /**
+     * The complete set of legacy power {@code type} ids this build accepts: the
+     * verbatim case labels of both compat dispatch switches
+     * ({@link OriginsPowerTranslator#ROUTE_A_TYPES},
+     * {@link OriginsCompatPowerLoader#ROUTE_B_TYPES} and
+     * {@link OriginsCompatPowerLoader#CONDITIONED_ROUTE_B_TYPES}) plus, for every
+     * {@code origins:} entry, its {@code apoli:} and {@code apugli:} spellings —
+     * which {@link #canonicalizePowerType} rewrites to {@code origins:} before
+     * dispatch, unconditionally, for every power entry.
+     *
+     * <p>This is the authorable legacy surface, and the schema's {@code type} enum
+     * is built from it. The bound matters both ways: an id missing from here is one
+     * the editors and the web validator reject even though the pack loads fine (the
+     * defect this exists to fix), and an id in here that does NOT dispatch is a
+     * schema that lies — the pack validates, then logs "Unknown power type" at load.
+     *
+     * <p>{@code apace:} is NOT derived. For actions and conditions the parsers strip
+     * the namespace wholesale, so blanket {@code apace:} aliasing is sound there; for
+     * POWERS the two switches enumerate {@code apace:} case by case (three
+     * {@code origins:} paths have no {@code apace:} sibling), so it is read from the
+     * case labels instead of generated.
+     *
+     * <p>Deriving the Apoli-family spellings does advertise ids upstream Apugli never
+     * defined (e.g. {@code apugli:active_self}). That is intentional: the contract is
+     * what THIS parser accepts, and canonicalisation accepts them.
+     */
+    public static java.util.Set<String> legacyPowerTypeSurface() {
+        java.util.Set<String> ids = new java.util.TreeSet<>(OriginsPowerTranslator.ROUTE_A_TYPES);
+        ids.addAll(OriginsCompatPowerLoader.ROUTE_B_TYPES);
+        ids.addAll(OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES);
+        for (String id : java.util.List.copyOf(ids)) {
+            if (!id.startsWith("origins:")) continue;
+            String path = id.substring("origins:".length());
+            for (String ns : APOLI_FAMILY_NS) ids.add(ns + ":" + path);
+        }
+        return ids;
+    }
 }
