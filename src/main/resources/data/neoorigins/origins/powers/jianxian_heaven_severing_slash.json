@@ -15,7 +15,7 @@
     "speed": 2.2,
     "shape": "cross",
     "orb_color": "#9CE8FF",
-    "glow_alpha": 0.4,
+    "glow_alpha": 102,
     "trail_particle": "minecraft:sweep_attack",
     "on_hit_action": {
       "type": "neoorigins:area_of_effect",
