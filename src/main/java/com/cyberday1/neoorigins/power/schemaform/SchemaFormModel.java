@@ -107,9 +107,13 @@ public final class SchemaFormModel {
         JsonObject props = root.getAsJsonObject("properties");
         Set<String> rootRequired = readRequired(root);
 
-        // Universe of types from properties.type.enum
-        JsonArray typeEnum = props.getAsJsonObject("type").getAsJsonArray("enum");
-        for (JsonElement e : typeEnum) allTypes.add(e.getAsString());
+        // Universe of types from properties.type.enum, when there is one. A
+        // pattern-gated root (the verb ref-docs) carries no enum; the branch walk
+        // below then contributes the universe instead.
+        JsonObject rootType = props.getAsJsonObject("type");
+        if (rootType != null && rootType.has("enum") && rootType.get("enum").isJsonArray()) {
+            for (JsonElement e : rootType.getAsJsonArray("enum")) allTypes.add(e.getAsString());
+        }
 
         // Common fields: every root property except the `type` discriminator.
         for (Map.Entry<String, JsonElement> e : props.entrySet()) {
@@ -151,7 +155,14 @@ public final class SchemaFormModel {
                 fields.add(mapProperty(e.getKey(), e.getValue().getAsJsonObject(),
                     req.contains(e.getKey())));
             }
-            for (String id : branchIds) structured.put(id, fields);
+            for (String id : branchIds) {
+                structured.put(id, fields);
+                // Pattern-gated roots have no enum to seed the universe from; the
+                // branch ids ARE the universe there. Adding unconditionally is a
+                // no-op for enum-gated documents, whose enum is the union of
+                // exactly these ids.
+                allTypes.add(id);
+            }
         }
     }
 
