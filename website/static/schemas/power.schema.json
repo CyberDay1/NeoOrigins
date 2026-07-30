@@ -12,6 +12,7 @@
       "type": "string",
       "description": "Fully-qualified power type ID. See docs/API.md for the full catalogue.",
       "enum": [
+        "apace:multiple",
         "apace:night_vision",
         "apace:status_effect",
         "apace:water_breathing",
@@ -167,7 +168,8 @@
         "neoorigins:wall_climbing",
         "neoorigins:water_breathing",
         "neoorigins:wraith_phase",
-        "neoorigins:xeno_passive"
+        "neoorigins:xeno_passive",
+        "origins:multiple"
       ]
     },
     "name": {

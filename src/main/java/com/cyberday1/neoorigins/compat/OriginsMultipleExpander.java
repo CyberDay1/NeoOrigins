@@ -56,18 +56,24 @@ public final class OriginsMultipleExpander {
     private OriginsMultipleExpander() {}
 
     /**
-     * True if {@code type} is a "multiple" container power in any recognized
-     * namespace: the native {@code neoorigins:multiple}, the Apoli/Origins
-     * {@code origins:multiple} (which {@code apoli:}/{@code apugli:} canonicalize
-     * to), or Apace's {@code apace:multiple}. All three flatten through
-     * {@link #expand} into synthetic per-sub-power entries, so the native form is
-     * the first-class, in-namespace way to author a sub-power container while the
+     * Every "multiple" container power type id this expander accepts: the native
+     * {@code neoorigins:multiple}, the Apoli/Origins {@code origins:multiple}
+     * (which {@code apoli:}/{@code apugli:} canonicalize to), and Apace's
+     * {@code apace:multiple}. All three flatten through {@link #expand} into
+     * synthetic per-sub-power entries, so the native form is the first-class,
+     * in-namespace way to author a sub-power container while the
      * {@code origins:}/{@code apace:} forms remain for imported packs.
+     *
+     * <p>Public and enumerated rather than inlined into {@link #isMultipleType}
+     * so the editor-surface gate ({@code PowerEnumCheck}) can assert every
+     * accepted container id is also authorable in the schema's {@code type} enum.
      */
+    public static final java.util.Set<String> MULTIPLE_TYPES = java.util.Set.of(
+        "neoorigins:multiple", "origins:multiple", "apace:multiple");
+
+    /** True if {@code type} is a container power in any recognized namespace. */
     public static boolean isMultipleType(String type) {
-        return "neoorigins:multiple".equals(type)
-            || "origins:multiple".equals(type)
-            || "apace:multiple".equals(type);
+        return MULTIPLE_TYPES.contains(type);
     }
 
     /** True if {@code json} carries a boolean {@code "hidden": true}. */

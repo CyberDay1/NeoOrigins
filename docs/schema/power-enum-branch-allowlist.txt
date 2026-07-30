@@ -1,0 +1,61 @@
+# Power-type ids that are authorable (listed in the power.schema.json `type`
+# enum) but have NO structured `oneOf` branch, so an author writing one gets the
+# permissive `type.not.enum` fallback: no field validation, no form, a raw-JSON
+# box in all three editors.
+#
+# THE TARGET IS ZERO. This file exists only to hold the line while the gap is
+# closed one power at a time; it is checked by `./gradlew powerEnumCheck`, which
+# fails if an id is ADDED here and equally if a line goes stale (the id gained a
+# branch, or left the enum). Shrinking it is the work; growing it is a
+# regression.
+#
+# To remove a line: give the power a FieldSpec list in BuiltinPowers (or, for an
+# import-only id, fold it into its translation target's branch as an extra
+# `type.enum` entry), run `./gradlew generatePowerSchema`, then delete the line.
+#
+# NOT listed here, because they are permanent by design rather than a gap: the
+# container types (OriginsMultipleExpander.MULTIPLE_TYPES), whose properties are
+# arbitrary author-chosen sub-power keys. PowerEnumCheck exempts those directly.
+#
+# Import-only ids (rewritten to a neoorigins: type at load by
+# OriginsPowerTranslator) — the branch to share is their translation target's.
+apace:night_vision
+apace:status_effect
+apace:water_breathing
+apoli:edible_item
+apugli:action_on_jump
+apugli:action_on_target_death
+apugli:edible_item
+
+# Native types with no descriptor yet. Several are legacy 2.0 types kept for the
+# deprecation window and remapped by LegacyPowerTypeAliases, which is why they
+# still load: authoring one is valid, just unvalidated.
+neoorigins:action_on_hit_taken
+neoorigins:action_on_kill
+neoorigins:action_over_time
+neoorigins:active_aoe_effect
+neoorigins:active_launch
+neoorigins:better_bone_meal
+neoorigins:better_crafted_food
+neoorigins:better_enchanting
+neoorigins:biome_buff
+neoorigins:burn_at_health_threshold
+neoorigins:damage_in_biome
+neoorigins:damage_in_daylight
+neoorigins:damage_in_water
+neoorigins:efficient_repairs
+neoorigins:food_restriction
+neoorigins:glow
+neoorigins:healing_mist
+neoorigins:hunger_drain_modifier
+neoorigins:knockback_modifier
+neoorigins:longer_potions
+neoorigins:more_animal_loot
+neoorigins:natural_regen_modifier
+neoorigins:night_vision
+neoorigins:regen_in_fluid
+neoorigins:repulse
+neoorigins:stacking_status_effects
+neoorigins:status_effect
+neoorigins:teleport_range_modifier
+neoorigins:thorns_aura

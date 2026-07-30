@@ -56,14 +56,14 @@ public final class PowerSchemaGenerator {
     /** The ids that exist in the enum by design but have no in-code descriptor. */
     private static final String ID_PARTICLE = "neoorigins:particle";
     private static final String ID_STARTING_EQUIPMENT = "neoorigins:starting_equipment";
-    /**
-     * The native sub-power container. It is expanded away at datapack load
-     * (see {@link com.cyberday1.neoorigins.compat.OriginsMultipleExpander}) and
-     * never registers a runtime descriptor, so it has no structured branch — it
-     * lives in the enum and matches the permissive fallback, which is the correct
-     * shape since its sub-power keys are arbitrary.
-     */
-    private static final String ID_MULTIPLE = "neoorigins:multiple";
+    // The sub-power container ids come from
+    // OriginsMultipleExpander.MULTIPLE_TYPES: the compat layer owns that surface,
+    // as it already owns SCHEMA_RECOGNIZED_IMPORT_IDS. They are expanded away at
+    // datapack load and never register a runtime descriptor, so they have no
+    // structured branch — they live in the enum and match the permissive fallback,
+    // which is the right shape given their sub-power keys are arbitrary.
+    // Hard-coding just the native id here left origins:multiple and apace:multiple
+    // honoured at load but unauthorable in the editors.
 
     public static void main(String[] args) throws IOException {
         Path output = Path.of(args.length > 0 ? args[0] : DEFAULT_OUTPUT);
@@ -236,7 +236,7 @@ public final class PowerSchemaGenerator {
         Set<String> ids = new TreeSet<>(BuiltinPowers.ids());
         ids.add(ID_PARTICLE);
         ids.add(ID_STARTING_EQUIPMENT);
-        ids.add(ID_MULTIPLE);
+        ids.addAll(com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_TYPES);
         for (ResourceLocation rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
             ids.add(rl.toString());
         }
