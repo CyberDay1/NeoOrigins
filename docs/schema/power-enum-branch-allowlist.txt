@@ -41,6 +41,10 @@
 #     means folding the id into its translation target branch. PowerEnumCheck
 #     counts them under the MAX_UNBRANCHED_LEGACY ratchet instead.
 #
+# THE LIST IS CURRENTLY EMPTY: every id in the type enum that is not a
+# container or a foreign import spelling now has a structured branch. Keep it
+# that way -- powerEnumCheck fails on any ADDITION, so a new power type without
+# a FieldSpec list is a build break, not a line in this file.
+#
 # This list is measured per branch. Do not copy it between 1.21.1 and 26.x --
 # the registries differ, so the real gap differs.
-neoorigins:starting_equipment

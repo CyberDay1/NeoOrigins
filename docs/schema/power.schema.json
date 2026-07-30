@@ -4859,6 +4859,101 @@
       ]
     },
     {
+      "$comment": "neoorigins:starting_equipment — grants one or more items the first time the power is applied after origin commit. Accepts BOTH a legacy singular shape (top-level item/count/enchantments/legacy_tag/components) and a plural shape (stacks: [ { item, count, enchantments, legacy_tag, components } ]). When `stacks` is non-empty it takes precedence over the singular root fields; otherwise the root `item` is wrapped as a one-entry list. `grant_id` dedups the whole bundle (not individual stacks) so retries via /origin reset re-grant everything.",
+      "properties": {
+        "type": {
+          "const": "neoorigins:starting_equipment"
+        },
+        "grant_id": {
+          "type": "string",
+          "description": "Unique id tracked so the bundle is granted only once per player."
+        },
+        "item": {
+          "type": "string",
+          "description": "Legacy singular shape: item id granted once. Optional when `stacks` is provided."
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Stack size for the singular shape (default 1)."
+        },
+        "enchantments": {
+          "type": "array",
+          "description": "Singular-shape enchantments applied to the granted item.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+        },
+        "legacy_tag": {
+          "type": "string",
+          "description": "Singular-shape Apoli-style flat SNBT translated into data components at grant time."
+        },
+        "components": {
+          "type": "string",
+          "description": "Singular-shape SNBT data-component patch applied to the granted item."
+        },
+        "stacks": {
+          "type": "array",
+          "description": "Plural shape (v2.2.0). Each entry mirrors the singular root field names. When non-empty, takes precedence over the singular item/count/enchantments/legacy_tag/components fields.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "enchantments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              "legacy_tag": {
+                "type": "string"
+              },
+              "components": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "item"
+            ]
+          }
+        }
+      },
+      "required": [
+        "type",
+        "grant_id"
+      ]
+    },
+    {
       "$comment": "neoorigins:status_effect",
       "properties": {
         "type": {
@@ -5724,6 +5819,7 @@
               "neoorigins:slime_moisture",
               "neoorigins:sneaky",
               "neoorigins:stacking_status_effects",
+              "neoorigins:starting_equipment",
               "neoorigins:status_effect",
               "neoorigins:stealth",
               "neoorigins:summon_minion",
