@@ -74,8 +74,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build
+      - name: Report gate coverage
+        run: |
+          if grep -q 'powerEnumCheck' build.gradle && grep -q "tasks.named('check')" build.gradle; then
+            echo "Dev harnesses are wired to check on this branch."
+          else
+            echo "::warning::This branch does not gate the dev harnesses on check yet; the jar builds but the schema/compat invariants were NOT verified."
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build check
 
       - name: Find MC 26.1 JAR
         id: jar-26-1
@@ -121,8 +129,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build
+      - name: Report gate coverage
+        run: |
+          if grep -q 'powerEnumCheck' build.gradle && grep -q "tasks.named('check')" build.gradle; then
+            echo "Dev harnesses are wired to check on this branch."
+          else
+            echo "::warning::This branch does not gate the dev harnesses on check yet; the jar builds but the schema/compat invariants were NOT verified."
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build check
 
       - name: Find MC 1.21.1 JAR
         id: jar-1-21-1
@@ -168,8 +184,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build
+      - name: Report gate coverage
+        run: |
+          if grep -q 'powerEnumCheck' build.gradle && grep -q "tasks.named('check')" build.gradle; then
+            echo "Dev harnesses are wired to check on this branch."
+          else
+            echo "::warning::This branch does not gate the dev harnesses on check yet; the jar builds but the schema/compat invariants were NOT verified."
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build check
 
       - name: Find MC 26.2 JAR
         id: jar-26-2
