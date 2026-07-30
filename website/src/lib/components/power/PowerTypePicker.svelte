@@ -9,6 +9,8 @@
 	// here because every option starts with its namespace (typing "res"
 	// never reaches `neoorigins:resource`), so the filter matches on any
 	// substring instead. Enter picks the match when exactly one remains.
+	//
+	// Options are grouped into <optgroup>s by namespace — see NS_ORDER below.
 
 	let {
 		value,
@@ -36,6 +38,36 @@
 		// filter, so the select never silently jumps to a different type.
 		if (value && !hits.includes(value)) hits.unshift(value);
 		return hits;
+	});
+
+	// The enum is dominated by legacy compat ids: `neoorigins:` natives are ~150 of
+	// ~557, the rest are the origins:/apace:/apoli:/apugli: types the compat layer
+	// accepts so that imported packs validate. A flat list of that length buries the
+	// natives, so group by namespace with `neoorigins:` first and the Apoli-family
+	// spellings (which are just aliases of the `origins:` entries above them) last.
+	const NS_ORDER = ['neoorigins', 'origins', 'apace', 'apoli', 'apugli'];
+	const NS_LABEL: Record<string, string> = {
+		neoorigins: 'NeoOrigins (native)',
+		origins: 'Origins / Apoli import',
+		apace: 'Apace import',
+		apoli: 'Apoli namespace (alias of Origins / Apoli import)',
+		apugli: 'Apugli namespace (alias of Origins / Apoli import)'
+	};
+
+	const groups = $derived.by(() => {
+		const byNs = new Map<string, string[]>();
+		for (const opt of filtered) {
+			const ns = opt.includes(':') ? opt.slice(0, opt.indexOf(':')) : '';
+			if (!byNs.has(ns)) byNs.set(ns, []);
+			byNs.get(ns)!.push(opt);
+		}
+		const rank = (ns: string) => {
+			const i = NS_ORDER.indexOf(ns);
+			return i === -1 ? NS_ORDER.length : i;
+		};
+		return [...byNs.entries()]
+			.sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]))
+			.map(([ns, opts]) => ({ ns, label: NS_LABEL[ns] ?? ns, opts }));
 	});
 
 	function onFilterKeydown(e: KeyboardEvent) {
@@ -67,8 +99,12 @@
 		{disabled}
 		onchange={(e) => onChange((e.currentTarget as HTMLSelectElement).value)}
 	>
-		{#each filtered as opt (opt)}
-			<option value={opt}>{opt}</option>
+		{#each groups as group (group.ns)}
+			<optgroup label={group.label}>
+				{#each group.opts as opt (opt)}
+					<option value={opt}>{opt}</option>
+				{/each}
+			</optgroup>
 		{/each}
 	</select>
 	{#if filter.trim() !== ''}
