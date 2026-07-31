@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
@@ -15,6 +16,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -135,13 +137,50 @@ public class WorldPowerEvents {
     public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
         Mob mob = event.getEntity();
+        if (!anyWardingPlayer(sl)) return;
         for (ServerPlayer sp : sl.players()) {
             ActiveOriginService.forEachOfTypeActive(sp, NoMobSpawnsNearbyPower.class, cfg -> {
-                if (sp.distanceTo(mob) <= cfg.radius() && matchesSpawnCategory(cfg, mob)) {
+                double radius = cfg.radius();
+                if (sp.distanceToSqr(mob) <= radius * radius && matchesSpawnCategory(cfg, mob)) {
                     event.setSpawnCancelled(true);
                 }
             });
         }
+    }
+
+    /** Immutable snapshot so an off-thread reader can never see a torn gate. */
+    private record SpawnWardGate(ResourceKey<Level> dim, int tick, boolean warded) {}
+
+    private static volatile SpawnWardGate spawnWardGate = null;
+
+    /**
+     * True if anyone in {@code sl} might be warding mob spawns. FinalizeSpawn fires
+     * for every monster spawn attempt, and virtually nobody holds
+     * {@code no_mob_spawns_nearby}, so the scan above is almost always waste.
+     *
+     * <p>Recomputed at most once per (dimension, server tick) from the same
+     * authoritative power lists the scan reads. The probe ignores conditions and
+     * toggles, so it over-approximates and a warded gate always falls through to
+     * the exact scan; the only staleness is that a ward granted mid-tick starts
+     * suppressing spawns on the next tick. Chunk-generation spawns can enter here
+     * off-thread, hence the single-volatile snapshot.
+     */
+    private static boolean anyWardingPlayer(ServerLevel sl) {
+        int tick = sl.getServer().getTickCount();
+        ResourceKey<Level> dim = sl.dimension();
+        SpawnWardGate cached = spawnWardGate;
+        if (cached != null && cached.tick() == tick && cached.dim().equals(dim)) {
+            return cached.warded();
+        }
+        boolean warded = false;
+        for (ServerPlayer sp : sl.players()) {
+            if (ActiveOriginService.has(sp, NoMobSpawnsNearbyPower.class, c -> true)) {
+                warded = true;
+                break;
+            }
+        }
+        spawnWardGate = new SpawnWardGate(dim, tick, warded);
+        return warded;
     }
 
     private static boolean matchesSpawnCategory(NoMobSpawnsNearbyPower.Config cfg, Mob mob) {
