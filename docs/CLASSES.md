@@ -112,6 +112,9 @@ you don't want a resource/language pack — handy for self-contained datapacks.
 ## See also
 
 - [PACK_FORMAT.md](PACK_FORMAT.md) — Origin JSON, Power JSON, Layer JSON
+- [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker) — reopen the
+  picker for the class layer (or any other layer subset) from a power, the mechanism the
+  Orb of Class is a preset of
 - [`examples/class_tier_up/`](../examples/class_tier_up/) — class promotion via advancement upgrades
 - [`examples/custom_class/`](../examples/custom_class/) — a complete copy-paste custom class
 - [SUB_ORIGINS.md](SUB_ORIGINS.md) — conditioned layer entries (also work in the class layer)
