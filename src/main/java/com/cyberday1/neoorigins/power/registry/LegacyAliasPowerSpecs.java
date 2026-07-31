@@ -441,7 +441,8 @@ public final class LegacyAliasPowerSpecs {
      */
     private static List<FieldSpec> pinnedEventTail() {
         return fieldsOf("action_on_event", "event", "modifier", "block_condition",
-            "hands", "hand", "effect", "effect_tag", "power", "immunity_ticks");
+            "hands", "hand", "item_condition", "effect", "effect_tag", "power",
+            "immunity_ticks");
     }
 
     /**
