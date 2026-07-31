@@ -8,7 +8,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.effect.MobEffectInstance;
 
 /**
  * Parses an entity-action JSON into a {@link TargetAction} for the subset of
@@ -166,49 +165,23 @@ public final class TargetActionParser {
         };
     }
 
-    /** Mirrors {@code BuiltinActions.apply_effect}: flat shape or {@code effects[]} first entry. */
+    /**
+     * Mirrors {@code BuiltinActions.apply_effect} by sharing its resolver, so the
+     * target path accepts the same three shapes — nested {@code effect} object,
+     * {@code effects[]} (all entries), flat {@code effect}/{@code id} — and applies
+     * every effect asked for rather than only the first.
+     */
     private static TargetAction parseApplyEffect(JsonObject json) {
-        String effectId;
-        int duration = 200;
-        int amplifier = 0;
-        boolean ambient = false;
-        boolean particles = true;
-        boolean icon = true;
-
-        if (json.has("effects") && json.get("effects").isJsonArray()) {
-            JsonArray arr = json.getAsJsonArray("effects");
-            if (!arr.isEmpty() && arr.get(0).isJsonObject()) {
-                JsonObject eff = arr.get(0).getAsJsonObject();
-                effectId = BuiltinActions.resolveEffectId(eff);
-                duration = eff.has("duration") ? eff.get("duration").getAsInt() : duration;
-                amplifier = eff.has("amplifier") ? eff.get("amplifier").getAsInt() : amplifier;
-                ambient = eff.has("is_ambient") && eff.get("is_ambient").getAsBoolean();
-                particles = !eff.has("show_particles") || eff.get("show_particles").getAsBoolean();
-                icon = !eff.has("show_icon") || eff.get("show_icon").getAsBoolean();
-            } else {
-                effectId = null;
-            }
-        } else {
-            effectId = BuiltinActions.resolveEffectId(json);
-            duration = json.has("duration") ? json.get("duration").getAsInt() : duration;
-            amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : amplifier;
-            ambient = json.has("is_ambient") && json.get("is_ambient").getAsBoolean();
-            particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
-            icon = !json.has("show_icon") || json.get("show_icon").getAsBoolean();
+        var specs = BuiltinActions.resolveEffectSpecs(json, "apply_effect (target)");
+        if (specs.isEmpty()) return (t, a) -> {};
+        if (specs.size() == 1) {
+            final var only = specs.getFirst();
+            return (t, a) -> t.addEffect(only.toInstance());
         }
-
-        if (effectId == null) return (t, a) -> {};
-        var effectHolder = BuiltInRegistries.MOB_EFFECT.get(Identifier.parse(effectId)).orElse(null);
-        if (effectHolder == null) {
-            NeoOrigins.LOGGER.warn("[CompatB] apply_effect (target): unknown mob effect '{}' — action will no-op", effectId);
-            return (t, a) -> {};
-        }
-        final int fDur = duration;
-        final int fAmp = amplifier;
-        final boolean fAmb = ambient;
-        final boolean fPart = particles;
-        final boolean fIcon = icon;
-        return (t, a) -> t.addEffect(new MobEffectInstance(effectHolder, fDur, fAmp, fAmb, fPart, fIcon));
+        final var all = java.util.List.copyOf(specs);
+        return (t, a) -> {
+            for (var spec : all) t.addEffect(spec.toInstance());
+        };
     }
 
     /**

@@ -1012,10 +1012,13 @@ only invite divergent behaviour:
   vanilla `player.block_break_speed` attribute, which auto-syncs to the
   client; the event route silently no-op'd because `PlayerEvent.BreakSpeed`
   fires client-side for the local player).
-- `mod_xp_gain` → use the native `neoorigins:xp_gain_modifier` power (or the
-  `origins:modify_xp_gain` alias inside the Apoli compat layer). Both feed the
-  same `NumericModifierRegistry` XP_GAIN path with full Apoli modifier math
-  (`addition` + `multiply_base` / `multiply_total`).
+- `mod_xp_gain` → use the `origins:modify_xp_gain` power type (aliases
+  `apace:` / `apoli:` / `apugli:`), parsed by the Apoli compat layer in
+  `OriginsCompatPowerLoader.parseNumericModifier` into the
+  `NumericModifierRegistry` XP_GAIN path with full Apoli modifier math
+  (`addition` + `multiply_base` / `multiply_total`). There is no native
+  `neoorigins:` spelling for this one — the compat type *is* the supported
+  route, and it is not deprecated.
 
 ---
 
