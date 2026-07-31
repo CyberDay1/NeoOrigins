@@ -113,6 +113,27 @@ public final class LegacyAliasPowerSpecs {
         List.of("origins", "apace", "apoli", "apugli");
 
     /**
+     * Declare one branch for a cross-mod alias id that is NOT in the
+     * {@code neoorigins:} namespace — the Apugli/Apoli spellings
+     * {@link LegacyPowerTypeAliases} registers directly, rather than the
+     * {@code origins:}-family ids the compat dispatch owns.
+     *
+     * <p>Same contract as {@link #define}: declare exactly the fields that still
+     * mean something after the remap. The only difference is that the namespace
+     * is explicit, because these ids exist under one upstream spelling and are
+     * not expanded across the family — {@code apugli:action_on_jump} is a real
+     * Apugli type, {@code origins:action_on_jump} never was.
+     */
+    private static void defineCrossMod(String namespace, String path, List<FieldSpec> fields) {
+        Identifier id = Identifier.fromNamespaceAndPath(namespace, path);
+        if (BuiltinPowers.isRegistered(id)) {
+            throw new IllegalStateException(id + " is a real power type — describe it in "
+                + "BuiltinPowers, not in the legacy-alias table");
+        }
+        SPECS.put(id, List.copyOf(fields));
+    }
+
+    /**
      * Declare one branch for a legacy <em>compat</em> power type — an
      * {@code origins:}-family id served by {@code OriginsCompatPowerLoader}
      * (Route B) rather than by the 2.0 alias table.
@@ -140,6 +161,7 @@ public final class LegacyAliasPowerSpecs {
         registerPersistentEffectAliases();
         registerConditionPassiveAliases();
         registerActionOnEventAliases();
+        registerCrossModActionOnEventAliases();
         registerActiveAbilityAliases();
         registerLegacyCompatSpecs();
     }
@@ -398,6 +420,45 @@ public final class LegacyAliasPowerSpecs {
             new FieldSpec("amplifier", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
                 .doc("grant_effect only: effect level minus one (0 = level I); default 0. Ignored by the other actions.")));
+    }
+
+    // ── cross-mod action_on_event targets (Apugli) ──────────────────────────
+
+    /**
+     * {@code action_on_event}'s own fields, minus everything the pinned event
+     * makes inert. {@code event} goes because the remap writes it. The eight
+     * filters go because each is consulted only for an event these aliases are
+     * not: {@code block_condition} (block events), {@code hands}/{@code hand}
+     * (interaction events), {@code effect}/{@code effect_tag}/{@code
+     * immunity_ticks} (effect_applied), {@code power} (power_activated).
+     * {@code modifier} goes because JUMP and KILL are dispatched through
+     * {@code EventPowerIndex.dispatch}, never {@code dispatchModifier}, so a
+     * modifier chain on either would never be consulted.
+     *
+     * <p>What survives is the three fields {@code ActionOnEventPower} reads off
+     * the same JSON on every event: the action itself, the gate, and the re-fire
+     * cooldown. {@code entity_action} is the one Apugli packs actually author.
+     */
+    private static List<FieldSpec> pinnedEventTail() {
+        return fieldsOf("action_on_event", "event", "modifier", "block_condition",
+            "hands", "hand", "effect", "effect_tag", "power", "immunity_ticks");
+    }
+
+    /**
+     * Apugli's two event hooks that {@link LegacyPowerTypeAliases} serves by
+     * pinning {@code action_on_event}'s {@code event} key. Apugli was abandoned
+     * at 2.11.0+1.20.4, so these ids only ever appear in packs shipped against
+     * it; there is no {@code origins:} spelling to expand across the family.
+     */
+    private static void registerCrossModActionOnEventAliases() {
+        // action_on_jump → event: jump. Fires on LivingJumpEvent for the holder.
+        defineCrossMod("apugli", "action_on_jump", pinnedEventTail());
+
+        // action_on_target_death → event: kill. Fires when the holder lands the
+        // killing blow. Apugli's own bi-entity spelling has no counterpart here:
+        // the KILL hook runs its action on the killer only, so a bientity_action
+        // would be read by nothing and is deliberately not offered.
+        defineCrossMod("apugli", "action_on_target_death", pinnedEventTail());
     }
 
     // ── active_ability targets ──────────────────────────────────────────────

@@ -478,16 +478,25 @@ public final class PowerEnumCheck {
      * native type. "Functional" there means "a dispatch arm claims it", which
      * {@link #auditDispatchParity()} pins to the actual switch source — so this is
      * not the enum vouching for itself.
+     *
+     * <p>The canonical form and the authored form are BOTH live at each hop,
+     * mirroring {@code PowerDataManager.resolvePowerType}: dispatch is keyed on
+     * the canonical id, but when neither switch claims it the loader restores the
+     * authored id and offers it to the alias table. So an Apoli-family id whose
+     * {@code origins:} spelling has no dispatch case (apugli:action_on_jump) still
+     * resolves — through the alias — while one whose spelling DOES have a case
+     * (apoli:edible_item) resolves through that case first, exactly as at load.
      */
     private static boolean resolves(String id, Set<String> registered, Set<String> aliasSources,
                                     String translatorSrc) {
         if (OriginsMultipleExpander.MULTIPLE_TYPES.contains(id)) return true;
-        String cur = canonicalize(id);
+        String cur = id;
         for (int hop = 0; hop < 4; hop++) {
-            if (registered.contains(cur)) return true;
-            if (OriginsCompatPowerLoader.ROUTE_B_TYPES.contains(cur)
-                || OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES.contains(cur)
-                || OriginsPowerTranslator.ROUTE_A_TYPES.contains(cur)) {
+            String canonical = canonicalize(cur);
+            if (registered.contains(canonical)) return true;
+            if (OriginsCompatPowerLoader.ROUTE_B_TYPES.contains(canonical)
+                || OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES.contains(canonical)
+                || OriginsPowerTranslator.ROUTE_A_TYPES.contains(canonical)) {
                 return true;
             }
             if (aliasSources.contains(cur)) {
@@ -495,9 +504,9 @@ public final class PowerEnumCheck {
                 cur = LegacyPowerTypeAliases.simulateApply(rl, new JsonObject(), rl).toString();
                 continue;
             }
-            if (OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS.contains(cur)) {
-                if (!translatorSrc.contains("\"" + cur + "\"")) return false;
-                cur = "neoorigins:" + Identifier.parse(cur).getPath();
+            if (OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS.contains(canonical)) {
+                if (!translatorSrc.contains("\"" + canonical + "\"")) return false;
+                cur = "neoorigins:" + Identifier.parse(canonical).getPath();
                 continue;
             }
             return false;

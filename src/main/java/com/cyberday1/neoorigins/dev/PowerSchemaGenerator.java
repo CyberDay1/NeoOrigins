@@ -260,22 +260,20 @@ public final class PowerSchemaGenerator {
         // them away), so all three must be authorable. They have no structured
         // branch because their properties are arbitrary sub-power keys.
         ids.addAll(com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_TYPES);
+        // Every alias source is authorable, INCLUDING the Apoli-family ones.
+        // That is not free: canonicalizePowerType rewrites apoli:/apugli: ->
+        // origins: and Route A runs before the alias pass, so an Apoli-family
+        // alias key is gone by remap time. The two cross-mod entries with no
+        // origins: counterpart — apugli:action_on_jump and
+        // apugli:action_on_target_death — were dropped outright because of it,
+        // and were withheld from this enum while that was true. They are not
+        // withheld any more: PowerDataManager.resolvePowerType keeps the
+        // authored id in reserve and hands it to the alias table when neither
+        // dispatch switch claims the canonical form, so both now load. (The
+        // other two, apoli:/apugli:edible_item, always loaded via
+        // `origins:edible_item`'s Route A case and arrive via
+        // legacyPowerTypeSurface() below regardless.)
         for (Identifier rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
-            // Apoli-family alias sources are NOT authorable, however the alias table
-            // reads. PowerDataManager canonicalizes apoli:/apugli: -> origins: and
-            // runs the translator BEFORE LegacyPowerTypeAliases.apply, so the alias
-            // never fires for an apoli-family id. The four cross-mod entries split
-            // cleanly: apoli:/apugli:edible_item load anyway, because
-            // `origins:edible_item` has a Route A case and canonicalisation routes
-            // them onto it — so they come back in via legacyPowerTypeSurface()
-            // below, on their own merits. apugli:action_on_jump and
-            // apugli:action_on_target_death have no origins: case at all, are simply
-            // dropped at load, and are not in that surface either — so skipping them
-            // here is what stops the schema making the "validates, then the load logs
-            // Unknown power type" claim. Making the alias table reachable for them is
-            // a runtime fix, tracked separately.
-            if (com.cyberday1.neoorigins.compat.OriginsFormatDetector
-                    .isApoliFamily(rl.getNamespace())) continue;
             ids.add(rl.toString());
         }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);
