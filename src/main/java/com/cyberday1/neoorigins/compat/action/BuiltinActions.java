@@ -501,6 +501,11 @@ public final class BuiltinActions {
         define("damage",
             (json, ctx) -> {
                 float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
+                // Apoli-style explicit damage-type id (e.g. minecraft:freeze). Takes
+                // priority over the legacy `source.name` keyword. Resolved against the
+                // DAMAGE_TYPE registry at runtime since it's a datapack registry.
+                String dtStr = json.has("damage_type") ? json.get("damage_type").getAsString() : "";
+                final Identifier dtId = dtStr.isEmpty() ? null : Identifier.tryParse(dtStr);
                 String sourceType = "";
                 if (json.has("source") && json.get("source").isJsonObject()) {
                     var src = json.getAsJsonObject("source");
@@ -508,24 +513,40 @@ public final class BuiltinActions {
                 }
                 final String fSrc = sourceType;
                 return player -> {
-                    var dmgSrc = switch (fSrc) {
-                        case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
-                        case "lava"   -> player.level().damageSources().lava();
-                        case "magic"  -> player.level().damageSources().magic();
-                        case "starve" -> player.level().damageSources().starve();
-                        case "drown"  -> player.level().damageSources().drown();
-                        case "freeze" -> player.level().damageSources().freeze();
-                        case "wither" -> player.level().damageSources().wither();
-                        default       -> player.level().damageSources().generic();
-                    };
+                    net.minecraft.world.damagesource.DamageSource dmgSrc = null;
+                    if (dtId != null) {
+                        var lookup = player.level().registryAccess()
+                            .lookupOrThrow(net.minecraft.core.registries.Registries.DAMAGE_TYPE);
+                        var holder = lookup.get(net.minecraft.resources.ResourceKey.create(
+                            net.minecraft.core.registries.Registries.DAMAGE_TYPE, dtId));
+                        if (holder.isPresent()) {
+                            dmgSrc = new net.minecraft.world.damagesource.DamageSource(holder.get());
+                        } else {
+                            NeoOrigins.LOGGER.warn("[CompatB] damage: unknown damage_type '{}' — falling back to generic", dtId);
+                        }
+                    }
+                    if (dmgSrc == null) {
+                        dmgSrc = switch (fSrc) {
+                            case "fire", "on_fire", "in_fire" -> player.level().damageSources().onFire();
+                            case "lava"   -> player.level().damageSources().lava();
+                            case "magic"  -> player.level().damageSources().magic();
+                            case "starve" -> player.level().damageSources().starve();
+                            case "drown"  -> player.level().damageSources().drown();
+                            case "freeze" -> player.level().damageSources().freeze();
+                            case "wither" -> player.level().damageSources().wither();
+                            default       -> player.level().damageSources().generic();
+                        };
+                    }
                     player.hurt(dmgSrc, amount);
                 };
             },
             List.of(
                 new FieldSpec("amount", FormFieldSpec.Kind.NUMBER, false).def(1.0).range(0.0, null)
                     .doc("Damage dealt in half-hearts (default 1.0)."),
+                new FieldSpec("damage_type", FormFieldSpec.Kind.STRING, false)
+                    .doc("Damage-type id to attribute the hit to (e.g. minecraft:freeze, minecraft:magic). Takes priority over `source.name`; unknown ids warn and fall back to generic."),
                 new FieldSpec("source", FormFieldSpec.Kind.MIXED, false)
-                    .doc("Optional damage source; reads `source.name` (fire/lava/magic/starve/drown/freeze/wither; default generic).")));
+                    .doc("Optional legacy damage source; reads `source.name` (fire/lava/magic/starve/drown/freeze/wither; default generic). Ignored when `damage_type` is set.")));
 
         // give — give an item stack to the player. Lift-and-shift of parseGive
         // (26.1: Identifier + lambda-internal BuiltInRegistries.ITEM.get lookup).
@@ -2708,7 +2729,9 @@ public final class BuiltinActions {
                     .options("items", "stacks")
                     .doc("items (default) counts individual items; stacks counts whole stacks toward the limit."),
                 new FieldSpec("limit", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
-                    .doc("Cap on items/stacks processed; 0 = no limit (default 0).")));
+                    .doc("Cap on items/stacks processed; 0 = no limit (default 0)."),
+                new FieldSpec("slot", FormFieldSpec.Kind.STRING, false)
+                    .doc("Restrict to a single slot: mainhand, offhand, head, chest, legs, feet, or a raw inventory index. All slots if absent.")));
 
         // spawn_lingering_area — spawn a recurring effect-cloud entity.
         define("spawn_lingering_area",

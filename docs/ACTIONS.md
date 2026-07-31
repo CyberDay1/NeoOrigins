@@ -1910,7 +1910,7 @@ Iterates inventory slots and runs an item action on each matching stack.
 |---|---|---|---|---|
 | `item_action` | object | yes | — | Item action to run per matching stack |
 | `item_condition` | object | no | — | Item condition to filter stacks (see Item Conditions below); all stacks if absent |
-| `slot` | string | no | — | Restrict to a single slot name; iterates all slots if absent |
+| `slot` | string | no | — | Restrict to a single slot: `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, or a raw inventory index; iterates all slots if absent |
 
 **Example — consume all rotten flesh in inventory:**
 ```json
