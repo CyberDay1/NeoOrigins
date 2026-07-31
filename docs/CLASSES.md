@@ -109,6 +109,20 @@ you don't want a resource/language pack — handy for self-contained datapacks.
 - **No classes at all:** if *every* class is disabled, the class selection
   screen is skipped entirely and only the origin layer is shown.
 
+## Reopening the picker for arbitrary layers
+
+The class picker can be reopened after the fact, and not just for the class
+layer: the same mechanism works for any layer subset a pack defines. Two author
+paths expose it:
+
+- **Datapack action** [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker):
+  give any power (item use, keybind, on-hit, …) a `layers` list to re-pick, with
+  `commit_mode` (`deferred`/`immediate`), an XP `cost`, an optional `message` shown
+  when the picker opens, and `consume_item` to spend the triggering item on commit.
+  This lets a pack build its own re-pick items or powers for whatever layers it defines.
+- **Admin command** `/origin gui <player> <layers>`: opens the picker scoped to one or
+  more comma- or space-separated layers for a single target player (gamemaster permission).
+
 ## See also
 
 - [PACK_FORMAT.md](PACK_FORMAT.md) — Origin JSON, Power JSON, Layer JSON

@@ -869,6 +869,29 @@ Triggers another power's activation exactly as if the player pressed its key —
 
 ---
 
+## `neoorigins:open_layer_picker`
+
+Reopens the origin selection screen scoped to an author-specified subset of layers, so a pack can offer a "re-pick these layers" item or power for any layer set (generalizes the Orb of Class). The scoped layers are cleared (their powers revoked) and the picker re-shows them; every other layer stays chosen. Runs server-side.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `layers` | array of resource ids | yes | — | Layer ids to reopen the picker for. Unknown or hidden layers are skipped; if none are valid the action does nothing |
+| `commit_mode` | enum | no | `"deferred"` | `deferred`: `cost` is charged on the first pick and closing the picker is a free cancel that restores the prior origins. `immediate`: `cost` is charged up front and closing the picker leaves the layers empty (the auto-default fills them, e.g. class → nitwit) |
+| `cost` | int | no | `0` | XP levels charged when the player commits a pick (deferred) or immediately (immediate). 0 = free |
+| `message` | string | no | — | Chat line shown to the player when the picker opens. A translation key resolves against the active language; a plain string is shown as-is |
+| `consume_item` | bool | no | `false` | When true, one of the player's main-hand item (the item that triggered this action, e.g. a datapack orb) is removed when the pick commits. Creative players keep the item. Pair with an item-use trigger — on a keybind it would consume whatever is held |
+
+**Example:**
+```json
+{ "type": "neoorigins:open_layer_picker", "layers": ["neoorigins:class"], "commit_mode": "deferred", "cost": 3, "message": "Choose a new class", "consume_item": true }
+```
+
+The `/origin gui <player> <layers>` command is the admin equivalent; it takes one or more comma- or space-separated layer ids (e.g. `/origin gui Steve neoorigins:origin,neoorigins:class`).
+
+For a full worked example — binding one of the four inert orb items to a custom layer, granting the power, and adding a crafting recipe — see [COOKBOOK.md § 16](COOKBOOK.md#16-reroll-my-custom-layer--wiring-up-a-spare-orb).
+
+---
+
 ## `neoorigins:explode`
 
 Creates an explosion centred on the target.
