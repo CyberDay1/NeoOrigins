@@ -29,11 +29,12 @@ import java.util.function.Predicate;
  * Central service for traversing a player's active powers.
  * All iteration is deterministic: layers are visited in sorted ID order.
  *
- * <p>Read-side lookups ({@link #forEach}, {@link #forEachOfType}, {@link #has},
- * {@link #allPowers}, {@link #activePowers}, {@link #activeClassPowers}) go through
- * a per-player cache keyed by (dimension, player-data version, origin-manager version,
- * power-manager version, dim-restrictions version). The cache is rebuilt on any mismatch
- * and cleared on logout via {@link #invalidate(UUID)}.
+ * <p>Every read-side lookup — {@link #forEach}, {@link #forEachOfType},
+ * {@link #forEachOfTypeActive}, {@link #has}, {@link #hasCapability},
+ * {@link #allPowers}, {@link #activePowers}, {@link #activeClassPowers} — goes
+ * through a per-player cache keyed by (dimension, player-data version, origin-manager
+ * version, power-manager version, dim-restrictions version). The cache is rebuilt on
+ * any mismatch and cleared on logout via {@link #invalidate(UUID)}.
  */
 public final class ActiveOriginService {
 
@@ -72,6 +73,9 @@ public final class ActiveOriginService {
         final List<PowerHolder<?>> allPowers;
         final List<PowerHolder<?>> originActive;
         final List<PowerHolder<?>> classActive;
+        /** Static capability union over every holder NOT in {@link #dynamicCapabilityPowers}. */
+        final java.util.Set<String> staticCapabilities;
+        final List<PowerHolder<?>> dynamicCapabilityPowers;
 
         CacheEntry(ServerPlayer owner, ResourceKey<Level> dim, int dv, int omv, int pmv, int rv,
                    List<PowerHolder<?>> all,
@@ -86,7 +90,59 @@ public final class ActiveOriginService {
             this.allPowers = all;
             this.originActive = originActive;
             this.classActive = classActive;
+            java.util.Set<String> caps = new java.util.HashSet<>();
+            List<PowerHolder<?>> dynamic = new ArrayList<>();
+            indexCapabilities(all, caps, dynamic);
+            this.staticCapabilities = java.util.Set.copyOf(caps);
+            this.dynamicCapabilityPowers = List.copyOf(dynamic);
         }
+    }
+
+    /**
+     * Splits {@code holders} into the union of their <em>static</em>
+     * {@code capabilities(config)} tags and the holders that must still be asked
+     * live. {@code capsOut} is an upper bound over the former only, so it is sound
+     * as a negative filter and nothing else.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static void indexCapabilities(List<PowerHolder<?>> holders,
+                                  java.util.Set<String> capsOut,
+                                  List<PowerHolder<?>> dynamicOut) {
+        for (PowerHolder<?> holder : holders) {
+            if (hasDynamicCapabilities(holder.type())) {
+                dynamicOut.add(holder);
+            } else {
+                capsOut.addAll(((PowerHolder) holder).type().capabilities(holder.config()));
+            }
+        }
+    }
+
+    /**
+     * True for types whose static capability set may under-report, either now or
+     * the moment {@link #hasCapability} switches to the player-aware call.
+     *
+     * <p>Two independent criteria, both derived from this branch's own dispatch
+     * surface. enhanced_vision reads the content.toml kill-switch and
+     * entity_model resolves against MorphDataManager, so their
+     * {@code capabilities(config)} answers depend on live state the cache's
+     * version tuple does not track — caching either in the union would serve a
+     * stale answer. model_color and compat are the only two types that override
+     * {@code capabilities(ServerPlayer, Config)}: model_color returns an empty
+     * static set whenever a condition is present while its player-aware variant
+     * returns the real tag, and compat only ever narrows. Neither can be folded
+     * into a union that is supposed to bound the player-aware result, and
+     * CapabilityIndexTest holds that line for any type added later.
+     */
+    static boolean hasDynamicCapabilities(PowerType<?> type) {
+        return isDynamicCapabilityType(type.getClass());
+    }
+
+    /** Class-level form, so the exhaustiveness test can classify a type without constructing one. */
+    static boolean isDynamicCapabilityType(Class<?> type) {
+        return com.cyberday1.neoorigins.power.builtin.ModelColorPower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.compat.CompatPower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.power.builtin.EnhancedVisionPower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type);
     }
 
     private static CacheEntry getOrBuild(ServerPlayer player) {
@@ -257,10 +313,23 @@ public final class ActiveOriginService {
      * {@link com.cyberday1.neoorigins.api.power.PowerType#capabilities capability} tag.
      *
      * Server-side counterpart to {@code ClientActivePowers.hasCapability}.
+     *
+     * <p>Called per-tick and per-block from several mixins, so the cached static
+     * union short-circuits it: a tag absent from the union can only come from a
+     * dynamic holder. The union never answers "yes" on its own.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static boolean hasCapability(ServerPlayer player, String tag) {
-        for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
+        CacheEntry entry = getOrBuild(player);
+        if (!entry.staticCapabilities.contains(tag)) {
+            return !entry.dynamicCapabilityPowers.isEmpty()
+                && probeCapability(player, tag, entry.dynamicCapabilityPowers);
+        }
+        return probeCapability(player, tag, entry.allPowers);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static boolean probeCapability(ServerPlayer player, String tag, List<PowerHolder<?>> holders) {
+        for (PowerHolder<?> holder : holders) {
             if (!holder.isConditionSatisfied(player)) continue;
             if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
                     && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
