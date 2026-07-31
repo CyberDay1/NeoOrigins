@@ -35,9 +35,13 @@
 # (apace:night_vision, apace:status_effect, apace:water_breathing,
 # apoli:edible_item, apugli:edible_item) moved to the legacy-surface count, since
 # they are ordinary Route A dispatch labels. Two (apugli:action_on_jump,
-# apugli:action_on_target_death) left the enum entirely: canonicalization rewrites
-# apoli:/apugli: to origins: and Route A drops the power before the alias table is
-# consulted, so those two never loaded and the schema should not have offered them.
+# apugli:action_on_target_death) briefly left the enum entirely, because
+# canonicalization rewrote apoli:/apugli: to origins: and Route A dropped the
+# power before the alias table was consulted, so neither actually loaded. That
+# is fixed: PowerDataManager.resolvePowerType now keeps the authored id in
+# reserve and offers it to the alias table when neither dispatch switch claims
+# the canonical form. Both load again, both are back in the enum, and both have
+# a structured branch from LegacyAliasPowerSpecs — so neither needs a line here.
 #
 # The 29 native types that used to head this list are gone. They were the 2.0
 # power-type ids LegacyPowerTypeAliases remaps at load — authorable and working,

@@ -265,22 +265,20 @@ public final class PowerSchemaGenerator {
         ids.add(ID_PARTICLE);
         ids.add(ID_STARTING_EQUIPMENT);
         ids.addAll(com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_TYPES);
+        // Every alias source is authorable, INCLUDING the Apoli-family ones.
+        // That is not free: canonicalizePowerType rewrites apoli:/apugli: ->
+        // origins: and Route A runs before the alias pass, so an Apoli-family
+        // alias key is gone by remap time. The two cross-mod entries with no
+        // origins: counterpart — apugli:action_on_jump and
+        // apugli:action_on_target_death — were dropped outright because of it,
+        // and were withheld from this enum while that was true. They are not
+        // withheld any more: PowerDataManager.resolvePowerType keeps the
+        // authored id in reserve and hands it to the alias table when neither
+        // dispatch switch claims the canonical form, so both now load. (The
+        // other two, apoli:/apugli:edible_item, always loaded via
+        // `origins:edible_item`'s Route A case and arrive via
+        // legacyPowerTypeSurface() below regardless.)
         for (ResourceLocation rl : LegacyPowerTypeAliases.aliasedTypeIds()) {
-            // Apoli-family alias sources are NOT authorable, however the alias table
-            // reads. PowerDataManager.apply canonicalizes apoli:/apugli: -> origins:
-            // and then runs Route A, which drops the power when no case matches —
-            // both BEFORE LegacyPowerTypeAliases.apply. So the alias never fires for
-            // an apoli-family id, and advertising one is the "schema lies, then the
-            // load logs Unknown power type" failure. The four cross-mod entries split
-            // cleanly: apoli:/apugli:edible_item load anyway because
-            // `origins:edible_item` has a Route A case (and so arrive via
-            // legacyPowerTypeSurface() below), while apugli:action_on_jump and
-            // apugli:action_on_target_death have no origins: case and genuinely do not
-            // load — they are dropped from the enum here rather than advertised.
-            // Making the alias table reachable for them is a runtime fix, tracked
-            // separately; this only stops the schema claiming it already is.
-            if (com.cyberday1.neoorigins.compat.OriginsFormatDetector
-                    .isApoliFamily(rl.getNamespace())) continue;
             ids.add(rl.toString());
         }
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);

@@ -229,8 +229,10 @@
         "apugli:action_on_entity_use",
         "apugli:action_on_hit",
         "apugli:action_on_item_use",
+        "apugli:action_on_jump",
         "apugli:action_on_kill",
         "apugli:action_on_land",
+        "apugli:action_on_target_death",
         "apugli:action_on_wake_up",
         "apugli:action_over_time",
         "apugli:action_when_damage_taken",
@@ -960,6 +962,96 @@
               }
             }
           ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:action_on_jump",
+      "properties": {
+        "type": {
+          "const": "apugli:action_on_jump"
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the action/modifier; both only run while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "entity_action": {
+          "description": "EntityAction run on the player as a side-effect when the configured event fires.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "cooldown_ticks": {
+          "description": "After entity_action fires, suppress further firings of this power for this many ticks (20 = 1s); default 0 = no cooldown. Only gates the action path — modifier chains are unaffected.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:action_on_target_death",
+      "properties": {
+        "type": {
+          "const": "apugli:action_on_target_death"
+        },
+        "condition": {
+          "description": "Optional DSL condition gating the action/modifier; both only run while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "entity_action": {
+          "description": "EntityAction run on the player as a side-effect when the configured event fires.",
+          "oneOf": [
+            {
+              "$ref": "action.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "action.schema.json"
+              }
+            }
+          ]
+        },
+        "cooldown_ticks": {
+          "description": "After entity_action fires, suppress further firings of this power for this many ticks (20 = 1s); default 0 = no cooldown. Only gates the action path — modifier chains are unaffected.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         }
       },
       "required": [
@@ -6806,6 +6898,8 @@
               "apoli:modify_healing",
               "apoli:modify_status_effect_duration",
               "apugli:action_on_death",
+              "apugli:action_on_jump",
+              "apugli:action_on_target_death",
               "apugli:modify_healing",
               "apugli:modify_status_effect_duration",
               "neoorigins:action_on_event",

@@ -73,6 +73,21 @@ public final class LegacyPowerTypeAliases {
         return alias.newType;
     }
 
+    /**
+     * True if {@code typeId} is a registered alias source — i.e. {@link #apply}
+     * would remap it (subject to the dormancy guard).
+     *
+     * <p>Exists so the loader can ask "can the alias table still handle this?"
+     * BEFORE it has decided to drop a power. The Apoli-family entries need that:
+     * {@code OriginsFormatDetector.canonicalizePowerType} rewrites
+     * {@code apugli:x} to {@code origins:x} in place, which erases the key this
+     * table is registered under, so by the time {@link #apply} runs the authored
+     * id is gone. See {@code PowerDataManager.resolvePowerType}.
+     */
+    public static boolean hasAlias(ResourceLocation typeId) {
+        return typeId != null && ALIASES.containsKey(typeId);
+    }
+
     /** For testing / diagnostics: clear the warned-set so the next apply re-logs. */
     public static void resetWarnings() {
         WARNED.clear();

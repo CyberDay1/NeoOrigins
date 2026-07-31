@@ -180,27 +180,10 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 // are absent so they never load, sync, or appear (see ModGate).
                 if (!ModGate.satisfied(json.get("required_mods"))) continue;
 
-                // Canonicalize apoli:/apugli: -> origins: here too, to cover the
-                // synthetic sub-powers emitted by multiple-expansion (which never
-                // pass through the first loop).
-                OriginsFormatDetector.canonicalizePowerType(json);
-
-                // Translate Origins-format power to NeoOrigins format before parsing
-                if (OriginsFormatDetector.isOriginsFormat(json)) {
-                    Optional<JsonObject> translated = OriginsPowerTranslator.translate(id, json);
-                    if (translated.isEmpty()) continue; // logged by translator
-                    json = translated.get();
-                }
-
-                ResourceLocation typeId = ResourceLocation.parse(json.get("type").getAsString());
-                // Apply config overrides BEFORE alias remap, so the remapper's
-                // value-dependent gates (e.g. damage_in_water's dps > 0 check
-                // that decides whether to bake a damage entity_action or a
-                // neoorigins:nothing no-op) and the field-strip step see the
-                // user's final values rather than the pack defaults.
-                applyConfigOverrides(id, json);
-                // 2.0 legacy alias remap — transparently rewrites old type IDs.
-                typeId = LegacyPowerTypeAliases.apply(typeId, json, id);
+                Resolved resolved = resolvePowerType(id, json);
+                if (resolved == null) continue; // dropped; every drop path logs
+                ResourceLocation typeId = resolved.typeId();
+                json = resolved.json();
                 PowerType<?> type = PowerTypes.get(typeId);
                 if (type == null) {
                     // Don't warn for types handled by Route B compat — they'll
@@ -244,6 +227,97 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .forEach(e -> NeoOrigins.LOGGER.info("  [DEBUG] powers: {}  x{}", e.getKey(), e.getValue()));
         }
+    }
+
+    /**
+     * Outcome of {@link #resolvePowerType}: the type id to look up in
+     * {@code PowerTypes} and the JSON body to parse, both post-translation and
+     * post-remap. {@code json} may be a different object than the one passed in
+     * (Route A returns a rewritten body), so callers must use this one.
+     */
+    public record Resolved(ResourceLocation typeId, JsonObject json) {}
+
+    /**
+     * The pre-parse compat pipeline for a single power entry, in the one order
+     * that works: canonicalize Apoli-family &rarr; Route A translate &rarr;
+     * config overrides &rarr; legacy alias remap. Returns {@code null} when the
+     * entry is dropped before parsing (every drop path logs its own reason).
+     *
+     * <p>Two orderings here are load-bearing and must not be shuffled:
+     *
+     * <ul>
+     *   <li>{@link #applyConfigOverrides} runs BEFORE
+     *       {@link LegacyPowerTypeAliases#apply}, so remap lambdas with
+     *       value-dependent gates (damage_in_water's {@code dps > 0} check, which
+     *       decides between a damage action and a {@code neoorigins:nothing}
+     *       no-op) and the field-strip step see the server owner's final values
+     *       rather than the pack defaults. Reversing it is how "water damage
+     *       still fires at config 0" happened.</li>
+     *   <li>Canonicalization runs BEFORE Route A, because the dispatch switch is
+     *       keyed on {@code origins:}/{@code apace:} labels only.</li>
+     * </ul>
+     *
+     * <p>Extracted from {@link #apply} so both the ordering and the alias
+     * fallback below are directly testable without a ResourceManager.
+     */
+    public static Resolved resolvePowerType(ResourceLocation id, JsonObject json) {
+        // The type id EXACTLY as authored, captured before canonicalization
+        // overwrites it. LegacyPowerTypeAliases is keyed on the authored id, and
+        // for the Apoli family that key does not survive the next line — see the
+        // fallback below.
+        ResourceLocation authoredTypeId =
+            ResourceLocation.tryParse(json.get("type").getAsString());
+
+        // Canonicalize apoli:/apugli: -> origins: here too, to cover the
+        // synthetic sub-powers emitted by multiple-expansion (which never
+        // pass through the first loop).
+        String canonicalType = OriginsFormatDetector.canonicalizePowerType(json);
+
+        // Translate Origins-format power to NeoOrigins format before parsing
+        if (OriginsFormatDetector.isOriginsFormat(json)) {
+            Optional<JsonObject> translated = OriginsPowerTranslator.translate(id, json);
+            if (translated.isPresent()) {
+                json = translated.get();
+            } else if (aliasCanStillClaim(authoredTypeId, canonicalType)) {
+                // Route A has no case for the canonical id and would drop the
+                // power right here — but the alias table knows this type under
+                // the id the pack actually authored (apugli:action_on_jump,
+                // apugli:action_on_target_death). Canonicalization had already
+                // erased that key, so the alias pass below could never fire and
+                // the power was lost outright. Put the authored id back and let
+                // the alias pass have it.
+                json.addProperty("type", authoredTypeId.toString());
+            } else {
+                return null; // dropped; logged by the translator
+            }
+        }
+
+        ResourceLocation typeId = ResourceLocation.parse(json.get("type").getAsString());
+        // Apply config overrides BEFORE alias remap — see the ordering note above.
+        applyConfigOverrides(id, json);
+        // 2.0 legacy alias remap — transparently rewrites old type IDs.
+        typeId = LegacyPowerTypeAliases.apply(typeId, json, id);
+        return new Resolved(typeId, json);
+    }
+
+    /**
+     * True when a power Route A just refused is one the legacy alias table can
+     * still handle under its authored id.
+     *
+     * <p>Only ever consulted on the drop path, so it cannot re-route anything
+     * that already loads: {@code apoli:}/{@code apugli:edible_item} keep going
+     * through Route A, because {@code origins:edible_item} has a translation
+     * case and so never reaches here.
+     *
+     * <p>Route B is checked because it runs after us and legitimately claims the
+     * types Route A skips; an alias must not steal one out from under it.
+     */
+    private static boolean aliasCanStillClaim(ResourceLocation authoredTypeId, String canonicalType) {
+        if (authoredTypeId == null) return false;
+        if (!LegacyPowerTypeAliases.hasAlias(authoredTypeId)) return false;
+        if (com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.isRouteBType(canonicalType)) return false;
+        return !com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
+            .CONDITIONED_ROUTE_B_TYPES.contains(canonicalType);
     }
 
     @SuppressWarnings("unchecked")
