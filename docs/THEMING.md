@@ -62,6 +62,15 @@ wins:
 
 3. Falls back to `neoorigins:parchment` when neither resolves.
 
+### The classic-picker accessibility override
+
+`classic_picker_style` under `[ui]` in `config/neoorigins/client.toml` outranks
+every layer listed above. Selection itself still runs — an unknown id is still
+warned about, and the resolved theme is still stored — but while the option is
+`true` the screens read the built-in flat high-contrast skin (dark navy panels,
+light text, vanilla font) instead, so whatever resolved has no visible effect.
+If a pack's theme appears to do nothing, check this setting first.
+
 ## Theme JSON schema
 
 `assets/<ns>/ui_themes/<id>.json`. All fields optional — missing fields keep
@@ -83,6 +92,8 @@ ints.
 | `font`                     | ResourceLocation | `neoorigins:parchment`                               |
 | `inset_left` / `top` / `right` / `bottom` | int (px) | `12` each                                  |
 | `texture_width` / `texture_height`        | int (px) | `256`                                      |
+| `flat`                     | bool             | `false` — paint a plain fill + outline instead of the 9-slice panel art; `panel_background` and the `inset_*` / `texture_*` fields are then unused |
+| `panel_color`              | ARGB             | `0x00000000` — panel fill, used only when `flat` is true |
 
 ## Direct resource-pack overrides
 
@@ -103,7 +114,11 @@ small "I just want different colours" packs.
 
 ## Bundled font license
 
-`Newsreader-Regular.ttf` (Newsreader 16pt Regular, static cut) is
+`newsreader_regular.ttf` (Newsreader 16pt Regular, static cut) is
 redistributed under the SIL Open Font License 1.1.
-The licence text ships at `assets/neoorigins/font/OFL.txt`. If you rebundle
-the TTF in your own pack you must keep OFL.txt alongside it.
+The licence text ships at `assets/neoorigins/font/ofl.txt`. If you rebundle
+the TTF in your own pack you must keep `ofl.txt` alongside it.
+
+Both filenames are lowercase on disk because NeoForge's `PathPackResources`
+validator rejects uppercase letters in path segments — the TTF is referenced
+by resource id from `parchment.json`, so an uppercase name would not resolve.
