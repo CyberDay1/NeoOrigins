@@ -1352,7 +1352,8 @@ public final class BuiltinActions {
                 };
             },
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
-                .doc("List of {condition, action} branches; the first passing branch runs.")));
+                .doc("List of {condition, action} branches; the first passing branch runs. "
+                    + "These are wrapper records, not actions, despite the property name.")));
 
         // chance — run `action` with probability `chance`. Lift-and-shift of
         // parseChance. `chance` optional (parser default 0.5); missing action no-ops.
@@ -1395,6 +1396,13 @@ public final class BuiltinActions {
         // choice — randomly run one action from `actions`, weighted by each entry's
         // `weight`. Lift-and-shift of parseChoice. Missing/empty list no-ops; each
         // entry's `weight` optional (default 1).
+        //
+        // Each `actions` entry is a WRAPPER RECORD, not an action of its own. Apoli
+        // keys the wrapped action `element`, which is what every pack in the corpus
+        // writes; the original lift read `action` only, so every branch resolved to
+        // a no-op and the verb did nothing while still loading cleanly. Both keys
+        // are accepted now, `element` first, and an entry with neither warns rather
+        // than silently contributing an inert branch.
         define("choice",
             (json, ctx) -> {
                 if (!json.has("actions") || !json.get("actions").isJsonArray()) return EntityAction.noop();
@@ -1405,7 +1413,13 @@ public final class BuiltinActions {
                 for (com.google.gson.JsonElement el : arr) {
                     if (!el.isJsonObject()) continue;
                     com.google.gson.JsonObject entry = el.getAsJsonObject();
-                    EntityAction action = ActionParser.parseField(entry, "action", ctx);
+                    String actionKey = entry.has("element") ? "element" : "action";
+                    if (!entry.has(actionKey)) {
+                        NeoOrigins.LOGGER.warn(
+                            "[CompatB] choice: an entry in '{}' has neither 'element' nor 'action' "
+                            + "— that branch will no-op", ctx);
+                    }
+                    EntityAction action = ActionParser.parseField(entry, actionKey, ctx);
                     int weight = entry.has("weight") ? entry.get("weight").getAsInt() : 1;
                     actions.add(action);
                     weights.add(weight);
@@ -1426,7 +1440,10 @@ public final class BuiltinActions {
                 };
             },
             List.of(new FieldSpec("actions", FormFieldSpec.Kind.ARRAY, false)
-                .doc("List of {action, weight} entries; one is picked weighted-randomly.")));
+                .doc("List of {element, weight} wrapper entries — `element` holds the action "
+                    + "(`action` is accepted as a synonym), `weight` its relative chance "
+                    + "(default 1). One entry is picked weighted-randomly. These are wrapper "
+                    + "records, not actions, despite the property name.")));
 
         // target_action — dual-actor retarget. Resolves the "entity on the other side
         // of the interaction" from the active dispatch context via
@@ -2547,81 +2564,55 @@ public final class BuiltinActions {
                 new FieldSpec("items", FormFieldSpec.Kind.ARRAY, false)
                     .doc("Drop entries — each: {item, count (int|[min,max]), chance (each-mode), weight (one_of-mode)}.")));
 
-        // apply_effect — add a mob effect. DUAL-SHAPE (lift-and-shift of
-        // parseApplyEffect; NOT normalized — both shapes parse exactly as before):
-        //   (1) effects[] array  — first entry's {effect/id, duration, amplifier,
-        //                          is_ambient, show_particles, show_icon} is used.
-        //   (2) flat single-effect — effect/id + the same fields read off the root.
-        // First entry wins if both `effect` and `effects` are present. The
-        // FieldSpec list is the oneOf-style union of both shapes' fields, mirroring
-        // the hand-written schema branch; effect id is required-ish but the parser
-        // no-ops silently when absent → modelled optional.
+        // apply_effect — add one or more mob effects. THREE SHAPES, all of which
+        // Apoli accepts and which resolveEffectSpecs handles uniformly:
+        //   (1) nested single-effect — "effect": {effect/id, duration, amplifier,
+        //       is_ambient, show_particles, show_icon}. This is the shape Apoli
+        //       itself documents and the one essentially every legacy pack writes.
+        //   (2) effects[] array — every entry carries its own copy of those fields,
+        //       and ALL of them are applied.
+        //   (3) flat single-effect — effect/id plus the same fields on the root.
+        // `effects[]` wins if both it and `effect` are present.
         define("apply_effect",
             (json, ctx) -> {
-                String effectId = null;
-                int duration = 200;
-                int amplifier = 0;
-                boolean ambient = false;
-                boolean particles = true;
-                boolean icon = true;
-
-                if (json.has("effects") && json.get("effects").isJsonArray()) {
-                    com.google.gson.JsonArray arr = json.getAsJsonArray("effects");
-                    if (!arr.isEmpty() && arr.get(0).isJsonObject()) {
-                        com.google.gson.JsonObject eff = arr.get(0).getAsJsonObject();
-                        effectId = resolveEffectId(eff);
-                        duration = eff.has("duration") ? eff.get("duration").getAsInt() : duration;
-                        amplifier = eff.has("amplifier") ? eff.get("amplifier").getAsInt() : amplifier;
-                        ambient = eff.has("is_ambient") && eff.get("is_ambient").getAsBoolean();
-                        particles = !eff.has("show_particles") || eff.get("show_particles").getAsBoolean();
-                        icon = !eff.has("show_icon") || eff.get("show_icon").getAsBoolean();
-                    }
-                } else {
-                    effectId = resolveEffectId(json);
-                    duration = json.has("duration") ? json.get("duration").getAsInt() : duration;
-                    amplifier = json.has("amplifier") ? json.get("amplifier").getAsInt() : amplifier;
-                    ambient = json.has("is_ambient") && json.get("is_ambient").getAsBoolean();
-                    particles = !json.has("show_particles") || json.get("show_particles").getAsBoolean();
-                    icon = !json.has("show_icon") || json.get("show_icon").getAsBoolean();
+                List<EffectSpec> specs = resolveEffectSpecs(json, "apply_effect");
+                if (specs.isEmpty()) return EntityAction.noop();
+                if (specs.size() == 1) {
+                    final EffectSpec only = specs.getFirst();
+                    return player -> player.addEffect(only.toInstance());
                 }
-
-                if (effectId == null) return EntityAction.noop();
-                // Cache mob effect holder at parse time — registry is static.
-                var effectHolder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
-                    .get(Identifier.parse(effectId)).orElse(null);
-                if (effectHolder == null) {
-                    NeoOrigins.LOGGER.warn("[CompatB] apply_effect: unknown effect '{}' — action will no-op", effectId);
-                    return EntityAction.noop();
-                }
-                final int fDur = duration;
-                final int fAmp = amplifier;
-                final boolean fAmb = ambient;
-                final boolean fPart = particles;
-                final boolean fIcon = icon;
-                return player -> player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                    effectHolder, fDur, fAmp, fAmb, fPart, fIcon));
+                final List<EffectSpec> all = List.copyOf(specs);
+                return player -> {
+                    for (EffectSpec spec : all) player.addEffect(spec.toInstance());
+                };
             },
             List.of(
-                // Shape 1 (flat single-effect):
-                new FieldSpec("effect", FormFieldSpec.Kind.STRING, false)
-                    .doc("Single effect id (use this OR effects[]; `id` accepted as a synonym)."),
+                // Shape 1/3 (nested or flat single-effect):
+                new FieldSpec("effect", FormFieldSpec.Kind.MIXED, false)
+                    .doc("The effect to apply, as either a bare effect id string or the nested "
+                        + "object {effect/id, duration, amplifier, is_ambient, show_particles, "
+                        + "show_icon}. Use this OR effects[]."),
                 new FieldSpec("id", FormFieldSpec.Kind.STRING, false)
                     .doc("Alias for effect (flat shape)."),
                 new FieldSpec("duration", FormFieldSpec.Kind.INTEGER, false).def(200).range(1.0, null)
-                    .doc("Effect duration in ticks (default 200; honoured when using the 'effect' scalar)."),
+                    .doc("Effect duration in ticks (default 200). Read off the root only in the "
+                        + "flat shape; the nested object and effects[] entries carry their own."),
                 new FieldSpec("amplifier", FormFieldSpec.Kind.INTEGER, false).def(0).range(0.0, null)
-                    .doc("Effect amplifier (default 0 = level I)."),
+                    .doc("Effect amplifier (default 0 = level I). Read off the root only in the "
+                        + "flat shape."),
                 new FieldSpec("is_ambient", FormFieldSpec.Kind.BOOLEAN, false).def(false)
-                    .doc("Reduced particle visibility (default false)."),
+                    .doc("Reduced particle visibility (default false). Flat shape only."),
                 new FieldSpec("show_particles", FormFieldSpec.Kind.BOOLEAN, false).def(true)
-                    .doc("Show effect particles (default true)."),
+                    .doc("Show effect particles (default true). Flat shape only."),
                 new FieldSpec("show_icon", FormFieldSpec.Kind.BOOLEAN, false).def(true)
-                    .doc("Show HUD icon (default true)."),
-                // Shape 2 (effects[] array). First entry wins if both are present;
-                // each entry carries its own {effect/id, duration, amplifier,
-                // is_ambient, show_particles, show_icon}.
+                    .doc("Show HUD icon (default true). Flat shape only."),
+                // Shape 2 (effects[] array). Wins if both it and `effect` are
+                // present; every entry carries its own {effect/id, duration,
+                // amplifier, is_ambient, show_particles, show_icon} and ALL are applied.
                 new FieldSpec("effects", FormFieldSpec.Kind.ARRAY, false)
-                    .doc("Array of {effect, duration, amplifier, is_ambient, show_particles, show_icon} objects. First entry wins if both 'effect' and 'effects' are present.")));
+                    .doc("Array of {effect, duration, amplifier, is_ambient, show_particles, "
+                        + "show_icon} objects; every entry is applied. Takes precedence over "
+                        + "'effect' when both are present.")));
 
         // ── Task 5: heavy/complex verbs, LIFTED AS-IS ──────────────────────────
         // Behavior-neutral by construction: the descriptor factory carries the
@@ -3076,17 +3067,109 @@ public final class BuiltinActions {
     /**
      * Resolve a mob-effect id from {@code effect} or the {@code id} synonym on the
      * given object. Lift-and-shift of {@code ActionParser.resolveEffectId} — used
-     * by the dual-shape {@code apply_effect} descriptor for both the flat root and
-     * each {@code effects[]} entry.
+     * by the multi-shape {@code apply_effect} descriptor for the nested
+     * {@code effect} object, the flat root and each {@code effects[]} entry.
+     *
+     * <p>{@code effect} may be a bare id string OR the nested object Apoli
+     * documents ({@code "effect": {"effect": "minecraft:speed", …}}), in which case
+     * the id is read from inside it. Accepting only the primitive is what made
+     * every nested-shape use in the wild resolve to nothing.
      */
     static String resolveEffectId(com.google.gson.JsonObject obj) {
-        if (obj.has("effect") && obj.get("effect").isJsonPrimitive()) {
-            return obj.get("effect").getAsString();
+        if (obj.has("effect")) {
+            com.google.gson.JsonElement effect = obj.get("effect");
+            if (effect.isJsonPrimitive()) return effect.getAsString();
+            if (effect.isJsonObject()) return resolveEffectId(effect.getAsJsonObject());
         }
         if (obj.has("id") && obj.get("id").isJsonPrimitive()) {
             return obj.get("id").getAsString();
         }
         return null;
+    }
+
+    /**
+     * One fully-resolved mob-effect application: a registered effect plus the five
+     * {@link net.minecraft.world.effect.MobEffectInstance} flags read off the JSON.
+     * Shared by the player-path {@code apply_effect} descriptor and the target-path
+     * mirror in {@link TargetActionParser} so the two cannot drift apart again.
+     */
+    record EffectSpec(
+        net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect,
+        int duration,
+        int amplifier,
+        boolean ambient,
+        boolean particles,
+        boolean icon
+    ) {
+        net.minecraft.world.effect.MobEffectInstance toInstance() {
+            return new net.minecraft.world.effect.MobEffectInstance(
+                effect, duration, amplifier, ambient, particles, icon);
+        }
+    }
+
+    /**
+     * Resolve every mob effect an {@code apply_effect}-shaped object asks for, in
+     * declaration order. Handles all three author shapes:
+     *
+     * <ul>
+     *   <li>{@code "effects": [ … ]} — one spec per entry, ALL of them. Reading only
+     *       {@code effects[0]} used to drop every effect after the first.</li>
+     *   <li>{@code "effect": { … }} — Apoli's documented nested object; the id and
+     *       the five flags all live inside it.</li>
+     *   <li>{@code "effect": "minecraft:speed"} — flat, with the flags on the root.</li>
+     * </ul>
+     *
+     * <p>Returns an empty list when nothing resolves, and warns when it does. The
+     * silent empty return is what let a mis-shaped {@code apply_effect} look like a
+     * working power for as long as it did.
+     *
+     * @param label verb name for the warning text ({@code apply_effect} /
+     *              {@code apply_effect (target)})
+     */
+    static List<EffectSpec> resolveEffectSpecs(com.google.gson.JsonObject json, String label) {
+        List<com.google.gson.JsonObject> entries = new java.util.ArrayList<>();
+        if (json.has("effects") && json.get("effects").isJsonArray()) {
+            for (com.google.gson.JsonElement el : json.getAsJsonArray("effects")) {
+                if (el.isJsonObject()) entries.add(el.getAsJsonObject());
+            }
+        } else {
+            entries.add(json);
+        }
+
+        List<EffectSpec> specs = new java.util.ArrayList<>(entries.size());
+        for (com.google.gson.JsonObject entry : entries) {
+            String effectId = resolveEffectId(entry);
+            if (effectId == null) continue;
+            // Cache mob effect holder at parse time — registry is static.
+            var effectHolder = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
+                .get(Identifier.parse(effectId)).orElse(null);
+            if (effectHolder == null) {
+                NeoOrigins.LOGGER.warn("[CompatB] {}: unknown mob effect '{}' — effect will be skipped",
+                    label, effectId);
+                continue;
+            }
+            // The nested `effect` object carries the instance flags; the flat and
+            // effects[] shapes carry them on the entry itself.
+            com.google.gson.JsonObject fields =
+                entry.has("effect") && entry.get("effect").isJsonObject()
+                    ? entry.getAsJsonObject("effect")
+                    : entry;
+            specs.add(new EffectSpec(
+                effectHolder,
+                fields.has("duration") ? fields.get("duration").getAsInt() : 200,
+                fields.has("amplifier") ? fields.get("amplifier").getAsInt() : 0,
+                fields.has("is_ambient") && fields.get("is_ambient").getAsBoolean(),
+                !fields.has("show_particles") || fields.get("show_particles").getAsBoolean(),
+                !fields.has("show_icon") || fields.get("show_icon").getAsBoolean()));
+        }
+
+        if (specs.isEmpty()) {
+            NeoOrigins.LOGGER.warn(
+                "[CompatB] {}: no effect resolved from {} — action will no-op. Expected either "
+                + "\"effect\": \"<id>\", \"effect\": {\"effect\": \"<id>\", …} or \"effects\": [{…}].",
+                label, json);
+        }
+        return specs;
     }
 
     /**

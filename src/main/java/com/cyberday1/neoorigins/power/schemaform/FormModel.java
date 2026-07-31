@@ -358,7 +358,16 @@ public final class FormModel {
                 && java.util.Objects.equals(desc, s.description())) {
             return s; // untouched — avoid a needless copy
         }
+        // Rebuild through the FULL-arity constructor. The 9-arg back-compat one
+        // silently defaults itemsRef/children/itemPattern/scalarOrArray, and this
+        // copy is taken for *every* field that picks up a FieldDocs description,
+        // an EnumHints overlay, or a config range/default — which is most of
+        // them. Losing itemsRef here drops an ARRAY field out of the ArrayRefRow
+        // branch in FieldWidgetFactory, and losing scalarOrArray collapses an
+        // ARRAY_REF back to a plain REF, so the enrich pass was quietly
+        // degrading the very widgets it was meant to annotate.
         return new FormFieldSpec(s.name(), kind, s.required(), def, enums,
-            min, max, desc, s.ref());
+            min, max, desc, s.ref(), s.itemsRef(), s.children(), s.itemPattern(),
+            s.scalarOrArray());
     }
 }

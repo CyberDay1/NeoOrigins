@@ -867,15 +867,15 @@ See the carve-out comments in `LegacyPowerTypeAliases.registerActiveAbilityAlias
 
 ---
 
-# Verb namespace migration — `neoorigins:` / `apace:` → `neoorigins:`
+# Verb namespace migration — `origins:` / `apace:` → `neoorigins:`
 
 In 2.0.0 the canonical DSL verb namespace is `neoorigins:`. The legacy
-`neoorigins:` and `apace:` prefixes still parse — every verb your pack uses
+`origins:` and `apace:` prefixes still parse — every verb your pack uses
 today will keep working — but they emit a one-shot `[2.0-legacy]` warning
 at first use:
 
 ```
-[2.0-legacy] DSL verb 'neoorigins:damage' is deprecated — use 'neoorigins:damage'
+[2.0-legacy] DSL verb 'origins:damage' is deprecated — use 'neoorigins:damage'
 ```
 
 Grep your logs for `[2.0-legacy]` to get the migration punch list. **Verbs
@@ -885,17 +885,17 @@ under the legacy prefixes will be removed no earlier than NeoOrigins 3.0**
 ## Why
 
 Pre-2.0, the parser was an Apoli-compat layer. Verb names lived under
-`neoorigins:` because that's what upstream Apoli used. When 2.0 introduced
+`origins:` because that's what upstream Apoli used. When 2.0 introduced
 its own power types (`neoorigins:condition_passive`, `neoorigins:modify_damage`,
-...) the DSL verbs they *composed with* stayed on `neoorigins:*`, producing
+...) the DSL verbs they *composed with* stayed on `origins:*`, producing
 the awkward mix of namespaces inside a single power JSON:
 
 ```jsonc
 // Pre-2.0 style — mixed namespaces
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoorigins:biome", "tag": "minecraft:is_nether" },
-  "entity_action": { "type": "neoorigins:damage", "amount": 1.0 },
+  "condition": { "type": "origins:biome", "tag": "minecraft:is_nether" },
+  "entity_action": { "type": "origins:damage", "amount": 1.0 },
   "interval": 20
 }
 ```
@@ -919,7 +919,7 @@ For a quick pass, run a find-replace over your pack's JSON:
 
 ```bash
 # On every power JSON:
-sed -i 's/"type": *"neoorigins:/"type": "neoorigins:/g' path/to/powers/*.json
+sed -i 's/"type": *"origins:/"type": "neoorigins:/g' path/to/powers/*.json
 sed -i 's/"type": *"apace:/"type": "neoorigins:/g' path/to/powers/*.json
 ```
 
@@ -927,9 +927,9 @@ The verb names are identical — only the namespace changes. No field
 shapes were changed as part of this canonicalization.
 
 Bare verb names (`"type": "and"`) still work and are auto-prefixed; the
-autoprefix target moved from `neoorigins:` → `neoorigins:` for the 2.0
+autoprefix target moved from `origins:` → `neoorigins:` for the 2.0
 release. If your pack relies on bare names and needed them resolved as
-`neoorigins:*` for some reason, write them out explicitly.
+`origins:*` for some reason, write them out explicitly.
 
 ## Verbs that were already `neoorigins:*`
 
