@@ -856,6 +856,8 @@ Reopens the origin selection screen scoped to an author-specified subset of laye
 
 The `/origin gui <player> <layers>` command is the admin equivalent; it takes one or more comma- or space-separated layer ids (e.g. `/origin gui Steve neoorigins:origin,neoorigins:class`).
 
+For a full worked example — binding one of the four inert orb items to a custom layer, granting the power, and adding a crafting recipe — see [COOKBOOK.md § 16](COOKBOOK.md#16-reroll-my-custom-layer--wiring-up-a-spare-orb).
+
 ---
 
 ## `neoorigins:explode`

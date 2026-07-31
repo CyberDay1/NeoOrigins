@@ -720,6 +720,150 @@ ability per origin. `neoorigins:toggle` is for fan-out: a single flag that
 multiple powers gate on, or a flag flipped by something other than the
 keybind (an event, a hit, a tick condition).
 
+### 16. "Reroll my custom layer" — wiring up a spare orb
+
+NeoOrigins ships six orb items. Two have hardcoded behaviour:
+`neoorigins:orb_of_origin` rerolls the origin layer and
+`neoorigins:orb_of_class` rerolls the class layer. The other four —
+`gold_orb`, `pink_orb`, `purple_orb`, `teal_orb` — are deliberately
+inert. Right-clicking one does nothing on its own. They exist so a pack
+can bind its own meaning to them without registering an item, and they
+have no crafting recipe for the same reason: the pack that claims an orb
+decides what it costs.
+
+All six are in the `#neoorigins:orbs` item tag.
+
+The walkthrough below takes `neoorigins:gold_orb` and turns it into a
+reroll token for a custom layer.
+
+**Step 1 — the custom layer.**
+
+`data/mypack/origins/origin_layers/bloodline.json`:
+```json
+{
+  "order": 3,
+  "name": "mypack.layer.bloodline",
+  "origins": [
+    "mypack:bloodline_ashborn",
+    "mypack:bloodline_tidecaller",
+    "mypack:bloodline_stonekin"
+  ],
+  "allow_random": true,
+  "auto_choose": false,
+  "hidden": false,
+  "enabled": true
+}
+```
+
+The layer id is derived from the file path, so this layer is
+`mypack:bloodline`. That is the id the orb has to name.
+
+**Step 2 — the power that binds the orb.**
+
+`data/mypack/origins/powers/gold_orb_reroll.json`:
+```json
+{
+  "type": "neoorigins:action_on_event",
+  "name": "Bloodline Orb",
+  "description": "Right-click a gold orb to re-pick your bloodline.",
+  "hidden": true,
+  "event": "item_use",
+  "item_condition": { "item": "neoorigins:gold_orb" },
+  "entity_action": {
+    "type": "neoorigins:open_layer_picker",
+    "layers": ["mypack:bloodline"],
+    "commit_mode": "deferred",
+    "cost": 3,
+    "message": "Choose a new bloodline",
+    "consume_item": true
+  }
+}
+```
+
+Three fields carry the whole behaviour:
+
+- `item_condition` scopes the handler to the gold orb. Leave it off and
+  the power fires on *every* item use: snowballs, ender pearls, food,
+  everything. This is the single most common way to get this wrong.
+- `layers` names the layers to clear and re-show. Everything not listed
+  stays chosen. List more than one to reroll several at once.
+- `consume_item` removes one orb from the main hand when the pick
+  commits. Creative players keep it.
+
+`commit_mode: "deferred"` means closing the picker without choosing is a
+free cancel and restores the previous bloodline; the 3 XP levels are
+charged only on commit. Use `"immediate"` if you want the cost paid up
+front and a cancelled pick to leave the layer empty (the layer's
+auto-default then fills it). Full field table in
+[ACTIONS.md](ACTIONS.md#neooriginsopen_layer_picker).
+
+**Step 3 — grant the power.**
+
+A power file on its own does nothing: something has to hand the power to
+the player. An orb should work no matter what origin the holder picked,
+so grant it globally rather than attaching it to one origin.
+
+`data/mypack/global_powers/orbs.json`:
+```json
+{
+  "entity_types": ["minecraft:player"],
+  "powers": ["mypack:gold_orb_reroll"]
+}
+```
+
+Global sets are granted on login and re-reconciled on `/reload`. See
+[GLOBAL_POWERS.md](GLOBAL_POWERS.md). If you would rather the orb only
+work for certain origins, list `mypack:gold_orb_reroll` in those origins'
+`powers` array instead and skip this file.
+
+This is the step that gets missed most often. The orb is craftable, the
+power JSON parses clean, nothing happens on right-click, and the log is
+silent: nobody holds the power.
+
+**Step 4 — the crafting recipe.**
+
+`data/mypack/recipe/gold_orb.json`:
+```json
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GRG",
+    "RER",
+    "GRG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_ingot" },
+    "R": { "item": "minecraft:redstone" },
+    "E": { "item": "minecraft:ender_eye" }
+  },
+  "result": {
+    "id": "neoorigins:gold_orb",
+    "count": 1
+  }
+}
+```
+
+Two things to watch on the recipe:
+
+- The folder is `recipe`, singular. `recipes` is the pre-1.21 spelling
+  and a file left there loads nothing, silently.
+- The `key` entry shape changed between Minecraft versions. On 1.21.1
+  each key maps to an object: `"G": { "item": "minecraft:gold_ingot" }`,
+  as above. On 26.1 and later it is a bare ingredient string:
+  `"G": "minecraft:gold_ingot"`. Compare
+  `data/neoorigins/recipe/orb_of_class.json` in the jar for the version
+  you are building against.
+
+To hand the orb out instead of crafting it, skip step 4 and use
+`/give @s neoorigins:gold_orb`, a loot table, or a villager trade. Steps
+1-3 are what make the orb do anything; the recipe is only how the player
+gets one.
+
+**Binding all four spare orbs to different layers.** Write one power per
+orb, each with its own `item_condition` and `layers`. They can live on
+the same origin or on a global power set — the handler only cares that
+the player has the power and is holding the right orb.
+
 ---
 
 ## New in 2.2
