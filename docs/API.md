@@ -42,7 +42,7 @@ goal is that virtually any behaviour a pack wants is a composition of
 verbs that already exist, rather than a bespoke power type.
 
 The upstream layer — for cross-mod pack compatibility — is handled by
-`LegacyPowerTypeAliases.java`, which translates `neoorigins:` / `apace:` /
+`LegacyPowerTypeAliases.java`, which translates `origins:` / `apace:` /
 `apoli:` / `apugli:` types into the 2.0 vocabulary at load time. See
 [MIGRATION.md](MIGRATION.md).
 
@@ -595,8 +595,8 @@ NeoOrigins accepts legacy prefixes for cross-mod pack compat.
 | Prefix | Meaning | How it's resolved |
 |---|---|---|
 | `neoorigins:*` | Canonical 2.0 namespace. Use this for new packs. | Direct registry lookup. |
-| `neoorigins:*` | Upstream Apoli / vanilla Origins. | Translator in `OriginsCompatPowerLoader` maps to `neoorigins:*` or a DSL recipe. |
-| `apace:*` | Apace mod variant. | Same translator as `neoorigins:*`. |
+| `origins:*` | Upstream Apoli / vanilla Origins. | Translator in `OriginsCompatPowerLoader` maps to `neoorigins:*` or a DSL recipe. |
+| `apace:*` | Apace mod variant. | Same translator as `origins:*`. |
 | `apoli:*` | Upstream Apoli mod. | `LegacyPowerTypeAliases` remaps to 2.0 generics. |
 | `apugli:*` | Apugli mod. | `LegacyPowerTypeAliases` remaps; Tier-1 aliases only (edible_item, action_on_jump, action_on_target_death). |
 

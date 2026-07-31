@@ -132,13 +132,15 @@ await check('round-trips upgrades, omitting absent announcement', async () => {
 	assert(deepEqual(res.draft.upgrades, original.upgrades), `upgrades mismatch: ${JSON.stringify(res.draft.upgrades)}`);
 });
 
-await check('warns and skips a power reference with no power file', () => {
-	// Hand-build a pack whose origin references a power that isn't shipped.
+await check('carries a power reference with no power file through to export', async () => {
+	// Hand-build a pack whose origin references a power that isn't shipped —
+	// the normal case for a mod built-in. Dropping it produced an origin that
+	// still loaded but granted less, which is the hardest loss to spot.
 	const enc = new TextEncoder();
 	const zip = zipSync({
 		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
 		'data/mypack/origins/origins/wizard.json': enc.encode(
-			JSON.stringify({ powers: ['mypack:present', 'minecraft:built_in'] })
+			JSON.stringify({ powers: ['mypack:present', 'neoorigins:built_in'] })
 		),
 		'data/mypack/origins/powers/present.json': enc.encode(
 			JSON.stringify({ type: 'neoorigins:flight' })
@@ -151,8 +153,79 @@ await check('warns and skips a power reference with no power file', () => {
 	assert(res.draft.powers.length === 1, `expected 1 resolved power, got ${res.draft.powers.length}`);
 	assert(res.draft.powers[0].id === 'present', `got ${res.draft.powers[0].id}`);
 	assert(
-		res.warnings.some((w) => w.includes('minecraft:built_in')),
-		`expected a warning about the missing power, got: ${res.warnings.join(' | ')}`
+		deepEqual(res.draft.externalPowers, ['neoorigins:built_in']),
+		`expected the unresolved ref on externalPowers, got ${JSON.stringify(res.draft.externalPowers)}`
+	);
+	assert(
+		res.warnings.some((w) => w.includes('neoorigins:built_in')),
+		`expected a warning naming the carried power, got: ${res.warnings.join(' | ')}`
+	);
+	// The grant must survive the round trip back out to a datapack: exporting
+	// and re-importing has to surface it again rather than lose it.
+	const again = importDatapack(await exportBytes(res.draft));
+	assert(
+		deepEqual(again.draft.externalPowers, ['neoorigins:built_in']),
+		`re-export dropped the external grant: ${JSON.stringify(again.draft.externalPowers)}`
+	);
+	assert(
+		again.draft.powers.length === 1 && again.draft.powers[0].id === 'present',
+		`the resolvable power did not survive the round trip`
+	);
+});
+
+await check('imports the Origins/Apoli layout (no `origins/` prefix)', () => {
+	// Upstream packs put origins at data/<ns>/origins/<id>.json, powers at
+	// data/<ns>/powers/<id>.json and layers at data/<ns>/origin_layers/<id>.json.
+	// The mod's COMPAT_CONVERTERs read this; the editor must too, or no
+	// third-party pack can be opened at all.
+	const enc = new TextEncoder();
+	const zip = zipSync({
+		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
+		'data/legacy/origins/wolf.json': enc.encode(
+			JSON.stringify({ name: 'Wolf', icon: 'minecraft:bone', impact: 'medium', powers: ['legacy:howl'] })
+		),
+		'data/legacy/powers/howl.json': enc.encode(
+			JSON.stringify({ type: 'origins:particle', particle: 'minecraft:note' })
+		),
+		'data/legacy/origin_layers/origin.json': enc.encode(
+			JSON.stringify({ replace: false, origins: ['legacy:wolf'] })
+		)
+	});
+	const res = importDatapack(zip);
+	assert(res.draft.namespace === 'legacy', `got namespace ${res.draft.namespace}`);
+	assert(res.draft.path === 'wolf', `got path ${res.draft.path}`);
+	assert(res.draft.name === 'Wolf', `got name ${res.draft.name}`);
+	assert(res.draft.powers.length === 1, `expected the compat-path power to load, got ${res.draft.powers.length}`);
+	assert(res.draft.powers[0].type === 'origins:particle', `got type ${res.draft.powers[0].type}`);
+	assert(res.draft.layerId === 'neoorigins:origin', `got layer ${res.draft.layerId}`);
+	assert(
+		res.draft.externalPowers === undefined,
+		`compat-path power should have resolved, not been carried: ${JSON.stringify(res.draft.externalPowers)}`
+	);
+});
+
+await check('does not mistake a powers/ file for a compat-layout origin', () => {
+	// `data/<ns>/origins/powers/x.json` matches the compat origin shape unless
+	// the sibling directories are excluded — it would import as an origin
+	// whose id is `powers/x`.
+	const enc = new TextEncoder();
+	const zip = zipSync({
+		'pack.mcmeta': enc.encode(JSON.stringify({ pack: { pack_format: 48 } })),
+		'data/mypack/origins/origins/wizard.json': enc.encode(
+			JSON.stringify({ powers: ['mypack:present'] })
+		),
+		'data/mypack/origins/powers/present.json': enc.encode(
+			JSON.stringify({ type: 'neoorigins:flight' })
+		),
+		'data/mypack/origins/origin_layers/origin.json': enc.encode(
+			JSON.stringify({ replace: false, origins: ['mypack:wizard'] })
+		)
+	});
+	const res = importDatapack(zip);
+	assert(res.draft.path === 'wizard', `imported the wrong file as the origin: ${res.draft.path}`);
+	assert(
+		!res.warnings.some((w) => w.includes('defines 2 origins')),
+		`powers/ and origin_layers/ leaked into origin discovery: ${res.warnings.join(' | ')}`
 	);
 });
 

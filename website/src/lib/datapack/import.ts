@@ -3,13 +3,21 @@
 // Reads a datapack zip produced by this editor (or a compatible
 // hand-authored pack) back into an in-memory `OriginDraft`, so a user
 // can round-trip: export, tweak the files by hand or share them, then
-// re-open them in the editor. The layout we parse is exactly the one
-// `$lib/datapack/export.ts` writes and `originSerializer.ts` documents:
+// re-open them in the editor. The layout `$lib/datapack/export.ts` writes and
+// `originSerializer.ts` documents is the native one:
 //
 //   pack.mcmeta
 //   data/<ns>/origins/origins/<localId>.json          (the origin)
 //   data/<ns>/origins/origin_layers/<layerPath>.json  (layer-extension)
 //   data/<ns>/origins/powers/<powerLocalId>.json       (one per power)
+//
+// Import ALSO accepts the Origins/Apoli layout, which drops the `origins/`
+// prefix — `data/<ns>/origins/<id>.json`, `data/<ns>/origin_layers/…`,
+// `data/<ns>/powers/…`. The mod reads both (every one of `OriginDataManager`,
+// `LayerDataManager` and `PowerDataManager` pairs a native `FILE_CONVERTER`
+// with a `COMPAT_CONVERTER`), so the editor has to as well: upstream packs
+// use the compat layout exclusively, and reading only the native form made
+// every third-party pack unimportable.
 //
 // Import is best-effort and lossy in the same places the serializer is
 // lossy: component-form `name`/`description` are flattened to plain
@@ -69,8 +77,40 @@ function blankDraft(): OriginDraft {
 	};
 }
 
+// Two on-disk layouts are accepted, mirroring the mod's own loaders: each of
+// `OriginDataManager`, `LayerDataManager` and `PowerDataManager` registers a
+// native `FILE_CONVERTER` under `origins/…` AND a `COMPAT_CONVERTER` at the
+// Origins/Apoli location one level up. Reading only the native form meant every
+// real Origins pack — which is all of them, upstream never used the `origins/`
+// prefix — failed import outright at the origin step.
+//
+//   native  data/<ns>/origins/origins/<id>.json        (what this editor writes)
+//   compat  data/<ns>/origins/<id>.json                (Origins / Apoli packs)
+//
+// The compat origin pattern must not swallow the sibling directories that live
+// alongside it under `origins/`, or `origins/powers/foo.json` would import as an
+// origin named `powers/foo`.
 const ORIGIN_RE = /^data\/([^/]+)\/origins\/origins\/(.+)\.json$/;
+const ORIGIN_COMPAT_RE =
+	/^data\/([^/]+)\/origins\/(?!origins\/|origin_layers\/|powers\/|mob_origins\/)(.+)\.json$/;
 const LAYER_RE = /^data\/([^/]+)\/origins\/origin_layers\/(.+)\.json$/;
+const LAYER_COMPAT_RE = /^data\/([^/]+)\/origin_layers\/(.+)\.json$/;
+
+/** Keys matching either the native or the compat form, native first. */
+function keysMatching(
+	files: Record<string, Uint8Array>,
+	native: RegExp,
+	compat: RegExp
+): { key: string; match: RegExpMatchArray }[] {
+	const out: { key: string; match: RegExpMatchArray }[] = [];
+	for (const re of [native, compat]) {
+		for (const k of Object.keys(files)) {
+			const m = k.match(re);
+			if (m && !out.some((e) => e.key === k)) out.push({ key: k, match: m });
+		}
+	}
+	return out;
+}
 
 const IMPACTS = ['none', 'low', 'medium', 'high'] as const;
 type Impact = (typeof IMPACTS)[number];
@@ -147,22 +187,22 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 	const warnings: string[] = [];
 
 	// ── locate the origin file ───────────────────────────────────────────
-	const originKeys = Object.keys(files).filter((k) => ORIGIN_RE.test(k));
-	if (originKeys.length === 0) {
+	const originEntries = keysMatching(files, ORIGIN_RE, ORIGIN_COMPAT_RE);
+	if (originEntries.length === 0) {
 		throw new ImportError(
-			'No origin file found (expected data/<namespace>/origins/origins/<id>.json).'
+			'No origin file found (expected data/<namespace>/origins/origins/<id>.json ' +
+				'or data/<namespace>/origins/<id>.json).'
 		);
 	}
-	if (originKeys.length > 1) {
+	if (originEntries.length > 1) {
 		warnings.push(
-			`Datapack defines ${originKeys.length} origins; importing the first ` +
-				`(${originKeys[0]}). The editor edits one origin at a time.`
+			`Datapack defines ${originEntries.length} origins; importing the first ` +
+				`(${originEntries[0].key}). The editor edits one origin at a time.`
 		);
 	}
-	const originKey = originKeys[0];
-	const originMatch = originKey.match(ORIGIN_RE)!;
-	const namespace = originMatch[1];
-	const localId = originMatch[2];
+	const originKey = originEntries[0].key;
+	const namespace = originEntries[0].match[1];
+	const localId = originEntries[0].match[2];
 
 	// ── target version from pack.mcmeta ──────────────────────────────────
 	let targetVersion: TargetMcVersion = '1.21.1';
@@ -268,6 +308,11 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 	// ── powers ───────────────────────────────────────────────────────────
 	const powerRefs = Array.isArray(originJson.powers) ? originJson.powers : [];
 	const powers: PowerDraft[] = [];
+	// Refs with no file in the zip. These are legitimate — a pack may grant a
+	// power that ships in the mod (`neoorigins:*`) or in another datapack — so
+	// they are carried through to the export rather than dropped, or the round
+	// trip would quietly strip grants and leave a weaker origin that still loads.
+	const externalPowers: string[] = [];
 	for (const ref of powerRefs) {
 		if (typeof ref !== 'string' || !ref.includes(':')) {
 			warnings.push(`Skipped malformed power reference ${JSON.stringify(ref)}.`);
@@ -276,12 +321,12 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 		const colon = ref.indexOf(':');
 		const powerNs = ref.slice(0, colon);
 		const powerLocalId = ref.slice(colon + 1);
-		const powerKey = `data/${powerNs}/origins/powers/${powerLocalId}.json`;
-		if (!(powerKey in files)) {
-			warnings.push(
-				`Power "${ref}" has no power file in the datapack — skipped ` +
-					`(likely a built-in or external power the editor can't reconstruct).`
-			);
+		const powerKey = [
+			`data/${powerNs}/origins/powers/${powerLocalId}.json`,
+			`data/${powerNs}/powers/${powerLocalId}.json`
+		].find((k) => k in files);
+		if (!powerKey) {
+			externalPowers.push(ref);
 			continue;
 		}
 		const powerJson = parseJson(files, powerKey) as Record<string, unknown>;
@@ -304,6 +349,16 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 		powers.push({ id: powerLocalId, type, fields });
 	}
 	draft.powers = powers;
+	if (externalPowers.length > 0) {
+		draft.externalPowers = externalPowers;
+		warnings.push(
+			`${externalPowers.length} power reference` +
+				`${externalPowers.length === 1 ? ' has' : 's have'} no power file in this ` +
+				`datapack (${externalPowers.join(', ')}) — most likely built into the mod ` +
+				`or another pack. They stay in the origin's power list on export, but you ` +
+				`can't edit them here.`
+		);
+	}
 
 	// `tier_powers` rides through in `extras`, but the powers it names are not
 	// in the origin's own `powers` list, so nothing above loaded their files
@@ -335,23 +390,23 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 
 	// ── layer id (from the layer-extension that lists this origin) ───────
 	const fullOriginId = `${namespace}:${localId}`;
-	const layerKeys = Object.keys(files).filter((k) => LAYER_RE.test(k));
+	const layerEntries = keysMatching(files, LAYER_RE, LAYER_COMPAT_RE);
 	let matchedLayerPath: string | undefined;
-	for (const k of layerKeys) {
-		const ext = parseJson(files, k) as { origins?: unknown };
+	for (const { key, match } of layerEntries) {
+		const ext = parseJson(files, key) as { origins?: unknown };
 		if (Array.isArray(ext.origins) && ext.origins.includes(fullOriginId)) {
-			matchedLayerPath = k.match(LAYER_RE)![2];
+			matchedLayerPath = match[2];
 			break;
 		}
 	}
 	if (matchedLayerPath) {
 		draft.layerId = `neoorigins:${matchedLayerPath}`;
-	} else if (layerKeys.length > 0) {
-		const guess = layerKeys[0].match(LAYER_RE)![2];
+	} else if (layerEntries.length > 0) {
+		const guess = layerEntries[0].match[2];
 		draft.layerId = `neoorigins:${guess}`;
 		warnings.push(
 			`No layer-extension file lists "${fullOriginId}"; assuming layer ` +
-				`"neoorigins:${guess}" from ${layerKeys[0]}.`
+				`"neoorigins:${guess}" from ${layerEntries[0].key}.`
 		);
 	} else {
 		warnings.push('No layer-extension file found; defaulting layer to "neoorigins:origin".');

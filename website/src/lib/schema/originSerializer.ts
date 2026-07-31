@@ -213,7 +213,13 @@ export function serializeOrigin(draft: OriginDraft): SerializedDatapackBundle {
 	if (draft.unchoosable || draft.hidden) origin.unchoosable = true;
 	// `powers` is REQUIRED by origin.schema.json — always emit, even if
 	// empty (the schema allows an empty array, the mod tolerates it).
-	origin.powers = powers.map((p) => p.fullId);
+	// `externalPowers` are grants the importer could not find a file for
+	// (mod built-ins, other packs); re-emitting them keeps the round trip from
+	// silently revoking abilities on a pack that still loads without them.
+	origin.powers = [
+		...powers.map((p) => p.fullId),
+		...(draft.externalPowers ?? [])
+	];
 
 	// `upgrades` is optional in the schema — emit only when authored.
 	if (draft.upgrades && draft.upgrades.length > 0) {

@@ -523,10 +523,11 @@ public final class BuiltinPowers {
         // tame_mob each kept a power.schema.json branch that only restated
         // their plain config + the universal name/description/hidden wrapper
         // fields; the spec fully represents the real config, so those branches
-        // collapse here too (see batch B). split_max_h_p / levels_per_h_p /
-        // max_bonus_h_p use the camel→snake form the reflection fallback and
-        // field_docs already used (HP → h_p), so the editor field name is
-        // byte-identical to today. mob equipment slots (head/chest/...) are
+        // collapse here too (see batch B). split_max_hp / levels_per_hp /
+        // max_bonus_hp match the keys their codecs actually parse; the Config
+        // record components are named *Hp (not *HP) so the camel→snake
+        // reflection fallback derives the same key instead of the bogus
+        // HP → h_p form. mob equipment slots (head/chest/...) are
         // Optional<String> in the codec → required=false, no default.
         define("modify_lava_speed", ModifyLavaSpeedPower.class, List.of(
             new FieldSpec("operation", Kind.ENUM, false)

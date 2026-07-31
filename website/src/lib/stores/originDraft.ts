@@ -87,6 +87,17 @@ export interface OriginDraft {
 	 * from scratch serializes exactly as it did before.
 	 */
 	extras?: Record<string, unknown>;
+	/**
+	 * Fully-qualified power ids the origin grants that have no power file in the
+	 * imported datapack — powers built into the mod (`neoorigins:*`) or supplied
+	 * by another pack. The editor cannot show or edit them, but the serializer
+	 * appends them to `origin.powers` so a round trip does not silently revoke
+	 * grants, which loads fine and is therefore the hardest loss to notice.
+	 *
+	 * Only ever populated by the importer (see `$lib/datapack/import.ts`);
+	 * `undefined` for a draft authored from scratch.
+	 */
+	externalPowers?: string[];
 }
 
 export interface PowerDraft {

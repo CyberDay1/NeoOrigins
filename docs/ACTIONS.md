@@ -2,7 +2,7 @@
 
 Entity actions run against an entity target (usually the player who owns the power, or a bientity target depending on the call site). They're the side-effect half of the DSL — conditions filter, actions mutate.
 
-**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `neoorigins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoorigins:heal`. Section headers below still show the traditional `neoorigins:*` names for familiarity with upstream docs; JSON examples use `neoorigins:*`.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoorigins:heal`. Section headers below still show the traditional `origins:*` names for familiarity with upstream docs; JSON examples use `neoorigins:*`.
 
 **Call sites that dispatch actions:**
 - `action_on_event.entity_action` — runs against the event's actor (player)
@@ -20,7 +20,13 @@ On any parse error or unknown `type`, the action silently degrades to a no-op an
 
 ## `neoorigins:apply_effect`
 
-Applies a mob effect to the target. Accepts either a single inline effect spec or an `effects` array (only the first element is read — Apoli's multi-effect form is simulated by wrapping in `neoorigins:and`).
+Applies one or more mob effects to the target. Three author shapes are accepted, and **every** effect listed is applied, in declaration order:
+
+- **Flat** — `"effect": "minecraft:speed"` with the flags on the root object.
+- **Nested** — `"effect": { "effect": "minecraft:speed", "duration": 100 }`, Apoli's documented form; the id *and* the flags live inside the nested object.
+- **List** — `"effects": [ { … }, { … } ]`, one spec per entry. Each entry takes the flat or nested shape. When `effects` is present the root-level `duration`/`amplifier`/flag fields are ignored — set them per entry.
+
+No `neoorigins:and` wrapper is needed for the multi-effect case. Entries whose effect id is unknown are skipped with a `[CompatB]` warning; if nothing resolves at all the action no-ops and warns.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -30,14 +36,23 @@ Applies a mob effect to the target. Accepts either a single inline effect spec o
 | `is_ambient` | bool | no | `false` | Ambient flag (suppresses some particles) |
 | `show_particles` | bool | no | `true` | Render swirl particles |
 | `show_icon` | bool | no | `true` | Show effect icon in HUD |
-| `effects[0]` | object | alt | — | Alternative: array form where `effects[0]` carries the same fields |
+| `effects` | array of objects | alt | — | List form: each entry carries the same fields, and all entries are applied |
 
-**Example:**
+**Examples:**
 ```json
 { "type": "neoorigins:apply_effect", "effect": "minecraft:regeneration", "duration": 100, "amplifier": 1 }
 ```
+```json
+{
+  "type": "neoorigins:apply_effect",
+  "effects": [
+    { "effect": "minecraft:speed", "duration": 200, "amplifier": 1 },
+    { "effect": "minecraft:jump_boost", "duration": 200, "show_icon": false }
+  ]
+}
+```
 
-Unknown effect ids are resolved at parse time; a missing registry entry logs a warning and no-ops.
+Effect ids are resolved at parse time; a missing registry entry logs a warning and that entry is skipped.
 
 ---
 

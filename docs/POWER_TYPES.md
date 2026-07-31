@@ -855,7 +855,7 @@ Deals periodic drown damage to the player while they are in water, and — when 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `damage_per_second` | float | no | `1.0` | Damage dealt each second (half-hearts). Set to `0` to disable damage entirely: the power still loads but substitutes a no-op so no hurt sound/animation fires. |
-| `multiplier` | float | no | — | Alias for `damage_per_second`, accepted for consistency with other weakness powers. `damage_per_second` wins if both are present. |
+| `multiplier` | float | no | `1.0` | Scale factor applied **on top of** `damage_per_second` — the effective rate is `damage_per_second × multiplier`. Not a synonym: writing both applies both. Setting either to `0` disables the power. |
 | `include_rain` | bool | no | `true` | When true, damage also applies while exposed to rain (`in_water` OR `in_rain`); when false, only while in water. |
 
 Server owners can retune the water-damage rate without a datapack: the built-in `vampire_water_weakness` (and the other bundled water-weakness powers) expose a `multiplier` key in `config/neoorigins/power_overrides.toml`, keyed by power id, that overrides the effective damage. For example:
@@ -3777,7 +3777,7 @@ Spawns vanilla particles on the player at a fixed cadence. Server-side `ServerLe
 | `speed` | float | no | `0.0` | Vanilla "speed" parameter — passes through to `sendParticles`. Most particle types use this as initial-velocity scale; some ignore it. |
 | `condition` | EntityCondition | no | always-true | Optional gate evaluated each emission tick. |
 
-The Origins/Apoli `:particle` power type is auto-translated to this — packs that already use `neoorigins:particle`, `apoli:particle`, `apace:particle`, or `apugli:particle` work without modification (`frequency` and `particle` fields map 1:1).
+The Origins/Apoli `particle` power type is auto-translated to this — packs that already use `origins:particle`, `apoli:particle`, `apace:particle`, or `apugli:particle` work without modification (`frequency` and `particle` fields map 1:1).
 
 **Example — ambient sparkle aura:**
 ```json

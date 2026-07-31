@@ -764,19 +764,29 @@ and mod teleports are not routed through this event.
 
 ---
 
-## `mod_xp_gain`
+## `mod_xp_gain` — **not an event**
 
-Scales experience points gained from any source (mob kills, ore drops,
-bottles, etc.).
+> Earlier revisions of this page listed `mod_xp_gain` here. There is no such
+> key: `action_on_event` will reject it at load. XP scaling is a **power type**,
+> not an event.
 
-**Context:** `null`. Base value is `event.getAmount()` from
-`PlayerXpEvent.XpChange`.
+Scale experience gained from any source with `origins:modify_xp_gain`
+(aliases `apace:` / `apoli:` / `apugli:`), parsed by
+`OriginsCompatPowerLoader.parseNumericModifier` into
+`NumericModifierRegistry.Kind.XP_GAIN` and applied at
+`CompatEventPowers.onXpChange` off `PlayerXpEvent.XpChange`. It takes the
+standard Apoli modifier shape — singular `modifier` or plural `modifiers`,
+with each entry's magnitude under either `value` or `amount`, and the usual
+`addition` / `multiply_base` / `multiply_total` operations.
 
-**Dispatch site:** `CompatEventPowers.onXpChange`.
+```json
+{
+  "type": "origins:modify_xp_gain",
+  "modifier": { "operation": "multiply_total", "value": 0.5 }
+}
+```
 
-**Typical use:** scholar class 1.5× XP, cursed class 0.5× XP. Uses
-Apoli modifier math (addition + multiply_base/multiply_total collapse
-via `NumericModifierRegistry`).
+**Typical use:** scholar class 1.5× XP, cursed class 0.5× XP.
 
 ---
 

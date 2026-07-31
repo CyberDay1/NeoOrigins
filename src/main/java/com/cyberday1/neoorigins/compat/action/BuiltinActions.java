@@ -3204,7 +3204,7 @@ public final class BuiltinActions {
         if (specs.isEmpty()) {
             NeoOrigins.LOGGER.warn(
                 "[CompatB] {}: no effect resolved from {} — action will no-op. Expected either "
-                + "\"effect\": \"<id>\", \"effect\": {{\"effect\": \"<id>\", …}} or \"effects\": [{{…}}].",
+                + "\"effect\": \"<id>\", \"effect\": {\"effect\": \"<id>\", …} or \"effects\": [{…}].",
                 label, json);
         }
         return specs;
