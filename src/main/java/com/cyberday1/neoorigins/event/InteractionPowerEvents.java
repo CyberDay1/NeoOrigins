@@ -170,7 +170,12 @@ public class InteractionPowerEvents {
                 });
             }
         }
-        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, event.getItem());
+        // Dispatch with a FoodContext (stack-carrying) so action_on_event
+        // item_condition filters resolve on ITEM_USE_FINISH too, matching the
+        // ITEM_USE dispatch shape. The lone existing consumer is
+        // ActionOnEventPower, whose extractItemStack handles both shapes.
+        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH,
+            new EventPowerIndex.FoodContext(event.getItem()));
         if (event.getItem().has(net.minecraft.core.component.DataComponents.FOOD)) {
             EventPowerIndex.dispatch(sp, EventPowerIndex.Event.FOOD_FINISHED,
                 new EventPowerIndex.FoodContext(event.getItem()));
@@ -260,7 +265,10 @@ public class InteractionPowerEvents {
             snd.ifPresent(s -> sp.level().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
                 s, SoundSource.PLAYERS, 1.0f, 1.0f));
         });
-        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH, snapshot);
+        // FoodContext-wrapped so action_on_event item_condition works on finish
+        // (see onItemUseFinish above).
+        EventPowerIndex.dispatch(sp, EventPowerIndex.Event.ITEM_USE_FINISH,
+            new EventPowerIndex.FoodContext(snapshot));
         // Also dispatch FOOD_FINISHED with FoodContext so food_item_in_tag /
         // food_item_id conditions work for edible-item-promoted items (e.g.
         // Caveborn minerals, Skeleton bone meal).
