@@ -200,6 +200,13 @@ public final class ActionParser {
      *
      * <p>{@code limit: 0} or unset means "no limit — apply to all matches".
      * Pack authors use {@code limit: 1} for "consume one bullet" patterns.
+     *
+     * <p>{@code slot} restricts processing to a single inventory slot —
+     * an equipment name ({@code mainhand}, {@code offhand}, {@code head},
+     * {@code chest}, {@code legs}, {@code feet}) or a raw inventory index.
+     * Before the 2026-06-12 audit this documented field was silently
+     * ignored, which made slot-scoped {@code consume} destroy matching
+     * items inventory-wide.
      */
     static EntityAction parseModifyInventory(JsonObject json) {
         JsonObject itemCondJson = com.cyberday1.neoorigins.compat.util.JsonHelpers.getOrNull(json, "item_condition");
@@ -212,14 +219,29 @@ public final class ActionParser {
         String processMode = json.has("process_mode") ? json.get("process_mode").getAsString() : "items";
         int limit = json.has("limit") ? json.get("limit").getAsInt() : 0;
         boolean countByItems = !"stacks".equalsIgnoreCase(processMode);
+        String slotName = json.has("slot") ? json.get("slot").getAsString() : null;
+        if (slotName != null && !isKnownInventorySlot(slotName)) {
+            NeoOrigins.LOGGER.warn("[CompatB] modify_inventory: unknown slot '{}' — no-op", slotName);
+            return EntityAction.noop();
+        }
+        String slot = slotName;
         // inventory_type is honoured loosely — vanilla only has one player
         // inventory; modded sub-inventories aren't reachable from here.
         // Pack authors generally pass "inventory" anyway, which is correct.
         return player -> {
             int applied = 0;
             var inv = player.getInventory();
+            int start = 0;
             int total = inv.getContainerSize();
-            for (int i = 0; i < total; i++) {
+            if (slot != null) {
+                // mainhand depends on the selected hotbar slot, so the index
+                // is resolved per execution rather than at parse time.
+                int idx = resolveInventorySlot(inv, slot);
+                if (idx < 0) return;
+                start = idx;
+                total = idx + 1;
+            }
+            for (int i = start; i < total; i++) {
                 if (limit > 0 && applied >= limit) break;
                 ItemStack stack = inv.getItem(i);
                 if (stack.isEmpty()) continue;
@@ -230,6 +252,40 @@ public final class ActionParser {
                 if (stack.isEmpty()) inv.setItem(i, ItemStack.EMPTY);
             }
             if (applied > 0) player.containerMenu.broadcastChanges();
+        };
+    }
+
+    /** Parse-time validation for {@code modify_inventory.slot} — equipment names or a raw index. */
+    private static boolean isKnownInventorySlot(String name) {
+        switch (name.toLowerCase()) {
+            case "mainhand", "offhand", "head", "chest", "legs", "feet":
+                return true;
+            default:
+                try {
+                    return Integer.parseInt(name) >= 0;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+        }
+    }
+
+    /**
+     * Resolve a {@code modify_inventory.slot} name to a player-inventory
+     * container index. Vanilla layout: 0-35 main inventory (0-8 hotbar),
+     * 36-39 armor (feet, legs, chest, head), 40 offhand.
+     */
+    private static int resolveInventorySlot(net.minecraft.world.entity.player.Inventory inv, String name) {
+        return switch (name.toLowerCase()) {
+            case "mainhand" -> inv.getSelectedSlot();
+            case "offhand"  -> 40;
+            case "feet"     -> 36;
+            case "legs"     -> 37;
+            case "chest"    -> 38;
+            case "head"     -> 39;
+            default -> {
+                int idx = Integer.parseInt(name); // validated at parse time
+                yield idx < inv.getContainerSize() ? idx : -1;
+            }
         };
     }
 
