@@ -93,11 +93,17 @@ Damages the target with a vanilla damage source.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `amount` | float | no | `1.0` | Damage to deal (half-hearts) |
+| `damage_type` | string | no | — | Damage type id, resolved against the `damage_type` registry (e.g. `minecraft:freeze`). Takes priority over `source.name`, and reaches datapack-defined types the keyword list cannot. |
 | `source.name` | string | no | `generic` | Damage source name. Supported: `fire`/`on_fire`/`in_fire`, `lava`, `magic`, `starve`, `drown`, `freeze`, `wither`. Anything else falls through to `generic`. |
 
 **Example:**
 ```json
 { "type": "neoorigins:damage", "amount": 2.0, "source": { "name": "magic" } }
+```
+
+**Example — an explicit damage type:**
+```json
+{ "type": "neoorigins:damage", "amount": 2.0, "damage_type": "minecraft:freeze" }
 ```
 
 ---
