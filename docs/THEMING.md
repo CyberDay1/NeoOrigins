@@ -73,11 +73,12 @@ skipped, so resolution falls through to the next layer rather than failing.
 
 ### The classic-picker accessibility override
 
-`classic_picker_style` in `config/neoorigins/client.toml` sits *above* all
-three layers. When it is `true` the screens render the built-in flat
-high-contrast skin (dark navy panels, light text, vanilla font) and no theme —
-declared, overridden, or default — is consulted at all. If a pack's theme
-appears to have no effect, check this setting first.
+`classic_picker_style` under `[ui]` in `config/neoorigins/client.toml` outranks
+every layer listed above. Selection itself still runs — an unknown id is still
+warned about, and the resolved theme is still stored — but while the option is
+`true` the screens read the built-in flat high-contrast skin (dark navy panels,
+light text, vanilla font) instead, so whatever resolved has no visible effect.
+If a pack's theme appears to do nothing, check this setting first.
 
 ## Theme JSON schema
 
@@ -87,7 +88,7 @@ ints.
 
 | Field                      | Type             | Default                                              |
 |----------------------------|------------------|------------------------------------------------------|
-| `panel_background`         | ResourceLocation | `neoorigins:textures/gui/themes/parchment/panel.png` |
+| `panel_background`         | Identifier       | `neoorigins:textures/gui/themes/parchment/panel.png` |
 | `overlay_color`            | ARGB             | `0xCC060610` (full-screen scrim)                     |
 | `name_color`               | ARGB             | `0xFF2A1810` (origin display name)                   |
 | `description_color`        | ARGB             | `0xFF3A2410` (body description)                      |
@@ -97,7 +98,7 @@ ints.
 | `border_color`             | ARGB             | `0xFF6B4A20`                                         |
 | `muted_color`              | ARGB             | `0xFF4A2A10` (secondary text)                        |
 | `accent_color`             | ARGB             | `0xFFB87328` (bullets, dots)                         |
-| `font`                     | ResourceLocation | `neoorigins:parchment`                               |
+| `font`                     | Identifier       | `neoorigins:parchment`                               |
 | `inset_left` / `top` / `right` / `bottom` | int (px) | `12` each                                  |
 | `texture_width` / `texture_height`        | int (px) | `256`                                      |
 | `flat`                     | bool             | `false` — paint plain fill + outline instead of the 9-slice panel art; `panel_background` and the `inset_*` / `texture_*` fields are ignored |
