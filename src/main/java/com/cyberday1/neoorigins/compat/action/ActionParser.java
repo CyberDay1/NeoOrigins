@@ -161,8 +161,17 @@ public final class ActionParser {
             NeoOrigins.LOGGER.warn("[CompatB] equipped_item_action: unknown slot '{}' — no-op", slotName);
             return EntityAction.noop();
         }
-        ItemAction action = json.has("action") && json.get("action").isJsonObject()
-            ? ItemActionParser.parse(json.getAsJsonObject("action")) : ItemAction.noop();
+        // Docs and Apoli both call the nested object "item_action"; "action" is
+        // the original (undocumented) key this parser shipped with. Accept both,
+        // documented name first, so doc-following pack authors stop getting a
+        // silent no-op (repo audit 2026-06-12).
+        JsonObject actionObj = null;
+        if (json.has("item_action") && json.get("item_action").isJsonObject()) {
+            actionObj = json.getAsJsonObject("item_action");
+        } else if (json.has("action") && json.get("action").isJsonObject()) {
+            actionObj = json.getAsJsonObject("action");
+        }
+        ItemAction action = actionObj != null ? ItemActionParser.parse(actionObj) : ItemAction.noop();
         return player -> {
             ItemStack stack = player.getItemBySlot(slot);
             if (stack.isEmpty()) return;

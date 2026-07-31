@@ -957,8 +957,8 @@
           ],
           "default": "mainhand"
         },
-        "action": {
-          "description": "ItemAction to run on the stack (consume, damage, set-NBT, etc.).",
+        "item_action": {
+          "description": "ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted.",
           "$ref": "item_action.schema.json"
         }
       },
