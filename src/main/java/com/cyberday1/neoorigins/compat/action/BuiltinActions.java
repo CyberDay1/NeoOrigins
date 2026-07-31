@@ -2690,9 +2690,9 @@ public final class BuiltinActions {
                 new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false).def("mainhand")
                     .options("mainhand", "offhand", "head", "chest", "legs", "feet")
                     .doc("Equipment slot to read the stack from (default mainhand)."),
-                new FieldSpec("action", FormFieldSpec.Kind.REF, false)
+                new FieldSpec("item_action", FormFieldSpec.Kind.REF, false)
                     .ref("item_action.schema.json")
-                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.).")));
+                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted.")));
 
         // modify_inventory — filter inventory stacks and run an ItemAction on each.
         define("modify_inventory",
