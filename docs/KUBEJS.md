@@ -11,6 +11,10 @@ Drive NeoOrigins from KubeJS scripts: listen to origin, power, mob, and mount
 events, invoke JS from JSON powers, and define whole power behaviors in
 JavaScript without touching Java.
 
+> **This page describes a Minecraft 1.21.1 feature.** The 26.1 and 26.2 builds
+> ship none of it — no globals, no `js_*` power types, no `kubejs_callback`.
+> Read [Availability](#availability) before authoring against anything below.
+
 1. TOC
 {:toc}
 

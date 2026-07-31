@@ -1994,6 +1994,36 @@ Any id that isn't a known effect, a known modifier, or a `compat:`-prefixed comp
 
 ---
 
+## `neoorigins:cast_iron_spell`
+
+Casts a spell from **[Iron's Spells 'n Spellbooks](https://modrinth.com/mod/irons-spells-n-spellbooks)** (`irons_spellbooks`) as the player. This is an integration action: it only does anything when Iron's Spells is installed. Gate any power that uses it with the top-level `"required_mods": ["irons_spellbooks"]` field so the power doesn't even load without the mod — without that gate the action degrades to a logged no-op when Iron's Spells is absent.
+
+By default cost is charged on **your** NeoOrigins power (resource / cooldown) and the Iron's mana pool is left untouched (`consume_mana: false`). Set `consume_mana: true` to draw from and gate on the player's Iron's mana instead — an under-funded cast is refused (logged no-op); creative players bypass the check.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `spell` | string | yes | — | The Iron's spell id, e.g. `irons_spellbooks:fireball`, `irons_spellbooks:magic_missile`, `irons_spellbooks:heal`, `irons_spellbooks:teleport`, `irons_spellbooks:chain_lightning`. Unknown ids resolve to a logged no-op |
+| `level` | int | no | `1` | Spell level (power). Clamped to at least 1 and to the spell's own max level |
+| `consume_mana` | bool | no | `false` | Draw from + gate on the player's Iron's mana pool. Creative bypasses the gate |
+| `trigger_cooldown` | bool | no | `true` | Apply the spell's Iron's cooldown after casting |
+| `mode` | enum | no | `instant` | `instant` fires the effect directly in one shot (best for keybind / on-hit triggers). `channel` runs the full animated cast — INSTANT spells complete inline, LONG / CONTINUOUS spells channel over time |
+
+**Example — a level-2 fireball on an active ability:**
+```json
+{
+  "type": "neoorigins:active_ability",
+  "key": "key.neoorigins.spell",
+  "cooldown_ticks": 60,
+  "entity_action": {
+    "type": "neoorigins:cast_iron_spell",
+    "spell": "irons_spellbooks:fireball",
+    "level": 2
+  }
+}
+```
+
+---
+
 ## `neoorigins:crafting_table`
 
 Opens a 3×3 crafting menu for the target player, anchored at the player's position (so any recipe needing the table works). Takes no fields. Player-only.
