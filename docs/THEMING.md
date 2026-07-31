@@ -1,3 +1,9 @@
+---
+title: UI Theming
+parent: Guides
+nav_order: 3
+---
+
 # UI Theming
 
 NeoOrigins lets addon packs reskin the origin selection / info screens
@@ -62,6 +68,15 @@ wins:
 
 3. Falls back to `neoorigins:parchment` when neither resolves.
 
+### The classic-picker accessibility override
+
+`classic_picker_style` under `[ui]` in `config/neoorigins/client.toml` outranks
+every layer listed above. Selection itself still runs — an unknown id is still
+warned about, and the resolved theme is still stored — but while the option is
+`true` the screens read the built-in flat high-contrast skin (dark navy panels,
+light text, vanilla font) instead, so whatever resolved has no visible effect.
+If a pack's theme appears to do nothing, check this setting first.
+
 ## Theme JSON schema
 
 `assets/<ns>/ui_themes/<id>.json`. All fields optional — missing fields keep
@@ -70,7 +85,7 @@ ints.
 
 | Field                      | Type             | Default                                              |
 |----------------------------|------------------|------------------------------------------------------|
-| `panel_background`         | ResourceLocation | `neoorigins:textures/gui/themes/parchment/panel.png` |
+| `panel_background`         | Identifier       | `neoorigins:textures/gui/themes/parchment/panel.png` |
 | `overlay_color`            | ARGB             | `0xCC060610` (full-screen scrim)                     |
 | `name_color`               | ARGB             | `0xFF2A1810` (origin display name)                   |
 | `description_color`        | ARGB             | `0xFF3A2410` (body description)                      |
@@ -80,9 +95,11 @@ ints.
 | `border_color`             | ARGB             | `0xFF6B4A20`                                         |
 | `muted_color`              | ARGB             | `0xFF4A2A10` (secondary text)                        |
 | `accent_color`             | ARGB             | `0xFFB87328` (bullets, dots)                         |
-| `font`                     | ResourceLocation | `neoorigins:parchment`                               |
+| `font`                     | Identifier       | `neoorigins:parchment`                               |
 | `inset_left` / `top` / `right` / `bottom` | int (px) | `12` each                                  |
 | `texture_width` / `texture_height`        | int (px) | `256`                                      |
+| `flat`                     | bool             | `false` — paint a plain fill + outline instead of the 9-slice panel art; `panel_background` and the `inset_*` / `texture_*` fields are then unused |
+| `panel_color`              | ARGB             | `0x00000000` — panel fill, used only when `flat` is true |
 
 ## Direct resource-pack overrides
 
@@ -108,5 +125,6 @@ redistributed under the SIL Open Font License 1.1.
 The licence text ships at `assets/neoorigins/font/ofl.txt`. If you rebundle
 the TTF in your own pack you must keep `ofl.txt` alongside it.
 
-Both filenames are lowercase on disk because NeoForge's resource-path
-validator rejects uppercase letters in path segments.
+Both filenames are lowercase on disk because NeoForge's `PathPackResources`
+validator rejects uppercase letters in path segments — the TTF is referenced
+by resource id from `parchment.json`, so an uppercase name would not resolve.
