@@ -426,12 +426,13 @@ public final class LegacyAliasPowerSpecs {
 
     /**
      * {@code action_on_event}'s own fields, minus everything the pinned event
-     * makes inert. {@code event} goes because the remap writes it. The eight
+     * makes inert. {@code event} goes because the remap writes it. The nine
      * filters go because each is consulted only for an event these aliases are
      * not: {@code block_condition} (block events), {@code hands}/{@code hand}
-     * (interaction events), {@code effect}/{@code effect_tag}/{@code
-     * immunity_ticks} (effect_applied), {@code power} (power_activated).
-     * {@code modifier} goes because JUMP and KILL are dispatched through
+     * (interaction events), {@code item_condition} (item events),
+     * {@code effect}/{@code effect_tag}/{@code immunity_ticks}
+     * (effect_applied), {@code power} (power_activated). {@code modifier} goes
+     * because JUMP and KILL are dispatched through
      * {@code EventPowerIndex.dispatch}, never {@code dispatchModifier}, so a
      * modifier chain on either would never be consulted.
      *
@@ -441,7 +442,8 @@ public final class LegacyAliasPowerSpecs {
      */
     private static List<FieldSpec> pinnedEventTail() {
         return fieldsOf("action_on_event", "event", "modifier", "block_condition",
-            "hands", "hand", "effect", "effect_tag", "power", "immunity_ticks");
+            "hands", "hand", "item_condition", "effect", "effect_tag", "power",
+            "immunity_ticks");
     }
 
     /**

@@ -1000,10 +1000,6 @@
             }
           ]
         },
-        "item_condition": {
-          "description": "Item filter for item-carrying events (item_use, item_use_finish): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). Fails closed when set but the event carries no item; ignored on events that never carry one.",
-          "$ref": "item_condition.schema.json"
-        },
         "cooldown_ticks": {
           "description": "After entity_action fires, suppress further firings of this power for this many ticks (20 = 1s); default 0 = no cooldown. Only gates the action path — modifier chains are unaffected.",
           "type": "integer",
@@ -1048,10 +1044,6 @@
               }
             }
           ]
-        },
-        "item_condition": {
-          "description": "Item filter for item-carrying events (item_use, item_use_finish): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). Fails closed when set but the event carries no item; ignored on events that never carry one.",
-          "$ref": "item_condition.schema.json"
         },
         "cooldown_ticks": {
           "description": "After entity_action fires, suppress further firings of this power for this many ticks (20 = 1s); default 0 = no cooldown. Only gates the action path — modifier chains are unaffected.",
