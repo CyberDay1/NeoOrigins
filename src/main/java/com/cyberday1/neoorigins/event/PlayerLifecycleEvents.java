@@ -318,6 +318,10 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.service.EventPowerIndex.invalidate(uuid);
         com.cyberday1.neoorigins.service.CombatTracker.forget(uuid);
         com.cyberday1.neoorigins.service.FirstPickGraceTracker.clear(uuid);
+        // Abort any spawn_location biome search still running for this player —
+        // there is nobody left to teleport, and the worker would otherwise burn
+        // its full budget for nothing.
+        com.cyberday1.neoorigins.service.AsyncSpawnLocator.cancel(uuid);
         com.cyberday1.neoorigins.power.builtin.ModelColorPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ResourcePower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
@@ -399,27 +403,14 @@ public class PlayerLifecycleEvents {
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
         // modify_player_spawn — per-power respawn override. Runs before the
         // bed-less fallback and may also override the bed if override_bed=true.
+        // First power that resolves a location wins; if none do, the origin's
+        // own spawn_location is the fallback. Locating a biome-driven spawn is
+        // far too expensive to do on the server thread, so the chain runs
+        // asynchronously and applies the teleport on a later tick — see
+        // OriginSpawnService.applyRespawnSpawnOverrides for the ordering
+        // guarantee.
         if (!event.isEndConquered()) {
-            final boolean[] teleported = {false};
-            ActiveOriginService.forEachOfType(sp, com.cyberday1.neoorigins.power.builtin.ModifyPlayerSpawnPower.class, cfg -> {
-                if (teleported[0]) return;
-                if (!cfg.overrideBed() && sp.getRespawnConfig() != null) return;
-                var target = cfg.location().locateSpawn(sp);
-                if (target.isEmpty()) return;
-                var pos = target.get().pos();
-                if (target.get().level() == sp.level()) {
-                    sp.teleportTo(pos.x, pos.y, pos.z);
-                } else {
-                    sp.teleport(new net.minecraft.world.level.portal.TeleportTransition(
-                        target.get().level(), pos, net.minecraft.world.phys.Vec3.ZERO,
-                        sp.getYRot(), sp.getXRot(),
-                        net.minecraft.world.level.portal.TeleportTransition.DO_NOTHING));
-                }
-                teleported[0] = true;
-            });
-            if (!teleported[0] && sp.getRespawnConfig() == null) {
-                com.cyberday1.neoorigins.service.OriginSpawnService.teleportToPrimaryOriginSpawn(sp);
-            }
+            com.cyberday1.neoorigins.service.OriginSpawnService.applyRespawnSpawnOverrides(sp);
         }
         // Recall surviving tamed pets to the respawned tamer (vanilla-pet
         // semantics). Runs AFTER the spawn-override teleports above so the pets
