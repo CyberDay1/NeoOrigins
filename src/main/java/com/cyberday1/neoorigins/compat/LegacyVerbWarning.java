@@ -28,7 +28,7 @@ public final class LegacyVerbWarning {
     public static void warn(String legacyType, String canonicalType) {
         if (WARNED.add(legacyType)) {
             NeoOrigins.LOGGER.warn(
-                "[2.0-legacy] DSL verb '{}' is deprecated — use '{}'",
+                "[2.0-legacy] DSL verb '{}' is deprecated, use '{}'",
                 legacyType, canonicalType);
         }
     }

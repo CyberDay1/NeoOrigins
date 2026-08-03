@@ -59,7 +59,7 @@ public final class LegacyPowerTypeAliases {
         if (PowerTypes.get(typeId) != null) return typeId;
         if (WARNED.add(typeId)) {
             NeoOrigins.LOGGER.warn(
-                "[2.0-legacy] power type '{}' is deprecated — remap to '{}' (first seen on power '{}')",
+                "[2.0-legacy] power type '{}' is deprecated, remap to '{}' (first seen on power '{}')",
                 typeId, alias.newType, powerId);
         }
         try {

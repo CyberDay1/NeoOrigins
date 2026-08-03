@@ -28,7 +28,7 @@ pipeline (it only needs powers, which load earlier).
 }
 ```
 
-`id` is **injected from the file path** — do not write it in the JSON. (Same
+`id` is **injected from the file path**; do not write it in the JSON. (Same
 convention as player and mob origins.)
 
 ## Top-level fields
@@ -37,28 +37,28 @@ convention as player and mob origins.)
 |---|---|---|---|---|
 | `entity_types` | string array | no | all entities | Entity ids and/or entity-type tag refs the set targets (see below). Absent or empty = every player **and** every mob. |
 | `powers` | string array | yes | — | Power ids to grant. Unknown ids are logged and skipped. |
-| `order` | int | no | `0` | Apply ordering across sets — **lower applies first**. |
+| `order` | int | no | `0` | Apply ordering across sets: **lower applies first**. |
 
-**`entity_types` matching** — the list may **mix** literal entity ids
+**`entity_types` matching**: the list may **mix** literal entity ids
 (`"minecraft:creeper"`) and entity-type **tag refs** (`"#minecraft:skeletons"`)
 in the same array. Each entry is matched individually: a leading `#` makes it a
 tag, anything else is a literal id. Players are matched by the literal id
 `minecraft:player` (or a tag the player type belongs to), or by an absent
 `entity_types`.
 
-**`order` semantics** — powers referenced by multiple sets are granted once, in
+**`order` semantics**: powers referenced by multiple sets are granted once, in
 the order the first referencing set produces them (sets ordered by `order`, then
 by id; powers in declaration order within each set).
 
 ## Who gets the powers, and when
 
-- **Players** — matching global powers are granted **on login** and re-reconciled
+- **Players**: matching global powers are granted **on login** and re-reconciled
   **on datapack sync** (`/reload`). They are granted through the same dynamic-grant
   mechanism as the `grant_power` action, so they activate normally, persist across
   respawn, and survive datapack reloads. If a global set is removed (or stops
-  matching) the player's grant is revoked on the next login / `/reload` — unless an
+  matching) the player's grant is revoked on the next login / `/reload`, unless an
   origin still supplies that power.
-- **Mobs** — matching, **mob-applicable** powers are applied at spawn
+- **Mobs**: matching, **mob-applicable** powers are applied at spawn
   (`FinalizeSpawnEvent`), the same hook mob origins use. Already-spawned mobs do
   **not** live-update; they pick up datapack changes on respawn / reload only.
 

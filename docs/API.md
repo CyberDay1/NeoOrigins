@@ -12,10 +12,10 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types) — 104 types
-- [Condition verbs](#condition-verbs) — 94 conditions
-- [Action verbs](#action-verbs) — 84 actions
-- [Event keys](#event-keys) — 49 events
+- [Power types](#power-types): 104 types
+- [Condition verbs](#condition-verbs): 94 conditions
+- [Action verbs](#action-verbs): 84 actions
+- [Event keys](#event-keys): 49 events
 - [Namespaces & prefixes](#namespaces--prefixes)
 - [JSON schemas](#json-schemas)
 
@@ -31,7 +31,7 @@ A NeoOrigins pack is composed of four layers, each authored in JSON:
 2. **Origins** (`origins/origins/*.json`) define each selectable origin:
    name, description, icon, impact, and the list of powers it grants.
 3. **Powers** (`origins/powers/*.json`) are the mechanical units. Each has
-   a `type` — see the power-type index below — plus the type-specific
+   a `type` (see the power-type index below) plus the type-specific
    fields.
 4. **Composition DSL**: most 2.0 power types accept a `condition` (a
    predicate on the player) and either an `entity_action` (a side-effect)
@@ -45,7 +45,7 @@ of `neoorigins:biome` and `neoorigins:not(origins:enchantment)`. The 2.0 design
 goal is that virtually any behaviour a pack wants is a composition of
 verbs that already exist, rather than a bespoke power type.
 
-The upstream layer — for cross-mod pack compatibility — is handled by
+The upstream layer (for cross-mod pack compatibility) is handled by
 `LegacyPowerTypeAliases.java`, which translates `origins:` / `apace:` /
 `apoli:` / `apugli:` types into the 2.0 vocabulary at load time. See
 [MIGRATION.md](MIGRATION.md).
@@ -61,7 +61,7 @@ The upstream layer — for cross-mod pack compatibility — is handled by
 | [ACTIONS.md](ACTIONS.md) | Every action verb with fields and semantics. |
 | [EVENTS.md](EVENTS.md) | Every event key the `action_on_event` power can listen on. |
 | [MIGRATION.md](MIGRATION.md) | Legacy type → 2.0 type remap table, lossy translations, DSL gap catalog. |
-| [COOKBOOK.md](COOKBOOK.md) | Recipe-oriented tutorial — 10 common patterns. |
+| [COOKBOOK.md](COOKBOOK.md) | Recipe-oriented tutorial: 10 common patterns. |
 | [PACK_FORMAT.md](PACK_FORMAT.md) | Directory layout, file-name conventions, JSON boilerplate. |
 | [CONTENT_CONFIG.md](CONTENT_CONFIG.md) | Server `content.toml` toggles: global vision / resource-bar switches and per-origin / per-class enable flags. |
 | [CLIENT_CONFIG.md](CLIENT_CONFIG.md) | Per-client `client.toml` options: UI theme, HUD layout, hotkey pool size. |
@@ -104,7 +104,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`elytra_boost`](POWER_TYPES.md#neooriginselytra_boost) | Add forward thrust while elytra-flying. |
 | [`enhanced_vision`](POWER_TYPES.md#neooriginsenhanced_vision) | Permanent brightness floor. Replaces legacy `night_vision`. |
 | [`flight`](POWER_TYPES.md#neooriginsflight) | Creative-style flight. |
-| [`phantom_form`](POWER_TYPES.md#neooriginsphantom_form) | Mayfly + noPhysics + no-fall — walk through walls. |
+| [`phantom_form`](POWER_TYPES.md#neooriginsphantom_form) | Mayfly + noPhysics + no-fall: walk through walls. |
 | [`size_scaling`](POWER_TYPES.md#neooriginssize_scaling) | Scale player dimensions. Optional reach-scaling + flat reach bonus. |
 | [`wall_climbing`](POWER_TYPES.md#neooriginswall_climbing) | Scale walls like a spider. |
 | [`water_breathing`](POWER_TYPES.md#neooriginswater_breathing) | Never loses air underwater. |
@@ -140,7 +140,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`projectile_immunity`](POWER_TYPES.md#neooriginsprojectile_immunity) | Filter projectile types the player is immune to. |
 | [`effect_immunity`](POWER_TYPES.md#neooriginseffect_immunity) | Block specific status effects. |
 | [`dodge_chance`](POWER_TYPES.md#neooriginsdodge_chance) | Percentage chance to dodge incoming damage. |
-| [`thorns_on_hit`](POWER_TYPES.md#neooriginsthorns_on_hit) | Passive thorns — attacker takes damage back. |
+| [`thorns_on_hit`](POWER_TYPES.md#neooriginsthorns_on_hit) | Passive thorns: attacker takes damage back. |
 | [`light_level_effect`](POWER_TYPES.md#neooriginslight_level_effect) | Apply effect at/below a light level. |
 | [`low_hp_threshold`](POWER_TYPES.md#neooriginslow_hp_threshold) | Apply effects when HP drops below a threshold. |
 | [`ender_gaze_immunity`](POWER_TYPES.md#neooriginsender_gaze_immunity) | Endermen don't aggro on eye contact. |
@@ -342,7 +342,7 @@ See [EVENTS.md](EVENTS.md) for each event's context record.
 
 By default, active powers consume one of the six hardcoded skill slots
 (`key.neoorigins.skill_1` … `key.neoorigins.skill_6`). For packs that ship more
-than six active abilities, NeoOrigins exposes a **named-keybind pool** — the
+than six active abilities, NeoOrigins exposes a **named-keybind pool**: the
 pack declares its own translation key on the power, and the client surfaces
 each declared key as a labelled hotkey in *Controls → Key Binds → NeoOrigins
 (Hotkeys)*.
@@ -372,20 +372,20 @@ power JSON. The compat loader picks the field up and registers the binding:
   matching entry in your pack's `lang/en_us.json` (e.g.
   `"examplepack.key.origins.1": "Phase Step"`).
 - `continuous: false` (default) = the action fires once per press. `true` =
-  the action fires every tick while the key is held — appropriate for
+  the action fires every tick while the key is held, appropriate for
   hold-to-channel abilities; skip cooldowns for these.
 - Vanilla input keys (see [Vanilla input keys](#vanilla-input-keys) below) are
-  *not* routed through the pool — they bind directly to a real game control and
+  *not* routed through the pool; they bind directly to a real game control and
   fire from server-side input polling, so they never consume a named-hotkey or
   skill slot.
-- The native `neoorigins:active_ability` type does **not** use the pool —
+- The native `neoorigins:active_ability` type does **not** use the pool;
   it always binds to one of the six built-in `skill_1`..`skill_6` slots.
   Use `origins:active_self` when you need a named hotkey.
 
 ### Numbered slots (`key: N`)
 
 Instead of a translation-key string, `key` may be a **number**. `"key": 1`
-targets named-hotkey pool slot 1 directly — it is shorthand for the canonical
+targets named-hotkey pool slot 1 directly; it is shorthand for the canonical
 translation key `key.neoorigins.hotkey.1` (1-indexed). The slot already carries
 a built-in label ("Hotkey 01" … up to "Hotkey 64"), so you don't need to ship a
 `lang` entry for it, and the modpack can pre-bind it via the
@@ -405,23 +405,23 @@ The object form accepts a number too, so a numbered slot can still be
 continuous: `"key": { "key": 1, "continuous": true }`.
 
 - **String vs. number.** A string `key` fills the next free pool slot in sorted
-  order — stable across relogs, but which physical "Hotkey N" row it lands on
+  order: stable across relogs, but which physical "Hotkey N" row it lands on
   depends on what else the pack declares. A numeric `key: N` is **deterministic**:
   it always pins to slot N, so the author controls exactly which row (and which
   `slot_defaults` default) a power gets. Reach for the number when you want a
   predictable layout; reach for the string when you just want "some free slot"
   and a custom label.
 - Slot `N` must be within `pool_size` (default 32). A `key: N` above the pool
-  size is logged and left dormant, same as string overflow — raise
+  size is logged and left dormant, same as string overflow. Raise
   [`pool_size`](CLIENT_CONFIG.md#hotkeys) to make room.
 
 ### One key, several powers
 
-Multiple powers may declare the **same** `key` — whether a shared string or the
+Multiple powers may declare the **same** `key`, whether a shared string or the
 same `key: N`. They are not in conflict: the server keeps a list of bindings per
 key and fans a single press out to **all** of them (each still gated by its own
 `condition` and `cooldown`). This is how one keypress can drive several powers on
-an origin at once — e.g. `"key": 1` on both a movement power and a particle
+an origin at once, e.g. `"key": 1` on both a movement power and a particle
 power fires both from one button. A player binds that one "Hotkey N" row a single
 time in Controls and it triggers the whole group.
 
@@ -433,7 +433,7 @@ assignment that pins numbered keys).
 
 Instead of a translation key, a power's `key` field may name one of nine
 **vanilla game controls**. The power then activates whenever the player uses
-that control — no extra hotkey to bind, no pool slot consumed. This is ideal for
+that control: no extra hotkey to bind, no pool slot consumed. This is ideal for
 abilities that should feel native to an existing input (a sneak-toggle stance, a
 jump-triggered dash, a use-key channel).
 
@@ -464,7 +464,7 @@ Supported keys:
 
 - The server polls the bound control's state every tick and fires the power's
   own action under its `condition` gate and `cooldown`. Non-continuous bindings
-  are **edge-detected** — one activation per press, not once per tick. Set
+  are **edge-detected**: one activation per press, not once per tick. Set
   `"key": { "key": "key.use", "continuous": true }` for a hold-to-channel ability.
 - `key.use`, `key.attack` and `key.jump` report their **true held state**:
   the client sends the real key state each tick (`VanillaKeyStatePayload`)
@@ -481,7 +481,7 @@ Source of truth: `power/keybind/PowerKeybindRegistry.java` (the
 ### Fail feedback (`fail_action`)
 
 `origins:active_self`, `origins:toggle`, and `origins:launch` accept an
-optional `fail_action` (a NeoOrigins extension — plain Apoli ignores it).
+optional `fail_action` (a NeoOrigins extension; plain Apoli ignores it).
 It runs when the player presses the power's key but the `condition` gate
 fails, replacing the silent no-op with author-defined feedback:
 
@@ -504,7 +504,7 @@ fails, replacing the silent no-op with author-defined feedback:
   input keys.
 - Fires once per press. Held continuous keys are edge-detected so the
   feedback doesn't spam every tick.
-- Only `condition` failures trigger it — a press blocked by an active
+- Only `condition` failures trigger it; a press blocked by an active
   cooldown stays silent (the HUD already shows the cooldown), and a
   blocked attempt never consumes the cooldown.
 - The native `neoorigins:active_ability` type supports the same field
@@ -513,9 +513,9 @@ fails, replacing the silent no-op with author-defined feedback:
 ### Hotkey-less actives (`disable_hotkey`)
 
 `origins:active_self` accepts an optional boolean `disable_hotkey` (a
-NeoOrigins extension — plain Apoli ignores it). When `true`, the power stays
-a fully-fledged active ability — its `condition`, `cooldown`, and
-`fail_action` all still apply — but it claims **no** skill slot or named
+NeoOrigins extension; plain Apoli ignores it). When `true`, the power stays
+a fully-fledged active ability (its `condition`, `cooldown`, and
+`fail_action` all still apply), but it claims **no** skill slot or named
 hotkey, so no key press can fire it. The only way to trigger it is the
 [`neoorigins:activate_power`](ACTIONS.md#neooriginsactivate_power) action from
 another power:
@@ -530,14 +530,14 @@ another power:
 }
 ```
 
-- Use this for abilities that should only ever be reached programmatically —
+- Use this for abilities that should only ever be reached programmatically,
   e.g. a passive `condition` or `tick_action` power that fires
   `neoorigins:activate_power` at the hotkey-less power when its own trigger
   conditions are met.
 - Omitting `key` on an `origins:active_self` normally drops the power into the
   next free `skill_1`..`skill_6` slot; `disable_hotkey: true` opts out of that
   entirely, freeing the slot for other powers.
-- A `disable_hotkey` power with no `entity_action` does nothing — there's no
+- A `disable_hotkey` power with no `entity_action` does nothing; there's no
   hotkey *and* no action, so the power is inert.
 - `disable_hotkey: true` takes precedence even if you also declare a `key`:
   the key is ignored and no slot or hotkey is bound. You don't have to remove
@@ -549,7 +549,7 @@ another power:
   powers and broadcasts the sorted list to each client. Pool size is capped
   by `NeoOriginsConfig.HOTKEY_POOL_SIZE`.
 - Each declared key is assigned an anonymous `Hotkey 01` … `Hotkey N` slot in
-  stable order — a player who relogs sees the same key in the same slot as
+  stable order; a player who relogs sees the same key in the same slot as
   long as the pack hasn't changed.
 - The player rebinds each slot to a physical key in vanilla controls. Press
   routes via `ActivatePowerByKeyPayload` back to the server, which fires the
@@ -619,9 +619,9 @@ one-time `[2.0-legacy]` log warning.
 Machine-readable schemas live under [schema/](schema/). Point your IDE /
 datapack validator at:
 
-- `schema/power.schema.json` — for files under `data/*/origins/powers/`
-- `schema/origin.schema.json` — for files under `data/*/origins/origins/`
-- `schema/origin_layer.schema.json` — for files under `data/*/origins/origin_layers/`
+- `schema/power.schema.json`: for files under `data/*/origins/powers/`
+- `schema/origin.schema.json`: for files under `data/*/origins/origins/`
+- `schema/origin_layer.schema.json`: for files under `data/*/origins/origin_layers/`
 
 Schemas are derived from the Java Config records and are authoritative
 against what the loader accepts. If the schema disagrees with a prose
@@ -641,12 +641,12 @@ A **player-aware variant** `capabilities(ServerPlayer, Config)` is available for
 
 For other mods that need to read or change a player's origins programmatically.
 
-**Where origins live.** A player's per-layer selection is stored on the `neoorigins:origin_data` data attachment (`PlayerOriginData`, accessed via `player.getData(OriginAttachments.originData())`). It persists only the `layer → origin` map plus a little bookkeeping — **a player's powers are *not* stored**. The active power set is derived at runtime from each assigned origin's definition (`ActiveOriginService`), so writing the attachment NBT directly does **not** apply or remove any powers.
+**Where origins live.** A player's per-layer selection is stored on the `neoorigins:origin_data` data attachment (`PlayerOriginData`, accessed via `player.getData(OriginAttachments.originData())`). It persists only the `layer → origin` map plus a little bookkeeping; **a player's powers are *not* stored**. The active power set is derived at runtime from each assigned origin's definition (`ActiveOriginService`), so writing the attachment NBT directly does **not** apply or remove any powers.
 
 **Changing origins cleanly.** Because powers are derived, swapping an origin requires running the revoke/grant lifecycle (`onRevoked` / `onGranted`, attribute-modifier cleanup, event-handler teardown, client sync). Two entry points on `com.cyberday1.neoorigins.service.ActiveOriginService`:
 
-- `applyOriginPowers(player, layerId, oldOriginId, newOriginId)` — transitions a **single** layer: revokes `oldOriginId`'s powers, grants `newOriginId`'s. Pass `null` for either id to grant-only / revoke-only. This is what `/neoorigins set` uses.
-- `reapplyOrigins(player, Map<layerId, originId>)` — replaces a player's **entire** origin selection in one clean call: tears down all current powers, overwrites the layer map, regrants, restores server-global powers, and syncs the client. Intended for profile / loadout mods (e.g. Switchy) that restore a saved origin set — call this instead of writing the attachment NBT directly to avoid leftover powers from the previous profile. An empty map clears the player to no origins.
+- `applyOriginPowers(player, layerId, oldOriginId, newOriginId)` transitions a **single** layer: revokes `oldOriginId`'s powers, grants `newOriginId`'s. Pass `null` for either id to grant-only / revoke-only. This is what `/neoorigins set` uses.
+- `reapplyOrigins(player, Map<layerId, originId>)` replaces a player's **entire** origin selection in one clean call: tears down all current powers, overwrites the layer map, regrants, restores server-global powers, and syncs the client. Intended for profile / loadout mods (e.g. Switchy) that restore a saved origin set. Call this instead of writing the attachment NBT directly to avoid leftover powers from the previous profile. An empty map clears the player to no origins.
 
 Both run the full lifecycle, so the client HUD, keybinds, and attribute state stay consistent. After either call you do not need a separate sync.
 

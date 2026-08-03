@@ -44,7 +44,7 @@ On 1.21.1, when KubeJS is absent the whole subsystem short-circuits on a single
 cached check, so there is no overhead and no class-loading risk for packs that
 don't use it.
 
-All scripts here are **server-side** — origin, power, and mob state only changes
+All scripts here are **server-side**: origin, power, and mob state only changes
 on the logical server. Put them in `server_scripts/` (or register from a server
 lifecycle event). Everything is cleared and must be re-registered on
 `/kubejs reload`; register inside a startup or server-loaded handler so stale
@@ -62,7 +62,7 @@ NeoOriginsEvents.originChanged(event => {
 })
 ```
 
-Event fields are exposed as KubeJS bean properties — `event.player` is the same
+Event fields are exposed as KubeJS bean properties; `event.player` is the same
 as the Java `getPlayer()`. The tables below list the properties available on
 each event.
 
@@ -90,7 +90,7 @@ when the origin is cleared/reset. Evolution tiers are integers:
 
 `powerActivated` does **not** fire when a use is aborted by cooldown, hunger,
 resource cost, or a no-op return. `powerTick` is high-frequency and only fires at
-all when at least one JS listener is registered — but inside the listener,
+all when at least one JS listener is registered, but inside the listener,
 assume it runs constantly and keep the body cheap.
 
 ### Mob origins
@@ -113,7 +113,7 @@ assume it runs constantly and keep the body cheap.
 | `mountEnded` | A player ends a mount-power ride | `rider`, `vehicle` |
 
 `position` is `"centered"` or `"shoulder"`. `mountEnded` only covers explicit
-dismounts via the mount power — vanilla dismount paths (jumping off, the vehicle
+dismounts via the mount power; vanilla dismount paths (jumping off, the vehicle
 dying) are not currently reported.
 
 ---
@@ -150,10 +150,10 @@ Invoke it from JSON anywhere an entity action is accepted:
 ```
 
 If no callback is registered for the id (KubeJS absent, or the script hasn't run
-yet), the action is silently dropped with a debug log — it never errors.
+yet), the action is silently dropped with a debug log; it never errors.
 
 `neoorigins:kubejs_callback` is likewise 1.21.1 only. On 26.1 / 26.2 the action
-type is unknown, so it is skipped at parse time rather than at call time — the
+type is unknown, so it is skipped at parse time rather than at call time; the
 surrounding power still loads, but that step of the action never runs.
 
 ### JS-defined powers
@@ -164,18 +164,18 @@ any Java registry mutation.
 
 **1.21.1 only.** `neoorigins:js_custom` and `neoorigins:js_active` are not
 registered in the 26.1 or 26.2 builds, so a power file using either type is
-dropped whole at load there — see [Availability](#availability).
+dropped whole at load there. See [Availability](#availability).
 
 | Method | Description |
 |--------|-------------|
-| `NeoOrigins.registerPower(id, handler)` | Passive power — pairs with `neoorigins:js_custom`. |
-| `NeoOrigins.registerActivePower(id, handler)` | Active (keybind) power — pairs with `neoorigins:js_active`. |
+| `NeoOrigins.registerPower(id, handler)` | Passive power. Pairs with `neoorigins:js_custom`. |
+| `NeoOrigins.registerActivePower(id, handler)` | Active (keybind) power. Pairs with `neoorigins:js_active`. |
 | `NeoOrigins.hasPower(id)` / `NeoOrigins.hasActivePower(id)` | Registration checks. |
 
 The handler is a plain JS object; Rhino adapts it to the matching interface and
 fills any hook you omit with a no-op.
 
-#### Passive power — `neoorigins:js_custom`
+#### Passive power: `neoorigins:js_custom`
 
 ```js
 NeoOrigins.registerPower('mypack:slow_fall', {
@@ -201,7 +201,7 @@ NeoOrigins.registerPower('mypack:slow_fall', {
 Hooks (all optional): `onGranted(player)`, `onRevoked(player)`,
 `onTick(player)`.
 
-#### Active power — `neoorigins:js_active`
+#### Active power: `neoorigins:js_active`
 
 `onUse` returns a boolean: `true` means the power fired and the cooldown/hunger
 cost should be paid; `false` is a no-op (nothing is consumed). This mirrors the

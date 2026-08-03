@@ -19,10 +19,10 @@ NeoForge port of Origins with a JSON-first power framework, an event dispatcher,
 
 ## Start here
 
-- **Pack authors** — start with the [Cookbook](COOKBOOK), then skim [Pack Format](PACK_FORMAT) and the [API Overview](API).
-- **Java extenders** — read the [Java API](JAVA_API) reference and the [Custom Projectiles & VFX](CUSTOM_PROJECTILES) guide.
-- **Upgrading from 1.x** — follow the [Migration Guide](MIGRATION).
-- **Prefer a visual tool?** — the [Web Editor](https://cyberday1.github.io/NeoOrigins/editor/) builds origin and mob-origin JSON in the browser.
+- **Pack authors**: start with the [Cookbook](COOKBOOK), then skim [Pack Format](PACK_FORMAT) and the [API Overview](API).
+- **Java extenders**: read the [Java API](JAVA_API) reference and the [Custom Projectiles & VFX](CUSTOM_PROJECTILES) guide.
+- **Upgrading from 1.x**: follow the [Migration Guide](MIGRATION).
+- **Prefer a visual tool?** The [Web Editor](https://cyberday1.github.io/NeoOrigins/editor/) builds origin and mob-origin JSON in the browser.
 
 ## Reference
 

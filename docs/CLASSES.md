@@ -6,7 +6,7 @@ nav_order: 2
 
 # Custom Classes
 
-In NeoOrigins, a **class** is not a separate system — it's an ordinary
+In NeoOrigins, a **class** is not a separate system; it's an ordinary
 origin that lives in the special **`neoorigins:class` layer**. Every player
 picks an origin (layer 1) *and* a class (layer 2); the class screen is the
 second selection screen shown on first join.
@@ -21,7 +21,7 @@ The built-in class layer is defined at
 `data/neoorigins/origins/origin_layers/class.json` with `order: 2`. Classes
 are intentionally passive: all built-in class powers are passive or
 condition-gated, so **a class never consumes a keybind slot**. Keep custom
-classes to passive/attribute/condition powers — active (keybinded) powers in
+classes to passive/attribute/condition powers; active (keybinded) powers in
 the class layer are not the intended design and the class power list is
 treated as always-on, not slotted.
 
@@ -41,7 +41,7 @@ regardless of namespace. So ship your own:
 }
 ```
 
-Your class is appended to the existing list — all built-in classes are kept,
+Your class is appended to the existing list: all built-in classes are kept,
 and you never have to maintain a copy of the mod's list. (Opt out of the
 fold with `"standalone": true` if you deliberately want a separate screen.)
 
@@ -49,7 +49,7 @@ fold with `"standalone": true` if you deliberately want a separate screen.)
 
 You *can* place a file at the exact built-in path
 `data/neoorigins/origins/origin_layers/class.json`, but this **replaces the
-list entirely** — you must re-list every built-in class you want to keep,
+list entirely**: you must re-list every built-in class you want to keep,
 and re-sync on every mod update. Prefer the additive method above unless you
 specifically want to remove built-in classes (the `[classes]` config toggles
 are usually the better tool for that).
@@ -74,12 +74,12 @@ Conventions used by the built-ins:
 }
 ```
 
-- `icon` — item shown in the class picker.
-- `impact: "none"` — classes don't carry an origin "impact" rating; always `none`.
-- `order` — position in the class screen (built-ins occupy 1–20; use 21+ to
+- `icon`: item shown in the class picker.
+- `impact: "none"`. Classes don't carry an origin "impact" rating; always `none`.
+- `order`: position in the class screen (built-ins occupy 1–20; use 21+ to
   append after them).
-- `powers` — passive/condition powers only (see above).
-- `upgrades` — optional advancement-driven promotion to another class; see
+- `powers`: passive/condition powers only (see above).
+- `upgrades`: optional advancement-driven promotion to another class; see
   the working `examples/class_tier_up/` datapack and the Upgrades section of
   [the examples README](../examples/README.md).
 
@@ -95,7 +95,7 @@ Same derivation as any origin/power:
 - `power.<namespace>.<power_id>.name` / `.description`
 
 Or use literal components (`{"text": "Alchemist"}`) directly in the JSON if
-you don't want a resource/language pack — handy for self-contained datapacks.
+you don't want a resource/language pack: handy for self-contained datapacks.
 
 ## Defaults and config
 
@@ -111,11 +111,11 @@ you don't want a resource/language pack — handy for self-contained datapacks.
 
 ## See also
 
-- [PACK_FORMAT.md](PACK_FORMAT.md) — Origin JSON, Power JSON, Layer JSON
-- [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker) — reopen the
+- [PACK_FORMAT.md](PACK_FORMAT.md): Origin JSON, Power JSON, Layer JSON
+- [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker): reopen the
   picker for the class layer (or any other layer subset) from a power, the mechanism the
   Orb of Class is a preset of
-- [`examples/class_tier_up/`](../examples/class_tier_up/) — class promotion via advancement upgrades
-- [`examples/custom_class/`](../examples/custom_class/) — a complete copy-paste custom class
-- [SUB_ORIGINS.md](SUB_ORIGINS.md) — conditioned layer entries (also work in the class layer)
-- [EVOLUTION.md](EVOLUTION.md) — how essence evolution interacts with the class layer
+- [`examples/class_tier_up/`](../examples/class_tier_up/): class promotion via advancement upgrades
+- [`examples/custom_class/`](../examples/custom_class/): a complete copy-paste custom class
+- [SUB_ORIGINS.md](SUB_ORIGINS.md): conditioned layer entries (also work in the class layer)
+- [EVOLUTION.md](EVOLUTION.md): how essence evolution interacts with the class layer

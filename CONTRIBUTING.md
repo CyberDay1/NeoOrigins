@@ -3,7 +3,7 @@
 ## Build Requirements
 
 - Java 21
-- Gradle (wrapper included — use `./gradlew`)
+- Gradle (wrapper included: use `./gradlew`)
 - NeoForge 21.11.38-beta (resolved automatically)
 
 ```bash
@@ -98,7 +98,7 @@ Active powers extend `AbstractActivePower<C>` (located in `power/builtin/base/`)
 `AbstractActivePower` automatically:
 - Gates `execute()` behind the cooldown check
 - Sets `isActivePower() = true` so the slot system picks it up
-- No `@SubscribeEvent` needed for the activation itself — only for passive side-effects (e.g. `onTick`)
+- No `@SubscribeEvent` needed for the activation itself, only for passive side-effects (e.g. `onTick`)
 
 ---
 

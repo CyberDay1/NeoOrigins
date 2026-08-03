@@ -4,9 +4,9 @@ A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
 Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
 
-📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) — full reference for all 104 power types, 94 conditions, 84 actions, and 49 events.
+📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) (full reference for all 104 power types, 94 conditions, 84 actions, and 49 events).
 
-🛠️ **Web editor**: [cyberday1.github.io/NeoOrigins/editor](https://cyberday1.github.io/NeoOrigins/editor/) — build origin and mob-origin JSON in the browser, no install needed.
+🛠️ **Web editor**: [cyberday1.github.io/NeoOrigins/editor](https://cyberday1.github.io/NeoOrigins/editor/) (build origin and mob-origin JSON in the browser, no install needed).
 
 ---
 
@@ -16,33 +16,33 @@ NeoOrigins 2.0 collapses 88 bespoke Java power-type classes into ~25 generic typ
 
 Highlights this release:
 
-- **Aquatic overhaul** — Abyssal / Merling / Kraken / Siren rebuilt around a real dry-out mechanic with master configs for drain rate and drown damage. New "Pescivore + Raw Adapted" diet (raw cod and salmon nourish like cooked). Spawn placement now prefers ocean floor / water surface for aquatic origins.
-- **Mod compat** — `LightTexture` and water-vision mixins now apply at higher priority so they survive other mods (Alex's Caves, etc.) that touch the same vanilla pipelines.
+- **Aquatic overhaul**: Abyssal / Merling / Kraken / Siren rebuilt around a real dry-out mechanic with master configs for drain rate and drown damage. New "Pescivore + Raw Adapted" diet (raw cod and salmon nourish like cooked). Spawn placement now prefers ocean floor / water surface for aquatic origins.
+- **Mod compat**: `LightTexture` and water-vision mixins now apply at higher priority so they survive other mods (Alex's Caves, etc.) that touch the same vanilla pipelines.
 - **Dedicated-server stable** on both 1.21.1 and 26.1 (singleplayer-tested through alpha.27 hid six classes of dist crash; all fixed).
-- **New `throw_target` action** — raycast the entity under your crosshair and hurl them away + upward.
-- **104 power types, 94 conditions, 84 actions, 49 events** — the DSL surface has kept growing since 2.0: visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), `near_entity` and friends, and near-complete Origins compat coverage.
+- **New `throw_target` action**: raycast the entity under your crosshair and hurl them away + upward.
+- **104 power types, 94 conditions, 84 actions, 49 events**. The DSL surface has kept growing since 2.0: visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), `near_entity` and friends, and near-complete Origins compat coverage.
 
 ---
 
 ## Features
 
-- **46 built-in origins** across two layers — choose an origin *and* a class
-- **20 built-in classes** — Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**
-- **130+ power types** — attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
-- **Random origin mode** — server config to randomly assign origins on first join or every death
-- **Cooldown HUD overlay** — shows active ability cooldown bars above the hotbar
-- **Animated resource bars** — a resource power can name an animated FX preset (`"animated": "neoorigins:fire"` in its `hud_render` block) and the bar fill renders as a scrolling texture strip instead of a flat colour. Presets are resource-pack JSON under `assets/<ns>/bar_fx/` — see [docs/PACK_FORMAT.md](docs/PACK_FORMAT.md#resource-bar-hud)
-- **Dragon Survival integration** — three built-in dragon origins (Cave / Forest / Sea) turn the player into a Dragon Survival dragon via the `become_dragon` power; content gated behind `required_mods` only loads when the target mod is installed. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
-- **Origin info screen** — press O to view your current origin and class details
-- **Night-vision toggle** — press K to switch off origin-granted night vision when you'd rather have the dark back; it starts on, toggles only your own view, and persists across relogs. Rebindable in *Controls → Key Binds → NeoOrigins*, alongside Skill 1-6 (V/G/N/B) and Class Skill (H). See [docs/CLIENT_CONFIG.md#built-in-keybinds](docs/CLIENT_CONFIG.md#built-in-keybinds)
-- **JEI / REI integration** — info panel for Orb of Origin
-- **Hot-reload** — `/reload` rebuilds all origins and powers without restarting the server
-- **Origins pack compatibility** — drop existing Origins mod content packs into `originpacks/` and they load automatically
-- **Data-driven** — all origins and powers defined in JSON; fully overridable via datapacks
-- **Advancement-based origin upgrades** — any origin can declare upgrade paths in its JSON; when the player earns the advancement, their origin swaps automatically (see [examples/](examples/))
-- **Epic Fight compatibility** — sized origins maintain correct scale when Epic Fight takes over rendering in combat mode
-- **Per-origin config toggles** — disable any built-in origin or class in `config/neoorigins/content.toml`
-- **Dimension restrictions** — disable specific powers in specific dimensions via config
+- **46 built-in origins** across two layers: choose an origin *and* a class
+- **20 built-in classes**: Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**
+- **130+ power types**: attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
+- **Random origin mode**: server config to randomly assign origins on first join or every death
+- **Cooldown HUD overlay**: shows active ability cooldown bars above the hotbar
+- **Animated resource bars**: a resource power can name an animated FX preset (`"animated": "neoorigins:fire"` in its `hud_render` block) and the bar fill renders as a scrolling texture strip instead of a flat colour. Presets are resource-pack JSON under `assets/<ns>/bar_fx/`. See [docs/PACK_FORMAT.md](docs/PACK_FORMAT.md#resource-bar-hud)
+- **Dragon Survival integration**: three built-in dragon origins (Cave / Forest / Sea) turn the player into a Dragon Survival dragon via the `become_dragon` power; content gated behind `required_mods` only loads when the target mod is installed. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
+- **Origin info screen**: press O to view your current origin and class details
+- **Night-vision toggle**: press K to switch off origin-granted night vision when you'd rather have the dark back; it starts on, toggles only your own view, and persists across relogs. Rebindable in *Controls → Key Binds → NeoOrigins*, alongside Skill 1-6 (V/G/N/B) and Class Skill (H). See [docs/CLIENT_CONFIG.md#built-in-keybinds](docs/CLIENT_CONFIG.md#built-in-keybinds)
+- **JEI / REI integration**: info panel for Orb of Origin
+- **Hot-reload**: `/reload` rebuilds all origins and powers without restarting the server
+- **Origins pack compatibility**: drop existing Origins mod content packs into `originpacks/` and they load automatically
+- **Data-driven**: all origins and powers defined in JSON; fully overridable via datapacks
+- **Advancement-based origin upgrades**: any origin can declare upgrade paths in its JSON; when the player earns the advancement, their origin swaps automatically (see [examples/](examples/))
+- **Epic Fight compatibility**: sized origins maintain correct scale when Epic Fight takes over rendering in combat mode
+- **Per-origin config toggles**: disable any built-in origin or class in `config/neoorigins/content.toml`
+- **Dimension restrictions**: disable specific powers in specific dimensions via config
 
 ---
 
@@ -50,23 +50,23 @@ Highlights this release:
 
 Pack authors can author origins **for mobs** the same way they author origins for
 players. A mob origin is a JSON file under `data/<ns>/origins/mob_origins/<id>.json`
-that bundles powers, weighted spawn rules, drops, and behavior — applied to any
-non-player `LivingEntity`.
+that bundles powers, weighted spawn rules, drops, and behavior (applied to any
+non-player `LivingEntity`).
 
-- **Weighted spawn rules** — apply origins to natural mob spawns with biome,
+- **Weighted spawn rules**: apply origins to natural mob spawns with biome,
   structure, dimension, time-of-day, Y-range and light-range filters
-- **Per-origin drops** — additive or replace, with both per-item independent-chance
+- **Per-origin drops**: additive or replace, with both per-item independent-chance
   and weighted-pool strategies, layered onto vanilla loot via a global loot modifier
-- **`neoorigins:mob_behavior` power** — configurable, piglin-style aggression
+- **`neoorigins:mob_behavior` power**: configurable, piglin-style aggression
   (neutral / hostile / conditional) using the existing entity-condition DSL
-- **Spawn-egg minting** — `/neoorigins mob egg <origin>` produces a vanilla spawn
+- **Spawn-egg minting**: `/neoorigins mob egg <origin>` produces a vanilla spawn
   egg that spawns the mob with the origin pre-attached; right-clicking it on a
   spawner reconfigures the spawner too
-- **Mob Origin Creator GUI** — tabbed in-game authoring tool (Identity / Powers /
+- **Mob Origin Creator GUI**: tabbed in-game authoring tool (Identity / Powers /
   Spawn Rules / Drops / JSON Preview). Open with `/neoorigins mob editor` _(Phase 6,
   pending)_ or bind the *Open Mob Origin Creator* keybind in Controls → Key Binds →
   NeoOrigins
-- **Portable output** — written to `<world>/datapacks/neoorigins_custom/`; copy the
+- **Portable output**: written to `<world>/datapacks/neoorigins_custom/`; copy the
   folder to another instance with NeoOrigins installed and it keeps working
 
 See [`docs/MOB_ORIGINS.md`](docs/MOB_ORIGINS.md) for the pack-author reference.
@@ -75,16 +75,16 @@ See [`docs/MOB_ORIGINS.md`](docs/MOB_ORIGINS.md) for the pack-author reference.
 
 ## Global Power Sets
 
-Grant powers to entities **without an origin assignment** — NeoOrigins' port of
+Grant powers to entities **without an origin assignment**: NeoOrigins' port of
 Apoli's `apoli:global` feature. A global power set is a JSON file under
 `data/<ns>/global_powers/<id>.json` that lists `powers` and an optional
 `entity_types` filter (mixing literal ids and `#tags`); when the filter is absent
 the powers apply to every player and mob.
 
-- **Players** — granted on login and re-reconciled on `/reload`; persisted like
+- **Players**: granted on login and re-reconciled on `/reload`; persisted like
   any other dynamically-granted power
-- **Mobs** — mob-applicable powers applied at spawn (`FinalizeSpawnEvent`)
-- **`order`** — optional load/apply ordering (lower applies first)
+- **Mobs**: mob-applicable powers applied at spawn (`FinalizeSpawnEvent`)
+- **`order`**: optional load/apply ordering (lower applies first)
 
 See [`docs/GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) for the pack-author reference.
 
@@ -140,9 +140,9 @@ See [`docs/GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) for the pack-author referen
 | **Air Mage** | high | Wind charge, updraft launch, no fall damage, slow fall, +20% speed | −4 hearts, +50% knockback taken |
 | **Gravity Mage** | high | Gravity well vortex (pull + damage), repulse blast, slow fall, no fall damage | +75% knockback taken, −25% melee |
 | **Darkness Mage** | high | Shadow orbs (Darkness AoE), shadow step teleport, night vision, stealth | Burns in sunlight, −30% mining speed |
-| **Cave Dragon*** | high | Become a Dragon Survival cave dragon — DS supplies traits, growth and abilities | Managed by Dragon Survival |
-| **Forest Dragon*** | high | Become a Dragon Survival forest dragon — DS supplies traits, growth and abilities | Managed by Dragon Survival |
-| **Sea Dragon*** | high | Become a Dragon Survival sea dragon — DS supplies traits, growth and abilities | Managed by Dragon Survival |
+| **Cave Dragon*** | high | Become a Dragon Survival cave dragon; DS supplies traits, growth and abilities | Managed by Dragon Survival |
+| **Forest Dragon*** | high | Become a Dragon Survival forest dragon; DS supplies traits, growth and abilities | Managed by Dragon Survival |
+| **Sea Dragon*** | high | Become a Dragon Survival sea dragon; DS supplies traits, growth and abilities | Managed by Dragon Survival |
 
 \* The dragon origins require the [Dragon Survival](https://www.curseforge.com/minecraft/mc-mods/dragon-survival) mod: they declare `"required_mods": ["dragonsurvival"]` and only load (and only appear in the picker) when it is installed.
 
@@ -150,9 +150,9 @@ See [`docs/GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) for the pack-author referen
 
 ## Built-in Classes
 
-Classes are a second selection layer — every player picks both an origin and a class. All class powers are passive or condition-gated — **zero keybind slots consumed** by any class.
+Classes are a second selection layer: every player picks both an origin and a class. All class powers are passive or condition-gated, with **zero keybind slots consumed** by any class.
 
-Pack authors can add their own classes — see [docs/CLASSES.md](docs/CLASSES.md).
+Pack authors can add their own classes. See [docs/CLASSES.md](docs/CLASSES.md).
 
 | Class | Description |
 |---|---|
@@ -172,7 +172,7 @@ Pack authors can add their own classes — see [docs/CLASSES.md](docs/CLASSES.md
 | **Cook** | Crafted food is more nourishing, bonus XP from smokers, immune hunger/nausea, 1.25× potion duration, starting iron sword (cook's knife) |
 | **Merchant** | Better villager trades, rare wandering trader loot, starting 8 emeralds, 1.15× potion duration, +1 luck |
 | **Cleric** | +5 enchant levels, 2× potion duration, weakness-on-hit vs undead, enhanced vision, starting writable book |
-| **Nitwit** | No special abilities — for the purist |
+| **Nitwit** | No special abilities: for the purist |
 | **Fisher** ⭐ | +1 luck in water, +15% swim speed, 0.5× drown damage, starting rod (Luck of the Sea I + Lure I), night vision underwater |
 | **Mason** ⭐ | Bare-hand stone pickaxe, +1 armor, 1.25× break speed, starting stone pickaxe (Efficiency I), +1 block placement reach |
 | **Paladin** ⭐ | Weakness-on-hit vs undead, +2 armor, regen near beacons, starting iron sword (Smite I), wither immunity |
@@ -183,16 +183,16 @@ Pack authors can add their own classes — see [docs/CLASSES.md](docs/CLASSES.md
 
 ## Configuration
 
-Configs live in the `config/neoorigins/` folder (since 2.2.2 — legacy
+Configs live in the `config/neoorigins/` folder (since 2.2.2; legacy
 `neoorigins-common.toml` / `neoorigins-server.toml` / `neoorigins-client.toml`
 files are migrated automatically on first launch, values intact):
 
-- `neoorigins/gameplay.toml` — orb of origins, auto-human, random assignment, evolution, spawn location teleports, ocean origins, sun damage, mount consent, friendly fire, armor classes
-- `neoorigins/admin.toml` — command blacklist, command access, dimension restrictions, entity exclusions, compat filtering, debug flags
-- `neoorigins/power_overrides.toml` — per-power parameter overrides
-- `neoorigins/content.toml` — origin/class enable toggles + resource-bar disable (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
-- `neoorigins/client.toml` — client-only display options (theme override, HUD)
-- `neoorigins/hud.json` — saved HUD bar/cluster positions
+- `neoorigins/gameplay.toml`: orb of origins, auto-human, random assignment, evolution, spawn location teleports, ocean origins, sun damage, mount consent, friendly fire, armor classes
+- `neoorigins/admin.toml`: command blacklist, command access, dimension restrictions, entity exclusions, compat filtering, debug flags
+- `neoorigins/power_overrides.toml`: per-power parameter overrides
+- `neoorigins/content.toml`: origin/class enable toggles + resource-bar disable (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
+- `neoorigins/client.toml`: client-only display options (theme override, HUD)
+- `neoorigins/hud.json`: saved HUD bar/cluster positions
 
 ```toml
 # config/neoorigins/content.toml — disable specific origins or classes
@@ -236,7 +236,7 @@ tame_scare_entity_blacklist = []
 
 1. Install [NeoForge](https://neoforged.net) for your Minecraft version (26.1 or 1.21.1)
 2. Drop `neoorigins-<version>.jar` into your `mods/` folder
-3. Launch — the `originpacks/` folder is created automatically in your game directory
+3. Launch. The `originpacks/` folder is created automatically in your game directory
 
 ---
 
@@ -257,7 +257,7 @@ Packs are scanned at world load and on `/reload`. No `pack.mcmeta` is required.
 
 NeoOrigins runs two translation passes over Origins-format JSON at load time.
 
-**Route A — direct type mapping** (static translation to a NeoOrigins equivalent):
+**Route A** (direct type mapping, static translation to a NeoOrigins equivalent):
 
 | Origins type | Result |
 |---|---|
@@ -287,7 +287,7 @@ NeoOrigins runs two translation passes over Origins-format JSON at load time.
 | `origins:food_restriction` / `origins:edible_item` | `neoorigins:food_restriction` / `neoorigins:edible_item` |
 | `origins:multiple` | Expanded to individual sub-powers |
 
-**Route B — compat power engine** (compiled into live event-driven behaviour at load time):
+**Route B** (compat power engine, compiled into live event-driven behaviour at load time):
 
 | Origins type | What it does |
 |---|---|
@@ -303,9 +303,9 @@ Route B accepts action and condition fields in both Apoli forms: a single object
 
 ### What is skipped
 
-The following types have no equivalent in NeoOrigins and are **silently skipped** — the rest of the origin still loads:
+The following types have no equivalent in NeoOrigins and are **silently skipped**; the rest of the origin still loads:
 
-- `origins:shaking` — visual effect (no equivalent)
+- `origins:shaking`: visual effect (no equivalent)
 
 A full compat log is written to `logs/neoorigins-compat.log` every time origins load so you can see exactly what translated and what did not.
 
@@ -342,7 +342,7 @@ For Origins-mod-compatible path layout (`data/<ns>/origins/`, `data/<ns>/powers/
 Any origin can declare a `spawn_location` that the mod will teleport the player to:
 
 1. **Immediately when they pick the origin** (via the selection screen or an Orb of Origin), and
-2. **On death when they have no bed or respawn anchor set** — instead of world spawn.
+2. **On death when they have no bed or respawn anchor set**, instead of world spawn.
 
 ```json
 {
@@ -364,20 +364,20 @@ Any origin can declare a `spawn_location` that the mod will teleport the player 
 | `biome_tag` | Identifier | Find a position inside a biome with this tag |
 | `structure` | Identifier | Find a position inside this structure |
 | `structure_tag` | Identifier | Find a position inside a structure with this tag |
-| `allow_water_surface` | boolean | Default `false`. If no dry land column is found, accept the topmost water column — player spawns feet-in-water, head above. |
-| `allow_ocean_floor` | boolean | Default `false`. If no dry land column is found, accept the seabed — player spawns submerged on the floor (needs water breathing to survive). |
+| `allow_water_surface` | boolean | Default `false`. If no dry land column is found, accept the topmost water column: player spawns feet-in-water, head above. |
+| `allow_ocean_floor` | boolean | Default `false`. If no dry land column is found, accept the seabed: player spawns submerged on the floor (needs water breathing to survive). |
 
-All fields are optional; fields combine with AND (dimension narrows the search, then structure/biome pins down the position within that dimension). Structure match takes precedence over biome when both are specified. The finder sweeps a 5×5 column area around the hit and scans top-down for the first `(solid, air, air)` column — logical height is respected, so Nether spawns stay below the bedrock ceiling. When that strict land pass finds nothing, `allow_ocean_floor` tries `(solid, water, water)`, then `allow_water_surface` tries the water surface. Search radius is 6400 blocks from that dimension's world spawn; if nothing matches at all, the origin selection/respawn proceeds without teleport (with a warning in the log).
+All fields are optional; fields combine with AND (dimension narrows the search, then structure/biome pins down the position within that dimension). Structure match takes precedence over biome when both are specified. The finder sweeps a 5×5 column area around the hit and scans top-down for the first `(solid, air, air)` column; logical height is respected, so Nether spawns stay below the bedrock ceiling. When that strict land pass finds nothing, `allow_ocean_floor` tries `(solid, water, water)`, then `allow_water_surface` tries the water surface. Search radius is 6400 blocks from that dimension's world spawn; if nothing matches at all, the origin selection/respawn proceeds without teleport (with a warning in the log).
 
-On a respawn **with** a set bed or respawn anchor, vanilla behavior applies — `spawn_location` is only used when there's no respawn point to honor.
+On a respawn **with** a set bed or respawn anchor, vanilla behavior applies; `spawn_location` is only used when there's no respawn point to honor.
 
-The same dimension/biome/structure fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition` — see [docs/POWER_TYPES.md](docs/POWER_TYPES.md#neooriginsattribute_modifier). (`allow_water_surface` / `allow_ocean_floor` are ignored in the gate path — they only influence the spawn finder.)
+The same dimension/biome/structure fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition`. See [docs/POWER_TYPES.md](docs/POWER_TYPES.md#neooriginsattribute_modifier). (`allow_water_surface` / `allow_ocean_floor` are ignored in the gate path; they only influence the spawn finder.)
 
 ---
 
 ## Advancement-Based Origin Upgrades
 
-Any origin can declare upgrade paths that fire when the player earns specific advancements. This is fully datapack-driven — no Java code required.
+Any origin can declare upgrade paths that fire when the player earns specific advancements. This is fully datapack-driven: no Java code required.
 
 Add an `upgrades` list to any origin JSON:
 
@@ -397,7 +397,7 @@ Add an `upgrades` list to any origin JSON:
 
 - **Per-layer**: the same advancement can drive different swaps on different layers (origin + class)
 - **Chainable**: each intermediate origin defines its own `upgrades` to the next stage
-- **announcement** is optional — a translation key sent as a system message on upgrade
+- **announcement** is optional: a translation key sent as a system message on upgrade
 
 See the [examples/](examples/) folder for working datapacks demonstrating simple upgrades, multi-stage chains, and class-layer promotions.
 
@@ -425,11 +425,11 @@ Original Origins mod:
 
 ### Translations
 
-- **Russian (`ru_ru`)** — community translation by [@Nienya972](https://github.com/Nienya972)
-- **Simplified Chinese (`zh_cn`), Spanish (`es_es`), German (`de_de`), Brazilian Portuguese (`pt_br`)** — machine-translated starting points, pending community review
+- **Russian (`ru_ru`)**: community translation by [@Nienya972](https://github.com/Nienya972)
+- **Simplified Chinese (`zh_cn`), Spanish (`es_es`), German (`de_de`), Brazilian Portuguese (`pt_br`)**: machine-translated starting points, pending community review
 
 Community translations are welcome: open a pull request (or an issue with the file attached) adding a `<locale>.json` to `src/main/resources/assets/neoorigins/lang/`. Native-speaker corrections to the machine-translated locales are especially appreciated.
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT. See [LICENSE](LICENSE)
