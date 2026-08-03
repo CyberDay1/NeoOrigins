@@ -51,7 +51,7 @@ public class NeoOrigins {
         if (java.nio.file.Files.exists(legacy)) {
             if (LEGACY_WARNED.compareAndSet(false, true)) {
                 LOGGER.warn("[originpacks] Legacy 'originpacks/' folder found at game root. "
-                    + "Please move it to 'config/originpacks/' — the game-root location is deprecated "
+                    + "Please move it to 'config/originpacks/'. The game-root location is deprecated "
                     + "and will be removed in a future release.");
             }
             return legacy;
@@ -153,6 +153,12 @@ public class NeoOrigins {
         // Register the origin-gated crafting recipe serializer.
         com.cyberday1.neoorigins.recipe.OriginRecipeRegistry.register(modEventBus);
 
+        // Register the chunk ticket type the spawn_location preload takes out.
+        // 26.x made TicketType a registry entry, and BuiltInRegistries.TICKET_TYPE
+        // is frozen by the time SpawnChunkLoader is first touched, so it has to
+        // go through a DeferredRegister rather than vanilla's bootstrap route.
+        com.cyberday1.neoorigins.service.SpawnChunkLoader.register(modEventBus);
+
         // Register network payloads
         modEventBus.addListener(NeoOriginsNetwork::register);
 
@@ -186,6 +192,8 @@ public class NeoOrigins {
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStarting);
+        NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerTickPost);
 
         // Optional mod compat — only loads if the target mod is present
         if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
@@ -252,7 +260,28 @@ public class NeoOrigins {
         OriginCommand.register(event.getDispatcher());
     }
 
+    /**
+     * Cancels in-flight spawn_location biome searches and drops their worker
+     * pool. Without this a singleplayer world reload would leave the previous
+     * world's threads running, and a search could land a teleport aimed at a
+     * level that no longer exists.
+     */
+    private static void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
+        com.cyberday1.neoorigins.service.AsyncSpawnLocator.shutdown();
+    }
+
+    /**
+     * Advances any spawn_location destination-chunk waits. These exist because
+     * turning a located spawn centre into a standable position needs the
+     * destination chunks generated, and generating them on the server thread is
+     * what produced the 20-30 s hang reported on a Tectonic + Terralith pack.
+     */
+    private static void onServerTickPost(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
+        com.cyberday1.neoorigins.service.SpawnChunkLoader.tick(event.getServer());
+    }
+
     private static void onServerStarting(ServerStartingEvent event) {
+        com.cyberday1.neoorigins.service.AsyncSpawnLocator.serverStarting();
         // 26.1 quirk: the integrated client's initial ResourceManager reload
         // runs at game/world launch time, before item data components are
         // bound onto their Holder.References. Anything in our codecs that
