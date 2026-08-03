@@ -10,9 +10,9 @@ Reference for pack authors updating JSON from pre-2.0 types to the 2.0 generic /
 
 ## What changed
 
-Pre-2.0 NeoOrigins had **88 hardcoded PowerType classes** — one per behaviour. 2.0 collapses these into **~25 generic types** that compose via DSL (condition + action + event).
+Pre-2.0 NeoOrigins had **88 hardcoded PowerType classes**, one per behaviour. 2.0 collapses these into **~25 generic types** that compose via DSL (condition + action + event).
 
-For **existing packs**: nothing to change. Legacy type IDs still work via the alias table. On first load of a legacy type, the log prints a one-time `[2.0-legacy] power type '<old>' is deprecated — remap to '<new>'` warning so you know where to migrate when you next touch the pack.
+For **existing packs**: nothing to change. Legacy type IDs still work via the alias table. On first load of a legacy type, the log prints a one-time `[2.0-legacy] power type '<old>' is deprecated, remap to '<new>'` warning so you know where to migrate when you next touch the pack.
 
 For **new / updated packs**: author against the 2.0 generic types directly. They're more expressive, cheaper to maintain, and won't be deprecated in 3.0.
 
@@ -25,10 +25,10 @@ The source of truth for every alias is `src/main/java/com/cyberday1/neoorigins/p
 Every aliased legacy type emits exactly one warning per boot:
 
 ```
-[2.0-legacy] power type 'neoorigins:thorns_aura' is deprecated — remap to 'neoorigins:action_on_event' (first seen on power 'examplepack:spiky_skin')
+[2.0-legacy] power type 'neoorigins:thorns_aura' is deprecated, remap to 'neoorigins:action_on_event' (first seen on power 'examplepack:spiky_skin')
 ```
 
-Grep your logs for `[2.0-legacy]` to get the migration punch list. **Deprecated types will be removed no earlier than NeoOrigins 4.0** — you have time.
+Grep your logs for `[2.0-legacy]` to get the migration punch list. **Deprecated types will be removed no earlier than NeoOrigins 4.0**. You have time.
 
 Aliases fire only once the legacy Java class is physically deleted. While the legacy class still exists in the registry (see the `// <type> retired in 2.0` comments in `PowerTypes.java`), the alias is dormant and the legacy behaviour keeps running. This lets us stage the collapse without breaking in-flight packs.
 
@@ -36,7 +36,7 @@ Aliases fire only once the legacy Java class is physically deleted. While the le
 
 # Collapse table
 
-Grouped by target generic type. Each row reflects the actual remap lambda in `LegacyPowerTypeAliases.java` — the "After" column shows exactly what the JSON is rewritten to before `PowerTypes.get(...)` dispatches to the generic type.
+Grouped by target generic type. Each row reflects the actual remap lambda in `LegacyPowerTypeAliases.java`. The "After" column shows exactly what the JSON is rewritten to before `PowerTypes.get(...)` dispatches to the generic type.
 
 ## → `neoorigins:action_on_event`
 
@@ -120,11 +120,11 @@ After:
 
 ### `neoorigins:food_restriction`
 
-Both modes now use the same outer shape — an `action_on_event` listening
+Both modes now use the same outer shape, an `action_on_event` listening
 on `food_eaten`, dispatching an `if_else` whose condition checks the food
 being eaten. Cancelling the event blocks the bite.
 
-**Blacklist** — *"these foods are forbidden":*
+**Blacklist:** *"these foods are forbidden"*
 
 ```json
 {
@@ -154,7 +154,7 @@ becomes
 
 Reads: *"if the food is in `minecraft:fishes`, cancel; otherwise allow."*
 
-**Whitelist** — *"only these foods are allowed":*
+**Whitelist:** *"only these foods are allowed"*
 
 ```json
 {
@@ -185,10 +185,10 @@ becomes
 Reads: *"if the food is in `yourpack:edible_for_me`, allow; otherwise cancel."*
 
 Notice the only thing that changed between blacklist and whitelist is the
-**branch placement** — `cancel_event` moved from `if_action` to
+**branch placement**: `cancel_event` moved from `if_action` to
 `else_action`. You can also keep the same branch placement and instead
-**wrap the condition in `neoorigins:not`** — same outcome, different
-phrasing:
+**wrap the condition in `neoorigins:not`** (same outcome, different
+phrasing):
 
 ```json
 "entity_action": {
@@ -610,7 +610,7 @@ For `"fluid": "lava"`, `condition` is `{ "type": "neoorigins:submerged_in", "flu
 
 ## → `neoorigins:attribute_modifier`
 
-Consolidated attribute modifier with optional condition / equipment_condition / location_condition gates (these fields pre-date 2.0 — see v1.13 release notes).
+Consolidated attribute modifier with optional condition / equipment_condition / location_condition gates (these fields pre-date 2.0). See v1.13 release notes.
 
 ### `neoorigins:less_item_use_slowdown`
 
@@ -632,7 +632,7 @@ After:
   "condition": { "type": "neoorigins:using_item" }
 }
 ```
-**Lossy:** the legacy `item_type` filter (`"bow"` / `"shield"`) is dropped — the alias applies to any item-use. A `_migration_note` field is written into the JSON at load time warning the pack author. If you need the filter, stay on the legacy class until a future DSL verb lands.
+**Lossy:** the legacy `item_type` filter (`"bow"` / `"shield"`) is dropped. The alias applies to any item-use. A `_migration_note` field is written into the JSON at load time warning the pack author. If you need the filter, stay on the legacy class until a future DSL verb lands.
 
 ## → `neoorigins:active_ability`
 
@@ -658,7 +658,7 @@ Before:
 ```json
 { "type": "neoorigins:active_dash", "strength": 1.2 }
 ```
-After (lossy — horizontal impulse approximates look-direction dash):
+After (lossy, as horizontal impulse approximates look-direction dash):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -724,7 +724,7 @@ Before:
 ```json
 { "type": "neoorigins:active_swap", "range": 20.0 }
 ```
-After (swaps with NEAREST entity in radius — legacy used a look-direction raycast):
+After (swaps with NEAREST entity in radius, as legacy used a look-direction raycast):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -738,7 +738,7 @@ Before:
 ```json
 { "type": "neoorigins:active_fireball", "speed": 1.5 }
 ```
-After (lossy — legacy fired 3–4 fireballs with spread; alias fires one):
+After (lossy, as legacy fired 3–4 fireballs with spread; alias fires one):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -841,46 +841,46 @@ Thin event-key injection; `entity_action` passes through verbatim.
 These legacy types kept their standalone classes because the DSL can't express them yet (too stateful, not an event trigger, or no matching verb exists). They still work, just aren't collapsed.
 
 **Active abilities (stateful / specialised):**
-- `neoorigins:active_teleport` — no look-direction teleport verb
-- `neoorigins:active_recall` — stateful saved position
-- `neoorigins:active_place_block` — no raycast-and-place verb
-- `neoorigins:shadow_orb` — stateful orb with tick loop
-- `neoorigins:ground_slam` — AoE on mobs; `area_of_effect` is players-only
-- `neoorigins:tidal_wave` — cone shape not modelled in `area_of_effect`
-- `neoorigins:active_phase` — movement state toggle, not an active ability
+- `neoorigins:active_teleport`: no look-direction teleport verb
+- `neoorigins:active_recall`: stateful saved position
+- `neoorigins:active_place_block`: no raycast-and-place verb
+- `neoorigins:shadow_orb`: stateful orb with tick loop
+- `neoorigins:ground_slam`: AoE on mobs; `area_of_effect` is players-only
+- `neoorigins:tidal_wave`: cone shape not modelled in `area_of_effect`
+- `neoorigins:active_phase`: movement state toggle, not an active ability
 
 **Non-tick-based condition interceptors:**
-- `neoorigins:mobs_ignore_player` — `LivingChangeTargetEvent` interceptor
-- `neoorigins:no_mob_spawns_nearby` — `MobSpawnEvent.FinalizeSpawn` interceptor
-- `neoorigins:item_magnetism` — item-entity pull, no DSL verb yet
-- `neoorigins:breath_in_fluid` — air-supply drain, no DSL verb yet
+- `neoorigins:mobs_ignore_player`: `LivingChangeTargetEvent` interceptor
+- `neoorigins:no_mob_spawns_nearby`: `MobSpawnEvent.FinalizeSpawn` interceptor
+- `neoorigins:item_magnetism`: item-entity pull, no DSL verb yet
+- `neoorigins:breath_in_fluid`: air-supply drain, no DSL verb yet
 
 **Attribute-modifier candidates held back:**
-- `neoorigins:break_speed_modifier` — `PlayerEvent.BreakSpeed` fires client-side only in current NeoForge
-- `neoorigins:underwater_mining_speed` — same BreakSpeed constraint
-- `neoorigins:no_slowdown` — unwired holder pending a slowdown-source DSL
+- `neoorigins:break_speed_modifier`: `PlayerEvent.BreakSpeed` fires client-side only in current NeoForge
+- `neoorigins:underwater_mining_speed`: same BreakSpeed constraint
+- `neoorigins:no_slowdown`: unwired holder pending a slowdown-source DSL
 
 **Persistent-effect candidates held back:**
-- `neoorigins:effect_immunity` — migrates under a different generic in a later phase
+- `neoorigins:effect_immunity`: migrates under a different generic in a later phase
 
 See the carve-out comments in `LegacyPowerTypeAliases.registerActiveAbilityAliases`, `registerConditionPassiveAliases`, `registerAttributeModifierAliases`, and `registerPersistentEffectAliases` for the authoritative list. Phase 7+ may add raycast / cone / mob-AoE verbs and shrink this list further.
 
 ---
 
-# Verb namespace migration — `origins:` / `apace:` → `neoorigins:`
+# Verb namespace migration: `origins:` / `apace:` → `neoorigins:`
 
 In 2.0.0 the canonical DSL verb namespace is `neoorigins:`. The legacy
-`origins:` and `apace:` prefixes still parse — every verb your pack uses
-today will keep working — but they emit a one-shot `[2.0-legacy]` warning
+`origins:` and `apace:` prefixes still parse (every verb your pack uses
+today will keep working), but they emit a one-shot `[2.0-legacy]` warning
 at first use:
 
 ```
-[2.0-legacy] DSL verb 'origins:damage' is deprecated — use 'neoorigins:damage'
+[2.0-legacy] DSL verb 'origins:damage' is deprecated, use 'neoorigins:damage'
 ```
 
 Grep your logs for `[2.0-legacy]` to get the migration punch list. **Verbs
-under the legacy prefixes will be removed no earlier than NeoOrigins 3.0**
-— you have the full 2.x lifecycle to migrate.
+under the legacy prefixes will be removed no earlier than NeoOrigins 3.0**.
+You have the full 2.x lifecycle to migrate.
 
 ## Why
 
@@ -923,7 +923,7 @@ sed -i 's/"type": *"origins:/"type": "neoorigins:/g' path/to/powers/*.json
 sed -i 's/"type": *"apace:/"type": "neoorigins:/g' path/to/powers/*.json
 ```
 
-The verb names are identical — only the namespace changes. No field
+The verb names are identical. Only the namespace changes. No field
 shapes were changed as part of this canonicalization.
 
 Bare verb names (`"type": "and"`) still work and are auto-prefixed; the
@@ -947,7 +947,7 @@ These were unchanged.
 
 ---
 
-# Lossy translations — aliases that drop fields
+# Lossy translations: aliases that drop fields
 
 A handful of aliases simplify the legacy behaviour because no 2.0 DSL verb
 matches the legacy 1:1. They still work, but a pack that actually relied on
@@ -957,8 +957,8 @@ of these matter for your pack.
 
 | Legacy type | What's dropped | Workaround / roadmap |
 |---|---|---|
-| `active_dash` | Look-direction projection — the alias lands a horizontal impulse; the legacy class computed the dash vector from the player's look axis. | Needs a `look_direction` vector DSL verb. Targeted for Phase 7. Until then, keep the legacy class or expect roughly horizontal dashes. |
-| `active_fireball` | Multi-shot spread — legacy fired 3–4 small fireballs with a random spread cone. The alias shoots one. | No multi-shot DSL verb yet. Legacy class still registered; keep it for shotgun behaviour. |
+| `active_dash` | Look-direction projection. The alias lands a horizontal impulse; the legacy class computed the dash vector from the player's look axis. | Needs a `look_direction` vector DSL verb. Targeted for Phase 7. Until then, keep the legacy class or expect roughly horizontal dashes. |
+| `active_fireball` | Multi-shot spread. Legacy fired 3–4 small fireballs with a random spread cone. The alias shoots one. | No multi-shot DSL verb yet. Legacy class still registered; keep it for shotgun behaviour. |
 | `less_item_use_slowdown` | Item-type filter (`item_type: bow` / `shield` / `any`). Alias applies to any item-use. | No item-type condition verb yet. Packs filtering by tool keep the legacy class. |
 
 Aliases that inject a `_migration_note` field into the rewritten JSON will
@@ -968,7 +968,7 @@ also have this flagged in the runtime log the first time they fire.
 
 # DSL gaps worth knowing about
 
-Runtime hooks and verb shapes that don't exist in 2.0 yet — flagged in
+Runtime hooks and verb shapes that don't exist in 2.0 yet, flagged in
 `LegacyPowerTypeAliases.java` as carve-outs. Each one blocks one or more
 alias collapses until it lands.
 
@@ -989,4 +989,4 @@ alias collapses until it lands.
 
 # Questions
 
-If you hit a legacy type not documented here, check `LegacyPowerTypeAliases.java` — it's the source of truth. Or open an issue.
+If you hit a legacy type not documented here, check `LegacyPowerTypeAliases.java`. It's the source of truth. Or open an issue.

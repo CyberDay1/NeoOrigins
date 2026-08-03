@@ -32,7 +32,7 @@ bottom for the two that were dropped (and their replacements).
 
 `event` is the lowercase enum name (e.g. `"kill"`, `"mod_exhaustion"`).
 `condition` is an `EntityCondition` evaluated against the player before the
-action / modifier runs — use it for `origin:power_active`, item-in-hand,
+action / modifier runs. Use it for `origin:power_active`, item-in-hand,
 fluid-in-eyes, and similar gates. `entity_action` and `modifier` may both be
 set on one power; the dispatcher only calls whichever matches the site's call
 shape.
@@ -72,7 +72,7 @@ event, but only where NeoForge exposes a cancellable event:
   `hit_taken`, `attack`, `land` (negates fall damage), `projectile_hit`,
   `item_use`, `food_eaten`, `effect_applied`, `block_break`, `block_place`,
   `block_use`, `entity_use`, `villager_interact`, `breed`, `tame`, `bonemeal`.
-- **Not cancellable** (post-hoc or uncancellable NeoForge event —
+- **Not cancellable** (post-hoc or uncancellable NeoForge event, so
   `cancel_event` is a silent no-op): `jump`, `item_use_finish`,
   `food_finished`, `item_pickup`, `craft_item`, `smelt_item`, `enchant_item`,
   `anvil_repair`, `trade_completed`, `advancement_earned`, `wake_up`,
@@ -90,7 +90,7 @@ via `entity_action`.
 
 Fires when the player attacks a living entity (pre-damage).
 
-**Context:** the target `LivingEntity` itself — bientity conditions on the
+**Context:** the target `LivingEntity` itself. Bientity conditions on the
 power can read it as the target.
 
 **Dispatch site:** `CombatPowerEvents.onAttackEntity` (hooks
@@ -105,7 +105,7 @@ rage meter, spawn a visual shockwave.
 
 Fires when the player takes damage (post-cancel, before final apply).
 
-**Context:** `HitTakenContext(amount, source)` — the amount is the vanilla-
+**Context:** `HitTakenContext(amount, source)`. The amount is the vanilla-
 adjusted damage and the `DamageSource` is the original source. Action verbs
 like `neoorigins:damage_attacker` read `amount` for amount-ratio thorns-style
 retaliation.
@@ -120,12 +120,12 @@ hurt-noises, panic-mode buffs.
 
 ## `hit_dealt`
 
-Fires on the attacker when the player deals damage to a living entity — the
+Fires on the attacker when the player deals damage to a living entity, the
 attacker-side mirror of `hit_taken`. Unlike `attack` (which fires *pre-damage*),
 this fires after damage modifiers are applied, so it sees the actual amount
 landed.
 
-**Context:** `HitDealtContext(amount, target, source)` — `amount` is the final
+**Context:** `HitDealtContext(amount, target, source)`. `amount` is the final
 post-modifier damage dealt, `target` is the `LivingEntity` that was hit, and
 `source` is the `DamageSource`. The `neoorigins:hit_dealt_amount` condition gates
 on the most recent damage the player dealt.
@@ -142,7 +142,7 @@ counters, on-hit resource gain, big-hit screen shake.
 
 Fires when the player kills a living entity.
 
-**Context:** `KillContext(killed)` — the `LivingEntity` that just died.
+**Context:** `KillContext(killed)`, the `LivingEntity` that just died.
 Bientity / entity-type conditions can filter on it.
 
 **Dispatch site:** `CombatPowerEvents.onLivingDeath` (killer = ServerPlayer
@@ -171,7 +171,7 @@ last-stand explosions, insurance payouts.
 
 Fires when the player successfully breaks a block (post-cancel).
 
-**Context:** the `BlockEvent.BreakEvent` itself — readable by
+**Context:** the `BlockEvent.BreakEvent` itself, readable by
 `neoorigins:cancel_event` and any verb that reflects on the event object.
 
 **Dispatch site:** `WorldPowerEvents.onBlockBreak`.
@@ -199,14 +199,14 @@ builder-class XP.
 Fires when the player right-clicks to use an item. Two kinds of item are
 covered:
 
-- **Held-use items** (food, potions, bows, shields, spyglasses, tridents —
+- **Held-use items** (food, potions, bows, shields, spyglasses, tridents, and
   anything with a use duration): fires at use **start**, when the
   right-click hold begins.
 - **Instant-use items** (fireworks, ender pearls, snowballs, eggs, splash
-  potions, fire charges — anything used in a single click): fires on the
+  potions, fire charges, and anything used in a single click): fires on the
   right-click itself, whether aimed at air or at a block.
 
-**Context:** the held `ItemStack`, plus the cancellable interaction event —
+**Context:** the held `ItemStack`, plus the cancellable interaction event,
 so `neoorigins:cancel_event` vetoes the use, and an `item_condition` can
 target a specific item (e.g. only `minecraft:firework_rocket`).
 
@@ -219,10 +219,10 @@ only if not cancelled.
 
 **Typical use:** rev-up animations, charging sounds, start cooldowns; or,
 with `cancel_event`, blocking an item outright (e.g. preventing firework
-use). For block-aimed instant items, only the item's use is denied — the
+use). For block-aimed instant items, only the item's use is denied. The
 block's own interaction (opening a chest, flipping a lever) still works.
 
-**Note:** instant-use coverage is broader than a held-use start — an
+**Note:** instant-use coverage is broader than a held-use start. An
 `item_use` handler with no `item_condition` now also fires on snowballs,
 ender pearls, etc. Add an `item_condition` to scope it to the items you
 care about.
@@ -251,7 +251,7 @@ Fires once per server tick for every online player.
 **Dispatch site:** `PlayerLifecycleEvents.onPlayerTick` (`PlayerTickEvent.Pre`).
 
 **Typical use:** anything periodic. Prefer the cheaper
-`neoorigins:toggle` / `neoorigins:active_self` patterns where possible —
+`neoorigins:toggle` / `neoorigins:active_self` patterns where possible.
 `tick` runs 20 times a second for every player.
 
 ---
@@ -282,7 +282,7 @@ Fires once per server tick **while** the player is on a climbable block
 
 **Typical use:** spider-class climb-speed buffs, wall-cling stamina drain,
 fall-immunity-while-climbing. Like `tick`, this runs every tick the gate is
-met — keep the action cheap and gate hard with `condition`.
+met. Keep the action cheap and gate hard with `condition`.
 
 ---
 
@@ -303,7 +303,7 @@ Fires when the player jumps.
 
 Fires when a projectile owned by the player hits something (entity or block).
 
-**Context:** `ProjectileHitContext(projectile, result)` — the projectile
+**Context:** `ProjectileHitContext(projectile, result)`, the projectile
 entity and the `HitResult`. Check `result.getType()` for
 `ENTITY` / `BLOCK` / `MISS`.
 
@@ -318,7 +318,7 @@ debuff application.
 
 Fires when the player crafts an item in a crafting grid (table or inventory).
 
-**Context:** `CraftContext(stack)` — the crafted result `ItemStack`.
+**Context:** `CraftContext(stack)`, the crafted result `ItemStack`.
 
 **Dispatch site:** `CraftingPowerEvents.onItemCrafted`
 (`PlayerEvent.ItemCraftedEvent`).
@@ -333,7 +333,7 @@ craft-and-enchant.
 Fires when the player removes a smelted item from a furnace / smoker / blast
 furnace output.
 
-**Context:** `CraftContext(stack)` — the smelted result `ItemStack`.
+**Context:** `CraftContext(stack)`, the smelted result `ItemStack`.
 
 **Dispatch site:** `CraftingPowerEvents.onItemSmelted`
 (`PlayerEvent.ItemSmeltedEvent`).
@@ -346,7 +346,7 @@ furnace output.
 
 Fires when the player applies enchantments at an enchanting table (post-apply).
 
-**Context:** `CraftContext(stack)` — the freshly-enchanted `ItemStack`.
+**Context:** `CraftContext(stack)`, the freshly-enchanted `ItemStack`.
 
 **Dispatch site:** `CraftingPowerEvents.onItemEnchanted`
 (`PlayerEnchantItemEvent`).
@@ -361,7 +361,7 @@ level before the player commits.
 
 Fires when the player takes the repaired / combined output from an anvil.
 
-**Context:** `CraftContext(stack)` — the finished `ItemStack`.
+**Context:** `CraftContext(stack)`, the finished `ItemStack`.
 
 **Dispatch site:** `CraftingPowerEvents.onAnvilRepair`
 (`AnvilCraftEvent.Post`). In 26.1 the legacy `AnvilRepairEvent` was removed;
@@ -379,7 +379,7 @@ cost preview.
 Fires when the player applies bone meal to a block. **Cancellable** via
 `neoorigins:cancel_event` (the bone meal is not consumed and nothing grows).
 
-**Context:** `BlockInteractContext(pos, state, event)` — the bonemealed
+**Context:** `BlockInteractContext(pos, state, event)`, the bonemealed
 block's position and state; carries the underlying cancellable
 `BonemealEvent`. `block_condition` filters by block type.
 
@@ -396,7 +396,7 @@ number of extra growth applications.
 Fires when two animals the player bred produce a baby. **Cancellable** via
 `neoorigins:cancel_event` (vetoes the baby spawn).
 
-**Context:** `EntityInteractContext(child, event)` — the spawned baby
+**Context:** `EntityInteractContext(child, event)`, the spawned baby
 `LivingEntity`; carries the underlying cancellable `BabyEntitySpawnEvent`.
 
 **Dispatch site:** `WorldPowerEvents.onBabyEntitySpawn`
@@ -413,7 +413,7 @@ breeding-streak counters.
 Fires when an animal is tamed by the player. **Cancellable** via
 `neoorigins:cancel_event` (the taming fails).
 
-**Context:** `EntityInteractContext(animal, event)` — the tamed
+**Context:** `EntityInteractContext(animal, event)`, the tamed
 `LivingEntity`; carries the underlying cancellable `AnimalTameEvent`.
 
 **Dispatch site:** `WorldPowerEvents.onAnimalTame` (`AnimalTameEvent`, gated on
@@ -430,7 +430,7 @@ power.
 Fires at item-use start for any stack carrying a vanilla `FOOD` data
 component. **Cancellable** via `neoorigins:cancel_event`.
 
-**Context:** `FoodContext(stack, event)` — the food `ItemStack` plus the
+**Context:** `FoodContext(stack, event)`, the food `ItemStack` plus the
 underlying `LivingEntityUseItemEvent.Start` (so `cancel_event` can veto the
 eat). `neoorigins:food_item_in_tag` reads the stack.
 
@@ -444,11 +444,11 @@ bonus-effect-on-eat.
 
 ## `food_finished`
 
-Fires when the player **finishes eating** a food item (post-eat). **Not cancellable** — the food has already been consumed. This is distinct from `food_eaten` which fires at eat-start and can cancel the eat.
+Fires when the player **finishes eating** a food item (post-eat). **Not cancellable**. The food has already been consumed. This is distinct from `food_eaten` which fires at eat-start and can cancel the eat.
 
 Also synthetically fired by `EdibleItemPower` after a successful bite, so custom edible items trigger the same post-eat hooks.
 
-**Context:** `FoodContext(stack, event)` — the consumed food `ItemStack`. Context-aware conditions like `neoorigins:food_item_in_tag` and `neoorigins:food_item_id` read the stack.
+**Context:** `FoodContext(stack, event)`, the consumed food `ItemStack`. Context-aware conditions like `neoorigins:food_item_in_tag` and `neoorigins:food_item_id` read the stack.
 
 **Dispatch site:** `InteractionPowerEvents.onItemUseFinish` (`LivingEntityUseItemEvent.Finish`, only dispatched when the stack has a FOOD component).
 
@@ -460,11 +460,11 @@ Also synthetically fired by `EdibleItemPower` after a successful bite, so custom
 
 Fires when the player earns an advancement.
 
-**Context:** `AdvancementContext(id)` — the advancement's `Identifier`.
+**Context:** `AdvancementContext(id)`, the advancement's `Identifier`.
 
 **Dispatch site:** `PlayerLifecycleEvents.onAdvancementEarned`
 (`AdvancementEvent.AdvancementEarnEvent`). Folded into the existing
-advancement handler, so it fires for every earned advancement — gate with
+advancement handler, so it fires for every earned advancement. Gate with
 `condition` if you only care about specific ones.
 
 **Typical use:** milestone rewards, achievement-gated power unlocks,
@@ -476,7 +476,7 @@ progression-tied buffs.
 
 Fires when the player completes a trade with a villager or wandering trader.
 
-**Context:** `TradeContext(offer)` — the `MerchantOffer` that was traded.
+**Context:** `TradeContext(offer)`, the `MerchantOffer` that was traded.
 
 **Dispatch site:** `InteractionPowerEvents.onTradeCompleted`
 (`TradeWithVillagerEvent`).
@@ -488,13 +488,13 @@ trade-completion sound / particle.
 
 ## `villager_interact`
 
-Fires when the player right-clicks a villager or wandering trader — a narrower
+Fires when the player right-clicks a villager or wandering trader, a narrower
 alias for `entity_use` that only matches `AbstractVillager` targets. Fired
 *after* the generic `entity_use` so a power can target either granularity.
 **Cancellable** via `neoorigins:cancel_event` (vetoes the interaction before
 the trade screen opens).
 
-**Context:** `EntityInteractContext(target, event)` — the villager / trader
+**Context:** `EntityInteractContext(target, event)`, the villager / trader
 `LivingEntity`; carries the underlying cancellable
 `PlayerInteractEvent.EntityInteract` event.
 
@@ -516,7 +516,7 @@ Fires when a power has just been granted to the player.
 `onGranted` + `PowerGrantedEvent`).
 
 **Typical use:** welcome-message broadcasts, one-shot starter equipment,
-origin-pick particle effect. Fires every origin change — use
+origin-pick particle effect. Fires every origin change. Use
 `condition` to gate on a specific origin.
 
 ---
@@ -544,7 +544,7 @@ Fires when the player picks an origin from the selection screen
 **Dispatch site:** `NeoOriginsNetwork.ChooseOriginPayload` handler.
 
 **Typical use:** first-choice welcome flow, origin-lock gates, server-wide
-announcement. Fires on every pick — gate on `hadAllOrigins` if you only
+announcement. Fires on every pick. Gate on `hadAllOrigins` if you only
 want the first time.
 
 ---
@@ -577,11 +577,11 @@ streak reset.
 
 ## `block_use`
 
-Fires when the player right-clicks a block (general — runs for every
+Fires when the player right-clicks a block (general: runs for every
 `RightClickBlock` event, including cancelled ones from other mods' gates).
 **Cancellable** via `neoorigins:cancel_event` (vetoes the interaction).
 
-**Context:** `BlockInteractContext(pos, state, event)` — carries the
+**Context:** `BlockInteractContext(pos, state, event)`. Carries the
 underlying cancellable `RightClickBlock` event.
 
 **Dispatch site:** `InteractionPowerEvents.onBlockUse`.
@@ -596,10 +596,10 @@ interactions.
 Fires when the player right-clicks a living entity. The narrower
 `villager_interact` alias fires immediately after, only when the target is a
 villager or wandering trader. Both are **cancellable** via
-`neoorigins:cancel_event` (vetoes the interaction — e.g. blocking villager
+`neoorigins:cancel_event` (vetoes the interaction, e.g. blocking villager
 trading for an origin).
 
-**Context:** `EntityInteractContext(target, event)` — carries the underlying
+**Context:** `EntityInteractContext(target, event)`. Carries the underlying
 cancellable `PlayerInteractEvent.EntityInteract` event. The `breed`, `tame`
 and `bonemeal` dispatches share this pattern and are likewise cancellable.
 
@@ -614,12 +614,12 @@ trade-lock origins (`villager_interact` + `cancel_event`).
 ## `villager_interact`
 
 Fires when the player right-clicks a villager or wandering trader
-(`AbstractVillager` covers both) — a narrower alias of `entity_use`, fired
+(`AbstractVillager` covers both), a narrower alias of `entity_use`, fired
 immediately after it so a power can target either granularity.
 **Cancellable** via `neoorigins:cancel_event` (vetoes the interaction before
 the trade screen opens).
 
-**Context:** `EntityInteractContext(target, event)` — carries the underlying
+**Context:** `EntityInteractContext(target, event)`. Carries the underlying
 cancellable `PlayerInteractEvent.EntityInteract` event.
 
 **Dispatch site:** `InteractionPowerEvents.onEntityUse`.
@@ -635,7 +635,7 @@ Fires when the player causes a baby animal to spawn (feeding two parents).
 Fires regardless of any `twin_breeding` power. **Cancellable** via
 `neoorigins:cancel_event` (vetoes the baby spawn).
 
-**Context:** `EntityInteractContext(child, event)` — the target is the
+**Context:** `EntityInteractContext(child, event)`. The target is the
 newborn `AgeableMob`; carries the underlying cancellable
 `BabyEntitySpawnEvent`.
 
@@ -648,12 +648,12 @@ bans (`cancel_event`).
 
 ## `tame`
 
-Fires when the player tames an animal (wolf, cat, horse, parrot, etc. — any
+Fires when the player tames an animal (wolf, cat, horse, parrot, etc., from any
 `AnimalTameEvent`). Distinct from the `tame_mob` power, which tames via its
 own active-ability pipeline. **Cancellable** via `neoorigins:cancel_event`
 (the taming fails).
 
-**Context:** `EntityInteractContext(animal, event)` — carries the underlying
+**Context:** `EntityInteractContext(animal, event)`. Carries the underlying
 cancellable `AnimalTameEvent`.
 
 **Dispatch site:** `WorldPowerEvents.onAnimalTame`.
@@ -670,7 +670,7 @@ Fires when the player applies bone meal to a block. Distinct from
 **Cancellable** via `neoorigins:cancel_event` (the bone meal is not
 consumed and nothing grows).
 
-**Context:** `BlockInteractContext(pos, state, event)` — the bonemealed
+**Context:** `BlockInteractContext(pos, state, event)`, the bonemealed
 block; carries the underlying cancellable `BonemealEvent`. Supports
 `block_condition` like the other block events.
 
@@ -712,18 +712,18 @@ which fires at use-start). Also synthetically fired by
 
 ## `power_activated`
 
-Fires when **another power on the same player is successfully activated** —
+Fires when **another power on the same player is successfully activated**:
 an active power fired past its cooldown / hunger / resource gates, or a
 toggle power flipped (either direction; pair with a `power_active` condition
 on the toggled power if you only want one direction). Compat-layer (Route B)
 actives fire per dispatched attempt, since their gating lives inside the
 compat consumer and exposes no success signal.
 
-**Context:** `EventPowerIndex.PowerActivatedContext` — carries the activated
+**Context:** `EventPowerIndex.PowerActivatedContext`. Carries the activated
 power's id.
 
 **Dispatch sites:** `AbstractActivePower.onActivated` (success branch),
-`AbstractTogglePower.onActivated`, `CompatPower.onActivated` — all via
+`AbstractTogglePower.onActivated`, `CompatPower.onActivated`, all via
 `EventPowerIndex.dispatchPowerActivated`.
 
 **Filter (`power`, optional):** a single power id or an array of ids; the
@@ -732,7 +732,7 @@ action only fires when the activated power's id matches. Omit to fire on
 
 **Re-entrancy:** if a `power_activated` listener's action itself activates a
 power (e.g. via a command), that nested activation does **not** re-dispatch
-`power_activated` — A→B→A loops are cut at the first level. The nested
+`power_activated`. A→B→A loops are cut at the first level. The nested
 activation itself still happens.
 
 ```json
@@ -760,7 +760,7 @@ effect lands. Cancelling with `neoorigins:cancel_event` denies the
 application (calls `setResult(DO_NOT_APPLY)` on the underlying
 `MobEffectEvent.Applicable`).
 
-**Context:** `EventPowerIndex.EffectAppliedContext` — carries the
+**Context:** `EventPowerIndex.EffectAppliedContext`. Carries the
 `MobEffectInstance`, its registry id, and the cancellable event.
 
 **Dispatch site:** `CombatPowerEvents.onMobEffectApplicable`
@@ -768,8 +768,8 @@ application (calls `setResult(DO_NOT_APPLY)` on the underlying
 
 **Filters:** the `action_on_event` config accepts two optional pre-dispatch
 filters that work only on this event:
-- `effect` — a single registry id (e.g. `spore:mycelium_ef`)
-- `effect_tag` — a `TagKey<MobEffect>` (e.g. `#minecraft:harmful`; leading `#` optional)
+- `effect`: a single registry id (e.g. `spore:mycelium_ef`)
+- `effect_tag`: a `TagKey<MobEffect>` (e.g. `#minecraft:harmful`; leading `#` optional)
 
 If both are set they OR-match. If neither is set the action fires for every
 effect that reaches dispatch.
@@ -779,7 +779,7 @@ action successfully cancels an EFFECT_APPLIED event AND `immunity_ticks > 0`,
 opens a per-effect-id grace window. Subsequent EFFECT_APPLIED dispatches for
 the same effect short-circuit to `DO_NOT_APPLY` until the window closes,
 skipping the user's condition entirely. Lets pack authors smooth out
-probabilistic cancels — a successful 50% `random_chance` cleanse with
+probabilistic cancels: a successful 50% `random_chance` cleanse with
 `immunity_ticks: 40` means the player is fully immune for 2 seconds before
 the next re-roll. The window max-merges across powers (multiple cleanses
 take the longest expiry, not the latest) and is cleared on logout.
@@ -828,11 +828,11 @@ HP healing buff.
 
 Per-player adjustment of a merchant offer's cost-A count. The chained result is
 treated as the new absolute count (clamped to `[1, maxStackSize]`) and folded
-into vanilla's `specialPriceDiff` channel — the same knob Hero of the Village
-and villager reputation use — so it stacks on top of natural discounts and
+into vanilla's `specialPriceDiff` channel (the same knob Hero of the Village
+and villager reputation use), so it stacks on top of natural discounts and
 shows correctly on both client and server.
 
-**Context:** `TradeContext(offer)` — the `MerchantOffer`. Base value is the
+**Context:** `TradeContext(offer)`, the `MerchantOffer`. Base value is the
 currently-displayed cost-A count.
 
 **Dispatch site:** `AbstractVillagerTradePriceMixin` (TAIL of
@@ -904,7 +904,7 @@ effect-specific gating from conditions). Base value is `1.0f`.
 **Dispatch site:** `CombatPowerEvents.onMobEffectAdded`.
 
 **Typical use:** longer potions, shorter debuffs, witch-class effect
-amplifier scaling (use with care — this scales duration, not amplifier).
+amplifier scaling (use with care: this scales duration, not amplifier).
 
 ---
 
@@ -919,7 +919,7 @@ run.
 
 **Dispatch site:** `CraftingPowerEvents.onBonemeal`.
 
-**Typical use:** druid / forester class — 2× / 3× growth per bonemeal.
+**Typical use:** druid / forester class gets 2× / 3× growth per bonemeal.
 
 ---
 
@@ -950,7 +950,7 @@ item's existing `saturation` field. Values `≤ 0` are ignored.
 **Dispatch site:** `CraftingPowerEvents.onItemCrafted` **and**
 `onItemSmelted` (via `boostFoodIfCook`).
 
-**Typical use:** chef class — crafted/smelted food gives +0.2 saturation.
+**Typical use:** chef class. Crafted/smelted food gives +0.2 saturation.
 
 ---
 
@@ -976,7 +976,7 @@ replacement for the legacy `teleport_range_modifier`).
 
 **Dispatch site:** `ActiveTeleportPower.execute`.
 
-**Typical use:** ender class — +4 blocks teleport distance, cursed class
+**Typical use:** ender class gets +4 blocks teleport distance, cursed class
 halved.
 
 **Note:** only affects the built-in active-teleport power. Ender pearls
@@ -1005,7 +1005,7 @@ no-fall immunity, prefer `prevent_action: FALL_DAMAGE`.
 # Removed keys
 
 Two keys that earlier drafts exposed were dropped because a better-fitting
-mechanism already covers them — exposing a second, redundant handler would
+mechanism already covers them. Exposing a second, redundant handler would
 only invite divergent behaviour:
 
 - `mod_break_speed` → use the `break_speed_modifier` power (backed by the
@@ -1017,13 +1017,13 @@ only invite divergent behaviour:
   `OriginsCompatPowerLoader.parseNumericModifier` into the
   `NumericModifierRegistry` XP_GAIN path with full Apoli modifier math
   (`addition` + `multiply_base` / `multiply_total`). There is no native
-  `neoorigins:` spelling for this one — the compat type *is* the supported
+  `neoorigins:` spelling for this one. The compat type *is* the supported
   route, and it is not deprecated.
 
 ---
 
 ## Cross-reference
 
-- [`EventPowerIndex.java`](../src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java) — enum declaration and context records.
-- [`ActionOnEventPower.java`](../src/main/java/com/cyberday1/neoorigins/power/builtin/ActionOnEventPower.java) — the power type that consumes these events.
-- [`POWER_TYPES.md`](POWER_TYPES.md) — full power-type catalogue including `action_on_event`.
+- [`EventPowerIndex.java`](../src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java): enum declaration and context records.
+- [`ActionOnEventPower.java`](../src/main/java/com/cyberday1/neoorigins/power/builtin/ActionOnEventPower.java): the power type that consumes these events.
+- [`POWER_TYPES.md`](POWER_TYPES.md): full power-type catalogue including `action_on_event`.

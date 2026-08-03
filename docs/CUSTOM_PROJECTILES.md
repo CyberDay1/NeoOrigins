@@ -12,28 +12,28 @@ vanilla-projectile options.
 
 **Four levels of customisation** cover most cases:
 
-0. **[Datapack visuals](#level-0-datapack-data-driven-visuals)** — pick the
+0. **[Datapack visuals](#level-0-datapack-data-driven-visuals)**: pick the
    built-in `neoorigins:magic_orb`'s colour, shape, size, glow, and trail
    directly in `spawn_projectile` JSON. **No Java, no companion mod.**
-1. **[Pack-author level](#level-1-pack-author-new-effect_type-color)** —
+1. **[Pack-author level](#level-1-pack-author-new-effect_type-color)**:
    register a custom `effect_type` color from a companion mod, no new entity.
-2. **[Procedural custom renderer](#level-2-procedural-custom-renderer)** —
+2. **[Procedural custom renderer](#level-2-procedural-custom-renderer)**:
    write a Java subclass of `ProceduralQuadRenderer` with custom animation
    math. No asset files needed.
-3. **[Model-loaded custom entity](#level-3-model-loaded-custom-entity)** —
+3. **[Model-loaded custom entity](#level-3-model-loaded-custom-entity)**:
    ship a Bedrock `.geo.json` model + texture, use `GeoJsonModel` to load
    it, write a custom renderer that draws the baked mesh.
 
 Each builds on the previous. All paths plug into the existing
-`spawn_projectile` / `spawn_lingering_area` DSL verbs — pack authors
+`spawn_projectile` / `spawn_lingering_area` DSL verbs. Pack authors
 reference your entity by its registered ID.
 
 ---
 
-## Level 0: Datapack — data-driven visuals
+## Level 0: Datapack, data-driven visuals
 
 **Goal:** a green orb that renders as a sphere with a purple glow and a witch
-particle trail — entirely from `spawn_projectile` JSON, no mod.
+particle trail, entirely from `spawn_projectile` JSON, no mod.
 
 The built-in `neoorigins:magic_orb` carries its visual config as synched entity
 data, so the client renderer reads it live. Set any of these fields on the
@@ -73,7 +73,7 @@ compose cleanly.
 ```
 
 Here `effect_type: fire` would default to an orange sphere + flame trail, but
-the explicit `orb_color`, `glow_color`, and `trail_particle` win — yielding a
+the explicit `orb_color`, `glow_color`, and `trail_particle` win, yielding a
 green sphere with a purple glow and witch trail.
 
 The four shapes are all procedural quads (no model files): `cross` is the
@@ -86,14 +86,14 @@ round from any angle (a cheap faithful approximation, not a tessellated mesh).
 ## Prerequisites
 
 - NeoOrigins 2.0+ (API under `com.cyberday1.neoorigins.api.content.vfx`)
-- **MC 1.21.1 or 26.1** — the public API (abstract hooks, animation
+- **MC 1.21.1 or 26.1**: the public API (abstract hooks, animation
   parameters, effect-type registry, model loader) is identical on both
   versions. Only the base classes' internal render flow differs (1.21.1
   uses the classic `render()` + `MultiBufferSource` path; 26.1 uses the
   state-pattern `submit()` + `SubmitNodeCollector`). Subclass code
-  compiles unchanged across both, so the same mod jar is rarely the goal
-  — multi-version builds are.
-- A companion mod project — these are Java examples, not datapack JSON.
+  compiles unchanged across both, so the same mod jar is rarely the goal,
+  but multi-version builds are.
+- A companion mod project: these are Java examples, not datapack JSON.
   For a pure-datapack approach, use the pre-registered `neoorigins:magic_orb`
   with one of the built-in `effect_type` keys (see the
   `neoorigins:spawn_projectile` / `spawn_lingering_area` /
@@ -102,7 +102,7 @@ round from any angle (a cheap faithful approximation, not a tessellated mesh).
 
 ---
 
-## Level 1: Pack-author — new `effect_type` color
+## Level 1: Pack-author, new `effect_type` color
 
 **Goal:** register a new effect type key so pack JSON can use
 `"effect_type": "verdant_glow"` and get a specific green-yellow color.
@@ -304,7 +304,7 @@ assets/yourmod/textures/entity/runestone.png <- texture
 
 The `.geo.json` must follow the Bedrock 1.12.0+ format (single geometry,
 at least one bone with cubes). Animations inside the `.geo.json` are
-**ignored** — procedurally spin the model in the renderer instead.
+**ignored**. Procedurally spin the model in the renderer instead.
 
 ### Entity class (extends AbstractVfxEntity for lifetime + particles)
 
@@ -342,7 +342,7 @@ public class RunestoneRenderState extends AbstractVfxRenderState {
 }
 ```
 
-### Renderer — uses GeoJsonModel
+### Renderer: uses GeoJsonModel
 
 ```java
 package yourmod.client;
@@ -404,17 +404,17 @@ public class RunestoneRenderer extends EntityRenderer<RunestoneVfx, RunestoneRen
 }
 ```
 
-(Note: the exact renderer wiring uses `GeoJsonModel.renderTinted(poseStack, consumer, ...)` — the
+(Note: the exact renderer wiring uses `GeoJsonModel.renderTinted(poseStack, consumer, ...)`. The
 intermediate stack adapter in the example above is illustrative. See
 `BlackHoleRenderer` in the NeoOrigins source for the real pattern.)
 
 ### Registration & DSL
 
-Same pattern as Level 2 — register the entity type, register the
+Same pattern as Level 2: register the entity type, register the
 renderer, and pack JSON references `"entity_type": "yourmod:runestone"`.
 
 **When to use this:** your projectile or VFX entity has a shape that
-genuinely requires geometry — rings, gears, crystals, multi-bone
+genuinely requires geometry, such as rings, gears, crystals, multi-bone
 structures. `GeoJsonModel` loads the mesh once at classload, bakes
 face-culled vertex data, and renders it efficiently every frame.
 
@@ -422,8 +422,8 @@ face-culled vertex data, and renders it efficiently every frame.
 
 ## Level 4: Arbitrary triangle meshes (`BakedMeshModel`)
 
-**Goal:** render a model that *isn't* cube-soup — a curved blade, an organic
-shape, anything modelled in Blender and exported to glTF/GLB — that
+**Goal:** render a model that *isn't* cube-soup (a curved blade, an organic
+shape, anything modelled in Blender and exported to glTF/GLB) that
 `GeoJsonModel` (Level 3) cannot represent.
 
 **Why a separate path.** `GeoJsonModel` only bakes Bedrock cubes; an arbitrary
@@ -431,7 +431,7 @@ triangle mesh has no cube representation. Rather than ship a full glTF parser in
 the mod, the model is converted **offline** into a flat vertex array and shipped
 as a small binary `.bakedmesh` blob (the `NBM1` format). At runtime
 `BakedMeshModel` reads that array straight into the same quad-based
-`VertexConsumer` path Level 3 already uses — so the only new cost is the offline
+`VertexConsumer` path Level 3 already uses, so the only new cost is the offline
 bake step.
 
 ### The asset files
@@ -457,13 +457,13 @@ A `.bakedmesh` file is a flat little-endian binary blob:
   bake time so the output matches the quad-based vertex path. A triangle mesh of
   N triangles bakes to N quads.
 - Positions are **recentered to the origin** at bake time but kept in the source
-  model's units, which are typically far larger than a block — that's what the
+  model's units, which are typically far larger than a block. That's what the
   load-time `scale` is for (below).
 
 ### Baking the blob
 
 The blob is produced offline by the reference `bake_glb.js` baker (a small Node
-script that reads a GLB and writes `NBM1`) — it is **not** part of the runtime
+script that reads a GLB and writes `NBM1`). It is **not** part of the runtime
 mod. The workflow:
 
 1. Model and UV-map your mesh, export to **GLB**.
@@ -471,7 +471,7 @@ mod. The workflow:
 3. Drop it (and its `.png`) into `assets/yourmod/geo|textures/`.
 
 Because the format is the documented flat array above, any tool that emits the
-same layout works — the baker is just the reference producer.
+same layout works. The baker is just the reference producer.
 
 ### Loading
 
@@ -491,10 +491,10 @@ if (model == null) {
   `GeoJsonModel`'s convention). Choose `scale` to bring the source-model size
   down to blocks; the renderer's own `poseStack.scale(...)` then stays a purely
   cosmetic fine-tune.
-- A missing or malformed file **never crashes** — `load` logs the error and
+- A missing or malformed file **never crashes**: `load` logs the error and
   returns a tiny 0.25-block fallback quad, so a bad asset is visible but harmless.
 - Parse once and cache in a `static` field (lazily on first render, or at class
-  load). The same blob can back several renderers — `ProjectileRainRenderer`
+  load). The same blob can back several renderers. `ProjectileRainRenderer`
   caches one `BakedMeshModel` per model id in a map.
 
 ### Rendering
@@ -546,7 +546,7 @@ public class ThrownSwordRenderer
 ```
 
 - `render(poseStack, consumer, packedLight, packedOverlay)` draws the mesh white;
-  `renderTinted(..., r, g, b, a, ...)` applies a per-vertex tint + alpha — use it
+  `renderTinted(..., r, g, b, a, ...)` applies a per-vertex tint + alpha. Use it
   for `effect_type`-themed colour variants.
 - `getRadius()` returns the **post-scale** bounding radius in blocks: divide your
   desired on-screen size by it to derive a scale, or use it for cull/spacing math
@@ -555,14 +555,14 @@ public class ThrownSwordRenderer
 
 ### Registration & DSL
 
-Same as Level 3 — register the entity type and its renderer; pack JSON points at
+Same as Level 3: register the entity type and its renderer; pack JSON points at
 the entity via `spawn_projectile` / `spawn_projectile_rain` (the rain action's
 `model` field selects which baked mesh to use). The thrown sword and the
 sword-rain it seeds both reference one `spectral_sword.bakedmesh`, so they read
 as a single effect.
 
-**When to use this:** the visual is a genuine triangle mesh — curved blades,
-organic forms, imported art — rather than cube-soup. If Blockbench can build the
+**When to use this:** the visual is a genuine triangle mesh (curved blades,
+organic forms, imported art) rather than cube-soup. If Blockbench can build the
 shape from cubes, prefer Level 3 and skip the offline bake entirely.
 
 ---
@@ -578,19 +578,19 @@ Rendering paths:
 | Level 3 (model-loaded) | .geo.json + .png | 3 (entity + state + renderer) + assets | Distinctive geometric shapes |
 | Level 4 (baked mesh) | .bakedmesh + .png | 3 (entity + state + renderer) + assets + offline bake | Arbitrary triangle meshes (glTF/GLB) that aren't cube-soup |
 
-They all plug into `spawn_projectile` identically — the pack author
+They all plug into `spawn_projectile` identically. The pack author
 doesn't know (or care) which level implemented the visual.
 
 ### When you need the entity to actually *do* things during flight
 
-Level 2 entities can override any `Entity` method — `tick()` to adjust
+Level 2 entities can override any `Entity` method: `tick()` to adjust
 velocity (homing), `onHit()` to trigger custom impact behaviour, etc. See
 `HomingProjectile` in the NeoOrigins source for a working example that
 steers toward the nearest living entity each tick.
 
 ### When you need lingering AoE behavior
 
-Use `neoorigins:spawn_lingering_area` — no custom entity needed. The
+Use `neoorigins:spawn_lingering_area`. No custom entity needed. The
 action accepts any nested `entity_action` to run on interval. Pair it
 with a `spawn_projectile` + `on_hit_action` and the lingering area
 lands at the projectile's impact point. See `docs/COOKBOOK.md` recipe 11
@@ -599,7 +599,7 @@ for a worked example.
 ### Stability contract
 
 Types under `com.cyberday1.neoorigins.api.content.vfx.**` follow
-NeoOrigins's semver — stable in minor releases, additive changes only.
+NeoOrigins's semver: stable in minor releases, additive changes only.
 See `docs/JAVA_API.md` for the full contract.
 
 ---
@@ -609,52 +609,52 @@ See `docs/JAVA_API.md` for the full contract.
 **"My renderer compiles but the projectile is invisible."**
 Most likely the renderer isn't registered, or you're on a dedicated
 server without the client event subscriber. `registerEntityRenderer` is
-client-only — put it in an `@EventBusSubscriber(value = Dist.CLIENT)`
+client-only. Put it in an `@EventBusSubscriber(value = Dist.CLIENT)`
 class or guard it with `FMLEnvironment.dist.isClient()`.
 
-**"The pose/transform looks wrong — my model is off-center or tiny."**
+**"The pose/transform looks wrong: my model is off-center or tiny."**
 Blockbench exports use pixel-unit coordinates. `GeoJsonModel` divides by
 16 to convert to Minecraft blocks. If your model's `origin` values are
-huge (e.g., `[14, -5, 0]` — which is 14 pixels from origin), the mesh
+huge (e.g., `[14, -5, 0]`, which is 14 pixels from origin), the mesh
 sits 14/16 ≈ 0.88 blocks away from the entity position. Recenter the
 model in Blockbench or offset the `poseStack.translate(...)` in your
 renderer.
 
 **"The effect_type color isn't applying."**
 Check `VfxEffectTypes.isRegistered("your_key")`. If false, your
-`register()` call didn't run — likely because the caller is in a
+`register()` call didn't run, likely because the caller is in a
 `@OnlyIn(Dist.CLIENT)` class and the registration needs to happen on
 both sides (entities sync via `SynchedEntityData`; renderers read the
 registry on render).
 
 **"`.geo.json` loads but the model shape is wrong."**
 `GeoJsonModel` only reads cubes from the first bone of the first
-geometry. Multi-bone skeletal models are out of scope — use a
+geometry. Multi-bone skeletal models are out of scope. Use a
 single-bone cube soup (Blockbench: merge all cubes into one bone before
 exporting) or invest in GeckoLib.
 
 **"Pack authors don't see my entity in `spawn_projectile`."**
 Registered entities appear in the DSL as soon as they're registered in
-`Registries.ENTITY_TYPE` — no separate NeoOrigins-side registration
+`Registries.ENTITY_TYPE`, with no separate NeoOrigins-side registration
 needed. If `spawn_projectile` logs "unknown entity," your registry
-timing is off — check that `ModEntities.register(modEventBus)` runs in
+timing is off. Check that `ModEntities.register(modEventBus)` runs in
 your mod's constructor before common setup.
 
 ---
 
 ## Reference implementations in the NeoOrigins source
 
-- `content/MagicOrbProjectile` + `client/renderer/MagicOrbRenderer` — Level 2
+- `content/MagicOrbProjectile` + `client/renderer/MagicOrbRenderer`: Level 2
   procedural, what the example pack origins use
-- `content/LingeringAreaEntity` + `client/renderer/LingeringAreaRenderer` —
+- `content/LingeringAreaEntity` + `client/renderer/LingeringAreaRenderer`:
   `AbstractVfxEntity` subclass with server-emitted particles
-- `content/HomingProjectile` — custom per-tick AI on a projectile
-- `api/content/vfx/GeoJsonModel` — Level 3 model loader internals
-- `api/content/vfx/BakedMeshModel` — Level 4 baked-mesh loader internals (the
+- `content/HomingProjectile`: custom per-tick AI on a projectile
+- `api/content/vfx/GeoJsonModel`: Level 3 model loader internals
+- `api/content/vfx/BakedMeshModel`: Level 4 baked-mesh loader internals (the
   `NBM1` format reader + fallback quad)
-- `content/ThrownSwordProjectile` + `client/renderer/ThrownSwordRenderer` —
+- `content/ThrownSwordProjectile` + `client/renderer/ThrownSwordRenderer`:
   Level 4 baked mesh aimed + spun along its velocity
-- `client/renderer/ProjectileRainRenderer` — Level 4 baked mesh rendered many
+- `client/renderer/ProjectileRainRenderer`: Level 4 baked mesh rendered many
   times from one cached model (the sword-rain storm); asset
   `assets/neoorigins/geo/spectral_sword.bakedmesh`
 

@@ -1,4 +1,4 @@
-# NeoOrigins UI theme — pack template
+# NeoOrigins UI theme: pack template
 
 Copy this whole folder, rename the placeholders, and you have an addon pack
 that re-skins NeoOrigins's selection / info screens without writing any Java.
@@ -8,15 +8,15 @@ that re-skins NeoOrigins's selection / info screens without writing any Java.
 This template lives inside the NeoOrigins repo at `docs/theme-template/`.
 GitHub has no "download one subfolder" button, so grab it one of these ways:
 
-- **Whole-repo ZIP** — on the [repo page](https://github.com/CyberDay1/NeoOrigins),
+- **Whole-repo ZIP**: on the [repo page](https://github.com/CyberDay1/NeoOrigins),
   click **Code → Download ZIP**, unzip, and find this folder under
   `docs/theme-template/`.
-- **Just this folder** — paste this README's URL into
+- **Just this folder**: paste this README's URL into
   [download-directory.github.io](https://download-directory.github.io/)
   (third-party tool) to get a ZIP of only `docs/theme-template/`.
-- **git clone** — `git clone https://github.com/CyberDay1/NeoOrigins.git`,
+- **git clone**: `git clone https://github.com/CyberDay1/NeoOrigins.git`,
   then copy `docs/theme-template/` out.
-- **Release asset** — from **2.2.0** onward, a ready-to-edit
+- **Release asset**: from **2.2.0** onward, a ready-to-edit
   `neoorigins-theme-template.zip` is attached to each
   [release](https://github.com/CyberDay1/NeoOrigins/releases); that zip *is*
   this folder, so you can skip the repo entirely.
@@ -31,7 +31,7 @@ A combined **resource pack + data pack** that:
 - declares it as the active theme via `data/<ns>/neoorigins/active_theme.json`
 - ships an optional custom panel PNG and font
 
-Players just install the pack — no client config, no separate datapack juggling.
+Players just install the pack: no client config, no separate datapack juggling.
 
 ## Steps
 
@@ -52,7 +52,7 @@ Players just install the pack — no client config, no separate datapack jugglin
    `<your_id>.json`. The id the mod registers is `<your_ns>:<your_id>`.
 
 3. **Edit the colours.** Open `ui_themes/<your_id>.json` and tune the ARGB
-   hex values. Every field is optional — delete any you want to inherit from
+   hex values. Every field is optional. Delete any you want to inherit from
    `neoorigins:parchment`.
 
 4. **(Optional) Drop in a panel PNG.** Replace
@@ -98,12 +98,12 @@ The override is per-client, useful for solo players.
 
 ## Troubleshooting
 
-- **The theme doesn't apply** — check the server log for
+- **The theme doesn't apply**: check the server log for
   `[theming] active UI theme set by ...`. If you see
   `[theming] active theme '<id>' is not loaded`, the resource side didn't
-  load — your theme JSON likely isn't where the mod expects it.
-- **Panel still shows parchment** — `panel_background` in the theme JSON
+  load. Your theme JSON likely isn't where the mod expects it.
+- **Panel still shows parchment**: `panel_background` in the theme JSON
   must be a valid resource location pointing to a PNG that exists in your
   pack. Typos fall back silently to the parchment default.
-- **Font didn't change** — Minecraft font reloads are picky. Hit `F3+T`
+- **Font didn't change**: Minecraft font reloads are picky. Hit `F3+T`
   after editing the JSON, or rejoin the world.

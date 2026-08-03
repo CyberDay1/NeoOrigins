@@ -3,7 +3,7 @@
 ## Build Requirements
 
 - Java 21
-- Gradle (wrapper included — use `./gradlew`)
+- Gradle (wrapper included, so use `./gradlew`)
 - NeoForge 21.11.38-beta (resolved automatically)
 
 ```bash

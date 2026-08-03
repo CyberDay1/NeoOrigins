@@ -30,8 +30,8 @@ Most origins follow this pattern (1 heart = 2 HP):
 | Tier | Max Health Bonus |
 |------|-----------------|
 | Evolved | +2 HP (+1 heart) |
-| Ascended | +4 HP (+2 hearts) — replaces Evolved |
-| Apex | +6 HP (+3 hearts) — replaces Ascended |
+| Ascended | +4 HP (+2 hearts), replaces Evolved |
+| Apex | +6 HP (+3 hearts), replaces Ascended |
 
 Origins with non-standard HP or unique tier bonuses are noted below.
 

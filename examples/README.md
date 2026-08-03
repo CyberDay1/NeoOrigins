@@ -1,7 +1,7 @@
 # NeoOrigins Datapack Examples
 
 This folder contains working example datapacks that show how to use NeoOrigins
-features that are driven entirely from datapack JSON — no Java code required.
+features that are driven entirely from datapack JSON: no Java code required.
 
 Modpack authors, addon authors, and server operators can copy any of these
 folders into a world's `datapacks/` directory (or distribute them as a
@@ -13,7 +13,7 @@ Shipped in **v1.11.0**.
 
 Any origin JSON can declare an `upgrades` list. When a player currently has
 that origin on some layer and earns one of the listed advancements, NeoOrigins
-swaps them to the target origin on the same layer — powers are revoked and
+swaps them to the target origin on the same layer. Powers are revoked and
 re-granted through the normal origin-change pipeline.
 
 ### Schema
@@ -37,7 +37,7 @@ Add an `upgrades` list to any origin JSON at
 
 | Field          | Required | Notes                                                                                           |
 |----------------|----------|-------------------------------------------------------------------------------------------------|
-| `advancement`  | yes      | Namespaced advancement id. Any advancement — vanilla, modded, or datapack-defined — is allowed. |
+| `advancement`  | yes      | Namespaced advancement id. Any advancement (vanilla, modded, or datapack-defined) is allowed.   |
 | `origin`       | yes      | Target origin id. Must resolve to a loaded origin, otherwise the upgrade is skipped + logged.   |
 | `announcement` | no       | Translation key sent to the player as a system message on upgrade. Omit for silent upgrades.    |
 
@@ -65,7 +65,7 @@ Add an `upgrades` list to any origin JSON at
 | `class_tier_up/`        | Class-layer variant: Explorer class promotes to Master Explorer on a chain of exploration advancements. |
 | `custom_class/`         | Adds a complete custom class (Alchemist) to the class screen additively, without overriding any built-in class. See [docs/CLASSES.md](../docs/CLASSES.md). |
 
-Each subfolder is a complete datapack — drop the folder into
+Each subfolder is a complete datapack. Drop the folder into
 `<world>/datapacks/` and `/reload`, or zip it up for distribution.
 
 ## Installing
@@ -94,7 +94,7 @@ test character):
 
 - **Overriding a mod origin**: datapacks can override mod-provided origin JSONs
   by placing a file at the same namespaced path. The `nether_evolution/`
-  example demonstrates this — it overrides `neoorigins:human` with a version
+  example demonstrates this. It overrides `neoorigins:human` with a version
   that adds an `upgrades` entry but keeps every other field identical.
 - **Adding upgrades without overriding**: there is no way today to add an
   upgrade to an existing origin without full-override. If you only want to

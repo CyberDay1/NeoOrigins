@@ -7,4 +7,4 @@ has_children: true
 # Project & Internals
 
 Architecture notes and per-release change documents. These are written for
-contributors and the curious — pack authors generally won't need them.
+contributors and the curious. Pack authors generally won't need them.

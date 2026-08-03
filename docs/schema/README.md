@@ -9,8 +9,8 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
 | `origin_layer.schema.json` | `data/<namespace>/origins/origin_layers/*.json` |
 | `origin.schema.json` | `data/<namespace>/origins/origins/*.json` |
 | `power.schema.json` | `data/<namespace>/origins/powers/*.json` |
-| `condition.schema.json` | Referenced internally by `power.schema.json` — no direct file mapping. |
-| `action.schema.json` | Referenced internally by `power.schema.json` — no direct file mapping. |
+| `condition.schema.json` | Referenced internally by `power.schema.json`. No direct file mapping. |
+| `action.schema.json` | Referenced internally by `power.schema.json`. No direct file mapping. |
 
 ## Wiring up VS Code
 
@@ -48,7 +48,7 @@ condition verbs, and ~19 action verbs carry full field constraints
 (required/optional, types, enums). The rest fall through to a permissive
 fallback branch that still catches typos in the `type` discriminator.
 
-Additions welcome — a pull request that tightens a fallback branch with a
+Additions welcome. A pull request that tightens a fallback branch with a
 real field table costs nothing at runtime and saves pack authors from
 silent misconfigurations.
 

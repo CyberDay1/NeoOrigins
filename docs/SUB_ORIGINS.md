@@ -8,7 +8,7 @@ nav_order: 3
 
 Sub-origins let pack authors create origin trees where picking an origin in one layer unlocks sub-choices in a later layer. Think D&D race/subrace: pick **Elf** → then pick **High Elf / Wood Elf / Dark Elf** → then pick a **Cantrip**.
 
-NeoOrigins implements this through **conditioned origin layers** — layers whose origin entries have a `condition` that checks the player's choice in a parent layer.
+NeoOrigins implements this through **conditioned origin layers**: layers whose origin entries have a `condition` that checks the player's choice in a parent layer.
 
 ---
 
@@ -127,7 +127,7 @@ All three formats can be mixed in the same layer's `"origins"` array.
 
 ## Condition Types
 
-### `origins:origin` — Check parent layer choice
+### `origins:origin`: Check parent layer choice
 
 The primary condition type. Checks if a specific origin was chosen in a specific layer.
 
@@ -146,7 +146,7 @@ The primary condition type. Checks if a specific origin was chosen in a specific
 | `origin` | string | required | The origin ID the player must have chosen |
 | `inverted` | boolean | `false` | When `true`, passes when the origin was NOT chosen |
 
-### `origins:and` — All conditions must pass
+### `origins:and`: All conditions must pass
 
 ```json
 {
@@ -158,7 +158,7 @@ The primary condition type. Checks if a specific origin was chosen in a specific
 }
 ```
 
-### `origins:or` — Any condition must pass
+### `origins:or`: Any condition must pass
 
 ```json
 {
@@ -183,7 +183,7 @@ order: 2  → "Dwarven Clan"   (Hill, Mountain — only if Race=Dwarf)
 order: 3  → "Cantrip"        (only if Lineage=High Elf)
 ```
 
-Multiple sub-layers can share the same `order` value — they'll be shown in registration order, and layers with no visible origins are automatically skipped.
+Multiple sub-layers can share the same `order` value. They'll be shown in registration order, and layers with no visible origins are automatically skipped.
 
 ---
 
@@ -194,7 +194,7 @@ When a player changes their parent layer choice (via Orb of Origin or `/origin g
 1. Player picks **Elf** → **High Elf** → **Firebolt**
 2. Player uses Orb of Origin, changes race to **Dwarf**
 3. Server detects "High Elf" and "Firebolt" are no longer valid (their conditions fail)
-4. Both sub-layer choices are revoked — powers removed, layer slots cleared
+4. Both sub-layer choices are revoked: powers removed, layer slots cleared
 5. Player picks **Mountain Dwarf** in the newly-visible Dwarven Clan sub-layer
 
 ---
@@ -272,6 +272,6 @@ A sub-layer that appears for multiple parent choices:
 
 ## Compatibility
 
-This system is fully compatible with Origins mod's conditioned layer format. Packs written for Origins (like `digs_dnd_origins`) work without modification — NeoOrigins parses the same JSON structure and evaluates the same condition types.
+This system is fully compatible with Origins mod's conditioned layer format. Packs written for Origins (like `digs_dnd_origins`) work without modification. NeoOrigins parses the same JSON structure and evaluates the same condition types.
 
 The `apace:` and `neoorigins:` type prefixes are accepted as aliases alongside `origins:`.

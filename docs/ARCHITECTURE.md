@@ -4,7 +4,7 @@ parent: "Project & Internals"
 nav_order: 1
 ---
 
-# NeoOrigins — Architecture
+# NeoOrigins: Architecture
 
 ## Overview
 
@@ -49,7 +49,7 @@ Native-format files win on ID collision.
 When a power JSON has an `origins:` or `apace:` type namespace it is processed before codec
 parsing. There are two translation routes:
 
-### Route A — Static JSON Rewrite (`OriginsPowerTranslator`)
+### Route A: Static JSON Rewrite (`OriginsPowerTranslator`)
 
 ```
 JSON file  →  OriginsFormatDetector  →  OriginsMultipleExpander  →  OriginsPowerTranslator
@@ -60,7 +60,7 @@ JSON file  →  OriginsFormatDetector  →  OriginsMultipleExpander  →  Origin
 `OriginsPowerTranslator` maps ~20 Origins power types to NeoOrigins equivalents. Translations
 that lose information are marked with `// [LOSSY]` so they are grep-able.
 
-### Route B — Dynamic Lambda Compilation (`OriginsCompatPowerLoader`)
+### Route B: Dynamic Lambda Compilation (`OriginsCompatPowerLoader`)
 
 Power types not handled by Route A are compiled into `CompatPower` lambdas by
 `OriginsCompatPowerLoader`, using `ActionParser` and `ConditionParser`. The resulting
@@ -77,8 +77,8 @@ origins_compat_b reload  →  OriginsCompatPowerLoader.load()
 ```
 
 **Fail policies** (see `CompatPolicy`):
-- `NOOP_ACTION` — unknown Route B action type is silently skipped (safe)
-- `FALSE_CONDITION` — unknown Route B condition type suppresses the ability (safe)
+- `NOOP_ACTION`: unknown Route B action type is silently skipped (safe)
+- `FALSE_CONDITION`: unknown Route B condition type suppresses the ability (safe)
 
 ### Compat Translation Log
 
@@ -128,7 +128,7 @@ Four keybind slots (V / G / N / B by default) map to slot indices 0–3.
 
 Slot assignment flow:
 1. `ActiveOriginService.activePowers(player)` collects all `PowerHolder`s where `isActive()` is true
-2. Powers are ordered by `(layerId, powerIndex)` — deterministic across reloads
+2. Powers are ordered by `(layerId, powerIndex)`, deterministic across reloads
 3. Slots 0–3 are assigned in order; any extras are silent (no slot)
 
 Client sends `ActivatePowerPayload(slot)`. Server calls `activePowers.get(slot).onActivated()`.
@@ -154,7 +154,7 @@ Network payloads:
 | `ChooseOriginPayload` | C→S | Player confirms an origin selection |
 | `OpenOriginScreenPayload` | S→C | Server tells client to open the selection screen |
 | `ActivatePowerPayload` | C→S | Player pressed a skill keybind |
-| `SyncResourcePayload` | S→C | Full resource-bar sync (values plus label/bounds/color/FX metadata); sent at the chokepoints that can create or remove bars — login, power grant/revoke, datapack reload |
+| `SyncResourcePayload` | S→C | Full resource-bar sync (values plus label/bounds/color/FX metadata); sent at the chokepoints that can create or remove bars: login, power grant/revoke, datapack reload |
 | `SyncResourceValuesPayload` | S→C | Lightweight value-only resource sync (key → value); sent on the high-frequency paths (10-tick dirty sync, immediate mutations from actions/commands) where only values change |
 
 ---
@@ -170,7 +170,7 @@ Event handlers are split into focused files under `event/`:
 | `MovementPowerEvents` | `onLivingFall`, `onBreakSpeed`, `onItemUseStart` |
 | `WorldPowerEvents` | `onLivingChangeTarget`, `onFinalizeSpawn`, `onLivingHeal`, `onBlockBreak` |
 
-All event handlers use `ActiveOriginService` for power traversal — no direct map iteration.
+All event handlers use `ActiveOriginService` for power traversal: no direct map iteration.
 
 ---
 
@@ -193,7 +193,7 @@ OriginSelectionScreen  (rendering only — init/render/mouseScrolled)
 ```
 
 `OriginSelectionPresenter.init()` re-queries pending layers without resetting
-`currentLayerIndex` — this preserves selection state across screen resize events.
+`currentLayerIndex`. This preserves selection state across screen resize events.
 
 ---
 

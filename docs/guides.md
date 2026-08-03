@@ -7,4 +7,4 @@ has_children: true
 # Guides
 
 Step-by-step, task-oriented walkthroughs for building and shipping NeoOrigins
-content packs — start here if you're new, or jump to the topic you need.
+content packs. Start here if you're new, or jump to the topic you need.

@@ -10,7 +10,7 @@ NeoOrigins lets addon packs reskin the origin selection / info screens
 (panel texture, font, text colours, 9-slice insets) without code. As of the
 addon-pack rewrite the system is **multi-theme aware**: pack authors register
 themes by id, then declare which one is active from inside the pack itself.
-Players don't have to install separate resource packs and datapacks — a single
+Players don't have to install separate resource packs and datapacks. A single
 addon (zip or mod jar) carries everything.
 
 ## Quickstart: make your own theme
@@ -44,10 +44,10 @@ themes that omit fields fall through to its defaults.
 
 ## Theme selection (which theme is active)
 
-Two layers, applied in order — the first that resolves to a *loaded* theme
+Two layers, applied in order. The first that resolves to a *loaded* theme
 wins:
 
-1. **Player override** —
+1. **Player override**, set in
    `config/neoorigins/client.toml`:
    ```toml
    [ui]
@@ -55,7 +55,7 @@ wins:
    ```
    Leave empty (the default) to defer to the server.
 
-2. **Datapack-declared theme** — any pack can ship
+2. **Datapack-declared theme**, shipped by any pack as
    `data/<ns>/neoorigins/active_theme.json`:
    ```json
    { "theme": "examplepack:dark_woods" }
@@ -63,7 +63,7 @@ wins:
    The server reads these on world load + each `/reload` and broadcasts the
    selection to every client at login. Conflict rule: if multiple packs each
    declare an `active_theme.json`, the one loaded **last** wins and a warning
-   is logged listing every contributor — adjust pack load order if you want
+   is logged listing every contributor. Adjust pack load order if you want
    a different outcome.
 
 3. Falls back to `neoorigins:parchment` when neither resolves.
@@ -71,15 +71,15 @@ wins:
 ### The classic-picker accessibility override
 
 `classic_picker_style` under `[ui]` in `config/neoorigins/client.toml` outranks
-every layer listed above. Selection itself still runs — an unknown id is still
-warned about, and the resolved theme is still stored — but while the option is
+every layer listed above. Selection itself still runs (an unknown id is still
+warned about, and the resolved theme is still stored), but while the option is
 `true` the screens read the built-in flat high-contrast skin (dark navy panels,
 light text, vanilla font) instead, so whatever resolved has no visible effect.
 If a pack's theme appears to do nothing, check this setting first.
 
 ## Theme JSON schema
 
-`assets/<ns>/ui_themes/<id>.json`. All fields optional — missing fields keep
+`assets/<ns>/ui_themes/<id>.json`. All fields optional. Missing fields keep
 the parchment default. Colours are ARGB hex strings (`"0xFF2A1810"`) or raw
 ints.
 
@@ -98,20 +98,20 @@ ints.
 | `font`                     | Identifier       | `neoorigins:parchment`                               |
 | `inset_left` / `top` / `right` / `bottom` | int (px) | `12` each                                  |
 | `texture_width` / `texture_height`        | int (px) | `256`                                      |
-| `flat`                     | bool             | `false` — paint a plain fill + outline instead of the 9-slice panel art; `panel_background` and the `inset_*` / `texture_*` fields are then unused |
-| `panel_color`              | ARGB             | `0x00000000` — panel fill, used only when `flat` is true |
+| `flat`                     | bool             | `false`: paint a plain fill + outline instead of the 9-slice panel art; `panel_background` and the `inset_*` / `texture_*` fields are then unused |
+| `panel_color`              | ARGB             | `0x00000000`: panel fill, used only when `flat` is true |
 
 ## Direct resource-pack overrides
 
-You don't *have* to author a new theme — a resource pack can also swap the
+You don't *have* to author a new theme. A resource pack can also swap the
 parchment texture or font in place:
 
-- **Panel PNG** — drop a file at
+- **Panel PNG**: drop a file at
   `assets/neoorigins/textures/gui/themes/parchment/panel.png`. 256x256 with a
   12 px 9-slice border, or override the `inset_*` / `texture_*` fields.
-- **Font provider** — `assets/neoorigins/font/parchment.json` is a standard
+- **Font provider**: `assets/neoorigins/font/parchment.json` is a standard
   Minecraft font-provider JSON; replace it to swap in your own TTF.
-- **Theme JSON** — `assets/neoorigins/ui_themes/parchment.json`. Same schema
+- **Theme JSON**: `assets/neoorigins/ui_themes/parchment.json`. Same schema
   as above; ships overrides for the built-in theme directly.
 
 The new-theme workflow is preferred (cleaner, doesn't collide with other
@@ -126,5 +126,5 @@ The licence text ships at `assets/neoorigins/font/ofl.txt`. If you rebundle
 the TTF in your own pack you must keep `ofl.txt` alongside it.
 
 Both filenames are lowercase on disk because NeoForge's `PathPackResources`
-validator rejects uppercase letters in path segments — the TTF is referenced
+validator rejects uppercase letters in path segments. The TTF is referenced
 by resource id from `parchment.json`, so an uppercase name would not resolve.

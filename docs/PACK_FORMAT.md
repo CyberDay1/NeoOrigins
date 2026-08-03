@@ -74,13 +74,13 @@ An origin can declare a `spawn_location` to drop the player at a matching spot
 instead of the world spawn. It is resolved server-side and fires:
 
 - once, immediately after the player picks the origin (picker or Orb of Origin), and
-- on respawn when the player has **no** bed or respawn anchor — using the
+- on respawn when the player has **no** bed or respawn anchor, using the
   player's *primary* origin (the first origin, in sorted layer order, that
   declares a `spawn_location`).
 
 For respawn control that fires on **every** death (optionally overriding the
 bed/anchor), use the [`neoorigins:modify_player_spawn`](POWER_TYPES.md#neooriginsmodify_player_spawn)
-power instead — `spawn_location` only covers first-join and bedless respawn.
+power instead. `spawn_location` only covers first-join and bedless respawn.
 
 ```json
 {
@@ -114,8 +114,8 @@ power instead — `spawn_location` only covers first-join and bedless respawn.
 `dimension` / `structure` / `structure_tag` combine with **AND**; `biome` /
 `biome_tag` / `biomes` combine with **OR** (any biome match passes).
 
-**Global kill switch.** All `spawn_location` teleports — built-in, datapack,
-and compat origins alike — are gated by `[spawn_location] teleports_enabled`
+**Global kill switch.** All `spawn_location` teleports (built-in, datapack,
+and compat origins alike) are gated by `[spawn_location] teleports_enabled`
 in `config/neoorigins/gameplay.toml` (default `true`). Set it to `false` and
 every origin spawns at the normal world spawn point instead. The built-in
 ocean origins have an additional gate, `[ocean_origins] spawn_in_ocean`.
@@ -182,9 +182,9 @@ See [POWER_TYPES.md](POWER_TYPES.md) for the full reference.
 ### Component format
 
 `name` and `description` accept:
-- `"power.mypack.my_power.name"` — treated as a translation key (most common)
-- `{"text": "My Power"}` — literal string, not translatable
-- `{"translate": "power.mypack.my_power.name"}` — explicit translation key
+- `"power.mypack.my_power.name"`: treated as a translation key (most common)
+- `{"text": "My Power"}`: literal string, not translatable
+- `{"translate": "power.mypack.my_power.name"}`: explicit translation key
 
 ---
 
@@ -216,7 +216,7 @@ Layers are the selection groups shown to the player when they first join. Most p
 |---|---|---|---|---|
 | `order` | int | no | `0` | Layer display order |
 | `name` | string or component | no | — | Layer title |
-| `origins` | list | yes | — | Origins available in this layer (plain IDs, or conditioned entries — see [Sub-Origins](SUB_ORIGINS.md)) |
+| `origins` | list | yes | — | Origins available in this layer (plain IDs, or conditioned entries: see [Sub-Origins](SUB_ORIGINS.md)) |
 | `allow_random` | bool | no | `true` | Show the Random button |
 | `auto_choose` | bool | no | `false` | Automatically pick an origin if only one is available |
 | `hidden` | bool | no | `false` | Hide the layer from the screen (still applies its origin) |
@@ -230,7 +230,7 @@ To add your origins to the default NeoOrigins origin selector, list them under t
 data/neoorigins/origins/origin_layers/origin.json
 ```
 
-By default this **merges additively** into the built-in layer — your `origins` array is appended (deduplicated by ID) to the shipped one. You don't have to re-list every built-in origin.
+By default this **merges additively** into the built-in layer. Your `origins` array is appended (deduplicated by ID) to the shipped one. You don't have to re-list every built-in origin.
 
 Alternatively, create your own layer with a different namespace and ID. Same-path layers (e.g. `mypack:origin`) auto-fold into `neoorigins:origin` unless you opt out with `"standalone": true`.
 
@@ -250,7 +250,7 @@ To **fully replace** the built-in `neoorigins:origin` layer (e.g. you want to re
 }
 ```
 
-The same applies to `neoorigins:class` and any other layer ID you target. Without `"replace": true`, your file's fields are merged additively with the existing layer — useful for adding origins, but it means the built-in `origins` list is never removed.
+The same applies to `neoorigins:class` and any other layer ID you target. Without `"replace": true`, your file's fields are merged additively with the existing layer. This is useful for adding origins, but it means the built-in `origins` list is never removed.
 
 > ⚠️ **Common pitfall**: dropping a `data/neoorigins/origins/origin_layers/origin.json` file with only your origins and expecting the built-in origins to disappear. Without `"replace": true` the built-ins stay because the merge is additive.
 
@@ -313,7 +313,7 @@ Powers of type `neoorigins:resource` display a HUD bar. The appearance is config
 |---|---|---|---|
 | `label` | string | `"Resource"` | Display name shown above the bar. |
 | `color` | string (hex) | `"#55AAFF"` | Fill colour as `#RRGGBB`. |
-| `animated` | string (preset id) | — | Animated bar FX preset to render instead of the flat fill, e.g. `"neoorigins:fire"`. Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json` — see [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource) for the preset format and [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture authoring. |
+| `animated` | string (preset id) | — | Animated bar FX preset to render instead of the flat fill, e.g. `"neoorigins:fire"`. Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`. See [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource) for the preset format and [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture authoring. |
 
 Bars automatically **hide when full** and reappear when the resource drops below max. Players can reposition bars via the **Edit HUD** keybind (unbound by default). Positions persist across sessions in `config/neoorigins/hud.json`.
 

@@ -113,7 +113,7 @@ public final class NeoOriginsClientConfig {
                      "declares \"always_show_icon\": true or you enable",
                      "always_show_ability_icons below.",
                      "ALL_ACTIVE_ABILITIES: every keybind ability with an icon keeps a",
-                     "persistent slot — full-bright while idle, cooldown sweep while",
+                     "persistent slot: full-bright while idle, cooldown sweep while",
                      "recharging, bright/dim for toggles.")
             .defineEnum("hud_ability_display", HudAbilityDisplay.COOLDOWNS_AND_TOGGLES);
 
@@ -149,7 +149,7 @@ public final class NeoOriginsClientConfig {
                      "(e.g. \"1=key.keyboard.r\", \"2=key.keyboard.z\", \"3=key.mouse.4\").",
                      "This is a CLIENT setting applied at key registration; a datapack cannot",
                      "set it (keybinds register before datapacks load). Players can still",
-                     "rebind any slot in Controls — this only sets the default.")
+                     "rebind any slot in Controls. This only sets the default.")
             .defineList("slot_defaults", java.util.List.of(),
                         o -> o instanceof String && ((String) o).contains("="));
 
