@@ -16,6 +16,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
 
@@ -181,6 +182,84 @@ public record LocationCondition(
     public record SpawnTarget(ServerLevel level, Vec3 pos) {}
 
     /**
+     * Resolves the dimension this spec searches in: the explicit {@code dimension}
+     * if given, else the player's current level. Empty when the named dimension
+     * is not loaded. Cheap — safe to call on the server thread.
+     */
+    public Optional<ServerLevel> resolveTargetLevel(ServerPlayer player) {
+        if (dimension.isPresent()) {
+            ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, dimension.get());
+            return Optional.ofNullable(player.server.getLevel(dimKey));
+        }
+        return Optional.of(player.serverLevel());
+    }
+
+    /** True when this spec resolves its centre via a structure search (which takes precedence over biome). */
+    public boolean usesStructureSearch() {
+        return structure.isPresent() || structureTag.isPresent();
+    }
+
+    /**
+     * True when resolving this spec requires the (potentially very expensive)
+     * biome spiral — i.e. it has a biome filter and no structure filter to
+     * short-circuit it. These are the specs worth moving off the server thread.
+     */
+    public boolean usesBiomeSearch() {
+        return !usesStructureSearch() && hasBiomeFilter();
+    }
+
+    /**
+     * The biome test this spec applies, as a standalone predicate. Extracted so
+     * the search can pre-filter {@code BiomeSource#possibleBiomes()} once and
+     * then run on a worker thread against the resulting identity set.
+     *
+     * <p>{@code biome} / {@code biome_tag} / {@code biomes} combine with OR.
+     */
+    public java.util.function.Predicate<Holder<Biome>> biomeMatcher() {
+        return holder -> {
+            if (biome.isPresent()) {
+                var key = holder.unwrapKey();
+                if (key.isPresent() && key.get().location().equals(biome.get())) return true;
+            }
+            if (biomeTag.isPresent()) {
+                TagKey<Biome> tag = TagKey.create(Registries.BIOME, biomeTag.get());
+                if (holder.is(tag)) return true;
+            }
+            if (!biomes.isEmpty()) {
+                var key = holder.unwrapKey();
+                if (key.isPresent()) {
+                    ResourceLocation current = key.get().location();
+                    for (ResourceLocation allowed : biomes) {
+                        if (allowed.equals(current)) return true;
+                    }
+                }
+            }
+            return false;
+        };
+    }
+
+    /**
+     * Structure-search phase. <b>Server thread only</b> — structure lookup can
+     * force chunk generation and touches {@code StructureManager} state, neither
+     * of which is safe from a worker.
+     */
+    public Optional<BlockPos> locateStructureCenter(ServerLevel target, BlockPos searchOrigin) {
+        BlockPos found = null;
+        if (structureTag.isPresent()) {
+            TagKey<Structure> tag = TagKey.create(Registries.STRUCTURE, structureTag.get());
+            found = target.findNearestMapStructure(tag, searchOrigin, 6400, false);
+        } else if (structure.isPresent()) {
+            Registry<Structure> reg = target.registryAccess().registryOrThrow(Registries.STRUCTURE);
+            Structure str = reg.get(structure.get());
+            if (str == null) return Optional.empty();
+            HolderSet<Structure> set = HolderSet.direct(reg.wrapAsHolder(str));
+            var pair = target.getChunkSource().getGenerator().findNearestMapStructure(target, set, searchOrigin, 6400, false);
+            if (pair != null) found = pair.getFirst();
+        }
+        return Optional.ofNullable(found);
+    }
+
+    /**
      * Searches for a position matching this spec, starting from the target
      * dimension's shared spawn. Structure match takes precedence over biome
      * when both are specified (structure search already constrains location).
@@ -188,58 +267,34 @@ public record LocationCondition(
      * <p>Returns empty when the spec is empty, when the target dimension is
      * not loaded, or when no matching biome/structure is found within the
      * search radius.
+     *
+     * <p><b>This runs the whole thing synchronously.</b> The biome branch is
+     * bounded and budgeted (see {@link com.cyberday1.neoorigins.service.BoundedBiomeSpiral}),
+     * so it can no longer hang the server watchdog, but it can still cost real
+     * milliseconds on the calling thread. Everything inside NeoOrigins now goes
+     * through {@link com.cyberday1.neoorigins.service.AsyncSpawnLocator} instead,
+     * which runs the biome branch on a worker and applies the result on the
+     * server thread; this method is retained for third-party API callers.
      */
     public Optional<SpawnTarget> locateSpawn(ServerPlayer player) {
         if (isEmpty()) return Optional.empty();
 
-        ServerLevel target;
-        if (dimension.isPresent()) {
-            ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, dimension.get());
-            target = player.server.getLevel(dimKey);
-            if (target == null) return Optional.empty();
-        } else {
-            target = player.serverLevel();
-        }
+        Optional<ServerLevel> resolved = resolveTargetLevel(player);
+        if (resolved.isEmpty()) return Optional.empty();
+        ServerLevel target = resolved.get();
 
         BlockPos searchOrigin = target.getSharedSpawnPos();
-        BlockPos found = null;
+        BlockPos found;
 
-        if (structure.isPresent() || structureTag.isPresent()) {
-            if (structureTag.isPresent()) {
-                TagKey<Structure> tag = TagKey.create(Registries.STRUCTURE, structureTag.get());
-                found = target.findNearestMapStructure(tag, searchOrigin, 6400, false);
-            } else {
-                Registry<Structure> reg = target.registryAccess().registryOrThrow(Registries.STRUCTURE);
-                Structure str = reg.get(structure.get());
-                if (str == null) return Optional.empty();
-                HolderSet<Structure> set = HolderSet.direct(reg.wrapAsHolder(str));
-                var pair = target.getChunkSource().getGenerator().findNearestMapStructure(target, set, searchOrigin, 6400, false);
-                if (pair != null) found = pair.getFirst();
-            }
-            if (found == null) return Optional.empty();
+        if (usesStructureSearch()) {
+            Optional<BlockPos> structureCenter = locateStructureCenter(target, searchOrigin);
+            if (structureCenter.isEmpty()) return Optional.empty();
+            found = structureCenter.get();
         } else if (hasBiomeFilter()) {
-            var pair = target.findClosestBiome3d(holder -> {
-                if (biome.isPresent()) {
-                    var key = holder.unwrapKey();
-                    if (key.isPresent() && key.get().location().equals(biome.get())) return true;
-                }
-                if (biomeTag.isPresent()) {
-                    TagKey<Biome> tag = TagKey.create(Registries.BIOME, biomeTag.get());
-                    if (holder.is(tag)) return true;
-                }
-                if (!biomes.isEmpty()) {
-                    var key = holder.unwrapKey();
-                    if (key.isPresent()) {
-                        ResourceLocation current = key.get().location();
-                        for (ResourceLocation allowed : biomes) {
-                            if (allowed.equals(current)) return true;
-                        }
-                    }
-                }
-                return false;
-            }, searchOrigin, 12800, 16, 32);
-            if (pair == null) return Optional.empty();
-            found = pair.getFirst();
+            Optional<BlockPos> biomeCenter = com.cyberday1.neoorigins.service.BiomeSpawnSearch
+                .findSync(target, searchOrigin, biomeMatcher());
+            if (biomeCenter.isEmpty()) return Optional.empty();
+            found = biomeCenter.get();
         } else {
             // Dimension-only spec (no biome/structure filter). Use the
             // dimension's shared spawn pos as the search center. For ceiling
@@ -249,12 +304,51 @@ public record LocationCondition(
             found = searchOrigin;
         }
 
+        return refineSpawn(target, found);
+    }
+
+    /**
+     * Second phase: turn a located centre into an actual standable position.
+     * <b>Server thread only</b> — force-loads chunks and reads block/fluid
+     * states, none of which is safe from a worker thread.
+     *
+     * <p><b>This blocks.</b> Every chunk it touches that is not already
+     * generated is generated inline, on the calling thread, via
+     * {@code ServerChunkCache#getChunk}'s {@code managedBlock} spin — seconds
+     * apiece on a heavy worldgen pack. Retained for
+     * {@link #locateSpawn(ServerPlayer)}, the public synchronous API; everything
+     * inside NeoOrigins goes through
+     * {@link com.cyberday1.neoorigins.service.SpawnChunkLoader} and then
+     * {@link #refineSpawnPreloaded} instead.
+     */
+    public Optional<SpawnTarget> refineSpawn(ServerLevel target, BlockPos found) {
         // Force-load the chunk at `found` so its structures have actually
         // placed blocks and the heightmap is populated. On a fresh world
         // that's never had the target dimension visited, the chunk may not
-        // yet be generated.
+        // yet be generated. (The spiral below starts at `found` itself, so
+        // ForcingGate would load it anyway; kept explicit for clarity.)
         target.getChunk(found.getX() >> 4, found.getZ() >> 4);
+        return refine(target, found, new ForcingGate());
+    }
 
+    /**
+     * Same refinement, but it never force-loads: columns whose chunks are not
+     * already present are skipped instead of generated. Pair it with
+     * {@link com.cyberday1.neoorigins.service.SpawnChunkLoader#whenReady}, which
+     * gets exactly the chunks this reads generated off the server thread first.
+     *
+     * <p>With the loader's window in place the two refinements agree, with one
+     * documented exception: the outermost (radius 16) shell's 3x3 clearance test
+     * can reach one chunk beyond the window, and those positions are skipped
+     * here rather than dragging a fourth chunk column into generation. That
+     * shell is the desperate last resort of an already-fallback search, and
+     * paying nine extra chunk generations to keep it is a bad trade.
+     */
+    public Optional<SpawnTarget> refineSpawnPreloaded(ServerLevel target, BlockPos found) {
+        return refine(target, found, new PreloadedGate());
+    }
+
+    private Optional<SpawnTarget> refine(ServerLevel target, BlockPos found, ChunkGate gate) {
         // Use logicalHeight so ceiling dimensions (Nether) don't scan the
         // dead-air layer above the bedrock roof.
         final int dimMinY = target.dimensionType().minY();
@@ -285,11 +379,11 @@ public record LocationCondition(
         // sun-damage power on the same origin (e.g. abyssal_daylight_damage)
         // immediately starts ticking. Aquatic origins should land in water.
         if (allowOceanFloor) {
-            Optional<Vec3> floor = findColumn(target, found, minY, topY, LocationCondition::isOceanFloorColumn);
+            Optional<Vec3> floor = findColumn(target, found, minY, topY, LocationCondition::isOceanFloorColumn, gate);
             if (floor.isPresent()) return Optional.of(new SpawnTarget(target, floor.get()));
         }
         if (allowWaterSurface) {
-            Optional<Vec3> surface = findColumn(target, found, minY, topY, LocationCondition::isWaterSurfaceColumn);
+            Optional<Vec3> surface = findColumn(target, found, minY, topY, LocationCondition::isWaterSurfaceColumn, gate);
             if (surface.isPresent()) return Optional.of(new SpawnTarget(target, surface.get()));
         }
 
@@ -297,33 +391,46 @@ public record LocationCondition(
         // last-resort for aquatic origins if no water column was found
         // (shouldn't happen for ocean biomes, but covers misconfigured packs).
         Optional<Vec3> land = findColumn(target, found, minY, topY,
-            (level, x, y, z) -> isLandColumn(level, x, y, z, requireSky));
+            (level, x, y, z) -> isLandColumn(level, x, y, z, requireSky), gate);
         if (land.isPresent()) return Optional.of(new SpawnTarget(target, land.get()));
 
         return Optional.empty();
     }
 
     /**
-     * Scans a 5x5 XZ area centered on {@code found} (center-first), and for
-     * each column scans top-down from {@code topY} to {@code minY} looking
-     * for the highest Y satisfying {@code test}. Returns the (x+0.5, y,
-     * z+0.5) spawn position, or empty if no column matches.
+     * Spirals outward from {@code found} (center-first), and for each column
+     * scans top-down looking for the highest Y satisfying {@code test}. Returns
+     * the (x+0.5, y, z+0.5) spawn position, or empty if no column matches.
      */
-    private static Optional<Vec3> findColumn(ServerLevel target, BlockPos found, int minY, int topY, ColumnTest test) {
+    private static Optional<Vec3> findColumn(ServerLevel target, BlockPos found, int minY, int topY,
+                                             ColumnTest test, ChunkGate gate) {
         // Spiral outward from the biome-locate center. Underground biomes
         // (lush_caves, dripstone_caves) are located at biome resolution
         // (4x4x4 sections) so the exact position may be inside solid stone.
         // A wider search radius (16 blocks) gives enough coverage to find
         // a cave air pocket near the locate result.
-        int radius = 16;
+        int radius = SEARCH_RADIUS;
         for (int r = 0; r <= radius; r++) {
             for (int dx = -r; dx <= r; dx++) {
                 for (int dz = -r; dz <= r; dz++) {
                     if (Math.abs(dx) != r && Math.abs(dz) != r) continue; // shell only
                     int tryX = found.getX() + dx;
                     int tryZ = found.getZ() + dz;
-                    target.getChunk(tryX >> 4, tryZ >> 4);
-                    for (int y = topY; y > minY; y--) {
+                    // One chunk decision per column instead of the old
+                    // getChunk-per-block-position: ServerChunkCache's lookup
+                    // cache holds only four entries, and a radius-16 spiral
+                    // works over nine chunks, so the per-position calls were
+                    // thrashing it rather than riding it.
+                    if (!gate.readable(target, tryX, tryZ)) continue;
+                    // Bound the column scan by the heightmap. Every one of the
+                    // three column tests needs a non-air block at or below the
+                    // candidate Y (a solid floor, or water), so nothing above
+                    // WORLD_SURFACE can ever match — scanning from the build
+                    // limit was ~250 wasted iterations per column in the
+                    // overworld, times up to 1089 columns. min() keeps a pack's
+                    // max_y override authoritative; min_y is untouched.
+                    int startY = Math.min(topY, gate.scanTop(target, tryX, tryZ));
+                    for (int y = startY; y > minY; y--) {
                         if (test.matches(target, tryX, y, tryZ)) {
                             return Optional.of(new Vec3(tryX + 0.5, y, tryZ + 0.5));
                         }
@@ -334,9 +441,84 @@ public record LocationCondition(
         return Optional.empty();
     }
 
+    /**
+     * Horizontal spiral radius, in blocks, of the standable-column search.
+     * Public so {@code SpawnChunkLoader} sizes its preload window off the same
+     * number this actually walks.
+     */
+    public static final int SEARCH_RADIUS = 16;
+
     @FunctionalInterface
     private interface ColumnTest {
         boolean matches(ServerLevel level, int x, int y, int z);
+    }
+
+    /**
+     * Decides, per column, whether {@link #findColumn} may read it — and where
+     * the read may start. The two implementations are the whole difference
+     * between the blocking legacy path and the preloaded one.
+     */
+    private interface ChunkGate {
+        /** True when the 3x3 block footprint at (x, z) can be read. */
+        boolean readable(ServerLevel level, int x, int z);
+
+        /** Highest Y worth testing in this column (one above the top non-air block). */
+        int scanTop(ServerLevel level, int x, int z);
+    }
+
+    /**
+     * Legacy behaviour: generate whatever the search touches, on this thread.
+     * The {@code seen} set exists purely to stop the old per-block-position
+     * {@code getChunk} storm — the set of chunks force-loaded is unchanged.
+     */
+    private static final class ForcingGate implements ChunkGate {
+        private final java.util.Set<Long> seen = new java.util.HashSet<>();
+
+        @Override
+        public boolean readable(ServerLevel level, int x, int z) {
+            int cx = x >> 4;
+            int cz = z >> 4;
+            if (seen.add((((long) cx) << 32) | (cz & 0xFFFFFFFFL))) {
+                level.getChunk(cx, cz);
+            }
+            return true;
+        }
+
+        @Override
+        public int scanTop(ServerLevel level, int x, int z) {
+            return level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z);
+        }
+    }
+
+    /**
+     * Non-blocking behaviour: read only what is already present. Used after
+     * {@code SpawnChunkLoader} has had the destination window generated off the
+     * server thread, and as the graceful degradation when that wait times out.
+     */
+    private static final class PreloadedGate implements ChunkGate {
+        @Override
+        public boolean readable(ServerLevel level, int x, int z) {
+            // The land test reads x±1 / z±1, so the whole 3x3 footprint must be
+            // present, not just the centre column's chunk. Checking the four
+            // corners covers it — they bound every chunk the footprint spans.
+            return present(level, x - 1, z - 1) && present(level, x + 1, z - 1)
+                && present(level, x - 1, z + 1) && present(level, x + 1, z + 1);
+        }
+
+        @Override
+        public int scanTop(ServerLevel level, int x, int z) {
+            // Straight off the chunk rather than via Level#getHeight, which
+            // first asks hasChunk() — a ticket-level question, not a
+            // "is it generated" one, and answering it wrong here would silently
+            // collapse the scan to the build floor.
+            var chunk = level.getChunkSource().getChunkNow(x >> 4, z >> 4);
+            if (chunk == null) return level.getMinBuildHeight();
+            return chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x & 15, z & 15) + 1;
+        }
+
+        private static boolean present(ServerLevel level, int x, int z) {
+            return level.getChunkSource().getChunkNow(x >> 4, z >> 4) != null;
+        }
     }
 
     private static boolean isLandColumn(ServerLevel level, int x, int y, int z, boolean requireSky) {

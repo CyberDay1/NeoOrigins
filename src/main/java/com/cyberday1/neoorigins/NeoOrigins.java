@@ -51,7 +51,7 @@ public class NeoOrigins {
         if (java.nio.file.Files.exists(legacy)) {
             if (LEGACY_WARNED.compareAndSet(false, true)) {
                 LOGGER.warn("[originpacks] Legacy 'originpacks/' folder found at game root. "
-                    + "Please move it to 'config/originpacks/' — the game-root location is deprecated "
+                    + "Please move it to 'config/originpacks/'. The game-root location is deprecated "
                     + "and will be removed in a future release.");
             }
             return legacy;
@@ -184,6 +184,11 @@ public class NeoOrigins {
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStarting);
+        NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStopping);
+        // Polls spawn_location destination chunks that are generating off the
+        // server thread. Returns on one emptiness check every tick except the
+        // handful that follow an origin pick.
+        NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerTickPost);
 
         // Optional mod compat — only loads if the target mod is present
         if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
@@ -275,7 +280,28 @@ public class NeoOrigins {
         OriginCommand.register(event.getDispatcher());
     }
 
+    /**
+     * Cancels in-flight spawn_location biome searches and drops their worker
+     * pool. Without this a singleplayer world reload would leave the previous
+     * world's threads running, and a search could land a teleport aimed at a
+     * level that no longer exists.
+     */
+    private static void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
+        com.cyberday1.neoorigins.service.AsyncSpawnLocator.shutdown();
+    }
+
+    /**
+     * Advances any spawn_location destination-chunk waits. These exist because
+     * turning a located spawn centre into a standable position needs the
+     * destination chunks generated, and generating them on the server thread is
+     * what produced the 20-30 s hang reported on a Tectonic + Terralith pack.
+     */
+    private static void onServerTickPost(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
+        com.cyberday1.neoorigins.service.SpawnChunkLoader.tick(event.getServer());
+    }
+
     private static void onServerStarting(ServerStartingEvent event) {
+        com.cyberday1.neoorigins.service.AsyncSpawnLocator.serverStarting();
         LOGGER.info("NeoOrigins server starting — origins: {}, layers: {}, powers: {}",
             OriginDataManager.INSTANCE.getOrigins().size(),
             LayerDataManager.INSTANCE.getLayers().size(),
