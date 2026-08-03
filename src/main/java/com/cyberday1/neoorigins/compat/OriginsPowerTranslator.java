@@ -168,7 +168,7 @@ public final class OriginsPowerTranslator {
         Map.entry("origins:fresh_air",          () -> simpleType("neoorigins:prevent_action", "action", "sleep")),
         Map.entry("origins:like_water",         () -> simpleType("neoorigins:ignore_water")),
         Map.entry("origins:aquatic",            () -> simpleType("neoorigins:dries_out")),
-        Map.entry("origins:water_vision",       () -> simpleType("neoorigins:lava_vision")),
+        Map.entry("origins:water_vision",       () -> waterVisionJson()),
         Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining_speed")),
         Map.entry("origins:conduit_power_on_land", () -> simpleType("neoorigins:conduit_power")),
         Map.entry("origins:air_from_potions",   () -> simpleType("neoorigins:water_breathing"))
@@ -177,6 +177,25 @@ public final class OriginsPowerTranslator {
     private static JsonObject simpleType(String type) {
         JsonObject out = new JsonObject();
         out.addProperty("type", type);
+        return out;
+    }
+
+    /**
+     * Upstream {@code origins:water_vision} is not a power type at all: it is a
+     * power <em>instance</em> in Origins' own data, a
+     * {@code origins:toggle_night_vision} gated on being submerged in water.
+     * Packs that reference the bare id expect "I can see clearly underwater".
+     *
+     * <p>It used to be mapped onto {@code neoorigins:lava_vision}, which reads
+     * the camera's fluid and so did nothing whatsoever in water.
+     */
+    private static JsonObject waterVisionJson() {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:night_vision");
+        JsonObject cond = new JsonObject();
+        cond.addProperty("type", "neoorigins:submerged_in");
+        cond.addProperty("fluid", "minecraft:water");
+        out.add("condition", cond);
         return out;
     }
 
@@ -1546,10 +1565,23 @@ public final class OriginsPowerTranslator {
         return Optional.of(out);
     }
 
+    /**
+     * Origins' {@code s} and {@code v} are ABSOLUTE fog planes in blocks, not
+     * multipliers: they are {@code @ModifyConstant} replacements for vanilla's
+     * lava fog start (0.25, or 0.0 with fire resistance) and end (1.0, or 3.0
+     * with fire resistance). The canonical Blazeborn spelling is
+     * {@code {"s": 0, "v": 15}} — "see 15 blocks through lava".
+     *
+     * <p>Mapping {@code s} onto our multiplicative {@code strength} therefore
+     * produced a strength of 0, which collapsed both fog planes onto the origin
+     * and whited out the screen, while silently discarding the {@code v} that
+     * carried the actual vision distance.
+     */
     private static Optional<JsonObject> translateLavaVision(JsonObject src) {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:lava_vision");
-        if (src.has("s")) out.addProperty("strength", src.get("s").getAsFloat());
+        if (src.has("s")) out.addProperty("start", src.get("s").getAsFloat());
+        if (src.has("v")) out.addProperty("end", src.get("v").getAsFloat());
         return Optional.of(out);
     }
 

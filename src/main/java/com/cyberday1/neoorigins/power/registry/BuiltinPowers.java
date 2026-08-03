@@ -312,7 +312,11 @@ public final class BuiltinPowers {
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("lava_vision", LavaVisionPower.class, List.of(
             new FieldSpec("strength", Kind.NUMBER, false)
-                .def(3.0).doc("Lava fog distance multiplier; higher sees farther in lava (default 3.0).")));
+                .def(3.0).doc("Lava fog distance multiplier; higher sees farther in lava (default 3.0). Ignored for whichever plane sets start or end."),
+            new FieldSpec("start", Kind.NUMBER, false)
+                .doc("Absolute fog start in blocks; overrides strength for the near plane (Origins 's')."),
+            new FieldSpec("end", Kind.NUMBER, false)
+                .doc("Absolute fog end in blocks, i.e. how far you see through lava; overrides strength for the far plane (Origins 'v').")));
         define("more_smoker_xp", MoreSmokerXpPower.class, List.of(
             new FieldSpec("multiplier", Kind.NUMBER, false)
                 .def(2.0).doc("Multiplier for smoker-cooking XP (default 2.0).")));

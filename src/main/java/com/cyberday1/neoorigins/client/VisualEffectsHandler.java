@@ -1,11 +1,13 @@
 package com.cyberday1.neoorigins.client;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.power.builtin.LavaVisionPower;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.material.FogType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -131,30 +133,119 @@ public final class VisualEffectsHandler {
 
     // ---- Lava Vision ----
 
+    /**
+     * Resolved lava fog planes, combined across every active
+     * {@code lava_vision} power. {@code start}/{@code end} are absolute
+     * distances in blocks, or {@link Float#NaN} when that plane should keep
+     * using {@code multiplier} against vanilla's value.
+     */
+    record LavaFog(float multiplier, float start, float end) {}
+
     @SubscribeEvent
     public static void onRenderFog(ViewportEvent.RenderFog event) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || !mc.player.isInLava()) return;
+        // Vanilla decides lava fog from the CAMERA's fluid, not the player's
+        // body (FogRenderer#setupFog), and NeoForge hands us that same value.
+        // Testing player.isInLava() instead would fire while merely standing
+        // ankle-deep in lava with the eyes in air, hijacking ordinary
+        // atmospheric fog and repainting the whole world in the sky colour.
+        if (event.getType() != FogType.LAVA) return;
+        if (Minecraft.getInstance().player == null) return;
 
-        String data = findCapabilityData("lava_vision");
-        float multiplier;
-        if (data != null) {
-            try {
-                multiplier = Float.parseFloat(data);
-            } catch (NumberFormatException e) {
-                multiplier = 3.0f;
+        LavaFog fog = resolveLavaFog();
+        if (fog == null) return;
+
+        float[] planes = applyPlanes(fog, event.getNearPlaneDistance(), event.getFarPlaneDistance());
+        if (planes == null) return;
+
+        event.setNearPlaneDistance(planes[0]);
+        event.setFarPlaneDistance(planes[1]);
+        event.setCanceled(true);
+    }
+
+    /**
+     * Applies resolved planes on top of vanilla's own distances, returning
+     * {@code {near, far}} or null when the result would not describe a fog
+     * volume and vanilla should be left alone.
+     *
+     * <p>Package-private so {@code LavaVisionFogResolveTest} can exercise it
+     * without a live client. This step is where the plane arithmetic actually
+     * lives, and it previously disagreed with the documented contract without
+     * anything being able to notice.
+     */
+    static float[] applyPlanes(LavaFog fog, float vanillaNear, float vanillaFar) {
+        // Per plane: an absolute value wins for the plane it names, and a plane
+        // with none falls back to the multiplier. Vanilla starts lava fog at
+        // 0.25 blocks, so the near plane has to move too or the screen stays
+        // hazy however far out the far plane goes.
+        float near = Float.isNaN(fog.start()) ? vanillaNear * fog.multiplier() : fog.start();
+        float far = Float.isNaN(fog.end()) ? vanillaFar * fog.multiplier() : fog.end();
+
+        // A far plane at or behind the near plane means total fog at every
+        // distance: a flat, fog-coloured screen.
+        if (!(far > near) || !Float.isFinite(near) || !Float.isFinite(far)) return null;
+        return new float[] { near, far };
+    }
+
+    /**
+     * Combines every active {@code lava_vision} capability into one set of
+     * planes: the most generous multiplier, the nearest start and the
+     * furthest end. Returns null when no usable power is active.
+     *
+     * <p>Values that cannot produce sane fog — a non-positive or non-finite
+     * multiplier, a negative plane — are discarded rather than applied. Pack
+     * data reaches this path directly, and a zero multiplier would otherwise
+     * collapse both planes onto the origin and blank the screen.
+     *
+     * <p>Package-private so {@code LavaVisionFogResolveTest} can exercise it
+     * without a live client; nothing outside this class should call it.
+     */
+    static LavaFog resolveLavaFog() {
+        boolean found = false;
+        float multiplier = Float.NaN;
+        float start = Float.NaN;
+        float end = Float.NaN;
+
+        for (String cap : ClientActivePowers.activeCapabilities()) {
+            if (!cap.startsWith(LavaVisionPower.CAPABILITY_PREFIX)) continue;
+            found = true;
+            String[] parts = cap.substring(LavaVisionPower.CAPABILITY_PREFIX.length()).split(":", -1);
+
+            float m = parseFloatOrNaN(parts, 0);
+            if (Float.isFinite(m) && m > 0.0f) {
+                multiplier = Float.isNaN(multiplier) ? m : Math.max(multiplier, m);
             }
-        } else if (ClientActivePowers.hasCapability("lava_vision")) {
-            multiplier = 3.0f;
-        } else {
-            return;
+            float s = parseFloatOrNaN(parts, 1);
+            if (Float.isFinite(s) && s >= 0.0f) {
+                start = Float.isNaN(start) ? s : Math.min(start, s);
+            }
+            float e = parseFloatOrNaN(parts, 2);
+            if (Float.isFinite(e) && e > 0.0f) {
+                end = Float.isNaN(end) ? e : Math.max(end, e);
+            }
         }
 
-        event.setFarPlaneDistance(event.getFarPlaneDistance() * multiplier);
-        // Push the fog START out too — vanilla starts lava fog at 0.25 blocks,
-        // which keeps the screen hazy no matter how far the far plane goes.
-        event.setNearPlaneDistance(event.getNearPlaneDistance() * multiplier);
-        event.setCanceled(true);
+        // A bare "lava_vision" capability with no payload still counts.
+        if (!found && ClientActivePowers.hasCapability("lava_vision")) {
+            return new LavaFog(3.0f, Float.NaN, Float.NaN);
+        }
+        if (!found) return null;
+
+        if (Float.isNaN(multiplier)) {
+            // Every multiplier was unusable. Only proceed if an absolute plane
+            // survived; otherwise there is nothing sane left to apply.
+            if (Float.isNaN(start) && Float.isNaN(end)) return null;
+            multiplier = 3.0f;
+        }
+        return new LavaFog(multiplier, start, end);
+    }
+
+    private static float parseFloatOrNaN(String[] parts, int index) {
+        if (index >= parts.length) return Float.NaN;
+        try {
+            return Float.parseFloat(parts[index]);
+        } catch (NumberFormatException e) {
+            return Float.NaN;
+        }
     }
 
     /**

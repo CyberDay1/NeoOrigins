@@ -378,7 +378,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:fresh_air",           () -> freshAirJson()),
             Map.entry("origins:like_water",          () -> json("neoorigins:ignore_water")),
             Map.entry("origins:aquatic",             () -> json("neoorigins:dries_out")),
-            Map.entry("origins:water_vision",        () -> json("neoorigins:lava_vision")),
+            Map.entry("origins:water_vision",        () -> waterVisionJson()),
             Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining_speed")),
             Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power")),
             Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
@@ -526,6 +526,23 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         blockCond.addProperty("comparison", "<");
         blockCond.addProperty("compare_to", 86);
         o.add("block_condition", blockCond);
+        return o;
+    }
+
+    /**
+     * origins:water_vision — clear sight underwater. Upstream this is not a
+     * power type but a power instance: Origins' own water_vision.json is an
+     * {@code origins:toggle_night_vision} gated on being submerged in water.
+     *
+     * <p>It was previously mapped onto {@code neoorigins:lava_vision}, which
+     * keys off the camera's fluid and so never fired in water at all.
+     */
+    private static com.google.gson.JsonObject waterVisionJson() {
+        com.google.gson.JsonObject o = json("neoorigins:night_vision");
+        com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
+        cond.addProperty("type", "neoorigins:submerged_in");
+        cond.addProperty("fluid", "minecraft:water");
+        o.add("condition", cond);
         return o;
     }
 
