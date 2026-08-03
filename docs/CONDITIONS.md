@@ -1,12 +1,12 @@
 # NeoOrigins 2.0 Condition Reference
 
-Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions. Any power can also be gated as a whole via the top-level `power_condition` / `power_condition_mode` fields — see the common-fields table in [POWER_TYPES.md](POWER_TYPES.md).
+Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions. Any power can also be gated as a whole via the top-level `power_condition` / `power_condition_mode` fields. See the common-fields table in [POWER_TYPES.md](POWER_TYPES.md).
 
 **Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `origins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
-**Object or array.** Every condition-valued field (`condition`, …) accepts either a single condition object **or** an array. An array is combined as logical AND (an implicit `neoorigins:and`) — every element must pass. An empty array is treated as always-true. *(Previously a bare array in these fields silently no-opped.)*
+**Object or array.** Every condition-valued field (`condition`, …) accepts either a single condition object **or** an array. An array is combined as logical AND (an implicit `neoorigins:and`): every element must pass. An empty array is treated as always-true. *(Previously a bare array in these fields silently no-opped.)*
 
 **Universal `inverted` field:** every condition supports a top-level `"inverted": true` flag that flips its result. Compatible with the Apoli/Origins convention used by upstream packs.
 
@@ -21,11 +21,11 @@ Conditions evaluate to true/false against an entity (usually the power's owning 
 ]}
 ```
 
-The `inverted` flag is also honored on nested conditions inside `and` / `or` / `not` wrappers — every recursive parse pass checks for it.
+The `inverted` flag is also honored on nested conditions inside `and` / `or` / `not` wrappers: every recursive parse pass checks for it.
 
 **Common comparison fields:** most numeric conditions accept `"comparison"` (one of `==`, `!=`, `<`, `<=`, `>`, `>=`) and `"compare_to"` (number). Defaults to `">="` and `0` unless stated otherwise.
 
-**Item conditions** — the separate verb set that matches against an `ItemStack` (used inside `equipped_item` / `inventory` entity conditions, event-power `item_condition` filters, and `if_else` item actions) is documented in the [Item conditions section of ACTIONS.md](ACTIONS.md#item-conditions).
+**Item conditions**, the separate verb set that matches against an `ItemStack` (used inside `equipped_item` / `inventory` entity conditions, event-power `item_condition` filters, and `if_else` item actions), is documented in the [Item conditions section of ACTIONS.md](ACTIONS.md#item-conditions).
 
 ---
 
@@ -85,7 +85,7 @@ Always-true or always-false literal.
 
 # Entity conditions
 
-These evaluate against a single entity — usually the power's owning player.
+These evaluate against a single entity, usually the power's owning player.
 
 ## `neoorigins:sneaking`
 
@@ -137,7 +137,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets — `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios/Accessories slot blocks sun damage entirely (checked before helmets).
+True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios/Accessories slot blocks sun damage entirely (checked before helmets).
 
 ## `neoorigins:on_fire` (alias `neoorigins:fire`)
 
@@ -173,11 +173,11 @@ True when creative flight is engaged. No fields.
 
 ## `neoorigins:creative_mode`
 
-True when the player is in creative or spectator gamemode. No fields. Apoli-derivative packs (Medieval Origins Revival etc.) use this to gate resource drains so they don't run for creative players — `medievalorigins:creative_mode` dispatches here via the namespace fallback.
+True when the player is in creative or spectator gamemode. No fields. Apoli-derivative packs (Medieval Origins Revival etc.) use this to gate resource drains so they don't run for creative players; `medievalorigins:creative_mode` dispatches here via the namespace fallback.
 
 ## `neoorigins:block_collision`
 
-True when the entity's bounding box — shifted by `offset_x`/`offset_y`/`offset_z` — intersects at least one matching block. Apoli semantics: the offsets are multipliers of the box's **own dimensions** (X and Z scale by the entity's width, Y by its height), so `"offset_x": 0.01` nudges the box 1% of the entity's width. With a `block_condition`, at least one intersected block must match it; without one, any block with a real collision shape counts.
+True when the entity's bounding box, shifted by `offset_x`/`offset_y`/`offset_z`, intersects at least one matching block. Apoli semantics: the offsets are multipliers of the box's **own dimensions** (X and Z scale by the entity's width, Y by its height), so `"offset_x": 0.01` nudges the box 1% of the entity's width. With a `block_condition`, at least one intersected block must match it; without one, any block with a real collision shape counts.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -186,7 +186,7 @@ True when the entity's bounding box — shifted by `offset_x`/`offset_y`/`offset
 | `offset_z` | float | no | `0.0` | Box Z shift as a multiple of the entity's width |
 | `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `and`/`or`, `block_state`, `height`, `adjacent`, and the `offset` wrapper |
 
-**Example — touching an iron-tagged block on either side:**
+**Example: touching an iron-tagged block on either side**
 ```json
 {
   "type": "neoorigins:block_collision",
@@ -197,7 +197,7 @@ True when the entity's bounding box — shifted by `offset_x`/`offset_y`/`offset
 
 ## `neoorigins:collided_horizontally`
 
-True when the entity ran into a wall this tick — a thin wrapper over vanilla `Entity.horizontalCollision`, mirroring Apoli's condition of the same name. Used by conditioned climbing powers (e.g. Origins++) that should only engage while the player is pressed against a surface.
+True when the entity ran into a wall this tick: a thin wrapper over vanilla `Entity.horizontalCollision`, mirroring Apoli's condition of the same name. Used by conditioned climbing powers (e.g. Origins++) that should only engage while the player is pressed against a surface.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -205,7 +205,7 @@ True when the entity ran into a wall this tick — a thin wrapper over vanilla `
 
 ## `neoorigins:replacable` (alias `neoorigins:replaceable`)
 
-True when the block at the entity's block position is replaceable (air, short grass, snow layers, etc. — vanilla `canBeReplaced()`). Apoli-parity condition; the misspelled `replacable` is the canonical Apoli name, and the corrected `replaceable` spelling is accepted as a synonym. No fields.
+True when the block at the entity's block position is replaceable (air, short grass, snow layers, etc.; vanilla `canBeReplaced()`). Apoli-parity condition; the misspelled `replacable` is the canonical Apoli name, and the corrected `replaceable` spelling is accepted as a synonym. No fields.
 
 **Example:**
 ```json
@@ -287,7 +287,7 @@ Numeric comparison against the entity's distance from a reference point (`world_
 | `ignore_z` | bool | no | `false` | Exclude the Z axis from the distance |
 | `result_on_the_wrong_dimension` | number | no | — | Distance value substituted when off the reference's dimension (absent → use real distance) |
 
-**Example — within 100 blocks of world spawn (horizontal only):**
+**Example: within 100 blocks of world spawn (horizontal only)**
 ```json
 { "type": "neoorigins:distance_from_coordinates",
   "reference": "world_spawn",
@@ -308,7 +308,7 @@ Numeric comparison against the entity's armor value.
 
 ## `neoorigins:amount`
 
-Generic numeric wrapper. **Standalone fallback compares against current health** — context-dependent, retained for pack compatibility.
+Generic numeric wrapper. **Standalone fallback compares against current health**: context-dependent, retained for pack compatibility.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -317,7 +317,7 @@ Generic numeric wrapper. **Standalone fallback compares against current health**
 
 ## `neoorigins:xp_level`
 
-Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_levels` (same fields, same behavior — both are canonical types, not aliases).
+Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_levels` (same fields, same behavior; both are canonical types, not aliases).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -326,7 +326,7 @@ Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_
 
 ## `neoorigins:xp_levels`
 
-Numeric comparison against the entity's experience level. A synonym of [`neoorigins:xp_level`](#neooriginsxp_level) (same fields, same behaviour — both are canonical types).
+Numeric comparison against the entity's experience level. A synonym of [`neoorigins:xp_level`](#neooriginsxp_level) (same fields, same behaviour; both are canonical types).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -382,7 +382,7 @@ Checks biome at the entity's block position. Precedence: `biome` > `tag`/`biome_
 
 Always-true when none of the fields are present.
 
-**Nested `condition`:** only the `temperature` sub-type is supported — it compares the biome's base temperature using the usual `comparison`/`compare_to` fields. Any other sub-condition type logs a warning and fails closed (use biome tags instead).
+**Nested `condition`:** only the `temperature` sub-type is supported; it compares the biome's base temperature using the usual `comparison`/`compare_to` fields. Any other sub-condition type logs a warning and fails closed (use biome tags instead).
 
 **Example:**
 ```json
@@ -437,14 +437,14 @@ Distinct from `neoorigins:temperature` above (which reads the biome's base tempe
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0` | Threshold the reading is compared against |
 
-**Example — true once the player is dangerously hot:**
+**Example: true once the player is dangerously hot**
 ```json
 { "type": "neoorigins:body_temperature", "trait": "core", "comparison": ">=", "compare_to": 50 }
 ```
 
 ## `neoorigins:light_level`
 
-Numeric comparison against ambient light at the entity's block position. Also registered as `neoorigins:brightness` (same fields, same behavior — both are canonical types, not aliases).
+Numeric comparison against ambient light at the entity's block position. Also registered as `neoorigins:brightness` (same fields, same behavior; both are canonical types, not aliases).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -452,11 +452,11 @@ Numeric comparison against ambient light at the entity's block position. Also re
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Light threshold (0–15) |
 
-Omitting `light_type` (or any value other than `"sky"`/`"block"`) samples the max local brightness — the higher of the sky and block light layers.
+Omitting `light_type` (or any value other than `"sky"`/`"block"`) samples the max local brightness, the higher of the sky and block light layers.
 
 ## `neoorigins:brightness`
 
-Numeric comparison against ambient light at the entity's block position. A synonym of [`neoorigins:light_level`](#neooriginslight_level) (same fields, same behaviour — both are canonical types).
+Numeric comparison against ambient light at the entity's block position. A synonym of [`neoorigins:light_level`](#neooriginslight_level) (same fields, same behaviour; both are canonical types).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -480,7 +480,7 @@ Numeric comparison against `level.getDayTime() % 24000`.
 
 ## `neoorigins:weather`
 
-Checks the current weather state against one of `clear`, `rain`, `raining`, `thunder`, or `thundering` — `rain`/`raining` and `thunder`/`thundering` are synonyms, matched case-insensitively. `clear` means neither raining nor thundering; `rain` means raining but not thundering; `thunder` matches any thunderstorm. **Unusual:** accepts either `"state"` or `"value"`; with both absent the state defaults to `"clear"`.
+Checks the current weather state against one of `clear`, `rain`, `raining`, `thunder`, or `thundering`; `rain`/`raining` and `thunder`/`thundering` are synonyms, matched case-insensitively. `clear` means neither raining nor thundering; `rain` means raining but not thundering; `thunder` matches any thunderstorm. **Unusual:** accepts either `"state"` or `"value"`; with both absent the state defaults to `"clear"`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -507,7 +507,7 @@ True when the entity is on ground and the block directly below matches the neste
 
 ## `neoorigins:block`
 
-Block check at the entity's current position — accepts either a nested `block_condition` object or the same fields at the top level.
+Block check at the entity's current position: accepts either a nested `block_condition` object or the same fields at the top level.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -526,7 +526,7 @@ Block check at the entity's current position via an optional wrapper.
 | `block_condition` | object | no | — | Wrapper |
 | `block_condition.block` / `block_condition.id` | resource location | no | — | Block ID |
 
-Always-true when the wrapper is absent or no ID is present (fail-open — use `neoorigins:not` + a specific block condition if you need strict gating).
+Always-true when the wrapper is absent or no ID is present (fail-open: use `neoorigins:not` + a specific block condition if you need strict gating).
 
 ## `neoorigins:hardness`
 
@@ -571,7 +571,7 @@ Inspects an item in a given equipment slot.
 
 Always-true when `item_condition` is absent.
 
-**Accessory slots:** `"accessory"` inspects worn trinkets from Curios and/or Accessories (Wisp Forest), aggregating both. Each is a soft dependency — with neither installed the `accessory` slot matches nothing. When `item_condition` is present it passes if *any* equipped accessory stack matches; absent, it is a presence check (any accessory equipped). This integration is **1.21.1 only** — Accessories has no 26.1 build.
+**Accessory slots:** `"accessory"` inspects worn trinkets from Curios and/or Accessories (Wisp Forest), aggregating both. Each is a soft dependency — with neither installed the `accessory` slot matches nothing. When `item_condition` is present it passes if *any* equipped accessory stack matches; absent, it is a presence check (any accessory equipped). This integration is **1.21.1 only**: Accessories has no 26.1 build.
 
 ## `neoorigins:inventory`
 
@@ -581,13 +581,13 @@ Counts inventory contents matching an item condition and compares the count agai
 |---|---|---|---|---|
 | `inventory_types` | list of string | no | `["inventory"]` | Inventories to scan: `inventory` (the player's main inventory, including hotbar, armor and offhand slots) and/or `ender_chest` |
 | `process_mode` | string | no | `"stacks"` | `"stacks"` counts matching stacks; `"items"` sums their stack counts |
-| `item_condition` | item condition | no | any non-empty stack | Per-stack predicate — the full item-condition vocabulary (see [ACTIONS.md](ACTIONS.md#item-conditions)) |
+| `item_condition` | item condition | no | any non-empty stack | Per-stack predicate: the full item-condition vocabulary (see [ACTIONS.md](ACTIONS.md#item-conditions)) |
 | `comparison` | string | no | `">"` | Comparison operator against the count |
 | `compare_to` | int | no | `0` | Count threshold |
 
-Apoli's `power` field (counting slots inside an `apoli:inventory` power's virtual container) is **not supported** — a condition using it fails closed with a load warning.
+Apoli's `power` field (counting slots inside an `apoli:inventory` power's virtual container) is **not supported**: a condition using it fails closed with a load warning.
 
-**Example — carrying at least 16 bones in total:**
+**Example: carrying at least 16 bones in total**
 ```json
 {
   "type": "neoorigins:inventory",
@@ -622,7 +622,7 @@ Numeric comparison against a named resource power's stored value.
 
 ## `neoorigins:resource_level`
 
-Synonym of [`neoorigins:resource`](#neooriginsresource) — same factory and fields (`resource`, `comparison`, `compare_to`), accepted so Apoli-format packs using `resource_level` dispatch directly. The same full-power-id requirement (no `*` wildcard) applies.
+Synonym of [`neoorigins:resource`](#neooriginsresource): same factory and fields (`resource`, `comparison`, `compare_to`), accepted so Apoli-format packs using `resource_level` dispatch directly. The same full-power-id requirement (no `*` wildcard) applies.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -637,7 +637,7 @@ Synonym of [`neoorigins:resource`](#neooriginsresource) — same factory and fie
 
 ## `neoorigins:power`
 
-True when the entity has the given power granted — either through any of its chosen origins' power lists or as a dynamic grant. Distinct from `power_active` (which tests whether a toggle power is currently on) and `power_type` (which matches by power *type* ID rather than power ID).
+True when the entity has the given power granted, either through any of its chosen origins' power lists or as a dynamic grant. Distinct from `power_active` (which tests whether a toggle power is currently on) and `power_type` (which matches by power *type* ID rather than power ID).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -652,8 +652,8 @@ True when the entity has the given power granted — either through any of its c
 
 Whether a named toggle power is currently active (toggled on) on this entity. Works with:
 
-- **`neoorigins:toggle`** powers — resolves the `default` field if the toggle has never been flipped.
-- **Native toggle powers** — `wraith_phase`, `flight`, `phantom_form`, and any other power that extends the internal toggle system (skill-key toggled powers).
+- **`neoorigins:toggle`** powers: resolves the `default` field if the toggle has never been flipped.
+- **Native toggle powers**: `wraith_phase`, `flight`, `phantom_form`, and any other power that extends the internal toggle system (skill-key toggled powers).
 
 Use this to gate other powers so they only tick while a specific toggle is on. For example, apply debuffs only while phasing is active, or drain a resource only while flight is toggled on.
 
@@ -698,14 +698,14 @@ Bare type names (no `:`) are auto-prefixed with `neoorigins:`.
 
 ## `neoorigins:origin`
 
-True when the player currently has the named origin, optionally scoped to a single layer. Mirrors Apoli's `origins:origin` entity condition — use it to gate a power or condition on which origin the player is.
+True when the player currently has the named origin, optionally scoped to a single layer. Mirrors Apoli's `origins:origin` entity condition. Use it to gate a power or condition on which origin the player is.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `origin` | resource location | yes | — | Origin id the player must currently have (e.g. `neoorigins:merling`). |
 | `layer` | resource location | no | any layer | Restrict the match to a single origin layer; omit to match the origin in any layer. |
 
-**Example — only while playing the Merling origin:**
+**Example: only while playing the Merling origin**
 ```json
 { "type": "neoorigins:origin", "origin": "neoorigins:merling" }
 ```
@@ -743,12 +743,12 @@ Numeric comparison against the player's score on a named objective.
 
 ## `neoorigins:statistic`
 
-Numeric comparison against one of the player's vanilla statistics — the same numbers the in-game Statistics screen shows.
+Numeric comparison against one of the player's vanilla statistics, the same numbers the in-game Statistics screen shows.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `statistic` | string or object | yes | — | The stat to read (see below); always-false when absent or unreadable |
-| `stat` | string or object | no | — | Alias for `statistic` — the Apoli field name; same two shapes |
+| `stat` | string or object | no | — | Alias for `statistic`: the Apoli field name; same two shapes |
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Statistic threshold |
 
@@ -761,7 +761,7 @@ Numeric comparison against one of the player's vanilla statistics — the same n
   "compare_to": 24000 }
 ```
 
-An object selects the stat category explicitly — this is the form upstream Apoli documents, and the only way to reach the non-custom categories:
+An object selects the stat category explicitly; this is the form upstream Apoli documents, and the only way to reach the non-custom categories:
 
 ```json
 { "type": "neoorigins:statistic",
@@ -772,9 +772,9 @@ An object selects the stat category explicitly — this is the form upstream Apo
 
 **Categories.** `minecraft:custom` (the default), `minecraft:mined`, `minecraft:crafted`, `minecraft:used`, `minecraft:broken`, `minecraft:picked_up`, `minecraft:dropped`, `minecraft:killed`, `minecraft:killed_by`. A modded stat type is accepted too and resolved against the stat-type registry. Ids without a namespace are assumed to be `minecraft:`.
 
-**Fail-closed.** A missing stat field, a malformed id, an unknown `minecraft:` category, or an id that no registry entry backs all evaluate to false and log once — a statistic gate never silently opens. Resolution happens on first evaluation, not at pack load, so stats registered by other mods are still found.
+**Fail-closed.** A missing stat field, a malformed id, an unknown `minecraft:` category, or an id that no registry entry backs all evaluate to false and log once: a statistic gate never silently opens. Resolution happens on first evaluation, not at pack load, so stats registered by other mods are still found.
 
-**Example — a debuff that builds up when the player hasn't slept for a full day:**
+**Example: a debuff that builds up when the player hasn't slept for a full day**
 ```json
 { "type": "neoorigins:statistic",
   "statistic": "minecraft:time_since_rest",
@@ -790,7 +790,7 @@ Runs an arbitrary server command with suppressed output and returns true if no e
 |---|---|---|---|---|
 | `command` | string | yes | — | Command text (no leading slash); always-false when blank |
 
-**Unusual:** this does *not* test exit code. It returns true unless the command threw — check the feasibility of any JSON-condition written this way carefully.
+**Unusual:** this does *not* test exit code. It returns true unless the command threw. Check the feasibility of any JSON-condition written this way carefully.
 
 ## `neoorigins:advancement`
 
@@ -815,13 +815,13 @@ Meta-wrapper around vanilla Minecraft predicates. **Unusual:** dispatches on `pr
 | `predicate` | object | yes | — | Inner JSON in that predicate's vanilla codec |
 
 Supported `predicate_type` values and the check they perform:
-- `biome` — biome at the entity's block position; inner shape `{ "biomes": ["..."], "tag": "..." }` (at least one required)
-- `block_state` — vanilla `BlockPredicate` at the entity's block position
-- `entity_properties` — vanilla `EntityPredicate` against this entity
-- `fluid_state` — vanilla `FluidPredicate` at the entity's block position
-- `item` — vanilla `ItemPredicate` against the entity's mainhand
-- `location` — vanilla `LocationPredicate` at the entity's position
-- `damage` — **fails closed** (requires damage-source context; use action-on-hit hooks instead)
+- `biome`: biome at the entity's block position; inner shape `{ "biomes": ["..."], "tag": "..." }` (at least one required)
+- `block_state`: vanilla `BlockPredicate` at the entity's block position
+- `entity_properties`: vanilla `EntityPredicate` against this entity
+- `fluid_state`: vanilla `FluidPredicate` at the entity's block position
+- `item`: vanilla `ItemPredicate` against the entity's mainhand
+- `location`: vanilla `LocationPredicate` at the entity's position
+- `damage`: **fails closed** (requires damage-source context; use action-on-hit hooks instead)
 
 ## `neoorigins:config_flag`
 
@@ -832,10 +832,10 @@ True when the named server config flag is currently enabled. Pack authors use th
 | `key` | string | no | `""` | Config flag key. Unknown keys log a warning and default to `true` (fail-open). |
 
 **Supported keys:**
-- `"ocean_origins.fish_diet_required"` — whether ocean origins enforce fish-only diet
-- `"ocean_origins.dries_out"` — whether ocean origins take dry-out damage on land
+- `"ocean_origins.fish_diet_required"`: whether ocean origins enforce fish-only diet
+- `"ocean_origins.dries_out"`: whether ocean origins take dry-out damage on land
 
-**Example — only enforce fish diet when the server has it enabled:**
+**Example: only enforce fish diet when the server has it enabled**
 ```json
 { "type": "neoorigins:config_flag", "key": "ocean_origins.fish_diet_required" }
 ```
@@ -857,7 +857,7 @@ Numeric comparison against the hit damage currently being taken. Requires an act
 
 ## `neoorigins:hit_dealt_amount`
 
-Numeric comparison against the most recent damage the player **dealt** to a target. Requires an active `HitDealtContext` — the attacker-side mirror of `hit_taken_amount`, populated when the player damages a living entity (player-vs-mob included). Hook it from an `action_on_event` power with `"event": "hit_dealt"`. Inside that dispatch a bientity `target_action` resolves the victim that was struck.
+Numeric comparison against the most recent damage the player **dealt** to a target. Requires an active `HitDealtContext`, the attacker-side mirror of `hit_taken_amount`, populated when the player damages a living entity (player-vs-mob included). Hook it from an `action_on_event` power with `"event": "hit_dealt"`. Inside that dispatch a bientity `target_action` resolves the victim that was struck.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -890,13 +890,13 @@ The fish diet additionally reads a server config allowlist: the `neoorigins:aqua
 
 ## `neoorigins:food_item_id`
 
-True if the item being eaten in the current `FOOD_EATEN` dispatch is an exact item-ID match. Requires an active `FoodContext`; returns `false` outside that context. Sibling of `food_item_in_tag` — use this when you need per-item bonuses (e.g. raw cod gets one bonus, cooked cod gets a different one).
+True if the item being eaten in the current `FOOD_EATEN` dispatch is an exact item-ID match. Requires an active `FoodContext`; returns `false` outside that context. Sibling of `food_item_in_tag`. Use this when you need per-item bonuses (e.g. raw cod gets one bonus, cooked cod gets a different one).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `id` | resource location | yes | — | Exact item ID to match (e.g. `"minecraft:cod"`). Unknown IDs fail closed. |
 
-**Example — bonus saturation when eating raw cod:**
+**Example: bonus saturation when eating raw cod**
 ```json
 {
   "condition": { "type": "neoorigins:food_item_id", "id": "minecraft:cod" },
@@ -917,9 +917,9 @@ This lets a server owner extend a diet without editing a datapack: the ocean-ori
 | `key` | string | yes | — | Config list key to read (e.g. `"ocean_origins.extra_fish_foods"`). Unknown keys evaluate false. |
 
 **Supported keys:**
-- `"ocean_origins.extra_fish_foods"` — extra items/tags ocean origins may eat, additive to the `neoorigins:fish_foods` tag.
+- `"ocean_origins.extra_fish_foods"`: extra items/tags ocean origins may eat, additive to the `neoorigins:fish_foods` tag.
 
-**Example — allow the eat when it is a fish tag OR a config-listed item:**
+**Example: allow the eat when it is a fish tag OR a config-listed item**
 ```json
 {
   "type": "neoorigins:any_of",
@@ -934,16 +934,16 @@ This lets a server owner extend a diet without editing a datapack: the ocean-ori
 
 # Bientity conditions
 
-These evaluate against a pair — the entity under test (actor) plus a target pulled from the active dispatch context. They fail closed outside a bientity context.
+These evaluate against a pair: the entity under test (actor) plus a target pulled from the active dispatch context. They fail closed outside a bientity context.
 
 **Target extraction rules** (from `ActionContextHolder.get()`):
-- `HitTakenContext` — target = the damage source entity (if it's a `LivingEntity`)
-- `KillContext` — target = the killed entity
-- `EntityInteractContext` — target = the interacted entity
-- `ProjectileHitContext` — target = the entity hit (if any)
-- otherwise — null, condition returns false
+- `HitTakenContext`: target = the damage source entity (if it's a `LivingEntity`)
+- `KillContext`: target = the killed entity
+- `EntityInteractContext`: target = the interacted entity
+- `ProjectileHitContext`: target = the entity hit (if any)
+- otherwise: null, condition returns false
 
-**Apoli `bientity_condition` fields.** Where a field is typed *bientity condition* — `area_of_effect.bientity_condition`, `prevent_entity_use.bientity_condition`, the bientity `if_else` gate — the pair is handed in directly rather than pulled from the dispatch context. Those slots accept `target_condition` and `actor_condition` (each wrapping an ordinary condition, evaluated against that side of the pair), `can_see`, `constant`, and the combinators `and`/`all_of`, `or`/`any_of`, `not`; `inverted` is honoured on every node. Anything else cannot be compiled, and each call site documents what it does about that.
+**Apoli `bientity_condition` fields.** Where a field is typed *bientity condition* (`area_of_effect.bientity_condition`, `prevent_entity_use.bientity_condition`, the bientity `if_else` gate), the pair is handed in directly rather than pulled from the dispatch context. Those slots accept `target_condition` and `actor_condition` (each wrapping an ordinary condition, evaluated against that side of the pair), `can_see`, `constant`, and the combinators `and`/`all_of`, `or`/`any_of`, `not`; `inverted` is honoured on every node. Anything else cannot be compiled, and each call site documents what it does about that.
 
 ## `neoorigins:distance`
 
@@ -989,7 +989,7 @@ Checks whether the target's entity type is in a vanilla mob-category tag under t
 ## `neoorigins:no_minions_alive`
 
 True when the player has zero living tracked minions of the given key.
-Used for "loner" gates — e.g., the Monster Tamer's Lone Weakness applies
+Used for "loner" gates, e.g., the Monster Tamer's Lone Weakness applies
 only when no tamed mobs are alive. Evaluates to true if the player has
 never summoned a minion as well (count of 0).
 
@@ -1049,7 +1049,7 @@ True while the level's in-game time is past 13000 ticks (nightfall) and before t
 
 ## `neoorigins:thundering`
 
-True when there's an active thunderstorm **and** rain is falling at the player's position (biome supports rain). Stricter than vanilla's global `isThundering()` — won't fire in dry biomes even during a global thunderstorm.
+True when there's an active thunderstorm **and** rain is falling at the player's position (biome supports rain). Stricter than vanilla's global `isThundering()`: won't fire in dry biomes even during a global thunderstorm.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1074,7 +1074,7 @@ True when the player has the specified MobEffect active within an amplifier rang
 | `min_amplifier` | int | no | `-1` | Lowest acceptable amplifier (`-1` = any) |
 | `max_amplifier` | int | no | unbounded | Highest acceptable amplifier |
 
-**Example — Strength II or higher:**
+**Example: Strength II or higher**
 ```json
 { "type": "neoorigins:status_effect", "effect": "minecraft:strength", "min_amplifier": 1 }
 ```
@@ -1089,7 +1089,7 @@ True when the player is currently on a climbable block (vanilla ladder, vine, or
 
 ## `neoorigins:climbing_gate`
 
-Internal state machine that drives conditioned `origins:climbing` powers. It is emitted by the compat translator when a climbing power carries a `condition` / `hold_condition`, so it is not normally hand-authored — documented for completeness and for authors debugging converted Apoli packs. It tracks per-player climb state: climbing starts while `condition` holds and, when `allow_holding`, keeps going while the player is airborne until `hold_condition` fails or they touch the ground.
+Internal state machine that drives conditioned `origins:climbing` powers. It is emitted by the compat translator when a climbing power carries a `condition` / `hold_condition`, so it is not normally hand-authored, documented for completeness and for authors debugging converted Apoli packs. It tracks per-player climb state: climbing starts while `condition` holds and, when `allow_holding`, keeps going while the player is airborne until `hold_condition` fails or they touch the ground.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1099,7 +1099,7 @@ Internal state machine that drives conditioned `origins:climbing` powers. It is 
 
 ## `neoorigins:out_of_combat`
 
-True when at least `ticks` ticks have elapsed since the player last took damage. Backed by `CombatTracker` which timestamps damage hits in `CombatPowerEvents.onLivingDamage` (including cancelled damage — getting hit by invulnerable armor still counts as being attacked). Forgotten on logout.
+True when at least `ticks` ticks have elapsed since the player last took damage. Backed by `CombatTracker` which timestamps damage hits in `CombatPowerEvents.onLivingDamage` (including cancelled damage: getting hit by invulnerable armor still counts as being attacked). Forgotten on logout.
 
 Useful for gating rest / regen / out-of-combat-only buffs.
 
@@ -1107,7 +1107,7 @@ Useful for gating rest / regen / out-of-combat-only buffs.
 |---|---|---|---|---|
 | `ticks` | int | no | `100` | Ticks since last damage hit. 100 = 5 seconds. |
 
-**Example — regen only while out of combat:**
+**Example: regen only while out of combat**
 ```json
 { "type": "neoorigins:out_of_combat", "ticks": 100 }
 ```
@@ -1116,7 +1116,7 @@ Typically combined with `near_block` or `biome` in an `neoorigins:and` so the bu
 
 ## `neoorigins:cover` (alias `neoorigins:covered_by_block`)
 
-True when the column directly above the player contains a non-air block within `distance` blocks — the "standing under cover" check (inverse of seeing the sky overhead, scoped to a single column). Apoli-parity pair; MoR Wood Elf uses `medievalorigins:cover`, which dispatches here via the namespace fallback.
+True when the column directly above the player contains a non-air block within `distance` blocks, the "standing under cover" check (inverse of seeing the sky overhead, scoped to a single column). Apoli-parity pair; MoR Wood Elf uses `medievalorigins:cover`, which dispatches here via the namespace fallback.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1126,7 +1126,7 @@ True when the column directly above the player contains a non-air block within `
 
 **Aliases:** `origins:block_in_radius`, `apace:block_in_radius`
 
-True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists — a block matches if it appears in ANY of the provided blocks/tags (logical OR).
+True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists; a block matches if it appears in ANY of the provided blocks/tags (logical OR).
 
 Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 8 to avoid expensive per-tick scans.
 
@@ -1141,7 +1141,7 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 
 At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empty.
 
-**Example — warm near any fire source:**
+**Example: warm near any fire source**
 ```json
 { "type": "neoorigins:near_block",
   "tags": ["minecraft:campfires", "#c:fire"],
@@ -1150,7 +1150,7 @@ At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empt
 
 ## `neoorigins:block_in_radius`
 
-Synonym of [`neoorigins:near_block`](#neooriginsnear_block) — same factory and fields, accepted so Origins-format packs using `block_in_radius` dispatch directly. Also accepts the Origins `block_condition` (nested `in_tag`/`block`) shape.
+Synonym of [`neoorigins:near_block`](#neooriginsnear_block): same factory and fields, accepted so Origins-format packs using `block_in_radius` dispatch directly. Also accepts the Origins `block_condition` (nested `in_tag`/`block`) shape.
 
 **Example:**
 ```json
@@ -1166,14 +1166,14 @@ True when at least one entity of the given type (or entity tag) is within `dista
 | `entity_type` | resource location or `#tag` | yes | — | Entity type id (e.g. `"minecraft:creeper"`) or entity tag with `#` prefix (e.g. `"#minecraft:undead"`). |
 | `distance` | double (1–64) | no | `8.0` | Radius in blocks. |
 
-**Example — buff when near wolves:**
+**Example: buff when near wolves**
 ```json
 { "type": "neoorigins:near_entity",
   "entity_type": "minecraft:wolf",
   "distance": 10 }
 ```
 
-**Example — debuff when undead are nearby:**
+**Example: debuff when undead are nearby**
 ```json
 { "type": "neoorigins:near_entity",
   "entity_type": "#minecraft:undead",
@@ -1184,7 +1184,7 @@ True when at least one entity of the given type (or entity tag) is within `dista
 
 The counting form of [`near_entity`](#neooriginsnear_entity): it compares how many matching entities are in range, so it can express "fewer than three mobs nearby" as well as "at least one wolf nearby". Same AABB broad scan followed by Euclidean distance filtering, and the same 64-block cap.
 
-Selectors combine as a logical AND: an entity counts when its type matches `entity_type`/`entity_types` (if either is given) *and* it satisfies `bientity_condition` (if given). With no selector at all, every entity in range counts — Apoli's behaviour for a bare `nearby_entities`.
+Selectors combine as a logical AND: an entity counts when its type matches `entity_type`/`entity_types` (if either is given) *and* it satisfies `bientity_condition` (if given). With no selector at all, every entity in range counts, Apoli's behaviour for a bare `nearby_entities`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1198,7 +1198,7 @@ Selectors combine as a logical AND: an entity counts when its type matches `enti
 
 An unknown `entity_type` id, or a `bientity_condition` whose verb cannot be evaluated against a non-player entity, fails the condition closed (it never matches) and is reported in the compat summary.
 
-**Example — strength in numbers:**
+**Example: strength in numbers**
 ```json
 { "type": "neoorigins:nearby_entities",
   "entity_type": "minecraft:wolf",
@@ -1207,7 +1207,7 @@ An unknown `entity_type` id, or a `bientity_condition` whose verb cannot be eval
   "compare_to": 3 }
 ```
 
-**Example — claustrophobia, using the Apoli form:**
+**Example: claustrophobia, using the Apoli form**
 ```json
 { "type": "neoorigins:nearby_entities",
   "bientity_condition": {
@@ -1221,7 +1221,7 @@ An unknown `entity_type` id, or a `bientity_condition` whose verb cannot be eval
 
 ## `neoorigins:near_villager`
 
-True when a villager is within `distance` blocks. Not an Apoli verb — it comes from community packs that wanted a plain "am I in a village" gate — and it counts villagers only: wandering traders and zombie villagers are deliberately excluded.
+True when a villager is within `distance` blocks. Not an Apoli verb (it comes from community packs that wanted a plain "am I in a village" gate), and it counts villagers only: wandering traders and zombie villagers are deliberately excluded.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1229,7 +1229,7 @@ True when a villager is within `distance` blocks. Not an Apoli verb — it comes
 | `comparison` | comparison | no | `>=` | Operator applied to the villager count. |
 | `compare_to` | double | no | `1` | Count threshold. |
 
-**Example — hero of the village:**
+**Example: hero of the village**
 ```json
 { "type": "neoorigins:near_villager", "distance": 32 }
 ```

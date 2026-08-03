@@ -46,7 +46,7 @@ public final class ContentTogglesConfig {
             .comment("Disable night-vision globally.",
                      "When true, any power that would apply the minecraft:night_vision",
                      "effect (the neoorigins:night_vision / persistent_effect path) is",
-                     "suppressed — the player's screen is never brightened by the effect.",
+                     "suppressed: the player's screen is never brightened by the effect.",
                      "Other effects on the same power still apply; only night_vision is",
                      "stripped. Useful for packs that want darkness to stay threatening.")
             .define("disable_night_vision", false);
@@ -57,7 +57,7 @@ public final class ContentTogglesConfig {
                      "When true, the neoorigins:enhanced_vision capability is never sent",
                      "to clients, so the client-side brightness-curve boost (cat eyes,",
                      "salamander, oculus drone, etc.) stays off. Independent of the",
-                     "night-vision toggle above — these are two separate mechanisms.")
+                     "night-vision toggle above. These are two separate mechanisms.")
             .define("disable_enhanced_vision", false);
 
     // ── Disabled Origins ────────────────────────────────────────────────

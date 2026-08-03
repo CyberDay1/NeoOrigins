@@ -1,6 +1,6 @@
 # NeoOrigins Java API
 
-For mods that want to integrate with NeoOrigins — check if a player has a
+For mods that want to integrate with NeoOrigins: check if a player has a
 particular power, listen for origin changes, register a custom power type,
 or exempt summoned minions from their own logic.
 
@@ -16,15 +16,15 @@ Types under `com.cyberday1.neoorigins.api.**` follow semver:
 | Release | What can change |
 |---|---|
 | `3.0.0` (major) | Any breaking change. Deprecations honoured for at least one minor cycle beforehand. |
-| `2.x.0` (minor) | Additive only — new methods, new power types, new events. Existing signatures stable. |
+| `2.x.0` (minor) | Additive only: new methods, new power types, new events. Existing signatures stable. |
 | `2.0.x` (patch) | Bug fixes only. No API surface changes. |
 
 Types under `service/`, `event/`, `power/builtin/`, `compat/`, `mixin/`,
 `network/` are **internal**. They can change between patch releases. Don't
 import them from your mod.
 
-If an integration you need isn't available through `api/`, open an issue —
-we'll promote the internal method to API rather than ask you to import a
+If an integration you need isn't available through `api/`, open an issue.
+We'll promote the internal method to API rather than ask you to import a
 service class directly.
 
 ---
@@ -63,7 +63,7 @@ dependencies {
     side = "BOTH"
 ```
 
-Use `optional` unless your mod is useless without NeoOrigins — gives
+Use `optional` unless your mod is useless without NeoOrigins: gives
 players the choice. Check with `ModList.get().isLoaded("neoorigins")`
 before calling into the API.
 
@@ -124,7 +124,7 @@ public class YourOriginListener {
 
 | Event | When it fires |
 |---|---|
-| `OriginChangedEvent` | Player's origin changes. Cancellable — cancelling prevents the set. |
+| `OriginChangedEvent` | Player's origin changes. Cancellable: cancelling prevents the set. |
 | `OriginsLoadedEvent` | All origin JSONs finished parsing (datapack reload). |
 | `PowerGrantedEvent` | A power was just granted to a player. |
 | `PowerRevokedEvent` | A power was just revoked. |
@@ -186,7 +186,7 @@ Pack authors can now use `"type": "mymod:my_boost"` in their power JSONs.
 > Idempotency note: `onLogin` and `onRespawn` default to invoking
 > `onGranted`. If your implementation registers a listener or adds an
 > attribute modifier in `onGranted`, make sure it's safe to run multiple
-> times — use modifier UUIDs and removal-before-add to avoid stacking.
+> times. Use modifier UUIDs and removal-before-add to avoid stacking.
 > See `feedback_powertype_onGranted_idempotent` for the canonical pattern.
 
 ---
@@ -299,7 +299,7 @@ Pack authors reference your entity by its registered ID from any
 ```
 
 The `on_hit_action` still fires independently of your subclass's
-`onImpact` — the DSL callback and the entity-class callback complement
+`onImpact`: the DSL callback and the entity-class callback complement
 each other.
 
 ### GeckoLib soft-dep
@@ -307,7 +307,7 @@ each other.
 If you want custom-modeled / animated projectiles rather than
 item-textured ones, GeckoLib is a runtime-optional integration. NeoOrigins
 ships {@code com.cyberday1.neoorigins.compat.GeckoLibCompat#isLoaded()}
-for the presence probe — gate any renderer that touches GeckoLib classes
+for the presence probe. Gate any renderer that touches GeckoLib classes
 on that call and provide a {@link
 net.minecraft.client.renderer.entity.ThrownItemRenderer}-based fallback
 for the no-GeckoLib case. Full animated-projectile support is planned
@@ -317,7 +317,7 @@ for 2.1.
 
 ## VFX entities (`api/content/vfx/`)
 
-Non-moving visual-effect entities — lingering clouds, black holes,
+Non-moving visual-effect entities: lingering clouds, black holes,
 tornados, ground markers. NeoOrigins ships three reference subclasses
 (`LingeringAreaEntity`, `BlackHoleVfxEntity`, `TornadoVfxEntity`) and a
 base class + renderer stack for custom VFX.
@@ -348,8 +348,8 @@ public class MyAuraEntity extends AbstractVfxEntity {
 ```
 
 Public API the base provides for free:
-- `getRange()` / `setRange(float)` — synched to client
-- `getEffectType()` / `setEffectType(String)` — synched color key
+- `getRange()` / `setRange(float)`: synched to client
+- `getEffectType()` / `setEffectType(String)`: synched color key
 - `getLifetime()` / `getMaxLifetime()` / `setMaxLifetime(int)`
 - `getCasterUuid()` / `setCaster(UUID)` / `resolveCaster()`
 - `emitParticles(ParticleOptions, count, xSpread, ySpread, zSpread)`
@@ -381,7 +381,7 @@ public class MyOrbRenderer extends ProceduralQuadRenderer<MyOrbEntity, MyOrbRend
 }
 ```
 
-The same subclass compiles unchanged on 1.21.1 and 26.1 — only the base
+The same subclass compiles unchanged on 1.21.1 and 26.1; only the base
 class's render-flow internals differ. See
 [CUSTOM_PROJECTILES.md](CUSTOM_PROJECTILES.md) for the three-tier
 extension guide.
@@ -407,8 +407,8 @@ Then in a datapack:
 
 Loads a Bedrock `.geo.json` model from the classpath, bakes vertex data
 once, and renders via a `PoseStack` + `VertexConsumer`. Face culling is
-occupancy-based (adjacent cubes hide touching faces). No bone animation
-— spin/transform models from the renderer directly.
+occupancy-based (adjacent cubes hide touching faces). No bone animation:
+spin/transform models from the renderer directly.
 
 ```java
 private static final GeoJsonModel MODEL =
@@ -418,7 +418,7 @@ private static final GeoJsonModel MODEL =
 MODEL.render(poseStack, buffer.getBuffer(RENDER_TYPE), packedLight, OverlayTexture.NO_OVERLAY);
 ```
 
-Graceful fallback to a unit cube if the model fails to load — the
+Graceful fallback to a unit cube if the model fails to load. The
 exception is logged but the renderer continues so a broken asset doesn't
 crash the game.
 
@@ -429,14 +429,14 @@ crash the game.
 The following commonly-requested things are intentionally internal. Open
 an issue if you need them elevated:
 
-- **Picker UI payloads** — the network protocol between client and server
+- **Picker UI payloads**: the network protocol between client and server
   for origin selection. Bound to break as the UI evolves.
-- **PowerHolder internals** — the wrapper around power type + config +
+- **PowerHolder internals**: the wrapper around power type + config +
   origin. You see it through `powers()` but shouldn't mutate it.
-- **Mixin targets** — the internal mixin classes. Depending on them
+- **Mixin targets**: the internal mixin classes. Depending on them
   couples your mod to our injection points.
-- **Capability cache internals** — `ActiveOriginService` version numbers
+- **Capability cache internals**: `ActiveOriginService` version numbers
   and dimension-scoped caches.
 
 If you find yourself wanting to reach into these, we've probably missed a
-proper API surface — please file an issue.
+proper API surface. Please file an issue.

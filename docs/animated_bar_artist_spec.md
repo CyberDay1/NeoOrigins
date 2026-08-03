@@ -1,4 +1,4 @@
-# NeoOrigins — Animated Resource Bar Art Spec
+# NeoOrigins: Animated Resource Bar Art Spec
 
 Spec for artists producing animated "element" fills for NeoOrigins resource bars
 (mana / stamina / rage / custom origin resources). The animation plays inside the
@@ -13,7 +13,7 @@ A resource bar is composed of three pieces, drawn at **1 texel = 1 GUI pixel**
 
 | Piece            | Size (logical px) | Notes |
 |------------------|-------------------|-------|
-| Frame / backing  | 71 × 5            | Static. Already exists — **artist does NOT need to make this.** |
+| Frame / backing  | 71 × 5            | Static. Already exists: **artist does NOT need to make this.** |
 | **Fill**         | **71 × 8**        | **This is what you're animating.** Overhangs the frame up by 2 px. |
 | Icon             | 8 × 8             | Static, sits left of the bar. Out of scope here. |
 
@@ -21,45 +21,45 @@ The fill is clipped to the current resource level: only the leftmost
 `round(71 × fraction)` pixels are shown. So the **left edge is the "empty" cutoff
 edge** and must read well when partially revealed. Bars auto-hide at 100%.
 
-Bars draw over arbitrary world backdrops (sky, caves, grass) — **assume a
+Bars draw over arbitrary world backdrops (sky, caves, grass): **assume a
 busy/variable background, not a flat color.**
 
 ---
 
-## 2. Format rules (hard constraints — engine limits)
+## 2. Format rules (hard constraints: engine limits)
 
-- **PNG, RGBA, straight (un-premultiplied) alpha.** No GIF/APNG/WebP — Minecraft
+- **PNG, RGBA, straight (un-premultiplied) alpha.** No GIF/APNG/WebP: Minecraft
   cannot load them.
 - **Transparent background, not black.** The bar composites with additive-style
   blending, so any near-black pixels read as "glow over background." Deliver wisps
   on full transparency; let alpha fall to 0 in the empty gaps. Do **not** leave a
   black box behind the art.
-- **No anti-aliased outer edges against black** — that creates grey halos in game.
+- **No anti-aliased outer edges against black**: that creates grey halos in game.
   Fade with alpha, not with dark pixels.
 - Color space: sRGB.
 
 ---
 
-## 3. Two delivery formats — pick per element (A is preferred)
+## 3. Two delivery formats: pick per element (A is preferred)
 
-### Format A — Seamless scroll strip  *(recommended for fire/water/wind "wisps")*
+### Format A: Seamless scroll strip  *(recommended for fire/water/wind "wisps")*
 A single horizontally-**seamless** strip. The engine scrolls the U coordinate over
 time and samples a 71-px-wide window, so motion = lateral drift baked into the strip
 plus the engine's scroll. Tiny file, infinite loop, no frame budget.
 
-- **Author at native: `128 × 8` px, seamless left↔right.** This is pixel-art — the
+- **Author at native: `128 × 8` px, seamless left↔right.** This is pixel-art: the
   PNG ships 1:1 with no downsampling, so every pixel you place is a pixel in game
   (the GUI only scales it by the player's integer GUI scale, nearest-neighbor).
 - The pixel column at x=0 must tile perfectly against x=127.
-- Width is flexible: 128 is the sweet spot, but anything ~96–256 works — the visible
+- Width is flexible: 128 is the sweet spot, but anything ~96–256 works; the visible
   window is only 71px and the wisps move, so the loop reads as continuous. Don't go
   bigger than you need.
-- Bake in gentle drift (rising curl for fire, flow for water) — the engine adds
+- Bake in gentle drift (rising curl for fire, flow for water). The engine adds
   the horizontal scroll on top.
 - Keep it **sparse**: discrete wisps/tongues separated by transparency, *not* a
-  solid band. (This was the explicit ask — wisps moving through, not a filled bar.)
+  solid band. (This was the explicit ask: wisps moving through, not a filled bar.)
 
-### Format B — Vertical frame strip  *(use for tightly art-directed loops, e.g. a heartbeat pulse)*
+### Format B: Vertical frame strip  *(use for tightly art-directed loops, e.g. a heartbeat pulse)*
 A stack of equal frames played at **20 fps** (game tick rate), looping
 frame N → frame 1.
 
@@ -76,7 +76,7 @@ frame N → frame 1.
 - Empty gaps → alpha 0.
 - Think of it as **emissive**: the bar should look like it's glowing, because the
   blend adds the art's light over whatever is behind it.
-- Avoid large fully-opaque flat regions — they hide the "level" readout and look
+- Avoid large fully-opaque flat regions: they hide the "level" readout and look
   like a solid bar.
 
 ---
@@ -98,7 +98,7 @@ frame N → frame 1.
 ## 6. Style
 
 **Pixel-art, authored at native resolution** (`128 × 8` scroll tile / `71 × 8` per
-frame). The PNG ships 1:1 — no downsampling — so place pixels deliberately; what you
+frame). The PNG ships 1:1 (no downsampling), so place pixels deliberately; what you
 draw is exactly what shows in game (only integer GUI-scale upscaling applies). Bias
 brightness/alpha a little hot, since these read tiny on the HUD.
 
@@ -118,10 +118,10 @@ purple for end). Hero full-color versions still preferred for the headline eleme
 - [ ] Layered source (PSD / Procreate / Krita) per element.
 - [ ] Final PNG(s) per §3 (Format A: one seamless strip; Format B: one sheet).
 - [ ] RGBA, transparent bg, sRGB, per §2.
-- [ ] File names: lowercase element id — `fire.png`, `water.png`, `wind.png`,
-      `earth.png`, `soul.png`, `end.png`, `sculk.png`.
+- [ ] File names: lowercase element id (`fire.png`, `water.png`, `wind.png`,
+      `earth.png`, `soul.png`, `end.png`, `sculk.png`).
 - [ ] (Optional) grayscale tintable variant: `<element>_mask.png`.
-- [ ] QA: preview each over a **dark** and a **bright** backdrop — wisps must read on
+- [ ] QA: preview each over a **dark** and a **bright** backdrop. Wisps must read on
       both, with no grey/black halo and no solid-band look.
 
 ---
@@ -144,7 +144,7 @@ Style:                    pixel-art, native res, ships 1:1
 
 Separate from the animated fills above: Apoli-style resource powers can declare
 `hud_render.sprite_location` to swap the whole **static** bar sheet for a custom
-one. NeoOrigins honors that override — this section is the spec for authoring
+one. NeoOrigins honors that override. This section is the spec for authoring
 such a sheet.
 
 ### Where the texture lives
@@ -158,7 +158,7 @@ the same coordinates and drop in unchanged.
 
 ### Required sheet dimensions
 
-**256 × 256 PNG.** The renderer samples UVs against a 256 × 256 texture — any
+**256 × 256 PNG.** The renderer samples UVs against a 256 × 256 texture: any
 other canvas size misaligns every element. Only the top-left region is used;
 leave the rest transparent.
 
@@ -173,7 +173,7 @@ leave the rest transparent.
 - Vertical stride between fill rows is **10 px** (8 px fill + 2 px gap):
   `bar_index` 0 → v 8, 1 → v 18, 2 → v 28, …
 - Icons sit to the **right of the fill area** in the sheet (first column at
-  u 73), on the **same v row as their fill** — each bar row carries its own
+  u 73), on the **same v row as their fill**. Each bar row carries its own
   icon variants, 9 px horizontal stride (8 px icon + 1 px gap).
 
 ### How it draws in game

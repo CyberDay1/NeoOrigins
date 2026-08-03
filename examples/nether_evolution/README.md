@@ -3,8 +3,8 @@
 **Smallest possible example of the `upgrades` feature.**
 
 A player who is currently a Human and earns the vanilla
-`minecraft:story/enter_the_nether` advancement — awarded the first time they
-step through a Nether portal — is automatically converted to a Strider.
+`minecraft:story/enter_the_nether` advancement, awarded the first time they
+step through a Nether portal, is automatically converted to a Strider.
 
 ## How it works
 
@@ -31,7 +31,7 @@ powers are revoked, Strider powers are granted, and the client is re-synced.
 
 1. Place this folder at `<world>/datapacks/nether_evolution/`
 2. `/reload`
-3. `/datapack list` — confirm `[file/nether_evolution]` under enabled
+3. `/datapack list`: confirm `[file/nether_evolution]` under enabled
 4. Make a new character on the Human origin (or `/neoorigins set @s neoorigins:origin neoorigins:human`)
 5. If you have already earned the Nether advancement: `/advancement revoke @s only minecraft:story/enter_the_nether`
 6. Walk through a Nether portal

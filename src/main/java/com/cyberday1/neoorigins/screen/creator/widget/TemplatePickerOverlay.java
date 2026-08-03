@@ -224,7 +224,7 @@ public final class TemplatePickerOverlay {
 
         if (source.isEmpty()) {
             g.drawCenteredString(font,
-                Component.literal("No templates available — server hasn't sent any."),
+                Component.literal("No templates available, server hasn't sent any."),
                 x + w / 2, listTop + listH / 2 - 4, CreatorStyle.TEXT_DIM);
         } else if (filtered.isEmpty()) {
             g.drawCenteredString(font,

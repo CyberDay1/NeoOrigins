@@ -43,7 +43,7 @@ You can preview the production build with `npm run preview`.
 
 ## NeoOrigins Web Editor
 
-Schema-driven, browser-based datapack generator for NeoOrigins — the same
+Schema-driven, browser-based datapack generator for NeoOrigins: the same
 schemas that drive the in-game creator, ported to a static SvelteKit app.
 
 ### Local dev
@@ -71,5 +71,5 @@ touches `website/**`, `docs/schema/**`, or the workflow itself.
 
 The source of truth lives at `docs/schema/*.json` (alongside the
 mkdocs docs). CI copies those files into `static/schemas/` on every
-build — **do not hand-edit `static/schemas/`**; edit `docs/schema/`
+build. **Do not hand-edit `static/schemas/`**; edit `docs/schema/`
 and let the workflow re-sync.

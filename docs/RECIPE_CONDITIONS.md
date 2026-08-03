@@ -7,14 +7,14 @@ state. Gated recipes still load and still appear in the recipe book; they
 simply refuse to `match` while the crafting player fails any gate, so the
 result slot stays empty.
 
-This is a **runtime** per-player gate — there is no datapack reload required
+This is a **runtime** per-player gate: there is no datapack reload required
 when a player switches origin via the Orb of Origin, the picker, or admin
 commands. The gate is re-evaluated every time the crafting grid changes.
 
 > **Scope.** Only crafting-table / 2x2 inventory recipes are supported by
 > the wrapper today. Cooking variants (smelting, blasting, smoking,
-> campfire) use different menus and call paths and are not yet wrapped —
-> see "Future work" below.
+> campfire) use different menus and call paths and are not yet wrapped.
+> See "Future work" below.
 
 ## Recipe form
 
@@ -30,7 +30,7 @@ more `gates`:
 }
 ```
 
-Gates are evaluated with AND semantics — every gate in the list must pass.
+Gates are evaluated with AND semantics: every gate in the list must pass.
 For OR semantics, ship multiple recipes with the same output and one gate
 each.
 
@@ -73,7 +73,7 @@ layer that overlays an origin layer).
 See `data/neoorigins/recipe_examples/` in the mod jar for one example per
 gate shape. The `recipe_examples/` folder is intentionally outside the
 vanilla `recipe/` scan path, so the examples ship as in-tree documentation
-only — copy any of them into your own `data/<ns>/recipe/` to activate.
+only. Copy any of them into your own `data/<ns>/recipe/` to activate.
 
 ## Behavior notes
 
@@ -90,7 +90,7 @@ only — copy any of them into your own `data/<ns>/recipe/` to activate.
 - **Servers**: the gate is evaluated on the server side. The crafting
   player is planted into context both when the grid changes
   (`slotChangedCraftingGrid`) and when the result is taken
-  (`ResultSlot.onTake`) — the latter is required so the recipe still
+  (`ResultSlot.onTake`): the latter is required so the recipe still
   resolves while vanilla recomputes leftover items, otherwise the consumed
   ingredients are refunded instead of used up. The recipe serializer is
   registered on both sides via `BuiltInRegistries.RECIPE_SERIALIZER`, so
@@ -100,7 +100,7 @@ only — copy any of them into your own `data/<ns>/recipe/` to activate.
 - **Hopper / automation**: hoppers feeding a crafter block do not provide
   a player context. Gated recipes will **not** craft via the Crafter
   block; the gate falls back to "deny" when no player is present. This is
-  by design — gated recipes are a *player capability* check, not a recipe
+  by design: gated recipes are a *player capability* check, not a
   recipe-book filter.
 
 ## Future work

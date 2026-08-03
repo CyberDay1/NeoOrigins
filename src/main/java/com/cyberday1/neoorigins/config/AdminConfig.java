@@ -100,7 +100,7 @@ public final class AdminConfig {
                 "List the layer IDs that should enforce uniqueness; layers not listed are unaffected.",
                 "Once a player picks an origin in a listed layer, no one else can pick that same",
                 "origin there. Claims are released only by /neoorigins unlock, an Orb of Origin",
-                "re-pick, or /neoorigins reset. Operators in creative mode — and /neoorigins set —",
+                "re-pick, or /neoorigins reset. Operators in creative mode (and /neoorigins set)",
                 "bypass the lock and take over the claim.",
                 "Format: list of layer IDs. Example: [\"neoorigins:origin\"]")
             .defineListAllowEmpty("unique_origin_layers", List.of(), o -> o instanceof String);

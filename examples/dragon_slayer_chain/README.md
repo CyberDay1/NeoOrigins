@@ -7,7 +7,7 @@
 - A Revenant who kills the Ender Dragon ascends to **Voidwalker** (having
   consumed its power).
 
-Humans and Voidwalkers have no further upgrade in this datapack — the chain
+Humans and Voidwalkers have no further upgrade in this datapack: the chain
 is a closed three-stage progression.
 
 ## How chains work
@@ -15,7 +15,7 @@ is a closed three-stage progression.
 Chains are expressed as independent `upgrades` entries on each intermediate
 origin. Each entry points at the **next** origin in the chain plus the
 advancement that triggers the transition. `AdvancementEvent.AdvancementEarnEvent`
-fires per-advancement, so nothing fires cascading logic — each stage waits
+fires per-advancement, so nothing fires cascading logic: each stage waits
 for its own advancement to be earned.
 
 ```
@@ -30,7 +30,7 @@ for its own advancement to be earned.
 
 ## File layout
 
-Two origin overrides (the mod ships both origins — we replace them with
+Two origin overrides (the mod ships both origins; we replace them with
 versions that include the relevant `upgrades` entry):
 
 ```
@@ -42,7 +42,7 @@ dragon_slayer_chain/
 └── README.md
 ```
 
-Voidwalker does not need an override — it is the terminal stage.
+Voidwalker does not need an override: it is the terminal stage.
 
 ## Testing
 
@@ -71,6 +71,6 @@ To retest without restarting the world:
   no "revoke advancement → revert origin" flow. If you want this, write a
   datapack that listens for revocation in its own function and uses
   `/neoorigins set` to reset the player.
-- **Works across restarts**: the upgrades feature is stateless — once
+- **Works across restarts**: the upgrades feature is stateless; once
   upgraded, the player's origin data on disk reflects the new origin
   permanently, so no server-side bookkeeping is needed.
