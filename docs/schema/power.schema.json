@@ -4007,9 +4007,17 @@
           "const": "neoorigins:lava_vision"
         },
         "strength": {
-          "description": "Lava fog distance multiplier; higher sees farther in lava (default 3.0).",
+          "description": "Lava fog distance multiplier; higher sees farther in lava (default 3.0). Ignored for whichever plane sets start or end.",
           "type": "number",
           "default": 3.0
+        },
+        "start": {
+          "description": "Absolute fog start in blocks; overrides strength for the near plane (Origins 's').",
+          "type": "number"
+        },
+        "end": {
+          "description": "Absolute fog end in blocks, i.e. how far you see through lava; overrides strength for the far plane (Origins 'v').",
+          "type": "number"
         }
       },
       "required": [
