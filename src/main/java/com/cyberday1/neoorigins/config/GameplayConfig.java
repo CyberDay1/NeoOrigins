@@ -41,7 +41,7 @@ public final class GameplayConfig {
         ORB_SCALE_COST = BUILDER
             .comment("Whether the XP cost scales with the number of prior orb uses.",
                      "true  (default): Cost = levels_per_use * previous orb uses (first use free, then ramps).",
-                     "false: flat cost — every use (including the first) costs exactly levels_per_use levels.")
+                     "false: flat cost. Every use (including the first) costs exactly levels_per_use levels.")
             .define("scale_cost", true);
 
         ORB_LEVELS_PER_USE = BUILDER
@@ -205,8 +205,8 @@ public final class GameplayConfig {
 
         SPAWN_LOCATION_TELEPORTS_ENABLED = BUILDER
             .comment("Master toggle for ALL origin spawn_location teleports.",
-                     "When false, no origin relocates the player on origin pick —",
-                     "built-in, datapack and compat origins all spawn at the world's",
+                     "When false, no origin relocates the player on origin pick.",
+                     "Built-in, datapack and compat origins all spawn at the world's",
                      "normal spawn point. Overrides ocean_origins.spawn_in_ocean.")
             .define("teleports_enabled", true);
 
@@ -244,11 +244,12 @@ public final class GameplayConfig {
 
         OCEAN_ORIGINS_DRAIN_RATE_TICKS = BUILDER
             .comment("Ticks per single air point lost while out of water.",
-                     "Default 10 = 1 air per 0.5s, 300 air → ~2.5 minutes to deplete.",
-                     "Larger values mean a slower drain. Vanilla cod uses ~1 tick per air;",
-                     "for a fish-comparable feel set this near 16 (≈4 minutes).",
+                     "Default 1 matches vanilla cod and salmon exactly: air starts at 300,",
+                     "so 300 ticks (15 seconds) on land before drown damage begins.",
+                     "Larger values mean a slower drain: the total land time in seconds is",
+                     "roughly (300 * this value) / 20, so 2 gives 30s and 4 gives 1 minute.",
                      "Replaces the per-power drain_rate field in built-in dries_out JSONs.")
-            .defineInRange("drain_rate_ticks", 10, 1, 1200);
+            .defineInRange("drain_rate_ticks", 1, 1, 1200);
 
         OCEAN_ORIGINS_DROWN_DAMAGE = BUILDER
             .comment("Damage applied per second once a dried-out aquatic player's virtual air",
@@ -257,7 +258,7 @@ public final class GameplayConfig {
             .defineInRange("drown_damage_per_second", 2.0, 0.0, 100.0);
 
         OCEAN_ORIGINS_FISH_DIET_REQUIRED = BUILDER
-            .comment("Pescivore restriction — when true, ocean origins (Abyssal, Kraken, Merling,",
+            .comment("Pescivore restriction: when true, ocean origins (Abyssal, Kraken, Merling,",
                      "Siren) can only eat items in the neoorigins:fish_foods tag; non-fish food",
                      "is silently cancelled. Set to false to let them eat anything (powered by",
                      "the aquatic_fish_diet power's runtime check on this flag).",
@@ -335,7 +336,7 @@ public final class GameplayConfig {
 
         SUN_HELMET_PROTECTION = BUILDER
             .comment("When true (default), wearing any helmet cancels sun burn for",
-                     "sun-damage origins — the current, vanilla-like behaviour.",
+                     "sun-damage origins. This is the current, vanilla-like behaviour.",
                      "When false, sun-damage origins burn in daylight even with a",
                      "helmet equipped, and the helmet takes no durability damage",
                      "since it is no longer protecting the player.")
@@ -345,7 +346,7 @@ public final class GameplayConfig {
             .comment("Per-evaluation chance (0.0 – 1.0) that a damageable helmet takes",
                      "1 durability while the player is in direct sun. The condition is",
                      "evaluated once per condition_passive interval (~1 second), so a",
-                     "value of 0.07 averages 1 durability per ~14 seconds — about 40",
+                     "value of 0.07 averages 1 durability per ~14 seconds, about 40",
                      "minutes of continuous sun for a 165-durability iron helmet.",
                      "Unbreaking still stacks via vanilla hurtAndBreak. Set to 0 so",
                      "helmets never lose durability from sun protection; set to 1 to",
@@ -503,7 +504,7 @@ public final class GameplayConfig {
 
         CREATIVE_NO_COOLDOWN = BUILDER
             .comment("When true, players in Creative mode ignore active-ability cooldowns",
-                     "entirely — every keybind / on-hit / on-kill power can fire without",
+                     "entirely: every keybind / on-hit / on-kill power can fire without",
                      "waiting. Cooldowns still apply normally in Survival/Adventure, so a",
                      "creative-mode player switching back to survival resumes any in-flight",
                      "cooldown. Useful for testing powers without spam-waiting.")
