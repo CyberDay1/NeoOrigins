@@ -4452,7 +4452,7 @@ Notes:
 
 ## `neoorigins:lava_vision`
 
-Increases the player's vision distance while the camera is submerged in lava by pushing back the lava fog planes. Holders also lose the first-person burning-screen fire overlay: the power is meant for fire-immune origins, where the flame animation is noise. Client-side rendering is handled by `VisualEffectsHandler` via `ViewportEvent.RenderFog` and `RenderBlockScreenEffectEvent`. (Note for this build: the fog planes are pending a native fog implementation, since `ViewportEvent.RenderFog` stopped being cancellable in the 26.1 render rework; the fire-overlay suppression is active.)
+Increases the player's vision distance while the camera is submerged in lava by pushing back the lava fog planes. Holders also lose the first-person burning-screen fire overlay: the power is meant for fire-immune origins, where the flame animation is noise. Client-side rendering is handled by `VisualEffectsHandler` via `ViewportEvent.RenderFog` and `RenderBlockScreenEffectEvent`.
 
 The planes can be set two ways. `strength` scales vanilla's own values, while `start` and `end` replace them outright, in blocks. An absolute field always wins for the plane it names; a plane with no absolute value falls back to the multiplier.
 
