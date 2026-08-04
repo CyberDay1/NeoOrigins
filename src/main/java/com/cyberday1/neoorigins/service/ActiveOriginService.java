@@ -406,6 +406,37 @@ public final class ActiveOriginService {
     }
 
     /**
+     * Collects every power id currently active on the player across ALL layers
+     * (tier-aware for non-class layers) plus dynamic grants. The layer being
+     * mutated is overridden with {@code overrideOrigin} ({@code null} drops it),
+     * so the result reflects the post-change state regardless of whether the
+     * caller has already written it to the attachment. Used to scope the
+     * attribute-modifier orphan sweep so other layers' modifiers survive.
+     */
+    private static java.util.Set<Identifier> collectActivePowerIds(
+            ServerPlayer player, Identifier overrideLayer, Identifier overrideOrigin) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        int tier = data.getEvolutionTier();
+        java.util.Map<Identifier, Identifier> origins =
+            new java.util.HashMap<>(data.getOrigins());
+        if (overrideLayer != null) {
+            if (overrideOrigin == null) origins.remove(overrideLayer);
+            else origins.put(overrideLayer, overrideOrigin);
+        }
+        java.util.Set<Identifier> ids = new java.util.HashSet<>();
+        for (var entry : origins.entrySet()) {
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin == null) continue;
+            boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+            List<Identifier> effectivePowers = isClassLayer
+                ? origin.powers() : origin.powersForTier(tier);
+            ids.addAll(effectivePowers);
+        }
+        ids.addAll(data.getDynamicGrantedPowers());
+        return ids;
+    }
+
+    /**
      * Revokes powers from oldOrigin and grants powers from newOrigin.
      * Posts PowerRevokedEvent / PowerGrantedEvent for each power changed.
      * Grant/revoke bypasses dimension restrictions to ensure clean state transitions.
@@ -432,7 +463,16 @@ public final class ActiveOriginService {
             }
             // Sweep any orphaned neoorigins attribute modifiers from the old origin
             // in case the JSON was edited or a power was removed since it was granted.
-            com.cyberday1.neoorigins.power.builtin.AttributeModifierPower.purgeAllOriginModifiers(player);
+            // Layer-aware: only purge modifiers whose power is no longer active across
+            // ANY layer. A blanket wipe here would drop the OTHER layers' attribute
+            // boosts (e.g. changing the class layer would erase the origin layer's
+            // +HP), since this method only re-grants `newOriginId`'s own powers below.
+            // Covers size_scaling's modifiers too, which is why that power's own
+            // onRevoked can stay scoped to the ids it granted.
+            java.util.Set<Identifier> activePowers =
+                collectActivePowerIds(player, layerId, newOriginId);
+            com.cyberday1.neoorigins.power.builtin.AttributeModifierPower
+                .purgeOriginModifiersExcept(player, activePowers);
         }
         Origin newOrigin = OriginDataManager.INSTANCE.getOrigin(newOriginId);
         if (newOrigin != null) {

@@ -1383,10 +1383,16 @@ Add a `neoorigins:always_true` placeholder condition to confirm the wiring
 works, then narrow it back down.
 
 **"My size-scaling power makes me punch through walls."**
-Set `modify_reach: false` on the `size_scaling` config. Reach scaling was
-removed from size in v1.14 because it was confusing. It now only scales
-when explicitly enabled. To claw back a flat amount of reach for shrunk
-origins without re-enabling scaling, set `reach_bonus` (blocks) instead.
+`modify_reach` defaults to `true`, so reach tracks body size unless you turn
+it off: set `modify_reach: false` on the `size_scaling` config. To claw back
+a flat amount of reach for a shrunk origin without re-enabling proportional
+scaling, set `reach_bonus` (in blocks) instead.
+
+**"My origin and my class both resize me, but only one of them takes effect."**
+They stack. A 1.3x origin plus a 1.25x class puts the player at 1.55x, in
+either pick order, and re-picking one layer leaves the other alone. If the
+last-picked layer wins instead, the build predates the cross-layer stacking
+fix. `attribute_modifier` bonuses stack across layers the same way.
 
 **"My active ability triggers but the server disagrees with the client."**
 `add_velocity` needs `hurtMarked` to survive the client's next physics
