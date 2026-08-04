@@ -81,6 +81,20 @@ Naming convention: prefix the origin id and its powers with `class_`
 (`class_alchemist`, `class_alchemist_resilience`). Not required by the code,
 but it keeps packs consistent with the built-ins.
 
+## Stacking with the origin layer
+
+A class and an origin are separate layers, and their powers **add together**;
+neither replaces the other. A player who is a Golem (origin, 1.3x size) and a
+Titan (class, 1.25x size) ends up 1.55x, and re-picking either layer leaves the
+other layer's contribution alone. The same holds for
+[`attribute_modifier`](POWER_TYPES.md#neooriginsattribute_modifier) bonuses:
+health, armor and reach from the origin survive a class change.
+
+Design classes on that assumption. If a class is meant to be an *alternative*
+to something an origin already grants rather than an addition to it, express
+that with a condition on the class power, not by expecting it to overwrite the
+origin's.
+
 ## Lang keys
 
 Same derivation as any origin/power:

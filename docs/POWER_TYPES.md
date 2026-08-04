@@ -139,6 +139,8 @@ If both `item` and `tag` are given, either match satisfies the condition (OR). I
 
 All fields are optional and combine with AND. So `{ "dimension": "minecraft:the_end", "structure": "minecraft:end_city" }` is "only when standing inside an End City in The End." Structure membership is evaluated server-side via `ServerLevel.structureManager()`.
 
+**Stacking across layers.** Each `attribute_modifier` power owns its own modifier id, so two powers touching the same attribute add up rather than replacing one another: an origin granting +6 max health and a class granting +4 leave the player at +10. Changing one layer re-grants only that layer and leaves every other layer's modifiers in place, so re-picking a class no longer costs the player their origin's health, armor or reach. Modifiers left behind by a power that no longer exists (JSON deleted or renamed) are swept at that same moment, so stale bonuses cannot accumulate either.
+
 **Example: 8 flat armor (unconditional)**
 ```json
 {
@@ -2616,6 +2618,10 @@ Scales the player's visual and collision size via the `minecraft:generic.scale` 
 The scale attribute uses `ADD_VALUE` against a base of `1.0` (so delta = `scale - 1.0`); proportional reach (`modify_reach`) uses `ADD_MULTIPLIED_BASE` so reach tracks visual size, while `reach_bonus` uses a flat `ADD_VALUE` on both ranges. Missing attributes (older MC or NeoForge versions) log a single warning and the power silently skips that attribute.
 
 For the bundled size origins, `scale`, `modify_reach` and `reach_bonus` are all exposed per-origin in `config/neoorigins/power_overrides.toml`, so server owners can retune a shrunk origin's reach without a datapack; small origins (`inchling_size`, `tiny_size`) ship with `modify_reach: false` and a positive `reach_bonus` so they stay playable out of the box.
+
+**Size stacks across layers.** Every `size_scaling` power owns its own modifier ids, so an origin scaling to `1.3` and a class scaling to `1.25` leave the player at `1.55`, not at whichever layer was picked last. Re-picking one layer removes only that layer's contribution and leaves the rest standing, in either order. Reach modifiers follow the same rule. If you want two layers to be mutually exclusive rather than cumulative, gate them with conditions; do not rely on one overwriting the other.
+
+Deleting or renaming a size power's JSON is still safe: its leftover modifiers are swept the next time the player's powers change, so a power that no longer exists cannot strand someone at the wrong size.
 
 ---
 

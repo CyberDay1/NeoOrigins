@@ -47,6 +47,9 @@ import java.util.Optional;
  */
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
 
+    /** Shared leading segment of every modifier id this power type attaches. */
+    static final String MOD_ID_PREFIX = "power_";
+
     public record EquipmentCondition(
         String slot,
         Optional<ResourceLocation> item,
@@ -318,19 +321,17 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             if (instance == null) continue;
             java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
             for (AttributeModifier m : instance.getModifiers()) {
-                ResourceLocation id = m.id();
-                if (!"neoorigins".equals(id.getNamespace())) continue;
-                if (!id.getPath().startsWith("power_")) continue;
-                stale.add(id);
+                if (isSweptId(m.id())) stale.add(m.id());
             }
             for (ResourceLocation id : stale) instance.removeModifier(id);
         }
     }
 
     /**
-     * Layer-aware orphan sweep. Removes every {@code neoorigins:power_*} modifier
-     * whose owning power is NOT in {@code activePowerIds}, leaving modifiers from
-     * still-active powers untouched.
+     * Layer-aware orphan sweep. Removes every modifier in the swept id families
+     * ({@code neoorigins:power_*} from this power type, {@code neoorigins:size_*}
+     * from {@link SizeScalingPower}) whose owning power is NOT in
+     * {@code activePowerIds}, leaving modifiers from still-active powers untouched.
      *
      * <p>This is the safe counterpart to {@link #purgeAllOriginModifiers} for the
      * per-layer grant/revoke path ({@code ActiveOriginService.applyOriginPowers}).
@@ -341,30 +342,18 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
      * player's full active set across all layers keeps cross-layer modifiers while
      * still catching genuine orphans (power JSON edited/removed since the grant).
      *
-     * <p>The {@code keep} test mirrors the {@link #modIdFor} format: each active
-     * power contributes the prefix {@code power_<powerKey>_}; a modifier survives
-     * iff its path starts with one of those prefixes.
+     * <p>The {@code keep} test mirrors the id formats: each active power contributes
+     * one prefix per swept family ({@code power_<powerKey>_},
+     * {@code size_<powerKey>_}); a modifier survives iff its path starts with one of
+     * those prefixes. Both families build {@code <powerKey>} through
+     * {@link #powerKeyFor}, so the prefixes cannot drift from the emitted ids.
      */
     public static void purgeOriginModifiersExcept(net.minecraft.world.entity.LivingEntity entity,
             java.util.Set<ResourceLocation> activePowerIds) {
-        java.util.Set<String> keepPrefixes = new java.util.HashSet<>();
-        for (ResourceLocation id : activePowerIds) keepPrefixes.add("power_" + powerKeyFor(id) + "_");
+        java.util.Set<String> keepPrefixes = keepPrefixesFor(activePowerIds);
         for (var attribute : BuiltInRegistries.ATTRIBUTE) {
             var holder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attribute);
-            AttributeInstance instance = entity.getAttribute(holder);
-            if (instance == null) continue;
-            java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
-            for (AttributeModifier m : instance.getModifiers()) {
-                ResourceLocation id = m.id();
-                if (!"neoorigins".equals(id.getNamespace())) continue;
-                if (!id.getPath().startsWith("power_")) continue;
-                boolean keep = false;
-                for (String prefix : keepPrefixes) {
-                    if (id.getPath().startsWith(prefix)) { keep = true; break; }
-                }
-                if (!keep) stale.add(id);
-            }
-            for (ResourceLocation id : stale) instance.removeModifier(id);
+            purgeInstanceExcept(entity.getAttribute(holder), keepPrefixes);
         }
     }
 
@@ -467,7 +456,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         int h = Double.hashCode(config.amount());
         return ResourceLocation.fromNamespaceAndPath(
             "neoorigins",
-            "power_" + powerKey + "_" + attrId.getPath() + "_"
+            MOD_ID_PREFIX + powerKey + "_" + attrId.getPath() + "_"
                 + config.operation().name().toLowerCase(java.util.Locale.ROOT) + "_"
                 + Integer.toHexString(h));
     }
@@ -482,5 +471,57 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         return powerId == null
             ? "anon"
             : (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_').replace(':', '_');
+    }
+
+    /**
+     * Every {@code neoorigins:} modifier-id family the sweepers below own. Each entry
+     * is a power type that attaches attribute modifiers keyed as
+     * {@code <prefix><powerKey>_<suffix>}, so the sweepers can tell which power owns
+     * an id. A new modifier-emitting power type only has to be listed here.
+     */
+    private static final java.util.List<String> SWEPT_ID_PREFIXES =
+        java.util.List.of(MOD_ID_PREFIX, SizeScalingPower.MOD_ID_PREFIX);
+
+    /** True when {@code id} belongs to one of the swept modifier-id families. */
+    static boolean isSweptId(ResourceLocation id) {
+        if (!"neoorigins".equals(id.getNamespace())) return false;
+        for (String prefix : SWEPT_ID_PREFIXES) {
+            if (id.getPath().startsWith(prefix)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Builds the keep-set for {@link #purgeOriginModifiersExcept}: one id prefix per
+     * (active power, modifier family) pair. Both families derive their key segment
+     * from {@link #powerKeyFor}, so a prefix built here matches the ids those powers
+     * actually emit.
+     */
+    static java.util.Set<String> keepPrefixesFor(java.util.Set<ResourceLocation> activePowerIds) {
+        java.util.Set<String> keep = new java.util.HashSet<>();
+        for (ResourceLocation id : activePowerIds) {
+            String key = powerKeyFor(id);
+            for (String prefix : SWEPT_ID_PREFIXES) keep.add(prefix + key + "_");
+        }
+        return keep;
+    }
+
+    /** The keep/remove decision: a swept id survives only while its owning power is active. */
+    static boolean isOrphanId(ResourceLocation id, java.util.Set<String> keepPrefixes) {
+        if (!isSweptId(id)) return false;
+        for (String prefix : keepPrefixes) {
+            if (id.getPath().startsWith(prefix)) return false;
+        }
+        return true;
+    }
+
+    /** Applies {@link #isOrphanId} to a single attribute. */
+    static void purgeInstanceExcept(AttributeInstance instance, java.util.Set<String> keepPrefixes) {
+        if (instance == null) return;
+        java.util.List<ResourceLocation> stale = new java.util.ArrayList<>();
+        for (AttributeModifier m : instance.getModifiers()) {
+            if (isOrphanId(m.id(), keepPrefixes)) stale.add(m.id());
+        }
+        for (ResourceLocation id : stale) instance.removeModifier(id);
     }
 }

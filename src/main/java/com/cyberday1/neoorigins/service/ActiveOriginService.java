@@ -462,6 +462,8 @@ public final class ActiveOriginService {
             // ANY layer. A blanket wipe here would drop the OTHER layers' attribute
             // boosts (e.g. changing the class layer would erase the origin layer's
             // +HP), since this method only re-grants `newOriginId`'s own powers below.
+            // Covers size_scaling's modifiers too, which is why that power's own
+            // onRevoked can stay scoped to the ids it granted.
             java.util.Set<ResourceLocation> activePowers =
                 collectActivePowerIds(player, layerId, newOriginId);
             com.cyberday1.neoorigins.power.builtin.AttributeModifierPower

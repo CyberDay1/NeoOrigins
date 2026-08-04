@@ -32,13 +32,26 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
+    /** Shared leading segment of every modifier id this power type attaches. */
+    static final String MOD_ID_PREFIX = "size_";
+
     /** Generates a per-power modifier ID so multiple size_scaling powers don't collide. */
     private static ResourceLocation modId(String suffix) {
-        ResourceLocation powerId = PowerHolder.currentDispatchId();
-        String key = powerId != null
-            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
-            : "anon";
-        return ResourceLocation.fromNamespaceAndPath("neoorigins", "size_" + key + "_" + suffix);
+        return modIdFor(PowerHolder.currentDispatchId(), suffix);
+    }
+
+    static ResourceLocation modIdFor(ResourceLocation powerId, String suffix) {
+        return ResourceLocation.fromNamespaceAndPath("neoorigins", ownIdPrefix(powerId) + suffix);
+    }
+
+    /**
+     * Id prefix shared by every modifier {@code powerId} owns. The key segment is
+     * derived by {@link AttributeModifierPower#powerKeyFor} rather than locally, so
+     * the layer-change sweeper in that class cannot drift out of step with the ids
+     * emitted here and start treating live modifiers as orphans.
+     */
+    static String ownIdPrefix(ResourceLocation powerId) {
+        return MOD_ID_PREFIX + AttributeModifierPower.powerKeyFor(powerId) + "_";
     }
 
     public record Config(float scale, boolean modifyReach, float reachBonus, String type) implements PowerConfiguration {
@@ -63,30 +76,43 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        clearSizeModifiers(player);
+        clearOwnModifiers(player, PowerHolder.currentDispatchId());
     }
 
     /**
-     * Remove every {@code neoorigins:size_*} modifier from the scale and
-     * interaction-range attributes. We clear by id prefix rather than the
-     * per-power computed id because {@link PowerHolder#currentDispatchId()}
-     * is not guaranteed to resolve to the same value during revoke as during
-     * grant (origin change / orb reroll), which previously left the player
-     * permanently rescaled after switching origins — GitHub #90.
+     * Removes the scale and interaction-range modifiers owned by this power, and
+     * only those. Clearing every {@code neoorigins:size_*} id here instead also
+     * erased the size modifiers granted by powers on the OTHER layers, and the
+     * caller only re-grants the layer it changed: an origin and a class that both
+     * scale the player therefore collapsed to whichever one was applied last
+     * rather than stacking.
+     *
+     * <p>The orphan case this hook cannot see is still covered. If a power's JSON
+     * is deleted or renamed the holder no longer resolves and this hook never runs
+     * at all, so the layer-change sweep in
+     * {@code ActiveOriginService.applyOriginPowers} removes every {@code size_*}
+     * modifier whose owning power is no longer active anywhere. That sweep, not a
+     * blanket wipe here, is what keeps GitHub #90 from coming back.
      */
-    private static void clearSizeModifiers(ServerPlayer player) {
-        clearPrefixed(player, Attributes.SCALE);
-        clearPrefixed(player, Attributes.BLOCK_INTERACTION_RANGE);
-        clearPrefixed(player, Attributes.ENTITY_INTERACTION_RANGE);
+    private static void clearOwnModifiers(ServerPlayer player, ResourceLocation powerId) {
+        String prefix = ownIdPrefix(powerId);
+        clearPrefixed(player, Attributes.SCALE, prefix);
+        clearPrefixed(player, Attributes.BLOCK_INTERACTION_RANGE, prefix);
+        clearPrefixed(player, Attributes.ENTITY_INTERACTION_RANGE, prefix);
     }
 
     private static void clearPrefixed(ServerPlayer player,
-            net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr) {
-        AttributeInstance inst = player.getAttribute(attr);
+            net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr,
+            String prefix) {
+        clearPrefixed(player.getAttribute(attr), prefix);
+    }
+
+    /** Removes every modifier on {@code inst} whose id starts with {@code prefix}. */
+    static void clearPrefixed(AttributeInstance inst, String prefix) {
         if (inst == null) return;
         for (AttributeModifier mod : new java.util.ArrayList<>(inst.getModifiers())) {
             ResourceLocation id = mod.id();
-            if ("neoorigins".equals(id.getNamespace()) && id.getPath().startsWith("size_")) {
+            if ("neoorigins".equals(id.getNamespace()) && id.getPath().startsWith(prefix)) {
                 inst.removeModifier(id);
             }
         }
