@@ -4155,6 +4155,53 @@ Origins compat: translates `origins:ignore_water`.
 
 ---
 
+## `neoorigins:ignore_fluid`
+
+Makes the player **totally** ignore one or more fluids. Where `ignore_water` only removes water's speed penalty and current pushing, this power removes the fluid from the player's world entirely: no buoyancy, no drag, no current push, no drowning, no lava burn, no fog or screen overlay, no swim pose.
+
+It does that by intercepting fluid **detection** rather than each individual effect. `EntityFluidInteractionIgnoreFluidMixin` hands back an empty fluid state for ignored fluids inside `EntityFluidInteraction.update`, the single body scan that feeds buoyancy, drag, current push, `isInWater()`/`isInLava()`, `lavaHurt()`, the swim pose, drowning and the air bar. `CameraIgnoreFluidMixin` does the same for `Camera.getFluidInCamera`, which decides fog and the underwater distortion without ever consulting the entity. `BlockStateBaseIgnoreFluidMixin` cancels `entityInside` for the fluid's own block, which is how a mod-authored fluid applies its own damage or effects.
+
+Because every vanilla fluid behaviour reads those same values, they all fall away together, and so do most third-party mods, since they query the same methods.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `fluid` | string or array | no | — | Fluid to ignore: a fluid id (`"minecraft:lava"`), a fluid tag (`"#c:milk"`), or an array of either |
+| `fluids` | array | no | — | Plural spelling of `fluid`. Both keys are read and their entries merged |
+
+Naming any fluid of a fluid type ignores the whole type, so `"minecraft:water"` also covers `minecraft:flowing_water` — that is what makes poured buckets work. Entries without a namespace get `minecraft:` (so `"lava"` means `"minecraft:lava"`). If neither key is given the power defaults to water and lava, so a marker-only entry is never a silent no-op. Unknown or misspelled ids are dropped quietly rather than failing the datapack load: the power simply ignores nothing for that entry.
+
+Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per entry, so the client and server agree without any extra sync.
+
+**Modded fluids on this version.** The field shape is deliberately identical across every branch of the mod, so a datapack naming a modded fluid loads and validates here exactly as it does on 1.21.1. The physics do not follow. This version of Minecraft tracks entity fluid interaction only for fluids in the `minecraft:water` and `minecraft:lava` fluid tags, so an entry naming a fluid outside those two tags is accepted, syncs its capability tag, and drives nothing on the movement side. The `entityInside` guard still applies, which means a modded fluid's own damage or effects are still cancelled even though its buoyancy and drag are not. Write the pack for 1.21.1 and it will not break here; just do not expect a modded fluid to stop pushing you.
+
+**Not covered.** A mod that runs its own `level.getFluidState(pos)` check per tick — rather than asking the entity whether it is in a fluid — is doing its own detection and cannot be intercepted from here; it will still see the fluid. The same goes for anything keyed off the block state rather than the fluid state (a mod checking `state.is(Blocks.LAVA)` directly). Fluid **rendering** is untouched: the fluid is still drawn normally, you simply pass through it as if it were air.
+
+One deliberate side effect: the `entityInside` guard is keyed on the block's fluid state, so a *waterlogged* block's own `entityInside` behaviour is suppressed too while you ignore water. In practice that means things like bubble columns stop pushing you, which is the intended reading of "water does not affect me".
+
+`ignore_water` is unchanged and still supported; use it when you only want water's movement penalty gone, and this power when you want the fluid to stop existing for the player.
+
+**Example: swim through lava unharmed**
+```json
+{
+  "type": "neoorigins:ignore_fluid",
+  "fluid": "minecraft:lava",
+  "name": "Magma Born",
+  "description": "Lava does not slow, push, burn or blind you."
+}
+```
+
+**Example: ignore several fluids, including a modded one**
+```json
+{
+  "type": "neoorigins:ignore_fluid",
+  "fluids": ["minecraft:water", "minecraft:lava", "create:honey"],
+  "name": "Untouchable",
+  "description": "Liquids simply don't register."
+}
+```
+
+---
+
 ## `neoorigins:overlay`
 
 Renders a full-screen texture overlay on the player's HUD. Client-side only: the server emits a capability tag encoding the texture path and strength; `VisualEffectsHandler` on the client reads it and draws the overlay.

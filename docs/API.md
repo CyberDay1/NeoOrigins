@@ -111,6 +111,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`cobweb_affinity`](POWER_TYPES.md#neooriginscobweb_affinity) | Web mobility + 10× cobweb break speed. |
 | [`burn`](POWER_TYPES.md#neooriginsburn) | Set the player on fire at a configurable interval. |
 | [`ignore_water`](POWER_TYPES.md#neooriginsignore_water) | Full land speed in water + no current pushing. |
+| [`ignore_fluid`](POWER_TYPES.md#neooriginsignore_fluid) | Totally ignore named fluids (incl. modded): no buoyancy, drag, push, drowning, burn, fog or swim pose. |
 | [`lava_vision`](POWER_TYPES.md#neooriginslava_vision) | Increase vision distance in lava. |
 | [`overlay`](POWER_TYPES.md#neooriginsoverlay) | Full-screen texture overlay with configurable opacity. |
 | [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. |

@@ -142,6 +142,11 @@ public class NeoOrigins {
         // Register custom entities (cobweb projectile, etc.)
         com.cyberday1.neoorigins.content.ModEntities.register(modEventBus);
 
+        // Register mod status effects (neoorigins:suppression). Once it is in the
+        // registry, has_effect / status_effect and apply_effect reach it by id
+        // with no further wiring.
+        com.cyberday1.neoorigins.effect.ModEffects.register(modEventBus);
+
         // Register attachment types (origin data + Route B compat state + entity minion-owner)
         OriginAttachments.register(modEventBus);
         CompatAttachments.register(modEventBus);
