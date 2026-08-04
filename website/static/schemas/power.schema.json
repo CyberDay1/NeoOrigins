@@ -391,6 +391,7 @@
         "neoorigins:hide_hud_bar",
         "neoorigins:horde_regen",
         "neoorigins:hunger_drain_modifier",
+        "neoorigins:ignore_fluid",
         "neoorigins:ignore_water",
         "neoorigins:invisibility",
         "neoorigins:invulnerability",
@@ -3850,6 +3851,36 @@
       ]
     },
     {
+      "$comment": "neoorigins:ignore_fluid",
+      "properties": {
+        "type": {
+          "const": "neoorigins:ignore_fluid"
+        },
+        "fluid": {
+          "description": "Fluid to ignore: a fluid id (\"minecraft:lava\"), a fluid tag (\"#c:milk\"), or an array of either. Omitting both fluid and fluids means water + lava.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "fluids": {
+          "description": "Array form of `fluid`, for authors who prefer the plural key. Both keys are read and their entries merged.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?([a-z0-9_.-]+:)?[a-z0-9_./\\-]+$"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:ignore_water",
       "properties": {
         "type": {
@@ -6974,6 +7005,7 @@
               "neoorigins:hide_hud_bar",
               "neoorigins:horde_regen",
               "neoorigins:hunger_drain_modifier",
+              "neoorigins:ignore_fluid",
               "neoorigins:ignore_water",
               "neoorigins:invisibility",
               "neoorigins:invulnerability",

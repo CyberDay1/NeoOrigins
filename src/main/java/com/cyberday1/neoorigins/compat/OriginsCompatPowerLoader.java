@@ -349,9 +349,16 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 NeoOrigins.LOGGER.debug("[CompatB] native active {} bound to vanilla key '{}'", pid, ks.key());
                 continue;
             }
+            // PowerKeybindRegistry.dispatch runs a continuous binding every held
+            // tick and a non-continuous one once per press. The action itself
+            // cannot tell the two apart when it runs, but ks.continuous() is
+            // known here, so bake the choice in: only the once-per-press binding
+            // may announce a suppression refusal.
+            final boolean announceRefusal = !ks.continuous();
             EntityAction openAction = player -> {
                 PowerHolder<?> h = PowerDataManager.INSTANCE.getPower(pid);
-                if (h != null && h.isActive()) h.onActivated(player);
+                if (h == null || !h.isActive()) return;
+                if (announceRefusal) h.onActivatedByKeypress(player); else h.onActivated(player);
             };
             com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.register(ks.key(),
                 new com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.Binding(

@@ -78,6 +78,15 @@ public final class BuiltinPowers {
     private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
 
     /**
+     * Schema {@code pattern} for fluid-selector entries ({@code ignore_fluid}).
+     * Widens {@link #RESOURCE_LOCATION_PATTERN} two ways the parser genuinely
+     * accepts: a leading {@code #} for a fluid tag, and an omitted namespace
+     * (which the power fills in as {@code minecraft}).
+     */
+    private static final String FLUID_ENTRY_PATTERN =
+        "^#?([a-z0-9_.-]+:)?[a-z0-9_./\\-]+$";
+
+    /**
      * Shared cooldown-HUD specs appended to every cooldown-gated active
      * (keybind) power type — the types whose cooldowns feed
      * {@code CooldownHudOverlay}. Declared once so the doc strings cannot
@@ -257,6 +266,17 @@ public final class BuiltinPowers {
         define("creative_flight",          CreativeFlightPower.class,         List.of(
             ENABLED_SPEC, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
+        // ignore_fluid: generalised successor to ignore_water. Both keys take a
+        // single id or an array (authors reach for either), so `fluid` is MIXED
+        // rather than STRING and both share the tag-tolerant pattern — the entries
+        // accept `#namespace:path` fluid tags as well as plain fluid ids.
+        define("ignore_fluid",             IgnoreFluidPower.class,            List.of(
+            new FieldSpec("fluid", Kind.MIXED, false)
+                .mixedTypes("string", "array")
+                .doc("Fluid to ignore: a fluid id (\"minecraft:lava\"), a fluid tag (\"#c:milk\"), or an array of either. Omitting both fluid and fluids means water + lava."),
+            new FieldSpec("fluids", Kind.ARRAY, false)
+                .itemPattern(FLUID_ENTRY_PATTERN)
+                .doc("Array form of `fluid`, for authors who prefer the plural key. Both keys are read and their entries merged.")));
         define("natural_glide",            NaturalGlidePower.class,           List.of());
         // elytra_flight: native mirror of apoli:elytra_flight. Reuses natural_glide
         // for the flight itself (capabilities() emits "natural_glide"); the two

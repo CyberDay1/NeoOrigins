@@ -850,6 +850,9 @@ public final class BuiltinActions {
                         if (!has) return;
                         var holder = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(pid);
                         if (holder != null && holder.isActive()) {
+                            // Silent entry point deliberately: a pack is free to
+                            // fire this from a per-tick trigger, and a suppression
+                            // refusal must not announce itself twenty times a second.
                             holder.onActivated(player);
                         } else if (!com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry
                                 .activateByPowerId(player, pid)) {

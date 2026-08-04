@@ -1317,6 +1317,42 @@ Custom aquatic origins can reference any of these shared powers by ID.
 **Moisture system:** ocean origins with `breath_out_of_fluid` replenish
 moisture from water blocks, rain, bubble columns, and water cauldrons.
 
+### Suppression
+
+`neoorigins:suppression` is a status effect the mod registers for you to hang a
+boss mechanic, a debuff zone, or a PvP counter on. While a player holds it,
+every active, keybind, and toggle power refuses to fire. A key press or a click
+in the power GUI gets an action bar message and a short sound, so an input that
+does nothing always comes with a reason. Refusals the player did not ask for are
+silent: `neoorigins:activate_power` and continuous (held-key) bindings can fire
+every tick, and announcing those would flood the action bar. The amplifier
+carries no meaning and is reserved for later use.
+
+Passive powers are deliberately out of scope, because you can already gate one
+yourself. Put a `power_condition` on the passive that tests for the effect and
+leave the mode at its `DENY` default, and the power switches off for exactly as
+long as Suppression is held.
+
+```json
+{
+  "type": "neoorigins:night_vision",
+  "power_condition": {
+    "type": "neoorigins:has_effect",
+    "effect": "neoorigins:suppression"
+  }
+}
+```
+
+A toggle power that is already on when the effect lands is forced off rather
+than left on and locked. Locking it on would strand the player
+mid-transformation, with the one key that undoes it refused and nothing on
+screen to explain why.
+
+Delivery is `/effect` and the `neoorigins:apply_effect` action, and nothing else.
+There is no brewing recipe, no tipped arrow, and no potion item by design: a
+craftable ability lock is a balance decision that belongs to your pack, and
+shipping the recipe would make that decision for every world.
+
 ---
 
 ## Testing & debugging

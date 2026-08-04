@@ -145,6 +145,8 @@ public final class PowerKeybindRegistry {
         if (b == null) return;
         boolean pressed = readVanillaKey(sp, b.key());
         if (b.continuous()) {
+            // Every held tick, so the silent entry point: a suppression refusal
+            // here would repaint the action bar for as long as the key is down.
             if (pressed) holder.onActivated(sp);
             return;
         }
@@ -153,7 +155,7 @@ public final class PowerKeybindRegistry {
         String edgeKey = holder.id().toString() + ":nvkpress";
         boolean wasPressed = data.getCustomFloat(edgeKey, 0) > 0;
         data.setCustomFloat(edgeKey, pressed ? 1.0F : 0.0F);
-        if (pressed && !wasPressed) holder.onActivated(sp);
+        if (pressed && !wasPressed) holder.onActivatedByKeypress(sp);
     }
 
     /**
