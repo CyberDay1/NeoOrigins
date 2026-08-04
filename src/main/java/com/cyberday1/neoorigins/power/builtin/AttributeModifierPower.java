@@ -47,6 +47,9 @@ import java.util.Optional;
  */
 public class AttributeModifierPower extends PowerType<AttributeModifierPower.Config> {
 
+    /** Shared leading segment of every modifier id this power type attaches. */
+    static final String MOD_ID_PREFIX = "power_";
+
     public record EquipmentCondition(
         String slot,
         Optional<Identifier> item,
@@ -327,13 +330,92 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
             if (instance == null) continue;
             java.util.List<Identifier> stale = new java.util.ArrayList<>();
             for (AttributeModifier m : instance.getModifiers()) {
-                Identifier id = m.id();
-                if (!"neoorigins".equals(id.getNamespace())) continue;
-                if (!id.getPath().startsWith("power_")) continue;
-                stale.add(id);
+                if (isSweptId(m.id())) stale.add(m.id());
             }
             for (Identifier id : stale) instance.removeModifier(id);
         }
+    }
+
+    /**
+     * Layer-aware orphan sweep. Removes every modifier in the swept id families
+     * ({@code neoorigins:power_*} from this power type, {@code neoorigins:size_*}
+     * from {@link SizeScalingPower}) whose owning power is NOT in
+     * {@code activePowerIds}, leaving modifiers from still-active powers untouched.
+     *
+     * <p>This is the safe counterpart to {@link #purgeAllOriginModifiers} for the
+     * per-layer grant/revoke path ({@code ActiveOriginService.applyOriginPowers}).
+     * A player can hold origins on several layers at once (origin + class), but
+     * that method only re-grants the layer it just changed, so a blanket wipe
+     * there silently dropped the other layers' modifiers until the next relog.
+     * Passing the player's full active set across all layers keeps cross-layer
+     * modifiers while still catching genuine orphans (power JSON edited/removed
+     * since the grant).
+     *
+     * <p>The {@code keep} test mirrors the id formats: each active power contributes
+     * one prefix per swept family ({@code power_<powerKey>_},
+     * {@code size_<powerKey>_}); a modifier survives iff its path starts with one of
+     * those prefixes. Both families build {@code <powerKey>} through
+     * {@link #powerKeyFor}, so the prefixes cannot drift from the emitted ids.
+     */
+    public static void purgeOriginModifiersExcept(net.minecraft.world.entity.LivingEntity entity,
+            java.util.Set<Identifier> activePowerIds) {
+        java.util.Set<String> keepPrefixes = keepPrefixesFor(activePowerIds);
+        for (var attribute : BuiltInRegistries.ATTRIBUTE) {
+            var holder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attribute);
+            purgeInstanceExcept(entity.getAttribute(holder), keepPrefixes);
+        }
+    }
+
+    /**
+     * Every {@code neoorigins:} modifier-id family the sweepers above own. Each entry
+     * is a power type that attaches attribute modifiers keyed as
+     * {@code <prefix><powerKey>_<suffix>}, so the sweepers can tell which power owns
+     * an id. A new modifier-emitting power type only has to be listed here.
+     */
+    private static final java.util.List<String> SWEPT_ID_PREFIXES =
+        java.util.List.of(MOD_ID_PREFIX, SizeScalingPower.MOD_ID_PREFIX);
+
+    /** True when {@code id} belongs to one of the swept modifier-id families. */
+    static boolean isSweptId(Identifier id) {
+        if (!"neoorigins".equals(id.getNamespace())) return false;
+        for (String prefix : SWEPT_ID_PREFIXES) {
+            if (id.getPath().startsWith(prefix)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Builds the keep-set for {@link #purgeOriginModifiersExcept}: one id prefix per
+     * (active power, modifier family) pair. Both families derive their key segment
+     * from {@link #powerKeyFor}, so a prefix built here matches the ids those powers
+     * actually emit.
+     */
+    static java.util.Set<String> keepPrefixesFor(java.util.Set<Identifier> activePowerIds) {
+        java.util.Set<String> keep = new java.util.HashSet<>();
+        for (Identifier id : activePowerIds) {
+            String key = powerKeyFor(id);
+            for (String prefix : SWEPT_ID_PREFIXES) keep.add(prefix + key + "_");
+        }
+        return keep;
+    }
+
+    /** The keep/remove decision: a swept id survives only while its owning power is active. */
+    static boolean isOrphanId(Identifier id, java.util.Set<String> keepPrefixes) {
+        if (!isSweptId(id)) return false;
+        for (String prefix : keepPrefixes) {
+            if (id.getPath().startsWith(prefix)) return false;
+        }
+        return true;
+    }
+
+    /** Applies {@link #isOrphanId} to a single attribute. */
+    static void purgeInstanceExcept(AttributeInstance instance, java.util.Set<String> keepPrefixes) {
+        if (instance == null) return;
+        java.util.List<Identifier> stale = new java.util.ArrayList<>();
+        for (AttributeModifier m : instance.getModifiers()) {
+            if (isOrphanId(m.id(), keepPrefixes)) stale.add(m.id());
+        }
+        for (Identifier id : stale) instance.removeModifier(id);
     }
 
     /** Resolves the attribute with prefix tolerance. 26.1 registers attributes
@@ -423,14 +505,24 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         // Golem Natural Armor both granting +6 armor ADD_VALUE -- produce
         // distinct modifier IDs and stack instead of de-duping.
         Identifier powerId = com.cyberday1.neoorigins.api.power.PowerHolder.currentDispatchId();
-        String powerKey = powerId == null
-            ? "anon"
-            : (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_').replace(':', '_');
+        String powerKey = powerKeyFor(powerId);
         int h = Double.hashCode(config.amount());
         return Identifier.fromNamespaceAndPath(
             "neoorigins",
-            "power_" + powerKey + "_" + attrId.getPath() + "_"
+            MOD_ID_PREFIX + powerKey + "_" + attrId.getPath() + "_"
                 + config.operation().name().toLowerCase(java.util.Locale.ROOT) + "_"
                 + Integer.toHexString(h));
+    }
+
+    /**
+     * Stable {@code powerKey} segment used in every modifier ID. Folds the power's
+     * own id into the key so two different powers granting the same
+     * (attribute, operation, amount) produce distinct modifier IDs and stack.
+     * {@code null} (no dispatch context) collapses to {@code "anon"}.
+     */
+    static String powerKeyFor(Identifier powerId) {
+        return powerId == null
+            ? "anon"
+            : (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_').replace(':', '_');
     }
 }
