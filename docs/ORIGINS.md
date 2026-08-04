@@ -187,9 +187,9 @@ Born of the nether fires: scaled in brimstone, restored in the dark realm, but p
 **Base powers**
 
 - *Heart of Embers*: fire immunity
-- *Blaze Scales*: built-in natural armor
-- *Nether-Born*: heals faster in the Nether
-- *Internal Heat*: passive warmth aura
+- *Blaze Scales*: +6 max health
+- *Nether-Born*: Speed while in the Nether
+- *Internal Heat*: hunger drains 25% faster
 - *Water Weakness*: damage in water and rain
 - *Heat Sight*: thermal night vision
 - *Firebolt*: active, hurls a small fireball
@@ -202,8 +202,8 @@ Born of the nether fires: scaled in brimstone, restored in the dark realm, but p
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | Fire Resistance | — |
-| 3 - Apex | +6 HP | Evolved HP, Water Damage |
+| 2 - Ascended | +4 HP | Evolved HP |
+| 3 - Apex | +6 HP | Ascended HP, Water Damage |
 
 ### Breeze
 

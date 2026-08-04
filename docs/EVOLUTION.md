@@ -95,8 +95,8 @@ evolution_message_interval = 100
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | Fire Resistance | -- |
-| 3 - Apex | +6 HP | Evolved HP, Water Damage |
+| 2 - Ascended | +4 HP | Evolved HP |
+| 3 - Apex | +6 HP | Ascended HP, Water Damage |
 
 ### Breeze
 

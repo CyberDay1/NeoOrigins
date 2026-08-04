@@ -206,6 +206,8 @@ True during daytime (time 0–11999) with sky access and no rain. Includes helme
 
 True while the entity is on fire. No fields.
 
+**This is always false on a fire-immune origin.** A `prevent_action` power with `action: fire` clears the burning timer every tick, so the flame overlay does not flicker while the player stands in lava, and `on_fire` reads that same timer. Gating a power on `on_fire` inside an origin that also prevents fire therefore never triggers, and does so silently. To key off "while burning" on such an origin, use something the immunity does not erase: `in_lava`, a `dimension` check for the Nether, or a `modify_damage` power that sees the fire damage before it is cancelled.
+
 ## `neoorigins:passenger` (alias `neoorigins:riding`)
 
 True while the entity is a passenger of something. No fields.
