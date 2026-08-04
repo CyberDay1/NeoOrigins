@@ -1,4 +1,6 @@
 {
+  "effect.neoorigins.suppression": "Suppression",
+  "neoorigins.suppression.blocked": "Your abilities are suppressed.",
   "neoorigins.toggle.on": "Power enabled",
   "neoorigins.toggle.off": "Power disabled",
   "neoorigins.night_vision.on": "Night vision on",

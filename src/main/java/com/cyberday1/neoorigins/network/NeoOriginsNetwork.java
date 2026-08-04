@@ -1094,7 +1094,7 @@ public class NeoOriginsNetwork {
             if (slot >= actives.size()) return;
 
             PowerHolder<?> holder = actives.get(slot);
-            holder.onActivated(sp);
+            holder.onActivatedByKeypress(sp);
             syncCooldownIfStarted(sp, holder, slot);
             if (isToggleLike(holder)) {
                 syncActivePowersToPlayer(sp);
@@ -1111,7 +1111,7 @@ public class NeoOriginsNetwork {
 
             // Activate the first (and typically only) class active power
             PowerHolder<?> holder = classActives.get(0);
-            holder.onActivated(sp);
+            holder.onActivatedByKeypress(sp);
             syncCooldownIfStarted(sp, holder, -1);
             if (isToggleLike(holder)) {
                 syncActivePowersToPlayer(sp);
@@ -1142,7 +1142,9 @@ public class NeoOriginsNetwork {
             if (holder == null) return;
             if (!(holder.type() instanceof AbstractTogglePower<?>)) return;
 
-            holder.onActivated(sp);
+            // A GUI click rather than a key press, but it is just as deliberate
+            // and cannot repeat, so a suppression refusal is worth announcing.
+            holder.onActivatedByKeypress(sp);
             syncActivePowersToPlayer(sp);
         });
     }

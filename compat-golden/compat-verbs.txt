@@ -392,6 +392,7 @@ neoorigins:xeno_passive	fields={}
 neoorigins:flight	fields={always_show_icon,cooldown_icon}
 neoorigins:creative_flight	fields={always_show_icon,cooldown_icon,enabled}
 neoorigins:ignore_water	fields={}
+neoorigins:ignore_fluid	fields={fluid,fluids}
 neoorigins:natural_glide	fields={}
 neoorigins:elytra_flight	fields={render_elytra,texture_location}
 neoorigins:no_natural_regen	fields={}

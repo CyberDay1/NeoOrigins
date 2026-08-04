@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.api.power;
 
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.cyberday1.neoorigins.effect.PowerSuppression;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -100,7 +101,35 @@ public final class PowerHolder<C extends PowerConfiguration> {
 
     // Condition-gated methods — skipped when the top-level condition is not satisfied:
     public void onTick(ServerPlayer player)             { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onTick(player, config);    } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onActivated(ServerPlayer player)        { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    // Every activation path funnels through here — the keybind packet, the
+    // activate_power action, and the compat loader's programmatic fire — so the
+    // neoorigins:suppression gate sits here rather than in AbstractActivePower.
+    // AbstractTogglePower extends PowerType directly and is NOT an
+    // AbstractActivePower, so a guard down there would leave every toggle firing
+    // normally while the player was supposedly suppressed.
+    //
+    // The refusal is the same either way; only the feedback differs. This
+    // signature is the silent one on purpose: the activate_power action and the
+    // every-tick continuous keybind poll both land here, and a new call site
+    // added without thought should fail quietly rather than repaint the action
+    // bar every tick. Call onActivatedByKeypress for a real, one-shot press.
+    public void onActivated(ServerPlayer player)        { activate(player, false); }
+
+    /**
+     * Activation from a deliberate, edge-triggered player input — a key press or
+     * a power-GUI click. Identical to {@link #onActivated} except that a
+     * suppression refusal tells the player why.
+     */
+    public void onActivatedByKeypress(ServerPlayer player) { activate(player, true); }
+
+    private void activate(ServerPlayer player, boolean announceRefusal) {
+        if (!isConditionSatisfied(player)) return;
+        if (PowerSuppression.refuseActivation(player, announceRefusal)) return;
+        Identifier prev = CURRENT_DISPATCH_ID.get();
+        CURRENT_DISPATCH_ID.set(id);
+        try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); }
+    }
+
     public void onHit(ServerPlayer player, float amount){ if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onHit(player, config, amount); } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onKill(ServerPlayer player, LivingEntity killed) { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onKill(player, config, killed); } finally { CURRENT_DISPATCH_ID.set(prev); } }
 }

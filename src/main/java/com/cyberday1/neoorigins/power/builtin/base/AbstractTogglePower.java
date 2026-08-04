@@ -68,6 +68,28 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     }
 
     /**
+     * Writes the toggle flag. Split out from {@link #isToggledOff} only so both
+     * halves of the state can be redirected together in a test double.
+     */
+    protected void setToggledOff(ServerPlayer player, C config, boolean off) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        data.setPowerToggledOff(getToggleKey(config), off);
+    }
+
+    /**
+     * Forces this toggle off and tears its effect down, with none of the
+     * keypress path's chat feedback or activation dispatch. Used by
+     * {@code neoorigins:suppression}, which must not leave a player stranded
+     * mid-transformation. Returns true if the toggle was on and is now off.
+     */
+    public boolean forceOff(ServerPlayer player, C config) {
+        if (isToggledOff(player, config)) return false;
+        setToggledOff(player, config, true);
+        removeEffect(player, config);
+        return true;
+    }
+
+    /**
      * Per-instance toggle key. Subclasses with multiple configurations on a
      * single player (e.g. StatusEffectPower where several status_effect powers
      * coexist) must override to include a config-derived discriminator —
