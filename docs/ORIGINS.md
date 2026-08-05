@@ -831,6 +831,7 @@ An aquatic people born in the open ocean: breathes water and swims with ease, bu
 - *Aquatic Speed*: substantial swim-speed bonus
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
+- *Deep Sight*: permanent night vision
 - *Landlubber*: reduced walk speed on dry ground
 - *Dries Out*: damage when out of water in hot biomes
 - *Aqua Affinity*: no mining-speed penalty submerged
