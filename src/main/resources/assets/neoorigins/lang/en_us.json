@@ -638,7 +638,7 @@
   "power.neoorigins.siren_night_vision.name": "Ocean Eyes",
   "power.neoorigins.siren_night_vision.description": "Can see clearly in the dark depths.",
   "power.neoorigins.siren_land_slowdown.name": "Beached",
-  "power.neoorigins.siren_land_slowdown.description": "Moves 10% slower on land.",
+  "power.neoorigins.siren_land_slowdown.description": "Moves 15% slower on land.",
   "power.neoorigins.siren_reduced_health.name": "Delicate Form",
   "power.neoorigins.siren_reduced_health.description": "-2 hearts (-4 max HP). Slender, song-built — not made for blows.",
   "power.neoorigins.siren_regen_in_water.name": "Tidal Healing",
