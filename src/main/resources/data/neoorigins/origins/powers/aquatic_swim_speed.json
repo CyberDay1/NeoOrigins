@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "neoforge:swim_speed",
+  "amount": 0.25,
+  "operation": "add_value"
+}

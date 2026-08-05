@@ -1309,10 +1309,21 @@ passive powers in addition to their unique abilities:
 |---|---|
 | `neoorigins:aquatic_underwater_mining` | Mines at full speed while submerged (Aqua Affinity) |
 | `neoorigins:aquatic_depth_strider` | +0.15 water movement efficiency (Natural Swimmer) |
+| `neoorigins:aquatic_swim_speed` | +0.25 `neoforge:swim_speed` (Open Water) |
 | `neoorigins:aquatic_fish_diet` | Fish-only diet (gated by `ocean_origins.fish_diet_required`; extend the allowed items via `ocean_origins.extra_fish_foods`) |
 | `neoorigins:aquatic_fish_diet_bonus` | Raw cod/salmon as nourishing as cooked |
 
 Custom aquatic origins can reference any of these shared powers by ID.
+
+**Why two swim-speed attributes?** `minecraft:water_movement_efficiency` is
+halved by vanilla whenever the swimmer is not standing on a block, so a power
+built on it alone is at its weakest exactly where an ocean origin spends its
+time: mid-water, clear of the seafloor. `neoforge:swim_speed` is applied
+unconditionally in the same movement pass, so it is the one that still pays out
+in open water, and it also feeds the vertical swim impulse that keeps a swimmer
+from sinking. Use `water_movement_efficiency` for a bottom-walking or shallows
+origin and `swim_speed` for a true open-water one; the built-in ocean origins
+carry both.
 
 **Moisture system:** ocean origins with `breath_out_of_fluid` replenish
 moisture from water blocks, rain, bubble columns, and water cauldrons.

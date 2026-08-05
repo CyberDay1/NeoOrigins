@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 920   typed-objects: 1375   distinct-types: 151
+# files-scanned: 921   typed-objects: 1376   distinct-types: 151
 
 == RECOGNIZED VERBS ==
 [action] (93)
@@ -255,7 +255,7 @@ neoorigins:any_of	x1	recognized=item_condition	fields={conditions}
 neoorigins:apply_effect	x45	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
 neoorigins:area_of_effect	x30	recognized=action	fields={amplifier,duration,effect,entity_action,exclude_self,include_source,radius}
 neoorigins:armor_value	x1	recognized=condition	fields={compare_to,comparison}
-neoorigins:attribute_modifier	x351	recognized=-	fields={amount,attribute,condition,description,equipment_condition,hidden,location_condition,name,operation,required_mods}
+neoorigins:attribute_modifier	x352	recognized=-	fields={amount,attribute,condition,description,equipment_condition,hidden,location_condition,name,operation,required_mods}
 neoorigins:bare_hand_tool	x6	recognized=-	fields={tool}
 neoorigins:become_dragon	x3	recognized=-	fields={description,name,required_mods,species,stage}
 neoorigins:biome	x19	recognized=condition	fields={biome,biome_tag,tag}
