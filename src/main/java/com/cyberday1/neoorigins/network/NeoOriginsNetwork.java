@@ -360,6 +360,13 @@ public class NeoOriginsNetwork {
      * {@link com.cyberday1.neoorigins.power.builtin.PersistentEffectPower} will
      * refuse to apply.
      *
+     * <p>Ownership is checked next, and for the same reason. The flag is read in
+     * exactly one place — {@code PersistentEffectPower.isNightVisionSuppressed} —
+     * and only for a {@code minecraft:night_vision} effect spec, so on an origin
+     * that owns no such spec the key used to flip a value nothing would ever read
+     * while reporting "Night vision on" in green. 49 of the 78 built-in origins
+     * are in that position. Say so instead, and leave the flag where it was.
+     *
      * <p>Turning OFF actively strips the effect: persistent effects are applied
      * with INFINITE_DURATION, so waiting for it to expire would wait forever.
      * Turning ON needs no counterpart — the power's next tick reapplies it.
@@ -372,6 +379,13 @@ public class NeoOriginsNetwork {
             if (com.cyberday1.neoorigins.config.ContentTogglesConfig.isNightVisionDisabled()) {
                 sp.displayClientMessage(net.minecraft.network.chat.Component.translatable("neoorigins.night_vision.disabled_by_server")
                     .withStyle(net.minecraft.ChatFormatting.RED), true);
+                sendNightVisionState(sp);
+                return;
+            }
+            if (!com.cyberday1.neoorigins.power.builtin.PersistentEffectPower.grantsNightVision(
+                    com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(sp))) {
+                sp.displayClientMessage(net.minecraft.network.chat.Component.translatable("neoorigins.night_vision.no_power")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY), true);
                 sendNightVisionState(sp);
                 return;
             }

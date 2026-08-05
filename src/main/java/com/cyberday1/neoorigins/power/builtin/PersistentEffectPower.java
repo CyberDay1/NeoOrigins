@@ -326,6 +326,35 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     }
 
     /**
+     * True if any of {@code powers} is a persistent_effect granting
+     * {@code minecraft:night_vision} — i.e. if the night-vision master toggle has
+     * anything at all to act on for this player.
+     *
+     * <p>The toggle is consulted in exactly one place, {@link #isNightVisionSuppressed},
+     * and only for night-vision effect specs. Roughly half the built-in origins own no
+     * such spec, so without this test the keybind reported success to players it could
+     * never do anything for.
+     *
+     * <p>Deliberately asks the whole granted set rather than the currently-satisfied
+     * one: the question is "does your origin have night vision", not "is it lit right
+     * now". A power gated on a condition (in water, at night) still counts, or the key
+     * would deny the player the moment they stepped outside the gate.
+     *
+     * <p>Pure, and takes the list rather than the player, so the decision can be
+     * exercised without a server.
+     */
+    public static boolean grantsNightVision(List<com.cyberday1.neoorigins.api.power.PowerHolder<?>> powers) {
+        for (var holder : powers) {
+            if (!(holder.type() instanceof PersistentEffectPower)) continue;
+            if (!(holder.config() instanceof Config config)) continue;
+            for (EffectSpec spec : config.effects()) {
+                if (isNightVisionSpec(spec)) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Drop any night vision this power system currently owns on the player.
      * Called when the player switches their master toggle off — without it the
      * INFINITE_DURATION instance already on them would simply never expire.

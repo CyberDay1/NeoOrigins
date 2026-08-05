@@ -6,6 +6,7 @@
   "neoorigins.night_vision.on": "Night vision on",
   "neoorigins.night_vision.off": "Night vision off",
   "neoorigins.night_vision.disabled_by_server": "Night vision is disabled on this server.",
+  "neoorigins.night_vision.no_power": "Your origin doesn't have night vision.",
   "neoorigins.ultimine.no_power": "Your origin can't vein-mine.",
   "neoorigins.sleep.remember_spawn": "You don't need sleep \u2014 but you remember this place.",
   "message.neoorigins.food_restriction.cannot_eat": "Your diet forbids this food.",
