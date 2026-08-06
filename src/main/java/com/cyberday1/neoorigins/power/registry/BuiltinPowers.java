@@ -363,12 +363,26 @@ public final class BuiltinPowers {
         define("bare_hand_tool", BareHandToolPower.class, List.of(
             new FieldSpec("tool", Kind.STRING, false)
                 .def("minecraft:stone_pickaxe").doc("Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe.")));
+        // Mirrors breath_in_fluid's priority ladder (see the note above that
+        // power's define): one real component plus two key-aliased specs. There
+        // is deliberately NO .def() on any of the three drain keys — omitting
+        // all three resolves to BreathOutOfFluidPower.UNSET, which defers to the
+        // `[ocean_origins] drain_rate_ticks` config rather than to a literal.
+        // A literal default here would make the built-in *_dries_out JSONs stop
+        // tracking that config and would regress issue #120.
         define("breath_out_of_fluid", BreathOutOfFluidPower.class, List.of(
             new FieldSpec("fluid", Kind.ENUM, false)
                 .options("water", "lava")
                 .def("water").doc("Fluid the player must stay in to breathe; drying on land drains air."),
-            new FieldSpec("drain_rate", Kind.INTEGER, false)
-                .def(40).doc("Ticks between each air drain while out of the fluid (20 = 1s).")));
+            new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
+                .range(1.0, null)
+                .doc("Ticks between each 1-point air drain while out of the fluid; higher = slower drain (20 = 1s). Read second, after air_loss_per_second. When it and both aliases are omitted, the [ocean_origins] drain_rate_ticks config supplies the value."),
+            new FieldSpec("air_loss_per_second", Kind.INTEGER, false).boundTo("drainIntervalTicks")
+                .range(1.0, null)
+                .doc("Alias, highest priority: air points lost per SECOND while out of the fluid (higher = faster drain). Converted internally to 20/value ticks between drains, clamped to at least 1 tick. When set it overrides drain_interval_ticks and drain_rate."),
+            new FieldSpec("drain_rate", Kind.INTEGER, false).boundTo("drainIntervalTicks")
+                .range(1.0, null)
+                .doc("Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.")));
         define("burn", BurnPower.class, List.of(
             new FieldSpec("interval", Kind.INTEGER, false)
                 .def(20).doc("Ticks between each fire application; <=0 disables (default 20)."),
