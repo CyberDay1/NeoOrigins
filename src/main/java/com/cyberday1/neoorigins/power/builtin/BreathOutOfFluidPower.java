@@ -5,8 +5,13 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffects;
@@ -46,16 +51,91 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Config> {
 
-    public record Config(String fluid, int drainRate, String type) implements PowerConfiguration {
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.STRING.optionalFieldOf("fluid", "water").forGetter(Config::fluid),
-            Codec.INT.optionalFieldOf("drain_rate", 40).forGetter(Config::drainRate),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
-        ).apply(inst, Config::new));
+    /**
+     * Sentinel for "this power authored no drain field", which is how the four
+     * built-in {@code *_dries_out} JSONs are written. Such powers defer to
+     * {@code [ocean_origins] drain_rate_ticks} so the config keeps driving the
+     * built-ins, per issue #120. Any positive value means the pack author set a
+     * drain explicitly and that value wins over the config.
+     *
+     * <p>Deliberately NOT a plain numeric default: a literal default here would
+     * be indistinguishable from an authored value, so the built-ins would stop
+     * tracking the config and #120 would silently regress.
+     */
+    public static final int UNSET = -1;
+
+    /**
+     * @param drainIntervalTicks ticks between air-bubble decrements while out
+     *     of the fluid. Higher value = slower drain. {@link #UNSET} means the
+     *     author set nothing and the global config supplies the value. Authors
+     *     who think in "units lost per second" can set {@code air_loss_per_second}
+     *     instead, which is converted to this internally via
+     *     {@code 20 / air_loss_per_second}.
+     */
+    public record Config(String fluid, int drainIntervalTicks, String type) implements PowerConfiguration {
+        public static final Codec<Config> CODEC = new Codec<>() {
+            @Override
+            public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
+                JsonElement json;
+                try {
+                    json = ops.convertTo(JsonOps.INSTANCE, input);
+                } catch (Exception e) {
+                    return DataResult.error(() -> "breath_out_of_fluid: could not convert to JSON: " + e.getMessage());
+                }
+                if (!json.isJsonObject()) {
+                    return DataResult.error(() -> "breath_out_of_fluid: expected JSON object");
+                }
+                JsonObject obj = json.getAsJsonObject();
+                String fluid = obj.has("fluid") ? obj.get("fluid").getAsString() : "water";
+                String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:breath_out_of_fluid";
+
+                // Field resolution, in priority order — mirrors
+                // BreathInFluidPower.Config.CODEC so the two halves of the same
+                // mechanic read the same keys:
+                //   1. air_loss_per_second (intuitive — higher = faster drain)
+                //   2. drain_interval_ticks (clearer alias for drain_rate)
+                //   3. drain_rate (legacy)
+                //   4. UNSET → the global config decides
+                int intervalTicks;
+                if (obj.has("air_loss_per_second") && obj.get("air_loss_per_second").isJsonPrimitive()) {
+                    int perSec = Math.max(1, obj.get("air_loss_per_second").getAsInt());
+                    intervalTicks = Math.max(1, 20 / perSec);
+                } else if (obj.has("drain_interval_ticks") && obj.get("drain_interval_ticks").isJsonPrimitive()) {
+                    intervalTicks = Math.max(1, obj.get("drain_interval_ticks").getAsInt());
+                } else if (obj.has("drain_rate") && obj.get("drain_rate").isJsonPrimitive()) {
+                    intervalTicks = Math.max(1, obj.get("drain_rate").getAsInt());
+                } else {
+                    intervalTicks = UNSET;
+                }
+
+                return DataResult.success(Pair.of(new Config(fluid, intervalTicks, t), ops.empty()));
+            }
+
+            @Override
+            public <T> DataResult<T> encode(Config input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(prefix);
+            }
+        };
     }
 
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
+
+    /**
+     * Resolves the drain interval for one power: an authored value wins, an
+     * omitted one ({@link #UNSET}) defers to the global config.
+     *
+     * <p>Extracted from the tick handler purely so it is reachable from a unit
+     * test. The original defect was NOT in parsing — the codec had always read
+     * {@code drain_rate} correctly — it was that this resolution step did not
+     * exist and the config was substituted unconditionally. A parse-only test
+     * passes happily while that bug is live, so the resolution needs its own
+     * cover. The config value is passed in rather than read here to keep the
+     * method free of any Minecraft/NeoForge bootstrap.
+     */
+    static int resolveIntervalTicks(Config cfg, int configFallbackTicks) {
+        return cfg.drainIntervalTicks() > 0 ? cfg.drainIntervalTicks() : configFallbackTicks;
+    }
 
     /**
      * Marker capability used by the client HUD to suppress the bubble row
@@ -85,7 +165,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
         /** Virtual-air counter per player. Absent entry means "not currently drying". */
         private static final Map<UUID, Integer> VIRTUAL_AIR = new ConcurrentHashMap<>();
 
-        /** Scratch holder used to pull the tightest (min drain_rate) config for the player. */
+        /** Scratch holder used to pull the tightest (min interval) config for the player. */
         private static final class Chosen {
             int drainRate = -1;
             String fluid = "water";
@@ -99,16 +179,21 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 return;
             }
 
-            // Find any breath_out_of_fluid power on the player. Multiple powers
-            // (pack + origin) all share the same fluid type via the first match
-            // — the per-power drain_rate is no longer respected, since the
-            // master `ocean_origins.drain_rate_ticks` config now drives drain
-            // for all dries-out powers globally. Pack authors who want
-            // per-power tuning should override the config or extend the power.
+            // Find every breath_out_of_fluid power on the player and keep the
+            // tightest (smallest interval = fastest drain), so a pack that
+            // stacks a harsher dries-out power on top of a milder one gets the
+            // harsher behaviour rather than whichever happened to iterate first.
+            //
+            // A power that authored no drain field resolves to the global
+            // `ocean_origins.drain_rate_ticks` config, which is what the four
+            // built-in *_dries_out JSONs rely on (issue #120). An authored
+            // value overrides the config for that power only.
+            final int configTicks = GameplayConfig.oceanOriginsDrainRateTicks();
             Chosen chosen = new Chosen();
             ActiveOriginService.forEachOfType(sp, BreathOutOfFluidPower.class, cfg -> {
-                if (chosen.drainRate < 0) {
-                    chosen.drainRate = GameplayConfig.oceanOriginsDrainRateTicks();
+                int interval = resolveIntervalTicks(cfg, configTicks);
+                if (chosen.drainRate < 0 || interval < chosen.drainRate) {
+                    chosen.drainRate = interval;
                     chosen.fluid = cfg.fluid();
                 }
             });

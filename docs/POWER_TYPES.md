@@ -1592,12 +1592,16 @@ Drains the player's air supply when their eyes are submerged in the specified fl
 
 Drains the player's air supply while they are **not** submerged in the specified fluid: a fish out of water. Once the air supply reaches 0, vanilla drown damage applies. Water Breathing and Conduit Power effects pause the drain, and drinking a water bottle restores half the air bar. Compatible with Create's Copper Backtank (worn in chestplate slot, consumes pressurized air to pause drain). Respiration enchantment extends land time using the same probability curve vanilla uses underwater.
 
-The drain rate is controlled globally by the `ocean_origins.drain_rate_ticks` config option, not the per-power `drain_rate` field.
+The drain rate is per-power. Set one of the three fields below and that power drains at your rate; omit all three and the power falls back to the global `ocean_origins.drain_rate_ticks` config, which is how the four built-in `*_dries_out` powers are written. If a player holds more than one of these powers, the tightest interval wins.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid the player must stay in: `water` or `lava` |
-| `drain_rate` | int | no | `40` | Legacy field: overridden by `ocean_origins.drain_rate_ticks` config |
+| `air_loss_per_second` | int | no | config | Highest priority: air points lost per **second** (higher = faster drain) |
+| `drain_interval_ticks` | int | no | config | Ticks between each 1-point drain (higher = slower drain; 20 = 1s) |
+| `drain_rate` | int | no | config | Legacy alias for `drain_interval_ticks`, lowest priority |
+
+Air starts at 300, so land time in seconds is roughly `(300 × drain_interval_ticks) / 20`: `1` gives 15s (vanilla cod parity), `2` gives 30s, `4` gives a minute.
 
 **Example: aquatic origin that drowns on land**
 ```json
