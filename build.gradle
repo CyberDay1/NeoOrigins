@@ -179,10 +179,24 @@ dependencies {
     // load when the mod is present, exactly as a compileOnly soft dep would.
     // If the bridge starts using more of the BaS API, mirror those signatures
     // into the stub (verify descriptors with `javap` against the real jar).
+
+    // AppleSkin (appleskin) – compat/appleskin/AppleSkinBridge answers AppleSkin's
+    // FoodValuesEvent so a modify_food_nutrition origin sees its real diet value in
+    // the food tooltip / held-food HUD instead of the item's vanilla numbers.
+    // Handled the same way as Build A Spell: a compile-only API stub at
+    // src/apistubs/java/squeek/appleskin rather than a maven coordinate. AppleSkin
+    // is on the Modrinth/CurseForge mavens, but we only touch four public fields on
+    // one event class, and a stub costs nothing and can't break a build if that
+    // maven has an outage (which has bitten this project before). AppleSkin is
+    // Unlicense (public domain), so mirroring the signatures is unencumbered.
+    // Descriptors verified with `javap` against appleskin-neoforge-mc1.21-3.0.9.jar.
 }
 
 sourceSets {
-    // Build A Spell compile-only API stub (see the buildaspell note above).
+    // Compile-only API stubs for soft deps we deliberately don't resolve from a
+    // maven — Build A Spell, Cold Sweat, Iron's Spellbooks, AppleSkin (see the
+    // per-mod notes above). Any package dropped under src/apistubs/java is picked
+    // up here automatically.
     apiStubs {
         java { srcDir 'src/apistubs/java' }
     }

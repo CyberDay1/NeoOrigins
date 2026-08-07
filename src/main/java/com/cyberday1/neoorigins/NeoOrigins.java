@@ -215,6 +215,19 @@ public class NeoOrigins {
             com.cyberday1.neoorigins.compat.ftbultimine.FtbUltimineCompat.register();
         }
 
+        // AppleSkin soft-compat — answers AppleSkin's FoodValuesEvent so the food
+        // tooltip and held-food HUD preview show what a modify_food_nutrition
+        // origin will actually get, instead of the item's vanilla values. All
+        // AppleSkin-typed code lives in compat.appleskin and only classloads
+        // behind this gate, so the (majority) of users without AppleSkin never
+        // hit a NoClassDefFoundError. Physical-client-only: AppleSkin posts the
+        // event from its own client-side tooltip/HUD handlers, so a dedicated
+        // server has nothing to listen for.
+        if (FMLEnvironment.dist == Dist.CLIENT
+                && net.neoforged.fml.ModList.get().isLoaded("appleskin")) {
+            com.cyberday1.neoorigins.compat.appleskin.AppleSkinBridge.register();
+        }
+
         // The One Probe soft-compat — registers an entity provider that shows a
         // looked-at mob's NeoOrigins origin in the probe overlay. TOP uses the
         // IMC handshake, so wire the enqueue listener here; the actual send is
