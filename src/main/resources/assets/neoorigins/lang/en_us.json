@@ -449,6 +449,8 @@
   "power.neoorigins.aquatic_depth_strider.description": "Moves slightly faster through water.",
   "power.neoorigins.aquatic_swim_speed.name": "Open Water",
   "power.neoorigins.aquatic_swim_speed.description": "Swims strongly clear of the seafloor, not just along it.",
+  "power.neoorigins.aquatic_buoyancy.name": "Neutral Buoyancy",
+  "power.neoorigins.aquatic_buoyancy.description": "Holds depth when fully submerged instead of sinking. Swimming down still works normally.",
   "power.neoorigins.aquatic_fish_diet.name": "Pescivore",
   "power.neoorigins.aquatic_fish_diet.description": "Can only eat fish. Server admins can disable this in config (ocean_origins.fish_diet_required).",
   "power.neoorigins.aquatic_fish_diet_bonus.name": "Raw Adapted",

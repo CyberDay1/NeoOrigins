@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:gravity",
+  "amount": -0.08,
+  "operation": "add_value",
+  "condition": {
+    "type": "neoorigins:submerged_in_water"
+  }
+}
