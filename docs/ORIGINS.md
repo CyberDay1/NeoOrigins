@@ -1085,7 +1085,7 @@ An aquatic enchantress born in the open ocean: charms creatures with an alluring
 - *Tidal Grace*: substantial swim-speed bonus
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
-- *Ocean Eyes*: underwater night vision
+- *Ocean Eyes*: natural night vision
 - *Beached*: reduced walk speed on dry ground
 - *Delicate Form*: reduced max health
 - *Dries Out*: damage when out of water in hot biomes
