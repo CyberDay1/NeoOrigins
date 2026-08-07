@@ -49,6 +49,15 @@ evolution_message_interval = 100
 
 ## Evolution by Origin
 
+The **Removed** column lists the health bonus each tier supersedes. It is not the
+full removal list. Where a tier grants a stronger version of a power the origin
+already has, the weaker one is removed at the same time, so that only one source
+of the effect is ever live: Caveborn swaps its base night vision for the ascended
+one at tier 2, Merling's base water breathing and night vision give way to the
+Ascended Conduit, and Abyssal and Verdant do the same at apex. Those swaps cost
+the player nothing and leave no gap, which is why they are not tabulated. Read the
+origin's JSON if you need the exact list.
+
 ### Abyssal
 
 | Tier | Added | Removed |

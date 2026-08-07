@@ -834,7 +834,7 @@ An aquatic people born in the open ocean: breathes water and swims with ease, bu
 - *Open Water*: no swim-speed loss off the seafloor
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
-- *Deep Sight*: permanent night vision
+- *Deep Sight*: natural night vision
 - *Landlubber*: reduced walk speed on dry ground
 - *Dries Out*: damage when out of water in hot biomes
 - *Aqua Affinity*: no mining-speed penalty submerged
@@ -1089,7 +1089,7 @@ An aquatic enchantress born in the open ocean: charms creatures with an alluring
 - *Open Water*: no swim-speed loss off the seafloor
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
-- *Ocean Eyes*: underwater night vision
+- *Ocean Eyes*: natural night vision
 - *Beached*: reduced walk speed on dry ground
 - *Delicate Form*: reduced max health
 - *Dries Out*: damage when out of water in hot biomes
