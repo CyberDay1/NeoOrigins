@@ -184,6 +184,8 @@
   "power.neoorigins.merling_water_breathing.description": "Breathes underwater indefinitely and sees clearly through the water with no fog.",
   "power.neoorigins.merling_aquatic_speed.name": "Aquatic Speed",
   "power.neoorigins.merling_aquatic_speed.description": "Moves faster while swimming.",
+  "power.neoorigins.merling_night_vision.name": "Deep Sight",
+  "power.neoorigins.merling_night_vision.description": "Sees clearly in the dark depths.",
   "power.neoorigins.merling_land_slowdown.name": "Landlubber",
   "power.neoorigins.merling_land_slowdown.description": "Moves 10% slower on land.",
   "power.neoorigins.merling_dries_out.name": "Dries Out",
