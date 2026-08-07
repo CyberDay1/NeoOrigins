@@ -2,5 +2,8 @@
   "type": "neoorigins:attribute_modifier",
   "attribute": "minecraft:movement_speed",
   "amount": -0.15,
-  "operation": "add_multiplied_base"
+  "operation": "add_multiplied_base",
+  "condition": "on_land",
+  "name": "power.neoorigins.siren_land_slowdown.name",
+  "description": "power.neoorigins.siren_land_slowdown.description"
 }
