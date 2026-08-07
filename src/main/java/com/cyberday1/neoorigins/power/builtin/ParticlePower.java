@@ -13,13 +13,18 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ColorParticleOption;
 import net.minecraft.core.particles.DustColorTransitionOptions;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.PowerParticleOption;
+import net.minecraft.core.particles.SculkChargeParticleOptions;
+import net.minecraft.core.particles.ShriekParticleOption;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.particles.SpellParticleOption;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -56,6 +61,12 @@ import net.minecraft.server.level.ServerPlayer;
  * {@code "minecraft:block minecraft:stone"}). That is accepted too; if the
  * arguments can't be read, the head token alone is used rather than failing the
  * whole power over a cosmetic field.
+ *
+ * <p>A parameterized particle named by bare id, with no arguments at all, falls
+ * back to its plainest form — opaque white, unit scale, no delay — rather than
+ * taking the power down with it. Particles that need a referent rather than a
+ * decoration ({@code block}, {@code item}, {@code vibration}) still require the
+ * object or inline-argument form.
  */
 public class ParticlePower extends PowerType<ParticlePower.Config> {
 
@@ -229,11 +240,66 @@ public class ParticlePower extends PowerType<ParticlePower.Config> {
                     .map(net.minecraft.core.Holder.Reference::value)
                     .orElse(null);
                 if (type instanceof SimpleParticleType simple) return simple;
+                ParticleOptions defaulted = defaultOptionsFor(type);
+                if (defaulted != null) return defaulted;
                 NeoOrigins.LOGGER.warn(
                     "neoorigins:particle — '{}' is not a SimpleParticleType; use the object form for parameterized particles (e.g. dust).",
                     id);
             } catch (Exception e) {
                 NeoOrigins.LOGGER.warn("neoorigins:particle — could not resolve particle id '{}': {}", id, e.getMessage());
+            }
+            return null;
+        }
+
+        /**
+         * A neutral default for a parameterized particle named by bare id.
+         *
+         * <p>Packs routinely write {@code "particle": "minecraft:entity_effect"} with
+         * no arguments, the same way they write {@code "minecraft:flame"}. Rejecting
+         * that dropped the entire power over one cosmetic field, so a parameterized
+         * type whose options are purely decorative resolves to its plainest form
+         * instead — opaque white, unit scale, no delay.
+         *
+         * <p>26.x-specific: dragon_breath, effect, instant_effect and flash were
+         * {@code SimpleParticleType} on 1.21.1 and are parameterized here, so this
+         * fallback is what keeps a 1.21.1 pack naming them working unchanged. The
+         * defaults chosen match each option's own codec default, so the particle
+         * looks the same as it did before the reclassification.
+         *
+         * <p>Types that need a <em>referent</em> rather than a decoration —
+         * {@code block}, {@code item}, {@code vibration}, {@code trail} — are
+         * deliberately absent. There is no honest default for "which block", so
+         * those stay an error and the author is told to supply one.
+         *
+         * <p>Returns null when the type has no sensible default.
+         */
+        private static ParticleOptions defaultOptionsFor(ParticleType<?> type) {
+            if (type == ParticleTypes.DRAGON_BREATH) {
+                return PowerParticleOption.create(ParticleTypes.DRAGON_BREATH, 1.0f);
+            }
+            if (type == ParticleTypes.EFFECT) {
+                return SpellParticleOption.create(ParticleTypes.EFFECT, 1.0f, 1.0f, 1.0f, 1.0f);
+            }
+            if (type == ParticleTypes.INSTANT_EFFECT) {
+                return SpellParticleOption.create(ParticleTypes.INSTANT_EFFECT, 1.0f, 1.0f, 1.0f, 1.0f);
+            }
+            if (type == ParticleTypes.FLASH) {
+                return ColorParticleOption.create(ParticleTypes.FLASH, 1.0f, 1.0f, 1.0f);
+            }
+            if (type == ParticleTypes.TINTED_LEAVES) {
+                return ColorParticleOption.create(ParticleTypes.TINTED_LEAVES, 1.0f, 1.0f, 1.0f);
+            }
+            if (type == ParticleTypes.ENTITY_EFFECT) {
+                return ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, 1.0f, 1.0f, 1.0f);
+            }
+            if (type == ParticleTypes.DUST) {
+                return new DustParticleOptions(0xFFFFFF, 1.0f);
+            }
+            if (type == ParticleTypes.SCULK_CHARGE) {
+                return new SculkChargeParticleOptions(0.0f);
+            }
+            if (type == ParticleTypes.SHRIEK) {
+                return new ShriekParticleOption(0);
             }
             return null;
         }
