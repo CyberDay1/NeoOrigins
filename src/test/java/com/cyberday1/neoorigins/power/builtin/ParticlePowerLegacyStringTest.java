@@ -83,4 +83,45 @@ class ParticlePowerLegacyStringTest {
         assertEquals(ParticleTypes.FLAME, decode("\"minecraft:flame 0.1 0.5 0.1\"").particle());
         assertEquals(ParticleTypes.SOUL, decode("\"minecraft:soul   \"").particle());
     }
+
+    /**
+     * A bare particle id must resolve on every MC version the mod supports, even
+     * where that version happens to make the particle parameterized.
+     *
+     * <p>MC 26 reclassified dragon_breath, effect, instant_effect and flash from
+     * SimpleParticleType to parameterized types. A 1.21.1 pack naming any of them
+     * lost the whole power on 26.x with "missing or unknown 'particle' field" —
+     * mrt_chemist:immunity-shot was the reported case. Asserting on the resolved
+     * ParticleType rather than the options object keeps this one test valid on
+     * every branch.
+     */
+    @Test
+    void bareIdsResolveForParameterizedParticles() {
+        assertEquals(ParticleTypes.DRAGON_BREATH, decode("\"minecraft:dragon_breath\"").particle().getType());
+        assertEquals(ParticleTypes.EFFECT, decode("\"minecraft:effect\"").particle().getType());
+        assertEquals(ParticleTypes.INSTANT_EFFECT, decode("\"minecraft:instant_effect\"").particle().getType());
+        assertEquals(ParticleTypes.FLASH, decode("\"minecraft:flash\"").particle().getType());
+
+        // Parameterized on every supported version, and equally unusable bare
+        // before this: purely decorative options, so they get a plain default.
+        assertEquals(ParticleTypes.ENTITY_EFFECT, decode("\"minecraft:entity_effect\"").particle().getType());
+        assertEquals(ParticleTypes.DUST, decode("\"minecraft:dust\"").particle().getType());
+        assertEquals(ParticleTypes.SCULK_CHARGE, decode("\"minecraft:sculk_charge\"").particle().getType());
+        assertEquals(ParticleTypes.SHRIEK, decode("\"minecraft:shriek\"").particle().getType());
+    }
+
+    /**
+     * The other half of the rule: a particle that needs a referent rather than a
+     * decoration has no honest default, so it stays an error and the author gets
+     * told to supply one.
+     */
+    @Test
+    void particlesNeedingAReferentStillRequireArguments() {
+        for (String id : new String[] { "minecraft:block", "minecraft:item", "minecraft:vibration" }) {
+            var json = JsonParser.parseString(
+                "{ \"type\": \"neoorigins:particle\", \"particle\": \"" + id + "\" }");
+            assertTrue(ParticlePower.Config.CODEC.decode(JsonOps.INSTANCE, json).error().isPresent(),
+                id + " should not resolve without arguments");
+        }
+    }
 }
