@@ -20,6 +20,15 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class UnderwaterMiningSpeedPower extends PowerType<UnderwaterMiningSpeedPower.Config> {
 
+    /**
+     * Capability tag published so the client can answer "does this player mine at
+     * full speed underwater?" without the server power configs.
+     * {@link com.cyberday1.neoorigins.event.SubmergedMiningEvents} needs the answer
+     * on both sides: block-break progress is predicted client-side, so a server-only
+     * check would leave the local player watching the un-corrected animation.
+     */
+    public static final String CAPABILITY = "underwater_mining_speed";
+
     /** Per-power modifier id so multiple underwater_mining_speed powers stack additively. */
     private static Identifier modId() {
         Identifier powerId = PowerHolder.currentDispatchId();
@@ -37,6 +46,11 @@ public class UnderwaterMiningSpeedPower extends PowerType<UnderwaterMiningSpeedP
 
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
+
+    @Override
+    public java.util.Set<String> capabilities(Config config) {
+        return java.util.Set.of(CAPABILITY);
+    }
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
