@@ -40,7 +40,8 @@
       ],
       "remove": [
         "neoorigins:merling_evolved_hp",
-        "neoorigins:merling_water_breathing"
+        "neoorigins:merling_water_breathing",
+        "neoorigins:merling_night_vision"
       ]
     },
     {
