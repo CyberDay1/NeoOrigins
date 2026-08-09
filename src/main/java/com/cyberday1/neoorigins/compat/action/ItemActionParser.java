@@ -24,7 +24,8 @@ import java.util.List;
  *   <li>{@code origins:damage} — damage the stack by N</li>
  *   <li>{@code origins:set_count} — set the stack count outright</li>
  *   <li>{@code origins:remove_enchantment} - strip named enchantments from the
- *       stack, optionally resetting its anvil repair cost</li>
+ *       stack, or knock a number of levels off them, optionally resetting
+ *       its anvil repair cost</li>
  * </ul>
  *
  * <p>Fail-soft: on parse error or unsupported type, returns a no-op action
@@ -208,6 +209,11 @@ public final class ItemActionParser {
      * datapack ever registered, matches nothing and is skipped; a malformed id
      * warns once at parse time and is dropped.
      *
+     * <p>The optional {@code levels} field turns removal into reduction; see
+     * {@link #resolveLevels} and {@link #removeMatching}. Without it every named
+     * enchantment comes off outright, which is the only behaviour packs written
+     * before the field existed can be relying on.
+     *
      * <p>Enchanted books are handled: the removal goes through
      * {@code EnchantmentHelper.updateEnchantments}, which is vanilla's own
      * dispatch onto {@code stored_enchantments} for books and
@@ -216,12 +222,13 @@ public final class ItemActionParser {
     private static ItemAction parseRemoveEnchantment(JsonObject json, JsonObject enclosing) {
         final List<net.minecraft.resources.ResourceLocation> ids = resolveEnchantmentIds(json);
         final boolean resetRepairCost = resolveResetRepairCost(json, enclosing);
+        final java.util.OptionalInt levels = resolveLevels(json);
         if (ids.isEmpty() && !resetRepairCost) return ItemAction.noop();
         return stack -> {
             if (stack.isEmpty()) return;
             if (!ids.isEmpty()) {
                 net.minecraft.world.item.enchantment.EnchantmentHelper.updateEnchantments(
-                    stack, mutable -> removeMatching(mutable, ids));
+                    stack, mutable -> removeMatching(mutable, ids, levels));
             }
             if (resetRepairCost) {
                 stack.set(net.minecraft.core.component.DataComponents.REPAIR_COST, 0);
@@ -297,20 +304,109 @@ public final class ItemActionParser {
     }
 
     /**
-     * Drop every enchantment whose registry id is in {@code ids}. Matching is by
-     * {@link net.minecraft.resources.ResourceLocation}, resolved off the holder
-     * already on the stack, which is what lets this work without a registry
-     * lookup - the same approach {@code ItemConditionParser}'s
-     * {@code enchantment} condition uses.
+     * Resolve the optional {@code levels} field: the number of levels to take
+     * off each named enchantment rather than stripping it outright. Absent is
+     * not the same as zero, so this returns an {@link java.util.OptionalInt}
+     * and not a defaulted int - upstream gates the whole reduction branch on
+     * the field being present, and {@code levels: 0} is a real (if pointless)
+     * value meaning "subtract nothing".
      *
-     * <p>Pure and static so the removal itself is unit-testable.
+     * <p>Read from the item action only. Unlike {@code reset_repair_cost} there
+     * is no observed pack writing it on the enclosing
+     * {@code equipped_item_action}, and inventing a second position for a field
+     * that subtracts numbers risks changing what a working pack does.
+     *
+     * <p>A non-numeric value warns and is treated as absent. Upstream would
+     * fail the whole power to load on one; this parser is fail-soft by contract
+     * and cannot, so the loudest thing available is a warning next to the
+     * behaviour a pack author would otherwise have to infer from the item.
+     *
+     * <p>Pure and static so presence-vs-value is directly testable.
+     */
+    static java.util.OptionalInt resolveLevels(JsonObject json) {
+        if (json == null || !json.has("levels")) return java.util.OptionalInt.empty();
+        JsonElement el = json.get("levels");
+        if (el.isJsonPrimitive()) {
+            try {
+                return java.util.OptionalInt.of(el.getAsInt());
+            } catch (RuntimeException ignored) {
+                // fall through to the warning below
+            }
+        }
+        NeoOrigins.LOGGER.warn(
+            "[CompatB] remove_enchantment: levels '{}' is not a whole number - ignored,"
+                + " the named enchantments will be removed outright", el);
+        return java.util.OptionalInt.empty();
+    }
+
+    /**
+     * Drop every enchantment whose registry id is in {@code ids}, with no
+     * {@code levels} field in play. Equivalent to
+     * {@link #removeMatching(net.minecraft.world.item.enchantment.ItemEnchantments.Mutable,
+     * java.util.Collection, java.util.OptionalInt)} with an empty
+     * {@code levels}.
      */
     static void removeMatching(
             net.minecraft.world.item.enchantment.ItemEnchantments.Mutable mutable,
             java.util.Collection<net.minecraft.resources.ResourceLocation> ids) {
+        removeMatching(mutable, ids, java.util.OptionalInt.empty());
+    }
+
+    /**
+     * Apply a {@code remove_enchantment} to the stack's enchantment map.
+     * Matching is by {@link net.minecraft.resources.ResourceLocation}, resolved
+     * off the holder already on the stack, which is what lets this work without
+     * a registry lookup - the same approach {@code ItemConditionParser}'s
+     * {@code enchantment} condition uses.
+     *
+     * <p>With {@code levels} absent every match is dropped outright. With
+     * {@code levels} present each match is reduced by that many levels instead,
+     * and only disappears once the reduction would take it to zero or below.
+     * So {@code levels: 1} turns Sharpness V into Sharpness IV and takes
+     * Sharpness I off entirely. Treating a present {@code levels} as an outright
+     * removal is silent over-removal, which is what this used to do.
+     *
+     * <p>The two arms collapse into a single {@code Mutable.set} call because
+     * vanilla's {@code set} deletes the entry when handed a level of zero or
+     * less, and {@code current - levels <= 0} is exactly the
+     * {@code current <= levels} test that picks upstream's removal arm.
+     *
+     * <p>No clamping. A negative {@code levels} raises the level, matching
+     * upstream's plain subtraction: the compat layer's job is to reproduce what
+     * the pack did before, not to second-guess it. Vanilla's own ceiling of 255
+     * still applies, since that is the platform's rule rather than ours.
+     *
+     * <p>{@code keySet()} is a live view of the underlying map and {@code set}
+     * can delete from it, so the matches are collected before anything is
+     * written back.
+     *
+     * <p>Pure and static so the arithmetic itself is unit-testable.
+     */
+    static void removeMatching(
+            net.minecraft.world.item.enchantment.ItemEnchantments.Mutable mutable,
+            java.util.Collection<net.minecraft.resources.ResourceLocation> ids,
+            java.util.OptionalInt levels) {
         if (mutable == null || ids == null || ids.isEmpty()) return;
-        mutable.removeIf(holder -> holder.unwrapKey()
+        if (levels == null || levels.isEmpty()) {
+            mutable.removeIf(holder -> matchesAny(holder, ids));
+            return;
+        }
+        int subtract = levels.getAsInt();
+        List<net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment>> targets =
+            new ArrayList<>();
+        for (var holder : mutable.keySet()) {
+            if (matchesAny(holder, ids)) targets.add(holder);
+        }
+        for (var holder : targets) {
+            mutable.set(holder, mutable.getLevel(holder) - subtract);
+        }
+    }
+
+    private static boolean matchesAny(
+            net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment> holder,
+            java.util.Collection<net.minecraft.resources.ResourceLocation> ids) {
+        return holder.unwrapKey()
             .map(key -> ids.contains(key.location()))
-            .orElse(false));
+            .orElse(false);
     }
 }

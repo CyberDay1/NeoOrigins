@@ -76,6 +76,38 @@ class RemoveEnchantmentItemActionTest {
         return mutable;
     }
 
+    /** Levelled variant of {@link #enchanted}: alternating path, level pairs. */
+    private static ItemEnchantments.Mutable levelled(Object... pathsAndLevels) {
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        for (int i = 0; i < pathsAndLevels.length; i += 2) {
+            mutable.set(holder((String) pathsAndLevels[i]), (Integer) pathsAndLevels[i + 1]);
+        }
+        return mutable;
+    }
+
+    /**
+     * Level of one enchantment left on the map, or 0 when it is gone. Looked up
+     * through {@code keySet} rather than by building a fresh {@link Holder},
+     * because {@code Holder.Reference} compares by identity: a second holder for
+     * the same key would miss and read as 0 whatever the map actually holds.
+     */
+    private static int levelOf(ItemEnchantments.Mutable mutable, String path) {
+        return mutable.keySet().stream()
+            .filter(h -> h.unwrapKey().orElseThrow().location().getPath().equals(path))
+            .mapToInt(mutable::getLevel)
+            .findFirst()
+            .orElse(0);
+    }
+
+    /** {@link #levelOf} against the immutable component read back off a stack. */
+    private static int levelOf(ItemEnchantments enchantments, String path) {
+        return enchantments.keySet().stream()
+            .filter(h -> h.unwrapKey().orElseThrow().location().getPath().equals(path))
+            .mapToInt(enchantments::getLevel)
+            .findFirst()
+            .orElse(0);
+    }
+
     private static Set<String> pathsIn(ItemEnchantments.Mutable mutable) {
         return mutable.keySet().stream()
             .map(h -> h.unwrapKey().orElseThrow().location().getPath())
@@ -266,5 +298,174 @@ class RemoveEnchantmentItemActionTest {
         assertEquals(Set.of("sharpness"), left, "both curses should be gone, sharpness kept");
         assertEquals(0, stack.getOrDefault(DataComponents.REPAIR_COST, 0),
             "reset_repair_cost on the equipped_item_action should clear the anvil cost");
+    }
+
+    // ----- levels: reduce rather than remove -----
+    //
+    // Upstream's fourth field, and the one this parser used to ignore. It is a
+    // number of levels to SUBTRACT: an enchantment above it is reduced, one at
+    // or below it is stripped. Ignoring it was silent over-removal, so the
+    // absent case below is a regression guard on the behaviour that predates it.
+
+    @Test
+    void levelsIsAbsentByDefaultAndPresentWhenWritten() {
+        // Absent and 0 are different things: 0 must not read as "no field".
+        assertTrue(ItemActionParser.resolveLevels(json("""
+            {"type":"origins:remove_enchantment","enchantment":"minecraft:sharpness"}
+            """)).isEmpty());
+        assertEquals(0, ItemActionParser.resolveLevels(json("""
+            {"type":"origins:remove_enchantment","levels":0}
+            """)).orElse(-999));
+        assertEquals(2, ItemActionParser.resolveLevels(json("""
+            {"type":"origins:remove_enchantment","levels":2}
+            """)).orElse(-999));
+    }
+
+    @Test
+    void nonNumericLevelsWarnsAndReadsAsAbsent() {
+        // Upstream fails the whole power to load; this parser is fail-soft, so
+        // the field is dropped and removal stays outright.
+        assertTrue(ItemActionParser.resolveLevels(json("""
+            {"type":"origins:remove_enchantment","levels":"lots"}
+            """)).isEmpty());
+        assertTrue(ItemActionParser.resolveLevels(json("""
+            {"type":"origins:remove_enchantment","levels":{"a":1}}
+            """)).isEmpty());
+    }
+
+    @Test
+    void levelsAbsentStillRemovesOutright() {
+        // Regression guard: no levels field means a Sharpness V goes entirely,
+        // which is the only thing packs written before the field can expect.
+        ItemEnchantments.Mutable mutable = levelled("sharpness", 5);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment","enchantment":"minecraft:sharpness"}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        assertEquals(Set.of(), pathsIn(mutable), "with no levels field it must come off outright");
+    }
+
+    @Test
+    void levelsBelowCurrentLevelReducesIt() {
+        // Sharpness V minus one level is Sharpness IV, not "no Sharpness".
+        ItemEnchantments.Mutable mutable = levelled("sharpness", 5);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment","enchantment":"minecraft:sharpness","levels":1}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        assertEquals(Set.of("sharpness"), pathsIn(mutable), "it must survive, not be stripped");
+        assertEquals(4, levelOf(mutable, "sharpness"));
+    }
+
+    @Test
+    void levelsEqualToCurrentLevelRemovesIt() {
+        ItemEnchantments.Mutable mutable = levelled("sharpness", 1, "unbreaking", 3);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment",
+             "enchantments":["minecraft:sharpness","minecraft:unbreaking"],"levels":3}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        // unbreaking III is exactly at the boundary and goes; sharpness I is
+        // below it and goes too.
+        assertEquals(Set.of(), pathsIn(mutable));
+    }
+
+    @Test
+    void levelsAboveCurrentLevelRemovesIt() {
+        // Over-subtracting must not leave a zero or negative level behind.
+        ItemEnchantments.Mutable mutable = levelled("sharpness", 2);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment","enchantment":"minecraft:sharpness","levels":5}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        assertEquals(Set.of(), pathsIn(mutable));
+        assertEquals(0, levelOf(mutable, "sharpness"));
+    }
+
+    @Test
+    void levelsZeroSubtractsNothing() {
+        // Degenerate but well defined: current - 0 is current, and nothing is
+        // at or below zero. Must not read as "remove outright".
+        ItemEnchantments.Mutable mutable = levelled("sharpness", 3);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment","enchantment":"minecraft:sharpness","levels":0}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        assertEquals(Set.of("sharpness"), pathsIn(mutable));
+        assertEquals(3, levelOf(mutable, "sharpness"));
+    }
+
+    @Test
+    void negativeLevelsRaisesTheLevelAsUpstreamsArithmeticDoes() {
+        // Deliberately unclamped: upstream subtracts without validating, so a
+        // pack that shipped a negative got a level-up and must keep getting one.
+        ItemEnchantments.Mutable mutable = levelled("sharpness", 3);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment","enchantment":"minecraft:sharpness","levels":-2}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        assertEquals(5, levelOf(mutable, "sharpness"));
+    }
+
+    @Test
+    void levelsOnlyTouchesTheNamedEnchantmentsOfAMultiEnchantmentStack() {
+        ItemEnchantments.Mutable mutable =
+            levelled("sharpness", 5, "binding_curse", 1, "unbreaking", 3, "mending", 1);
+        JsonObject action = json("""
+            {"type":"origins:remove_enchantment",
+             "enchantments":["minecraft:sharpness","minecraft:binding_curse"],"levels":1}
+            """);
+        ItemActionParser.removeMatching(mutable,
+            ItemActionParser.resolveEnchantmentIds(action),
+            ItemActionParser.resolveLevels(action));
+        // sharpness reduced, binding_curse stripped, the two untargeted ones
+        // untouched at their original levels.
+        assertEquals(Set.of("sharpness", "unbreaking", "mending"), pathsIn(mutable));
+        assertEquals(4, levelOf(mutable, "sharpness"));
+        assertEquals(3, levelOf(mutable, "unbreaking"));
+        assertEquals(1, levelOf(mutable, "mending"));
+    }
+
+    @Test
+    void levelsReducesThroughThePublicParseEntryPointOnARealStack() {
+        // End to end: the field has to survive parse(), not just the helper.
+        JsonObject enclosing = json("""
+            {
+               "type":"origins:equipped_item_action",
+               "equipment_slot":"mainhand",
+               "item_action":{
+                  "type":"origins:remove_enchantment",
+                  "enchantments":["minecraft:sharpness","minecraft:binding_curse"],
+                  "levels":2
+               }
+            }
+            """);
+
+        ItemStack stack = new ItemStack(Items.DIAMOND_SWORD);
+        stack.set(DataComponents.ENCHANTMENTS,
+            levelled("sharpness", 5, "binding_curse", 1, "unbreaking", 3).toImmutable());
+
+        ItemActionParser.parse(enclosing.getAsJsonObject("item_action"), enclosing).execute(stack);
+
+        ItemEnchantments left = stack.getEnchantments();
+        assertEquals(Set.of("sharpness", "unbreaking"),
+            left.keySet().stream()
+                .map(h -> h.unwrapKey().orElseThrow().location().getPath())
+                .collect(java.util.stream.Collectors.toSet()),
+            "binding_curse I is at or below 2 and goes; sharpness V is reduced, not stripped");
+        assertEquals(3, levelOf(left, "sharpness"), "V minus 2 is III");
+        assertEquals(3, levelOf(left, "unbreaking"), "untargeted, so untouched");
     }
 }

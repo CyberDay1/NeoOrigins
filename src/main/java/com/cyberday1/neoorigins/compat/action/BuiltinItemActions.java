@@ -40,7 +40,8 @@ import java.util.Map;
  *   <li>{@code damage} — damage the stack by {@code amount} (default 1).</li>
  *   <li>{@code set_count} — set the stack count outright (default 1).</li>
  *   <li>{@code remove_enchantment} - strip named enchantments from the stack,
- *       optionally resetting its anvil repair cost.</li>
+ *       or knock {@code levels} off them, optionally resetting its anvil
+ *       repair cost.</li>
  * </ul>
  */
 public final class BuiltinItemActions {
@@ -107,6 +108,8 @@ public final class BuiltinItemActions {
                 .doc("Single enchantment id to strip, e.g. minecraft:binding_curse."),
             new FieldSpec("enchantments", FormFieldSpec.Kind.ARRAY, false)
                 .doc("Enchantment ids to strip; the plural form of enchantment, and may be used instead of or alongside it."),
+            new FieldSpec("levels", FormFieldSpec.Kind.INTEGER, false)
+                .doc("Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ)."),
             new FieldSpec("reset_repair_cost", FormFieldSpec.Kind.BOOLEAN, false).def(false)
                 .doc("Also clear the stack's accumulated anvil repair cost (default false). Also read from the enclosing equipped_item_action.")));
     }

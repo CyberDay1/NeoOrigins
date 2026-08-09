@@ -159,6 +159,10 @@
           "type": "array",
           "items": {}
         },
+        "levels": {
+          "description": "Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ).",
+          "type": "integer"
+        },
         "reset_repair_cost": {
           "description": "Also clear the stack's accumulated anvil repair cost (default false). Also read from the enclosing equipped_item_action.",
           "type": "boolean",
