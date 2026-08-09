@@ -2732,7 +2732,9 @@ public final class BuiltinActions {
                     .doc("Equipment slot to read the stack from (default mainhand)."),
                 new FieldSpec("item_action", FormFieldSpec.Kind.REF, false)
                     .ref("item_action.schema.json")
-                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted.")));
+                    .doc("ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted."),
+                new FieldSpec("reset_repair_cost", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Handed to a remove_enchantment item_action: also clear the stack's anvil repair cost. Packs write it here; the item action's own field is read too.")));
 
         // modify_inventory — filter inventory stacks and run an ItemAction on each.
         define("modify_inventory",

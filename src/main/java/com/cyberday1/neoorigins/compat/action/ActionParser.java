@@ -171,7 +171,13 @@ public final class ActionParser {
         } else if (json.has("action") && json.get("action").isJsonObject()) {
             actionObj = json.getAsJsonObject("action");
         }
-        ItemAction action = actionObj != null ? ItemActionParser.parse(actionObj) : ItemAction.noop();
+        // The enclosing object goes to the item-action parser too, because some
+        // fields are written on either side of the item_action boundary: packs
+        // put remove_enchantment's reset_repair_cost out here beside
+        // item_action, while the upstream docs put it inside. Same tolerance,
+        // same reason as item_action/action above - the alternative is a silent
+        // no-op that reads to the pack author as "the power does nothing".
+        ItemAction action = actionObj != null ? ItemActionParser.parse(actionObj, json) : ItemAction.noop();
         return player -> {
             ItemStack stack = player.getItemBySlot(slot);
             if (stack.isEmpty()) return;
@@ -215,7 +221,7 @@ public final class ActionParser {
             : com.cyberday1.neoorigins.compat.condition.ItemCondition.alwaysTrue();
         JsonObject itemActionJson = com.cyberday1.neoorigins.compat.util.JsonHelpers.getOrNull(json, "item_action");
         ItemAction itemAction = itemActionJson != null
-            ? ItemActionParser.parse(itemActionJson) : ItemAction.noop();
+            ? ItemActionParser.parse(itemActionJson, json) : ItemAction.noop();
         String processMode = json.has("process_mode") ? json.get("process_mode").getAsString() : "items";
         int limit = json.has("limit") ? json.get("limit").getAsInt() : 0;
         boolean countByItems = !"stacks".equalsIgnoreCase(processMode);

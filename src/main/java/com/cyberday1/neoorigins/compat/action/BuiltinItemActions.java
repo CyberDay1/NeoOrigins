@@ -39,6 +39,8 @@ import java.util.Map;
  *   <li>{@code consume} — shrink the stack by {@code amount} (default 1).</li>
  *   <li>{@code damage} — damage the stack by {@code amount} (default 1).</li>
  *   <li>{@code set_count} — set the stack count outright (default 1).</li>
+ *   <li>{@code remove_enchantment} - strip named enchantments from the stack,
+ *       optionally resetting its anvil repair cost.</li>
  * </ul>
  */
 public final class BuiltinItemActions {
@@ -97,6 +99,16 @@ public final class BuiltinItemActions {
         define("set_count", List.of(
             new FieldSpec("count", FormFieldSpec.Kind.INTEGER, false).def(1)
                 .doc("New stack count (default 1).")));
+        // remove_enchantment - strip named enchantments off the stack.
+        // Both the documented singular key and the plural key packs actually
+        // ship are declared, because the parser reads both.
+        define("remove_enchantment", List.of(
+            new FieldSpec("enchantment", FormFieldSpec.Kind.STRING, false)
+                .doc("Single enchantment id to strip, e.g. minecraft:binding_curse."),
+            new FieldSpec("enchantments", FormFieldSpec.Kind.ARRAY, false)
+                .doc("Enchantment ids to strip; the plural form of enchantment, and may be used instead of or alongside it."),
+            new FieldSpec("reset_repair_cost", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                .doc("Also clear the stack's accumulated anvil repair cost (default false). Also read from the enclosing equipped_item_action.")));
     }
 
     /** Canonical id → descriptor (insertion-ordered). */

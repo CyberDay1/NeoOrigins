@@ -964,6 +964,11 @@
         "item_action": {
           "description": "ItemAction to run on the stack (consume, damage, set-NBT, etc.). Legacy key \"action\" is also accepted.",
           "$ref": "item_action.schema.json"
+        },
+        "reset_repair_cost": {
+          "description": "Handed to a remove_enchantment item_action: also clear the stack's anvil repair cost. Packs write it here; the item action's own field is read too.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [

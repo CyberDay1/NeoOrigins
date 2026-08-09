@@ -1866,6 +1866,7 @@ Runs an item action on the stack in a given equipment slot. Delegates per-stack 
 |---|---|---|---|---|
 | `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, or `"mainhand"` |
 | `item_action` | object | yes | — | Item action to run (see Item Actions below) |
+| `reset_repair_cost` | bool | no | `false` | Handed down to a `remove_enchantment` item action: also clear the stack's anvil repair cost |
 
 **Example: damage the held item by 5**
 ```json
@@ -2055,6 +2056,33 @@ Sets the stack's count.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `count` | int | no | `1` | New stack size |
+
+## `neoorigins:remove_enchantment`
+
+Strips the named enchantments off the stack, optionally clearing its accumulated anvil repair cost. The classic use is a "Remove Curse" power that ticks over the worn armour and held weapon stripping `minecraft:vanishing_curse` and `minecraft:binding_curse`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `enchantment` | string | no | - | Single enchantment id to strip |
+| `enchantments` | array of string | no | - | Enchantment ids to strip; usable instead of or alongside `enchantment` |
+| `reset_repair_cost` | bool | no | `false` | Also clear the stack's anvil repair cost |
+
+Both key spellings are read, and the union is used when both are present. `reset_repair_cost` is read from this object and from the enclosing `equipped_item_action`, where packs commonly put it as a sibling of `item_action`; `true` in either position wins.
+
+Ids are matched against the enchantments already on the stack, so an id no datapack registered simply matches nothing. A malformed id warns once at load and is skipped rather than taking the power down with it. Enchanted books are handled: removal routes to `stored_enchantments` for books and `enchantments` for everything else.
+
+**Example: strip both curses off the held item and reset its repair cost**
+```json
+{
+  "type": "neoorigins:equipped_item_action",
+  "equipment_slot": "mainhand",
+  "item_action": {
+    "type": "neoorigins:remove_enchantment",
+    "enchantments": ["minecraft:vanishing_curse", "minecraft:binding_curse"]
+  },
+  "reset_repair_cost": true
+}
+```
 
 ## `neoorigins:and` (item)
 
