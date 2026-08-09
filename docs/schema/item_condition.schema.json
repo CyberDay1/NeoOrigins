@@ -7,7 +7,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Item-condition verb (empty / nbt / enchantment / ingredient / not / and / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf. Omit `type` entirely to use the id / item / tag shorthand.",
+      "description": "Item-condition verb (all_of / amount / and / any_of / custom_data / empty / enchantment / food / ingredient / name / nbt / not / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf. Omit `type` entirely to use the id / item / tag shorthand.",
       "pattern": "^(?:[a-z0-9_.-]+:)?(?:all_of|amount|and|any_of|custom_data|empty|enchantment|food|ingredient|name|nbt|not|or)$"
     }
   },

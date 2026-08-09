@@ -10,7 +10,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Item-action verb (and / if_else / merge_nbt / consume / damage / set_count). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
+      "description": "Item-action verb (and / consume / damage / if_else / merge_nbt / remove_enchantment / set_count). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
       "pattern": "^(?:[a-z0-9_.-]+:)?(?:and|consume|damage|if_else|merge_nbt|remove_enchantment|set_count)$"
     }
   },
