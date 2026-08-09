@@ -36,6 +36,7 @@ import com.cyberday1.neoorigins.network.payload.SyncInvisibilityArmorPayload;
 import com.cyberday1.neoorigins.network.payload.SyncElytraFlightPayload;
 import com.cyberday1.neoorigins.network.payload.SyncPlayerPowersPayload;
 import com.cyberday1.neoorigins.network.payload.RemovePlayerPowersPayload;
+import com.cyberday1.neoorigins.network.payload.SyncFoodNutritionPayload;
 import com.cyberday1.neoorigins.network.payload.ActivatePowerByKeyPayload;
 import com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry;
 import com.cyberday1.neoorigins.power.builtin.EntityModelPower;
@@ -227,6 +228,12 @@ public class NeoOriginsNetwork {
             SyncElytraFlightPayload.TYPE,
             SyncElytraFlightPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncElytraFlight
+        );
+
+        registrar.playToClient(
+            SyncFoodNutritionPayload.TYPE,
+            SyncFoodNutritionPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncFoodNutrition
         );
 
         registrar.playToClient(
@@ -502,6 +509,10 @@ public class NeoOriginsNetwork {
             // Ability-slot roster is re-pushed by syncAbilitySlotsToPlayer right
             // after the next SyncActivePowersPayload (syncToPlayer -> syncActivePowersToPlayer).
             com.cyberday1.neoorigins.client.ClientAbilitySlots.clear();
+            // Same for the diet overrides behind the AppleSkin food preview:
+            // syncFoodNutritionToPlayer re-pushes them (empty list included)
+            // immediately after this payload, via syncActivePowersToPlayer.
+            com.cyberday1.neoorigins.client.ClientFoodNutrition.clear();
         });
     }
 
@@ -610,6 +621,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncAbilitySlots(SyncAbilitySlotsPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientAbilitySlots.set(payload.slots())
+        );
+    }
+
+    private static void handleSyncFoodNutrition(SyncFoodNutritionPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientFoodNutrition.set(payload.overrides())
         );
     }
 
@@ -1345,6 +1362,10 @@ public class NeoOriginsNetwork {
         // Keep the HUD ability-slot roster in lockstep with the active-powers
         // map — same change triggers, same connection ordering.
         syncAbilitySlotsToPlayer(player);
+        // modify_food_nutrition config values, for the AppleSkin food preview.
+        // The active-powers map above carries power ids only, not their config,
+        // so the client can't work out what a held cod is worth without this.
+        syncFoodNutritionToPlayer(player);
         // Morph state (entity_model power) must reach every client that can see
         // this player, not just the player themselves — broadcast it separately.
         broadcastMorphState(player, morphSpecFrom(activeHolders));
@@ -1435,6 +1456,40 @@ public class NeoOriginsNetwork {
             entries.add(abilitySlotEntry(-1, classActives.get(0)));
         }
         PacketDistributor.sendToPlayer(player, new SyncAbilitySlotsPayload(entries));
+    }
+
+    /**
+     * Push the player's {@code modify_food_nutrition} overrides to their client so
+     * the AppleSkin tooltip / held-food HUD can preview the value the origin will
+     * actually receive instead of the item's vanilla one.
+     *
+     * <p>Collected through the same {@code ActiveOriginService.forEachOfType} walk
+     * the server's eat path uses ({@code InteractionPowerEvents.onItemUseFinish}),
+     * in the same order, so the client resolves against exactly the config set, and
+     * the same last-match-wins ordering, that will be applied on eat.
+     *
+     * <p>Sent unconditionally, including when the list is empty: an empty payload
+     * is what clears a previous origin's diet from the client after an origin
+     * change. It is a couple of bytes and only rides origin/toggle/dimension
+     * changes, not the tick loop. It is also sent regardless of whether the
+     * receiving client runs AppleSkin, because the server can't see the client's
+     * mod list, and a client without AppleSkin simply stores the values and never
+     * reads them.
+     *
+     * <p>Known limit: {@code forEachOfType} applies each power's top-level condition
+     * gate at the moment it runs, so a diet override conditioned on transient state
+     * (in-water, night, ...) is snapshotted at sync time, while the eat path
+     * re-evaluates it at eat time. A preview taken mid-flip could therefore be a
+     * tick or two stale. Every shipped diet override is unconditional today, so this
+     * is theoretical; if a conditional one ever ships, re-sync it on the condition
+     * flip the way {@code resyncIfPhaseGateFlipped} does for phasing.
+     */
+    public static void syncFoodNutritionToPlayer(ServerPlayer player) {
+        List<SyncFoodNutritionPayload.Entry> entries = new java.util.ArrayList<>();
+        ActiveOriginService.forEachOfType(player,
+            com.cyberday1.neoorigins.power.builtin.ModifyFoodNutritionPower.class,
+            config -> entries.add(SyncFoodNutritionPayload.Entry.of(config)));
+        PacketDistributor.sendToPlayer(player, new SyncFoodNutritionPayload(List.copyOf(entries)));
     }
 
     private static SyncAbilitySlotsPayload.Entry abilitySlotEntry(int slot, PowerHolder<?> holder) {

@@ -93,15 +93,85 @@ public class ModifyFoodNutritionPower extends PowerType<ModifyFoodNutritionPower
         int originalNutrition = food.nutrition();
         if (originalNutrition == targetNutrition) return;
 
-        float originalSaturation = food.saturation();
-        float ratio = originalNutrition > 0
-            ? originalSaturation / (float) originalNutrition
-            : 0f;
-        float targetSaturation = targetNutrition * ratio;
+        float targetSaturation = scaledSaturation(originalNutrition, food.saturation(), targetNutrition);
 
         var foodData = player.getFoodData();
         int desiredFood = Mth.clamp(preFood + targetNutrition, 0, 20);
         foodData.setFoodLevel(desiredFood);
         foodData.setSaturation(Mth.clamp(preSaturation + targetSaturation, 0.0F, (float) desiredFood));
+    }
+
+    /**
+     * The single definition of how an overridden nutrition value scales the food's
+     * saturation: saturation keeps the same per-nutrition ratio the food shipped
+     * with, so a cod worth 2/0.4 overridden to 6 nutrition yields 1.2 saturation.
+     *
+     * <p>This lives in one place on purpose. {@link #applyOverride} (the real,
+     * server-side eat outcome) and {@link #resolve} (what AppleSkin previews on the
+     * client) must produce identical numbers: if the two ever drifted apart the
+     * preview would start lying again, which is the exact bug this was factored out
+     * to prevent.
+     *
+     * <p>Zero-nutrition source food scales to zero saturation rather than dividing
+     * by zero.
+     */
+    public static float scaledSaturation(int originalNutrition, float originalSaturation,
+                                         int targetNutrition) {
+        float ratio = originalNutrition > 0
+            ? originalSaturation / (float) originalNutrition
+            : 0f;
+        return targetNutrition * ratio;
+    }
+
+    /**
+     * Rebuild {@link FoodProperties} at {@code targetNutrition} with proportionally
+     * scaled saturation, preserving {@code canAlwaysEat}. In 26.1 FoodProperties is
+     * just (nutrition, saturation, canAlwaysEat): eat duration and consumable
+     * effects moved out to the {@code Consumable} data component, which this never
+     * touches, so the preview reflects exactly the fields the eat path changes.
+     *
+     * <p>Constructs the record directly rather than going through
+     * {@link FoodProperties.Builder}. The builder's {@code saturationModifier} is a
+     * <em>multiplier</em> that {@code build()} expands to {@code nutrition * mod * 2},
+     * which would blow the value up (the same trap documented on
+     * {@code CraftingPowerEvents.rebuildFood}).
+     */
+    public static FoodProperties overridden(FoodProperties source, int targetNutrition) {
+        return new FoodProperties(
+            targetNutrition,
+            scaledSaturation(source.nutrition(), source.saturation(), targetNutrition),
+            source.canAlwaysEat()
+        );
+    }
+
+    /**
+     * Resolve what {@code stack} is actually worth to a player holding the given
+     * nutrition-override configs, without eating it. Used by the AppleSkin
+     * integration to preview the same numbers {@link #applyOverride} will produce.
+     *
+     * <p>Mirrors the server's dispatch exactly:
+     * {@code InteractionPowerEvents.onItemUseFinish} walks every
+     * {@code modify_food_nutrition} power the player holds and calls
+     * {@link #applyOverride} for each one that matches the stack, each recomputing
+     * from the same pre-eat baseline, so the <b>last</b> matching override is the
+     * one that lands. An override whose nutrition already equals the food's own is
+     * a no-op on the server (early return in {@link #applyOverride}) and is skipped
+     * here too, leaving any earlier match standing rather than cancelling it.
+     *
+     * @param defaults the stack's unmodified {@link FoodProperties}
+     * @return the effective properties, or {@code null} when no override applies
+     *         (caller should leave the vanilla values alone)
+     */
+    public static FoodProperties resolve(ItemStack stack, FoodProperties defaults,
+                                         java.util.List<Config> overrides) {
+        if (defaults == null || overrides == null || overrides.isEmpty()) return null;
+        FoodProperties result = null;
+        for (Config config : overrides) {
+            if (config == null) continue;
+            if (config.nutrition() == defaults.nutrition()) continue;
+            if (!matchesFilter(stack, config)) continue;
+            result = overridden(defaults, config.nutrition());
+        }
+        return result;
     }
 }
