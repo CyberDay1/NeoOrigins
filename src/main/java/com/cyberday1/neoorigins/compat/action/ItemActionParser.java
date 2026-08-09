@@ -23,6 +23,8 @@ import java.util.List;
  *   <li>{@code origins:consume} — shrink the stack by N (default 1)</li>
  *   <li>{@code origins:damage} — damage the stack by N</li>
  *   <li>{@code origins:set_count} — set the stack count outright</li>
+ *   <li>{@code origins:remove_enchantment} - strip named enchantments from the
+ *       stack, optionally resetting its anvil repair cost</li>
  * </ul>
  *
  * <p>Fail-soft: on parse error or unsupported type, returns a no-op action
@@ -42,9 +44,24 @@ public final class ItemActionParser {
      */
     public static final java.util.Set<String> KNOWN_TYPES = java.util.Set.of(
         "neoorigins:and", "neoorigins:if_else", "neoorigins:merge_nbt",
-        "neoorigins:consume", "neoorigins:damage", "neoorigins:set_count");
+        "neoorigins:consume", "neoorigins:damage", "neoorigins:set_count",
+        "neoorigins:remove_enchantment");
 
     public static ItemAction parse(JsonObject json) {
+        return parse(json, null);
+    }
+
+    /**
+     * Parse an item action that may inherit fields from the object carrying it.
+     *
+     * @param json      the item-action object itself
+     * @param enclosing the object the item action hangs off (an
+     *                  {@code equipped_item_action} / {@code modify_inventory}),
+     *                  or {@code null} when there is none. Only consulted for
+     *                  fields packs are observed to place on either side; see
+     *                  {@link #resolveResetRepairCost}.
+     */
+    public static ItemAction parse(JsonObject json, JsonObject enclosing) {
         if (json == null) return ItemAction.noop();
         String type = json.has("type") ? json.get("type").getAsString() : "";
         // Canonicalize prefixes — same convention as ActionParser/ConditionParser.
@@ -55,12 +72,13 @@ public final class ItemActionParser {
         }
         try {
             return switch (type) {
-                case "neoorigins:and"        -> parseAnd(json);
-                case "neoorigins:if_else"    -> parseIfElse(json);
+                case "neoorigins:and"        -> parseAnd(json, enclosing);
+                case "neoorigins:if_else"    -> parseIfElse(json, enclosing);
                 case "neoorigins:merge_nbt"  -> parseMergeNbt(json);
                 case "neoorigins:consume"    -> parseConsume(json);
                 case "neoorigins:damage"     -> parseDamage(json);
                 case "neoorigins:set_count"  -> parseSetCount(json);
+                case "neoorigins:remove_enchantment" -> parseRemoveEnchantment(json, enclosing);
                 default -> {
                     com.cyberday1.neoorigins.compat.CompatWarningCollector
                         .recordItemActionUnsupported(type);
@@ -74,24 +92,27 @@ public final class ItemActionParser {
         }
     }
 
-    private static ItemAction parseAnd(JsonObject json) {
+    // The combinators forward `enclosing` so a remove_enchantment nested one
+    // level down (inside an `and`, or an if_else branch) still sees the
+    // reset_repair_cost the pack put on the equipped_item_action above it.
+    private static ItemAction parseAnd(JsonObject json, JsonObject enclosing) {
         List<ItemAction> list = new ArrayList<>();
         if (json.has("actions")) {
             for (JsonElement el : json.getAsJsonArray("actions")) {
-                if (el.isJsonObject()) list.add(parse(el.getAsJsonObject()));
+                if (el.isJsonObject()) list.add(parse(el.getAsJsonObject(), enclosing));
             }
         }
         return s -> { for (ItemAction a : list) a.execute(s); };
     }
 
-    private static ItemAction parseIfElse(JsonObject json) {
+    private static ItemAction parseIfElse(JsonObject json, JsonObject enclosing) {
         var cond = json.has("condition") && json.get("condition").isJsonObject()
             ? com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(json.getAsJsonObject("condition"))
             : com.cyberday1.neoorigins.compat.condition.ItemCondition.alwaysTrue();
         ItemAction ifAction = json.has("if_action") && json.get("if_action").isJsonObject()
-            ? parse(json.getAsJsonObject("if_action")) : ItemAction.noop();
+            ? parse(json.getAsJsonObject("if_action"), enclosing) : ItemAction.noop();
         ItemAction elseAction = json.has("else_action") && json.get("else_action").isJsonObject()
-            ? parse(json.getAsJsonObject("else_action")) : ItemAction.noop();
+            ? parse(json.getAsJsonObject("else_action"), enclosing) : ItemAction.noop();
         return s -> {
             if (cond.test(s)) ifAction.execute(s);
             else elseAction.execute(s);
@@ -166,5 +187,133 @@ public final class ItemActionParser {
     private static ItemAction parseSetCount(JsonObject json) {
         int count = json.has("count") ? json.get("count").getAsInt() : 1;
         return s -> { if (!s.isEmpty()) s.setCount(count); };
+    }
+
+    /**
+     * {@code remove_enchantment}: strip the named enchantments off the stack,
+     * optionally clearing its accumulated anvil repair cost. The classic use is
+     * a "Remove Curse" power that ticks over the worn armour and held weapon
+     * once a second stripping {@code vanishing_curse} / {@code binding_curse}.
+     *
+     * <p><b>Two shapes are accepted for both of its fields.</b> The upstream
+     * Apoli docs describe a singular {@code enchantment} string plus a
+     * {@code reset_repair_cost} flag on this object; packs in the wild instead
+     * write a plural {@code enchantments} array and hang
+     * {@code reset_repair_cost} off the enclosing {@code equipped_item_action}
+     * beside {@code item_action}. Both are read, exactly as
+     * {@code parseEquippedItemAction} already reads both {@code item_action}
+     * and {@code action}, and for the same reason: the alternative is a silent
+     * no-op that looks to the pack author like the power simply does nothing.
+     *
+     * <p>Ids are matched by resource location against the enchantments actually
+     * present on the stack, so no registry access is needed (an {@link ItemAction}
+     * only ever gets the stack). An id that is not on the stack, including one no
+     * datapack ever registered, matches nothing and is skipped; a malformed id
+     * warns once at parse time and is dropped.
+     *
+     * <p>Enchanted books are handled: the removal goes through
+     * {@code EnchantmentHelper.updateEnchantments}, which is vanilla's own
+     * dispatch onto {@code stored_enchantments} for books and
+     * {@code enchantments} for everything else.
+     */
+    private static ItemAction parseRemoveEnchantment(JsonObject json, JsonObject enclosing) {
+        final List<net.minecraft.resources.Identifier> ids = resolveEnchantmentIds(json);
+        final boolean resetRepairCost = resolveResetRepairCost(json, enclosing);
+        if (ids.isEmpty() && !resetRepairCost) return ItemAction.noop();
+        return stack -> {
+            if (stack.isEmpty()) return;
+            if (!ids.isEmpty()) {
+                net.minecraft.world.item.enchantment.EnchantmentHelper.updateEnchantments(
+                    stack, mutable -> removeMatching(mutable, ids));
+            }
+            if (resetRepairCost) {
+                stack.set(net.minecraft.core.component.DataComponents.REPAIR_COST, 0);
+            }
+        };
+    }
+
+    /**
+     * Collect the enchantment ids a {@code remove_enchantment} names, from
+     * either the documented singular {@code enchantment} key or the plural
+     * {@code enchantments} key packs actually ship. Each key accepts a bare
+     * string or an array of strings; both keys may be present at once, in which
+     * case the union is used. Order is preserved and duplicates collapse.
+     *
+     * <p>Malformed ids warn and are dropped rather than throwing, so one bad
+     * entry cannot take the whole power down with it.
+     *
+     * <p>Pure and static so the shape tolerance is directly testable: a
+     * parse-only test would pass on a parser that recognises the type and then
+     * resolves nothing.
+     */
+    static List<net.minecraft.resources.Identifier> resolveEnchantmentIds(JsonObject json) {
+        java.util.LinkedHashSet<net.minecraft.resources.Identifier> out = new java.util.LinkedHashSet<>();
+        if (json != null) {
+            collectEnchantmentIds(json.get("enchantment"), out);
+            collectEnchantmentIds(json.get("enchantments"), out);
+        }
+        return List.copyOf(out);
+    }
+
+    private static void collectEnchantmentIds(
+            JsonElement el, java.util.Collection<net.minecraft.resources.Identifier> out) {
+        if (el == null || el.isJsonNull()) return;
+        if (el.isJsonArray()) {
+            for (JsonElement child : el.getAsJsonArray()) collectEnchantmentIds(child, out);
+            return;
+        }
+        if (!el.isJsonPrimitive()) return;
+        String raw = el.getAsString();
+        net.minecraft.resources.Identifier id =
+            net.minecraft.resources.Identifier.tryParse(raw);
+        if (id == null) {
+            NeoOrigins.LOGGER.warn(
+                "[CompatB] remove_enchantment: '{}' is not a valid enchantment id - skipped", raw);
+            return;
+        }
+        out.add(id);
+    }
+
+    /**
+     * Resolve {@code reset_repair_cost}. Upstream documents it on the
+     * {@code remove_enchantment} object; the packs that prompted this read it
+     * off the enclosing {@code equipped_item_action}, as a sibling of
+     * {@code item_action}. Either position winning on {@code true} means being
+     * wrong about which one upstream really blesses costs nothing.
+     *
+     * <p>Pure and static so both positions are directly testable.
+     */
+    static boolean resolveResetRepairCost(JsonObject json, JsonObject enclosing) {
+        return readBooleanFlag(json, "reset_repair_cost")
+            || readBooleanFlag(enclosing, "reset_repair_cost");
+    }
+
+    private static boolean readBooleanFlag(JsonObject json, String key) {
+        if (json == null || !json.has(key)) return false;
+        JsonElement el = json.get(key);
+        if (!el.isJsonPrimitive()) return false;
+        try {
+            return el.getAsBoolean();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Drop every enchantment whose registry id is in {@code ids}. Matching is by
+     * {@link net.minecraft.resources.Identifier}, resolved off the holder
+     * already on the stack, which is what lets this work without a registry
+     * lookup - the same approach {@code ItemConditionParser}'s
+     * {@code enchantment} condition uses.
+     *
+     * <p>Pure and static so the removal itself is unit-testable.
+     */
+    static void removeMatching(
+            net.minecraft.world.item.enchantment.ItemEnchantments.Mutable mutable,
+            java.util.Collection<net.minecraft.resources.Identifier> ids) {
+        if (mutable == null || ids == null || ids.isEmpty()) return;
+        mutable.removeIf(holder -> holder.unwrapKey()
+            .map(key -> ids.contains(key.identifier()))
+            .orElse(false));
     }
 }
