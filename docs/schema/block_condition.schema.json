@@ -10,7 +10,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Block-condition verb (block / in_tag / and / or). `apace:` aliases are accepted.",
+      "description": "Block-condition verb (adjacent / and / block / block_state / height / in_tag / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
       "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|and|block|block_state|height|in_tag|offset|or)$"
     }
   },

@@ -50,8 +50,12 @@ import java.util.TreeSet;
  * trailing LF). Re-running on the generator's own output is byte-identical.
  *
  * <p><b>Header.</b> The {@code $schema}/{@code $id}/{@code title}/{@code description}
- * and the {@code type} property's {@code description} are preserved verbatim from
- * the current committed file (same approach as the power generator).
+ * are preserved verbatim from the current committed file (same approach as the power
+ * generator). The {@code type} property's {@code description} is preserved verbatim
+ * too for action/condition, but for the three small documents (block_condition,
+ * item_condition, item_action) its verb list is GENERATED from the leaf set that
+ * also builds {@code type.pattern}: a hand-maintained list there had already gone
+ * stale in all three, disagreeing with the pattern the editors validate against.
  *
  * <p>Invoke via {@code ./gradlew generateActionConditionSchema} (writes both) or
  * {@code --args="action docs/schema/action.schema.json"} for one document.
@@ -210,11 +214,47 @@ public final class ActionConditionSchemaGenerator {
     }
 
     /**
+     * The lead-in of {@code properties.type.description} for the documents whose
+     * verb surface is small enough to spell out in prose, or {@code null} for the
+     * ones that are not (action and condition carry hundreds of verbs, so their
+     * hand-written descriptions are kept verbatim).
+     */
+    private static String verbListLead(String which) {
+        return switch (which) {
+            case BLOCK_CONDITION -> "Block-condition verb";
+            case ITEM_CONDITION -> "Item-condition verb";
+            case ITEM_ACTION -> "Item-action verb";
+            default -> null;
+        };
+    }
+
+    /** The prose that follows the generated verb list. */
+    private static String verbListTail(String which) {
+        String common = "The namespace is optional and any namespace is accepted: "
+            + "the parser strips it and matches the leaf.";
+        return ITEM_CONDITION.equals(which)
+            ? common + " Omit `type` entirely to use the id / item / tag shorthand."
+            : common;
+    }
+
+    /**
+     * {@code properties.type.description}. Where the verb surface is enumerable the
+     * list is GENERATED from the same leaf set that builds {@code type.pattern}, so
+     * prose and pattern cannot disagree; a new verb updates both at once. Everywhere
+     * else the committed description is preserved verbatim.
+     */
+    private static String typeDescription(String which, Set<String> leaves, JsonObject currentType) {
+        String lead = verbListLead(which);
+        if (lead == null) return currentType.get("description").getAsString();
+        return lead + " (" + String.join(" / ", leaves) + "). " + verbListTail(which);
+    }
+
+    /**
      * Synthesize a minimal header object for a brand-new ref-doc that has no
      * committed file yet (only its {@code $schema}/{@code $id}/{@code title}/
-     * {@code description} and {@code properties.type.description} are read back by
-     * {@link #buildSchemaJson}). Once written, the file is read verbatim on every
-     * later run, so any manual header edits survive — this is bootstrap-only.
+     * {@code description} and, for action/condition, {@code properties.type.description}
+     * are read back by {@link #buildSchemaJson}). Once written, those fields are read
+     * verbatim on every later run, so manual header edits survive: this is bootstrap-only.
      */
     private static JsonObject synthesizeHeader(String which) {
         String title = switch (which) {
@@ -232,15 +272,12 @@ public final class ActionConditionSchemaGenerator {
                 + "modify_inventory. The `type` field discriminates.";
             default -> "Generated NeoOrigins " + which + " schema.";
         };
-        String typeDesc = switch (which) {
-            case BLOCK_CONDITION -> "Block-condition verb (block / in_tag / and / or). "
-                + "`apace:` aliases are accepted.";
-            case ITEM_CONDITION -> "Item-condition verb (empty / nbt / enchantment / "
-                + "ingredient / not / and / or). `apace:` aliases are accepted.";
-            case ITEM_ACTION -> "Item-action verb (and / if_else / merge_nbt / consume / "
-                + "damage / set_count). `apace:` aliases are accepted.";
-            default -> "Fully-qualified " + which + " verb. `apace:` aliases are accepted.";
-        };
+        // For the enumerable documents this is a placeholder: buildSchemaJson
+        // overwrites it via typeDescription() with a list generated from the
+        // registries, so no hand-transcribed verb list can survive here to go stale.
+        String typeDesc = verbListLead(which) != null
+            ? verbListLead(which) + ". " + verbListTail(which)
+            : "Fully-qualified " + which + " verb. `apace:` aliases are accepted.";
         JsonObject header = new JsonObject();
         header.addProperty("$schema", "https://json-schema.org/draft/2020-12/schema");
         header.addProperty("$id", "https://neoorigins.example/schema/" + which + ".schema.json");
@@ -388,7 +425,7 @@ public final class ActionConditionSchemaGenerator {
         JsonObject properties = new JsonObject();
         JsonObject typeNode = new JsonObject();
         typeNode.addProperty("type", "string");
-        typeNode.add("description", currentType.get("description")); // verbatim
+        typeNode.addProperty("description", typeDescription(which, leaves, currentType));
         typeNode.addProperty("pattern", leafPattern(leaves));
         properties.add("type", typeNode);
         root.add("properties", properties);
