@@ -163,7 +163,7 @@
           }
         },
         "levels": {
-          "description": "Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ).",
+          "description": "Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ). Nothing is clamped, which is upstream's behaviour: 0 subtracts nothing and a negative value raises the level.",
           "type": "integer"
         },
         "reset_repair_cost": {
