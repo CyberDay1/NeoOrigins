@@ -483,7 +483,8 @@ to bond with (`cancel_event`).
 Fires when the player applies bone meal to a block. Distinct from
 `mod_bonemeal_extra`, which only scales the extra-application count.
 **Cancellable** via `neoorigins:cancel_event` (the bone meal is not
-consumed and nothing grows).
+consumed and nothing grows). Cancelling wins over `mod_bonemeal_extra`:
+a granted extra never revives an interaction a power has refused.
 
 **Context:** `BlockInteractContext(pos, state, event)`, the bonemealed
 block; carries the underlying cancellable `BonemealEvent`. Supports
@@ -685,9 +686,29 @@ amplifier scaling (use with care: this scales duration, not amplifier).
 ## `mod_bonemeal_extra`
 
 Adds extra bonemeal applications when the player uses bonemeal on a block.
-Base value is `0f` (vanilla behaviour is one application total); the final
-value is `Math.round(result)` and that many extra `performBonemeal` calls
-run.
+Base value is `0f` (vanilla behaviour is one application total) and the
+final value is `Math.round(result)`, clamped at zero.
+
+A result above zero makes the handler **take the interaction over** rather
+than adding to it. It cancels the event, which suppresses vanilla's own
+application, performs `result + 1` applications so the suppressed one is
+still accounted for, consumes one bone meal itself and reports success.
+Half-participating is not an option here: growing the block from inside
+the event can turn vanilla's own live-world validity check false, and
+NeoForge then discards every block change the handler made without ever
+telling the client.
+
+The takeover is deliberately narrow, so vanilla is left completely alone
+unless all of the following hold:
+
+- the modifier chain resolved to at least one extra, and
+- the block was a valid bonemeal target when the event was constructed,
+  that is before any power ran, and
+- no power cancelled the event, from either this dispatch or `bonemeal`.
+
+The first of the applications keeps vanilla's `isBonemealSuccess` roll,
+which is a random chance on crops, since it stands in for the vanilla
+growth. The extras do not consult that roll.
 
 **Context:** the `BonemealEvent` itself.
 

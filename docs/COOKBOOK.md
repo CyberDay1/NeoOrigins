@@ -224,6 +224,8 @@ Use the dedicated `neoorigins:modify_food_nutrition` power type. It
 (it is not a multiplier), and rescales saturation proportionally to the
 food's original saturation-to-nutrition ratio. Filter to a single item with
 `food_item` or to a group with `food_tag`; omit both to retune every food.
+If AppleSkin is installed its tooltip and held-food preview show your value
+rather than the vanilla one, so players can see the buff before they eat.
 
 ```json
 {

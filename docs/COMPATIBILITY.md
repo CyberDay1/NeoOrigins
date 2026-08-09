@@ -244,6 +244,19 @@ never appear in the power list and never load on a server without Cold Sweat.
 |---|---|---|
 | **Jade** | `jade` | Shows the looked-at entity's NeoOrigins origin in the tooltip/probe overlay. |
 | **The One Probe** | `theoneprobe` | Shows the looked-at entity's NeoOrigins origin in the tooltip/probe overlay. |
+| **AppleSkin** | `appleskin` | Makes the food tooltip and the held-food HUD preview show what a `modify_food_nutrition` power will actually give, rather than the item's vanilla value. |
+
+**AppleSkin, in more detail.** `neoorigins:modify_food_nutrition` never
+rewrites the item's food data. It lets vanilla eat the item and then corrects
+the player's hunger and saturation server-side, so the numbers only become
+right at the moment of eating. AppleSkin builds its preview by reading the food
+data off the stack on the client, where the override does not exist, so without
+this bridge every diet origin was previewed at vanilla values. The bridge
+answers AppleSkin's own `FoodValuesEvent` with the origin-adjusted figures and
+leaves the vanilla figure in place, so AppleSkin still draws its usual
+struck-through comparison next to ours. Because that event fires on the client,
+the configured overrides are synced down alongside the existing active-power
+sync. Nothing here classloads when AppleSkin is absent.
 
 ---
 
