@@ -226,11 +226,20 @@ public final class SchemaFormModel {
         }
 
         // For an array of REFs, capture items.$ref so the creator can render
-        // an ArrayRefRow list editor instead of a raw-JSON textbox.
+        // an ArrayRefRow list editor instead of a raw-JSON textbox. For an array
+        // of plain STRINGS capture items.pattern as itemPattern, which is what
+        // marks the field a scalar-string list and gets it an ArrayStringRow (a
+        // +/- list of text boxes) instead of a raw-JSON box; without this every
+        // schema-derived array read that null and ArrayStringRow was unreachable.
         String itemsRef = null;
-        if (kind == FormFieldSpec.Kind.ARRAY && p.has("items")) {
+        String itemPattern = null;
+        if (kind == FormFieldSpec.Kind.ARRAY && p.has("items") && p.get("items").isJsonObject()) {
             JsonObject items = p.getAsJsonObject("items");
-            if (items.has("$ref")) itemsRef = items.get("$ref").getAsString();
+            if (items.has("$ref")) {
+                itemsRef = items.get("$ref").getAsString();
+            } else if (items.has("pattern") && items.get("pattern").isJsonPrimitive()) {
+                itemPattern = items.get("pattern").getAsString();
+            }
         }
 
         // An OBJECT with a FIXED set of inline `properties` (e.g. an item stack,
@@ -249,7 +258,8 @@ public final class SchemaFormModel {
             }
             children = kids;
         }
-        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children);
+        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children,
+            itemPattern);
     }
 
     /**
