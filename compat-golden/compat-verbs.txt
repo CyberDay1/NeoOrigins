@@ -209,12 +209,13 @@
   neoorigins:xp_level
   neoorigins:xp_levels
   neoorigins:xp_points
-[item_action] (6)
+[item_action] (7)
   neoorigins:and
   neoorigins:consume
   neoorigins:damage
   neoorigins:if_else
   neoorigins:merge_nbt
+  neoorigins:remove_enchantment
   neoorigins:set_count
 [item_condition] (13)
   neoorigins:all_of

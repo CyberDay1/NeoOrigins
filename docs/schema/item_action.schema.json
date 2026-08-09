@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Item-action verb (and / if_else / merge_nbt / consume / damage / set_count). `apace:` aliases are accepted.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:and|consume|damage|if_else|merge_nbt|set_count)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:and|consume|damage|if_else|merge_nbt|remove_enchantment|set_count)$"
     }
   },
   "oneOf": [
@@ -139,6 +139,37 @@
       ]
     },
     {
+      "$comment": "neoorigins:remove_enchantment",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:remove_enchantment",
+            "apace:remove_enchantment",
+            "origins:remove_enchantment",
+            "apoli:remove_enchantment",
+            "apugli:remove_enchantment"
+          ]
+        },
+        "enchantment": {
+          "description": "Single enchantment id to strip, e.g. minecraft:binding_curse.",
+          "type": "string"
+        },
+        "enchantments": {
+          "description": "Enchantment ids to strip; the plural form of enchantment, and may be used instead of or alongside it.",
+          "type": "array",
+          "items": {}
+        },
+        "reset_repair_cost": {
+          "description": "Also clear the stack's accumulated anvil repair cost (default false). Also read from the enclosing equipped_item_action.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:set_count",
       "properties": {
         "type": {
@@ -171,30 +202,35 @@
               "apace:damage",
               "apace:if_else",
               "apace:merge_nbt",
+              "apace:remove_enchantment",
               "apace:set_count",
               "apoli:and",
               "apoli:consume",
               "apoli:damage",
               "apoli:if_else",
               "apoli:merge_nbt",
+              "apoli:remove_enchantment",
               "apoli:set_count",
               "apugli:and",
               "apugli:consume",
               "apugli:damage",
               "apugli:if_else",
               "apugli:merge_nbt",
+              "apugli:remove_enchantment",
               "apugli:set_count",
               "neoorigins:and",
               "neoorigins:consume",
               "neoorigins:damage",
               "neoorigins:if_else",
               "neoorigins:merge_nbt",
+              "neoorigins:remove_enchantment",
               "neoorigins:set_count",
               "origins:and",
               "origins:consume",
               "origins:damage",
               "origins:if_else",
               "origins:merge_nbt",
+              "origins:remove_enchantment",
               "origins:set_count"
             ]
           }
