@@ -220,6 +220,19 @@ public class NeoOrigins {
         // vein-mining isn't gated until the integration is restored (port
         // compat.ftbultimine from the 26.1 branch). Re-read that maven-metadata
         // before repeating the claim — don't take this comment's word for it.
+
+        // AppleSkin soft-compat: answers AppleSkin's FoodValuesEvent so the food
+        // tooltip and held-food HUD preview show what a modify_food_nutrition
+        // origin will actually get, instead of the item's vanilla values. All
+        // AppleSkin-typed code lives in compat.appleskin and only classloads
+        // behind this gate, so the (majority) of users without AppleSkin never
+        // hit a NoClassDefFoundError. Physical-client-only: AppleSkin posts the
+        // event from its own client-side tooltip/HUD handlers, so a dedicated
+        // server has nothing to listen for.
+        if (FMLEnvironment.getDist() == Dist.CLIENT
+                && net.neoforged.fml.ModList.get().isLoaded("appleskin")) {
+            com.cyberday1.neoorigins.compat.appleskin.AppleSkinBridge.register();
+        }
     }
 
     private static void onAddPackFinders(AddPackFindersEvent event) {
