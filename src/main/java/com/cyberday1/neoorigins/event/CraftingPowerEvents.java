@@ -42,7 +42,13 @@ public class CraftingPowerEvents {
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_BONEMEAL_EXTRA,
             event, 0f);
         int total = Math.max(0, Math.round(chained));
-        int applications = resolveBonemealApplications(total, event.isValidBonemealTarget());
+        // isCanceled is read after both dispatches, so a cancel_event action on
+        // either of them is honoured. Vanilla reads the same flag at
+        // applyBonemeal:73 and hands back isSuccessful, which is false for a
+        // plain cancel, so standing aside here is what makes the block refuse
+        // to grow and the bone meal survive.
+        int applications = resolveBonemealApplications(
+            total, event.isValidBonemealTarget(), event.isCanceled());
         if (applications == 0) return;
 
         for (int i = 0; i < applications; i++) {
@@ -95,13 +101,20 @@ public class CraftingPowerEvents {
      * no bonemeal-extra power falls straight through and gets untouched vanilla
      * behaviour.
      *
+     * <p>A cancelled event outranks everything else here. The {@code cancel_event}
+     * action exists so a power can refuse an interaction outright, and taking
+     * the bone meal over anyway would grow the block, spend the item and report
+     * success, which is the exact opposite of what the pack asked for.
+     *
      * @param extras      extra applications granted by MOD_BONEMEAL_EXTRA
      * @param validTarget {@link BonemealEvent#isValidBonemealTarget()}, computed
      *                    in the event constructor
+     * @param canceled    whether a power has cancelled the event
      * @return {@code extras + 1} when taking over, counting the suppressed
      *         vanilla application, or 0 to stand aside
      */
-    static int resolveBonemealApplications(int extras, boolean validTarget) {
+    static int resolveBonemealApplications(int extras, boolean validTarget, boolean canceled) {
+        if (canceled) return 0;
         if (extras <= 0) return 0;
         if (!validTarget) return 0;
         return extras + 1;
