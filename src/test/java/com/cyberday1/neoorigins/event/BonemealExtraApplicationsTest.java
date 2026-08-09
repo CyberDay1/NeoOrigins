@@ -24,6 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * the path of every player who has no such power. And the count has to include
  * the vanilla application that cancelling the event suppresses, or the buff
  * silently loses one growth per use.
+ *
+ * <p>A third half arrived with the fix rather than before it: taking the
+ * interaction over made the handler capable of overriding a {@code cancel_event}
+ * action, which is the one thing a pack can say that must always win.
  */
 class BonemealExtraApplicationsTest {
 
@@ -31,7 +35,7 @@ class BonemealExtraApplicationsTest {
 
     @Test
     void noExtrasMeansNoTakeover() {
-        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(0, true),
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(0, true, false),
             "with no extras granted there is nothing to add, so vanilla must handle the block");
     }
 
@@ -39,7 +43,7 @@ class BonemealExtraApplicationsTest {
     void negativeExtrasMeanNoTakeover() {
         // Round(chained) is clamped at the call site, but a modifier chain that
         // subtracts must never flip the handler into owning the interaction.
-        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(-3, true),
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(-3, true, false),
             "a negative extra count must not be read as a reason to take over");
     }
 
@@ -47,13 +51,13 @@ class BonemealExtraApplicationsTest {
 
     @Test
     void extrasOnAnInvalidTargetMeanNoTakeover() {
-        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(1, false),
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(1, false, false),
             "vanilla would have returned false here, so claiming success would eat the bone meal for nothing");
     }
 
     @Test
     void noExtrasOnAnInvalidTargetMeanNoTakeover() {
-        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(0, false),
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(0, false, false),
             "neither condition holds, so the event must be left untouched");
     }
 
@@ -63,14 +67,41 @@ class BonemealExtraApplicationsTest {
     void oneExtraOnAValidTargetGrowsTwice() {
         // class_herbalist_green_thumb.json is add_base 1. Cancelling the event
         // suppresses vanilla's own application, so the handler owes 1 + 1.
-        assertEquals(2, CraftingPowerEvents.resolveBonemealApplications(1, true),
+        assertEquals(2, CraftingPowerEvents.resolveBonemealApplications(1, true, false),
             "the Herbalist's single extra plus the vanilla application it replaces is two growths");
     }
 
     @Test
     void largerExtraCountsKeepTheOffByOne() {
-        assertEquals(4, CraftingPowerEvents.resolveBonemealApplications(3, true));
-        assertEquals(11, CraftingPowerEvents.resolveBonemealApplications(10, true));
+        assertEquals(4, CraftingPowerEvents.resolveBonemealApplications(3, true, false));
+        assertEquals(11, CraftingPowerEvents.resolveBonemealApplications(10, true, false));
+    }
+
+    // A power that cancelled the event: refusing the interaction outranks
+    // everything else, including a granted extra on a perfectly valid target.
+
+    @Test
+    void aCancelledEventMeansNoTakeoverEvenWithExtrasOnAValidTarget() {
+        // The takeover went in without this check, so a cancel_event action on
+        // the bonemeal trigger was overridden by any bonemeal-extra power: the
+        // block grew, the bone meal was spent and the event was reported
+        // successful, which is precisely what the pack asked not to happen.
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(1, true, true),
+            "a power cancelled the interaction, so the handler must not grow, spend or claim success");
+    }
+
+    @Test
+    void cancellationOutranksEveryExtraCount() {
+        for (int extras = 1; extras <= 64; extras++) {
+            assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(extras, true, true),
+                "extras=" + extras + " must not defeat a cancelled event");
+        }
+    }
+
+    @Test
+    void cancellationHoldsOnAnInvalidTargetAndWithNoExtras() {
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(1, false, true));
+        assertEquals(0, CraftingPowerEvents.resolveBonemealApplications(0, true, true));
     }
 
     @Test
@@ -79,7 +110,7 @@ class BonemealExtraApplicationsTest {
         // is the whole reason this method exists, and dropping it would be a
         // silent nerf that no parse-only test could see.
         for (int extras = 1; extras <= 64; extras++) {
-            assertEquals(extras + 1, CraftingPowerEvents.resolveBonemealApplications(extras, true),
+            assertEquals(extras + 1, CraftingPowerEvents.resolveBonemealApplications(extras, true, false),
                 "extras=" + extras + " must add the suppressed vanilla application");
         }
     }
