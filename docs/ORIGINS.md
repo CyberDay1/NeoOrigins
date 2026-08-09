@@ -28,6 +28,7 @@ A creature of the deep: armored, swift in water, and able to call guardian allie
 - *Gill Breath*: never drown
 - *Deep Current*: substantial swim-speed bonus
 - *Open Water*: no swim-speed loss off the seafloor
+- *Neutral Buoyancy*: holds depth while fully submerged instead of sinking
 - *Deep Vision*: full visibility submerged
 - *Pressure Spines*: passive damage to attackers in water
 - *Pressure-Hardened Skin*: flat armor bonus
@@ -800,6 +801,7 @@ A colossal deep-sea predator born in the open ocean: devastating underwater with
 - *Deep Lungs*: never drown
 - *Tidal Rush*: substantial swim-speed bonus
 - *Open Water*: no swim-speed loss off the seafloor
+- *Neutral Buoyancy*: holds depth while fully submerged instead of sinking
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
 - *Pressure Plating*: built-in natural armor
@@ -833,6 +835,7 @@ An aquatic people born in the open ocean: breathes water and swims with ease, bu
 - *Gills*: never drown
 - *Aquatic Speed*: substantial swim-speed bonus
 - *Open Water*: no swim-speed loss off the seafloor
+- *Neutral Buoyancy*: holds depth while fully submerged instead of sinking
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
 - *Deep Sight*: natural night vision
@@ -1088,6 +1091,7 @@ An aquatic enchantress born in the open ocean: charms creatures with an alluring
 - *Aquatic Lungs*: never drown
 - *Tidal Grace*: substantial swim-speed bonus
 - *Open Water*: no swim-speed loss off the seafloor
+- *Neutral Buoyancy*: holds depth while fully submerged instead of sinking
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
 - *Ocean Eyes*: natural night vision
