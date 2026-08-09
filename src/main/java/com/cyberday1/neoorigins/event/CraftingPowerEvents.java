@@ -39,14 +39,69 @@ public class CraftingPowerEvents {
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_BONEMEAL_EXTRA,
             event, 0f);
         int total = Math.max(0, Math.round(chained));
-        for (int i = 0; i < total; i++) {
+        int applications = resolveBonemealApplications(total, event.isValidBonemealTarget());
+        if (applications == 0) return;
+
+        for (int i = 0; i < applications; i++) {
+            // Re-read every iteration: chained growth (grass -> tall grass, a
+            // sapling reaching tree height) depends on the state we just made.
             BlockState state = sl.getBlockState(pos);
-            if (state.getBlock() instanceof BonemealableBlock bmb) {
-                if (bmb.isValidBonemealTarget(sl, pos, state)) {
+            if (!(state.getBlock() instanceof BonemealableBlock bmb)) continue;
+            if (i == 0) {
+                // Stand-in for the vanilla application we are suppressing by
+                // cancelling the event. Vanilla gates it on isBonemealSuccess
+                // (BoneMealItem:76), which is a random chance for crops, so
+                // dropping the gate here would quietly buff them. The extra
+                // applications below never consulted it and keep not doing so,
+                // leaving the buff's strength unchanged.
+                if (bmb.isBonemealSuccess(sl, sl.getRandom(), pos, state)) {
                     bmb.performBonemeal(sl, sl.getRandom(), pos, state);
                 }
+            } else if (bmb.isValidBonemealTarget(sl, pos, state)) {
+                bmb.performBonemeal(sl, sl.getRandom(), pos, state);
             }
         }
+
+        // Mirrors BoneMealItem:80. That shrink lives in the branch we just
+        // suppressed, so without this the player keeps the bone meal.
+        event.getStack().shrink(1);
+        // setSuccessful also cancels, which makes applyBonemeal:73 return true
+        // and useOn:40 hand back SUCCESS. No particles here: BoneMealItem:41-44
+        // already fires ITEM_INTERACT_FINISH and level event 1505 on a true
+        // return, so firing our own would double them.
+        event.setSuccessful(true);
+    }
+
+    /**
+     * How many bone meal applications the handler must perform itself, or 0 to
+     * leave the event alone so vanilla handles the block exactly as it always
+     * has.
+     *
+     * <p>Taking the interaction over is the only way to make extra applications
+     * visible. Half-participating does not work: growing the block from inside
+     * the event can turn vanilla's own live-world isValidBonemealTarget check
+     * false (GrassBlock reads whether pos.above() is still air), vanilla then
+     * returns PASS, and CommonHooks discards every captured block snapshot
+     * without notifying clients, so the new plants stay invisible until a
+     * rejoin. That path also skips vanilla's shrink, handing out free bone
+     * meal.
+     *
+     * <p>So the takeover is deliberately narrow. It happens only when there are
+     * extras to add AND the block was a valid target when the event was
+     * constructed, that is before this handler touched anything. A player with
+     * no bonemeal-extra power falls straight through and gets untouched vanilla
+     * behaviour.
+     *
+     * @param extras      extra applications granted by MOD_BONEMEAL_EXTRA
+     * @param validTarget {@link BonemealEvent#isValidBonemealTarget()}, computed
+     *                    in the event constructor
+     * @return {@code extras + 1} when taking over, counting the suppressed
+     *         vanilla application, or 0 to stand aside
+     */
+    static int resolveBonemealApplications(int extras, boolean validTarget) {
+        if (extras <= 0) return 0;
+        if (!validTarget) return 0;
+        return extras + 1;
     }
 
     @SubscribeEvent
