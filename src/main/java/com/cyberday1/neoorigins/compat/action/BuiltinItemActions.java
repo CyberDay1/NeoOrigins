@@ -116,7 +116,7 @@ public final class BuiltinItemActions {
                 .itemPattern("^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$")
                 .doc("Enchantment ids to strip; the plural form of enchantment, and may be used instead of or alongside it."),
             new FieldSpec("levels", FormFieldSpec.Kind.INTEGER, false)
-                .doc("Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ)."),
+                .doc("Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ). Nothing is clamped, which is upstream's behaviour: 0 subtracts nothing and a negative value raises the level."),
             new FieldSpec("reset_repair_cost", FormFieldSpec.Kind.BOOLEAN, false).def(false)
                 .doc("Also clear the stack's accumulated anvil repair cost (default false). Also read from the enclosing equipped_item_action.")));
     }
