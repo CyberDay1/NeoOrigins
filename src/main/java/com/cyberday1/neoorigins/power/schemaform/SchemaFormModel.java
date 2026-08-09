@@ -238,21 +238,29 @@ public final class SchemaFormModel {
         // list as `children` so an ArrayObjectRow renders a structured +/- list
         // instead of a raw-JSON box. An OBJECT with a FIXED set of inline
         // `properties` (item stack, effect instance, hud_render) captures the
-        // same way for an inline sub-form. Free-form objects / scalar-or-ref-less
-        // arrays keep an empty child list and fall to the raw-JSON box.
+        // same way for an inline sub-form. For an array of plain STRINGS capture
+        // items.pattern as itemPattern, which is what marks the field a scalar-string
+        // list and gets it an ArrayStringRow (a +/- list of text boxes) instead of a
+        // raw-JSON box; without this every schema-derived array read that null and
+        // ArrayStringRow was unreachable. Free-form objects / arrays that match none
+        // of the three keep an empty child list and fall to the raw-JSON box.
         String itemsRef = null;
+        String itemPattern = null;
         List<FormFieldSpec> children = List.of();
-        if (kind == FormFieldSpec.Kind.ARRAY && p.has("items")) {
+        if (kind == FormFieldSpec.Kind.ARRAY && p.has("items") && p.get("items").isJsonObject()) {
             JsonObject items = p.getAsJsonObject("items");
             if (items.has("$ref")) {
                 itemsRef = items.get("$ref").getAsString();
             } else if (items.has("properties")) {
                 children = mapChildren(items);
+            } else if (items.has("pattern") && items.get("pattern").isJsonPrimitive()) {
+                itemPattern = items.get("pattern").getAsString();
             }
         } else if (kind == FormFieldSpec.Kind.OBJECT && p.has("properties")) {
             children = mapChildren(p);
         }
-        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children);
+        return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children,
+            itemPattern);
     }
 
     /**

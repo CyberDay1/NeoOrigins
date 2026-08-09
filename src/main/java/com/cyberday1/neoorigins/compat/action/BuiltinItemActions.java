@@ -107,6 +107,13 @@ public final class BuiltinItemActions {
             new FieldSpec("enchantment", FormFieldSpec.Kind.STRING, false)
                 .doc("Single enchantment id to strip, e.g. minecraft:binding_curse."),
             new FieldSpec("enchantments", FormFieldSpec.Kind.ARRAY, false)
+                // Optional namespace: collectEnchantmentIds runs the entry through
+                // ResourceLocation.tryParse, which defaults a bare leaf to
+                // minecraft:, so a namespace-required pattern would reject ids the
+                // parser accepts. Also what marks this a scalar-string list, which
+                // is what gives both editors a per-entry widget instead of a
+                // raw-JSON box.
+                .itemPattern("^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$")
                 .doc("Enchantment ids to strip; the plural form of enchantment, and may be used instead of or alongside it."),
             new FieldSpec("levels", FormFieldSpec.Kind.INTEGER, false)
                 .doc("Levels to subtract from each named enchantment instead of removing it outright; one already at or below this level is removed. Omit to always remove outright (no default: absent and 0 differ)."),
