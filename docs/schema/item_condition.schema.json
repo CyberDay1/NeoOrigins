@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://neoorigins.example/schema/item_condition.schema.json",
   "title": "NeoOrigins Item Condition",
-  "description": "A nested item condition used by equipped_item / modify_inventory. The `type` field discriminates.",
+  "description": "A nested item condition used by equipped_item / modify_inventory. The `type` field discriminates, and is optional: a typeless object carrying a bare `id`, `item` or `tag` is a shorthand the parser also accepts.",
   "type": "object",
   "properties": {
     "type": {
