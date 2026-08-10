@@ -24,14 +24,12 @@ import net.minecraft.world.effect.MobEffects;
  */
 public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Config> {
 
-    private static final PhantomFormPower INSTANCE = new PhantomFormPower();
     private static final java.util.Set<String> CAPS = java.util.Set.of("no_physics");
 
     /** Returns true if the player has phantom form granted AND toggled on. */
     public static boolean isActive(ServerPlayer player) {
-        return com.cyberday1.neoorigins.service.ActiveOriginService.has(
-            player, PhantomFormPower.class,
-            config -> !INSTANCE.isToggledOff(player, config));
+        return com.cyberday1.neoorigins.service.ActiveOriginService.hasToggledOn(
+            player, PhantomFormPower.class);
     }
 
     @Override

@@ -360,6 +360,37 @@ public class PlayerOriginData {
         else toggledOffPowers.remove(toggleKey);
     }
 
+    /**
+     * Toggle state, reading the power's own key and falling back to the key
+     * shape used before 2.2.24.
+     *
+     * <p>Toggle keys used to be derived from the power's CONFIG rather than its
+     * id, so two powers of one type could share a single flag — that was the
+     * bug. Keys are now the power's resource id, which orphans every flag
+     * already written into a save. Reading the legacy key as a fallback is what
+     * stops a player's toggles all springing back on when they update.
+     *
+     * <p>Reading rather than rewriting on load is deliberate. Where the old key
+     * was shared, both powers still see "off", which is what the player last
+     * chose; a migration pass would have to pick one of them. The legacy entry
+     * is dropped by {@link #setPowerToggledOff(String, String, boolean)} the
+     * first time either power is toggled, so saves heal as they are played.
+     */
+    public boolean isPowerToggledOff(String toggleKey, String legacyKey) {
+        return toggledOffPowers.contains(toggleKey)
+            || (legacyKey != null && toggledOffPowers.contains(legacyKey));
+    }
+
+    /**
+     * Writes the toggle flag under the power's own key and retires the legacy
+     * key at the same time, so the fallback above stops applying to this power
+     * once the player has actually used it.
+     */
+    public void setPowerToggledOff(String toggleKey, String legacyKey, boolean off) {
+        if (legacyKey != null && !legacyKey.equals(toggleKey)) toggledOffPowers.remove(legacyKey);
+        setPowerToggledOff(toggleKey, off);
+    }
+
     public void clearToggles() {
         toggledOffPowers.clear();
     }
