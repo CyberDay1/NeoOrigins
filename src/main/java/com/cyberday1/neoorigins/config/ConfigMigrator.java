@@ -18,6 +18,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -54,6 +55,13 @@ import java.util.Set;
  * {@code serverconfig/neoorigins/content.toml} (picked up on the next boot)
  * AND its values are pushed into the just-loaded in-memory config so they
  * apply this boot too.
+ *
+ * <p>Boot time is also the only place a WRITTEN value can be healed, which is
+ * what {@link #healedDrainRateTicks} is for: once a spec is registered NeoForge
+ * has already corrected the file, and it only corrects keys that are missing or
+ * out of range, so a stale-but-valid default survives forever. See that method
+ * for the {@code config_version} stamp that makes "this file predates the
+ * change" a fact rather than a guess.
  */
 public final class ConfigMigrator {
 
@@ -96,6 +104,105 @@ public final class ConfigMigrator {
             } catch (IOException e) {
                 NeoOrigins.LOGGER.error("[config] Failed to migrate neoorigins-hud.json", e);
             }
+        }
+
+        // Runs last: migrateCommon may have only just created gameplay.toml out
+        // of the legacy monolithic file, stale value and all.
+        healGameplayConfig(newDir.resolve("gameplay.toml"));
+    }
+
+    // ── One-time value heals (gameplay.toml) ────────────────────────────
+
+    private static final List<String> CONFIG_VERSION_PATH = List.of("config_version");
+    private static final List<String> DRAIN_RATE_PATH = List.of("ocean_origins", "drain_rate_ticks");
+
+    /** The {@code drain_rate_ticks} default shipped up to and including v2.2.21. */
+    static final int STALE_DRAIN_RATE_TICKS = 10;
+
+    /**
+     * The {@code drain_rate_ticks} default from v2.2.22 onwards: one tick per air
+     * point, so 300 air = 15 seconds on land, matching vanilla cod and salmon.
+     * Kept as a literal rather than read off the spec so the decision logic stays
+     * testable without booting {@link GameplayConfig}; it must match the default
+     * declared for {@code [ocean_origins] drain_rate_ticks} there.
+     */
+    static final int CURRENT_DRAIN_RATE_TICKS = 1;
+
+    /**
+     * Decides what {@code [ocean_origins] drain_rate_ticks} should become.
+     *
+     * <p>The default changed from {@value #STALE_DRAIN_RATE_TICKS} to
+     * {@value #CURRENT_DRAIN_RATE_TICKS} in v2.2.22, but {@code ModConfigSpec}
+     * only ever corrects keys that are missing or out of range, and 10 is inside
+     * the declared {@code [1, 1200]} range. So every file written by v2.2.21 or
+     * earlier is pinned at 10 forever, and users read that as "15 seconds per air
+     * bubble".
+     *
+     * <p>A 10 in the file cannot be told apart from a 10 the admin deliberately
+     * chose by looking at the value, so the age of the FILE is what decides: a
+     * file with no {@code config_version} key provably predates the change,
+     * because every version that knows about the key writes it. Once the stamp is
+     * there the value is the admin's, whatever it is. And only an exact 10 is
+     * touched: any other value was necessarily typed by hand.
+     *
+     * @param configVersionPresent whether the raw TOML already carries a
+     *                             {@code config_version} key
+     * @param current              the value currently in the file
+     * @return the value the file should hold: {@code current} unless this is a
+     *         pre-stamp file still sitting on the stale default
+     */
+    static int healedDrainRateTicks(boolean configVersionPresent, int current) {
+        if (configVersionPresent) return current; // already stamped: the value is the admin's
+        if (current != STALE_DRAIN_RATE_TICKS) return current; // deliberate: leave it
+        return CURRENT_DRAIN_RATE_TICKS;
+    }
+
+    /**
+     * Applies {@link #healedDrainRateTicks} to the raw {@code gameplay.toml} and
+     * stamps it, before any spec is registered. Reads the file as plain TOML on
+     * purpose: this has to see what the user's file actually says, ahead of
+     * NeoForge's correction pass.
+     *
+     * <p>Everything here is best-effort. A config file the mod cannot read or
+     * rewrite must never stop the mod from loading, so all failures log and
+     * return.
+     */
+    static void healGameplayConfig(Path gameplay) {
+        // Fresh install: no file yet, and the spec will create it with the
+        // current defaults. Nothing to heal, and nothing to stamp either.
+        if (!Files.exists(gameplay)) return;
+
+        try {
+            CommentedConfig parsed = parseToml(gameplay);
+            if (parsed == null) return;
+
+            // The stamp is the whole mechanism: once it is there, hands off, forever.
+            if (parsed.contains(CONFIG_VERSION_PATH)) return;
+
+            Object raw = parsed.get(DRAIN_RATE_PATH);
+            if (raw instanceof Number number) {
+                int current = number.intValue();
+                int healed = healedDrainRateTicks(false, current);
+                if (healed != current) {
+                    parsed.set(DRAIN_RATE_PATH, healed);
+                    NeoOrigins.LOGGER.info(
+                        "[config] One-time fix: [ocean_origins] drain_rate_ticks in "
+                            + "config/neoorigins/gameplay.toml moved from {} to {}. Your gameplay.toml "
+                            + "predates 2.2.22, when {} was the default, and a value already in range is "
+                            + "never re-defaulted, so it stayed there: that is 15 seconds per air bubble "
+                            + "instead of 1.5. If you chose {} deliberately, set it back and it will be "
+                            + "left alone from now on.",
+                        current, healed, STALE_DRAIN_RATE_TICKS, STALE_DRAIN_RATE_TICKS);
+                }
+            }
+
+            // Stamped whether or not anything was healed: that is what stops this
+            // from reconsidering the admin's value on the next boot.
+            parsed.set(CONFIG_VERSION_PATH, GameplayConfig.CURRENT_CONFIG_VERSION);
+            writeInPlace(parsed, gameplay);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.error("[config] Failed to check {} for one-time migrations — leaving it untouched",
+                gameplay, e);
         }
     }
 
@@ -202,6 +309,33 @@ public final class ConfigMigrator {
             return true;
         } catch (Exception e) {
             NeoOrigins.LOGGER.error("[config] Failed to write migrated config {}", target, e);
+            return false;
+        }
+    }
+
+    /**
+     * Overwrites an existing config file with {@code config}. Separate from
+     * {@link #writeIfAbsent} on purpose: that one refuses to clobber a file that
+     * exists, which is exactly right for the legacy-file migration and exactly
+     * wrong for an in-place edit. Writes to a sibling temp file and moves it into
+     * place, so a failure part-way through leaves the user's config intact rather
+     * than truncated. Returns false on I/O failure.
+     */
+    private static boolean writeInPlace(CommentedConfig config, Path target) {
+        Path tmp = target.resolveSibling(target.getFileName() + ".tmp");
+        try {
+            try (Writer writer = Files.newBufferedWriter(tmp)) {
+                new TomlWriter().write(config, writer);
+            }
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.error("[config] Failed to rewrite config {} — leaving it untouched", target, e);
+            try {
+                Files.deleteIfExists(tmp);
+            } catch (IOException ignored) {
+                // best effort; a stray .tmp is harmless
+            }
             return false;
         }
     }
