@@ -46,7 +46,7 @@ public final class Toggles {
             @SuppressWarnings({"unchecked", "rawtypes"})
             com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower toggle =
                 (com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type();
-            return !toggle.isToggledOff(sp, holder.config());
+            return !toggle.isToggledOff(sp, holder.config(), holder.id());
         }
         // Fall back to compat TogglePower facade
         boolean def = resolveDefault(powerId);

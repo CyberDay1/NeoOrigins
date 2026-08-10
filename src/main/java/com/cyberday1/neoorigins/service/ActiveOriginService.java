@@ -269,11 +269,38 @@ public final class ActiveOriginService {
             if (!holder.isConditionSatisfied(player)) continue;
             if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
                     && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
-                            .isToggledOff(player, holder.config())) {
+                            .isToggledOff(player, holder.config(), holder.id())) {
                 continue;
             }
             action.accept((C) holder.config());
         }
+    }
+
+    /**
+     * True if the player has a toggle power of this type that is granted, has
+     * its condition satisfied, and is not currently toggled off.
+     *
+     * <p>Callers used to write this as {@code has(player, X.class, cfg ->
+     * !INSTANCE.isToggledOff(player, cfg))} against a static power instance.
+     * That worked while toggle keys came from the config, but since 2.2.24 the
+     * key is the power's resource id, and the id is only ambient inside a
+     * {@link PowerHolder} dispatch. A predicate gets the config and nothing
+     * else, so it would resolve the pre-2.2.24 fallback key and keep reporting
+     * the power on after the player had switched it off. Holding the holder is
+     * the only way to answer correctly.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static boolean hasToggledOn(ServerPlayer player,
+            Class<? extends com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>> typeClass) {
+        for (PowerHolder<?> holder : getOrBuild(player).allPowers) {
+            if (!typeClass.isInstance(holder.type())) continue;
+            if (!holder.isConditionSatisfied(player)) continue;
+            if (!((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
+                    .isToggledOff(player, holder.config(), holder.id())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Returns true if the player has a power of the given type satisfying the predicate. */
@@ -333,7 +360,7 @@ public final class ActiveOriginService {
             if (!holder.isConditionSatisfied(player)) continue;
             if (holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower<?>
                     && ((com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower) holder.type())
-                            .isToggledOff(player, holder.config())) {
+                            .isToggledOff(player, holder.config(), holder.id())) {
                 continue;
             }
             if (((PowerHolder) holder).type().capabilities(holder.config()).contains(tag)) {

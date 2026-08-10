@@ -2,7 +2,9 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import net.minecraft.resources.Identifier;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.action.ActionParser;
@@ -168,17 +170,40 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
         return config.activation().equals(ACTIVE) || config.toggleable();
     }
 
-    /** Per-instance toggle key so multiple toggleable auras on one player don't
-     *  share a single on/off flag. */
+    /**
+     * Per-instance toggle key: the aura's own resource id.
+     *
+     * <p>This used to be class + type + {@code interval}. Class and type are
+     * constant for this power type, so {@code interval} was the ONLY thing
+     * telling two auras apart, and two auras that happened to share an interval
+     * (20 by default, so most of them) shared one on/off flag — activating one
+     * activated the other. Giving different intervals looked like a fix and was
+     * only ever a way of making the keys differ.
+     */
     private String toggleKey(Config config) {
+        return toggleKey(PowerHolder.currentDispatchId(), config);
+    }
+
+    String toggleKey(Identifier id, Config config) {
+        return id != null ? id.toString() : legacyToggleKey(config);
+    }
+
+    /** The pre-2.2.24 shared key, read as a fallback so saved toggles survive. */
+    String legacyToggleKey(Config config) {
         return getClass().getName() + ':' + config.type() + ':' + config.interval();
     }
 
     /** Current toggle state for HUD sync: true when this aura has a keybind and
      *  is switched off. */
     public boolean isToggledOff(ServerPlayer player, Config config) {
+        return isToggledOff(player, config, PowerHolder.currentDispatchId());
+    }
+
+    /** As above, for callers outside a {@link PowerHolder} dispatch (the HUD sync). */
+    public boolean isToggledOff(ServerPlayer player, Config config, Identifier id) {
         if (!hasToggle(config)) return false;
-        return player.getData(OriginAttachments.originData()).isPowerToggledOff(toggleKey(config));
+        return player.getData(OriginAttachments.originData())
+            .isPowerToggledOff(toggleKey(id, config), legacyToggleKey(config));
     }
 
     @Override
@@ -188,7 +213,7 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
         // default on — so it starts in the right state and the player opts in.
         if (hasToggle(config) && config.defaultOff()) {
             player.getData(OriginAttachments.originData())
-                .setPowerToggledOff(toggleKey(config), true);
+                .setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
         }
     }
 
@@ -196,7 +221,7 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
     public void onRevoked(ServerPlayer player, Config config) {
         if (hasToggle(config)) {
             player.getData(OriginAttachments.originData())
-                .setPowerToggledOff(toggleKey(config), false);
+                .setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
         }
     }
 
@@ -205,13 +230,13 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
         // Only toggleable auras bind a key — flip the maintained on/off state.
         if (!hasToggle(config)) return;
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        boolean wasOff = data.isPowerToggledOff(toggleKey(config));
+        boolean wasOff = data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config));
         if (wasOff) {
-            data.setPowerToggledOff(toggleKey(config), false);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
-            data.setPowerToggledOff(toggleKey(config), true);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
         }
@@ -223,12 +248,12 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
 
         if (hasToggle(config)) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            if (data.isPowerToggledOff(toggleKey(config))) return;
+            if (data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config))) return;
             // Active auras pay upkeep for each pulse; if the holder can't afford
             // it the aura switches itself off (the "cost to keep it up").
             // Toggleable passives are free, so they skip the charge.
             if (config.activation().equals(ACTIVE) && !payUpkeep(player, config)) {
-                data.setPowerToggledOff(toggleKey(config), true);
+                data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
                 player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                     .withStyle(ChatFormatting.RED));
                 return;
