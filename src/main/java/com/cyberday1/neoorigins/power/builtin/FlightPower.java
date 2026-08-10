@@ -8,12 +8,21 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Toggleable mid-air launch into elytra-style flight, activated by a jump in mid-air
+ * ({@code AirJumpPayload}) rather than by the natural-glide path.
+ *
+ * <p>Like {@code neoorigins:natural_glide}, the flight runs with an empty chest slot, so
+ * vanilla draws no wings. {@code render_elytra} opts into the cosmetic wings through the
+ * same capability encoding ({@link ElytraFlightPower#addRenderCaps}), and defaults to
+ * {@code false} so existing packs keep the wingless look.
+ */
 public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
     private static final FlightPower INSTANCE = new FlightPower();
-    private static final Set<String> CAPS = Set.of("flight");
 
     /** Returns true if the player has the flight power granted AND toggled on. */
     public static boolean isActive(ServerPlayer player) {
@@ -23,11 +32,15 @@ public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
     public record Config(String type,
         String cooldownIcon,
-        boolean alwaysShowIcon) implements PowerConfiguration, HudIconConfig {
+        boolean alwaysShowIcon,
+        boolean renderElytra,
+        String textureLocation) implements PowerConfiguration, HudIconConfig {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
-            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon),
+            Codec.BOOL.optionalFieldOf("render_elytra", false).forGetter(Config::renderElytra),
+            Codec.STRING.optionalFieldOf("texture_location", "").forGetter(Config::textureLocation)
         ).apply(inst, Config::new));
     }
 
@@ -35,7 +48,12 @@ public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
     public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
-    public Set<String> capabilities(Config config) { return CAPS; }
+    public Set<String> capabilities(Config config) {
+        Set<String> caps = new HashSet<>();
+        caps.add("flight");
+        ElytraFlightPower.addRenderCaps(caps, config.renderElytra(), config.textureLocation());
+        return caps;
+    }
 
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {

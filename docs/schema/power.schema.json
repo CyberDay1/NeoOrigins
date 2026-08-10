@@ -3284,7 +3284,7 @@
           "const": "neoorigins:elytra_flight"
         },
         "render_elytra": {
-          "description": "When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way — this is purely cosmetic. When false, the player glides with no visible wings.",
+          "description": "When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. When false, the player glides with no visible wings.",
           "type": "boolean",
           "default": true
         },
@@ -3552,6 +3552,16 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "render_elytra": {
+          "description": "When true, a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. Defaults false, because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.",
+          "type": "boolean",
+          "default": false
+        },
+        "texture_location": {
+          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         }
       },
       "required": [
@@ -4767,6 +4777,16 @@
       "properties": {
         "type": {
           "const": "neoorigins:natural_glide"
+        },
+        "render_elytra": {
+          "description": "When true, a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. Defaults false, because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.",
+          "type": "boolean",
+          "default": false
+        },
+        "texture_location": {
+          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         }
       },
       "required": [

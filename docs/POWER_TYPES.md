@@ -498,24 +498,35 @@ Cancels the lethal blow instead of letting the player die. Faithful to Origins' 
 
 ## `neoorigins:flight`
 
-Grants the player creative-style free flight. The player can fly freely at any time without an elytra.
+Elytra-style fall-flight launched from a **mid-air jump**, as a toggle. While the toggle is on, jumping again in mid-air spreads the player's wings and starts fall-flying without an equipped elytra; toggling the power off lands them. It is not creative hover: for that, see `neoorigins:creative_flight` below.
 
-No additional fields beyond `name` and `description`.
+The launch is refused on the ground, in water, while riding, in spectator, and while already fall-flying.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `cooldown_icon` | string | no | `""` | HUD icon (joins the ability cluster); full-bright while toggled on, dimmed while off |
+| `always_show_icon` | boolean | no | `false` | Keep the icon on the HUD even while toggled off |
+| `render_elytra` | boolean | no | `false` | Whether an elytra is drawn on the player's back while flying. Flight works either way; this is cosmetic only. |
+| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra. Only applies when `render_elytra` is true; the model stays the vanilla elytra. |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:flight",
+  "render_elytra": true,
+  "cooldown_icon": "minecraft:elytra",
   "name": "Natural Flight",
-  "description": "Can fly freely without an elytra."
+  "description": "Jump again in mid-air to take to the sky, no elytra required."
 }
 ```
+
+As with `neoorigins:natural_glide`, the flight runs with an empty chest slot, so nothing is drawn on the player's back unless `render_elytra` is set. See the note under `natural_glide` for why that defaults off.
 
 ---
 
 ## `neoorigins:creative_flight`
 
-True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` (always-on) and unlike `natural_glide` (an elytra/fall-flying mechanic), this grants real `mayfly` hover: the player keeps solid block collision, normal visibility and gravity when not flying. Double-tap jump to take off, then jump to rise and sneak to descend, exactly like creative mode. Intended for "ride the sword" / levitating-cultivator fantasies.
+True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` and `natural_glide`, which are both elytra/fall-flying mechanics, this grants real `mayfly` hover: the player keeps solid block collision, normal visibility and gravity when not flying. Double-tap jump to take off, then jump to rise and sneak to descend, exactly like creative mode. Intended for "ride the sword" / levitating-cultivator fantasies.
 
 The flight abilities are re-pushed to the client every tick to survive sync races. When the power is removed or toggled off, survival defaults are restored, but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
 
@@ -3867,20 +3878,24 @@ Emits the `natural_glide` capability tag. The `PlayerStartFallFlyingMixin` reads
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| (no fields) | — | — | — | Marker power. |
+| `render_elytra` | boolean | no | `false` | Whether an elytra is drawn on the player's back while fall-flying. Flight works either way; this is cosmetic only. Defaults `false`: this power glides with no visible wings unless you ask for them. |
+| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra, e.g. `mymod:textures/entity/my_wings.png`. Only applies when `render_elytra` is true; the model stays the vanilla elytra (texture swap only). Omit for the vanilla elytra texture. |
 
 **Example: Phantom spectral wings**
 ```json
 {
   "type": "neoorigins:natural_glide",
+  "render_elytra": true,
   "name": "Spectral Wings",
-  "description": "Glide like an elytra user — no item required. Press jump while falling to spread your wings."
+  "description": "Glide like an elytra user, no item required. Press jump while falling to spread your wings."
 }
 ```
 
 Preconditions match vanilla: not on ground, not already fall-flying, not in water, not levitating. Pair with `neoorigins:elytra_boost` for a full glide + launch-boost kit.
 
-Contrast with `neoorigins:flight`: flight is creative-mode-style (hold space to ascend, fly freely). `natural_glide` is pitch-based gliding like a real elytra user.
+**Why wings need asking for.** The glide runs with an empty chest slot, and vanilla's elytra render layer keys off the equipped item, so without `render_elytra` the player flies with nothing on their back. The field defaults `false` here rather than `true` so packs authored against the wingless behaviour keep it, including origins that already supply their own wing model. `neoorigins:elytra_flight` is the same mechanic with the default flipped on.
+
+Contrast with `neoorigins:flight`: both are pitch-based elytra gliding, but `flight` is a toggle launched by a mid-air jump, while `natural_glide` is always available and starts from a fall. For creative-mode hover, see `neoorigins:creative_flight`.
 
 ---
 

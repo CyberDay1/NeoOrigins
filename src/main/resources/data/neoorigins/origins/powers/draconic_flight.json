@@ -1,1 +1,1 @@
-{ "type": "neoorigins:flight", "cooldown_icon": "minecraft:elytra" }
+{ "type": "neoorigins:flight", "render_elytra": true, "cooldown_icon": "minecraft:elytra" }
