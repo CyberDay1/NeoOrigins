@@ -34,17 +34,33 @@ class FlightWingRenderCapsTest {
     private static final String TEX = ElytraFlightPower.CAP_TEXTURE_PREFIX;
 
     private static Set<String> glideCaps(String json) {
-        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+        JsonObject obj = parseAndPinType(json, "neoorigins:natural_glide");
         var cfg = NaturalGlidePower.Config.CODEC.parse(JsonOps.INSTANCE, obj)
             .getOrThrow(msg -> new AssertionError("decode failed: " + msg));
         return new NaturalGlidePower().capabilities(cfg);
     }
 
     private static Set<String> flightCaps(String json) {
-        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+        JsonObject obj = parseAndPinType(json, "neoorigins:flight");
         var cfg = FlightPower.Config.CODEC.parse(JsonOps.INSTANCE, obj)
             .getOrThrow(msg -> new AssertionError("decode failed: " + msg));
         return new FlightPower().capabilities(cfg);
+    }
+
+    /**
+     * Parse, and pin the declared power type while doing it. Decoding alone will not
+     * pin it: every Config CODEC reads {@code type} as an optional string defaulting
+     * to empty, so a shipped file re-pointed at some other power type still decodes
+     * cleanly through the codec named here, and every caps assertion below would stay
+     * green while the origin quietly lost its wings in game. Being wired to a power
+     * type that cannot ask for wings is the whole of #122, so a test that does not
+     * pin the type is not testing the bug it was written for.
+     */
+    private static JsonObject parseAndPinType(String json, String expected) {
+        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+        assertEquals(expected, obj.has("type") ? obj.get("type").getAsString() : null,
+            "declared power type must stay " + expected);
+        return obj;
     }
 
     /** Read one of the mod's own shipped power files off the test classpath. */
