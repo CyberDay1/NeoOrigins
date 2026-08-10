@@ -233,10 +233,10 @@ public class NeoOriginsClientEvents {
     }
 
     /**
-     * Adds the {@code neoorigins:elytra_flight} render layer to the avatar
-     * renderer(s). The layer draws a vanilla elytra on the back of players gliding
-     * via that power (with render_elytra on) who aren't wearing a real equipped
-     * elytra. Fired on the mod event bus (see NeoOrigins client setup).
+     * Adds the cosmetic elytra render layer to the avatar renderer(s). The layer
+     * draws a vanilla elytra on the back of players gliding via any flight power
+     * with render_elytra on, who aren't wearing a real equipped elytra. Fired on
+     * the mod event bus (see NeoOrigins client setup).
      *
      * <p><b>26.2 port note.</b> The player renderer is {@code AvatarRenderer} and
      * {@code AddLayers} exposes skins as {@code PlayerModelType} via
