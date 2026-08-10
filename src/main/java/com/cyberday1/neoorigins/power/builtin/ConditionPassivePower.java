@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -17,6 +18,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -116,16 +118,36 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
     @Override
     public boolean isActivePower(Config config) { return config.toggleable(); }
 
-    /** Per-instance toggle key so multiple toggleable condition_passive powers
-     *  on one player don't share a single flag. */
+    /**
+     * Per-instance toggle key: the power's own resource id.
+     *
+     * <p>This used to be class + type + {@code interval}, and since class and
+     * type are constant here, {@code interval} was the only discriminator: two
+     * toggleable condition_passive powers sharing an interval shared one flag.
+     */
     private String toggleKey(Config config) {
+        return toggleKey(PowerHolder.currentDispatchId(), config);
+    }
+
+    String toggleKey(ResourceLocation id, Config config) {
+        return id != null ? id.toString() : legacyToggleKey(config);
+    }
+
+    /** The pre-2.2.24 shared key, read as a fallback so saved toggles survive. */
+    String legacyToggleKey(Config config) {
         return getClass().getName() + ':' + config.type() + ':' + config.interval();
     }
 
     /** Current toggle state for HUD sync: true when toggleable and switched off. */
     public boolean isToggledOff(ServerPlayer player, Config config) {
+        return isToggledOff(player, config, PowerHolder.currentDispatchId());
+    }
+
+    /** As above, for callers outside a {@link PowerHolder} dispatch (the HUD sync). */
+    public boolean isToggledOff(ServerPlayer player, Config config, ResourceLocation id) {
         if (!config.toggleable()) return false;
-        return player.getData(OriginAttachments.originData()).isPowerToggledOff(toggleKey(config));
+        return player.getData(OriginAttachments.originData())
+            .isPowerToggledOff(toggleKey(id, config), legacyToggleKey(config));
     }
 
     @Override
@@ -134,7 +156,7 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
         // power starts disabled and the player opts in via the keybind.
         if (config.toggleable() && config.defaultOff()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            data.setPowerToggledOff(toggleKey(config), true);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
         }
     }
 
@@ -142,13 +164,13 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
     public void onActivated(ServerPlayer player, Config config) {
         if (!config.toggleable()) return;
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        boolean wasOff = data.isPowerToggledOff(toggleKey(config));
+        boolean wasOff = data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config));
         if (wasOff) {
-            data.setPowerToggledOff(toggleKey(config), false);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
-            data.setPowerToggledOff(toggleKey(config), true);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
         }
@@ -157,7 +179,7 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setPowerToggledOff(toggleKey(config), false);
+        data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
     }
 
     @Override
@@ -165,7 +187,7 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
         if (player.tickCount % config.interval() != 0) return;
         if (config.toggleable()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            if (data.isPowerToggledOff(toggleKey(config))) return;
+            if (data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config))) return;
         }
         if (config.condition().test(player)) {
             config.action().execute(player);

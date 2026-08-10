@@ -1,11 +1,13 @@
 package com.cyberday1.neoorigins.power.builtin.base;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 public abstract class AbstractTogglePower<C extends PowerConfiguration> extends PowerType<C> {
@@ -17,15 +19,16 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     public final void onActivated(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         String key = getToggleKey(config);
-        boolean wasOff = data.isPowerToggledOff(key);
+        String legacy = getLegacyToggleKey(config);
+        boolean wasOff = data.isPowerToggledOff(key, legacy);
 
         if (wasOff) {
-            data.setPowerToggledOff(key, false);
+            data.setPowerToggledOff(key, legacy, false);
             onToggledOn(player, config);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
-            data.setPowerToggledOff(key, true);
+            data.setPowerToggledOff(key, legacy, true);
             removeEffect(player, config);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
@@ -46,7 +49,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     @Override
     public void onRevoked(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setPowerToggledOff(getToggleKey(config), false);
+        data.setPowerToggledOff(getToggleKey(config), getLegacyToggleKey(config), false);
         removeEffect(player, config);
     }
 
@@ -63,8 +66,19 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     protected void onToggledOn(ServerPlayer player, C config) {}
 
     public boolean isToggledOff(ServerPlayer player, C config) {
+        return isToggledOff(player, config, PowerHolder.currentDispatchId());
+    }
+
+    /**
+     * Toggle state for a named power, for callers that are not inside a
+     * {@link PowerHolder} dispatch and so cannot rely on the ambient id. The HUD
+     * sync reads holders directly, and without this it would resolve the legacy
+     * key and report a stale answer once the player had actually toggled
+     * anything.
+     */
+    public boolean isToggledOff(ServerPlayer player, C config, ResourceLocation id) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        return data.isPowerToggledOff(getToggleKey(config));
+        return data.isPowerToggledOff(toggleKeyFor(id, config), getLegacyToggleKey(config));
     }
 
     /**
@@ -73,7 +87,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
      */
     protected void setToggledOff(ServerPlayer player, C config, boolean off) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setPowerToggledOff(getToggleKey(config), off);
+        data.setPowerToggledOff(getToggleKey(config), getLegacyToggleKey(config), off);
     }
 
     /**
@@ -90,12 +104,34 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     }
 
     /**
-     * Per-instance toggle key. Subclasses with multiple configurations on a
-     * single player (e.g. StatusEffectPower where several status_effect powers
-     * coexist) must override to include a config-derived discriminator —
-     * otherwise all instances share one toggle state.
+     * Per-instance toggle key: the power's own resource id, so two powers of the
+     * same type on one player keep independent toggle state.
+     *
+     * <p>This used to return {@code getClass().getName()} and nothing else, with
+     * a note telling subclasses to override it with a config-derived
+     * discriminator. No subclass ever did, so every pair of same-type toggles on
+     * a player shared one flag: pressing the key on one silently flipped the
+     * other. Deriving the key from the id instead fixes it for all of them at
+     * once and cannot be forgotten by a new subclass, which is the same reason
+     * {@link com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower#getCooldownKey}
+     * already works this way.
      */
-    protected String getToggleKey(C config) {
+    protected final String getToggleKey(C config) {
+        return toggleKeyFor(PowerHolder.currentDispatchId(), config);
+    }
+
+    /** As {@link #getToggleKey}, for callers outside a {@link PowerHolder} dispatch. */
+    protected final String toggleKeyFor(ResourceLocation id, C config) {
+        return id != null ? id.toString() : getLegacyToggleKey(config);
+    }
+
+    /**
+     * The pre-2.2.24 toggle key, read as a fallback so flags already in a save
+     * survive the change. Subclasses that overrode the old key shape must
+     * override this with the SAME formula they used before, or their players'
+     * saved toggles will read as on after updating.
+     */
+    protected String getLegacyToggleKey(C config) {
         return getClass().getName();
     }
 }

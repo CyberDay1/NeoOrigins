@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -202,17 +203,34 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
      * {@code AbstractTogglePower}s.
      */
     public boolean isToggledOff(ServerPlayer player, Config config) {
+        return isToggledOff(player, config, PowerHolder.currentDispatchId());
+    }
+
+    /** As above, for callers outside a {@link PowerHolder} dispatch (the HUD sync). */
+    public boolean isToggledOff(ServerPlayer player, Config config, ResourceLocation id) {
         if (!config.toggleable()) return false;
-        return player.getData(OriginAttachments.originData()).isPowerToggledOff(toggleKey(config));
+        return player.getData(OriginAttachments.originData())
+            .isPowerToggledOff(toggleKey(id, config), legacyToggleKey(config));
     }
 
     /**
-     * Per-instance toggle key — includes the effect IDs so that multiple
-     * persistent_effect powers on the same player (e.g. Breeze's Cushion of
-     * Air and Updraft) don't share one toggle flag. Without this, pressing
-     * either keybind would flip both powers' state in lockstep.
+     * Per-instance toggle key: the power's own resource id.
+     *
+     * <p>This used to be built from the effect IDs, which separated Breeze's
+     * Cushion of Air from its Updraft but still collapsed any two powers
+     * granting the SAME effect into one flag — amplifier and duration were not
+     * part of the key, so two tiers of one buff shared a toggle.
      */
     private String toggleKey(Config config) {
+        return toggleKey(PowerHolder.currentDispatchId(), config);
+    }
+
+    String toggleKey(ResourceLocation id, Config config) {
+        return id != null ? id.toString() : legacyToggleKey(config);
+    }
+
+    /** The pre-2.2.24 effect-derived key, read as a fallback so saved toggles survive. */
+    String legacyToggleKey(Config config) {
         if (config.effects().isEmpty()) return getClass().getName();
         StringBuilder sb = new StringBuilder(getClass().getName());
         for (EffectSpec spec : config.effects()) {
@@ -231,7 +249,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         // immediately apply the effect on the next tick.
         if (config.toggleable() && config.defaultOff()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            data.setPowerToggledOff(toggleKey(config), true);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
         }
     }
 
@@ -239,13 +257,13 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public void onActivated(ServerPlayer player, Config config) {
         if (!config.toggleable()) return;
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        boolean wasOff = data.isPowerToggledOff(toggleKey(config));
+        boolean wasOff = data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config));
         if (wasOff) {
-            data.setPowerToggledOff(toggleKey(config), false);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
                 .withStyle(ChatFormatting.GREEN));
         } else {
-            data.setPowerToggledOff(toggleKey(config), true);
+            data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
             clearEffects(player, config);
             player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
                 .withStyle(ChatFormatting.RED));
@@ -256,7 +274,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public void onTick(ServerPlayer player, Config config) {
         if (config.toggleable()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
-            if (data.isPowerToggledOff(toggleKey(config))) return;
+            if (data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config))) return;
         }
         if (!config.condition().test(player)) {
             // Condition now false: clear our effects so the player isn't permanently buffed.
@@ -375,7 +393,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
-        data.setPowerToggledOff(toggleKey(config), false);
+        data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
         clearEffects(player, config);
     }
 

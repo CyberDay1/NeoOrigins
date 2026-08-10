@@ -22,12 +22,9 @@ import java.util.Set;
  */
 public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
-    private static final FlightPower INSTANCE = new FlightPower();
-
     /** Returns true if the player has the flight power granted AND toggled on. */
     public static boolean isActive(ServerPlayer player) {
-        return ActiveOriginService.has(player, FlightPower.class,
-            config -> !INSTANCE.isToggledOff(player, config));
+        return ActiveOriginService.hasToggledOn(player, FlightPower.class);
     }
 
     public record Config(String type,

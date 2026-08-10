@@ -173,11 +173,18 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
     @Override
     public boolean isActivePower(Config config) { return !config.alwaysOn(); }
 
-    /** When always_on, never report as toggled off. */
+    /**
+     * When always_on, never report as toggled off.
+     *
+     * <p>Overrides the id-taking form rather than the two-arg one: the two-arg
+     * form delegates here, so this covers both, whereas overriding only the
+     * two-arg form would let every caller that holds a power id (the HUD sync,
+     * the capability probe) skip the always_on short-circuit.
+     */
     @Override
-    public boolean isToggledOff(ServerPlayer player, Config config) {
+    public boolean isToggledOff(ServerPlayer player, Config config, net.minecraft.resources.ResourceLocation id) {
         if (config.alwaysOn()) return false;
-        return super.isToggledOff(player, config);
+        return super.isToggledOff(player, config, id);
     }
 
     @Override

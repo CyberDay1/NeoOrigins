@@ -1504,15 +1504,15 @@ public class NeoOriginsNetwork {
         if (holder.type() instanceof AbstractTogglePower<?>) {
             @SuppressWarnings({"unchecked", "rawtypes"})
             AbstractTogglePower tp = (AbstractTogglePower) holder.type();
-            return tp.isToggledOff(player, holder.config());
+            return tp.isToggledOff(player, holder.config(), holder.id());
         }
         if (holder.type() instanceof PersistentEffectPower pep
                 && holder.config() instanceof PersistentEffectPower.Config pc) {
-            return pep.isToggledOff(player, pc);
+            return pep.isToggledOff(player, pc, holder.id());
         }
         if (holder.type() instanceof ConditionPassivePower cpp
                 && holder.config() instanceof ConditionPassivePower.Config cc) {
-            return cpp.isToggledOff(player, cc);
+            return cpp.isToggledOff(player, cc, holder.id());
         }
         return false;
     }

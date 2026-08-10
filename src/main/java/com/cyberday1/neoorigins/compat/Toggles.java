@@ -44,7 +44,7 @@ public final class Toggles {
         var holder = PowerDataManager.INSTANCE.getPower(id);
         if (holder != null && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower toggle
                 && player instanceof net.minecraft.server.level.ServerPlayer sp) {
-            return !toggle.isToggledOff(sp, holder.config());
+            return !toggle.isToggledOff(sp, holder.config(), holder.id());
         }
         // Fall back to compat TogglePower facade
         boolean def = resolveDefault(powerId);
