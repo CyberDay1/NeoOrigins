@@ -6,7 +6,7 @@
 # files-scanned: 919   typed-objects: 1370   distinct-types: 148
 
 == RECOGNIZED VERBS ==
-[action] (92)
+[action] (93)
   neoorigins:activate_power
   neoorigins:actor_action
   neoorigins:add_to_set
@@ -52,6 +52,7 @@
   neoorigins:if_else_list
   neoorigins:ignite_attacker
   neoorigins:invert
+  neoorigins:kubejs_callback
   neoorigins:launch
   neoorigins:modify_food
   neoorigins:modify_inventory
@@ -407,6 +408,8 @@ neoorigins:dodge_chance	fields={chance}
 neoorigins:entity_group	fields={group}
 neoorigins:hide_hud_bar	fields={bar}
 neoorigins:item_magnetism	fields={always_show_icon,cooldown_icon,radius}
+neoorigins:js_custom	fields={js_id}
+neoorigins:js_active	fields={cooldown_ticks,hunger_cost,js_id}
 neoorigins:lava_vision	fields={end,start,strength}
 neoorigins:more_smoker_xp	fields={multiplier}
 neoorigins:sneaky	fields={detection_multiplier}

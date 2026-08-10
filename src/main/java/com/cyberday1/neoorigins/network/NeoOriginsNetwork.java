@@ -1025,6 +1025,16 @@ public class NeoOriginsNetwork {
             if (data.isHadAllOrigins()) {
                 com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                     sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
+                // KubeJS: originChosen is UI-specific (this pick came through the
+                // picker). originChanged is fired from inside applyOriginPowers, so
+                // admin /set, /reset and cascade invalidation are covered there.
+                // It rides the CHOSEN dispatch rather than the raw pick so a script
+                // listener sees the same ordering an entity_action_chosen does, and
+                // so the walkthrough deferral above applies to both alike.
+                if (oldOrigin == null) {
+                    com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireOriginChosen(
+                        sp, layerId, event.getNewOrigin());
+                }
             }
 
             // Cascade invalidation: if the player changed a parent layer,
@@ -1098,6 +1108,8 @@ public class NeoOriginsNetwork {
                     if (chosen != null) {
                         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, chosen);
+                        com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireOriginChosen(
+                            sp, l.id(), chosen);
                     }
                 }
             }

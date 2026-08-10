@@ -63,6 +63,10 @@ repositories {
         url = 'https://maven.ftb.dev/releases'           // FTB Ultimine / FTB Library
         content { includeGroup 'dev.ftb.mods' }
     }
+    maven {
+        url = 'https://maven.latvian.dev/releases'       // KubeJS
+        content { includeGroup 'dev.latvian.mods' }
+    }
 }
 
 dependencies {
@@ -127,6 +131,13 @@ dependencies {
     // maven has an outage (which has bitten this project before). AppleSkin is
     // Unlicense (public domain), so mirroring the signatures is unencumbered.
     // Descriptors verified with `javap` against appleskin-neoforge-mc26.1-3.0.9.jar.
+
+    // KubeJS – compile-only soft dep. Plugin entry + event group only
+    // classloaded when KubeJS is installed at runtime (KubeJSCompat.isLoaded()).
+    // This branch is on the KubeJS 8.x line, not the 1.21.1 branch's 7.x: the one
+    // API break that matters is KubeJSPlugin.clearCaches(), which 8.x dropped in
+    // favour of beforeScriptsLoaded(ScriptManager). See NeoOriginsKubeJSPlugin.
+    compileOnly "dev.latvian.mods:kubejs-neoforge:${property('deps.kubejs')}"
 }
 
 sourceSets {

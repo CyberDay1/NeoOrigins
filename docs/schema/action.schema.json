@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Fully-qualified action verb. `apace:` aliases are accepted.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:activate_power|actor_action|add_to_set|add_velocity|add_xp|all_of|and|apply_effect|area_of_effect|block_action_at|block_target_action|bonemeal|cancel_event|cast_iron_spell|cast_spell|chain_to_nearest|chance|change_resource|choice|clear_effect|command|crafting_table|damage|damage_attacker|dash|delay|dismount|drop_inventory|drop_items|dye|effect_on_attacker|emit_game_event|equipped_item_action|execute_command|exhaust|explode|extinguish|feed|fire_projectile|force_drop|gain_air|give|grant_power|grow|heal|if_else|if_else_list|ignite_attacker|invert|launch|modify_food|modify_inventory|modify_resource|modify_temperature|mount|nothing|offset|open_layer_picker|passenger_action|path|play_sound|pull_entities|random_teleport|raycast|remove_from_set|revoke_power|riding_action|selector_action|set_block|set_fall_distance|set_on_fire|set_resource|shear|spawn_black_hole|spawn_effect_cloud|spawn_entity|spawn_lingering_area|spawn_particles|spawn_projectile|spawn_projectile_rain|spawn_sword_rain|spawn_telegraph|spawn_tornado|steal_item|strip|swap_positions|swap_with_entity|swing_hand|tame_target|target_action|teleport_target_to_self|teleport_to_marker|teleport_to_target|throw_target|till|toggle|transform_block|trigger_cooldown)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:activate_power|actor_action|add_to_set|add_velocity|add_xp|all_of|and|apply_effect|area_of_effect|block_action_at|block_target_action|bonemeal|cancel_event|cast_iron_spell|cast_spell|chain_to_nearest|chance|change_resource|choice|clear_effect|command|crafting_table|damage|damage_attacker|dash|delay|dismount|drop_inventory|drop_items|dye|effect_on_attacker|emit_game_event|equipped_item_action|execute_command|exhaust|explode|extinguish|feed|fire_projectile|force_drop|gain_air|give|grant_power|grow|heal|if_else|if_else_list|ignite_attacker|invert|kubejs_callback|launch|modify_food|modify_inventory|modify_resource|modify_temperature|mount|nothing|offset|open_layer_picker|passenger_action|path|play_sound|pull_entities|random_teleport|raycast|remove_from_set|revoke_power|riding_action|selector_action|set_block|set_fall_distance|set_on_fire|set_resource|shear|spawn_black_hole|spawn_effect_cloud|spawn_entity|spawn_lingering_area|spawn_particles|spawn_projectile|spawn_projectile_rain|spawn_sword_rain|spawn_telegraph|spawn_tornado|steal_item|strip|swap_positions|swap_with_entity|swing_hand|tame_target|target_action|teleport_target_to_self|teleport_to_marker|teleport_to_target|throw_target|till|toggle|transform_block|trigger_cooldown)$"
     }
   },
   "oneOf": [
@@ -1363,6 +1363,28 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:kubejs_callback",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:kubejs_callback",
+            "apace:kubejs_callback",
+            "origins:kubejs_callback",
+            "apoli:kubejs_callback",
+            "apugli:kubejs_callback"
+          ]
+        },
+        "id": {
+          "description": "Id the script passed to NeoOrigins.registerCallback.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
       ]
     },
     {
@@ -3107,6 +3129,7 @@
               "apace:if_else_list",
               "apace:ignite_attacker",
               "apace:invert",
+              "apace:kubejs_callback",
               "apace:launch",
               "apace:modify_food",
               "apace:modify_inventory",
@@ -3205,6 +3228,7 @@
               "apoli:if_else_list",
               "apoli:ignite_attacker",
               "apoli:invert",
+              "apoli:kubejs_callback",
               "apoli:launch",
               "apoli:modify_food",
               "apoli:modify_inventory",
@@ -3303,6 +3327,7 @@
               "apugli:if_else_list",
               "apugli:ignite_attacker",
               "apugli:invert",
+              "apugli:kubejs_callback",
               "apugli:launch",
               "apugli:modify_food",
               "apugli:modify_inventory",
@@ -3401,6 +3426,7 @@
               "neoorigins:if_else_list",
               "neoorigins:ignite_attacker",
               "neoorigins:invert",
+              "neoorigins:kubejs_callback",
               "neoorigins:launch",
               "neoorigins:modify_food",
               "neoorigins:modify_inventory",
@@ -3499,6 +3525,7 @@
               "origins:if_else_list",
               "origins:ignite_attacker",
               "origins:invert",
+              "origins:kubejs_callback",
               "origins:launch",
               "origins:modify_food",
               "origins:modify_inventory",

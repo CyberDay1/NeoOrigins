@@ -396,6 +396,8 @@
         "neoorigins:invisibility",
         "neoorigins:invulnerability",
         "neoorigins:item_magnetism",
+        "neoorigins:js_active",
+        "neoorigins:js_custom",
         "neoorigins:keep_inventory",
         "neoorigins:kill_loot_drops",
         "neoorigins:knockback_modifier",
@@ -3977,6 +3979,48 @@
       ]
     },
     {
+      "$comment": "neoorigins:js_active",
+      "properties": {
+        "type": {
+          "const": "neoorigins:js_active"
+        },
+        "js_id": {
+          "description": "Id a script passed to NeoOrigins.registerActivePower(jsId, handler). The handler's onUse decides whether the activation succeeded; onGranted and onRevoked are optional. With KubeJS absent nothing is ever registered and the key does nothing.",
+          "type": "string"
+        },
+        "cooldown_ticks": {
+          "description": "Ticks before the key can be used again (20 = 1s). Only consumed when the script's onUse returns true.",
+          "type": "integer",
+          "default": 20
+        },
+        "hunger_cost": {
+          "description": "Hunger consumed per successful activation.",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type",
+        "js_id"
+      ]
+    },
+    {
+      "$comment": "neoorigins:js_custom",
+      "properties": {
+        "type": {
+          "const": "neoorigins:js_custom"
+        },
+        "js_id": {
+          "description": "Id a script passed to NeoOrigins.registerPower(jsId, handler). The handler's onGranted, onRevoked and onTick hooks drive this power. With KubeJS absent nothing is ever registered and the power does nothing.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "js_id"
+      ]
+    },
+    {
       "$comment": "neoorigins:keep_inventory",
       "properties": {
         "type": {
@@ -6961,6 +7005,8 @@
               "neoorigins:invisibility",
               "neoorigins:invulnerability",
               "neoorigins:item_magnetism",
+              "neoorigins:js_active",
+              "neoorigins:js_custom",
               "neoorigins:keep_inventory",
               "neoorigins:kill_loot_drops",
               "neoorigins:knockback_modifier",

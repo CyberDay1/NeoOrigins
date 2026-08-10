@@ -1876,12 +1876,26 @@ public final class BuiltinActions {
             List.of(new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
                 .doc("Action run at the entity's block position (BlockPos published to context).")));
 
+        // kubejs_callback — hand the acting player to a callback a script
+        // registered under `id` via NeoOrigins.registerCallback(id, fn).
+        // Soft dep: with KubeJS absent nothing can ever be registered, so the
+        // lookup misses and invoke() no-ops. Nothing KubeJS-typed is touched on
+        // this path — KubeJSCallbacks holds plain Consumer<ServerPlayer>.
+        define("kubejs_callback",
+            (json, ctx) -> {
+                if (!json.has("id")) {
+                    return ActionParser.failNoop("neoorigins:kubejs_callback", ctx, "missing 'id'");
+                }
+                String id = json.get("id").getAsString();
+                return player -> com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks.invoke(id, player);
+            },
+            List.of(new FieldSpec("id", FormFieldSpec.Kind.STRING, true)
+                .doc("Id the script passed to NeoOrigins.registerCallback.")));
+
         // swap_with_entity — swap positions (and look) with the nearest matching
         // living entity within `radius`. Lift-and-shift of parseSwapWithEntity.
         // `radius` optional (parser default 16); `target_condition` optional (parser
         // default always-true) and only applied to ServerPlayer candidates.
-        // (Source commit c960b6cd also migrated kubejs_callback; master has no such
-        // verb, so it is omitted here.)
         define("swap_with_entity",
             (json, ctx) -> {
                 final float radius = json.has("radius") ? json.get("radius").getAsFloat() : 16f;

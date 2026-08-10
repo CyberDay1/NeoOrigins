@@ -325,6 +325,16 @@ public final class BuiltinPowers {
             new FieldSpec("radius", Kind.NUMBER, false)
                 .def(4.0).doc("Blocks around the player within which dropped items are pulled in (default 4.0)."),
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+        define("js_custom", JsCustomPower.class, List.of(
+            new FieldSpec("js_id", Kind.STRING, true)
+                .doc("Id a script passed to NeoOrigins.registerPower(jsId, handler). The handler's onGranted, onRevoked and onTick hooks drive this power. With KubeJS absent nothing is ever registered and the power does nothing.")));
+        define("js_active", JsCustomActivePower.class, List.of(
+            new FieldSpec("js_id", Kind.STRING, true)
+                .doc("Id a script passed to NeoOrigins.registerActivePower(jsId, handler). The handler's onUse decides whether the activation succeeded; onGranted and onRevoked are optional. With KubeJS absent nothing is ever registered and the key does nothing."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(20).doc("Ticks before the key can be used again (20 = 1s). Only consumed when the script's onUse returns true."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).doc("Hunger consumed per successful activation.")));
         define("lava_vision", LavaVisionPower.class, List.of(
             new FieldSpec("strength", Kind.NUMBER, false)
                 .def(3.0).doc("Lava fog distance multiplier; higher sees farther in lava (default 3.0). Ignored for whichever plane sets start or end."),

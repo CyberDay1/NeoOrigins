@@ -187,6 +187,14 @@ public class PowerTypes {
     // --- Mounting ---
     public static final DeferredHolder<PowerType<?>, MountPower>       MOUNT        = reg("mount",         new MountPower());
 
+    // --- KubeJS-defined custom powers ---
+    // Two stable PowerType slots whose lifecycle/onUse hooks are looked up
+    // by `js_id` from JsPowerRegistry. Lets pack authors declare new power
+    // behaviors in JS without dynamic registry mutation. Soft dep — silent
+    // no-op when KubeJS is absent.
+    public static final DeferredHolder<PowerType<?>, JsCustomPower>       JS_CUSTOM        = reg("js_custom",        new JsCustomPower());
+    public static final DeferredHolder<PowerType<?>, JsCustomActivePower> JS_CUSTOM_ACTIVE = reg("js_active",        new JsCustomActivePower());
+
     // --- Active abilities ---
     // 2.0 consolidation: generic action-driven active ability. Legacy types below stay
     // registered during the deprecation window (see LegacyPowerTypeAliases).

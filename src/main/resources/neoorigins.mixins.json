@@ -41,7 +41,8 @@
     "BlockStateBaseCobwebShapeMixin",
     "recipe.CraftingMenuOriginContextMixin",
     "recipe.RecipeManagerReplaceMixin",
-    "recipe.ResultSlotOriginContextMixin"
+    "recipe.ResultSlotOriginContextMixin",
+    "EntityMountEndMixin"
   ],
   "client": [
     "client.LightTextureMixin",

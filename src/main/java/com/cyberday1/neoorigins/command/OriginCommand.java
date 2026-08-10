@@ -257,6 +257,10 @@ public class OriginCommand {
         }
         NeoOriginsNetwork.syncEvolutionToPlayer(player);
         NeoOriginsNetwork.syncToPlayer(player);
+        if (oldTier != tier) {
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireEvolutionTierChanged(
+                player, oldTier, tier);
+        }
 
         String tierName = tier > 0 ? EssenceEvolutionManager.TIER_NAMES[tier] : "Base";
         ctx.getSource().sendSuccess(() -> Component.literal(
