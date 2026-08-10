@@ -10,10 +10,10 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Draws a vanilla elytra on the back of players gliding via
- * {@code neoorigins:elytra_flight} with {@code render_elytra: true}, when they are
- * NOT wearing a real equipped elytra (so we never double up on vanilla's own
- * {@link ElytraLayer}).
+ * Draws a vanilla elytra on the back of players gliding via any flight power set to
+ * {@code render_elytra: true} ({@code elytra_flight}, {@code natural_glide} or
+ * {@code flight}), when they are NOT wearing a real equipped elytra (so we never
+ * double up on vanilla's own {@link ElytraLayer}).
  *
  * <p>Subclasses vanilla {@link ElytraLayer} to reuse its pose / {@code setupAnim} /
  * render entirely — we only override:

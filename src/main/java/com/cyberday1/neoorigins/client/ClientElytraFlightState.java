@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Client-side mirror of which players currently have the
- * {@code neoorigins:elytra_flight} power active with {@code render_elytra: true}
- * — i.e. whose back should show a drawn elytra while fall-flying — and, optionally,
- * a custom texture id for that elytra.
+ * Client-side mirror of which players currently have a flight power active with
+ * {@code render_elytra: true} — i.e. whose back should show a drawn elytra while
+ * fall-flying — and, optionally, a custom texture id for that elytra. The server
+ * does not tell us which power asked, only whether to draw.
  *
  * <p>Keyed by entity id — the render layer is handed the rendered player entity
  * directly, so id lookup is the cheapest path. Populated by

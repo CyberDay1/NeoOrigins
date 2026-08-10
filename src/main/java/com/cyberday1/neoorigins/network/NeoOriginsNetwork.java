@@ -1347,8 +1347,8 @@ public class NeoOriginsNetwork {
         // Same for the invisibility armor-hide flag (neoorigins:invisibility with
         // render_armor:false) — every viewer's armor-layer mixin needs it.
         broadcastInvisibilityArmor(player, hidesArmorFrom(capabilities));
-        // Same for the elytra_flight cosmetic wings (render_elytra + optional
-        // texture) — every viewer's elytra render layer needs it.
+        // Same for the cosmetic wings (render_elytra + optional texture, from any
+        // flight power that asks) — every viewer's elytra render layer needs it.
         broadcastElytraFlight(player, capabilities);
         // Per-player, all-viewer state for the Figura soft-dep API: broadcast this
         // player's origins + powers + capabilities to every client that can see
@@ -1613,10 +1613,12 @@ public class NeoOriginsNetwork {
     }
 
     /**
-     * True if the capability set carries the {@code neoorigins:elytra_flight}
-     * render-elytra tag (render_elytra:true while active). Same lockstep guarantee
-     * as {@link #hidesArmorFrom} — the caps were collected with the top-level
-     * condition gate applied.
+     * True if the capability set carries the render-elytra tag, meaning some active
+     * power asked for cosmetic wings. Any of {@code elytra_flight}, {@code natural_glide}
+     * or {@code flight} can set it, and the tag deliberately does not record which one
+     * did: the client only needs to know whether to draw. Same lockstep guarantee as
+     * {@link #hidesArmorFrom} — the caps were collected with the top-level condition
+     * gate applied.
      */
     private static boolean rendersElytraFrom(Set<String> capabilities) {
         return capabilities.contains(
@@ -1638,7 +1640,7 @@ public class NeoOriginsNetwork {
         return "";
     }
 
-    /** Broadcast a player's elytra_flight cosmetic wing state to all tracking clients and the player. */
+    /** Broadcast a player's cosmetic wing state to all tracking clients and the player. */
     private static void broadcastElytraFlight(ServerPlayer player, Set<String> capabilities) {
         boolean render = rendersElytraFrom(capabilities);
         String texture = render ? elytraTextureFrom(capabilities) : "";
@@ -1647,7 +1649,7 @@ public class NeoOriginsNetwork {
     }
 
     /**
-     * Send {@code tracked}'s current elytra_flight wing state to a single observer
+     * Send {@code tracked}'s current cosmetic wing state to a single observer
      * who just started tracking them (so a late-joining viewer sees an already-active
      * power's wings). Only sent when render is on — absence is the client default.
      */
@@ -1667,7 +1669,7 @@ public class NeoOriginsNetwork {
                 tex = ResourceLocation.tryParse(payload.texture());
                 if (tex == null) {
                     com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
-                        "[elytra_flight] malformed texture_location '{}' — falling back to vanilla elytra texture",
+                        "[elytra_render] malformed texture_location '{}' — falling back to vanilla elytra texture",
                         payload.texture());
                 }
             }

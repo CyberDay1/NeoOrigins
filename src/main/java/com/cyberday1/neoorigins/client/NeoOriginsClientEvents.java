@@ -235,10 +235,10 @@ public class NeoOriginsClientEvents {
     }
 
     /**
-     * Adds the {@code neoorigins:elytra_flight} render layer to both the default
-     * and slim player renderers. The layer draws a vanilla elytra on the back of
-     * players gliding via that power (with render_elytra on) who aren't wearing a
-     * real equipped elytra. Fired on the mod event bus (see NeoOrigins client setup).
+     * Adds the cosmetic elytra render layer to both the default and slim player
+     * renderers. The layer draws a vanilla elytra on the back of players gliding via
+     * any flight power with render_elytra on, who aren't wearing a real equipped
+     * elytra. Fired on the mod event bus (see NeoOrigins client setup).
      */
     @SuppressWarnings("unchecked")
     public static void onAddLayers(EntityRenderersEvent.AddLayers event) {

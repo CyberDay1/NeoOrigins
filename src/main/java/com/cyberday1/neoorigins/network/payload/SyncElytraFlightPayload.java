@@ -6,10 +6,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Server → client. Tells receiving clients whether player {@code entityId}
- * currently has the {@code neoorigins:elytra_flight} power active with
- * {@code render_elytra: true} — i.e. whether a drawn elytra should appear on their
- * back while fall-flying — and, optionally, a custom texture id for that elytra.
+ * Server → client. Tells receiving clients whether player {@code entityId} currently
+ * has a flight power active with {@code render_elytra: true} — i.e. whether a drawn
+ * elytra should appear on their back while fall-flying — and, optionally, a custom
+ * texture id for that elytra. Any of {@code neoorigins:elytra_flight},
+ * {@code neoorigins:natural_glide} or {@code neoorigins:flight} can ask for it.
  *
  * <p>Like {@link SyncInvisibilityArmorPayload} and {@link SyncPlayerMorphPayload}
  * (and unlike {@link SyncActivePowersPayload}, which only reaches the owning player),
