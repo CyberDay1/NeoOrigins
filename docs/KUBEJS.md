@@ -11,10 +11,6 @@ Drive NeoOrigins from KubeJS scripts: listen to origin, power, mob, and mount
 events, invoke JS from JSON powers, and define whole power behaviors in
 JavaScript without touching Java.
 
-> **This page describes a Minecraft 1.21.1 feature.** The 26.1 and 26.2 builds
-> ship none of it: no globals, no `js_*` power types, no `kubejs_callback`.
-> Read [Availability](#availability) before authoring against anything below.
-
 1. TOC
 {:toc}
 
@@ -22,33 +18,48 @@ JavaScript without touching Java.
 
 ## Availability
 
-**Everything on this page is Minecraft 1.21.1 only.** KubeJS support is a
-**soft dependency** that ships in the NeoOrigins 2.1+ builds for Minecraft
-1.21.1. The 26.1 and 26.2 builds do **not** bundle the integration: the
-`NeoOrigins` / `NeoOriginsEvents` globals, the `neoorigins:kubejs_callback`
-action and the `neoorigins:js_custom` / `neoorigins:js_active` power types are
-all absent there, and no amount of KubeJS being installed brings them back.
+KubeJS support is a **soft dependency**. It ships in the NeoOrigins 2.1+ builds
+for Minecraft 1.21.1 and, from 2.2.24, in the Minecraft 26.1 build as well. The
+**26.2 build does not bundle it**: the `NeoOrigins` / `NeoOriginsEvents` globals,
+the `neoorigins:kubejs_callback` action and the `neoorigins:js_custom` /
+`neoorigins:js_active` power types are all absent there, and no amount of KubeJS
+being installed brings them back.
 
-Two different reasons sit behind that, and they are worth keeping straight.
-Checked 2026-07-29: KubeJS's newest NeoForge release is `26.1.2-8.0.4+neoforge`,
-published against Minecraft 26.1.2. On the 26.2 build the integration is therefore
-blocked upstream, as there is no artifact to compile against. On the 26.1.2 build
-there is one, and the integration is absent by our own choice: the port was
-deferred, not prevented. Re-check KubeJS's release list before repeating either
-claim.
+The reason is upstream, not a choice of ours. Checked 2026-08-09: across all 323
+of KubeJS's published NeoForge releases the highest Minecraft version is 26.1.2,
+so on 26.2 there is simply no artifact to compile against. Re-check KubeJS's
+release list before repeating that claim.
 
-That matters because an unregistered `type` is not a soft failure. A power file
-whose `type` the build doesn't know is dropped **whole** at load: no error in
-game, no partial behaviour, the power simply never appears on the origin. So a
-`js_custom` power copied into a 26.x pack looks like it silently vanished. Gate
-those files behind a pack that only ships on 1.21.1, or keep the behaviour in
-Java for now.
+On 26.1, KubeJS `8.0.4` itself requires NeoForge `26.1.2.84` or newer, so a pack
+on an older 26.1 loader has to move up before KubeJS will load at all. That is
+KubeJS's floor, not ours: NeoOrigins still accepts any 26.1.
 
-On 1.21.1, when KubeJS is absent the whole subsystem short-circuits on a single
-cached check, so there is no overhead and no class-loading risk for packs that
-don't use it.
+The two shipping branches are on different KubeJS major lines. 1.21.1 builds
+against the 7.x line, 26.1 against `26.1.2-8.0.4`. The API break between those
+lines lands inside our plugin entrypoint rather than on any surface a script can
+see, so scripts move across unchanged, with one exception worth knowing about.
 
-All scripts here are **server-side**. Origin, power, and mob state only changes
+`registerPower` hands Rhino a plain JS object to adapt to an interface whose
+hooks are **all** optional. Rhino `2101.2.7-build.81`, which the 7.x KubeJS
+builds pull in, will not adapt an object literal to an interface that has no
+required method, so on 1.21.1 `registerPower` throws `Can't find method
+...registerPower(string,object)`. Dropping Rhino `2101.2.8-build.91` or newer
+into the pack fixes it. 26.1 is unaffected, because KubeJS 8.0.4 already requires
+that Rhino build. `registerActivePower` works on both lines either way: its
+`onUse` is required, and one required method is all the adapter needs.
+
+The 26.2 gap matters because an unregistered `type` is not a soft failure. A
+power file whose `type` the build doesn't know is dropped **whole** at load: no
+error in game, no partial behaviour, the power simply never appears on the
+origin. So a `js_custom` power copied into a 26.2 pack looks like it silently
+vanished. Gate those files behind a pack that doesn't ship on 26.2, or keep the
+behaviour in Java there.
+
+When KubeJS is absent the whole subsystem short-circuits on a single cached
+check, so there is no overhead and no class-loading risk for packs that don't
+use it.
+
+All scripts here are **server-side**: origin, power, and mob state only changes
 on the logical server. Put them in `server_scripts/` (or register from a server
 lifecycle event). Everything is cleared and must be re-registered on
 `/kubejs reload`; register inside a startup or server-loaded handler so stale
@@ -66,7 +77,7 @@ NeoOriginsEvents.originChanged(event => {
 })
 ```
 
-Event fields are exposed as KubeJS bean properties. `event.player` is the same
+Event fields are exposed as KubeJS bean properties; `event.player` is the same
 as the Java `getPlayer()`. The tables below list the properties available on
 each event.
 
@@ -117,7 +128,7 @@ assume it runs constantly and keep the body cheap.
 | `mountEnded` | A player ends a mount-power ride | `rider`, `vehicle` |
 
 `position` is `"centered"` or `"shoulder"`. `mountEnded` only covers explicit
-dismounts via the mount power. Vanilla dismount paths (jumping off, the vehicle
+dismounts via the mount power; vanilla dismount paths (jumping off, the vehicle
 dying) are not currently reported.
 
 ---
@@ -154,11 +165,11 @@ Invoke it from JSON anywhere an entity action is accepted:
 ```
 
 If no callback is registered for the id (KubeJS absent, or the script hasn't run
-yet), the action is silently dropped with a debug log. It never errors.
+yet), the action is silently dropped with a debug log; it never errors.
 
-`neoorigins:kubejs_callback` is likewise 1.21.1 only. On 26.1 / 26.2 the action
-type is unknown, so it is skipped at parse time rather than at call time. The
-surrounding power still loads, but that step of the action never runs.
+`neoorigins:kubejs_callback` is unavailable on 26.2. There the action type is
+unknown, so it is skipped at parse time rather than at call time; the surrounding
+power still loads, but that step of the action never runs.
 
 ### JS-defined powers
 
@@ -166,14 +177,14 @@ Two power types let a JSON power delegate its whole behavior to a JS handler,
 keyed by `js_id`. This means new power behaviors are authorable from JS without
 any Java registry mutation.
 
-**1.21.1 only.** `neoorigins:js_custom` and `neoorigins:js_active` are not
-registered in the 26.1 or 26.2 builds, so a power file using either type is
-dropped whole at load there. See [Availability](#availability).
+**Not on 26.2.** `neoorigins:js_custom` and `neoorigins:js_active` are not
+registered in the 26.2 build, so a power file using either type is dropped whole
+at load there. See [Availability](#availability).
 
 | Method | Description |
 |--------|-------------|
-| `NeoOrigins.registerPower(id, handler)` | Passive power: pairs with `neoorigins:js_custom`. |
-| `NeoOrigins.registerActivePower(id, handler)` | Active (keybind) power: pairs with `neoorigins:js_active`. |
+| `NeoOrigins.registerPower(id, handler)` | Passive power. Pairs with `neoorigins:js_custom`. |
+| `NeoOrigins.registerActivePower(id, handler)` | Active (keybind) power. Pairs with `neoorigins:js_active`. |
 | `NeoOrigins.hasPower(id)` / `NeoOrigins.hasActivePower(id)` | Registration checks. |
 
 The handler is a plain JS object; Rhino adapts it to the matching interface and
