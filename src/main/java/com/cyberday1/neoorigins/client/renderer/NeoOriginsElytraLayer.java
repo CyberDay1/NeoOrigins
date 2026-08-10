@@ -16,10 +16,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.equipment.Equippable;
 
 /**
- * Draws a vanilla elytra on the back of players gliding via
- * {@code neoorigins:elytra_flight} with {@code render_elytra: true}, when they are
- * NOT wearing a real equipped elytra (so we never double up on vanilla's own
- * {@code WingsLayer}).
+ * Draws a vanilla elytra on the back of players gliding via any flight power set to
+ * {@code render_elytra: true} ({@code elytra_flight}, {@code natural_glide} or
+ * {@code flight}), when they are NOT wearing a real equipped elytra (so we never
+ * double up on vanilla's own {@code WingsLayer}).
  *
  * <p><b>26.1 rewrite.</b> On 1.21.1 this subclassed vanilla {@code ElytraLayer} and
  * overrode {@code shouldRender}/{@code getElytraTexture}. On 26.1 vanilla's
