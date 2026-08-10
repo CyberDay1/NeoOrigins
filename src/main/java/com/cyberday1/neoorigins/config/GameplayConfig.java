@@ -27,6 +27,33 @@ public final class GameplayConfig {
 
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
+    // ── Config version stamp ────────────────────────────────────────────
+
+    /**
+     * Schema version written into {@code gameplay.toml}. Bumped only when
+     * {@link ConfigMigrator} gains a new one-time heal that has to be able to
+     * tell "already handled" from "predates the change".
+     *
+     * <p>This key MUST stay declared in the spec. {@code ModConfigSpec.correct}
+     * deletes every key in the file that the spec does not declare, so an
+     * undeclared stamp would be stripped on the very load that follows the
+     * migrator writing it, and the heal would re-run on every single boot.
+     */
+    public static final int CURRENT_CONFIG_VERSION = 1;
+
+    public static final ModConfigSpec.IntValue CONFIG_VERSION;
+
+    static {
+        CONFIG_VERSION = BUILDER
+            .comment("Written by the mod to track one-time config migrations. Do not edit by hand.",
+                     "The mod uses this to tell a config it has already fixed up from one written",
+                     "by an older version, so that each migration runs exactly once. Deleting it",
+                     "makes the mod treat this file as pre-2.2.22 again.")
+            .defineInRange("config_version", CURRENT_CONFIG_VERSION, 0, Integer.MAX_VALUE);
+    }
+
+    public static int configVersion() { return CONFIG_VERSION.get(); }
+
     // ── Orb of Origins ──────────────────────────────────────────────────
     public static final ModConfigSpec.IntValue ORB_LEVELS_PER_USE;
     public static final ModConfigSpec.BooleanValue ORB_SCALE_COST;
