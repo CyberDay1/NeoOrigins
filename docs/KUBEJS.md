@@ -30,10 +30,23 @@ of KubeJS's published NeoForge releases the highest Minecraft version is 26.1.2,
 so on 26.2 there is simply no artifact to compile against. Re-check KubeJS's
 release list before repeating that claim.
 
+On 26.1, KubeJS `8.0.4` itself requires NeoForge `26.1.2.84` or newer, so a pack
+on an older 26.1 loader has to move up before KubeJS will load at all. That is
+KubeJS's floor, not ours: NeoOrigins still accepts any 26.1.
+
 The two shipping branches are on different KubeJS major lines. 1.21.1 builds
-against the 7.x line, 26.1 against `26.1.2-8.0.4`. Everything documented on this
-page behaves identically on both: the API break between those lines lands
-entirely inside our plugin entrypoint, not on any surface a script can see.
+against the 7.x line, 26.1 against `26.1.2-8.0.4`. The API break between those
+lines lands inside our plugin entrypoint rather than on any surface a script can
+see, so scripts move across unchanged, with one exception worth knowing about.
+
+`registerPower` hands Rhino a plain JS object to adapt to an interface whose
+hooks are **all** optional. Rhino `2101.2.7-build.81`, which the 7.x KubeJS
+builds pull in, will not adapt an object literal to an interface that has no
+required method, so on 1.21.1 `registerPower` throws `Can't find method
+...registerPower(string,object)`. Dropping Rhino `2101.2.8-build.91` or newer
+into the pack fixes it. 26.1 is unaffected, because KubeJS 8.0.4 already requires
+that Rhino build. `registerActivePower` works on both lines either way: its
+`onUse` is required, and one required method is all the adapter needs.
 
 The 26.2 gap matters because an unregistered `type` is not a soft failure. A
 power file whose `type` the build doesn't know is dropped **whole** at load: no
