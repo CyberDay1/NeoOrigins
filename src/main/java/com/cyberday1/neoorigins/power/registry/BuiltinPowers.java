@@ -150,6 +150,34 @@ public final class BuiltinPowers {
         ENABLED_SPEC.readBy("com.cyberday1.neoorigins.power.util.EnabledGate#isEnabled");
 
     /**
+     * Cosmetic wing fields, shared by every power that puts the player into
+     * fall-flight with an empty chest slot: {@code elytra_flight},
+     * {@code natural_glide} and {@code flight}. All three encode the same two
+     * capability tags, so an author draws wings by setting a field rather than by
+     * switching power type.
+     *
+     * <p>The default differs on purpose. {@code elytra_flight} exists to mirror
+     * Apoli's power, where wings are the norm, so it defaults on. The other two
+     * shipped for years without wings, and turning them on by default would put
+     * wings on every existing pack that used them, including packs whose origins
+     * already carry their own wing model. So they default off and opt in.
+     */
+    private static final FieldSpec RENDER_ELYTRA_ON_SPEC =
+        new FieldSpec("render_elytra", Kind.BOOLEAN, false)
+            .def(true).doc("When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. When false, the player glides with no visible wings.");
+
+    /** {@link #RENDER_ELYTRA_ON_SPEC} for the power types that default it off. */
+    private static final FieldSpec RENDER_ELYTRA_OFF_SPEC =
+        new FieldSpec("render_elytra", Kind.BOOLEAN, false)
+            .def(false).doc("When true, a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. Defaults false, because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.");
+
+    /** Custom texture for the drawn wings. Shared by all three flight power types. */
+    private static final FieldSpec ELYTRA_TEXTURE_SPEC =
+        new FieldSpec("texture_location", Kind.STRING, false)
+            .pattern(RESOURCE_LOCATION_PATTERN)
+            .doc("Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.");
+
+    /**
      * Looser hint for scalar-string lists whose entries are NOT strictly
      * {@code namespace:path}: bare keywords ({@code sprint}, {@code arrow},
      * {@code all}), vanilla camelCase msgIds ({@code inFire}, {@code fall}), an
@@ -257,7 +285,8 @@ public final class BuiltinPowers {
         define("ender_gaze_immunity",      EnderGazeImmunityPower.class,      List.of());
         define("xeno_passive",             XenoPassivePower.class,            List.of());
         define("flight",                   FlightPower.class,                 List.of(
-            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+            TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC,
+            RENDER_ELYTRA_OFF_SPEC, ELYTRA_TEXTURE_SPEC));
         define("creative_flight",          CreativeFlightPower.class,         List.of(
             ENABLED_SPEC, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
@@ -272,17 +301,16 @@ public final class BuiltinPowers {
             new FieldSpec("fluids", Kind.ARRAY, false)
                 .itemPattern(FLUID_ENTRY_PATTERN)
                 .doc("Array form of `fluid`, for authors who prefer the plural key. Both keys are read and their entries merged.")));
-        define("natural_glide",            NaturalGlidePower.class,           List.of());
+        define("natural_glide",            NaturalGlidePower.class,           List.of(
+            RENDER_ELYTRA_OFF_SPEC, ELYTRA_TEXTURE_SPEC));
         // elytra_flight: native mirror of apoli:elytra_flight. Reuses natural_glide
         // for the flight itself (capabilities() emits "natural_glide"); the two
-        // fields here are cosmetic — whether to draw a vanilla elytra on the back
+        // fields here are cosmetic: whether to draw a vanilla elytra on the back
         // during flight, and an optional custom texture for it (model stays vanilla).
+        // Both fields are shared with natural_glide and flight, which encode the same
+        // capability tags; only the render_elytra default differs.
         define("elytra_flight",            ElytraFlightPower.class,            List.of(
-            new FieldSpec("render_elytra", Kind.BOOLEAN, false)
-                .def(true).doc("When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way — this is purely cosmetic. When false, the player glides with no visible wings."),
-            new FieldSpec("texture_location", Kind.STRING, false)
-                .pattern(RESOURCE_LOCATION_PATTERN)
-                .doc("Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.")));
+            RENDER_ELYTRA_ON_SPEC, ELYTRA_TEXTURE_SPEC));
         define("no_natural_regen",         NoNaturalRegenPower.class,         List.of());
         define("no_projectile_divergence", NoProjectileDivergencePower.class, List.of());
         define("underwater_mining_speed",  UnderwaterMiningSpeedPower.class,  List.of());

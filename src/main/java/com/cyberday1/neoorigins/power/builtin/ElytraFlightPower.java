@@ -63,13 +63,26 @@ public class ElytraFlightPower extends PowerType<ElytraFlightPower.Config> {
         // Always grant natural_glide so the shared glide activation path fires.
         Set<String> caps = new HashSet<>();
         caps.add("natural_glide");
-        if (config.renderElytra()) {
-            caps.add(CAP_RENDER_ELYTRA);
-            String tex = config.textureLocation();
-            if (tex != null && !tex.isBlank()) {
-                caps.add(CAP_TEXTURE_PREFIX + tex);
-            }
-        }
+        addRenderCaps(caps, config.renderElytra(), config.textureLocation());
         return caps;
+    }
+
+    /**
+     * Encode cosmetic wing state into a capability set.
+     *
+     * <p>Shared with {@code NaturalGlidePower} and {@code FlightPower}, which accept the
+     * same two cosmetic fields so an author can draw wings without switching power type.
+     * The encoding is effectively a wire format: {@code NeoOriginsNetwork.rendersElytraFrom}
+     * and {@code elytraTextureFrom} read these tags back out and neither one cares which
+     * power produced them. Keeping the write side in one place is what makes that safe.
+     */
+    public static void addRenderCaps(Set<String> caps, boolean renderElytra, String textureLocation) {
+        if (!renderElytra) {
+            return;
+        }
+        caps.add(CAP_RENDER_ELYTRA);
+        if (textureLocation != null && !textureLocation.isBlank()) {
+            caps.add(CAP_TEXTURE_PREFIX + textureLocation);
+        }
     }
 }

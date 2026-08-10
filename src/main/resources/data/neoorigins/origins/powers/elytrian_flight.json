@@ -1,1 +1,1 @@
-{ "type": "neoorigins:natural_glide", "name": "power.neoorigins.elytrian_flight.name", "description": "power.neoorigins.elytrian_flight.description" }
+{ "type": "neoorigins:natural_glide", "render_elytra": true, "name": "power.neoorigins.elytrian_flight.name", "description": "power.neoorigins.elytrian_flight.description" }
