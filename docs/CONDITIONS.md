@@ -384,12 +384,45 @@ Checks biome at the entity's block position. Precedence: `biome` > `tag`/`biome_
 
 Always-true when none of the fields are present.
 
-**Nested `condition`:** only the `temperature` sub-type is supported; it compares the biome's base temperature using the usual `comparison`/`compare_to` fields. Any other sub-condition type logs a warning and fails closed (use biome tags instead).
+### Nested `condition`: the biome sub-grammar
+
+The `condition` field takes its own small grammar, distinct from the entity-condition grammar above: everything in it describes the **biome** at the entity's block position, not the entity. In particular `in_tag` here means "the biome is in this biome tag", not "the entity is of a type in this entity-type tag".
+
+| Sub-type | Fields | Description |
+|---|---|---|
+| `and` / `all_of` | `conditions` (array or single object) | True when every child is true |
+| `or` / `any_of` | `conditions` (array or single object) | True when any child is true |
+| `not` | `condition` (object) | Negates one child |
+| `constant` | `value` (boolean, default `false`) | Fixed result |
+| `biome` | same fields as `neoorigins:biome` | Nested exact-ID or tag check, for use inside an `or`-list |
+| `in_tag` | `tag` (resource location, required) | Biome is in this biome tag |
+| `temperature` | `comparison`, `compare_to` | Compares the biome's base temperature |
+| `precipitation` | `precipitation`: `"none"` / `"rain"` / `"snow"` (required) | What falls at this **position** |
+| `high_humidity` | — | Biome downfall is above `0.85` |
+
+Every sub-type also accepts `inverted` (boolean, default `false`), which negates its result.
+
+> `precipitation` is resolved per-block, not per-biome: the same biome rains at sea level and snows on the peaks, and that is what Apoli does. The `0.85` humidity threshold is Apoli's own, kept verbatim so packs tuned against it still agree.
+
+An unrecognised sub-type logs a warning and **fails closed**: the power will not activate. That is deliberate. A biome-gated power that fires in every biome is a much louder bug than one that never fires, and this grammar is small enough that an unknown verb is a genuine gap rather than a niche we chose not to cover.
 
 **Example:**
 ```json
 { "type": "neoorigins:biome",
   "condition": { "type": "neoorigins:temperature", "comparison": "<", "compare_to": 0.15 } }
+```
+
+**Example — combinators:**
+```json
+{ "type": "neoorigins:biome",
+  "condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      { "type": "neoorigins:in_tag", "tag": "minecraft:is_jungle" },
+      { "type": "neoorigins:high_humidity" },
+      { "type": "neoorigins:precipitation", "precipitation": "snow", "inverted": true }
+    ]
+  } }
 ```
 
 ## `neoorigins:in_tag`
