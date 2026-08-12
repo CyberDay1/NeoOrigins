@@ -597,29 +597,138 @@ public final class ConditionParser {
             TagKey<Biome> biomeTag = TagKey.create(Registries.BIOME, Identifier.parse(tag));
             return player -> player.level().getBiome(player.blockPosition()).is(biomeTag);
         }
-        // Handle nested sub-conditions (origins:temperature, origins:precipitation, etc.)
-        // These cannot be precisely mapped but must NOT return alwaysTrue() (fail open)
-        // as that would cause the power to fire in every biome.
+        // Nested sub-condition form: {"type":"origins:biome","condition":{...}}.
         if (json.has("condition") && json.get("condition").isJsonObject()) {
-            JsonObject subCond = json.getAsJsonObject("condition");
-            String subType = subCond.has("type") ? subCond.get("type").getAsString() : "";
-            String bareSubType = subType.contains(":") ? subType.substring(subType.indexOf(':') + 1) : subType;
-            if ("temperature".equals(bareSubType)) {
-                // Use the biome's base temperature for comparison
-                String comp = subCond.has("comparison") ? subCond.get("comparison").getAsString() : ">=";
-                double target = subCond.has("compare_to") ? subCond.get("compare_to").getAsDouble() : 0.0;
+            return parseBiomeSubCondition(json.getAsJsonObject("condition"));
+        }
+        return EntityCondition.alwaysTrue();
+    }
+
+    /**
+     * The nested biome-condition grammar Apoli allows under
+     * {@code origins:biome}'s {@code condition} field. Distinct from the
+     * entity-condition grammar: {@code in_tag} here means "the biome is in this
+     * biome tag", not "the entity is in this entity-type tag", and
+     * {@code temperature}/{@code precipitation}/{@code high_humidity} read the
+     * biome's climate rather than anything about the player.
+     *
+     * <p>Everything except the combinators reads the biome at the player's
+     * current block position, which is what Apoli does: a biome condition that
+     * cached the biome at power-grant time would go stale the moment the player
+     * walked over a border.
+     *
+     * <p>Unrecognised sub-types still fail CLOSED. Failing open here would make
+     * a biome-gated power fire in every biome, which is a far louder bug than a
+     * power that never fires — and, unlike the entity-condition parser, this
+     * grammar is small enough that an unknown verb really is a gap rather than
+     * a niche we chose not to cover.
+     */
+    static EntityCondition parseBiomeSubCondition(JsonObject sub) {
+        if (sub == null) return EntityCondition.alwaysFalse();
+        String subType = sub.has("type") ? sub.get("type").getAsString() : "";
+        String bare = subType.contains(":") ? subType.substring(subType.indexOf(':') + 1) : subType;
+        boolean inverted = sub.has("inverted") && sub.get("inverted").getAsBoolean();
+
+        EntityCondition inner;
+        switch (bare) {
+            case "and", "all_of" -> {
+                List<EntityCondition> parts = parseBiomeSubList(sub);
+                inner = player -> { for (EntityCondition c : parts) if (!c.test(player)) return false; return true; };
+            }
+            case "or", "any_of" -> {
+                List<EntityCondition> parts = parseBiomeSubList(sub);
+                inner = player -> { for (EntityCondition c : parts) if (c.test(player)) return true; return false; };
+            }
+            case "not" -> {
+                EntityCondition negated = sub.has("condition") && sub.get("condition").isJsonObject()
+                    ? parseBiomeSubCondition(sub.getAsJsonObject("condition"))
+                    : EntityCondition.alwaysFalse();
+                inner = player -> !negated.test(player);
+            }
+            case "constant" -> {
+                boolean value = sub.has("value") && sub.get("value").getAsBoolean();
+                inner = value ? EntityCondition.alwaysTrue() : EntityCondition.alwaysFalse();
+            }
+            case "biome" -> {
+                // A nested exact-id / tag biome condition, e.g. an or-list whose
+                // branches are themselves {"type":"origins:biome","biome":...}.
+                inner = parseBiome(sub);
+            }
+            case "in_tag" -> {
+                String subTag = sub.has("tag") ? sub.get("tag").getAsString() : null;
+                if (subTag == null) {
+                    NeoOrigins.LOGGER.warn("[CompatB] biome sub-condition 'in_tag' has no 'tag' field — failing closed");
+                    return EntityCondition.alwaysFalse();
+                }
+                TagKey<Biome> subBiomeTag = TagKey.create(Registries.BIOME, Identifier.parse(subTag));
+                inner = player -> player.level().getBiome(player.blockPosition()).is(subBiomeTag);
+            }
+            case "temperature" -> {
+                String comp = sub.has("comparison") ? sub.get("comparison").getAsString() : ">=";
+                double target = sub.has("compare_to") ? sub.get("compare_to").getAsDouble() : 0.0;
                 ComparisonType comparison = ComparisonType.fromString(comp);
-                return player -> {
+                inner = player -> {
                     float temp = player.level().getBiome(player.blockPosition()).value().getBaseTemperature();
                     return comparison.test(temp, target);
                 };
             }
-            // Unsupported biome sub-conditions — fail closed and warn
-            NeoOrigins.LOGGER.warn("[CompatB] biome condition has unsupported sub-condition type '{}' — " +
-                "failing closed (power will not activate). Pack authors should use biome tags instead.", subType);
-            return EntityCondition.alwaysFalse();
+            case "precipitation" -> {
+                Biome.Precipitation want = parsePrecipitation(sub);
+                if (want == null) return EntityCondition.alwaysFalse();
+                inner = player -> {
+                    BlockPos pos = player.blockPosition();
+                    // Position-aware, not biome-wide: the same biome rains at sea
+                    // level and snows on the peaks, and Apoli resolves it per-block.
+                    // 26.1 takes the sea level explicitly, where 1.21.1 read it off
+                    // a hardcoded 63 internally; pass the level's own so a datapack
+                    // dimension with a raised sea level still answers correctly.
+                    return player.level().getBiome(pos).value()
+                        .getPrecipitationAt(pos, player.level().getSeaLevel()) == want;
+                };
+            }
+            case "high_humidity" -> {
+                // Apoli's threshold, kept verbatim so packs tuned against it agree.
+                // getModifiedClimateSettings() is NeoForge's public accessor for the
+                // otherwise-private climate record; it also honours biome modifiers,
+                // which the raw constructor value would not.
+                inner = player -> player.level().getBiome(player.blockPosition())
+                    .value().getModifiedClimateSettings().downfall() > 0.85f;
+            }
+            default -> {
+                NeoOrigins.LOGGER.warn("[CompatB] biome condition has unsupported sub-condition type '{}' — " +
+                    "failing closed (power will not activate). Pack authors should use biome tags instead.", subType);
+                return EntityCondition.alwaysFalse();
+            }
         }
-        return EntityCondition.alwaysTrue();
+        return inverted ? player -> !inner.test(player) : inner;
+    }
+
+    private static List<EntityCondition> parseBiomeSubList(JsonObject sub) {
+        // asArray, not getAsJsonArray: a single-child combinator is routinely
+        // authored as a bare object in legacy packs.
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(sub, "conditions");
+        List<EntityCondition> parts = new ArrayList<>();
+        for (JsonElement el : arr) if (el.isJsonObject()) parts.add(parseBiomeSubCondition(el.getAsJsonObject()));
+        return parts;
+    }
+
+    /** {@code "none" | "rain" | "snow"} — Apoli's spelling of {@link Biome.Precipitation}. */
+    static Biome.Precipitation parsePrecipitation(JsonObject sub) {
+        String raw = sub.has("precipitation") ? sub.get("precipitation").getAsString() : null;
+        if (raw == null) {
+            NeoOrigins.LOGGER.warn("[CompatB] biome sub-condition 'precipitation' has no 'precipitation' field — failing closed");
+            return null;
+        }
+        return switch (raw.toLowerCase(Locale.ROOT)) {
+            case "none" -> Biome.Precipitation.NONE;
+            case "rain" -> Biome.Precipitation.RAIN;
+            case "snow" -> Biome.Precipitation.SNOW;
+            default -> {
+                NeoOrigins.LOGGER.warn("[CompatB] biome sub-condition 'precipitation' has unknown value '{}' " +
+                    "(expected none/rain/snow) — failing closed", raw);
+                yield null;
+            }
+        };
     }
 
     static EntityCondition parseInTag(JsonObject json) {
