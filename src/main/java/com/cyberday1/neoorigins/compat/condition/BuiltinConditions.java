@@ -780,8 +780,9 @@ public final class BuiltinConditions {
         //   (1) `biome`     — exact biome id at the player's position.
         //   (2) `tag`/`biome_tag` — biome tag membership (`biome_tag` is a synonym
         //                     field read by frostborn/piglin/strider JSONs).
-        //   (3) `condition` — nested sub-condition; the temperature case compares the
-        //                     biome base temperature, other sub-types fail closed.
+        //   (3) `condition` — nested sub-condition in its own small biome grammar
+        //                     (see ConditionParser.parseBiomeSubCondition); unknown
+        //                     sub-types fail closed.
         // Precedence (id > tag > condition > always-true) is enforced inside the
         // parser, not the schema. None of the shapes hard-fails → all optional.
         define("biome",
@@ -794,7 +795,13 @@ public final class BuiltinConditions {
                 new FieldSpec("biome_tag", FormFieldSpec.Kind.STRING, false)
                     .doc("Synonym for `tag` used by several built-in JSONs (shape 2)."),
                 new FieldSpec("condition", FormFieldSpec.Kind.OBJECT, false)
-                    .doc("Nested biome sub-condition (shape 3); `temperature` compares biome base temperature, other sub-types fail closed. Absent all of biome/tag/biome_tag/condition → always true.")));
+                    .doc("Nested biome sub-condition (shape 3). Its own small grammar, separate from the "
+                        + "entity conditions: `in_tag` (biome tag), `temperature` (comparison/compare_to on "
+                        + "base temperature), `precipitation` (none/rain/snow at the player's block), "
+                        + "`high_humidity` (downfall above 0.85), `biome` (nested exact-id or tag form), "
+                        + "`constant`, and the `and`/`all_of`, `or`/`any_of`, `not` combinators. Each honours "
+                        + "`inverted`. Anything else fails closed. Absent all of biome/tag/biome_tag/condition "
+                        + "→ always true.")));
 
         // and — every sub-condition in `conditions` must pass (empty/absent → true).
         // `all_of` is the Apoli 2.9+ rename of `and` (Origins 1.10+ packs use it);
