@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.dev;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
+import com.cyberday1.neoorigins.compat.condition.ItemConditionParser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -561,13 +562,23 @@ public final class CompatTestHarness {
         if (ic == null || !ic.isJsonObject()) return;
         String icType = getNestedType(ic.getAsJsonObject());
         if (icType != null) {
-            Set<String> unsupported = Set.of("origins:armor_value", "origins:food", "origins:meat",
-                "origins:harvest_level", "origins:enchantment", "origins:durability");
-            if (unsupported.contains(icType)) {
+            // Derived from the parser's own verb set rather than a hardcoded list.
+            // The hardcoded one went stale twice over: it still named origins:food
+            // and origins:enchantment long after both were implemented, so the
+            // harness reported gaps that were already closed.
+            if (!ItemConditionParser.KNOWN_TYPES.contains(canonicaliseItemConditionType(icType))) {
                 findings.add(new Finding(Result.WARN, path, type,
                     "item_condition type '" + icType + "' unsupported — will fall to alwaysTrue/alwaysFalse"));
             }
         }
+    }
+
+    /** Mirrors {@code ItemConditionParser.parseInner}'s namespace rewrite. */
+    private static String canonicaliseItemConditionType(String type) {
+        if (type.isEmpty()) return type;
+        if (type.indexOf(':') < 0) return "neoorigins:" + type;
+        if (type.startsWith("neoorigins:")) return type;
+        return "neoorigins:" + type.substring(type.indexOf(':') + 1);
     }
 
     private static void checkConditionForWildcards(String path, String type, JsonElement condition, List<Finding> findings) {

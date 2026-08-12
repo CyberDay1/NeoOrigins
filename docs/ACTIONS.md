@@ -2228,6 +2228,71 @@ True when the item has a food component (anything edible). No fields.
 { "type": "neoorigins:food" }
 ```
 
+## `neoorigins:meat`
+
+True when the item is meat, raw or cooked. No fields.
+
+> Apoli read this off `FoodProperties.isMeat()`, a flag Mojang removed when food became a data component, so there is no literal equivalent left. It resolves through the NeoForge common food tags (`c:foods/raw_meat`, `c:foods/cooked_meat`) instead, which — unlike a hardcoded item list — picks up modded meats for free. That is what a pack author writing a herbivore restriction actually wants.
+
+**Example:**
+```json
+{ "type": "neoorigins:meat", "inverted": true }
+```
+
+## `neoorigins:armor_value`
+
+Numeric comparison against the armor this **one stack** confers. Not the wearer's total: that is the identically named *entity* condition in [CONDITIONS.md](CONDITIONS.md). Items that grant no armor report `0`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Armor points |
+
+> Read off the stack's `minecraft:attribute_modifiers` (flat `add_value` bonuses on `minecraft:armor`), not from an `ArmorItem` cast. Armor has been data-driven since 1.20.5, so this also covers datapack-defined and modded armor — and on the 26.x branches `ArmorItem` no longer exists at all.
+
+**Example: only chestplates worth more than leather**
+```json
+{ "type": "neoorigins:armor_value", "comparison": ">", "compare_to": 3 }
+```
+
+## `neoorigins:harvest_level`
+
+Numeric comparison against the tool's mining tier, using Apoli's numbering: wood and gold `0`, stone `1`, iron `2`, diamond `3`, netherite `4`. Anything that is not a tool reports `0`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `0` | Tier threshold |
+
+> Minecraft removed numeric harvest levels in 1.20.5 and replaced them with per-tier "blocks this tool cannot drop" tags, so the level is recovered from the tag the stack's `minecraft:tool` component denies drops for. Modded tools that follow the vanilla tier tags are numbered correctly for free. On 26.x the copper tier shares stone's `1`, because Apoli has no number for it and shifting the scale would silently re-tune every pack that gates on iron.
+
+**Example: netherite-only**
+```json
+{ "type": "neoorigins:harvest_level", "comparison": ">=", "compare_to": 4 }
+```
+
+## `neoorigins:durability`
+
+Numeric comparison against **remaining** durability, i.e. how many more hits the stack has left. Items with no durability report `0`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `">="` | Comparison operator |
+| `compare_to` | int | no | `0` | Remaining durability threshold |
+
+**Example: nearly broken**
+```json
+{ "type": "neoorigins:durability", "comparison": "<=", "compare_to": 10 }
+```
+
+## `neoorigins:constant` (item)
+
+Fixed result, ignoring the stack. Useful as a placeholder while authoring.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `value` | boolean | no | `false` | Result this condition always returns |
+
 ## `neoorigins:and` / `neoorigins:or` / `neoorigins:not` (item)
 
 Standard boolean combinators, same shape as entity conditions but operating on `ItemStack`. `all_of` / `any_of` are accepted as aliases of `and` / `or` (the Apoli 2.9+ renames), matching the entity-side conditions.
