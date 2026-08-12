@@ -7,8 +7,8 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Item-condition verb (all_of / amount / and / any_of / custom_data / empty / enchantment / food / ingredient / name / nbt / not / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf. Omit `type` entirely to use the id / item / tag shorthand.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:all_of|amount|and|any_of|custom_data|empty|enchantment|food|ingredient|name|nbt|not|or)$"
+      "description": "Item-condition verb (all_of / amount / and / any_of / armor_value / constant / custom_data / durability / empty / enchantment / food / harvest_level / ingredient / meat / name / nbt / not / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf. Omit `type` entirely to use the id / item / tag shorthand.",
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:all_of|amount|and|any_of|armor_value|constant|custom_data|durability|empty|enchantment|food|harvest_level|ingredient|meat|name|nbt|not|or)$"
     }
   },
   "oneOf": [
@@ -70,6 +70,98 @@
           "items": {
             "$ref": "item_condition.schema.json"
           }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:armor_value",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:armor_value",
+            "apace:armor_value",
+            "origins:armor_value",
+            "apoli:armor_value",
+            "apugli:armor_value"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator against the stack's armour value (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Armour-value threshold. Counts only flat minecraft:armor bonuses on the stack, so anything that grants no armour reads 0. Note the entity condition of the same name measures the wearer's total instead.",
+          "type": "number",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:constant",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:constant",
+            "apace:constant",
+            "origins:constant",
+            "apoli:constant",
+            "apugli:constant"
+          ]
+        },
+        "value": {
+          "description": "The value this condition always returns.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:durability",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:durability",
+            "apace:durability",
+            "origins:durability",
+            "apoli:durability",
+            "apugli:durability"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator against remaining durability (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Remaining-durability threshold: max damage minus current damage. Items that cannot take damage read 0.",
+          "type": "integer",
+          "default": 0
         }
       },
       "required": [
@@ -151,6 +243,41 @@
       ]
     },
     {
+      "$comment": "neoorigins:harvest_level",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:harvest_level",
+            "apace:harvest_level",
+            "origins:harvest_level",
+            "apoli:harvest_level",
+            "apugli:harvest_level"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator against the tool tier (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Tier threshold: wood/gold 0, stone 1, iron 2, diamond 3, netherite 4. Minecraft dropped numeric harvest levels in 1.20.5, so the tier is read back from the tier tag on the tool; anything that is not a tool reads 0.",
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:ingredient",
       "properties": {
         "type": {
@@ -169,6 +296,23 @@
         "tag": {
           "description": "Item tag the stack must be in (e.g. minecraft:planks). May also be nested under an `ingredient` key, including vanilla's array form ([{\"tag\": ...}, {\"item\": ...}]) which matches when any entry matches.",
           "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:meat",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:meat",
+            "apace:meat",
+            "origins:meat",
+            "apoli:meat",
+            "apugli:meat"
+          ]
         }
       },
       "required": [
@@ -331,11 +475,16 @@
               "apace:amount",
               "apace:and",
               "apace:any_of",
+              "apace:armor_value",
+              "apace:constant",
               "apace:custom_data",
+              "apace:durability",
               "apace:empty",
               "apace:enchantment",
               "apace:food",
+              "apace:harvest_level",
               "apace:ingredient",
+              "apace:meat",
               "apace:name",
               "apace:nbt",
               "apace:not",
@@ -344,11 +493,16 @@
               "apoli:amount",
               "apoli:and",
               "apoli:any_of",
+              "apoli:armor_value",
+              "apoli:constant",
               "apoli:custom_data",
+              "apoli:durability",
               "apoli:empty",
               "apoli:enchantment",
               "apoli:food",
+              "apoli:harvest_level",
               "apoli:ingredient",
+              "apoli:meat",
               "apoli:name",
               "apoli:nbt",
               "apoli:not",
@@ -357,11 +511,16 @@
               "apugli:amount",
               "apugli:and",
               "apugli:any_of",
+              "apugli:armor_value",
+              "apugli:constant",
               "apugli:custom_data",
+              "apugli:durability",
               "apugli:empty",
               "apugli:enchantment",
               "apugli:food",
+              "apugli:harvest_level",
               "apugli:ingredient",
+              "apugli:meat",
               "apugli:name",
               "apugli:nbt",
               "apugli:not",
@@ -370,11 +529,16 @@
               "neoorigins:amount",
               "neoorigins:and",
               "neoorigins:any_of",
+              "neoorigins:armor_value",
+              "neoorigins:constant",
               "neoorigins:custom_data",
+              "neoorigins:durability",
               "neoorigins:empty",
               "neoorigins:enchantment",
               "neoorigins:food",
+              "neoorigins:harvest_level",
               "neoorigins:ingredient",
+              "neoorigins:meat",
               "neoorigins:name",
               "neoorigins:nbt",
               "neoorigins:not",
@@ -383,11 +547,16 @@
               "origins:amount",
               "origins:and",
               "origins:any_of",
+              "origins:armor_value",
+              "origins:constant",
               "origins:custom_data",
+              "origins:durability",
               "origins:empty",
               "origins:enchantment",
               "origins:food",
+              "origins:harvest_level",
               "origins:ingredient",
+              "origins:meat",
               "origins:name",
               "origins:nbt",
               "origins:not",
