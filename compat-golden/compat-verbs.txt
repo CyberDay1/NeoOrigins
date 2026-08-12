@@ -218,16 +218,21 @@
   neoorigins:merge_nbt
   neoorigins:remove_enchantment
   neoorigins:set_count
-[item_condition] (13)
+[item_condition] (18)
   neoorigins:all_of
   neoorigins:amount
   neoorigins:and
   neoorigins:any_of
+  neoorigins:armor_value
+  neoorigins:constant
   neoorigins:custom_data
+  neoorigins:durability
   neoorigins:empty
   neoorigins:enchantment
   neoorigins:food
+  neoorigins:harvest_level
   neoorigins:ingredient
+  neoorigins:meat
   neoorigins:name
   neoorigins:nbt
   neoorigins:not
@@ -255,7 +260,7 @@ neoorigins:and	x57	recognized=action,condition,item_action,item_condition	fields
 neoorigins:any_of	x1	recognized=item_condition	fields={conditions}
 neoorigins:apply_effect	x45	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
 neoorigins:area_of_effect	x30	recognized=action	fields={amplifier,duration,effect,entity_action,exclude_self,include_source,radius}
-neoorigins:armor_value	x1	recognized=condition	fields={compare_to,comparison}
+neoorigins:armor_value	x1	recognized=condition,item_condition	fields={compare_to,comparison}
 neoorigins:attribute_modifier	x353	recognized=-	fields={amount,attribute,condition,description,equipment_condition,hidden,location_condition,name,operation,required_mods}
 neoorigins:bare_hand_tool	x6	recognized=-	fields={tool}
 neoorigins:become_dragon	x3	recognized=-	fields={description,name,required_mods,species,stage}
@@ -271,7 +276,7 @@ neoorigins:command_pack	x1	recognized=-	fields={cooldown_icon,cooldown_ticks,ran
 neoorigins:condition_passive	x55	recognized=-	fields={condition,cooldown_icon,default_off,description,entity_action,interval,name,toggleable}
 neoorigins:conditional	x1	recognized=-	fields={condition,description,inner_power,name}
 neoorigins:config_flag	x1	recognized=condition	fields={key}
-neoorigins:constant	x2	recognized=condition	fields={value}
+neoorigins:constant	x2	recognized=condition,item_condition	fields={value}
 neoorigins:craft_amount_bonus	x1	recognized=-	fields={bonus_count,item_id}
 neoorigins:creative_flight	x2	recognized=-	fields={cooldown_icon,description,name}
 neoorigins:crop_growth_accelerator	x4	recognized=-	fields={description,growths_per_interval,name,radius,tick_interval}

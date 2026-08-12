@@ -16,10 +16,14 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
@@ -46,6 +50,11 @@ import java.util.List;
  *   <li>{@code origins:amount} — stack-count comparison ({@code comparison}/{@code compare_to})</li>
  *   <li>{@code origins:name} — display-name string equality</li>
  *   <li>{@code origins:food} — item has a food component</li>
+ *   <li>{@code origins:meat} — food tagged raw or cooked meat</li>
+ *   <li>{@code origins:armor_value} — armour this stack confers ({@code comparison}/{@code compare_to})</li>
+ *   <li>{@code origins:harvest_level} — tool tier, recovered from the tier tags that replaced numeric levels in 1.20.5</li>
+ *   <li>{@code origins:durability} — remaining durability ({@code comparison}/{@code compare_to})</li>
+ *   <li>{@code origins:constant} — fixed {@code value}</li>
  * </ul>
  *
  * <p>Honours the universal {@code inverted: true} flag like
@@ -71,7 +80,8 @@ public final class ItemConditionParser {
         "neoorigins:all_of", "neoorigins:any_of",
         "neoorigins:nbt", "neoorigins:custom_data", "neoorigins:enchantment",
         "neoorigins:ingredient", "neoorigins:amount", "neoorigins:name",
-        "neoorigins:food");
+        "neoorigins:food", "neoorigins:meat", "neoorigins:armor_value",
+        "neoorigins:harvest_level", "neoorigins:durability", "neoorigins:constant");
 
     public static ItemCondition parse(JsonObject json) {
         if (json == null) return ItemCondition.alwaysTrue();
@@ -107,6 +117,14 @@ public final class ItemConditionParser {
                 case "neoorigins:amount"       -> parseAmount(json);
                 case "neoorigins:name"         -> parseName(json);
                 case "neoorigins:food"         -> s -> s.has(DataComponents.FOOD);
+                case "neoorigins:meat"         -> ItemConditionParser::isMeat;
+                case "neoorigins:armor_value"  -> parseArmorValue(json);
+                case "neoorigins:harvest_level"-> parseHarvestLevel(json);
+                case "neoorigins:durability"   -> parseDurability(json);
+                case "neoorigins:constant"     -> {
+                    boolean value = json.has("value") && json.get("value").getAsBoolean();
+                    yield value ? ItemCondition.alwaysTrue() : ItemCondition.alwaysFalse();
+                }
                 default -> {
                     // Direct id / tag fields at the top level (Origins also accepts these
                     // without an explicit type).
@@ -341,6 +359,117 @@ public final class ItemConditionParser {
             return s -> !s.isEmpty() && s.is(tag);
         }
         return ItemCondition.alwaysFalse();
+    }
+
+    /**
+     * Apoli's {@code origins:meat}. Pre-1.21 it read {@code FoodProperties.isMeat()},
+     * a flag Mojang deleted when food moved into data components — so there is no
+     * literal equivalent left to translate to. The NeoForge common food tags are the
+     * closest thing with the same intent and, unlike a hardcoded item list, they pick
+     * up modded meats for free, which is what a pack author writing "no meat" for a
+     * herbivore origin actually wants.
+     */
+    static boolean isMeat(ItemStack s) {
+        return !s.isEmpty()
+            && (s.is(net.neoforged.neoforge.common.Tags.Items.FOODS_RAW_MEAT)
+             || s.is(net.neoforged.neoforge.common.Tags.Items.FOODS_COOKED_MEAT));
+    }
+
+    /**
+     * Apoli's {@code origins:armor_value} in its item-condition form: the armour this
+     * one stack confers, not the wearer's total (that is the identically named entity
+     * condition, handled in {@link ConditionParser}). Read off
+     * {@code minecraft:attribute_modifiers} rather than casting to {@code ArmorItem}:
+     * since 1.20.5 armour values are data-driven components, so the component route
+     * covers datapack-defined and modded armour that a class cast would miss — and
+     * {@code ArmorItem} no longer exists at all on the 26.x branches.
+     */
+    private static ItemCondition parseArmorValue(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        double target = json.has("compare_to") ? json.get("compare_to").getAsDouble() : 0.0;
+        ComparisonType cmp = ComparisonType.fromString(comp);
+        return s -> cmp.test(armorValueOf(s), target);
+    }
+
+    /** Sum of flat {@code minecraft:armor} bonuses on the stack; 0 for anything that grants none. */
+    static double armorValueOf(ItemStack s) {
+        if (s.isEmpty()) return 0.0;
+        // NeoForge's accessor, not the raw component: vanilla armour leaves
+        // minecraft:attribute_modifiers empty on the stack and supplies the
+        // values from the item's defaults, so reading the component directly
+        // reports 0 armour for a diamond chestplate.
+        ItemAttributeModifiers mods = s.getAttributeModifiers();
+        double total = 0.0;
+        for (ItemAttributeModifiers.Entry entry : mods.modifiers()) {
+            if (entry.attribute().value() != Attributes.ARMOR.value()) continue;
+            // Only flat additions: a percentage modifier has no meaning without a
+            // base to apply it to, and vanilla armour never uses one.
+            if (entry.modifier().operation() != AttributeModifier.Operation.ADD_VALUE) continue;
+            total += entry.modifier().amount();
+        }
+        return total;
+    }
+
+    /**
+     * Apoli's {@code origins:harvest_level}, on versions where Minecraft no longer has
+     * one. Numeric harvest levels were removed in 1.20.5 and replaced by per-tier
+     * "blocks this tool cannot drop" tags, so the level is recovered from the tag the
+     * stack's {@code minecraft:tool} component denies drops for. That keeps the Apoli
+     * numbering (wood/gold 0, stone 1, iron 2, diamond 3, netherite 4) for both vanilla
+     * and modded tools that follow the vanilla tier tags, and yields 0 for anything that
+     * is not a tool.
+     */
+    private static ItemCondition parseHarvestLevel(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType cmp = ComparisonType.fromString(comp);
+        return s -> cmp.test(harvestLevelOf(s), target);
+    }
+
+    /** Apoli tier numbering keyed by the vanilla {@code incorrect_for_*_tool} block tag. */
+    private static final java.util.Map<String, Integer> TIER_LEVEL_BY_TAG = java.util.Map.of(
+        "incorrect_for_wooden_tool",    0,
+        "incorrect_for_gold_tool",      0,
+        "incorrect_for_stone_tool",     1,
+        // 26.x adds a copper tier between stone and iron; Apoli predates it and
+        // has no number for it, so it shares stone's. On 1.21.1 this never matches.
+        "incorrect_for_copper_tool",    1,
+        "incorrect_for_iron_tool",      2,
+        "incorrect_for_diamond_tool",   3,
+        "incorrect_for_netherite_tool", 4);
+
+    static int harvestLevelOf(ItemStack s) {
+        if (s.isEmpty()) return 0;
+        Tool tool = s.get(DataComponents.TOOL);
+        if (tool == null) return 0;
+        int level = 0;
+        for (Tool.Rule rule : tool.rules()) {
+            // The tier is named by the deny rule ("cannot drop these blocks"), not
+            // by the mining-speed rules, which are keyed on material instead.
+            if (rule.correctForDrops().orElse(true)) continue;
+            var tagKey = rule.blocks().unwrapKey().orElse(null);
+            if (tagKey == null) continue;
+            Integer mapped = TIER_LEVEL_BY_TAG.get(tagKey.location().getPath());
+            if (mapped != null) level = Math.max(level, mapped);
+        }
+        return level;
+    }
+
+    /**
+     * Apoli's {@code origins:durability}: remaining durability, i.e. how many more hits
+     * the stack has left. Non-damageable items report 0 — matching Apoli, where a stone
+     * block is not "infinitely durable" but simply has no durability.
+     */
+    private static ItemCondition parseDurability(JsonObject json) {
+        String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
+        int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 0;
+        ComparisonType cmp = ComparisonType.fromString(comp);
+        return s -> cmp.test(remainingDurabilityOf(s), target);
+    }
+
+    static int remainingDurabilityOf(ItemStack s) {
+        if (s.isEmpty() || !s.isDamageableItem()) return 0;
+        return s.getMaxDamage() - s.getDamageValue();
     }
 
     /** Stack-count comparison: {@code comparison} (default {@code >=}) against {@code compare_to} (default 1). */

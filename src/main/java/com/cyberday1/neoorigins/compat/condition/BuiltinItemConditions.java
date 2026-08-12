@@ -41,6 +41,12 @@ import java.util.Map;
  *   <li>{@code amount} — stack-count comparison.</li>
  *   <li>{@code name} — display-name string equality.</li>
  *   <li>{@code food} — item has a food component.</li>
+ *   <li>{@code meat} — food tagged raw or cooked meat.</li>
+ *   <li>{@code armor_value} — armour conferred by this stack.</li>
+ *   <li>{@code harvest_level} — tool tier, recovered from the tier tags that
+ *       replaced numeric harvest levels in 1.20.5.</li>
+ *   <li>{@code durability} — remaining durability on the stack.</li>
+ *   <li>{@code constant} — fixed {@code value}.</li>
  *   <li>{@code not} — single nested {@code item_condition} negated (explicit
  *       cross-doc {@code ref} so the name-heuristic resolver routes to this
  *       doc — not the entity condition doc — when nested).</li>
@@ -116,6 +122,38 @@ public final class BuiltinItemConditions {
                 .doc("Exact display-name text the stack's hover name must equal (custom name, else default item name).")));
         // food — item has a food component (no fields).
         define("food", List.of());
+        // meat — food tagged as raw or cooked meat (no fields).
+        define("meat", List.of());
+        // armor_value — armour this stack confers, not the wearer's total.
+        define("armor_value", List.of(
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against the stack's armour value (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.NUMBER, false).def(0)
+                .doc("Armour-value threshold. Counts only flat minecraft:armor bonuses on the "
+                    + "stack, so anything that grants no armour reads 0. Note the entity condition "
+                    + "of the same name measures the wearer's total instead.")));
+        // harvest_level — tool tier, in Apoli's numbering.
+        define("harvest_level", List.of(
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against the tool tier (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(0)
+                .doc("Tier threshold: wood/gold 0, stone 1, iron 2, diamond 3, netherite 4. "
+                    + "Minecraft dropped numeric harvest levels in 1.20.5, so the tier is read back "
+                    + "from the tier tag on the tool; anything that is not a tool reads 0.")));
+        // durability — remaining durability on the stack.
+        define("durability", List.of(
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against remaining durability (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(0)
+                .doc("Remaining-durability threshold: max damage minus current damage. "
+                    + "Items that cannot take damage read 0.")));
+        // constant — fixed outcome, mostly used to stub a branch out.
+        define("constant", List.of(
+            new FieldSpec("value", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                .doc("The value this condition always returns.")));
         // not — single nested item condition, negated.
         define("not", List.of(
             new FieldSpec("condition", FormFieldSpec.Kind.REF, false)
