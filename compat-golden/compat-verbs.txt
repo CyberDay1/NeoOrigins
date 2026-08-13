@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 919   typed-objects: 1370   distinct-types: 148
+# files-scanned: 919   typed-objects: 1372   distinct-types: 148
 
 == RECOGNIZED VERBS ==
 [action] (93)
@@ -251,7 +251,7 @@ apoli:submerged_in_water	x1	recognized=condition	fields={}
 neoorigins:action_on_event	x44	recognized=-	fields={condition,description,entity_action,event,modifier,name}
 neoorigins:action_on_hit	x6	recognized=-	fields={action,amount,amplifier,description,duration,effect,name,target_group}
 neoorigins:active_ability	x48	recognized=-	fields={condition,cooldown_icon,cooldown_ticks,description,entity_action,hunger_cost,key,name,resource_cost,resource_cost_amount}
-neoorigins:active_dash	x3	recognized=-	fields={allow_vertical,cooldown_icon,cooldown_ticks,damage,damage_radius,description,name,power,set_velocity,weapon_damage_scale}
+neoorigins:active_dash	x3	recognized=-	fields={allow_vertical,condition,cooldown_icon,cooldown_ticks,damage,damage_radius,description,name,power,set_velocity,weapon_damage_scale}
 neoorigins:active_phase	x3	recognized=-	fields={cooldown_icon,cooldown_ticks,hunger_cost,max_depth,resource_cost,resource_cost_amount}
 neoorigins:active_place_block	x3	recognized=-	fields={block_id,cooldown_icon,cooldown_ticks,max_distance,resource_cost,resource_cost_amount}
 neoorigins:active_teleport	x4	recognized=-	fields={cooldown_icon,cooldown_ticks,description,mode,name,range,resource_cost,resource_cost_amount}
@@ -278,7 +278,7 @@ neoorigins:conditional	x1	recognized=-	fields={condition,description,inner_power
 neoorigins:config_flag	x1	recognized=condition	fields={key}
 neoorigins:constant	x2	recognized=condition,item_condition	fields={value}
 neoorigins:craft_amount_bonus	x1	recognized=-	fields={bonus_count,item_id}
-neoorigins:creative_flight	x2	recognized=-	fields={cooldown_icon,description,name}
+neoorigins:creative_flight	x2	recognized=-	fields={condition,cooldown_icon,description,name}
 neoorigins:crop_growth_accelerator	x4	recognized=-	fields={description,growths_per_interval,name,radius,tick_interval}
 neoorigins:crop_harvest_bonus	x2	recognized=-	fields={extra_drops,multiplier}
 neoorigins:damage	x38	recognized=action,item_action	fields={amount,source,weapon_damage_scale}
@@ -293,7 +293,7 @@ neoorigins:enchantment	x2	recognized=condition,item_condition	fields={compare_to
 neoorigins:ender_gaze_immunity	x1	recognized=-	fields={description,name}
 neoorigins:enhanced_vision	x4	recognized=-	fields={exposure}
 neoorigins:entity_group	x6	recognized=-	fields={description,group,name}
-neoorigins:equipped_item	x7	recognized=condition	fields={equipment_slot,item_condition}
+neoorigins:equipped_item	x9	recognized=condition	fields={equipment_slot,item_condition}
 neoorigins:exposed_to_sun	x19	recognized=condition	fields={}
 neoorigins:flight	x2	recognized=-	fields={cooldown_icon,description,name,render_elytra}
 neoorigins:food_item_id	x9	recognized=condition	fields={id}
@@ -397,7 +397,7 @@ neoorigins:ultimine	fields={}
 neoorigins:ender_gaze_immunity	fields={}
 neoorigins:xeno_passive	fields={}
 neoorigins:flight	fields={always_show_icon,cooldown_icon,render_elytra,texture_location}
-neoorigins:creative_flight	fields={always_show_icon,cooldown_icon,enabled}
+neoorigins:creative_flight	fields={always_show_icon,condition,cooldown_icon,enabled}
 neoorigins:ignore_water	fields={}
 neoorigins:ignore_fluid	fields={fluid,fluids}
 neoorigins:natural_glide	fields={render_elytra,texture_location}
@@ -469,7 +469,7 @@ neoorigins:wraith_phase	fields={always_on,always_show_icon,blocked_blocks,cooldo
 neoorigins:action_on_hit	fields={action,amount,amplifier,bientity_action,chance,damage_type,duration,effect,entity_action,min_damage,target_group,target_type}
 neoorigins:size_scaling	fields={modify_reach,reach_bonus,scale}
 neoorigins:active_bolt	fields={always_show_icon,cooldown_countdown,cooldown_icon,cooldown_ticks,speed}
-neoorigins:active_dash	fields={allow_vertical,always_show_icon,cooldown_countdown,cooldown_icon,cooldown_ticks,damage,damage_radius,power,set_velocity,weapon_damage_scale}
+neoorigins:active_dash	fields={allow_vertical,always_show_icon,condition,cooldown_countdown,cooldown_icon,cooldown_ticks,damage,damage_radius,power,set_velocity,weapon_damage_scale}
 neoorigins:active_fireball	fields={always_show_icon,cooldown_countdown,cooldown_icon,cooldown_ticks,speed}
 neoorigins:active_phase	fields={always_show_icon,cooldown_countdown,cooldown_icon,cooldown_ticks,hunger_cost,max_depth}
 neoorigins:active_place_block	fields={always_show_icon,block_id,cooldown_countdown,cooldown_icon,cooldown_ticks,hunger_cost,max_distance}

@@ -288,6 +288,8 @@ public final class BuiltinPowers {
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC,
             RENDER_ELYTRA_OFF_SPEC, ELYTRA_TEXTURE_SPEC));
         define("creative_flight",          CreativeFlightPower.class,         List.of(
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gating the flight, re-tested every tick: while it fails the ability is stripped, so a player already airborne falls. Omit for unconditional flight."),
             ENABLED_SPEC, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
         define("ignore_water",             IgnoreWaterPower.class,            List.of());
         // ignore_fluid: generalised successor to ignore_water. Both keys take a
@@ -902,6 +904,8 @@ public final class BuiltinPowers {
                 .def(2.0).doc("Radius around the dash path within which entities are hit when the damage sweep runs; default 2.0."),
             new FieldSpec("weapon_damage_scale", Kind.NUMBER, false)
                 .def(0.0).doc("Adds this fraction of the held weapon's attack damage on top of 'damage' (1.0 = full weapon damage); default 0."),
+            new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition gating the dash: while it fails the keypress does nothing and no cooldown is spent (default always-true)."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
